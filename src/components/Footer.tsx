@@ -36,10 +36,11 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="text-white font-semibold mb-4">{t('footer.legal')}</h3>
             <ul className="space-y-2 text-sm">
+              <li><Link to="/legal" className="hover:text-pink-400 transition">📋 Centro Legal</Link></li>
               <li><Link to="/policies" className="hover:text-pink-400 transition">{t('footer.terms')}</Link></li>
               <li><Link to="/policies" className="hover:text-pink-400 transition">{t('footer.privacy')}</Link></li>
-              <li><Link to="/policies" className="hover:text-pink-400 transition">{t('footer.cookies')}</Link></li>
-              <li><Link to="/policies" className="hover:text-pink-400 transition">{t('footer.dmca')}</Link></li>
+              <li><Link to="/policies" className="hover:text-pink-400 transition">🤝 Contrato de Creadores</Link></li>
+              <li><Link to="/policies" className="hover:text-pink-400 transition">🛡️ Protección de Menores</Link></li>
             </ul>
           </div>
 

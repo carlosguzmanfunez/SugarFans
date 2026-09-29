@@ -18,6 +18,7 @@ import Policies from './pages/Policies';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import VIPExperiences from './pages/VIPExperiences';
+import LegalPolicies from './pages/LegalPolicies';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; roles?: string[] }> = ({ children, roles }) => {
   const { isAuthenticated, user, ageVerified } = useAuth();
@@ -78,6 +79,9 @@ const AppRoutes: React.FC = () => {
       } />
       <Route path="/policies" element={
         <AppLayout><Policies /></AppLayout>
+      } />
+      <Route path="/legal" element={
+        <AppLayout><LegalPolicies /></AppLayout>
       } />
 
       {/* Protected pages */}
