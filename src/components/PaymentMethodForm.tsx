@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { addPaymentMethod, PaymentKind } from '../lib/platform';
+import type { User } from '../context/AuthContext';
+import { addPaymentMethod, type PaymentKind } from '../lib/platform';
 
 const input = 'w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-sm';
 
 // Add a card, bank transfer account or crypto wallet. Only masked data is stored.
-const PaymentMethodForm: React.FC<{ userId: string; onAdded: (id: string) => void; onCancel?: () => void }> = ({
-  userId,
+const PaymentMethodForm: React.FC<{ user: User; onAdded: (id: string) => void; onCancel?: () => void }> = ({
+  user,
   onAdded,
   onCancel,
 }) => {
@@ -19,14 +20,19 @@ const PaymentMethodForm: React.FC<{ userId: string; onAdded: (id: string) => voi
   const [network, setNetwork] = useState<'BTC' | 'ETH' | 'USDT'>('USDT');
   const [wallet, setWallet] = useState('');
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const submit = () => {
-    const result =
+  const submit = async () => {
+    setSaving(true);
+    const result = await addPaymentMethod(
+      user,
       kind === 'card'
-        ? addPaymentMethod(userId, { kind, holder, number, expiry, cvc })
+        ? { kind, holder, number, expiry, cvc }
         : kind === 'bank'
-          ? addPaymentMethod(userId, { kind, holder, bank, account })
-          : addPaymentMethod(userId, { kind, network, wallet });
+          ? { kind, holder, bank, account }
+          : { kind, network, wallet }
+    );
+    setSaving(false);
     if (!result.ok || !result.id) return setError(result.error || 'No se pudo guardar el método de pago');
     setError('');
     onAdded(result.id);
@@ -93,7 +99,7 @@ const PaymentMethodForm: React.FC<{ userId: string; onAdded: (id: string) => voi
         {onCancel && (
           <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancelar</button>
         )}
-        <button type="button" onClick={submit} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:opacity-90">
+        <button type="button" onClick={submit} disabled={saving} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:opacity-90">
           Guardar método de pago
         </button>
       </div>

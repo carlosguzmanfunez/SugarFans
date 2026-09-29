@@ -2,13 +2,20 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { creators, categories, posts } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
-import { usePlatform, isBlockedEitherWay } from '../lib/platform';
+import { usePlatformQuery, platformApi, isCutOff } from '../lib/platform';
 
 const Explore: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
-  const platform = usePlatform();
+  const { data: platform } = usePlatformQuery(
+    async () => {
+      const [removedPosts, blocks] = await Promise.all([platformApi.removedPosts(), user ? platformApi.blocks(user) : Promise.resolve([])]);
+      return { removedPosts, blocks };
+    },
+    [user?.id],
+    { removedPosts: [] as string[], blocks: [] as Awaited<ReturnType<typeof platformApi.blocks>> }
+  );
   // Blocked profiles (either direction) and posts removed by moderation are hidden.
-  const hidden = (creatorId: string) => !!user && isBlockedEitherWay(platform, user.id, creatorId);
+  const hidden = (creatorId: string) => !!user && isCutOff(platform.blocks, user.id, creatorId);
   const visiblePosts = posts.filter((p) => !platform.removedPosts.includes(p.id) && !hidden(p.creatorId));
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');

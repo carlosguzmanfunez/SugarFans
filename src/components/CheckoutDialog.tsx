@@ -1,28 +1,38 @@
-import React, { useState } from 'react';
-import { usePlatform, methodsFor, defaultMethodFor, money } from '../lib/platform';
+import React, { useEffect, useState } from 'react';
+import type { User } from '../context/AuthContext';
+import { usePlatformQuery, platformApi, money } from '../lib/platform';
 import PaymentMethodForm from './PaymentMethodForm';
 
 interface Props {
-  userId: string;
+  user: User;
   title: string;
   amount: number;
   note?: string; // e.g. "Se renueva el 29 de cada mes"
   confirmLabel?: string;
-  onConfirm: (methodId: string) => { ok: boolean; error?: string };
+  onConfirm: (methodId: string) => Promise<{ ok: boolean; error?: string }>;
   onClose: () => void;
 }
 
 // Pick (or add) a payment method and confirm a charge. Reusable for subscriptions and VIP bookings.
-const CheckoutDialog: React.FC<Props> = ({ userId, title, amount, note, confirmLabel = 'Pagar', onConfirm, onClose }) => {
-  const data = usePlatform();
-  const methods = methodsFor(data, userId);
-  const [selected, setSelected] = useState(defaultMethodFor(data, userId)?.id ?? '');
-  const [adding, setAdding] = useState(methods.length === 0);
+const CheckoutDialog: React.FC<Props> = ({ user, title, amount, note, confirmLabel = 'Pagar', onConfirm, onClose }) => {
+  const { data: methods, loading } = usePlatformQuery(() => platformApi.paymentMethods(user.id), [user.id], []);
+  const [selected, setSelected] = useState('');
+  const [adding, setAdding] = useState(false);
   const [error, setError] = useState('');
+  const [paying, setPaying] = useState(false);
 
-  const confirm = () => {
+  // Preselect the default method; open the form straight away when there is none.
+  useEffect(() => {
+    if (loading) return;
+    if (!methods.length) setAdding(true);
+    else if (!methods.some((m) => m.id === selected)) setSelected((methods.find((m) => m.isDefault) ?? methods[0]).id);
+  }, [loading, methods, selected]);
+
+  const confirm = async () => {
     if (!selected) return setError('Añade o elige un método de pago');
-    const result = onConfirm(selected);
+    setPaying(true);
+    const result = await onConfirm(selected);
+    setPaying(false);
     if (!result.ok) setError(result.error || 'No se pudo completar el pago');
   };
 
@@ -34,7 +44,7 @@ const CheckoutDialog: React.FC<Props> = ({ userId, title, amount, note, confirmL
             <h3 className="text-lg font-bold text-gray-900">{title}</h3>
             {note && <p className="text-sm text-gray-500 mt-1">{note}</p>}
           </div>
-          <button type="button" onClick={onClose} aria-label="Cerrar" className="text-gray-400 hover:text-gray-600">
+          <button type="button" onClick={onClose} aria-label="Cerrar" className="p-1 text-gray-400 hover:text-gray-600">
             <i className="fas fa-times"></i>
           </button>
         </div>
@@ -57,7 +67,7 @@ const CheckoutDialog: React.FC<Props> = ({ userId, title, amount, note, confirmL
 
         {adding ? (
           <PaymentMethodForm
-            userId={userId}
+            user={user}
             onAdded={(id) => { setSelected(id); setAdding(false); setError(''); }}
             onCancel={methods.length ? () => setAdding(false) : undefined}
           />
@@ -72,7 +82,7 @@ const CheckoutDialog: React.FC<Props> = ({ userId, title, amount, note, confirmL
         <button
           type="button"
           onClick={confirm}
-          disabled={adding}
+          disabled={adding || paying || !selected}
           className="mt-5 w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-xl font-bold hover:opacity-90 disabled:opacity-40"
         >
           <i className="fas fa-lock mr-2"></i>{confirmLabel} {money(amount)}

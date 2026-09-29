@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { submitReport, ReportKind } from '../lib/platform';
+import { submitReport, type ReportKind } from '../lib/platform';
 
 export const REPORT_REASONS = [
   'Contenido inapropiado',
@@ -26,8 +26,8 @@ const ReportDialog: React.FC<Props> = ({ kind, targetId, targetLabel, onClose })
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
 
-  const send = () => {
-    const result = submitReport(user, { kind, targetId, targetLabel, reason, description, contactEmail: email });
+  const send = async () => {
+    const result = await submitReport(user, { kind, targetId, targetLabel, reason, description, contactEmail: email });
     if (!result.ok) return setError(result.error || 'No se pudo enviar el reporte');
     setDone(true);
   };

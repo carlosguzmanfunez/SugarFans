@@ -5,16 +5,12 @@ import { creators } from '../data/mockData';
 import IdentityVerification from '../components/IdentityVerification';
 import PaymentMethodForm from '../components/PaymentMethodForm';
 import {
-  usePlatform,
-  methodsFor,
-  transactionsFor,
+  usePlatformQuery,
+  platformApi,
   removePaymentMethod,
   setDefaultPaymentMethod,
-  blocksBy,
   unblockUser,
-  creatorEarnings,
   exportUserData,
-  purgeUserData,
   nextRenewal,
   money,
 } from '../lib/platform';
@@ -36,7 +32,24 @@ const fmtDate = (iso: string | Date) => new Date(iso).toLocaleDateString('es', {
 
 const Settings: React.FC = () => {
   const { user, updateUser, changePassword, deleteAccount, toggleSubscription } = useAuth();
-  const platform = usePlatform();
+  const userId = user?.id ?? '';
+  const { data: platform } = usePlatformQuery(
+    async () => {
+      if (!user) return { methods: [], payments: [], blocks: [] };
+      const [methods, payments, blocks] = await Promise.all([
+        platformApi.paymentMethods(user.id),
+        platformApi.myPayments(user.id),
+        platformApi.blocks(user),
+      ]);
+      return { methods, payments, blocks: blocks.filter((b) => b.blockerId === user.id) };
+    },
+    [userId],
+    {
+      methods: [] as Awaited<ReturnType<typeof platformApi.paymentMethods>>,
+      payments: [] as Awaited<ReturnType<typeof platformApi.myPayments>>,
+      blocks: [] as Awaited<ReturnType<typeof platformApi.blocks>>,
+    }
+  );
   const [addingMethod, setAddingMethod] = useState(false);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -89,7 +102,7 @@ const Settings: React.FC = () => {
     return result.ok;
   };
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     const data: Parameters<typeof updateUser>[0] = { name, email };
     if (avatarSeed) data.avatar = `https://api.dicebear.com/7.0/adventurer/svg?seed=${encodeURIComponent(avatarSeed)}`;
     if (user?.role === 'creator') {
@@ -98,7 +111,8 @@ const Settings: React.FC = () => {
       if (Number.isNaN(parsed)) return showResult({ ok: false, error: 'Introduce un precio válido' });
       data.subscriptionPrice = Math.round(parsed * 100) / 100;
     }
-    if (showResult(updateUser(data))) setAvatarSeed('');
+    const result = await updateUser(data);
+    if (showResult(result, result.notice || undefined)) setAvatarSeed('');
   };
 
   const handleSaveSecurity = async () => {
@@ -115,26 +129,22 @@ const Settings: React.FC = () => {
     }
   };
 
-  const updateSettings = (next: Partial<UserSettings>) => {
-    showResult(updateUser({ settings: { ...settings, ...next } }), 'Preferencia guardada');
+  const updateSettings = async (next: Partial<UserSettings>) => {
+    showResult(await updateUser({ settings: { ...settings, ...next } }), 'Preferencia guardada');
   };
 
   const handleDelete = async () => {
     if (deleteConfirm !== 'ELIMINAR') {
       return showResult({ ok: false, error: 'Escribe ELIMINAR para confirmar' });
     }
-    const userId = user?.id;
     const result = await deleteAccount(deletePassword);
-    if (result.ok) {
-      if (userId) purgeUserData(userId);
-      navigate('/', { replace: true });
-    }
+    if (result.ok) navigate('/', { replace: true });
     else showResult(result);
   };
 
-  const downloadMyData = () => {
+  const downloadMyData = async () => {
     if (!user) return;
-    const blob = new Blob([JSON.stringify(exportUserData(user), null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(await exportUserData(user), null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -144,9 +154,7 @@ const Settings: React.FC = () => {
     setSaved('Descarga de tus datos iniciada');
   };
 
-  const myMethods = user ? methodsFor(platform, user.id) : [];
-  const myPayments = user ? transactionsFor(platform, user.id) : [];
-  const myBlocks = user ? blocksBy(platform, user.id) : [];
+  const { methods: myMethods, payments: myPayments, blocks: myBlocks } = platform;
   const mySubscriptions = (user?.subscriptions ?? []).map((sub) => ({
     sub,
     name: creators.find((c) => c.id === sub.creatorId)?.name ?? 'Creador',
@@ -457,11 +465,11 @@ const Settings: React.FC = () => {
                           {m.isDefault ? (
                             <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Principal</span>
                           ) : (
-                            <button type="button" onClick={() => setDefaultPaymentMethod(user.id, m.id)} className="text-xs text-pink-600 hover:text-pink-700">
+                            <button type="button" onClick={() => setDefaultPaymentMethod(user, m.id)} className="text-xs text-pink-600 hover:text-pink-700">
                               Hacer principal
                             </button>
                           )}
-                          <button type="button" aria-label={`Eliminar ${m.label}`} onClick={() => removePaymentMethod(user.id, m.id)} className="p-2 text-gray-400 hover:text-red-500">
+                          <button type="button" aria-label={`Eliminar ${m.label}`} onClick={() => removePaymentMethod(user, m.id)} className="p-2 text-gray-400 hover:text-red-500">
                             <i className="fas fa-trash"></i>
                           </button>
                         </div>
@@ -469,7 +477,7 @@ const Settings: React.FC = () => {
                     ))}
                     {addingMethod ? (
                       <PaymentMethodForm
-                        userId={user.id}
+                        user={user}
                         onAdded={() => { setAddingMethod(false); setSaved('Método de pago añadido'); }}
                         onCancel={() => setAddingMethod(false)}
                       />
@@ -531,9 +539,7 @@ const Settings: React.FC = () => {
                 {user.role === 'creator' && (
                   <div className="bg-white rounded-2xl shadow-sm p-6">
                     <h2 className="text-lg font-bold text-gray-900 mb-2">Cuenta para retiros</h2>
-                    <p className="text-sm text-gray-600">
-                      Balance disponible: <strong className="text-green-600">{money(creatorEarnings(platform, user.id).available)}</strong>
-                    </p>
+                    <p className="text-sm text-gray-600">Tu saldo, la cuenta bancaria y los retiros se gestionan en el panel de creador.</p>
                     <Link to="/creator/dashboard?tab=earnings" className="mt-3 inline-block bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">
                       Gestionar retiros
                     </Link>
@@ -559,7 +565,7 @@ const Settings: React.FC = () => {
                           <p className="text-sm font-medium text-gray-900">{b.targetName}</p>
                           <p className="text-xs text-gray-500">Bloqueado el {fmtDate(b.createdAt)}</p>
                         </div>
-                        <button type="button" onClick={() => user && unblockUser(user.id, b.targetId)} className="text-sm text-pink-600 hover:text-pink-700">
+                        <button type="button" onClick={() => user && unblockUser(user, b.targetId)} className="text-sm text-pink-600 hover:text-pink-700">
                           Desbloquear
                         </button>
                       </div>

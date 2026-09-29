@@ -1,31 +1,16 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import CreatorPayouts from '../components/CreatorPayouts';
-import {
-  usePlatform,
-  isIdentityVerified,
-  latestVerification,
-  creatorEarnings,
-  creatorSales,
-  creatorProfileIdFor,
-  hasBlocked,
-  blockUser,
-  unblockUser,
-  money,
-  CREATOR_SHARE,
-} from '../lib/platform';
+import { usePlatformQuery, platformApi, computeEarnings, iBlocked, blockUser, unblockUser, money, CREATOR_SHARE } from '../lib/platform';
+import { statusLabel, formatLongDate, WEEKDAYS, ALL_HOURS, MAX_BOOKING_MONTHS, DEFAULT_AVAILABILITY } from '../lib/vip';
+import { backend } from '../lib/backend';
+import { useBackendData } from '../lib/useBackendData';
 
 const CreatorDashboard: React.FC = () => {
-  const { user, addPost, deletePost, updateUser, listAccounts } = useAuth();
+  const { user, addPost, deletePost, updateUser } = useAuth();
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'overview');
-  const platform = usePlatform();
-  const verified = isIdentityVerified(platform, user);
-  const verificationStatus = user ? latestVerification(platform, user.id)?.status : undefined;
-  const earnings = user ? creatorEarnings(platform, user.id) : null;
-  const profileId = user ? creatorProfileIdFor(user.id) : '';
-  const monthName = (iso: string) => new Date(iso).toLocaleDateString('es', { month: 'short', year: 'numeric' });
   const [showNewPost, setShowNewPost] = useState(false);
   const [postText, setPostText] = useState('');
   const [postLocked, setPostLocked] = useState(false);
@@ -36,45 +21,84 @@ const CreatorDashboard: React.FC = () => {
   const [price, setPrice] = useState(String(user?.subscriptionPrice ?? 9.99));
   const [category, setCategory] = useState(user?.settings.category ?? 'Modelaje');
 
-  const handlePublish = () => {
-    if (!verified) {
-      setNotice({ ok: false, text: 'Verifica tu identidad antes de publicar contenido' });
-      return;
-    }
-    if (!postText.trim()) {
-      setNotice({ ok: false, text: 'Escribe algo antes de publicar' });
-      return;
-    }
-    addPost(postText, postLocked);
+  const profileId = user?.creatorProfileId ?? user?.id ?? '';
+  const [availDays, setAvailDays] = useState<number[]>(DEFAULT_AVAILABILITY.days);
+  const [availHours, setAvailHours] = useState<string[]>(DEFAULT_AVAILABILITY.hours);
+  useEffect(() => {
+    backend.getAvailability(profileId).then((a) => {
+      setAvailDays(a.days);
+      setAvailHours(a.hours);
+    });
+  }, [profileId]);
+  const { data: vipBookings, reload: reloadBookings } = useBackendData(() => backend.creatorBookings(profileId), [profileId], []);
+  const pendingVip = vipBookings.filter((b) => b.status === 'pending').length;
+
+  // Real verification state, fan payments (80% for the creator), subscribers and blocks.
+  const verified = !!user?.isVerified;
+  const { data: live } = usePlatformQuery(
+    async () => {
+      if (!user) return null;
+      const [verification, sales, payouts, opening, subs, blocks] = await Promise.all([
+        platformApi.myVerification(user.id),
+        platformApi.creatorSales(profileId),
+        platformApi.myPayouts(user.id),
+        platformApi.openingBalance(profileId),
+        platformApi.mySubscribers(user),
+        platformApi.blocks(user),
+      ]);
+      return { verification, sales, payouts, opening, subs, blocks };
+    },
+    [user?.id, profileId],
+    null
+  );
+  const verificationStatus = live?.verification?.status;
+  const earnings = live ? computeEarnings(live.opening, live.sales, live.payouts) : null;
+  const monthName = (iso: string) => new Date(iso).toLocaleDateString('es', { month: 'short', year: 'numeric' });
+
+  const toggle = <T,>(list: T[], item: T) => (list.includes(item) ? list.filter((x) => x !== item) : [...list, item]);
+
+  const show = (result: { ok: boolean; error?: string }, okText: string) =>
+    setNotice(result.ok ? { ok: true, text: okText } : { ok: false, text: result.error || 'Error al guardar' });
+
+  const handleSaveAvailability = async () => {
+    show(await backend.setAvailability(profileId, { days: availDays, hours: availHours }), 'Horarios guardados');
+  };
+
+  const handleBookingDecision = async (id: string, next: 'accepted' | 'rejected') => {
+    if (!user) return;
+    show(await backend.updateBooking(user, id, next), next === 'accepted' ? 'Reserva aceptada. El fan ya puede pagar.' : 'Reserva rechazada');
+    await reloadBookings();
+  };
+
+  const handlePublish = async () => {
+    if (!verified) return show({ ok: false, error: 'Verifica tu identidad antes de publicar contenido' }, '');
+    const result = await addPost(postText, postLocked);
+    if (!result.ok) return show(result, '');
     setPostText('');
     setPostLocked(false);
     setShowNewPost(false);
     setActiveTab('content');
-    setNotice({ ok: true, text: 'Publicación creada' });
+    show(result, 'Publicación creada');
   };
 
-  const handleSaveSettings = () => {
+  const handleSaveSettings = async () => {
     const parsed = parseFloat(price);
     if (Number.isNaN(parsed)) {
       setNotice({ ok: false, text: 'Introduce un precio válido' });
       return;
     }
-    const result = updateUser({
+    const result = await updateUser({
       name: displayName,
       bio,
       subscriptionPrice: Math.round(parsed * 100) / 100,
       settings: { ...user!.settings, category },
     });
-    setNotice(result.ok ? { ok: true, text: 'Cambios guardados exitosamente' } : { ok: false, text: result.error || 'Error al guardar' });
+    show(result, 'Cambios guardados exitosamente');
   };
 
-  // Real fans subscribed to this creator's public profile.
-  const subscribers = listAccounts()
-    .flatMap((a) => {
-      const sub = a.subscriptions.find((x) => x.creatorId === profileId);
-      return sub ? [{ id: a.id, name: a.name, avatar: a.avatar, since: monthName(sub.since), plan: 'Mensual' }] : [];
-    });
-  const activeSubscribers = subscribers.filter((s) => !hasBlocked(platform, user?.id ?? '', s.id)).length;
+  const subscribers = (live?.subs ?? []).map((sub) => ({ ...sub, since: monthName(sub.since), plan: 'Mensual' }));
+  const isBlocked = (fanId: string) => !!user && !!live && iBlocked(live.blocks, user.id, fanId);
+  const activeSubscribers = subscribers.filter((sub) => !isBlocked(sub.id)).length;
 
   const stats = [
     { label: 'Ingresos del mes', value: money(earnings?.thisMonth ?? 0), change: `${CREATOR_SHARE * 100}%`, icon: 'fa-dollar-sign', color: 'green' },
@@ -83,7 +107,7 @@ const CreatorDashboard: React.FC = () => {
     { label: 'Me gusta totales', value: '89.2K', change: '+5.2K', icon: 'fa-heart', color: 'pink' },
   ];
 
-  const recentTransactions = (user ? creatorSales(platform, user.id) : []).slice(0, 5).map((t) => ({
+  const recentTransactions = (live?.sales ?? []).slice(0, 5).map((t) => ({
     id: t.id,
     type: 'Suscripción',
     user: t.payerName,
@@ -91,9 +115,6 @@ const CreatorDashboard: React.FC = () => {
     date: new Date(t.createdAt).toLocaleString('es'),
     status: 'completed',
   }));
-
-
-
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -112,7 +133,7 @@ const CreatorDashboard: React.FC = () => {
           </button>
         </div>
 
-        {!verified && (
+        {!verified && live && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3" data-testid="verification-banner">
             <p className="text-sm text-yellow-800">
               <i className="fas fa-id-card mr-2"></i>
@@ -182,6 +203,7 @@ const CreatorDashboard: React.FC = () => {
             { id: 'content', label: 'Contenido', icon: 'fa-images' },
             { id: 'subscribers', label: 'Suscriptores', icon: 'fa-users' },
             { id: 'earnings', label: 'Ingresos', icon: 'fa-wallet' },
+            { id: 'vip', label: `Experiencias VIP${pendingVip ? ` (${pendingVip})` : ''}`, icon: 'fa-crown' },
             { id: 'settings', label: 'Configuración', icon: 'fa-cog' },
           ].map((tab) => (
             <button
@@ -338,13 +360,13 @@ const CreatorDashboard: React.FC = () => {
                     <button className="p-2 text-gray-400 hover:text-pink-500 transition">
                       <i className="fas fa-envelope"></i>
                     </button>
-                    {hasBlocked(platform, user!.id, sub.id) ? (
-                      <button onClick={() => unblockUser(user!.id, sub.id)} className="px-3 py-1 text-xs text-pink-600 hover:text-pink-700">
+                    {isBlocked(sub.id) ? (
+                      <button onClick={() => user && unblockUser(user, sub.id)} className="px-3 py-1 text-xs text-pink-600 hover:text-pink-700">
                         Desbloquear
                       </button>
                     ) : (
                       <button
-                        onClick={() => window.confirm(`¿Bloquear a ${sub.name}? No podrá ver tu contenido ni contactarte.`) && blockUser(user!.id, sub.id, sub.name)}
+                        onClick={() => user && window.confirm(`¿Bloquear a ${sub.name}? No podrá ver tu contenido ni contactarte.`) && blockUser(user, sub.id, sub.name)}
                         aria-label={`Bloquear a ${sub.name}`}
                         className="p-2 text-gray-400 hover:text-red-500 transition"
                       >
@@ -359,6 +381,89 @@ const CreatorDashboard: React.FC = () => {
         )}
 
         {activeTab === 'earnings' && <CreatorPayouts />}
+
+        {activeTab === 'vip' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="vip-availability">
+              <h3 className="font-bold text-gray-900 mb-1">Mis horarios para experiencias VIP</h3>
+              <p className="text-sm text-gray-500 mb-5">
+                Los fans solo podrán reservar en estos días y horas, con hasta {MAX_BOOKING_MONTHS} meses de antelación.
+              </p>
+              <p className="text-sm font-medium text-gray-700 mb-2">Días</p>
+              <div className="flex flex-wrap gap-2 mb-5">
+                {WEEKDAYS.map((d, i) => (
+                  <button
+                    key={d}
+                    type="button"
+                    aria-pressed={availDays.includes(i)}
+                    onClick={() => setAvailDays(toggle(availDays, i))}
+                    className={`w-12 py-2 rounded-xl text-sm font-medium border transition ${
+                      availDays.includes(i) ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-200 text-gray-600 hover:border-purple-300'
+                    }`}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+              <p className="text-sm font-medium text-gray-700 mb-2">Horas</p>
+              <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 mb-6">
+                {ALL_HOURS.map((h) => (
+                  <button
+                    key={h}
+                    type="button"
+                    aria-pressed={availHours.includes(h)}
+                    onClick={() => setAvailHours(toggle(availHours, h))}
+                    className={`py-2 rounded-xl text-sm font-medium border transition ${
+                      availHours.includes(h) ? 'bg-pink-500 text-white border-pink-500' : 'border-gray-200 text-gray-600 hover:border-pink-300'
+                    }`}
+                  >
+                    {h}
+                  </button>
+                ))}
+              </div>
+              <button onClick={handleSaveAvailability} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition">
+                Guardar horarios
+              </button>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="vip-requests">
+              <h3 className="font-bold text-gray-900 mb-4">Solicitudes de reserva</h3>
+              {vipBookings.length === 0 ? (
+                <p className="text-sm text-gray-500">Aún no tienes solicitudes.</p>
+              ) : (
+                <div className="space-y-3">
+                  {vipBookings.map((b) => (
+                    <div key={b.id} data-testid="vip-request" className="border border-gray-100 rounded-xl p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{b.title}</p>
+                          <p className="text-xs text-gray-500">
+                            {b.fanName} · <span className="first-letter:uppercase">{formatLongDate(b.date)}</span> · {b.time}
+                          </p>
+                        </div>
+                        <span className="text-sm font-bold text-gray-900">${b.price}</span>
+                      </div>
+                      {b.message && <p className="text-sm text-gray-600 mt-2 italic">“{b.message}”</p>}
+                      <div className="flex items-center justify-between mt-3">
+                        <span className={`text-xs px-2 py-1 rounded-full ${statusLabel[b.status].className}`}>{statusLabel[b.status].text}</span>
+                        {b.status === 'pending' && (
+                          <div className="flex gap-2">
+                            <button onClick={() => handleBookingDecision(b.id, 'rejected')} className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">
+                              Rechazar
+                            </button>
+                            <button onClick={() => handleBookingDecision(b.id, 'accepted')} className="text-xs px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700">
+                              Aceptar
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {activeTab === 'settings' && (
           <div className="bg-white rounded-2xl shadow-sm p-6">

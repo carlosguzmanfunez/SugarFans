@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  usePlatform,
-  creatorEarnings,
-  creatorSales,
-  isIdentityVerified,
+  usePlatformQuery,
+  platformApi,
+  computeEarnings,
   setPayoutAccount,
   requestPayout,
   money,
@@ -20,7 +19,26 @@ const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: '
 // Creator dashboard > Ingresos: real balance (80% of fan payments), payout account and withdrawals.
 const CreatorPayouts: React.FC = () => {
   const { user } = useAuth();
-  const data = usePlatform();
+  const userId = user?.id ?? '';
+  const profileId = user?.creatorProfileId ?? userId;
+  const { data } = usePlatformQuery(
+    async () => {
+      const [sales, payouts, payoutAccount, opening] = await Promise.all([
+        platformApi.creatorSales(profileId),
+        platformApi.myPayouts(userId),
+        platformApi.payoutAccount(userId),
+        platformApi.openingBalance(profileId),
+      ]);
+      return { sales, payouts, payoutAccount, opening };
+    },
+    [userId, profileId],
+    { sales: [], payouts: [], payoutAccount: null, opening: 0 } as {
+      sales: Awaited<ReturnType<typeof platformApi.creatorSales>>;
+      payouts: Awaited<ReturnType<typeof platformApi.myPayouts>>;
+      payoutAccount: Awaited<ReturnType<typeof platformApi.payoutAccount>>;
+      opening: number;
+    }
+  );
   const [holder, setHolder] = useState('');
   const [bank, setBank] = useState('');
   const [account, setAccount] = useState('');
@@ -29,19 +47,18 @@ const CreatorPayouts: React.FC = () => {
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
 
   if (!user) return null;
-  const earnings = creatorEarnings(data, user.id);
-  const sales = creatorSales(data, user.id);
-  const payoutAccount = data.payoutAccounts[user.id];
-  const verified = isIdentityVerified(data, user);
+  const { sales, payoutAccount } = data;
+  const earnings = { ...computeEarnings(data.opening, sales, data.payouts), payouts: data.payouts };
+  const verified = !!user.isVerified;
 
-  const saveAccount = () => {
-    const r = setPayoutAccount(user.id, holder, bank, account);
+  const saveAccount = async () => {
+    const r = await setPayoutAccount(user, holder, bank, account);
     setNotice(r.ok ? { ok: true, text: 'Cuenta de retiro guardada' } : { ok: false, text: r.error! });
     if (r.ok) setEditingAccount(false);
   };
 
-  const withdraw = () => {
-    const r = requestPayout(user, parseFloat(amount));
+  const withdraw = async () => {
+    const r = await requestPayout(user, parseFloat(amount));
     setNotice(
       r.ok
         ? { ok: true, text: `Retiro programado para el ${fmtDate(firstOfNextMonth().toISOString())}` }

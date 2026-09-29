@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
-  usePlatform,
+  usePlatformQuery,
+  platformApi,
   reviewVerification,
   resolveReport,
   restorePost,
   processPayout,
-  isIdentityVerified,
   docTypeLabel,
   money,
-  VerificationRequest,
+  type VerificationRequest,
 } from '../lib/platform';
 
 const ago = (iso: string) => {
@@ -25,14 +25,33 @@ const roleName = { fan: 'Fan', creator: 'Creador', admin: 'Admin' } as const;
 
 const AdminDashboard: React.FC = () => {
   const { user, listAccounts } = useAuth();
-  const platform = usePlatform();
+  const { data: accounts, reload: reloadAccounts } = usePlatformQuery(listAccounts, [], []);
+  const { data: platform } = usePlatformQuery(
+    async () => {
+      const [verifications, reports, payouts, transactions, removedPosts] = await Promise.all([
+        platformApi.listVerifications(),
+        platformApi.listReports(),
+        platformApi.listPayouts(),
+        platformApi.allPayments(),
+        platformApi.removedPosts(),
+      ]);
+      return { verifications, reports, payouts, transactions, removedPosts };
+    },
+    [],
+    {
+      verifications: [] as VerificationRequest[],
+      reports: [] as Awaited<ReturnType<typeof platformApi.listReports>>,
+      payouts: [] as Awaited<ReturnType<typeof platformApi.listPayouts>>,
+      transactions: [] as Awaited<ReturnType<typeof platformApi.allPayments>>,
+      removedPosts: [] as string[],
+    }
+  );
   const [activeTab, setActiveTab] = useState('overview');
   const [userQuery, setUserQuery] = useState('');
   const [viewing, setViewing] = useState<VerificationRequest | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const accounts = listAccounts();
   const pendingVerifications = platform.verifications.filter((v) => v.status === 'pending');
   const reports = [...platform.reports].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const pendingReports = reports.filter((r) => r.status === 'pending');
@@ -51,7 +70,7 @@ const AdminDashboard: React.FC = () => {
     { label: 'Reportes pendientes', value: String(pendingReports.length), icon: 'fa-flag', color: 'red' },
   ];
 
-  const recentUsers = accounts
+  const recentUsers = [...accounts]
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .filter((u) => {
       const q = userQuery.trim().toLowerCase();
@@ -62,13 +81,14 @@ const AdminDashboard: React.FC = () => {
       name: u.name,
       email: u.email,
       role: roleName[u.role],
-      status: isIdentityVerified(platform, u) ? 'verified' : 'active',
+      status: u.isVerified ? 'verified' : 'active',
       date: new Date(u.createdAt).toLocaleDateString('es'),
     }));
 
-  const review = (v: VerificationRequest, approve: boolean) => {
-    const r = reviewVerification(v.id, approve, rejectReason);
+  const review = async (v: VerificationRequest, approve: boolean) => {
+    const r = await reviewVerification(v.id, approve, rejectReason);
     if (!r.ok) return setNotice({ ok: false, text: r.error! });
+    reloadAccounts();
     setNotice({ ok: true, text: approve ? `Identidad de ${v.userName} aprobada` : `Solicitud de ${v.userName} rechazada` });
     setViewing(null);
     setRejectReason('');

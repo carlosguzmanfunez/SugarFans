@@ -21,9 +21,17 @@ import VIPExperiences from './pages/VIPExperiences';
 import LegalPolicies from './pages/LegalPolicies';
 import PlatformSync from './components/PlatformSync';
 
+const LoadingScreen: React.FC = () => (
+  <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-label="Cargando">
+    <div className="w-10 h-10 border-4 border-pink-200 border-t-pink-500 rounded-full animate-spin"></div>
+  </div>
+);
+
 const ProtectedRoute: React.FC<{ children: React.ReactNode; roles?: string[] }> = ({ children, roles }) => {
-  const { isAuthenticated, user, ageVerified } = useAuth();
+  const { isAuthenticated, user, ageVerified, loading } = useAuth();
   const location = useLocation();
+
+  if (loading) return <LoadingScreen />;
 
   // Remember where the user was going so they land there after the check.
   if (!ageVerified) return <Navigate to="/age-verification" replace state={{ from: location.pathname }} />;
@@ -35,7 +43,8 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; roles?: string[] }> 
 
 // Login/register are pointless once signed in.
 const GuestOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
+  if (loading) return <LoadingScreen />;
   if (isAuthenticated) return <Navigate to="/explore" replace />;
   return <>{children}</>;
 };

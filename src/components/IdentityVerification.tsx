@@ -1,14 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import {
-  usePlatform,
-  latestVerification,
-  isIdentityVerified,
-  submitVerification,
-  readImageFile,
-  docTypeLabel,
-  DocType,
-} from '../lib/platform';
+import { usePlatformQuery, platformApi, submitVerification, readImageFile, docTypeLabel, type DocType } from '../lib/platform';
 
 const field = 'w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-sm';
 
@@ -52,7 +44,11 @@ const PhotoInput: React.FC<{ name: string; label: string; hint: string; value: s
 // Settings > Verificación: upload an ID document + selfie, then follow the review status.
 const IdentityVerification: React.FC = () => {
   const { user } = useAuth();
-  const data = usePlatform();
+  const { data: request, loading } = usePlatformQuery(
+    () => (user ? platformApi.myVerification(user.id) : Promise.resolve(null)),
+    [user?.id, user?.isVerified],
+    null
+  );
   const [legalName, setLegalName] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [country, setCountry] = useState('');
@@ -63,13 +59,15 @@ const IdentityVerification: React.FC = () => {
   const [selfie, setSelfie] = useState('');
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(false);
+  const [sending, setSending] = useState(false);
 
-  if (!user) return null;
-  const request = latestVerification(data, user.id);
-  const verified = isIdentityVerified(data, user);
+  if (!user || loading) return null;
+  const verified = !!user.isVerified || request?.status === 'approved';
 
-  const submit = () => {
-    const result = submitVerification(user, { legalName, birthDate, country, docType, docNumber, docFront, docBack, selfie });
+  const submit = async () => {
+    setSending(true);
+    const result = await submitVerification(user, { legalName, birthDate, country, docType, docNumber, docFront, docBack, selfie });
+    setSending(false);
     if (!result.ok) return setError(result.error || 'No se pudo enviar la solicitud');
     setError('');
     setRetry(false);
@@ -166,7 +164,7 @@ const IdentityVerification: React.FC = () => {
           <i className="fas fa-shield-alt mr-1"></i>Solo el equipo de verificación ve estas imágenes y se eliminan en cuanto se aprueba la solicitud.
         </p>
         {error && <p role="alert" className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
-        <button type="button" onClick={submit} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition">
+        <button type="button" onClick={submit} disabled={sending} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition">
           Enviar para verificación
         </button>
       </div>

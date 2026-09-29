@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { creators } from '../data/mockData';
-import { syncRenewals } from '../lib/platform';
+import { platformApi, platformChanged } from '../lib/platform';
 
 const creatorNames = Object.fromEntries(creators.map((c) => [c.id, c.name]));
 
@@ -9,7 +9,7 @@ const creatorNames = Object.fromEntries(creators.map((c) => [c.id, c.name]));
 const PlatformSync: React.FC = () => {
   const { user } = useAuth();
   useEffect(() => {
-    if (user) syncRenewals(user, creatorNames);
+    if (user?.subscriptions.length) platformApi.billDueRenewals(user, creatorNames).then(platformChanged);
   }, [user]);
   return null;
 };

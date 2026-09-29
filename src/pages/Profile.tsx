@@ -1,18 +1,27 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { creators } from '../data/mockData';
-import { usePlatform, isIdentityVerified, latestVerification, nextRenewal } from '../lib/platform';
+import { statusLabel, formatLongDate, type BookingStatus } from '../lib/vip';
+import { backend } from '../lib/backend';
+import { useBackendData } from '../lib/useBackendData';
+import { usePlatformQuery, platformApi, nextRenewal } from '../lib/platform';
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 
 const Profile: React.FC = () => {
-  const { user, toggleSubscription, cancelBooking } = useAuth();
-  const platform = usePlatform();
+  const { user, toggleSubscription } = useAuth();
+  const { data: myBookings, reload } = useBackendData(() => (user ? backend.fanBookings(user.id) : Promise.resolve([])), [user?.id], []);
+  const { data: verification } = usePlatformQuery(() => (user ? platformApi.myVerification(user.id) : Promise.resolve(null)), [user?.id], null);
+  const [bookingError, setBookingError] = useState('');
 
   if (!user) return null;
-  const verified = isIdentityVerified(platform, user);
-  const verificationStatus = latestVerification(platform, user.id)?.status;
+
+  const changeBooking = async (id: string, next: BookingStatus) => {
+    const result = await backend.updateBooking(user, id, next);
+    setBookingError(result.ok ? '' : result.error || 'No se pudo actualizar la reserva');
+    await reload();
+  };
 
   const subscribedCreators = user.subscriptions.flatMap((sub) => {
     const creator = creators.find((c) => c.id === sub.creatorId);
@@ -30,7 +39,7 @@ const Profile: React.FC = () => {
             <div className="mt-4">
               <div className="flex items-center space-x-2">
                 <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
-                {verified && (
+                {user.isVerified && (
                   <span className="flex items-center bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium">
                     <i className="fas fa-check-circle mr-1"></i> Verificado
                   </span>
@@ -81,31 +90,48 @@ const Profile: React.FC = () => {
             <h3 className="font-bold text-gray-900 mb-3">
               <i className="fas fa-crown text-pink-500 mr-2"></i> Reservas VIP
             </h3>
-            {user.bookings.length === 0 ? (
+            {bookingError && <p role="alert" className="text-sm text-red-600 mb-2">{bookingError}</p>}
+            {myBookings.length === 0 ? (
               <p className="text-sm text-gray-500">
                 Aún no tienes reservas. <Link to="/vip-experiences" className="text-pink-600">Ver experiencias</Link>
               </p>
             ) : (
               <div className="space-y-3">
-                {[...user.bookings].reverse().map((b) => (
-                  <div key={b.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{b.title} - {b.creatorName}</p>
-                      <p className="text-xs text-gray-500">{b.date} · {b.time}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
+                {myBookings.map((b) => (
+                  <div key={b.id} data-testid="booking" className="py-2 border-b border-gray-100 last:border-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{b.title} - {b.creatorName}</p>
+                        <p className="text-xs text-gray-500 first-letter:uppercase">{formatLongDate(b.date)} · {b.time}</p>
+                      </div>
                       <span className="text-sm font-bold text-gray-900">${b.price}</span>
-                      {b.status === 'pending' ? (
-                        <button
-                          onClick={() => cancelBooking(b.id)}
-                          className="text-xs text-red-600 hover:text-red-700"
-                        >
-                          Cancelar
-                        </button>
-                      ) : (
-                        <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">Cancelada</span>
-                      )}
                     </div>
+                    <div className="flex items-center justify-between mt-2 gap-2">
+                      <span className={`text-xs px-2 py-1 rounded-full ${statusLabel[b.status].className}`}>{statusLabel[b.status].text}</span>
+                      <div className="flex items-center gap-3">
+                        {b.status === 'accepted' && (
+                          <button
+                            onClick={() => changeBooking(b.id, 'confirmed')}
+                            className="text-xs bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-1.5 rounded-lg font-medium"
+                          >
+                            Pagar ${b.price}
+                          </button>
+                        )}
+                        {(b.status === 'pending' || b.status === 'accepted') && (
+                          <button
+                            onClick={() => changeBooking(b.id, 'cancelled')}
+                            className="text-xs text-red-600 hover:text-red-700"
+                          >
+                            Cancelar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {b.emailSentAt && (
+                      <p className="text-xs text-green-700 mt-2">
+                        <i className="fas fa-envelope mr-1"></i> Correo de confirmación enviado a {b.fanEmail}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -168,13 +194,13 @@ const Profile: React.FC = () => {
             </div>
             <div>
               <p className="text-gray-500">Verificación de identidad</p>
-              {verified ? (
+              {user.isVerified ? (
                 <p className="font-medium text-green-600"><i className="fas fa-check-circle mr-1"></i> Verificada</p>
-              ) : verificationStatus === 'pending' ? (
+              ) : verification?.status === 'pending' ? (
                 <p className="font-medium text-yellow-600"><i className="fas fa-clock mr-1"></i> En revisión</p>
               ) : (
                 <Link to="/settings?section=verification" className="font-medium text-pink-600 hover:text-pink-700">
-                  <i className="fas fa-id-card mr-1"></i> {verificationStatus === 'rejected' ? 'Rechazada · volver a enviar' : 'Verificar identidad'}
+                  <i className="fas fa-id-card mr-1"></i> {verification?.status === 'rejected' ? 'Rechazada · volver a enviar' : 'Verificar identidad'}
                 </Link>
               )}
             </div>

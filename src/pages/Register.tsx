@@ -45,6 +45,7 @@ const Register: React.FC = () => {
   };
 
   const [submitting, setSubmitting] = useState(false);
+  const [confirmNotice, setConfirmNotice] = useState('');
 
   const handleSubmit = async () => {
     if (!agreeTerms) {
@@ -58,6 +59,10 @@ const Register: React.FC = () => {
       setError(result.error || 'No se pudo crear la cuenta');
       // Send the user back to the step that holds the offending field.
       if (result.error?.includes('email') || result.error?.includes('nombre')) setStep(1);
+      return;
+    }
+    if (result.needsConfirmation) {
+      setConfirmNotice(result.notice || 'Revisa tu correo para confirmar la cuenta.');
       return;
     }
     navigate(role === 'creator' ? '/creator/dashboard' : '/explore', { replace: true });
@@ -82,6 +87,18 @@ const Register: React.FC = () => {
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
+          {confirmNotice ? (
+            <div className="text-center py-6" role="status">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i className="fas fa-envelope text-2xl text-green-600"></i>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Cuenta creada!</h2>
+              <p className="text-gray-600 mb-6">{confirmNotice}</p>
+              <Link to="/login" className="inline-block bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-bold">
+                Ir a iniciar sesión
+              </Link>
+            </div>
+          ) : (<>
           {/* Progress */}
           <div className="flex items-center justify-center mb-6">
             {[1, 2, 3].map((s) => (
@@ -218,6 +235,8 @@ const Register: React.FC = () => {
               </div>
             </div>
           )}
+
+          </>)}
 
           <p className="text-center text-sm text-gray-600 mt-6">
             {t('register.hasAccount')}{' '}

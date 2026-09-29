@@ -5,10 +5,11 @@ import { useAuth } from '../context/AuthContext';
 import CheckoutDialog from '../components/CheckoutDialog';
 import ReportDialog from '../components/ReportDialog';
 import {
-  usePlatform,
-  chargeSubscription,
-  hasBlocked,
-  accountIdForProfile,
+  usePlatformQuery,
+  platformApi,
+  platformChanged,
+  iBlocked as hasBlocked,
+  blockedByProfile,
   blockUser,
   unblockUser,
   addMonths,
@@ -16,11 +17,18 @@ import {
 
 const CreatorProfile: React.FC = () => {
   const { id } = useParams();
-  const { isAuthenticated, user, isSubscribed: hasSubscription, toggleSubscription } = useAuth();
+  const { isAuthenticated, user, isSubscribed: hasSubscription, toggleSubscription, refreshUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<'posts' | 'media' | 'about'>('posts');
-  const platform = usePlatform();
+  const { data: platform } = usePlatformQuery(
+    async () => {
+      const [removedPosts, blocks] = await Promise.all([platformApi.removedPosts(), user ? platformApi.blocks(user) : Promise.resolve([])]);
+      return { removedPosts, blocks };
+    },
+    [user?.id],
+    { removedPosts: [] as string[], blocks: [] as Awaited<ReturnType<typeof platformApi.blocks>> }
+  );
   const [checkout, setCheckout] = useState(false);
   const [reporting, setReporting] = useState<{ kind: 'post' | 'creator'; targetId: string; label: string } | null>(null);
 
@@ -42,8 +50,8 @@ const CreatorProfile: React.FC = () => {
   }
 
   const creatorPosts = posts.filter(p => p.creatorId === creator.id && !platform.removedPosts.includes(p.id));
-  const iBlocked = !!user && hasBlocked(platform, user.id, creator.id);
-  const blockedMe = !!user && hasBlocked(platform, accountIdForProfile(creator.id), user.id);
+  const iBlocked = !!user && hasBlocked(platform.blocks, user.id, creator.id);
+  const blockedMe = !!user && blockedByProfile(platform.blocks, user.id, creator.id);
   const isSubscribed = hasSubscription(creator.id) && !iBlocked && !blockedMe;
 
   const handleSubscribe = () => {
@@ -58,10 +66,11 @@ const CreatorProfile: React.FC = () => {
     setCheckout(true);
   };
 
-  const confirmPayment = (methodId: string) => {
-    const result = chargeSubscription(user!, creator.id, creator.name, creator.subscriptionPrice, methodId);
+  const confirmPayment = async (methodId: string) => {
+    const result = await platformApi.subscribeAndPay(user!, creator.id, creator.name, creator.subscriptionPrice, methodId);
     if (!result.ok) return result;
-    toggleSubscription(creator.id, creator.subscriptionPrice);
+    await refreshUser();
+    platformChanged();
     setCheckout(false);
     return result;
   };
@@ -74,15 +83,15 @@ const CreatorProfile: React.FC = () => {
     setReporting({ kind, targetId, label });
   };
 
-  const handleBlock = () => {
+  const handleBlock = async () => {
     if (!user) return;
     if (iBlocked) {
-      unblockUser(user.id, creator.id);
+      await unblockUser(user, creator.id);
       return;
     }
     if (!window.confirm(`¿Bloquear a ${creator.name}? No podrá contactarte ni ver tu actividad, dejarás de ver su contenido y se cancelará tu suscripción.`)) return;
-    blockUser(user.id, creator.id, creator.name);
-    if (hasSubscription(creator.id)) toggleSubscription(creator.id, creator.subscriptionPrice);
+    await blockUser(user, creator.id, creator.name);
+    if (hasSubscription(creator.id)) await toggleSubscription(creator.id, creator.subscriptionPrice);
   };
 
   if (blockedMe) {
@@ -349,7 +358,7 @@ const CreatorProfile: React.FC = () => {
 
       {checkout && user && (
         <CheckoutDialog
-          userId={user.id}
+          user={user}
           title={`Suscripción a ${creator.name}`}
           amount={creator.subscriptionPrice}
           note={`Mensual. Se renueva el día ${addMonths(new Date().toISOString(), 1).getDate()} de cada mes; cancela cuando quieras.`}

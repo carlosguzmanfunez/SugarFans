@@ -54,8 +54,8 @@ const Help: React.FC = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const sendReport = () => {
-    const result = submitReport(user, {
+  const sendReport = async () => {
+    const result = await submitReport(user, {
       kind: reportKind,
       targetLabel: reportKind === 'support' ? 'Consulta a soporte' : target,
       reason: reportKind === 'support' ? 'Consulta a soporte' : reason,
