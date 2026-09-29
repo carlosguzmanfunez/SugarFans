@@ -1,0 +1,320 @@
+import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+
+const CreatorDashboard: React.FC = () => {
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState('overview');
+  const [showNewPost, setShowNewPost] = useState(false);
+
+  const stats = [
+    { label: 'Ingresos del mes', value: '$2,450.00', change: '+12%', icon: 'fa-dollar-sign', color: 'green' },
+    { label: 'Suscriptores activos', value: '245', change: '+8', icon: 'fa-users', color: 'blue' },
+    { label: 'Publicaciones', value: '256', change: '+12', icon: 'fa-image', color: 'purple' },
+    { label: 'Me gusta totales', value: '89.2K', change: '+5.2K', icon: 'fa-heart', color: 'pink' },
+  ];
+
+  const recentTransactions = [
+    { id: '1', type: 'Suscripción', user: 'Carlos M.', amount: '$9.99', date: 'Hoy, 10:30', status: 'completed' },
+    { id: '2', type: 'Propina', user: 'Ana R.', amount: '$5.00', date: 'Hoy, 09:15', status: 'completed' },
+    { id: '3', type: 'PPV', user: 'Miguel S.', amount: '$4.99', date: 'Ayer, 22:00', status: 'completed' },
+    { id: '4', type: 'Suscripción', user: 'Laura P.', amount: '$9.99', date: 'Ayer, 18:45', status: 'completed' },
+    { id: '5', type: 'Suscripción', user: 'Pedro G.', amount: '$9.99', date: 'Ayer, 15:30', status: 'pending' },
+  ];
+
+  const subscribers = [
+    { id: '1', name: 'Carlos M.', avatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=carlos', since: 'Ene 2024', plan: 'Mensual' },
+    { id: '2', name: 'Ana R.', avatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=ana', since: 'Dic 2023', plan: 'Anual' },
+    { id: '3', name: 'Miguel S.', avatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=miguel', since: 'Ene 2024', plan: 'Mensual' },
+    { id: '4', name: 'Laura P.', avatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=laura', since: 'Nov 2023', plan: 'Mensual' },
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Panel de Creador</h1>
+            <p className="text-gray-600">Bienvenida, {user?.name}</p>
+          </div>
+          <button
+            onClick={() => setShowNewPost(!showNewPost)}
+            className="mt-4 sm:mt-0 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition shadow-lg"
+          >
+            <i className="fas fa-plus mr-2"></i> Nueva Publicación
+          </button>
+        </div>
+
+        {/* New Post Modal */}
+        {showNewPost && (
+          <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-pink-100">
+            <h3 className="font-bold text-lg mb-4">Crear nueva publicación</h3>
+            <textarea
+              className="w-full p-4 border border-gray-200 rounded-xl resize-none h-24 focus:ring-2 focus:ring-pink-500 outline-none"
+              placeholder="¿Qué quieres compartir con tus fans?"
+            ></textarea>
+            <div className="flex items-center justify-between mt-4">
+              <div className="flex space-x-3">
+                <button className="flex items-center text-sm text-gray-600 hover:text-pink-500 transition">
+                  <i className="fas fa-image mr-1"></i> Foto
+                </button>
+                <button className="flex items-center text-sm text-gray-600 hover:text-pink-500 transition">
+                  <i className="fas fa-video mr-1"></i> Video
+                </button>
+                <button className="flex items-center text-sm text-gray-600 hover:text-pink-500 transition">
+                  <i className="fas fa-lock mr-1"></i> Exclusivo
+                </button>
+              </div>
+              <div className="flex space-x-3">
+                <button onClick={() => setShowNewPost(false)} className="px-4 py-2 text-gray-600 hover:text-gray-800">
+                  Cancelar
+                </button>
+                <button className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-2 rounded-xl font-medium hover:opacity-90">
+                  Publicar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tabs */}
+        <div className="flex space-x-1 bg-white rounded-xl p-1 shadow-sm mb-8 overflow-x-auto">
+          {[
+            { id: 'overview', label: 'Resumen', icon: 'fa-chart-pie' },
+            { id: 'content', label: 'Contenido', icon: 'fa-images' },
+            { id: 'subscribers', label: 'Suscriptores', icon: 'fa-users' },
+            { id: 'earnings', label: 'Ingresos', icon: 'fa-wallet' },
+            { id: 'settings', label: 'Configuración', icon: 'fa-cog' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
+                activeTab === tab.id ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <i className={`fas ${tab.icon} mr-1`}></i> {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Stats Grid */}
+        {activeTab === 'overview' && (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              {stats.map((stat, i) => (
+                <div key={i} className="bg-white rounded-2xl p-5 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className={`w-10 h-10 rounded-xl bg-${stat.color}-100 flex items-center justify-center`}>
+                      <i className={`fas ${stat.icon} text-${stat.color}-600`}></i>
+                    </div>
+                    <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                      {stat.change}
+                    </span>
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                  <p className="text-sm text-gray-500 mt-1">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Revenue Chart Placeholder */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm mb-8">
+              <h3 className="font-bold text-gray-900 mb-4">Ingresos últimos 7 días</h3>
+              <div className="flex items-end space-x-2 h-40">
+                {[65, 45, 80, 55, 90, 70, 95].map((height, i) => (
+                  <div key={i} className="flex-1 flex flex-col items-center">
+                    <div
+                      className="w-full bg-gradient-to-t from-pink-500 to-purple-500 rounded-t-lg transition-all hover:opacity-80"
+                      style={{ height: `${height}%` }}
+                    ></div>
+                    <span className="text-xs text-gray-500 mt-2">
+                      {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][i]}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Recent Transactions */}
+            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div className="p-5 border-b border-gray-100">
+                <h3 className="font-bold text-gray-900">Transacciones Recientes</h3>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {recentTransactions.map((tx) => (
+                  <div key={tx.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        tx.type === 'Suscripción' ? 'bg-blue-100' : tx.type === 'Propina' ? 'bg-green-100' : 'bg-purple-100'
+                      }`}>
+                        <i className={`fas ${
+                          tx.type === 'Suscripción' ? 'fa-user-plus text-blue-600' : tx.type === 'Propina' ? 'fa-gift text-green-600' : 'fa-film text-purple-600'
+                        } text-xs`}></i>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{tx.type} - {tx.user}</p>
+                        <p className="text-xs text-gray-500">{tx.date}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-gray-900">{tx.amount}</p>
+                      <span className={`text-xs ${tx.status === 'completed' ? 'text-green-600' : 'text-yellow-600'}`}>
+                        {tx.status === 'completed' ? '✓ Completado' : '⏳ Pendiente'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'content' && (
+          <div className="bg-white rounded-2xl shadow-sm p-6">
+            <h3 className="font-bold text-gray-900 mb-4">Gestión de Contenido</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="border border-gray-200 rounded-xl p-4 hover:border-pink-300 transition cursor-pointer">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-900">Set de fotos - Playa</span>
+                  <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Público</span>
+                </div>
+                <div className="flex items-center space-x-3 text-xs text-gray-500">
+                  <span><i className="fas fa-heart mr-1"></i>342</span>
+                  <span><i className="fas fa-comment mr-1"></i>56</span>
+                  <span><i className="fas fa-eye mr-1"></i>1.2K</span>
+                </div>
+              </div>
+              <div className="border border-gray-200 rounded-xl p-4 hover:border-pink-300 transition cursor-pointer">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-900">Video exclusivo - Sesión</span>
+                  <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">Exclusivo</span>
+                </div>
+                <div className="flex items-center space-x-3 text-xs text-gray-500">
+                  <span><i className="fas fa-heart mr-1"></i>890</span>
+                  <span><i className="fas fa-comment mr-1"></i>123</span>
+                  <span><i className="fas fa-dollar-sign mr-1"></i>$4.99</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'subscribers' && (
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div className="p-5 border-b border-gray-100 flex justify-between items-center">
+              <h3 className="font-bold text-gray-900">Suscriptores ({subscribers.length})</h3>
+              <button className="text-sm text-pink-600 hover:text-pink-700">
+                <i className="fas fa-envelope mr-1"></i> Enviar mensaje a todos
+              </button>
+            </div>
+            <div className="divide-y divide-gray-100">
+              {subscribers.map((sub) => (
+                <div key={sub.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
+                  <div className="flex items-center space-x-3">
+                    <img src={sub.avatar} alt="" className="w-10 h-10 rounded-full" />
+                    <div>
+                      <p className="font-medium text-gray-900">{sub.name}</p>
+                      <p className="text-xs text-gray-500">Suscriptor desde {sub.since} • {sub.plan}</p>
+                    </div>
+                  </div>
+                  <div className="flex space-x-2">
+                    <button className="p-2 text-gray-400 hover:text-pink-500 transition">
+                      <i className="fas fa-envelope"></i>
+                    </button>
+                    <button className="p-2 text-gray-400 hover:text-red-500 transition">
+                      <i className="fas fa-ban"></i>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'earnings' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl shadow-sm p-6">
+              <h3 className="font-bold text-gray-900 mb-4">Resumen de Ingresos</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-green-50 rounded-xl p-4">
+                  <p className="text-sm text-green-700">Este mes</p>
+                  <p className="text-2xl font-bold text-green-900">$2,450.00</p>
+                </div>
+                <div className="bg-blue-50 rounded-xl p-4">
+                  <p className="text-sm text-blue-700">Mes anterior</p>
+                  <p className="text-2xl font-bold text-blue-900">$2,180.00</p>
+                </div>
+                <div className="bg-purple-50 rounded-xl p-4">
+                  <p className="text-sm text-purple-700">Total acumulado</p>
+                  <p className="text-2xl font-bold text-purple-900">$15,890.00</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-2xl shadow-sm p-6">
+              <h3 className="font-bold text-gray-900 mb-4">Desglose por tipo</h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Suscripciones</span>
+                  <span className="font-bold">$1,850.00 (75%)</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="bg-pink-500 h-2 rounded-full" style={{ width: '75%' }}></div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Contenido PPV</span>
+                  <span className="font-bold">$420.00 (17%)</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="bg-purple-500 h-2 rounded-full" style={{ width: '17%' }}></div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Propinas</span>
+                  <span className="font-bold">$180.00 (8%)</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="bg-green-500 h-2 rounded-full" style={{ width: '8%' }}></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <div className="bg-white rounded-2xl shadow-sm p-6">
+            <h3 className="font-bold text-gray-900 mb-6">Configuración del Perfil</h3>
+            <div className="space-y-6 max-w-lg">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de visualización</label>
+                <input type="text" defaultValue={user?.name} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Biografía</label>
+                <textarea defaultValue={user?.bio} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none h-24 resize-none"></textarea>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Precio de suscripción (USD/mes)</label>
+                <input type="number" defaultValue="9.99" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Categoría principal</label>
+                <select className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none">
+                  <option>Modelaje</option>
+                  <option>Fitness</option>
+                  <option>Arte</option>
+                  <option>Música</option>
+                  <option>Lifestyle</option>
+                </select>
+              </div>
+              <button className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition">
+                Guardar cambios
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default CreatorDashboard;
