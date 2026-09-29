@@ -6,7 +6,8 @@
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
-    "e2e": "node e2e/flows.mjs"
+    "e2e": "vite build --mode offline && node e2e/flows.mjs",
+    "e2e:supabase": "vite build && node e2e/flows.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",

@@ -1,18 +1,25 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { creators } from '../data/mockData';
-import { bookingsForFan, updateBooking, statusLabel, formatLongDate, useVipStore } from '../lib/vip';
+import { statusLabel, formatLongDate, type BookingStatus } from '../lib/vip';
+import { backend } from '../lib/backend';
+import { useBackendData } from '../lib/useBackendData';
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 
 const Profile: React.FC = () => {
   const { user, toggleSubscription } = useAuth();
-  useVipStore();
+  const { data: myBookings, reload } = useBackendData(() => (user ? backend.fanBookings(user.id) : Promise.resolve([])), [user?.id], []);
+  const [bookingError, setBookingError] = useState('');
 
   if (!user) return null;
 
-  const myBookings = bookingsForFan(user.id);
+  const changeBooking = async (id: string, next: BookingStatus) => {
+    const result = await backend.updateBooking(user, id, next);
+    setBookingError(result.ok ? '' : result.error || 'No se pudo actualizar la reserva');
+    await reload();
+  };
 
   const subscribedCreators = user.subscriptions.flatMap((sub) => {
     const creator = creators.find((c) => c.id === sub.creatorId);
@@ -76,6 +83,7 @@ const Profile: React.FC = () => {
             <h3 className="font-bold text-gray-900 mb-3">
               <i className="fas fa-crown text-pink-500 mr-2"></i> Reservas VIP
             </h3>
+            {bookingError && <p role="alert" className="text-sm text-red-600 mb-2">{bookingError}</p>}
             {myBookings.length === 0 ? (
               <p className="text-sm text-gray-500">
                 Aún no tienes reservas. <Link to="/vip-experiences" className="text-pink-600">Ver experiencias</Link>
@@ -96,7 +104,7 @@ const Profile: React.FC = () => {
                       <div className="flex items-center gap-3">
                         {b.status === 'accepted' && (
                           <button
-                            onClick={() => updateBooking(b.id, { role: 'fan', fanId: user.id }, 'confirmed')}
+                            onClick={() => changeBooking(b.id, 'confirmed')}
                             className="text-xs bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-1.5 rounded-lg font-medium"
                           >
                             Pagar ${b.price}
@@ -104,7 +112,7 @@ const Profile: React.FC = () => {
                         )}
                         {(b.status === 'pending' || b.status === 'accepted') && (
                           <button
-                            onClick={() => updateBooking(b.id, { role: 'fan', fanId: user.id }, 'cancelled')}
+                            onClick={() => changeBooking(b.id, 'cancelled')}
                             className="text-xs text-red-600 hover:text-red-700"
                           >
                             Cancelar

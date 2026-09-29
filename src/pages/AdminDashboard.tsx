@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useBackendData } from '../lib/useBackendData';
 
 const AdminDashboard: React.FC = () => {
   const { user, listAccounts } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [userQuery, setUserQuery] = useState('');
+  const { data: accounts } = useBackendData(listAccounts, [], []);
 
   const stats = [
     { label: 'Usuarios totales', value: '52,340', icon: 'fa-users', color: 'blue' },
@@ -27,7 +29,7 @@ const AdminDashboard: React.FC = () => {
   ];
 
   const roleLabel = { fan: 'Fan', creator: 'Creador', admin: 'Admin' } as const;
-  const recentUsers = listAccounts()
+  const recentUsers = [...accounts]
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .filter((u) => {
       const q = userQuery.trim().toLowerCase();

@@ -18,9 +18,9 @@ const Navbar: React.FC = () => {
     setShowMobile(false);
   }, [location.pathname]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setShowMenu(false);
-    logout();
+    await logout();
     navigate('/');
   };
 

@@ -68,7 +68,7 @@ const Settings: React.FC = () => {
     return result.ok;
   };
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     const data: Parameters<typeof updateUser>[0] = { name, email };
     if (avatarSeed) data.avatar = `https://api.dicebear.com/7.0/adventurer/svg?seed=${encodeURIComponent(avatarSeed)}`;
     if (user?.role === 'creator') {
@@ -77,7 +77,8 @@ const Settings: React.FC = () => {
       if (Number.isNaN(parsed)) return showResult({ ok: false, error: 'Introduce un precio válido' });
       data.subscriptionPrice = Math.round(parsed * 100) / 100;
     }
-    if (showResult(updateUser(data))) setAvatarSeed('');
+    const result = await updateUser(data);
+    if (showResult(result, result.notice || undefined)) setAvatarSeed('');
   };
 
   const handleSaveSecurity = async () => {
@@ -94,8 +95,8 @@ const Settings: React.FC = () => {
     }
   };
 
-  const updateSettings = (next: Partial<UserSettings>) => {
-    showResult(updateUser({ settings: { ...settings, ...next } }), 'Preferencia guardada');
+  const updateSettings = async (next: Partial<UserSettings>) => {
+    showResult(await updateUser({ settings: { ...settings, ...next } }), 'Preferencia guardada');
   };
 
   const handleDelete = async () => {

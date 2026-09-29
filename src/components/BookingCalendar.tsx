@@ -3,16 +3,18 @@ import {
   bookingWindow,
   fromISODate,
   toISODate,
-  getAvailability,
-  availableHours,
-  takenHours,
+  freeHoursOn,
+  takenHoursOn,
   formatLongDate,
   WEEKDAYS,
   MAX_BOOKING_MONTHS,
+  type Availability,
+  type TakenSlot,
 } from '../lib/vip';
 
 interface Props {
-  creatorProfileId: string;
+  availability: Availability;
+  taken: TakenSlot[];
   creatorName: string;
   date: string;
   time: string;
@@ -21,9 +23,8 @@ interface Props {
 
 // Month calendar limited to the bookable window; only the creator's working
 // days are selectable, and only their free hours are offered.
-const BookingCalendar: React.FC<Props> = ({ creatorProfileId, creatorName, date, time, onChange }) => {
+const BookingCalendar: React.FC<Props> = ({ availability, taken: takenSlots, creatorName, date, time, onChange }) => {
   const { min, max } = bookingWindow();
-  const availability = getAvailability(creatorProfileId);
   const minDate = fromISODate(min);
   const maxDate = fromISODate(max);
   const [month, setMonth] = useState(() => {
@@ -40,14 +41,14 @@ const BookingCalendar: React.FC<Props> = ({ creatorProfileId, creatorName, date,
     const blanks = Array.from({ length: first.getDay() }, () => null);
     const days = Array.from({ length: daysInMonth }, (_, i) => {
       const iso = toISODate(new Date(month.getFullYear(), month.getMonth(), i + 1));
-      return { iso, day: i + 1, free: availableHours(creatorProfileId, iso).length > 0 };
+      return { iso, day: i + 1, free: freeHoursOn(availability, takenSlots, iso).length > 0 };
     });
     return [...blanks, ...days];
-  }, [month, creatorProfileId]);
+  }, [month, availability, takenSlots]);
 
   const monthLabel = month.toLocaleDateString('es', { month: 'long', year: 'numeric' });
-  const taken = date ? takenHours(creatorProfileId, date) : [];
-  const free = date ? availableHours(creatorProfileId, date) : [];
+  const taken = date ? takenHoursOn(takenSlots, date) : [];
+  const free = date ? freeHoursOn(availability, takenSlots, date) : [];
 
   if (availability.days.length === 0 || availability.hours.length === 0) {
     return (

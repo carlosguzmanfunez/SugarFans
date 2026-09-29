@@ -1,5 +1,7 @@
 // End-to-end check of every user flow in a real Chromium.
-// Usage: npm run build && npm run e2e   (serves dist/ with `vite preview`)
+// Usage: npm run e2e (offline, browser-only store) or npm run e2e:supabase
+// (against the Supabase project; needs network access to supabase.co and
+// "Confirm email" disabled). Serves dist/ with `vite preview`.
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
 

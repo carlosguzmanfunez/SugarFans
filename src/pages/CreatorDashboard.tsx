@@ -1,17 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import {
-  getAvailability,
-  setAvailability,
-  bookingsForCreator,
-  updateBooking,
-  statusLabel,
-  formatLongDate,
-  useVipStore,
-  WEEKDAYS,
-  ALL_HOURS,
-  MAX_BOOKING_MONTHS,
-} from '../lib/vip';
+import { statusLabel, formatLongDate, WEEKDAYS, ALL_HOURS, MAX_BOOKING_MONTHS, DEFAULT_AVAILABILITY } from '../lib/vip';
+import { backend } from '../lib/backend';
+import { useBackendData } from '../lib/useBackendData';
 
 const CreatorDashboard: React.FC = () => {
   const { user, addPost, deletePost, updateUser } = useAuth();
@@ -26,57 +17,56 @@ const CreatorDashboard: React.FC = () => {
   const [price, setPrice] = useState(String(user?.subscriptionPrice ?? 9.99));
   const [category, setCategory] = useState(user?.settings.category ?? 'Modelaje');
 
-  useVipStore();
   const profileId = user?.creatorProfileId ?? user?.id ?? '';
-  const [availDays, setAvailDays] = useState<number[]>(() => getAvailability(profileId).days);
-  const [availHours, setAvailHours] = useState<string[]>(() => getAvailability(profileId).hours);
-  const vipBookings = bookingsForCreator(profileId);
+  const [availDays, setAvailDays] = useState<number[]>(DEFAULT_AVAILABILITY.days);
+  const [availHours, setAvailHours] = useState<string[]>(DEFAULT_AVAILABILITY.hours);
+  useEffect(() => {
+    backend.getAvailability(profileId).then((a) => {
+      setAvailDays(a.days);
+      setAvailHours(a.hours);
+    });
+  }, [profileId]);
+  const { data: vipBookings, reload: reloadBookings } = useBackendData(() => backend.creatorBookings(profileId), [profileId], []);
   const pendingVip = vipBookings.filter((b) => b.status === 'pending').length;
 
   const toggle = <T,>(list: T[], item: T) => (list.includes(item) ? list.filter((x) => x !== item) : [...list, item]);
 
-  const handleSaveAvailability = () => {
-    if (availDays.length === 0 || availHours.length === 0) {
-      setNotice({ ok: false, text: 'Elige al menos un día y una hora' });
-      return;
-    }
-    setAvailability(profileId, { days: availDays, hours: availHours });
-    setNotice({ ok: true, text: 'Horarios guardados' });
+  const show = (result: { ok: boolean; error?: string }, okText: string) =>
+    setNotice(result.ok ? { ok: true, text: okText } : { ok: false, text: result.error || 'Error al guardar' });
+
+  const handleSaveAvailability = async () => {
+    show(await backend.setAvailability(profileId, { days: availDays, hours: availHours }), 'Horarios guardados');
   };
 
-  const handleBookingDecision = (id: string, next: 'accepted' | 'rejected') => {
-    const result = updateBooking(id, { role: 'creator', creatorProfileId: profileId }, next);
-    setNotice(result.ok
-      ? { ok: true, text: next === 'accepted' ? 'Reserva aceptada. El fan ya puede pagar.' : 'Reserva rechazada' }
-      : { ok: false, text: result.error || 'Error' });
+  const handleBookingDecision = async (id: string, next: 'accepted' | 'rejected') => {
+    if (!user) return;
+    show(await backend.updateBooking(user, id, next), next === 'accepted' ? 'Reserva aceptada. El fan ya puede pagar.' : 'Reserva rechazada');
+    await reloadBookings();
   };
 
-  const handlePublish = () => {
-    if (!postText.trim()) {
-      setNotice({ ok: false, text: 'Escribe algo antes de publicar' });
-      return;
-    }
-    addPost(postText, postLocked);
+  const handlePublish = async () => {
+    const result = await addPost(postText, postLocked);
+    if (!result.ok) return show(result, '');
     setPostText('');
     setPostLocked(false);
     setShowNewPost(false);
     setActiveTab('content');
-    setNotice({ ok: true, text: 'Publicación creada' });
+    show(result, 'Publicación creada');
   };
 
-  const handleSaveSettings = () => {
+  const handleSaveSettings = async () => {
     const parsed = parseFloat(price);
     if (Number.isNaN(parsed)) {
       setNotice({ ok: false, text: 'Introduce un precio válido' });
       return;
     }
-    const result = updateUser({
+    const result = await updateUser({
       name: displayName,
       bio,
       subscriptionPrice: Math.round(parsed * 100) / 100,
       settings: { ...user!.settings, category },
     });
-    setNotice(result.ok ? { ok: true, text: 'Cambios guardados exitosamente' } : { ok: false, text: result.error || 'Error al guardar' });
+    show(result, 'Cambios guardados exitosamente');
   };
 
   const stats = [

@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { vipExperiences, VIPExperience } from '../data/mockData';
 import { useLanguage } from '../context/LanguageContext';
 import BookingCalendar from '../components/BookingCalendar';
-import { createBooking, formatLongDate } from '../lib/vip';
+import { formatLongDate, DEFAULT_AVAILABILITY, type Availability, type TakenSlot } from '../lib/vip';
+import { backend } from '../lib/backend';
 
 const VIPExperiences: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
@@ -15,6 +16,10 @@ const VIPExperiences: React.FC = () => {
   const [bookingMessage, setBookingMessage] = useState('');
   const [bookingError, setBookingError] = useState('');
   const [bookingDone, setBookingDone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [availability, setAvailability] = useState<Availability>(DEFAULT_AVAILABILITY);
+  const [taken, setTaken] = useState<TakenSlot[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
   const { t } = useLanguage();
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedExperience, setSelectedExperience] = useState<VIPExperience | null>(null);
@@ -49,25 +54,32 @@ const VIPExperiences: React.FC = () => {
     setBookingError('');
     setBookingDone(false);
     setShowBookingModal(true);
+    setSlotsLoading(true);
+    Promise.all([backend.getAvailability(experience.creatorId), backend.takenSlots(experience.creatorId)]).then(([a, t]) => {
+      setAvailability(a);
+      setTaken(t);
+      setSlotsLoading(false);
+    });
   };
 
-  const handleConfirmBooking = () => {
+  const handleConfirmBooking = async () => {
     if (!selectedExperience || !user) return;
-    const result = createBooking({
+    setSubmitting(true);
+    const result = await backend.createBooking(user, {
       experienceId: selectedExperience.id,
       creatorProfileId: selectedExperience.creatorId,
       title: selectedExperience.title,
       creatorName: selectedExperience.creatorName,
       price: selectedExperience.price,
-      fanId: user.id,
-      fanName: user.name,
-      fanEmail: user.email,
       date: bookingDate,
       time: bookingTime,
       message: bookingMessage.trim(),
     });
+    setSubmitting(false);
     if (!result.ok) {
       setBookingError(result.error || 'No se pudo enviar la reserva');
+      // Someone may have taken the slot meanwhile: refresh what is free.
+      backend.takenSlots(selectedExperience.creatorId).then(setTaken);
       return;
     }
     setBookingError('');
@@ -401,8 +413,12 @@ const VIPExperiences: React.FC = () => {
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Elige día y hora
                   </label>
+                  {slotsLoading ? (
+                    <p className="text-sm text-gray-500 py-6 text-center">Cargando horarios…</p>
+                  ) : (
                   <BookingCalendar
-                    creatorProfileId={selectedExperience.creatorId}
+                    availability={availability}
+                    taken={taken}
                     creatorName={selectedExperience.creatorName}
                     date={bookingDate}
                     time={bookingTime}
@@ -412,6 +428,7 @@ const VIPExperiences: React.FC = () => {
                       setBookingError('');
                     }}
                   />
+                  )}
                 </div>
 
                 <div>
@@ -460,6 +477,7 @@ const VIPExperiences: React.FC = () => {
                 </button>
                 <button
                   onClick={handleConfirmBooking}
+                  disabled={submitting}
                   className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:shadow-lg transition"
                 >
                   Confirmar Reserva
