@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import LanguageSelector from '../components/LanguageSelector';
@@ -8,22 +8,28 @@ const Login: React.FC = () => {
   const { login } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: string } | null)?.from || '/explore';
+  const [remember, setRemember] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       setError('Por favor completa todos los campos');
       return;
     }
-    const success = login(email, password);
-    if (success) {
-      navigate('/explore');
+    setSubmitting(true);
+    const result = await login(email, password, remember);
+    setSubmitting(false);
+    if (result.ok) {
+      navigate(from, { replace: true });
     } else {
-      setError('Credenciales incorrectas');
+      setError(result.error || 'Credenciales incorrectas');
     }
   };
 
@@ -89,13 +95,13 @@ const Login: React.FC = () => {
 
             <div className="flex justify-between items-center">
               <label className="flex items-center">
-                <input type="checkbox" className="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500" />
+                <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500" />
                 <span className="ml-2 text-sm text-gray-600">{t('login.remember')}</span>
               </label>
-              <a href="#" className="text-sm text-pink-600 hover:text-pink-700">{t('login.forgot')}</a>
+              <Link to="/help" className="text-sm text-pink-600 hover:text-pink-700">{t('login.forgot')}</Link>
             </div>
 
-            <button type="submit" className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-xl font-bold hover:opacity-90 transition-all shadow-lg">
+            <button type="submit" disabled={submitting} className="w-full disabled:opacity-60 bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-xl font-bold hover:opacity-90 transition-all shadow-lg">
               {t('login.submit')}
             </button>
           </form>
@@ -106,10 +112,10 @@ const Login: React.FC = () => {
               <div className="relative flex justify-center text-sm"><span className="px-4 bg-white text-gray-500">{t('login.or')}</span></div>
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <button className="flex items-center justify-center py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition">
+              <button type="button" disabled title="Próximamente" className="flex items-center justify-center py-2.5 border border-gray-200 rounded-xl opacity-50 cursor-not-allowed">
                 <i className="fab fa-google text-red-500 mr-2"></i> Google
               </button>
-              <button className="flex items-center justify-center py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition">
+              <button type="button" disabled title="Próximamente" className="flex items-center justify-center py-2.5 border border-gray-200 rounded-xl opacity-50 cursor-not-allowed">
                 <i className="fab fa-apple text-gray-800 mr-2"></i> Apple
               </button>
             </div>

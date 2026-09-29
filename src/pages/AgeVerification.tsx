@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import LanguageSelector from '../components/LanguageSelector';
@@ -8,11 +8,12 @@ const AgeVerification: React.FC = () => {
   const { verifyAge } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const location = useLocation();
   const [showDeny, setShowDeny] = useState(false);
 
   const handleConfirm = () => {
     verifyAge();
-    navigate('/');
+    navigate((location.state as { from?: string } | null)?.from || '/', { replace: true });
   };
 
   const handleDeny = () => {

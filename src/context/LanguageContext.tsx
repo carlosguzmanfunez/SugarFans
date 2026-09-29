@@ -95,9 +95,9 @@ const translations: Record<Language, Record<string, string>> = {
     'login.noAccount': '¿No tienes cuenta?',
     'login.register': 'Regístrate gratis',
     'login.demo': 'Demo rápida:',
-    'login.demoFan': 'Fan: cualquier email',
-    'login.demoCreator': 'Creador: email con "creator"',
-    'login.demoAdmin': 'Admin: email con "admin"',
+    'login.demoFan': 'Fan: fan@sugarfans.com / demo1234',
+    'login.demoCreator': 'Creador: creator@sugarfans.com / demo1234',
+    'login.demoAdmin': 'Admin: admin@sugarfans.com / demo1234',
     
     // Register
     'register.createAccount': 'Crear cuenta',
@@ -229,9 +229,9 @@ const translations: Record<Language, Record<string, string>> = {
     'login.noAccount': 'Don\'t have an account?',
     'login.register': 'Sign up for free',
     'login.demo': 'Quick demo:',
-    'login.demoFan': 'Fan: any email',
-    'login.demoCreator': 'Creator: email with "creator"',
-    'login.demoAdmin': 'Admin: email with "admin"',
+    'login.demoFan': 'Fan: fan@sugarfans.com / demo1234',
+    'login.demoCreator': 'Creator: creator@sugarfans.com / demo1234',
+    'login.demoAdmin': 'Admin: admin@sugarfans.com / demo1234',
     
     // Register
     'register.createAccount': 'Create account',
@@ -363,9 +363,9 @@ const translations: Record<Language, Record<string, string>> = {
     'login.noAccount': 'Não tem conta?',
     'login.register': 'Cadastre-se grátis',
     'login.demo': 'Demo rápida:',
-    'login.demoFan': 'Fã: qualquer email',
-    'login.demoCreator': 'Criador: email com "creator"',
-    'login.demoAdmin': 'Admin: email com "admin"',
+    'login.demoFan': 'Fan: fan@sugarfans.com / demo1234',
+    'login.demoCreator': 'Criador: creator@sugarfans.com / demo1234',
+    'login.demoAdmin': 'Admin: admin@sugarfans.com / demo1234',
     
     // Register
     'register.createAccount': 'Criar conta',
@@ -497,9 +497,9 @@ const translations: Record<Language, Record<string, string>> = {
     'login.noAccount': 'Vous n\'avez pas de compte?',
     'login.register': 'Inscrivez-vous gratuitement',
     'login.demo': 'Démo rapide:',
-    'login.demoFan': 'Fan: n\'importe quel email',
-    'login.demoCreator': 'Créateur: email avec "creator"',
-    'login.demoAdmin': 'Admin: email avec "admin"',
+    'login.demoFan': 'Fan: fan@sugarfans.com / demo1234',
+    'login.demoCreator': 'Créateur: creator@sugarfans.com / demo1234',
+    'login.demoAdmin': 'Admin: admin@sugarfans.com / demo1234',
     
     // Register
     'register.createAccount': 'Créer un compte',
@@ -631,9 +631,9 @@ const translations: Record<Language, Record<string, string>> = {
     'login.noAccount': 'Non hai un account?',
     'login.register': 'Registrati gratuitamente',
     'login.demo': 'Demo veloce:',
-    'login.demoFan': 'Fan: qualsiasi email',
-    'login.demoCreator': 'Creatore: email con "creator"',
-    'login.demoAdmin': 'Admin: email con "admin"',
+    'login.demoFan': 'Fan: fan@sugarfans.com / demo1234',
+    'login.demoCreator': 'Creatore: creator@sugarfans.com / demo1234',
+    'login.demoAdmin': 'Admin: admin@sugarfans.com / demo1234',
     
     // Register
     'register.createAccount': 'Crea account',

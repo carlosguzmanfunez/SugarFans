@@ -2,14 +2,50 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 const CreatorDashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, addPost, deletePost, updateUser } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [showNewPost, setShowNewPost] = useState(false);
+  const [postText, setPostText] = useState('');
+  const [postLocked, setPostLocked] = useState(false);
+  const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const [displayName, setDisplayName] = useState(user?.name ?? '');
+  const [bio, setBio] = useState(user?.bio ?? '');
+  const [price, setPrice] = useState(String(user?.subscriptionPrice ?? 9.99));
+  const [category, setCategory] = useState(user?.settings.category ?? 'Modelaje');
+
+  const handlePublish = () => {
+    if (!postText.trim()) {
+      setNotice({ ok: false, text: 'Escribe algo antes de publicar' });
+      return;
+    }
+    addPost(postText, postLocked);
+    setPostText('');
+    setPostLocked(false);
+    setShowNewPost(false);
+    setActiveTab('content');
+    setNotice({ ok: true, text: 'Publicación creada' });
+  };
+
+  const handleSaveSettings = () => {
+    const parsed = parseFloat(price);
+    if (Number.isNaN(parsed)) {
+      setNotice({ ok: false, text: 'Introduce un precio válido' });
+      return;
+    }
+    const result = updateUser({
+      name: displayName,
+      bio,
+      subscriptionPrice: Math.round(parsed * 100) / 100,
+      settings: { ...user!.settings, category },
+    });
+    setNotice(result.ok ? { ok: true, text: 'Cambios guardados exitosamente' } : { ok: false, text: result.error || 'Error al guardar' });
+  };
 
   const stats = [
     { label: 'Ingresos del mes', value: '$2,450.00', change: '+12%', icon: 'fa-dollar-sign', color: 'green' },
     { label: 'Suscriptores activos', value: '245', change: '+8', icon: 'fa-users', color: 'blue' },
-    { label: 'Publicaciones', value: '256', change: '+12', icon: 'fa-image', color: 'purple' },
+    { label: 'Publicaciones', value: String(user?.posts ?? 0), change: '+12', icon: 'fa-image', color: 'purple' },
     { label: 'Me gusta totales', value: '89.2K', change: '+5.2K', icon: 'fa-heart', color: 'pink' },
   ];
 
@@ -50,6 +86,8 @@ const CreatorDashboard: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-pink-100">
             <h3 className="font-bold text-lg mb-4">Crear nueva publicación</h3>
             <textarea
+              value={postText}
+              onChange={(e) => setPostText(e.target.value)}
               className="w-full p-4 border border-gray-200 rounded-xl resize-none h-24 focus:ring-2 focus:ring-pink-500 outline-none"
               placeholder="¿Qué quieres compartir con tus fans?"
             ></textarea>
@@ -61,19 +99,30 @@ const CreatorDashboard: React.FC = () => {
                 <button className="flex items-center text-sm text-gray-600 hover:text-pink-500 transition">
                   <i className="fas fa-video mr-1"></i> Video
                 </button>
-                <button className="flex items-center text-sm text-gray-600 hover:text-pink-500 transition">
-                  <i className="fas fa-lock mr-1"></i> Exclusivo
+                <button
+                  type="button"
+                  aria-pressed={postLocked}
+                  onClick={() => setPostLocked(!postLocked)}
+                  className={`flex items-center text-sm transition ${postLocked ? 'text-pink-600 font-medium' : 'text-gray-600 hover:text-pink-500'}`}
+                >
+                  <i className="fas fa-lock mr-1"></i> Exclusivo{postLocked ? ' ✓' : ''}
                 </button>
               </div>
               <div className="flex space-x-3">
                 <button onClick={() => setShowNewPost(false)} className="px-4 py-2 text-gray-600 hover:text-gray-800">
                   Cancelar
                 </button>
-                <button className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-2 rounded-xl font-medium hover:opacity-90">
+                <button onClick={handlePublish} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-2 rounded-xl font-medium hover:opacity-90">
                   Publicar
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {notice && (
+          <div role={notice.ok ? 'status' : 'alert'} className={`px-4 py-3 rounded-xl mb-6 border ${notice.ok ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+            {notice.text}
           </div>
         )}
 
@@ -88,7 +137,7 @@ const CreatorDashboard: React.FC = () => {
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => { setActiveTab(tab.id); setNotice(null); }}
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
                 activeTab === tab.id ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'
               }`}
@@ -174,6 +223,22 @@ const CreatorDashboard: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-sm p-6">
             <h3 className="font-bold text-gray-900 mb-4">Gestión de Contenido</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {user?.createdPosts.map((post) => (
+                <div key={post.id} data-testid="created-post" className="border border-gray-200 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2 gap-2">
+                    <span className="text-sm font-medium text-gray-900 break-words">{post.content}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${post.isLocked ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
+                      {post.isLocked ? 'Exclusivo' : 'Público'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span>{new Date(post.createdAt).toLocaleString('es')}</span>
+                    <button onClick={() => deletePost(post.id)} className="text-red-500 hover:text-red-700">
+                      <i className="fas fa-trash mr-1"></i>Eliminar
+                    </button>
+                  </div>
+                </div>
+              ))}
               <div className="border border-gray-200 rounded-xl p-4 hover:border-pink-300 transition cursor-pointer">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-900">Set de fotos - Playa</span>
@@ -286,19 +351,19 @@ const CreatorDashboard: React.FC = () => {
             <div className="space-y-6 max-w-lg">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de visualización</label>
-                <input type="text" defaultValue={user?.name} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none" />
+                <input type="text" name="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Biografía</label>
-                <textarea defaultValue={user?.bio} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none h-24 resize-none"></textarea>
+                <textarea name="bio" value={bio} onChange={(e) => setBio(e.target.value)} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none h-24 resize-none"></textarea>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Precio de suscripción (USD/mes)</label>
-                <input type="number" defaultValue="9.99" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none" />
+                <input type="number" name="price" min="0.99" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Categoría principal</label>
-                <select className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none">
+                <select name="category" value={category} onChange={(e) => setCategory(e.target.value)} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none">
                   <option>Modelaje</option>
                   <option>Fitness</option>
                   <option>Arte</option>
@@ -306,7 +371,7 @@ const CreatorDashboard: React.FC = () => {
                   <option>Lifestyle</option>
                 </select>
               </div>
-              <button className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition">
+              <button onClick={handleSaveSettings} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition">
                 Guardar cambios
               </button>
             </div>

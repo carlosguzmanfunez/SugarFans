@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -12,7 +12,14 @@ const Navbar: React.FC = () => {
   const [showMenu, setShowMenu] = useState(false);
   const [showMobile, setShowMobile] = useState(false);
 
+  // Close menus whenever the route changes.
+  useEffect(() => {
+    setShowMenu(false);
+    setShowMobile(false);
+  }, [location.pathname]);
+
   const handleLogout = () => {
+    setShowMenu(false);
     logout();
     navigate('/');
   };
@@ -61,9 +68,10 @@ const Navbar: React.FC = () => {
             
             {isAuthenticated ? (
               <div className="relative">
-                <button onClick={() => setShowMenu(!showMenu)} className="flex items-center space-x-2">
+                <button onClick={() => setShowMenu(!showMenu)} aria-label="Menú de cuenta" aria-expanded={showMenu} className="flex items-center space-x-2">
                   <img src={user?.avatar} alt={user?.name} className="w-8 h-8 rounded-full border-2 border-pink-200" />
                 </button>
+                {showMenu && <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)}></div>}
                 {showMenu && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-2 z-50">
                     <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-pink-50">
@@ -94,7 +102,7 @@ const Navbar: React.FC = () => {
             )}
 
             {/* Mobile menu button */}
-            <button onClick={() => setShowMobile(!showMobile)} className="md:hidden text-gray-600">
+            <button onClick={() => setShowMobile(!showMobile)} aria-label="Menú" aria-expanded={showMobile} className="md:hidden w-8 h-8 flex items-center justify-center text-gray-600">
               <i className={`fas ${showMobile ? 'fa-times' : 'fa-bars'} text-xl`}></i>
             </button>
           </div>
@@ -118,6 +126,19 @@ const Navbar: React.FC = () => {
               <Link to="/admin" className="block py-2 text-gray-600 hover:text-pink-500" onClick={() => setShowMobile(false)}>
                 <i className="fas fa-shield-alt mr-2"></i> {t('nav.admin')}
               </Link>
+            )}
+            {isAuthenticated && (
+              <>
+                <Link to="/profile" className="block py-2 text-gray-600 hover:text-pink-500">
+                  <i className="fas fa-user mr-2"></i> {t('nav.profile')}
+                </Link>
+                <Link to="/settings" className="block py-2 text-gray-600 hover:text-pink-500">
+                  <i className="fas fa-cog mr-2"></i> {t('nav.settings')}
+                </Link>
+                <button onClick={handleLogout} className="block w-full text-left py-2 text-red-600">
+                  <i className="fas fa-sign-out-alt mr-2"></i> {t('nav.logout')}
+                </button>
+              </>
             )}
             {!isAuthenticated && (
               <>

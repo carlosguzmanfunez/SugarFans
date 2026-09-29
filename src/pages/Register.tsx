@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, UserRole } from '../context/AuthContext';
+import { isValidEmail } from '../lib/storage';
 import { useLanguage } from '../context/LanguageContext';
 import LanguageSelector from '../components/LanguageSelector';
 
@@ -19,8 +20,12 @@ const Register: React.FC = () => {
 
   const handleNext = () => {
     if (step === 1) {
-      if (!name || !email) {
+      if (!name.trim() || !email.trim()) {
         setError('Completa todos los campos');
+        return;
+      }
+      if (!isValidEmail(email)) {
+        setError('Introduce un email válido');
         return;
       }
       setError('');
@@ -39,13 +44,23 @@ const Register: React.FC = () => {
     }
   };
 
-  const handleSubmit = () => {
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
     if (!agreeTerms) {
       setError('Debes aceptar los términos y condiciones');
       return;
     }
-    register(name, email, password, role);
-    navigate('/explore');
+    setSubmitting(true);
+    const result = await register(name, email, password, role);
+    setSubmitting(false);
+    if (!result.ok) {
+      setError(result.error || 'No se pudo crear la cuenta');
+      // Send the user back to the step that holds the offending field.
+      if (result.error?.includes('email') || result.error?.includes('nombre')) setStep(1);
+      return;
+    }
+    navigate(role === 'creator' ? '/creator/dashboard' : '/explore', { replace: true });
   };
 
   return (
@@ -149,7 +164,7 @@ const Register: React.FC = () => {
                 />
               </div>
               <div className="flex space-x-3">
-                <button onClick={() => setStep(1)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-200 transition">
+                <button onClick={() => { setError(''); setStep(1); }} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-200 transition">
                   {t('register.back')}
                 </button>
                 <button onClick={handleNext} className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-xl font-bold hover:opacity-90 transition">
@@ -187,17 +202,17 @@ const Register: React.FC = () => {
               <label className="flex items-start space-x-2">
                 <input type="checkbox" checked={agreeTerms} onChange={(e) => setAgreeTerms(e.target.checked)} className="mt-1 w-4 h-4 text-pink-600 rounded" />
                 <span className="text-sm text-gray-600">
-                  {t('register.terms')} <a href="/policies" className="text-pink-600">{t('register.termsLink')}</a>,{' '}
-                  {t('register.and')} <a href="/policies" className="text-pink-600">{t('register.privacyLink')}</a>{' '}
+                  {t('register.terms')} <Link to="/legal" target="_blank" className="text-pink-600">{t('register.termsLink')}</Link>,{' '}
+                  {t('register.and')} <Link to="/legal" target="_blank" className="text-pink-600">{t('register.privacyLink')}</Link>{' '}
                   {t('register.ageConfirm')}
                 </span>
               </label>
 
               <div className="flex space-x-3">
-                <button onClick={() => setStep(2)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-200 transition">
+                <button onClick={() => { setError(''); setStep(2); }} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-200 transition">
                   {t('register.back')}
                 </button>
-                <button onClick={handleSubmit} className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-xl font-bold hover:opacity-90 transition">
+                <button onClick={handleSubmit} disabled={submitting} className="flex-1 disabled:opacity-60 bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-xl font-bold hover:opacity-90 transition">
                   {t('register.submit')}
                 </button>
               </div>
