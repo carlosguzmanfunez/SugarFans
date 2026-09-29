@@ -19,6 +19,7 @@ import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import VIPExperiences from './pages/VIPExperiences';
 import LegalPolicies from './pages/LegalPolicies';
+import PlatformSync from './components/PlatformSync';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; roles?: string[] }> = ({ children, roles }) => {
   const { isAuthenticated, user, ageVerified } = useAuth();
@@ -136,6 +137,7 @@ function App() {
     <Router>
       <LanguageProvider>
         <AuthProvider>
+          <PlatformSync />
           <AppRoutes />
         </AuthProvider>
       </LanguageProvider>

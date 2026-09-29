@@ -2,6 +2,17 @@ import React, { useState } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { creators, posts } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
+import CheckoutDialog from '../components/CheckoutDialog';
+import ReportDialog from '../components/ReportDialog';
+import {
+  usePlatform,
+  chargeSubscription,
+  hasBlocked,
+  accountIdForProfile,
+  blockUser,
+  unblockUser,
+  addMonths,
+} from '../lib/platform';
 
 const CreatorProfile: React.FC = () => {
   const { id } = useParams();
@@ -9,6 +20,9 @@ const CreatorProfile: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<'posts' | 'media' | 'about'>('posts');
+  const platform = usePlatform();
+  const [checkout, setCheckout] = useState(false);
+  const [reporting, setReporting] = useState<{ kind: 'post' | 'creator'; targetId: string; label: string } | null>(null);
 
   const creator = creators.find(c => c.id === id);
 
@@ -27,17 +41,64 @@ const CreatorProfile: React.FC = () => {
     );
   }
 
-  const creatorPosts = posts.filter(p => p.creatorId === creator.id);
-  const isSubscribed = hasSubscription(creator.id);
+  const creatorPosts = posts.filter(p => p.creatorId === creator.id && !platform.removedPosts.includes(p.id));
+  const iBlocked = !!user && hasBlocked(platform, user.id, creator.id);
+  const blockedMe = !!user && hasBlocked(platform, accountIdForProfile(creator.id), user.id);
+  const isSubscribed = hasSubscription(creator.id) && !iBlocked && !blockedMe;
 
   const handleSubscribe = () => {
     if (!isAuthenticated) {
       navigate('/login', { state: { from: location.pathname } });
       return;
     }
-    if (isSubscribed && !window.confirm(`¿Cancelar tu suscripción a ${creator.name}?`)) return;
-    toggleSubscription(creator.id, creator.subscriptionPrice);
+    if (isSubscribed) {
+      if (window.confirm(`¿Cancelar tu suscripción a ${creator.name}?`)) toggleSubscription(creator.id, creator.subscriptionPrice);
+      return;
+    }
+    setCheckout(true);
   };
+
+  const confirmPayment = (methodId: string) => {
+    const result = chargeSubscription(user!, creator.id, creator.name, creator.subscriptionPrice, methodId);
+    if (!result.ok) return result;
+    toggleSubscription(creator.id, creator.subscriptionPrice);
+    setCheckout(false);
+    return result;
+  };
+
+  const handleReport = (kind: 'post' | 'creator', targetId: string, label: string) => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: location.pathname } });
+      return;
+    }
+    setReporting({ kind, targetId, label });
+  };
+
+  const handleBlock = () => {
+    if (!user) return;
+    if (iBlocked) {
+      unblockUser(user.id, creator.id);
+      return;
+    }
+    if (!window.confirm(`¿Bloquear a ${creator.name}? No podrá contactarte ni ver tu actividad, dejarás de ver su contenido y se cancelará tu suscripción.`)) return;
+    blockUser(user.id, creator.id, creator.name);
+    if (hasSubscription(creator.id)) toggleSubscription(creator.id, creator.subscriptionPrice);
+  };
+
+  if (blockedMe) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="text-center">
+          <i className="fas fa-user-lock text-5xl text-gray-300 mb-4"></i>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Perfil no disponible</h1>
+          <p className="text-gray-600 mb-6">No puedes ver el contenido de este perfil.</p>
+          <Link to="/explore" className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium">
+            Explorar creadores
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -67,8 +128,12 @@ const CreatorProfile: React.FC = () => {
               </div>
               <p className="text-gray-500">@{creator.username}</p>
             </div>
-            <div className="mt-4 sm:mt-0">
-              {isAuthenticated && user?.role !== 'creator' ? (
+            <div className="mt-4 sm:mt-0 flex items-center gap-2">
+              {iBlocked ? (
+                <button onClick={handleBlock} className="px-6 py-3 rounded-full font-bold bg-gray-200 text-gray-700 hover:bg-gray-300">
+                  <i className="fas fa-unlock mr-2"></i>Desbloquear
+                </button>
+              ) : isAuthenticated && user?.role !== 'creator' ? (
                 <button
                   onClick={handleSubscribe}
                   className={`px-6 py-3 rounded-full font-bold transition-all ${
@@ -88,6 +153,11 @@ const CreatorProfile: React.FC = () => {
                   Iniciar sesión para suscribirse
                 </Link>
               ) : null}
+              {isAuthenticated && !iBlocked && (
+                <button onClick={handleBlock} title="Bloquear" aria-label="Bloquear" className="w-11 h-11 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-red-500">
+                  <i className="fas fa-ban"></i>
+                </button>
+              )}
             </div>
           </div>
 
@@ -142,8 +212,15 @@ const CreatorProfile: React.FC = () => {
           </button>
         </div>
 
+        {iBlocked && (
+          <div className="bg-white rounded-2xl p-6 shadow-sm mb-6 text-center text-gray-600">
+            <i className="fas fa-ban text-3xl text-gray-300 mb-2"></i>
+            <p>Has bloqueado a {creator.name}. Desbloquéalo para volver a ver su contenido.</p>
+          </div>
+        )}
+
         {/* Content */}
-        {activeTab === 'posts' && (
+        {!iBlocked && activeTab === 'posts' && (
           <div className="space-y-6">
             {creatorPosts.length > 0 ? creatorPosts.map((post) => (
               <div key={post.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
@@ -194,6 +271,13 @@ const CreatorProfile: React.FC = () => {
                     <button className="flex items-center text-sm hover:text-pink-500 transition ml-auto">
                       <i className="fas fa-share mr-1"></i> Compartir
                     </button>
+                    <button
+                      onClick={() => handleReport('post', post.id, `Publicación de ${creator.name}: "${post.content.slice(0, 40)}"`)}
+                      className="flex items-center text-sm hover:text-red-500 transition"
+                      aria-label="Reportar publicación"
+                    >
+                      <i className="fas fa-flag mr-1"></i> Reportar
+                    </button>
                   </div>
                 </div>
               </div>
@@ -206,7 +290,7 @@ const CreatorProfile: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'media' && (
+        {!iBlocked && activeTab === 'media' && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {creatorPosts.filter(p => p.media).map((post) => (
               <div key={post.id} className="relative aspect-square rounded-xl overflow-hidden group cursor-pointer">
@@ -227,7 +311,7 @@ const CreatorProfile: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'about' && (
+        {!iBlocked && activeTab === 'about' && (
           <div className="bg-white rounded-2xl p-6 shadow-sm">
             <h3 className="font-bold text-lg text-gray-900 mb-4">Acerca de {creator.name}</h3>
             <div className="space-y-4 text-gray-600">
@@ -250,8 +334,8 @@ const CreatorProfile: React.FC = () => {
             </div>
             <hr className="my-6" />
             <div className="flex space-x-4">
-              <button className="text-gray-500 hover:text-pink-500 transition">
-                <i className="fas fa-flag text-sm"></i> Reportar
+              <button onClick={() => handleReport('creator', creator.id, `Perfil de ${creator.name}`)} className="text-gray-500 hover:text-pink-500 transition">
+                <i className="fas fa-flag text-sm"></i> Reportar perfil
               </button>
               <button className="text-gray-500 hover:text-pink-500 transition">
                 <i className="fas fa-share text-sm"></i> Compartir perfil
@@ -262,6 +346,21 @@ const CreatorProfile: React.FC = () => {
       </div>
 
       <div className="h-16"></div>
+
+      {checkout && user && (
+        <CheckoutDialog
+          userId={user.id}
+          title={`Suscripción a ${creator.name}`}
+          amount={creator.subscriptionPrice}
+          note={`Mensual. Se renueva el día ${addMonths(new Date().toISOString(), 1).getDate()} de cada mes; cancela cuando quieras.`}
+          confirmLabel="Suscribirme y pagar"
+          onConfirm={confirmPayment}
+          onClose={() => setCheckout(false)}
+        />
+      )}
+      {reporting && (
+        <ReportDialog kind={reporting.kind} targetId={reporting.targetId} targetLabel={reporting.label} onClose={() => setReporting(null)} />
+      )}
     </div>
   );
 };

@@ -2,14 +2,20 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { creators, categories, posts } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
+import { usePlatform, isBlockedEitherWay } from '../lib/platform';
 
 const Explore: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const platform = usePlatform();
+  // Blocked profiles (either direction) and posts removed by moderation are hidden.
+  const hidden = (creatorId: string) => !!user && isBlockedEitherWay(platform, user.id, creatorId);
+  const visiblePosts = posts.filter((p) => !platform.removedPosts.includes(p.id) && !hidden(p.creatorId));
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [viewMode, setViewMode] = useState<'creators' | 'posts'>('creators');
 
   const filteredCreators = creators.filter(c => {
+    if (hidden(c.id)) return false;
     const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.username.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = !selectedCategory || c.category === selectedCategory;
@@ -115,7 +121,7 @@ const Explore: React.FC = () => {
         {/* Posts Grid */}
         {viewMode === 'posts' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {posts.map((post) => (
+            {visiblePosts.map((post) => (
               <div key={post.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
                 <div className="p-4 flex items-center space-x-3">
                   <img src={post.creatorAvatar} alt="" className="w-10 h-10 rounded-full" />

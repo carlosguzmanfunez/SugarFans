@@ -1,33 +1,57 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import {
+  usePlatform,
+  reviewVerification,
+  resolveReport,
+  restorePost,
+  processPayout,
+  isIdentityVerified,
+  docTypeLabel,
+  money,
+  VerificationRequest,
+} from '../lib/platform';
+
+const ago = (iso: string) => {
+  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 1) return 'Ahora';
+  if (mins < 60) return `Hace ${mins} min`;
+  if (mins < 1440) return `Hace ${Math.round(mins / 60)} h`;
+  return new Date(iso).toLocaleDateString('es');
+};
+
+const kindLabel = { post: 'Publicación', creator: 'Perfil', support: 'Soporte', other: 'Otro' } as const;
+const roleName = { fan: 'Fan', creator: 'Creador', admin: 'Admin' } as const;
 
 const AdminDashboard: React.FC = () => {
   const { user, listAccounts } = useAuth();
+  const platform = usePlatform();
   const [activeTab, setActiveTab] = useState('overview');
   const [userQuery, setUserQuery] = useState('');
+  const [viewing, setViewing] = useState<VerificationRequest | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const accounts = listAccounts();
+  const pendingVerifications = platform.verifications.filter((v) => v.status === 'pending');
+  const reports = [...platform.reports].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const pendingReports = reports.filter((r) => r.status === 'pending');
+  const payouts = [...platform.payouts].sort((a, b) => b.requestedAt.localeCompare(a.requestedAt));
+  const scheduledPayouts = payouts.filter((p) => p.status === 'scheduled');
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+  const monthRevenue = platform.transactions
+    .filter((t) => t.status === 'paid' && t.createdAt >= monthStart)
+    .reduce((s, t) => s + t.amount, 0);
+  const pendingTotal = pendingVerifications.length + pendingReports.length + scheduledPayouts.length;
 
   const stats = [
-    { label: 'Usuarios totales', value: '52,340', icon: 'fa-users', color: 'blue' },
-    { label: 'Creadores activos', value: '3,210', icon: 'fa-star', color: 'purple' },
-    { label: 'Ingresos del mes', value: '$125,400', icon: 'fa-dollar-sign', color: 'green' },
-    { label: 'Reportes pendientes', value: '12', icon: 'fa-flag', color: 'red' },
+    { label: 'Usuarios registrados', value: String(accounts.length), icon: 'fa-users', color: 'blue' },
+    { label: 'Creadores', value: String(accounts.filter((a) => a.role === 'creator').length), icon: 'fa-star', color: 'purple' },
+    { label: 'Cobrado este mes', value: money(monthRevenue), icon: 'fa-dollar-sign', color: 'green' },
+    { label: 'Reportes pendientes', value: String(pendingReports.length), icon: 'fa-flag', color: 'red' },
   ];
 
-  const pendingVerifications = [
-    { id: '1', name: 'María López', email: 'maria@email.com', date: 'Hace 2 horas', type: 'Creador' },
-    { id: '2', name: 'Juan Pérez', email: 'juan@email.com', date: 'Hace 5 horas', type: 'Creador' },
-    { id: '3', name: 'Lucía García', email: 'lucia@email.com', date: 'Hace 1 día', type: 'Creador' },
-  ];
-
-  const reports = [
-    { id: '1', reason: 'Contenido inapropiado', creator: 'Usuario X', reporter: 'Fan Y', date: 'Hace 1 hora', status: 'pending' },
-    { id: '2', reason: 'Spam', creator: 'Usuario Z', reporter: 'Fan W', date: 'Hace 3 horas', status: 'pending' },
-    { id: '3', reason: 'Derechos de autor', creator: 'Usuario A', reporter: 'Fan B', date: 'Hace 1 día', status: 'reviewing' },
-    { id: '4', reason: 'Contenido sin consentimiento', creator: 'Usuario C', reporter: 'Persona D', date: 'Hace 2 días', status: 'pending' },
-  ];
-
-  const roleLabel = { fan: 'Fan', creator: 'Creador', admin: 'Admin' } as const;
-  const recentUsers = listAccounts()
+  const recentUsers = accounts
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .filter((u) => {
       const q = userQuery.trim().toLowerCase();
@@ -37,10 +61,31 @@ const AdminDashboard: React.FC = () => {
       id: u.id,
       name: u.name,
       email: u.email,
-      role: roleLabel[u.role],
-      status: u.isVerified ? 'verified' : 'active',
+      role: roleName[u.role],
+      status: isIdentityVerified(platform, u) ? 'verified' : 'active',
       date: new Date(u.createdAt).toLocaleDateString('es'),
     }));
+
+  const review = (v: VerificationRequest, approve: boolean) => {
+    const r = reviewVerification(v.id, approve, rejectReason);
+    if (!r.ok) return setNotice({ ok: false, text: r.error! });
+    setNotice({ ok: true, text: approve ? `Identidad de ${v.userName} aprobada` : `Solicitud de ${v.userName} rechazada` });
+    setViewing(null);
+    setRejectReason('');
+  };
+
+  const verificationRow = (v: VerificationRequest, compact = false) => (
+    <div key={v.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-gray-50">
+      <div>
+        <p className="font-medium text-gray-900 text-sm">{v.userName}</p>
+        <p className="text-xs text-gray-500">{v.email} • {roleName[v.role]} • {ago(v.submittedAt)}</p>
+        {!compact && <p className="text-xs text-gray-400">{docTypeLabel[v.docType]} • {v.country}</p>}
+      </div>
+      <button onClick={() => { setViewing(v); setRejectReason(''); }} className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200">
+        <i className="fas fa-eye mr-1"></i> Revisar documentos
+      </button>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -53,10 +98,16 @@ const AdminDashboard: React.FC = () => {
           </div>
           <div className="mt-4 sm:mt-0 flex items-center space-x-3">
             <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-medium">
-              <i className="fas fa-exclamation-circle mr-1"></i> 12 pendientes
+              <i className="fas fa-exclamation-circle mr-1"></i> {pendingTotal} pendientes
             </span>
           </div>
         </div>
+
+        {notice && (
+          <div role={notice.ok ? 'status' : 'alert'} className={`px-4 py-3 rounded-xl mb-6 border ${notice.ok ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+            {notice.text}
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -77,14 +128,15 @@ const AdminDashboard: React.FC = () => {
         <div className="flex space-x-1 bg-white rounded-xl p-1 shadow-sm mb-8 overflow-x-auto">
           {[
             { id: 'overview', label: 'Resumen', icon: 'fa-chart-pie' },
-            { id: 'verifications', label: 'Verificaciones', icon: 'fa-id-card' },
-            { id: 'reports', label: 'Reportes', icon: 'fa-flag' },
+            { id: 'verifications', label: `Verificaciones (${pendingVerifications.length})`, icon: 'fa-id-card' },
+            { id: 'reports', label: `Reportes (${pendingReports.length})`, icon: 'fa-flag' },
+            { id: 'payouts', label: `Retiros (${scheduledPayouts.length})`, icon: 'fa-money-check-alt' },
             { id: 'users', label: 'Usuarios', icon: 'fa-users' },
             { id: 'content', label: 'Contenido', icon: 'fa-images' },
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => { setActiveTab(tab.id); setNotice(null); }}
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
                 activeTab === tab.id ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'
               }`}
@@ -97,50 +149,31 @@ const AdminDashboard: React.FC = () => {
         {/* Overview */}
         {activeTab === 'overview' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Pending Verifications */}
             <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
               <div className="p-5 border-b border-gray-100 flex justify-between items-center">
                 <h3 className="font-bold text-gray-900">Verificaciones Pendientes</h3>
                 <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs font-medium">{pendingVerifications.length}</span>
               </div>
               <div className="divide-y divide-gray-100">
-                {pendingVerifications.map((v) => (
-                  <div key={v.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
-                    <div>
-                      <p className="font-medium text-gray-900 text-sm">{v.name}</p>
-                      <p className="text-xs text-gray-500">{v.email} • {v.date}</p>
-                    </div>
-                    <div className="flex space-x-2">
-                      <button className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-medium hover:bg-green-200">
-                        Aprobar
-                      </button>
-                      <button className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-medium hover:bg-red-200">
-                        Rechazar
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                {pendingVerifications.length === 0 && <p className="p-6 text-center text-sm text-gray-500">No hay solicitudes pendientes</p>}
+                {pendingVerifications.slice(0, 4).map((v) => verificationRow(v, true))}
               </div>
             </div>
 
-            {/* Recent Reports */}
             <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
               <div className="p-5 border-b border-gray-100 flex justify-between items-center">
                 <h3 className="font-bold text-gray-900">Reportes Recientes</h3>
-                <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs font-medium">{reports.length}</span>
+                <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs font-medium">{pendingReports.length}</span>
               </div>
               <div className="divide-y divide-gray-100">
-                {reports.slice(0, 4).map((r) => (
+                {pendingReports.length === 0 && <p className="p-6 text-center text-sm text-gray-500">No hay reportes pendientes</p>}
+                {pendingReports.slice(0, 4).map((r) => (
                   <div key={r.id} className="p-4 hover:bg-gray-50">
                     <div className="flex items-center justify-between">
                       <p className="font-medium text-gray-900 text-sm">{r.reason}</p>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        r.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'
-                      }`}>
-                        {r.status === 'pending' ? 'Pendiente' : 'En revisión'}
-                      </span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">Pendiente</span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Reportado por: {r.reporter} • {r.date}</p>
+                    <p className="text-xs text-gray-500 mt-1">{r.targetLabel} • Reportado por: {r.reporterName} • {ago(r.createdAt)}</p>
                   </div>
                 ))}
               </div>
@@ -150,47 +183,39 @@ const AdminDashboard: React.FC = () => {
 
         {/* Verifications */}
         {activeTab === 'verifications' && (
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden" data-testid="admin-verifications">
             <div className="p-5 border-b border-gray-100">
               <h3 className="font-bold text-gray-900">Gestión de Verificaciones</h3>
-              <p className="text-sm text-gray-600 mt-1">Revisa las solicitudes de verificación de identidad de creadores</p>
+              <p className="text-sm text-gray-600 mt-1">Compara el documento con el selfie y los datos declarados antes de aprobar.</p>
             </div>
             <div className="divide-y divide-gray-100">
-              {pendingVerifications.map((v) => (
-                <div key={v.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-gray-50">
-                  <div className="flex items-center space-x-4 mb-3 sm:mb-0">
-                    <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                      <i className="fas fa-user text-gray-400"></i>
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{v.name}</p>
-                      <p className="text-sm text-gray-500">{v.email}</p>
-                      <p className="text-xs text-gray-400">Solicitud: {v.date} • Tipo: {v.type}</p>
-                    </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <button className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition">
-                      <i className="fas fa-check mr-1"></i> Aprobar
-                    </button>
-                    <button className="px-4 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition">
-                      <i className="fas fa-times mr-1"></i> Rechazar
-                    </button>
-                    <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">
-                      <i className="fas fa-eye mr-1"></i> Ver docs
-                    </button>
-                  </div>
-                </div>
-              ))}
+              {pendingVerifications.length === 0 && <p className="p-6 text-center text-sm text-gray-500">No hay solicitudes pendientes</p>}
+              {pendingVerifications.map((v) => verificationRow(v))}
             </div>
+            {platform.verifications.some((v) => v.status !== 'pending') && (
+              <div className="border-t border-gray-100 p-5">
+                <h4 className="text-sm font-bold text-gray-700 mb-3">Revisadas</h4>
+                <div className="space-y-2">
+                  {platform.verifications.filter((v) => v.status !== 'pending').map((v) => (
+                    <div key={v.id} className="flex justify-between text-sm">
+                      <span className="text-gray-700">{v.userName} · {v.email}</span>
+                      <span className={v.status === 'approved' ? 'text-green-600' : 'text-red-600'}>
+                        {v.status === 'approved' ? 'Aprobada' : `Rechazada: ${v.rejectionReason}`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {/* Reports */}
         {activeTab === 'reports' && (
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden" data-testid="admin-reports">
             <div className="p-5 border-b border-gray-100">
               <h3 className="font-bold text-gray-900">Gestión de Reportes</h3>
-              <p className="text-sm text-gray-600 mt-1">Revisa y gestiona los reportes de contenido y usuarios</p>
+              <p className="text-sm text-gray-600 mt-1">Reportes enviados desde las publicaciones, los perfiles y el Centro de Ayuda</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -205,36 +230,129 @@ const AdminDashboard: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
+                  {reports.length === 0 && (
+                    <tr><td colSpan={6} className="px-5 py-8 text-center text-sm text-gray-500">No hay reportes</td></tr>
+                  )}
                   {reports.map((r) => (
-                    <tr key={r.id} className="hover:bg-gray-50">
-                      <td className="px-5 py-4 text-sm text-gray-900">{r.reason}</td>
-                      <td className="px-5 py-4 text-sm text-gray-600">{r.creator}</td>
-                      <td className="px-5 py-4 text-sm text-gray-600">{r.reporter}</td>
-                      <td className="px-5 py-4 text-sm text-gray-500">{r.date}</td>
+                    <tr key={r.id} className="hover:bg-gray-50 align-top">
+                      <td className="px-5 py-4 text-sm text-gray-900">
+                        {r.reason}
+                        <p className="text-xs text-gray-500 mt-1 max-w-xs">{r.description}</p>
+                      </td>
+                      <td className="px-5 py-4 text-sm text-gray-600">
+                        <span className="text-xs text-gray-400 block">{kindLabel[r.kind]}</span>{r.targetLabel}
+                      </td>
+                      <td className="px-5 py-4 text-sm text-gray-600">{r.reporterName}{r.contactEmail && <span className="block text-xs text-gray-400">{r.contactEmail}</span>}</td>
+                      <td className="px-5 py-4 text-sm text-gray-500">{ago(r.createdAt)}</td>
                       <td className="px-5 py-4">
                         <span className={`text-xs px-2 py-1 rounded-full ${
-                          r.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'
+                          r.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : r.status === 'resolved' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
                         }`}>
-                          {r.status === 'pending' ? 'Pendiente' : 'En revisión'}
+                          {r.status === 'pending' ? 'Pendiente' : r.resolution}
                         </span>
                       </td>
                       <td className="px-5 py-4">
-                        <div className="flex space-x-2">
-                          <button className="text-green-600 hover:text-green-700 text-sm" title="Eliminar contenido">
-                            <i className="fas fa-trash"></i>
-                          </button>
-                          <button className="text-red-600 hover:text-red-700 text-sm" title="Bloquear usuario">
-                            <i className="fas fa-ban"></i>
-                          </button>
-                          <button className="text-gray-400 hover:text-gray-600 text-sm" title="Descartar">
-                            <i className="fas fa-times"></i>
-                          </button>
-                        </div>
+                        {r.status === 'pending' ? (
+                          <div className="flex flex-col gap-1 items-start">
+                            {r.kind === 'post' && (
+                              <button onClick={() => resolveReport(r.id, 'remove')} className="text-red-600 hover:text-red-700 text-xs font-medium">
+                                <i className="fas fa-trash mr-1"></i>Retirar contenido
+                              </button>
+                            )}
+                            <button onClick={() => resolveReport(r.id, 'resolve')} className="text-green-600 hover:text-green-700 text-xs font-medium">
+                              <i className="fas fa-check mr-1"></i>Marcar atendido
+                            </button>
+                            <button onClick={() => resolveReport(r.id, 'dismiss')} className="text-gray-500 hover:text-gray-700 text-xs font-medium">
+                              <i className="fas fa-times mr-1"></i>Descartar
+                            </button>
+                          </div>
+                        ) : r.kind === 'post' && r.targetId && platform.removedPosts.includes(r.targetId) ? (
+                          <button onClick={() => restorePost(r.targetId!)} className="text-xs text-pink-600">Restaurar publicación</button>
+                        ) : null}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* Payouts */}
+        {activeTab === 'payouts' && (
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden" data-testid="admin-payouts">
+            <div className="p-5 border-b border-gray-100">
+              <h3 className="font-bold text-gray-900">Retiros de creadores</h3>
+              <p className="text-sm text-gray-600 mt-1">Se pagan el día 1 de cada mes. Marca cada retiro como pagado cuando se haya transferido.</p>
+            </div>
+            <div className="divide-y divide-gray-100">
+              {payouts.length === 0 && <p className="p-6 text-center text-sm text-gray-500">No hay solicitudes de retiro</p>}
+              {payouts.map((p) => (
+                <div key={p.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <p className="font-medium text-gray-900 text-sm">{p.creatorName} · {money(p.amount)}</p>
+                    <p className="text-xs text-gray-500">{p.accountLabel} • Programado para {new Date(p.scheduledFor).toLocaleDateString('es')}</p>
+                  </div>
+                  {p.status === 'scheduled' ? (
+                    <div className="flex gap-2">
+                      <button onClick={() => processPayout(p.id, true)} className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-medium hover:bg-green-200">Marcar pagado</button>
+                      <button onClick={() => processPayout(p.id, false)} className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-medium hover:bg-red-200">Rechazar</button>
+                    </div>
+                  ) : (
+                    <span className={`text-xs px-2 py-1 rounded-full ${p.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                      {p.status === 'paid' ? 'Pagado' : 'Rechazado'}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Document review */}
+        {viewing && (
+          <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Revisar documentos">
+            <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">{viewing.userName}</h3>
+                  <p className="text-sm text-gray-500">{viewing.email} • {roleName[viewing.role]}</p>
+                </div>
+                <button onClick={() => setViewing(null)} aria-label="Cerrar" className="text-gray-400 hover:text-gray-600"><i className="fas fa-times"></i></button>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm mb-4">
+                <p><span className="text-gray-500">Nombre legal:</span> {viewing.legalName}</p>
+                <p><span className="text-gray-500">Nacimiento:</span> {new Date(viewing.birthDate + 'T00:00:00').toLocaleDateString('es')}</p>
+                <p><span className="text-gray-500">Documento:</span> {docTypeLabel[viewing.docType]}</p>
+                <p><span className="text-gray-500">Número:</span> {viewing.docNumber} ({viewing.country})</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                {[
+                  { src: viewing.docFront, label: 'Frente' },
+                  { src: viewing.docBack, label: 'Reverso' },
+                  { src: viewing.selfie, label: 'Selfie' },
+                ].filter((x) => x.src).map((x) => (
+                  <figure key={x.label} className="bg-gray-100 rounded-xl p-2">
+                    <img src={x.src} alt={x.label} className="w-full h-48 object-contain" />
+                    <figcaption className="text-xs text-center text-gray-500 mt-1">{x.label}</figcaption>
+                  </figure>
+                ))}
+              </div>
+              <input
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Motivo del rechazo (obligatorio para rechazar)"
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm mb-3 outline-none focus:ring-2 focus:ring-pink-500"
+              />
+              {notice && !notice.ok && <p role="alert" className="text-sm text-red-600 mb-3">{notice.text}</p>}
+              <div className="flex gap-2 justify-end">
+                <button onClick={() => review(viewing, false)} className="px-4 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200">
+                  <i className="fas fa-times mr-1"></i> Rechazar
+                </button>
+                <button onClick={() => review(viewing, true)} className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700">
+                  <i className="fas fa-check mr-1"></i> Aprobar identidad
+                </button>
+              </div>
             </div>
           </div>
         )}
