@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, UserRole } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import LanguageSelector from '../components/LanguageSelector';
 
 const Register: React.FC = () => {
   const { register } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
@@ -46,7 +49,11 @@ const Register: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex flex-col">
+      <div className="flex justify-end p-4">
+        <LanguageSelector />
+      </div>
+      <div className="flex-1 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center space-x-2">
@@ -75,14 +82,14 @@ const Register: React.FC = () => {
           </div>
 
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            {step === 1 && 'Crear cuenta'}
-            {step === 2 && 'Seguridad'}
-            {step === 3 && 'Tipo de cuenta'}
+            {step === 1 && t('register.createAccount')}
+            {step === 2 && t('register.security')}
+            {step === 3 && t('register.accountType')}
           </h2>
           <p className="text-gray-600 mb-6">
-            {step === 1 && 'Ingresa tus datos básicos'}
-            {step === 2 && 'Crea una contraseña segura'}
-            {step === 3 && '¿Cómo quieres usar SugarFans?'}
+            {step === 1 && t('register.basicInfo')}
+            {step === 2 && t('register.passwordInfo')}
+            {step === 3 && t('register.howToUse')}
           </p>
 
           {error && (
@@ -94,7 +101,7 @@ const Register: React.FC = () => {
           {step === 1 && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre completo</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('register.fullName')}</label>
                 <input
                   type="text"
                   value={name}
@@ -104,7 +111,7 @@ const Register: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('register.email')}</label>
                 <input
                   type="email"
                   value={email}
@@ -114,7 +121,7 @@ const Register: React.FC = () => {
                 />
               </div>
               <button onClick={handleNext} className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-xl font-bold hover:opacity-90 transition">
-                Continuar
+                {t('register.continue')}
               </button>
             </div>
           )}
@@ -122,7 +129,7 @@ const Register: React.FC = () => {
           {step === 2 && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('register.password')}</label>
                 <input
                   type="password"
                   value={password}
@@ -132,7 +139,7 @@ const Register: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar contraseña</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('register.confirmPassword')}</label>
                 <input
                   type="password"
                   value={confirmPassword}
@@ -143,10 +150,10 @@ const Register: React.FC = () => {
               </div>
               <div className="flex space-x-3">
                 <button onClick={() => setStep(1)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-200 transition">
-                  Atrás
+                  {t('register.back')}
                 </button>
                 <button onClick={handleNext} className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-xl font-bold hover:opacity-90 transition">
-                  Continuar
+                  {t('register.continue')}
                 </button>
               </div>
             </div>
@@ -162,8 +169,8 @@ const Register: React.FC = () => {
                   }`}
                 >
                   <i className="fas fa-heart text-2xl text-pink-500 mb-2"></i>
-                  <p className="font-medium text-gray-900">Fan</p>
-                  <p className="text-xs text-gray-500 mt-1">Ver y apoyar creadores</p>
+                  <p className="font-medium text-gray-900">{t('register.fan')}</p>
+                  <p className="text-xs text-gray-500 mt-1">{t('register.fanDesc')}</p>
                 </button>
                 <button
                   onClick={() => setRole('creator')}
@@ -172,35 +179,37 @@ const Register: React.FC = () => {
                   }`}
                 >
                   <i className="fas fa-star text-2xl text-purple-500 mb-2"></i>
-                  <p className="font-medium text-gray-900">Creador</p>
-                  <p className="text-xs text-gray-500 mt-1">Publicar y monetizar</p>
+                  <p className="font-medium text-gray-900">{t('register.creator')}</p>
+                  <p className="text-xs text-gray-500 mt-1">{t('register.creatorDesc')}</p>
                 </button>
               </div>
 
               <label className="flex items-start space-x-2">
                 <input type="checkbox" checked={agreeTerms} onChange={(e) => setAgreeTerms(e.target.checked)} className="mt-1 w-4 h-4 text-pink-600 rounded" />
                 <span className="text-sm text-gray-600">
-                  Acepto los <a href="/policies" className="text-pink-600">Términos de Servicio</a>, la{' '}
-                  <a href="/policies" className="text-pink-600">Política de Privacidad</a> y confirmo que soy mayor de 18 años.
+                  {t('register.terms')} <a href="/policies" className="text-pink-600">{t('register.termsLink')}</a>,{' '}
+                  {t('register.and')} <a href="/policies" className="text-pink-600">{t('register.privacyLink')}</a>{' '}
+                  {t('register.ageConfirm')}
                 </span>
               </label>
 
               <div className="flex space-x-3">
                 <button onClick={() => setStep(2)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-200 transition">
-                  Atrás
+                  {t('register.back')}
                 </button>
                 <button onClick={handleSubmit} className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-xl font-bold hover:opacity-90 transition">
-                  Crear Cuenta
+                  {t('register.submit')}
                 </button>
               </div>
             </div>
           )}
 
           <p className="text-center text-sm text-gray-600 mt-6">
-            ¿Ya tienes cuenta?{' '}
-            <Link to="/login" className="text-pink-600 font-medium hover:text-pink-700">Inicia sesión</Link>
+            {t('register.hasAccount')}{' '}
+            <Link to="/login" className="text-pink-600 font-medium hover:text-pink-700">{t('register.login')}</Link>
           </p>
         </div>
+      </div>
       </div>
     </div>
   );

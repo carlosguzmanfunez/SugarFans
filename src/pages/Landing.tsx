@@ -1,8 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { creators, categories } from '../data/mockData';
+import { useLanguage } from '../context/LanguageContext';
 
 const Landing: React.FC = () => {
+  const { t } = useLanguage();
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -14,23 +17,23 @@ const Landing: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32 relative z-10">
           <div className="text-center max-w-3xl mx-auto">
             <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
-              Conecta con tus <span className="text-yellow-300">creadores favoritos</span>
+              {t('landing.hero.title1')} <span className="text-yellow-300">{t('landing.hero.title2')}</span>
             </h1>
             <p className="text-lg md:text-xl text-pink-100 mb-8">
-              Descubre contenido exclusivo de miles de creadores. Suscríbete, apoya y disfruta de experiencias únicas.
+              {t('landing.hero.subtitle')}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/register" className="bg-white text-purple-700 px-8 py-4 rounded-full font-bold text-lg hover:bg-yellow-300 hover:text-purple-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
-                Comenzar Gratis
+                {t('landing.hero.cta1')}
               </Link>
               <Link to="/explore" className="border-2 border-white text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-white hover:text-purple-700 transition-all">
-                Explorar Creadores
+                {t('landing.hero.cta2')}
               </Link>
             </div>
             <div className="mt-12 flex justify-center items-center space-x-8 text-sm text-pink-200">
-              <div className="flex items-center"><i className="fas fa-users mr-2"></i> +50K Creadores</div>
-              <div className="flex items-center"><i className="fas fa-shield-alt mr-2"></i> 100% Seguro</div>
-              <div className="flex items-center"><i className="fas fa-lock mr-2"></i> Pagos Seguros</div>
+              <div className="flex items-center"><i className="fas fa-users mr-2"></i> {t('landing.hero.stats1')}</div>
+              <div className="flex items-center"><i className="fas fa-shield-alt mr-2"></i> {t('landing.hero.stats2')}</div>
+              <div className="flex items-center"><i className="fas fa-lock mr-2"></i> {t('landing.hero.stats3')}</div>
             </div>
           </div>
         </div>
@@ -40,8 +43,8 @@ const Landing: React.FC = () => {
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Creadores Destacados</h2>
-            <p className="text-gray-600">Descubre a los creadores más populares de nuestra plataforma</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">{t('landing.featured.title')}</h2>
+            <p className="text-gray-600">{t('landing.featured.subtitle')}</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {creators.slice(0, 6).map((creator) => (
@@ -62,7 +65,7 @@ const Landing: React.FC = () => {
                         <i className="fas fa-users mr-1"></i> {(creator.followers / 1000).toFixed(1)}K
                       </span>
                       <span className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                        ${creator.subscriptionPrice}/mes
+                        ${creator.subscriptionPrice}{t('common.perMonth')}
                       </span>
                     </div>
                   </div>
@@ -72,7 +75,7 @@ const Landing: React.FC = () => {
           </div>
           <div className="text-center mt-10">
             <Link to="/explore" className="inline-flex items-center text-pink-600 font-medium hover:text-pink-700">
-              Ver todos los creadores <i className="fas fa-arrow-right ml-2"></i>
+              {t('landing.featured.viewAll')} <i className="fas fa-arrow-right ml-2"></i>
             </Link>
           </div>
         </div>
@@ -82,8 +85,8 @@ const Landing: React.FC = () => {
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Explora por Categorías</h2>
-            <p className="text-gray-600">Encuentra exactamente lo que buscas</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">{t('landing.categories.title')}</h2>
+            <p className="text-gray-600">{t('landing.categories.subtitle')}</p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {categories.map((cat) => (
@@ -101,30 +104,30 @@ const Landing: React.FC = () => {
       <section className="py-16 bg-gradient-to-br from-purple-50 to-pink-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">¿Cómo funciona?</h2>
-            <p className="text-gray-600">Es fácil comenzar en SugarFans</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">{t('landing.how.title')}</h2>
+            <p className="text-gray-600">{t('landing.how.subtitle')}</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="text-center">
               <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i className="fas fa-user-plus text-2xl text-pink-600"></i>
               </div>
-              <h3 className="font-bold text-lg mb-2">1. Crea tu cuenta</h3>
-              <p className="text-gray-600">Regístrate gratis y verifica tu edad para acceder a todo el contenido.</p>
+              <h3 className="font-bold text-lg mb-2">{t('landing.how.step1.title')}</h3>
+              <p className="text-gray-600">{t('landing.how.step1.desc')}</p>
             </div>
             <div className="text-center">
               <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i className="fas fa-search text-2xl text-purple-600"></i>
               </div>
-              <h3 className="font-bold text-lg mb-2">2. Descubre creadores</h3>
-              <p className="text-gray-600">Explora perfiles, encuentra tu contenido favorito y suscríbete.</p>
+              <h3 className="font-bold text-lg mb-2">{t('landing.how.step2.title')}</h3>
+              <p className="text-gray-600">{t('landing.how.step2.desc')}</p>
             </div>
             <div className="text-center">
               <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i className="fas fa-heart text-2xl text-indigo-600"></i>
               </div>
-              <h3 className="font-bold text-lg mb-2">3. Disfruta y apoya</h3>
-              <p className="text-gray-600">Accede a contenido exclusivo, envía mensajes y apoya a tus favoritos.</p>
+              <h3 className="font-bold text-lg mb-2">{t('landing.how.step3.title')}</h3>
+              <p className="text-gray-600">{t('landing.how.step3.desc')}</p>
             </div>
           </div>
         </div>
@@ -133,12 +136,12 @@ const Landing: React.FC = () => {
       {/* CTA */}
       <section className="py-16 bg-gradient-to-r from-pink-500 to-purple-600 text-white">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">¿Eres creador de contenido?</h2>
+          <h2 className="text-3xl font-bold mb-4">{t('landing.cta.title')}</h2>
           <p className="text-pink-100 text-lg mb-8">
-            Únete a SugarFans y monetiza tu contenido. Controla tus precios, conecta con tus fans y crece tu comunidad.
+            {t('landing.cta.subtitle')}
           </p>
           <Link to="/register" className="bg-white text-purple-700 px-8 py-4 rounded-full font-bold text-lg hover:bg-yellow-300 transition-all inline-block">
-            Comenzar como Creador
+            {t('landing.cta.button')}
           </Link>
         </div>
       </section>
