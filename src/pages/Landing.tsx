@@ -133,6 +133,64 @@ const Landing: React.FC = () => {
         </div>
       </section>
 
+      {/* VIP Experiences Banner */}
+      <section className="py-16 bg-gradient-to-br from-purple-600 via-pink-600 to-yellow-500 text-white relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%23ffffff%22%20fill-opacity%3D%220.1%22%3E%3Cpath%20d%3D%22M36%2034v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6%2034v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6%204V0H4v4H0v2h4v4h2V6h4V4H6z%22%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E')]"></div>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="flex-1 text-center md:text-left">
+              <div className="inline-block mb-4">
+                <span className="text-5xl">👑</span>
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                Experiencias VIP Exclusivas
+              </h2>
+              <p className="text-lg text-white/90 mb-6 max-w-xl">
+                Vive momentos únicos con tus creadores favoritos. Meet & greets, sesiones privadas, 
+                contenido personalizado y mucho más. ¡Reserva tu experiencia ahora!
+              </p>
+              <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+                <Link to="/vip-experiences" className="bg-white text-purple-700 px-8 py-4 rounded-full font-bold text-lg hover:bg-yellow-300 hover:text-purple-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                  Explorar Experiencias
+                </Link>
+                <div className="flex items-center space-x-6 text-sm">
+                  <div className="flex items-center">
+                    <i className="fas fa-star text-yellow-300 mr-2"></i>
+                    <span>500+ Experiencias</span>
+                  </div>
+                  <div className="flex items-center">
+                    <i className="fas fa-heart text-pink-300 mr-2"></i>
+                    <span>4.9★ Rating</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex-shrink-0">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 text-center">
+                  <div className="text-3xl mb-2">👋</div>
+                  <p className="font-semibold text-sm">Meet & Greet</p>
+                </div>
+                <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 text-center">
+                  <div className="text-3xl mb-2">💬</div>
+                  <p className="font-semibold text-sm">Sesiones Q&A</p>
+                </div>
+                <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 text-center">
+                  <div className="text-3xl mb-2">🎨</div>
+                  <p className="font-semibold text-sm">Contenido Custom</p>
+                </div>
+                <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 text-center">
+                  <div className="text-3xl mb-2">🚀</div>
+                  <p className="font-semibold text-sm">Acceso Anticipado</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="py-16 bg-gradient-to-r from-pink-500 to-purple-600 text-white">
         <div className="max-w-4xl mx-auto px-4 text-center">

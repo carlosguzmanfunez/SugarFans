@@ -17,6 +17,7 @@ import Help from './pages/Help';
 import Policies from './pages/Policies';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
+import VIPExperiences from './pages/VIPExperiences';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; roles?: string[] }> = ({ children, roles }) => {
   const { isAuthenticated, user, ageVerified } = useAuth();
@@ -65,6 +66,9 @@ const AppRoutes: React.FC = () => {
       } />
       <Route path="/creator/:id" element={
         <AppLayout><CreatorProfile /></AppLayout>
+      } />
+      <Route path="/vip-experiences" element={
+        <AppLayout><VIPExperiences /></AppLayout>
       } />
       <Route path="/pricing" element={
         <AppLayout><Pricing /></AppLayout>

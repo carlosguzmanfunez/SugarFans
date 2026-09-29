@@ -46,6 +46,7 @@ export const categories: Category[] = [
   { id: '6', name: 'Lifestyle', icon: '✨', count: 4560 },
   { id: '7', name: 'Gaming', icon: '🎮', count: 2100 },
   { id: '8', name: 'Educación', icon: '📚', count: 1540 },
+  { id: '9', name: 'Experiencias VIP', icon: '👑', count: 890 },
 ];
 
 export const creators: Creator[] = [
@@ -236,4 +237,109 @@ export const notifications = [
   { id: '2', text: 'Tu suscripción a Diego Torres se renovó', time: 'Hace 1 hora', read: false },
   { id: '3', text: 'Sofía Luna respondió a tu comentario', time: 'Hace 3 horas', read: true },
   { id: '4', text: 'Mariana Silva publicó un video exclusivo', time: 'Hace 5 horas', read: true },
+];
+
+export interface VIPExperience {
+  id: string;
+  creatorId: string;
+  creatorName: string;
+  creatorAvatar: string;
+  title: string;
+  description: string;
+  type: 'meet-greet' | 'qa-session' | 'custom-content' | 'early-access' | 'collaboration';
+  price: number;
+  duration?: string;
+  availableSlots: number;
+  totalSlots: number;
+  rating: number;
+  reviews: number;
+  image: string;
+  tags: string[];
+}
+
+export const vipExperiences: VIPExperience[] = [
+  {
+    id: '1',
+    creatorId: '1',
+    creatorName: 'Valentina Rose',
+    creatorAvatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=valentina',
+    title: 'Video Llamada VIP Personalizada',
+    description: 'Sesión privada de 30 minutos donde podemos conversar, conocer tus intereses y crear contenido personalizado para ti.',
+    type: 'meet-greet',
+    price: 99.99,
+    duration: '30 min',
+    availableSlots: 3,
+    totalSlots: 5,
+    rating: 4.9,
+    reviews: 47,
+    image: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&h=400&fit=crop',
+    tags: ['Exclusivo', 'Personalizado', 'Premium'],
+  },
+  {
+    id: '2',
+    creatorId: '2',
+    creatorName: 'Diego Torres',
+    creatorAvatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=diego',
+    title: 'Plan de Entrenamiento 1:1',
+    description: 'Sesión de coaching personalizado donde diseño un plan de entrenamiento específico para tus objetivos.',
+    type: 'qa-session',
+    price: 149.99,
+    duration: '60 min',
+    availableSlots: 2,
+    totalSlots: 4,
+    rating: 5.0,
+    reviews: 23,
+    image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
+    tags: ['Coaching', 'Personalizado', 'Fitness'],
+  },
+  {
+    id: '3',
+    creatorId: '3',
+    creatorName: 'Sofía Luna',
+    creatorAvatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=sofia',
+    title: 'Tutorial de Arte Personalizado',
+    description: 'Clase privada donde te enseño técnicas específicas de arte digital según tu nivel y preferencias.',
+    type: 'custom-content',
+    price: 79.99,
+    duration: '45 min',
+    availableSlots: 5,
+    totalSlots: 8,
+    rating: 4.8,
+    reviews: 31,
+    image: 'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=600&h=400&fit=crop',
+    tags: ['Tutorial', 'Privado', 'Arte'],
+  },
+  {
+    id: '4',
+    creatorId: '4',
+    creatorName: 'Mariana Silva',
+    creatorAvatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=mariana',
+    title: 'Behind the Scenes Exclusivo',
+    description: 'Acceso anticipado a mi próximo proyecto de baile + video exclusivo del proceso creativo.',
+    type: 'early-access',
+    price: 49.99,
+    availableSlots: 10,
+    totalSlots: 20,
+    rating: 4.7,
+    reviews: 56,
+    image: 'https://images.unsplash.com/photo-1508700929628-666bc8bd84ea?w=600&h=400&fit=crop',
+    tags: ['Acceso Anticipado', 'Exclusivo', 'BTS'],
+  },
+  {
+    id: '5',
+    creatorId: '6',
+    creatorName: 'Camila Reyes',
+    creatorAvatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=camila',
+    title: 'Clase de Cocina Privada',
+    description: 'Sesión en vivo donde cocinamos juntos una receta exclusiva. Incluye lista de ingredientes y tips profesionales.',
+    type: 'collaboration',
+    price: 119.99,
+    duration: '90 min',
+    availableSlots: 4,
+    totalSlots: 6,
+    rating: 4.9,
+    reviews: 38,
+    image: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=600&h=400&fit=crop',
+    tags: ['Colaboración', 'En Vivo', 'Gastronomía'],
+  },
 ];

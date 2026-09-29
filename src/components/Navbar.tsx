@@ -36,6 +36,9 @@ const Navbar: React.FC = () => {
             <Link to="/explore" className={`text-sm font-medium ${location.pathname === '/explore' ? 'text-pink-600' : 'text-gray-600 hover:text-pink-500'}`}>
               <i className="fas fa-compass mr-1"></i> {t('nav.explore')}
             </Link>
+            <Link to="/vip-experiences" className={`text-sm font-medium ${location.pathname === '/vip-experiences' ? 'text-purple-600' : 'text-gray-600 hover:text-purple-500'}`}>
+              <i className="fas fa-crown mr-1"></i> VIP
+            </Link>
             {isAuthenticated && (
               <>
                 {user?.role === 'creator' && (
@@ -102,6 +105,9 @@ const Navbar: React.FC = () => {
           <div className="md:hidden pb-4 border-t border-gray-100 pt-4">
             <Link to="/explore" className="block py-2 text-gray-600 hover:text-pink-500" onClick={() => setShowMobile(false)}>
               <i className="fas fa-compass mr-2"></i> {t('nav.explore')}
+            </Link>
+            <Link to="/vip-experiences" className="block py-2 text-gray-600 hover:text-purple-500" onClick={() => setShowMobile(false)}>
+              <i className="fas fa-crown mr-2"></i> Experiencias VIP
             </Link>
             {isAuthenticated && user?.role === 'creator' && (
               <Link to="/creator/dashboard" className="block py-2 text-gray-600 hover:text-pink-500" onClick={() => setShowMobile(false)}>
