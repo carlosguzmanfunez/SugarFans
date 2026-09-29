@@ -91,6 +91,38 @@ const register = async (page, { name, email, password, confirm = password, role 
   await page.getByRole('button', { name: /Crear cuenta|Crear Cuenta|Registrarse/ }).last().click();
 };
 
+const isoDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const addMonths = (d, n) => new Date(d.getFullYear(), d.getMonth() + n, d.getDate());
+let vipDate = '';
+
+// Opens the booking modal for the first experience (Valentina Rose, creator profile 1).
+const openBooking = async (page) => {
+  await page.goto(`${BASE}/vip-experiences`);
+  await page.getByRole('button', { name: 'Reservar Ahora' }).first().click();
+  await page.getByTestId('booking-calendar').waitFor();
+};
+
+const pickFirstDate = async (page) => {
+  const cal = page.getByTestId('booking-calendar');
+  for (let i = 0; i < 4; i++) {
+    const day = cal.locator('button[data-date]:not([disabled])').first();
+    if (await day.count()) {
+      await day.click();
+      return day.getAttribute('data-date');
+    }
+    await cal.getByRole('button', { name: 'Mes siguiente' }).click();
+  }
+  throw new Error('no hay días disponibles');
+};
+
+const pickDate = async (page, iso) => {
+  const cal = page.getByTestId('booking-calendar');
+  for (let i = 0; i < 4 && !(await cal.locator(`button[data-date="${iso}"]`).count()); i++) {
+    await cal.getByRole('button', { name: 'Mes siguiente' }).click();
+  }
+  await cal.locator(`button[data-date="${iso}"]`).click();
+};
+
 const errorText = async (page) => (await page.locator('[class*="bg-red-50"]').first().textContent({ timeout: 3000 }))?.trim();
 
 const run = async () => {
@@ -304,27 +336,68 @@ const run = async () => {
       await page.reload();
       await page.getByTestId('subscriptions').getByText('No tienes suscripciones activas').waitFor();
     });
-    await check('Reserva VIP valida fecha y hora', async () => {
-      await page.goto(`${BASE}/vip-experiences`);
-      await page.getByRole('button', { name: 'Reservar Ahora' }).first().click();
+    await check('Reserva VIP exige elegir día y hora', async () => {
+      await openBooking(page);
       await page.getByRole('button', { name: 'Confirmar Reserva' }).click();
-      await page.getByText('Elige una fecha').waitFor();
+      await page.getByText('Elige un día').waitFor();
     });
-    await check('Reserva VIP se guarda y aparece en el perfil tras recargar', async () => {
-      const d = new Date(Date.now() + 7 * 86400000);
-      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      await page.fill('input[name=date]', iso);
-      await page.selectOption('select[name=time]', '6:00 PM');
+    await check('El calendario solo permite reservar hasta 3 meses', async () => {
+      const cal = page.getByTestId('booking-calendar');
+      let clicks = 0;
+      while (await cal.getByRole('button', { name: 'Mes siguiente' }).isEnabled()) {
+        await cal.getByRole('button', { name: 'Mes siguiente' }).click();
+        clicks++;
+        expect(clicks <= 3, 'deja avanzar más de 3 meses');
+      }
+      expect(clicks === 3, `solo avanzó ${clicks} meses`);
+      const max = isoDate(addMonths(new Date(), 3));
+      const late = cal.locator('button[data-date]');
+      for (let i = 0; i < (await late.count()); i++) {
+        const d = await late.nth(i).getAttribute('data-date');
+        if (d > max) expect(await late.nth(i).isDisabled(), `el día ${d} (después del límite) se puede elegir`);
+      }
+      for (let i = 0; i < 3; i++) await cal.getByRole('button', { name: 'Mes anterior' }).click();
+      expect(await cal.getByRole('button', { name: 'Mes anterior' }).isDisabled(), 'deja ir a meses pasados');
+    });
+    await check('Solo se ofrecen los días y horas del creador', async () => {
+      const cal = page.getByTestId('booking-calendar');
+      const enabled = cal.locator('button[data-date]:not([disabled])');
+      for (let i = 0; i < (await enabled.count()); i++) {
+        const day = new Date(`${await enabled.nth(i).getAttribute('data-date')}T12:00`).getDay();
+        expect(day >= 1 && day <= 5, 'ofrece un día en que el creador no trabaja');
+      }
+      vipDate = await pickFirstDate(page);
+      const hours = await page.getByTestId('time-slots').locator('button:not([disabled])').allTextContents();
+      expect(hours.join(',') === '10:00,12:00,16:00,18:00', `horas ofrecidas: ${hours}`);
+    });
+    await check('La reserva queda esperando la aceptación del creador', async () => {
+      await page.getByTestId('time-slots').getByRole('button', { name: '12:00' }).click();
       await page.getByRole('button', { name: 'Confirmar Reserva' }).click();
       await page.getByText('¡Reserva enviada!').waitFor();
       await page.getByRole('link', { name: 'Ver mis reservas' }).click();
       await page.reload();
-      await page.getByTestId('bookings').getByText(iso).waitFor();
+      const booking = page.getByTestId('booking').filter({ hasText: '12:00' });
+      await booking.getByText('Esperando al creador').waitFor();
+      expect((await booking.getByRole('button', { name: /Pagar/ }).count()) === 0, 'deja pagar antes de que el creador acepte');
+      expect((await booking.getByText(/Correo de confirmación/).count()) === 0, 'envió correo antes de tiempo');
     });
-    await check('Cancelar reserva VIP persiste', async () => {
-      await page.getByTestId('bookings').getByRole('button', { name: 'Cancelar' }).click();
+    await check('Una hora ya reservada no se vuelve a ofrecer', async () => {
+      await openBooking(page);
+      await pickDate(page, vipDate);
+      expect(await page.getByTestId('time-slots').getByRole('button', { name: '12:00' }).isDisabled(), '12:00 sigue libre');
+      for (const h of ['16:00', '18:00']) {
+        await openBooking(page);
+        await pickDate(page, vipDate);
+        await page.getByTestId('time-slots').getByRole('button', { name: h }).click();
+        await page.getByRole('button', { name: 'Confirmar Reserva' }).click();
+        await page.getByText('¡Reserva enviada!').waitFor();
+      }
+    });
+    await check('Cancelar una reserva pendiente persiste', async () => {
+      await page.goto(`${BASE}/profile`);
+      await page.getByTestId('booking').filter({ hasText: '18:00' }).getByRole('button', { name: 'Cancelar' }).click();
       await page.reload();
-      await page.getByTestId('bookings').getByText('Cancelada').waitFor();
+      await page.getByTestId('booking').filter({ hasText: '18:00' }).getByText('Cancelada').waitFor();
     });
     await check('Sin sesión, "Reservar" lleva a login', async () => {
       await logoutViaMenu(page);
@@ -382,6 +455,56 @@ const run = async () => {
       await page.fill('input[placeholder="Buscar usuario..."]', 'lola');
       await page.getByText(creatorEmail).waitFor();
       expect((await page.getByText(fanEmail).count()) === 0, 'el filtro no funciona');
+      await logoutViaMenu(page);
+    });
+
+    console.log('\nReservas VIP: creador acepta, fan paga, correo de confirmación');
+    await check('El creador configura sus horarios y persisten', async () => {
+      await login(page, 'creator@sugarfans.com', 'demo1234');
+      await waitPath(page, '/explore');
+      await page.goto(`${BASE}/creator/dashboard`);
+      await page.getByRole('button', { name: /Experiencias VIP/ }).click();
+      const panel = page.getByTestId('vip-availability');
+      await panel.getByRole('button', { name: '10:00' }).click();
+      await panel.getByRole('button', { name: '20:00' }).click();
+      await panel.getByRole('button', { name: 'Guardar horarios' }).click();
+      await page.getByText('Horarios guardados').waitFor();
+      await page.reload();
+      await page.getByRole('button', { name: /Experiencias VIP/ }).click();
+      const saved = page.getByTestId('vip-availability');
+      expect((await saved.getByRole('button', { name: '20:00' }).getAttribute('aria-pressed')) === 'true', '20:00 no se guardó');
+      expect((await saved.getByRole('button', { name: '10:00' }).getAttribute('aria-pressed')) === 'false', '10:00 no se quitó');
+    });
+    await check('El creador ve las solicitudes y acepta o rechaza', async () => {
+      const requests = page.getByTestId('vip-requests');
+      await requests.getByTestId('vip-request').filter({ hasText: '12:00' }).getByRole('button', { name: 'Aceptar' }).click();
+      await requests.getByTestId('vip-request').filter({ hasText: '16:00' }).getByRole('button', { name: 'Rechazar' }).click();
+      await page.reload();
+      await page.getByRole('button', { name: /Experiencias VIP/ }).click();
+      await page.getByTestId('vip-request').filter({ hasText: '12:00' }).getByText('Aceptada · pendiente de pago').waitFor();
+      await page.getByTestId('vip-request').filter({ hasText: '16:00' }).getByText('Rechazada por el creador').waitFor();
+      await logoutViaMenu(page);
+    });
+    await check('El fan paga y solo entonces recibe el correo de confirmación', async () => {
+      await login(page, fanEmail, 'nueva-clave-2');
+      await waitPath(page, '/explore');
+      await page.goto(`${BASE}/profile`);
+      const booking = page.getByTestId('booking').filter({ hasText: '12:00' });
+      await booking.getByText('Aceptada · pendiente de pago').waitFor();
+      expect((await booking.getByText(/Correo de confirmación/).count()) === 0, 'envió correo antes del pago');
+      await booking.getByRole('button', { name: /Pagar/ }).click();
+      await page.reload();
+      const paid = page.getByTestId('booking').filter({ hasText: '12:00' });
+      await paid.getByText('Confirmada').waitFor();
+      await paid.getByText(`Correo de confirmación enviado a ${fanEmail}`).waitFor();
+      await page.getByTestId('booking').filter({ hasText: '16:00' }).getByText('Rechazada por el creador').waitFor();
+    });
+    await check('Los nuevos horarios del creador se reflejan al reservar', async () => {
+      await openBooking(page);
+      await pickFirstDate(page);
+      const hours = await page.getByTestId('time-slots').locator('button').allTextContents();
+      expect(hours.includes('20:00') && !hours.includes('10:00'), `horas: ${hours}`);
+      await page.getByRole('button', { name: 'Cancelar' }).click();
       await logoutViaMenu(page);
     });
 

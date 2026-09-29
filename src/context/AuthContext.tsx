@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { readJSON, writeJSON, removeKey, hashPassword, newId, isValidEmail } from '../lib/storage';
+import { cancelBookingsForFan } from '../lib/vip';
 
 export type UserRole = 'fan' | 'creator' | 'admin';
 
@@ -18,19 +19,6 @@ export interface Subscription {
   creatorId: string;
   price: number;
   since: string;
-}
-
-export interface Booking {
-  id: string;
-  experienceId: string;
-  title: string;
-  creatorName: string;
-  price: number;
-  date: string;
-  time: string;
-  message: string;
-  status: 'pending' | 'cancelled';
-  createdAt: string;
 }
 
 export interface CreatorPost {
@@ -57,7 +45,8 @@ export interface User {
   createdAt: string;
   settings: UserSettings;
   subscriptions: Subscription[];
-  bookings: Booking[];
+  // Links a creator account to its public creator profile / VIP experiences.
+  creatorProfileId?: string;
   createdPosts: CreatorPost[];
 }
 
@@ -84,8 +73,6 @@ interface AuthContextType {
   deleteAccount: (password: string) => Promise<AuthResult>;
   isSubscribed: (creatorId: string) => boolean;
   toggleSubscription: (creatorId: string, price: number) => void;
-  addBooking: (booking: Omit<Booking, 'id' | 'status' | 'createdAt'>) => void;
-  cancelBooking: (id: string) => void;
   addPost: (content: string, isLocked: boolean) => void;
   deletePost: (id: string) => void;
   listAccounts: () => User[];
@@ -117,7 +104,6 @@ const baseUser = (partial: Pick<User, 'id' | 'name' | 'email' | 'role' | 'avatar
   createdAt: new Date().toISOString(),
   settings: defaultSettings(),
   subscriptions: [],
-  bookings: [],
   createdPosts: [],
   ...partial,
 });
@@ -139,6 +125,7 @@ const demoUsers: User[] = [
     bio: 'Modelo y creadora de contenido exclusivo ✨',
     isVerified: true,
     subscriptionPrice: 9.99,
+    creatorProfileId: '1',
     followers: 12500,
     following: 340,
     posts: 256,
@@ -159,8 +146,8 @@ const loadAccounts = (): StoredAccount[] => {
     ...a,
     settings: { ...defaultSettings(), ...a.settings },
     subscriptions: a.subscriptions ?? [],
-    bookings: a.bookings ?? [],
     createdPosts: a.createdPosts ?? [],
+    creatorProfileId: a.creatorProfileId ?? (a.role === 'creator' ? (a.id === 'demo-creator' ? '1' : a.id) : undefined),
     createdAt: a.createdAt ?? new Date().toISOString(),
   }));
 };
@@ -351,6 +338,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const account = await verifyCurrentPassword(password);
     if (!account) return { ok: false, error: 'La contraseña no es correcta' };
     saveAccounts(loadAccounts().filter((a) => a.id !== account.id));
+    cancelBookingsForFan(account.id);
     logout();
     return { ok: true };
   };
@@ -363,20 +351,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       subscriptions: a.subscriptions.some((s) => s.creatorId === creatorId)
         ? a.subscriptions.filter((s) => s.creatorId !== creatorId)
         : [...a.subscriptions, { creatorId, price, since: new Date().toISOString() }],
-    }));
-  };
-
-  const addBooking = (booking: Omit<Booking, 'id' | 'status' | 'createdAt'>) => {
-    mutateCurrent((a) => ({
-      ...a,
-      bookings: [...a.bookings, { ...booking, id: newId(), status: 'pending', createdAt: new Date().toISOString() }],
-    }));
-  };
-
-  const cancelBooking = (id: string) => {
-    mutateCurrent((a) => ({
-      ...a,
-      bookings: a.bookings.map((b) => (b.id === id ? { ...b, status: 'cancelled' } : b)),
     }));
   };
 
@@ -415,8 +389,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         deleteAccount,
         isSubscribed,
         toggleSubscription,
-        addBooking,
-        cancelBooking,
         addPost,
         deletePost,
         listAccounts,

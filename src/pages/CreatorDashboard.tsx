@@ -1,5 +1,17 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import {
+  getAvailability,
+  setAvailability,
+  bookingsForCreator,
+  updateBooking,
+  statusLabel,
+  formatLongDate,
+  useVipStore,
+  WEEKDAYS,
+  ALL_HOURS,
+  MAX_BOOKING_MONTHS,
+} from '../lib/vip';
 
 const CreatorDashboard: React.FC = () => {
   const { user, addPost, deletePost, updateUser } = useAuth();
@@ -13,6 +25,31 @@ const CreatorDashboard: React.FC = () => {
   const [bio, setBio] = useState(user?.bio ?? '');
   const [price, setPrice] = useState(String(user?.subscriptionPrice ?? 9.99));
   const [category, setCategory] = useState(user?.settings.category ?? 'Modelaje');
+
+  useVipStore();
+  const profileId = user?.creatorProfileId ?? user?.id ?? '';
+  const [availDays, setAvailDays] = useState<number[]>(() => getAvailability(profileId).days);
+  const [availHours, setAvailHours] = useState<string[]>(() => getAvailability(profileId).hours);
+  const vipBookings = bookingsForCreator(profileId);
+  const pendingVip = vipBookings.filter((b) => b.status === 'pending').length;
+
+  const toggle = <T,>(list: T[], item: T) => (list.includes(item) ? list.filter((x) => x !== item) : [...list, item]);
+
+  const handleSaveAvailability = () => {
+    if (availDays.length === 0 || availHours.length === 0) {
+      setNotice({ ok: false, text: 'Elige al menos un día y una hora' });
+      return;
+    }
+    setAvailability(profileId, { days: availDays, hours: availHours });
+    setNotice({ ok: true, text: 'Horarios guardados' });
+  };
+
+  const handleBookingDecision = (id: string, next: 'accepted' | 'rejected') => {
+    const result = updateBooking(id, { role: 'creator', creatorProfileId: profileId }, next);
+    setNotice(result.ok
+      ? { ok: true, text: next === 'accepted' ? 'Reserva aceptada. El fan ya puede pagar.' : 'Reserva rechazada' }
+      : { ok: false, text: result.error || 'Error' });
+  };
 
   const handlePublish = () => {
     if (!postText.trim()) {
@@ -133,6 +170,7 @@ const CreatorDashboard: React.FC = () => {
             { id: 'content', label: 'Contenido', icon: 'fa-images' },
             { id: 'subscribers', label: 'Suscriptores', icon: 'fa-users' },
             { id: 'earnings', label: 'Ingresos', icon: 'fa-wallet' },
+            { id: 'vip', label: `Experiencias VIP${pendingVip ? ` (${pendingVip})` : ''}`, icon: 'fa-crown' },
             { id: 'settings', label: 'Configuración', icon: 'fa-cog' },
           ].map((tab) => (
             <button
@@ -341,6 +379,89 @@ const CreatorDashboard: React.FC = () => {
                   <div className="bg-green-500 h-2 rounded-full" style={{ width: '8%' }}></div>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'vip' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="vip-availability">
+              <h3 className="font-bold text-gray-900 mb-1">Mis horarios para experiencias VIP</h3>
+              <p className="text-sm text-gray-500 mb-5">
+                Los fans solo podrán reservar en estos días y horas, con hasta {MAX_BOOKING_MONTHS} meses de antelación.
+              </p>
+              <p className="text-sm font-medium text-gray-700 mb-2">Días</p>
+              <div className="flex flex-wrap gap-2 mb-5">
+                {WEEKDAYS.map((d, i) => (
+                  <button
+                    key={d}
+                    type="button"
+                    aria-pressed={availDays.includes(i)}
+                    onClick={() => setAvailDays(toggle(availDays, i))}
+                    className={`w-12 py-2 rounded-xl text-sm font-medium border transition ${
+                      availDays.includes(i) ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-200 text-gray-600 hover:border-purple-300'
+                    }`}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+              <p className="text-sm font-medium text-gray-700 mb-2">Horas</p>
+              <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 mb-6">
+                {ALL_HOURS.map((h) => (
+                  <button
+                    key={h}
+                    type="button"
+                    aria-pressed={availHours.includes(h)}
+                    onClick={() => setAvailHours(toggle(availHours, h))}
+                    className={`py-2 rounded-xl text-sm font-medium border transition ${
+                      availHours.includes(h) ? 'bg-pink-500 text-white border-pink-500' : 'border-gray-200 text-gray-600 hover:border-pink-300'
+                    }`}
+                  >
+                    {h}
+                  </button>
+                ))}
+              </div>
+              <button onClick={handleSaveAvailability} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition">
+                Guardar horarios
+              </button>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="vip-requests">
+              <h3 className="font-bold text-gray-900 mb-4">Solicitudes de reserva</h3>
+              {vipBookings.length === 0 ? (
+                <p className="text-sm text-gray-500">Aún no tienes solicitudes.</p>
+              ) : (
+                <div className="space-y-3">
+                  {vipBookings.map((b) => (
+                    <div key={b.id} data-testid="vip-request" className="border border-gray-100 rounded-xl p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{b.title}</p>
+                          <p className="text-xs text-gray-500">
+                            {b.fanName} · <span className="first-letter:uppercase">{formatLongDate(b.date)}</span> · {b.time}
+                          </p>
+                        </div>
+                        <span className="text-sm font-bold text-gray-900">${b.price}</span>
+                      </div>
+                      {b.message && <p className="text-sm text-gray-600 mt-2 italic">“{b.message}”</p>}
+                      <div className="flex items-center justify-between mt-3">
+                        <span className={`text-xs px-2 py-1 rounded-full ${statusLabel[b.status].className}`}>{statusLabel[b.status].text}</span>
+                        {b.status === 'pending' && (
+                          <div className="flex gap-2">
+                            <button onClick={() => handleBookingDecision(b.id, 'rejected')} className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">
+                              Rechazar
+                            </button>
+                            <button onClick={() => handleBookingDecision(b.id, 'accepted')} className="text-xs px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700">
+                              Aceptar
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
