@@ -6,7 +6,6 @@ import { usePlatformQuery, money } from '../lib/platform';
 import {
   GIFTS,
   GIFT_CATEGORIES,
-  GIFT_SHARE,
   VIDEO_MIN,
   CALL_MIN,
   DEFAULT_GIFT_SETTINGS,
@@ -117,7 +116,7 @@ const GiftDialog: React.FC<Props> = ({ user, creatorProfileId, creatorName, post
               </div>
               <p className="text-sm text-gray-700">
                 <span className="block text-base font-bold text-gray-900">{selected.name}</span>
-                {money(value)} en regalo. {creatorName} recibe el {GIFT_SHARE * 100}%.
+                {money(value)} en regalo para {creatorName}.
               </p>
             </div>
             {(perks.circle || perks.vault || perks.video || perks.call) && (

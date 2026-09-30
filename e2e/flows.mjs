@@ -1234,6 +1234,7 @@ const run = async () => {
       await dialog.getByRole('button', { name: /Corona de azúcar/ }).click();
       await dialog.getByTestId('gift-perks').getByText('Entras al Círculo privado por 30 días').waitFor();
       await dialog.getByLabel('Mensaje del regalo').fill('¡Para mi reina!');
+      expect(!/\d+\s*%/.test(await dialog.innerText()), 'el fan ve el porcentaje que recibe el creador');
       const art = dialog.getByRole('button', { name: /Corona de azúcar/ }).locator('img');
       expect(await art.evaluate((img) => img.complete && img.naturalWidth > 0), 'la ilustración 3D del regalo no cargó');
       await dialog.getByRole('button', { name: /Enviar Corona de azúcar/ }).click();
