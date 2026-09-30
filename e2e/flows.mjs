@@ -149,6 +149,12 @@ const addCard = async (scope, number = '4242 4242 4242 4242') => {
 };
 
 const amountOf = (text) => Number(String(text).replace(/[^0-9.]/g, ''));
+// Balances render $0.00 until the earnings query resolves, so wait for it before reading.
+const readAmount = async (page, testId) => {
+  await page.locator('[data-testid=earnings][aria-busy=false]').waitFor();
+  return amountOf(await page.getByTestId(testId).textContent());
+};
+const waitAmount = (page, testId, text) => page.getByTestId(testId).filter({ hasText: new RegExp(`^\\${text.replace('.', '\\.')}$`) }).waitFor();
 const money = (n) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const platformData = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('sugarfans_platform') || '{}'));
@@ -708,7 +714,7 @@ const run = async () => {
     console.log('\nIngresos y retiros del creador');
     await check('Creadora nueva: saldo 0 y no puede retirar por debajo de $50', async () => {
       await page.goto(`${BASE}/creator/dashboard?tab=earnings`);
-      expect((await page.getByTestId('available-balance').textContent()) === '$0.00', 'saldo inicial inesperado');
+      expect((await readAmount(page, 'available-balance')) === 0, 'saldo inicial inesperado');
       expect(await page.getByRole('button', { name: 'Retirar $0.00' }).isDisabled(), 'el botón de retiro no está bloqueado');
       await page.getByText(/Podrás retirar cuando tu saldo disponible llegue a \$50\.00/).waitFor();
       expect((await page.locator('input[name=payoutAmount]').count()) === 0, 'no debe poder elegir el monto');
@@ -720,8 +726,8 @@ const run = async () => {
       await page.goto(`${BASE}/creator/dashboard?tab=earnings`);
       // 80% of (9.99 subscription + 2 x 9.99 renewals) = 23.98 in total, no demo money.
       // The renewal from last month is credited; this month's payments wait for the 1st.
-      const available = amountOf(await page.getByTestId('available-balance').textContent());
-      const pending = amountOf(await page.getByTestId('pending-balance').textContent());
+      const available = (await readAmount(page, 'available-balance'));
+      const pending = (await readAmount(page, 'pending-balance'));
       expect(Math.abs(available + pending - 23.98) < 0.02, `total inesperado: ${available} + ${pending}`);
       expect(pending >= 7.99, 'el pago de este mes debería estar por acreditar');
       await page.getByText('+$7.99').first().waitFor();
@@ -740,14 +746,14 @@ const run = async () => {
         localStorage.setItem('sugarfans_platform', JSON.stringify(data));
       }, [amount, monthsAgo]);
     await check('Creadora demo: retira siempre el saldo completo y queda pagado al momento', async () => {
-      const before = amountOf(await page.getByTestId('available-balance').textContent());
-      const pendingBefore = amountOf(await page.getByTestId('pending-balance').textContent());
+      const before = (await readAmount(page, 'available-balance'));
+      const pendingBefore = (await readAmount(page, 'pending-balance'));
       await addSale(100, 1); // credited on this month's 1st: +80
       await addSale(50, 0); // paid this month: waits for next 1st (+40 pending)
       await page.reload();
-      const available = amountOf(await page.getByTestId('available-balance').textContent());
+      const available = (await readAmount(page, 'available-balance'));
       expect(Math.abs(available - (before + 80)) < 0.001, `saldo inesperado: ${available}`);
-      expect(Math.abs(amountOf(await page.getByTestId('pending-balance').textContent()) - (pendingBefore + 40)) < 0.001, 'no quedó por acreditar');
+      expect(Math.abs((await readAmount(page, 'pending-balance')) - (pendingBefore + 40)) < 0.001, 'no quedó por acreditar');
       const label = `Retirar ${money(available)}`;
       await page.getByRole('button', { name: label }).click();
       await page.getByText('Añade una cuenta bancaria para retiros').waitFor();
@@ -758,19 +764,19 @@ const run = async () => {
       await page.getByText('Banco Dos •••• 7771').waitFor();
       await page.getByRole('button', { name: label }).click();
       await page.getByText(`Retiro pagado: ${money(available)} enviados a tu cuenta`).waitFor();
-      expect((await page.getByTestId('available-balance').textContent()) === '$0.00', 'el saldo no quedó en cero');
+      await waitAmount(page, 'available-balance', '$0.00');
       const paid = page.getByTestId('payouts');
       await paid.getByText('Pagado', { exact: true }).waitFor();
       await paid.getByText(`Retiraste ${money(available)}`).waitFor();
       await paid.getByText(`Disponías de ${money(available)}`).waitFor();
       await paid.locator('i.fa-check-circle.text-green-600').first().waitFor({ state: 'attached' });
-      expect(Math.abs(amountOf(await page.getByTestId('pending-balance').textContent()) - (pendingBefore + 40)) < 0.001, 'se retiró lo que aún no estaba acreditado');
+      expect(Math.abs((await readAmount(page, 'pending-balance')) - (pendingBefore + 40)) < 0.001, 'se retiró lo que aún no estaba acreditado');
     });
     await check('Los saldos no retirados se acumulan hasta el siguiente retiro', async () => {
       await addSale(40, 1);
       await addSale(40, 2);
       await page.reload();
-      expect((await page.getByTestId('available-balance').textContent()) === '$64.00', 'no se acumularon 32 + 32');
+      expect((await readAmount(page, 'available-balance')) === 64, 'no se acumularon 32 + 32');
       expect(!(await page.getByRole('button', { name: 'Retirar $64.00' }).isDisabled()), 'debería poder retirar');
     });
     await check('La creadora ve a un suscriptor real, lo bloquea y él deja de ver su perfil', async () => {
