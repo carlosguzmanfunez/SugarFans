@@ -1,22 +1,42 @@
 import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { creators, posts } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
 
 const CreatorProfile: React.FC = () => {
   const { id } = useParams();
-  const { isAuthenticated, user } = useAuth();
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const { isAuthenticated, user, isSubscribed: hasSubscription, toggleSubscription } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<'posts' | 'media' | 'about'>('posts');
 
-  const creator = creators.find(c => c.id === id) || creators[0];
+  const creator = creators.find(c => c.id === id);
+
+  if (!creator) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="text-center">
+          <i className="fas fa-user-slash text-5xl text-gray-300 mb-4"></i>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Creador no encontrado</h1>
+          <p className="text-gray-600 mb-6">Este perfil no existe o fue eliminado.</p>
+          <Link to="/explore" className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium">
+            Explorar creadores
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const creatorPosts = posts.filter(p => p.creatorId === creator.id);
+  const isSubscribed = hasSubscription(creator.id);
 
   const handleSubscribe = () => {
     if (!isAuthenticated) {
+      navigate('/login', { state: { from: location.pathname } });
       return;
     }
-    setIsSubscribed(!isSubscribed);
+    if (isSubscribed && !window.confirm(`¿Cancelar tu suscripción a ${creator.name}?`)) return;
+    toggleSubscription(creator.id, creator.subscriptionPrice);
   };
 
   return (
@@ -58,13 +78,13 @@ const CreatorProfile: React.FC = () => {
                   }`}
                 >
                   {isSubscribed ? (
-                    <><i className="fas fa-check mr-2"></i>Suscrito</>
+                    <><i className="fas fa-check mr-2"></i>Suscrito · Cancelar</>
                   ) : (
                     <><i className="fas fa-star mr-2"></i>Suscribirse ${creator.subscriptionPrice}/mes</>
                   )}
                 </button>
               ) : !isAuthenticated ? (
-                <Link to="/login" className="px-6 py-3 rounded-full font-bold bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:opacity-90 shadow-lg inline-block">
+                <Link to="/login" state={{ from: location.pathname }} className="px-6 py-3 rounded-full font-bold bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:opacity-90 shadow-lg inline-block">
                   Iniciar sesión para suscribirse
                 </Link>
               ) : null}

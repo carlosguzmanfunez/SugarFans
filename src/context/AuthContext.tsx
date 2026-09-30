@@ -1,112 +1,145 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { readJSON, writeJSON } from '../lib/storage';
+import { backend, type AuthResult, type ProfilePatch, type User, type UserRole } from '../lib/backend';
 
-export type UserRole = 'fan' | 'creator' | 'admin';
+export type { User, UserRole, UserSettings, Subscription, CreatorPost, AuthResult } from '../lib/backend';
+export { defaultSettings } from '../lib/backend';
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  avatar: string;
-  cover?: string;
-  bio?: string;
-  isVerified?: boolean;
-  subscriptionPrice?: number;
-  followers?: number;
-  following?: number;
-  posts?: number;
-  ageVerified?: boolean;
-}
+const AGE_KEY = 'age_verified';
 
 interface AuthContextType {
   user: User | null;
+  // True until the stored session has been restored.
+  loading: boolean;
   isAuthenticated: boolean;
   ageVerified: boolean;
-  login: (email: string, password: string) => boolean;
-  register: (name: string, email: string, password: string, role: UserRole) => boolean;
-  logout: () => void;
+  backendMode: 'supabase' | 'local';
+  login: (email: string, password: string, remember?: boolean) => Promise<AuthResult>;
+  register: (name: string, email: string, password: string, role: UserRole) => Promise<AuthResult & { needsConfirmation?: boolean }>;
+  logout: () => Promise<void>;
   verifyAge: () => void;
-  updateUser: (data: Partial<User>) => void;
+  updateUser: (data: ProfilePatch) => Promise<AuthResult>;
+  changePassword: (current: string, next: string) => Promise<AuthResult>;
+  deleteAccount: (password: string) => Promise<AuthResult>;
+  isSubscribed: (creatorId: string) => boolean;
+  toggleSubscription: (creatorId: string, price: number) => Promise<AuthResult>;
+  addPost: (content: string, isLocked: boolean) => Promise<AuthResult>;
+  deletePost: (id: string) => Promise<AuthResult>;
+  listAccounts: () => Promise<User[]>;
+  refreshUser: () => Promise<void>;
 }
+
+const notSignedIn: AuthResult = { ok: false, error: 'No has iniciado sesión' };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [ageVerified, setAgeVerified] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [deviceAgeVerified, setDeviceAgeVerified] = useState<boolean>(() => readJSON<boolean>(AGE_KEY, false));
 
-  const login = (email: string, _password: string): boolean => {
-    // Simulated login
-    if (email.includes('admin')) {
-      setUser({
-        id: '1',
-        name: 'Admin SugarFans',
-        email,
-        role: 'admin',
-        avatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=admin',
-        ageVerified: true,
-      });
-    } else if (email.includes('creator')) {
-      setUser({
-        id: '2',
-        name: 'Valentina Rose',
-        email,
-        role: 'creator',
-        avatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=valentina',
-        bio: 'Modelo y creadora de contenido exclusivo ✨',
-        isVerified: true,
-        subscriptionPrice: 9.99,
-        followers: 12500,
-        following: 340,
-        posts: 256,
-        ageVerified: true,
-      });
-    } else {
-      setUser({
-        id: '3',
-        name: 'Carlos M.',
-        email,
-        role: 'fan',
-        avatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=carlos',
-        ageVerified: true,
-      });
+  const refreshUser = useCallback(async () => {
+    const current = await backend.getCurrentUser();
+    setUser(current);
+    if (current?.ageVerified) {
+      writeJSON(AGE_KEY, true);
+      setDeviceAgeVerified(true);
     }
-    setAgeVerified(true);
-    return true;
-  };
+  }, []);
 
-  const register = (name: string, email: string, _password: string, role: UserRole): boolean => {
-    setUser({
-      id: Date.now().toString(),
-      name,
-      email,
-      role,
-      avatar: `https://api.dicebear.com/7.0/adventurer/svg?seed=${name}`,
-      ageVerified: false,
+  // Restore the session, then follow changes made in other tabs.
+  useEffect(() => {
+    let active = true;
+    refreshUser().finally(() => active && setLoading(false));
+    const unsubscribe = backend.onChange(() => {
+      if (!active) return;
+      refreshUser();
+      setDeviceAgeVerified(readJSON<boolean>(AGE_KEY, false));
     });
-    return true;
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [refreshUser]);
+
+  // Run a mutation, then reload the user so every screen sees the saved state.
+  const run = async (fn: () => Promise<AuthResult>): Promise<AuthResult> => {
+    const result = await fn();
+    await refreshUser();
+    return result;
   };
 
-  const logout = () => {
+  const login = (email: string, password: string, remember = true) => run(() => backend.login(email, password, remember));
+
+  const register = async (name: string, email: string, password: string, role: UserRole) => {
+    const result = await backend.register(name, email, password, role);
+    await refreshUser();
+    if (result.ok) {
+      // The sign-up form includes the 18+ confirmation.
+      writeJSON(AGE_KEY, true);
+      setDeviceAgeVerified(true);
+    }
+    return result;
+  };
+
+  const logout = async () => {
+    await backend.logout();
     setUser(null);
-    setAgeVerified(false);
   };
 
   const verifyAge = () => {
-    setAgeVerified(true);
-    if (user) {
-      setUser({ ...user, ageVerified: true });
-    }
+    writeJSON(AGE_KEY, true);
+    setDeviceAgeVerified(true);
+    if (user && !user.ageVerified) run(() => backend.updateProfile(user, { ageVerified: true }));
   };
 
-  const updateUser = (data: Partial<User>) => {
-    if (user) {
-      setUser({ ...user, ...data });
-    }
+  const updateUser = (data: ProfilePatch) => (user ? run(() => backend.updateProfile(user, data)) : Promise.resolve(notSignedIn));
+
+  const changePassword = (current: string, next: string) =>
+    user ? backend.changePassword(user, current, next) : Promise.resolve(notSignedIn);
+
+  const deleteAccount = async (password: string) => {
+    if (!user) return notSignedIn;
+    const result = await backend.deleteAccount(user, password);
+    if (result.ok) setUser(null);
+    return result;
   };
+
+  const isSubscribed = (creatorId: string) => !!user?.subscriptions.some((s) => s.creatorId === creatorId);
+
+  const toggleSubscription = (creatorId: string, price: number) =>
+    user ? run(() => backend.setSubscription(user, creatorId, price, !isSubscribed(creatorId))) : Promise.resolve(notSignedIn);
+
+  const addPost = (content: string, isLocked: boolean) =>
+    user ? run(() => backend.addPost(user, content, isLocked)) : Promise.resolve(notSignedIn);
+
+  const deletePost = (id: string) => (user ? run(() => backend.deletePost(user, id)) : Promise.resolve(notSignedIn));
+
+  const ageVerified = deviceAgeVerified || !!user?.ageVerified;
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, ageVerified, login, register, logout, verifyAge, updateUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        isAuthenticated: !!user,
+        ageVerified,
+        backendMode: backend.mode,
+        login,
+        register,
+        logout,
+        verifyAge,
+        updateUser,
+        changePassword,
+        deleteAccount,
+        isSubscribed,
+        toggleSubscription,
+        addPost,
+        deletePost,
+        listAccounts: () => backend.listAccounts(),
+        refreshUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

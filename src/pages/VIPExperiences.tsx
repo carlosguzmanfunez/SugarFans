@@ -1,10 +1,25 @@
 import React, { useState } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { vipExperiences, VIPExperience } from '../data/mockData';
 import { useLanguage } from '../context/LanguageContext';
+import BookingCalendar from '../components/BookingCalendar';
+import { formatLongDate, DEFAULT_AVAILABILITY, type Availability, type TakenSlot } from '../lib/vip';
+import { backend } from '../lib/backend';
 
 const VIPExperiences: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [bookingDate, setBookingDate] = useState('');
+  const [bookingTime, setBookingTime] = useState('');
+  const [bookingMessage, setBookingMessage] = useState('');
+  const [bookingError, setBookingError] = useState('');
+  const [bookingDone, setBookingDone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [availability, setAvailability] = useState<Availability>(DEFAULT_AVAILABILITY);
+  const [taken, setTaken] = useState<TakenSlot[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
   const { t } = useLanguage();
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedExperience, setSelectedExperience] = useState<VIPExperience | null>(null);
@@ -25,11 +40,50 @@ const VIPExperiences: React.FC = () => {
 
   const handleBookExperience = (experience: VIPExperience) => {
     if (!isAuthenticated) {
-      alert('Debes iniciar sesión para reservar una experiencia VIP');
+      navigate('/login', { state: { from: location.pathname } });
+      return;
+    }
+    if (user?.creatorProfileId === experience.creatorId) {
+      alert('No puedes reservar tu propia experiencia');
       return;
     }
     setSelectedExperience(experience);
+    setBookingDate('');
+    setBookingTime('');
+    setBookingMessage('');
+    setBookingError('');
+    setBookingDone(false);
     setShowBookingModal(true);
+    setSlotsLoading(true);
+    Promise.all([backend.getAvailability(experience.creatorId), backend.takenSlots(experience.creatorId)]).then(([a, t]) => {
+      setAvailability(a);
+      setTaken(t);
+      setSlotsLoading(false);
+    });
+  };
+
+  const handleConfirmBooking = async () => {
+    if (!selectedExperience || !user) return;
+    setSubmitting(true);
+    const result = await backend.createBooking(user, {
+      experienceId: selectedExperience.id,
+      creatorProfileId: selectedExperience.creatorId,
+      title: selectedExperience.title,
+      creatorName: selectedExperience.creatorName,
+      price: selectedExperience.price,
+      date: bookingDate,
+      time: bookingTime,
+      message: bookingMessage.trim(),
+    });
+    setSubmitting(false);
+    if (!result.ok) {
+      setBookingError(result.error || 'No se pudo enviar la reserva');
+      // Someone may have taken the slot meanwhile: refresh what is free.
+      backend.takenSlots(selectedExperience.creatorId).then(setTaken);
+      return;
+    }
+    setBookingError('');
+    setBookingDone(true);
   };
 
   const getTypeIcon = (type: string) => {
@@ -293,6 +347,28 @@ const VIPExperiences: React.FC = () => {
       {showBookingModal && selectedExperience && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {bookingDone ? (
+              <div className="p-8 text-center">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <i className="fas fa-check text-2xl text-green-600"></i>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Reserva enviada!</h2>
+                <p className="text-gray-600 mb-2">
+                  {selectedExperience.title} · <span className="first-letter:uppercase">{formatLongDate(bookingDate)}</span> · {bookingTime}
+                </p>
+                <p className="text-sm text-gray-500 mb-6">
+                  {selectedExperience.creatorName} debe aceptarla. Después podrás pagar desde tu perfil y te enviaremos el correo de confirmación.
+                </p>
+                <div className="flex gap-3 justify-center">
+                  <button onClick={() => setShowBookingModal(false)} className="px-6 py-3 border border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50">
+                    Cerrar
+                  </button>
+                  <Link to="/profile" className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold">
+                    Ver mis reservas
+                  </Link>
+                </div>
+              </div>
+            ) : (
             <div className="p-6 md:p-8">
               {/* Header */}
               <div className="flex justify-between items-start mb-6">
@@ -335,27 +411,24 @@ const VIPExperiences: React.FC = () => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Fecha Preferida
+                    Elige día y hora
                   </label>
-                  <input
-                    type="date"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  {slotsLoading ? (
+                    <p className="text-sm text-gray-500 py-6 text-center">Cargando horarios…</p>
+                  ) : (
+                  <BookingCalendar
+                    availability={availability}
+                    taken={taken}
+                    creatorName={selectedExperience.creatorName}
+                    date={bookingDate}
+                    time={bookingTime}
+                    onChange={(d, h) => {
+                      setBookingDate(d);
+                      setBookingTime(h);
+                      setBookingError('');
+                    }}
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Hora Preferida
-                  </label>
-                  <select className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                    <option>Selecciona una hora</option>
-                    <option>10:00 AM</option>
-                    <option>12:00 PM</option>
-                    <option>2:00 PM</option>
-                    <option>4:00 PM</option>
-                    <option>6:00 PM</option>
-                    <option>8:00 PM</option>
-                  </select>
+                  )}
                 </div>
 
                 <div>
@@ -364,6 +437,9 @@ const VIPExperiences: React.FC = () => {
                   </label>
                   <textarea
                     rows={4}
+                    name="message"
+                    value={bookingMessage}
+                    onChange={(e) => setBookingMessage(e.target.value)}
                     placeholder="Cuéntale al creador qué te gustaría hacer en esta experiencia..."
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   ></textarea>
@@ -375,14 +451,21 @@ const VIPExperiences: React.FC = () => {
                     <div className="text-sm text-yellow-800">
                       <p className="font-semibold mb-1">Importante:</p>
                       <ul className="list-disc list-inside space-y-1">
-                        <li>Recibirás confirmación por email en las próximas 24 horas</li>
-                        <li>El pago se procesará de forma segura</li>
+                        <li>{selectedExperience.creatorName} revisa y acepta tu solicitud</li>
+                        <li>Una vez aceptada, realizas el pago de forma segura desde tu perfil</li>
+                        <li>Con el pago completado recibirás el correo de confirmación</li>
                         <li>Política de reembolso disponible en términos</li>
                       </ul>
                     </div>
                   </div>
                 </div>
               </div>
+
+              {bookingError && (
+                <div role="alert" className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+                  {bookingError}
+                </div>
+              )}
 
               {/* Actions */}
               <div className="flex gap-3 mt-6">
@@ -393,16 +476,15 @@ const VIPExperiences: React.FC = () => {
                   Cancelar
                 </button>
                 <button
-                  onClick={() => {
-                    alert('¡Reserva enviada! Recibirás confirmación pronto.');
-                    setShowBookingModal(false);
-                  }}
+                  onClick={handleConfirmBooking}
+                  disabled={submitting}
                   className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:shadow-lg transition"
                 >
                   Confirmar Reserva
                 </button>
               </div>
             </div>
+            )}
           </div>
         </div>
       )}

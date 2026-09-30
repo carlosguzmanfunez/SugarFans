@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import Navbar from './components/Navbar';
@@ -20,13 +20,31 @@ import Profile from './pages/Profile';
 import VIPExperiences from './pages/VIPExperiences';
 import LegalPolicies from './pages/LegalPolicies';
 
+const LoadingScreen: React.FC = () => (
+  <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-label="Cargando">
+    <div className="w-10 h-10 border-4 border-pink-200 border-t-pink-500 rounded-full animate-spin"></div>
+  </div>
+);
+
 const ProtectedRoute: React.FC<{ children: React.ReactNode; roles?: string[] }> = ({ children, roles }) => {
-  const { isAuthenticated, user, ageVerified } = useAuth();
+  const { isAuthenticated, user, ageVerified, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) return <LoadingScreen />;
+
+  // Remember where the user was going so they land there after the check.
+  if (!ageVerified) return <Navigate to="/age-verification" replace state={{ from: location.pathname }} />;
+  if (!isAuthenticated) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  if (roles && user && !roles.includes(user.role)) return <Navigate to="/explore" replace />;
   
-  if (!ageVerified) return <Navigate to="/age-verification" />;
-  if (!isAuthenticated) return <Navigate to="/login" />;
-  if (roles && user && !roles.includes(user.role)) return <Navigate to="/explore" />;
-  
+  return <>{children}</>;
+};
+
+// Login/register are pointless once signed in.
+const GuestOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
+  if (loading) return <LoadingScreen />;
+  if (isAuthenticated) return <Navigate to="/explore" replace />;
   return <>{children}</>;
 };
 
@@ -41,8 +59,6 @@ const AppLayout: React.FC<{ children: React.ReactNode; hideNav?: boolean }> = ({
 };
 
 const AppRoutes: React.FC = () => {
-  const { ageVerified } = useAuth();
-
   return (
     <Routes>
       {/* Age Verification */}
@@ -52,10 +68,10 @@ const AppRoutes: React.FC = () => {
       
       {/* Auth pages (no footer) */}
       <Route path="/login" element={
-        <AppLayout hideNav={true}><Login /></AppLayout>
+        <AppLayout hideNav={true}><GuestOnlyRoute><Login /></GuestOnlyRoute></AppLayout>
       } />
       <Route path="/register" element={
-        <AppLayout hideNav={true}><Register /></AppLayout>
+        <AppLayout hideNav={true}><GuestOnlyRoute><Register /></GuestOnlyRoute></AppLayout>
       } />
 
       {/* Public pages */}
@@ -113,9 +129,9 @@ const AppRoutes: React.FC = () => {
             <div className="text-center">
               <h1 className="text-6xl font-bold text-gray-300 mb-4">404</h1>
               <p className="text-gray-600 mb-6">Página no encontrada</p>
-              <a href="/" className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium">
+              <Link to="/" className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium">
                 Volver al inicio
-              </a>
+              </Link>
             </div>
           </div>
         </AppLayout>

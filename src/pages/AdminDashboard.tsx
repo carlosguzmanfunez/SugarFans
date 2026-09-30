@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useBackendData } from '../lib/useBackendData';
 
 const AdminDashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, listAccounts } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
+  const [userQuery, setUserQuery] = useState('');
+  const { data: accounts } = useBackendData(listAccounts, [], []);
 
   const stats = [
     { label: 'Usuarios totales', value: '52,340', icon: 'fa-users', color: 'blue' },
@@ -25,13 +28,21 @@ const AdminDashboard: React.FC = () => {
     { id: '4', reason: 'Contenido sin consentimiento', creator: 'Usuario C', reporter: 'Persona D', date: 'Hace 2 días', status: 'pending' },
   ];
 
-  const recentUsers = [
-    { id: '1', name: 'Carlos M.', role: 'Fan', status: 'active', date: 'Hoy' },
-    { id: '2', name: 'Valentina Rose', role: 'Creador', status: 'verified', date: 'Hoy' },
-    { id: '3', name: 'Diego Torres', role: 'Creador', status: 'pending', date: 'Ayer' },
-    { id: '4', name: 'Ana R.', role: 'Fan', status: 'active', date: 'Ayer' },
-    { id: '5', name: 'Sofía Luna', role: 'Creador', status: 'verified', date: 'Hace 2 días' },
-  ];
+  const roleLabel = { fan: 'Fan', creator: 'Creador', admin: 'Admin' } as const;
+  const recentUsers = [...accounts]
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .filter((u) => {
+      const q = userQuery.trim().toLowerCase();
+      return !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+    })
+    .map((u) => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      role: roleLabel[u.role],
+      status: u.isVerified ? 'verified' : 'active',
+      date: new Date(u.createdAt).toLocaleDateString('es'),
+    }));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -237,10 +248,13 @@ const AdminDashboard: React.FC = () => {
               <h3 className="font-bold text-gray-900">Gestión de Usuarios</h3>
               <div className="relative">
                 <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                <input type="text" placeholder="Buscar usuario..." className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-pink-500 outline-none" />
+                <input type="text" value={userQuery} onChange={(e) => setUserQuery(e.target.value)} placeholder="Buscar usuario..." className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-pink-500 outline-none" />
               </div>
             </div>
             <div className="divide-y divide-gray-100">
+              {recentUsers.length === 0 && (
+                <p className="p-6 text-center text-sm text-gray-500">No hay usuarios que coincidan con la búsqueda</p>
+              )}
               {recentUsers.map((u) => (
                 <div key={u.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
                   <div className="flex items-center space-x-3">
@@ -249,7 +263,7 @@ const AdminDashboard: React.FC = () => {
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">{u.name}</p>
-                      <p className="text-xs text-gray-500">{u.role} • Registrado: {u.date}</p>
+                      <p className="text-xs text-gray-500">{u.email} • {u.role} • Registrado: {u.date}</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">
