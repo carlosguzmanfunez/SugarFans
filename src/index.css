@@ -63,7 +63,8 @@ details[open] summary ~ * {
   animation: fadeIn 0.3s ease-out;
 }
 
-/* Gifts: soft 3D look (glossy tiles, floating art, celebration). */
+/* Gifts: soft 3D look (glossy tiles, floating art, celebration). Hover effects move
+   and rotate but never scale: scaling a tile resamples the art and blurs it. */
 .gift-art {
   filter: drop-shadow(0 8px 10px rgba(120, 40, 90, 0.28)) drop-shadow(0 2px 2px rgba(0, 0, 0, 0.12));
   user-select: none;
@@ -78,15 +79,14 @@ details[open] summary ~ * {
   box-shadow: inset 0 -6px 12px rgba(255, 255, 255, 0.6), inset 0 2px 0 rgba(255, 255, 255, 0.9), 0 6px 14px -8px rgba(150, 40, 110, 0.45);
   transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
-.gift-tile:hover { transform: translateY(-3px) scale(1.03); box-shadow: inset 0 -6px 12px rgba(255, 255, 255, 0.6), 0 14px 22px -10px rgba(150, 40, 110, 0.55); }
+.gift-tile:hover { transform: translateY(-3px); box-shadow: inset 0 -6px 12px rgba(255, 255, 255, 0.6), 0 14px 22px -10px rgba(150, 40, 110, 0.55); }
 .gift-tile:hover .gift-art { animation: gift-wiggle 0.6s ease; }
-.gift-tile[aria-pressed='true'] { transform: translateY(-3px) scale(1.04); }
+.gift-tile[aria-pressed='true'] { transform: translateY(-3px); }
 .gift-tile[aria-pressed='true'] .gift-art { animation: gift-float 2.4s ease-in-out infinite; }
 @keyframes gift-wiggle {
-  0% { transform: rotate(0) scale(1); }
-  30% { transform: rotate(-8deg) scale(1.12); }
-  60% { transform: rotate(6deg) scale(1.08); }
-  100% { transform: rotate(0) scale(1); }
+  0%, 100% { transform: translateY(0) rotate(0); }
+  30% { transform: translateY(-5px) rotate(-8deg); }
+  60% { transform: translateY(-2px) rotate(6deg); }
 }
 .gift-pedestal {
   background: radial-gradient(60% 40% at 50% 85%, rgba(236, 72, 153, 0.35), transparent 70%), radial-gradient(90% 90% at 50% 20%, #fff, #fce7f3);
