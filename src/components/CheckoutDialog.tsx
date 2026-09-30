@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { User } from '../context/AuthContext';
 import { usePlatformQuery, platformApi, money } from '../lib/platform';
-import PaymentMethodForm from './PaymentMethodForm';
+import PaymentMethodForm, { paymentKindIcon } from './PaymentMethodForm';
 
 interface Props {
   user: User;
@@ -59,6 +59,7 @@ const CheckoutDialog: React.FC<Props> = ({ user, title, amount, note, confirmLab
           {methods.map((m) => (
             <label key={m.id} className={`flex items-center gap-3 p-3 border rounded-xl cursor-pointer ${selected === m.id ? 'border-pink-500 bg-pink-50' : 'border-gray-200'}`}>
               <input type="radio" name="payment-method" checked={selected === m.id} onChange={() => setSelected(m.id)} />
+              <i className={`${paymentKindIcon[m.kind]} text-gray-500`}></i>
               <span className="text-sm font-medium text-gray-900">{m.label}</span>
               <span className="text-xs text-gray-500 ml-auto">{m.detail}</span>
             </label>

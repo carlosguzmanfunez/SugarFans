@@ -23,7 +23,7 @@ interface AuthContextType {
   deleteAccount: (password: string) => Promise<AuthResult>;
   isSubscribed: (creatorId: string) => boolean;
   toggleSubscription: (creatorId: string, price: number) => Promise<AuthResult>;
-  addPost: (content: string, isLocked: boolean, media?: MediaUpload) => Promise<AuthResult>;
+  addPost: (content: string, isLocked: boolean, media?: MediaUpload, asProfileId?: string) => Promise<AuthResult>;
   deletePost: (id: string) => Promise<AuthResult>;
   listAccounts: () => Promise<User[]>;
   refreshUser: () => Promise<void>;
@@ -110,8 +110,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const toggleSubscription = (creatorId: string, price: number) =>
     user ? run(() => backend.setSubscription(user, creatorId, price, !isSubscribed(creatorId))) : Promise.resolve(notSignedIn);
 
-  const addPost = (content: string, isLocked: boolean, media?: MediaUpload) =>
-    user ? run(() => backend.addPost(user, content, isLocked, media)) : Promise.resolve(notSignedIn);
+  const addPost = (content: string, isLocked: boolean, media?: MediaUpload, asProfileId?: string) =>
+    user ? run(() => backend.addPost(user, content, isLocked, media, asProfileId)) : Promise.resolve(notSignedIn);
 
   const deletePost = (id: string) => (user ? run(() => backend.deletePost(user, id)) : Promise.resolve(notSignedIn));
 

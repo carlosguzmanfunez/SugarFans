@@ -12,6 +12,8 @@ export interface Creator {
   postsCount: number;
   category: string;
   tags: string[];
+  // Set on platform-run profiles (see lib/catalog.ts); fans always see the label.
+  managed?: 'ai' | 'official';
 }
 
 export interface Post {

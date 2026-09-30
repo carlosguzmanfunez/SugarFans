@@ -58,10 +58,12 @@ export const createLocalSocial = (deps: Deps): SocialBackend => {
 
   return {
     async postsByCreator(creatorProfileId) {
-      const authors = deps.listAccounts().filter((a) => a.creatorProfileId === creatorProfileId);
+      // A post belongs to its author's profile, or to the managed profile an admin posted as.
       const posts: FeedPost[] = await Promise.all(
-        authors.flatMap((a) =>
-          a.createdPosts.map(async (p) => ({
+        deps.listAccounts().flatMap((a) =>
+          a.createdPosts
+            .filter((p) => (p.creatorProfileId ?? a.creatorProfileId) === creatorProfileId)
+            .map(async (p) => ({
             id: p.id,
             creatorProfileId,
             authorId: a.id,

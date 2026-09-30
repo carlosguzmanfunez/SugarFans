@@ -33,6 +33,8 @@ export interface CreatorPost {
   createdAt: string;
   mediaPath?: string;
   mediaType?: MediaUpload['type'];
+  // Set when an admin published it as a platform-run profile.
+  creatorProfileId?: string;
 }
 
 export interface User {
@@ -123,7 +125,8 @@ export interface Backend {
   changePassword(user: User, current: string, next: string): Promise<AuthResult>;
   deleteAccount(user: User, password: string): Promise<AuthResult>;
   setSubscription(user: User, creatorId: string, price: number, subscribed: boolean): Promise<AuthResult>;
-  addPost(user: User, content: string, isLocked: boolean, media?: MediaUpload): Promise<AuthResult>;
+  // Admins can publish as a platform-run profile (asProfileId "m-…").
+  addPost(user: User, content: string, isLocked: boolean, media?: MediaUpload, asProfileId?: string): Promise<AuthResult>;
   deletePost(user: User, postId: string): Promise<AuthResult>;
   listAccounts(): Promise<User[]>;
 

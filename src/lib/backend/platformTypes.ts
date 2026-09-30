@@ -12,9 +12,8 @@ export interface VerificationInput {
   country: string;
   docType: DocType;
   docNumber: string;
-  docFront: string; // data URL (downscaled JPEG)
-  docBack?: string;
-  selfie: string;
+  docFront: string; // front of the ID, data URL (downscaled JPEG)
+  selfie: string; // front-facing selfie, compared with the ID photo
 }
 
 export interface VerificationRequest extends VerificationInput {
@@ -29,13 +28,13 @@ export interface VerificationRequest extends VerificationInput {
   reviewedAt?: string;
 }
 
-export type PaymentKind = 'card' | 'bank' | 'crypto';
+export type PaymentKind = 'card' | 'paypal' | 'google_pay';
 
-// Only masked data: brand + last 4, bank + last 4, or a shortened wallet.
+// Only masked data: card brand + last 4, or the masked PayPal / Google account email.
 export interface NewPaymentMethod {
   kind: PaymentKind;
   label: string; // "Visa •••• 4242"
-  detail: string; // "Expira 12/28", bank name, network
+  detail: string; // "Expira 12/28", "Cuenta PayPal"
 }
 
 export interface PaymentMethod extends NewPaymentMethod {
@@ -114,6 +113,28 @@ export interface Subscriber {
   since: string;
 }
 
+// A creator profile run by the platform itself (admins/owners), e.g. an AI-generated
+// persona. It needs no identity verification because no real person is behind it,
+// and fans always see it labelled ("Perfil IA" or "Perfil oficial").
+export interface ManagedProfileInput {
+  name: string;
+  username: string;
+  bio: string;
+  avatar: string; // URL or downscaled data URL
+  cover: string;
+  category: string;
+  subscriptionPrice: number;
+  isAi: boolean;
+}
+
+export interface ManagedProfile extends ManagedProfileInput {
+  id: string; // "m-…", used as the creator profile id everywhere else
+  hidden: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface PlatformBackend {
   myVerification(userId: string): Promise<VerificationRequest | null>;
   submitVerification(user: User, input: VerificationInput): Promise<AuthResult>;
@@ -153,5 +174,11 @@ export interface PlatformBackend {
   blocks(user: User): Promise<Block[]>;
   block(user: User, targetId: string, targetName: string): Promise<AuthResult>;
   unblock(user: User, targetId: string): Promise<AuthResult>;
+
+  // Platform-run profiles: anyone reads the visible ones, only admins manage them.
+  managedProfiles(includeHidden?: boolean): Promise<ManagedProfile[]>;
+  saveManagedProfile(admin: User, input: ManagedProfileInput, id?: string): Promise<AuthResult & { id?: string }>;
+  setManagedProfileHidden(admin: User, id: string, hidden: boolean): Promise<AuthResult>;
+  deleteManagedProfile(admin: User, id: string): Promise<AuthResult>;
 
 }

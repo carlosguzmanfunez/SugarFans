@@ -32,9 +32,10 @@ interface Props {
   onNeedLogin: () => void;
   onTip: () => void;
   onReport: () => void;
+  onDelete?: () => void; // the author, or an admin on a platform-run profile
 }
 
-const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner, subscribeLabel, onSubscribe, onNeedLogin, onTip, onReport }) => {
+const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner, subscribeLabel, onSubscribe, onNeedLogin, onTip, onReport, onDelete }) => {
   const [showComments, setShowComments] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
@@ -132,6 +133,11 @@ const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner,
           <button onClick={share} className="flex items-center text-sm hover:text-pink-500 transition ml-auto">
             <i className="fas fa-share mr-1"></i> {copied ? 'Enlace copiado' : 'Compartir'}
           </button>
+          {onDelete && (
+            <button onClick={onDelete} className="flex items-center text-sm hover:text-red-500 transition" aria-label="Eliminar publicación">
+              <i className="fas fa-trash mr-1"></i> Eliminar
+            </button>
+          )}
           {!isOwner && (
             <button onClick={onReport} className="flex items-center text-sm hover:text-red-500 transition" aria-label="Reportar publicación">
               <i className="fas fa-flag mr-1"></i> Reportar

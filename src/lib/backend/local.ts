@@ -261,23 +261,30 @@ export const localBackend: Backend = {
     return ok;
   },
 
-  async addPost(user, content, isLocked, media) {
+  async addPost(user, content, isLocked, media, asProfileId) {
     if (!content.trim() && !media) return fail('Escribe algo o añade una foto o video');
+    if (asProfileId && (user.role !== 'admin' || !asProfileId.startsWith('m-'))) return fail('Esta acción no está permitida');
     const post = {
       id: newId(),
       content: content.trim(),
       isLocked,
       createdAt: new Date().toISOString(),
       ...(media ? { mediaPath: media.path, mediaType: media.type } : {}),
+      ...(asProfileId ? { creatorProfileId: asProfileId } : {}),
     };
     mutate(user.id, (a) => ({ ...a, posts: (a.posts ?? 0) + 1, createdPosts: [post, ...a.createdPosts] }));
     return ok;
   },
 
   async deletePost(user, postId) {
-    const media = loadAccounts().find((a) => a.id === user.id)?.createdPosts.find((p) => p.id === postId)?.mediaPath;
-    if (media) await social.removeMedia(user, media);
-    mutate(user.id, (a) => ({
+    const author = loadAccounts().find((a) => a.createdPosts.some((p) => p.id === postId));
+    const post = author?.createdPosts.find((p) => p.id === postId);
+    if (!author || !post) return fail('Publicación no encontrada');
+    // The author, or any admin for a managed profile's post.
+    const managedByAdmin = user.role === 'admin' && !!post.creatorProfileId?.startsWith('m-');
+    if (author.id !== user.id && !managedByAdmin) return fail('Esta acción no está permitida');
+    if (post.mediaPath) await social.removeMedia(user, post.mediaPath);
+    mutate(author.id, (a) => ({
       ...a,
       posts: Math.max(0, (a.posts ?? 0) - 1),
       createdPosts: a.createdPosts.filter((p) => p.id !== postId),

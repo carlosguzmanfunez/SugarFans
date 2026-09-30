@@ -1,10 +1,12 @@
 // Supabase implementation of the platform features. Tables and the functions
 // that enforce the rules live in supabase/migrations/20260930000001_platform.sql.
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { validateReport, validateTip, validateVerification } from '../platformRules';
+import { buildManagedProfile, validateReport, validateTip, validateVerification } from '../platformRules';
+import { creators as catalogue } from '../../data/mockData';
 import type { AuthResult } from './types';
 import type {
   Block,
+  ManagedProfile,
   PaymentMethod,
   Payout,
   PlatformBackend,
@@ -21,9 +23,25 @@ const fail = (error: string): AuthResult => ({ ok: false, error });
 // Our functions raise Spanish messages meant for the user; hide anything else.
 const dbError = (error: { message?: string } | null, fallback: string) => {
   const msg = error?.message ?? '';
-  return fail(/[áéíóúñ¿$]|Debes|Esta acción|Elige|Indica|Faltan|Deja|Solo|Tu |Ya |No puedes|Añade|Verifica|La solicitud|Reporte/.test(msg) ? msg : fallback);
+  return fail(/[áéíóúñ¿$]|Debes|Esta acción|Elige|Indica|Faltan|Deja|Solo|Tu |Ya |No puedes|Añade|Verifica|La solicitud|Reporte|Este perfil|Ese nombre/.test(msg) ? msg : fallback);
 };
 const done = (error: { message?: string } | null, fallback: string) => (error ? dbError(error, fallback) : ok);
+
+const toManaged = (r: Row): ManagedProfile => ({
+  id: r.id,
+  name: r.name,
+  username: r.username,
+  bio: r.bio,
+  avatar: r.avatar,
+  cover: r.cover,
+  category: r.category,
+  subscriptionPrice: Number(r.subscription_price),
+  isAi: r.is_ai,
+  hidden: r.hidden,
+  createdBy: r.created_by,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+});
 
 const toVerification = (r: Row): VerificationRequest => ({
   id: r.id,
@@ -37,7 +55,6 @@ const toVerification = (r: Row): VerificationRequest => ({
   docType: r.doc_type,
   docNumber: r.doc_number,
   docFront: r.doc_front,
-  docBack: r.doc_back ?? undefined,
   selfie: r.selfie,
   status: r.status,
   rejectionReason: r.rejection_reason ?? undefined,
@@ -121,7 +138,6 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
       p_doc_type: input.docType,
       p_doc_number: input.docNumber,
       p_doc_front: input.docFront,
-      p_doc_back: input.docBack ?? null,
       p_selfie: input.selfie,
     });
     return done(error, 'No se pudo enviar la solicitud');
@@ -307,5 +323,41 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
 
   async unblock(user, targetId) {
     return done((await sb.from('blocks').delete().eq('blocker_id', user.id).eq('target_id', targetId)).error, 'No se pudo desbloquear');
+  },
+
+  async managedProfiles(includeHidden = false) {
+    let query = sb.from('managed_profiles').select('*').order('created_at', { ascending: false });
+    if (!includeHidden) query = query.eq('hidden', false);
+    const { data } = await query;
+    return (data ?? []).map(toManaged);
+  },
+
+  // RLS lets only admins write; the unique index guards usernames between profiles.
+  async saveManagedProfile(_admin, input, id) {
+    const { profile, error } = buildManagedProfile(input, catalogue.map((c) => c.username));
+    if (!profile) return fail(error!);
+    const row = {
+      name: profile.name,
+      username: profile.username,
+      bio: profile.bio,
+      avatar: profile.avatar,
+      cover: profile.cover,
+      category: profile.category,
+      subscription_price: profile.subscriptionPrice,
+      is_ai: profile.isAi,
+    };
+    const res = id
+      ? await sb.from('managed_profiles').update(row).eq('id', id).select('id').single()
+      : await sb.from('managed_profiles').insert(row).select('id').single();
+    if (res.error) return fail(res.error.code === '23505' ? 'Ese nombre de usuario ya existe' : 'No se pudo guardar el perfil');
+    return { ok: true, id: res.data.id as string };
+  },
+
+  async setManagedProfileHidden(_admin, id, hidden) {
+    return done((await sb.from('managed_profiles').update({ hidden }).eq('id', id)).error, 'No se pudo actualizar el perfil');
+  },
+
+  async deleteManagedProfile(_admin, id) {
+    return done((await sb.rpc('delete_managed_profile', { p_id: id })).error, 'No se pudo eliminar el perfil');
   },
 });

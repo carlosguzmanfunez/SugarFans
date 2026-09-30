@@ -119,7 +119,7 @@ const Pricing: React.FC = () => {
           <div className="space-y-4">
             {[
               { q: '¿Puedo cancelar mi suscripción en cualquier momento?', a: 'Sí, sin permanencia. Cancélala desde Configuración > Pagos, desde tu perfil o desde el perfil del creador.', link: { to: '/settings?section=payments', label: 'Gestionar suscripciones' } },
-              { q: '¿Cómo se procesan los pagos?', a: 'Pagas con tarjeta, transferencia o criptomonedas desde un formulario seguro. De tu tarjeta solo guardamos la marca y los últimos 4 dígitos; el CVC nunca se almacena.', link: { to: '/settings?section=payments', label: 'Mis métodos de pago' } },
+              { q: '¿Cómo se procesan los pagos?', a: 'Pagas con tarjeta Visa o Mastercard, PayPal o Google Pay desde un formulario seguro. De tu tarjeta solo guardamos la marca y los últimos 4 dígitos; el CVC nunca se almacena.', link: { to: '/settings?section=payments', label: 'Mis métodos de pago' } },
               { q: '¿Cuánto gana un creador?', a: 'Los creadores reciben el 80% de lo que pagan sus fans. El saldo se ve en Panel > Ingresos y se retira desde $50 USD, con pago el día 1 de cada mes.', link: { to: '/creator/dashboard?tab=earnings', label: 'Ver ingresos' } },
               { q: '¿Es seguro usar SugarFans?', a: 'Sí. Todos los creadores deben verificar su identidad con documento oficial y selfie antes de publicar o cobrar, y cualquier usuario puede reportar contenido o bloquear perfiles.', link: { to: '/help', label: 'Centro de Ayuda' } },
             ].map((faq, i) => (

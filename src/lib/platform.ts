@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import { backend } from './backend';
 import { useBackendData } from './useBackendData';
 import type { AuthResult, User } from './backend/types';
-import type { Block, PayoutAccount, ReportInput, VerificationInput } from './backend/platformTypes';
+import type { Block, ManagedProfileInput, PayoutAccount, ReportInput, VerificationInput } from './backend/platformTypes';
 import { buildPaymentMethod, buildPayoutAccount, type PaymentMethodInput } from './platformRules';
 
 export * from './platformRules';
@@ -57,6 +57,10 @@ export const submitReport = (reporter: User | null, input: ReportInput) => after
 export const resolveReport = (id: string, action: 'remove' | 'resolve' | 'dismiss') => after(p.resolveReport(id, action));
 export const restorePost = (postId: string) => after(p.restorePost(postId));
 
+export const saveManagedProfile = (admin: User, input: ManagedProfileInput, id?: string) => after(p.saveManagedProfile(admin, input, id));
+export const setManagedProfileHidden = (admin: User, id: string, hidden: boolean) => after(p.setManagedProfileHidden(admin, id, hidden));
+export const deleteManagedProfile = (admin: User, id: string) => after(p.deleteManagedProfile(admin, id));
+
 export const blockUser = (user: User, targetId: string, targetName: string) => after(p.block(user, targetId, targetName));
 export const unblockUser = (user: User, targetId: string) => after(p.unblock(user, targetId));
 
@@ -79,7 +83,7 @@ export const exportUserData = async (user: User) => {
     p.myPayouts(user.id),
     p.blocks(user),
   ]);
-  const { docFront: _f, docBack: _b, selfie: _s, ...verificationData } = verification ?? ({} as Record<string, unknown>);
+  const { docFront: _f, selfie: _s, ...verificationData } = verification ?? ({} as Record<string, unknown>);
   return {
     exportedAt: new Date().toISOString(),
     account: user,

@@ -1,10 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { creators, categories } from '../data/mockData';
+import { categories } from '../data/mockData';
+import { useCreatorCatalog } from '../lib/catalog';
+import ManagedBadge from '../components/ManagedBadge';
 import { useLanguage } from '../context/LanguageContext';
 
 const Landing: React.FC = () => {
   const { t } = useLanguage();
+  const { creators } = useCreatorCatalog();
 
   return (
     <div className="min-h-screen">
@@ -58,6 +61,7 @@ const Landing: React.FC = () => {
                     <div className="flex items-center">
                       <h3 className="font-bold text-gray-900">{creator.name}</h3>
                       {creator.isVerified && <i className="fas fa-check-circle text-blue-500 ml-1 text-sm"></i>}
+                      <ManagedBadge creator={creator} />
                     </div>
                     <p className="text-sm text-gray-500 mt-1 line-clamp-2">{creator.bio}</p>
                     <div className="flex justify-between items-center mt-4">

@@ -6,13 +6,14 @@ import { IMAGE_TYPES, VIDEO_TYPES, MAX_IMAGE_MB, MAX_VIDEO_MB, validateMedia } f
 
 interface Props {
   verified: boolean;
+  asProfileId?: string; // admins publishing as a platform-run profile
   onPublished: () => void;
   onCancel?: () => void;
 }
 
 // Composer: text + one photo or video, public or subscribers-only. The file is
 // uploaded first (Supabase Storage, or IndexedDB offline), then the post is saved.
-const NewPostForm: React.FC<Props> = ({ verified, onPublished, onCancel }) => {
+const NewPostForm: React.FC<Props> = ({ verified, asProfileId, onPublished, onCancel }) => {
   const { user, addPost } = useAuth();
   const [text, setText] = useState('');
   const [locked, setLocked] = useState(false);
@@ -60,7 +61,7 @@ const NewPostForm: React.FC<Props> = ({ verified, onPublished, onCancel }) => {
       media = up.media;
     }
     setBusy('save');
-    const result = await addPost(text, locked, media);
+    const result = await addPost(text, locked, media, asProfileId);
     setBusy('');
     if (!result.ok) {
       if (media) await socialApi.removeMedia(user, media.path);

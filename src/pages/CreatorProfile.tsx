@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
-import { creators, posts, type Creator } from '../data/mockData';
+import { posts, type Creator } from '../data/mockData';
+import { useCreatorCatalog } from '../lib/catalog';
+import ManagedBadge from '../components/ManagedBadge';
 import { useAuth } from '../context/AuthContext';
 import CheckoutDialog from '../components/CheckoutDialog';
 import ReportDialog from '../components/ReportDialog';
 import PostCard, { type DisplayPost } from '../components/PostCard';
 import TipDialog from '../components/TipDialog';
+import NewPostForm from '../components/NewPostForm';
 import { socialApi, compactCount, type PublicCreator } from '../lib/social';
 import {
   usePlatformQuery,
@@ -38,7 +41,7 @@ const fromPublic = (c: PublicCreator): Creator => ({
 
 const CreatorProfile: React.FC = () => {
   const { id } = useParams();
-  const { isAuthenticated, user, isSubscribed: hasSubscription, toggleSubscription, refreshUser } = useAuth();
+  const { isAuthenticated, user, isSubscribed: hasSubscription, toggleSubscription, refreshUser, deletePost } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<'posts' | 'media' | 'about'>('posts');
@@ -54,12 +57,15 @@ const CreatorProfile: React.FC = () => {
   const [reporting, setReporting] = useState<{ kind: 'post' | 'creator'; targetId: string; label: string } | null>(null);
   const [tipping, setTipping] = useState<{ postId?: string } | null>(null);
   const [tipSent, setTipSent] = useState('');
+  const [composing, setComposing] = useState(false);
 
+  // Demo creators and platform-run profiles first, then creators who signed up.
+  const { creators, loading: catalogLoading } = useCreatorCatalog();
   const catalogCreator = creators.find(c => c.id === id);
   // Creators who signed up have no catalogue entry: load their public card.
   const { data: signedUp, loading: creatorLoading } = usePlatformQuery(
-    () => (catalogCreator || !id ? Promise.resolve(null) : socialApi.publicCreator(id)),
-    [id],
+    () => (catalogCreator || catalogLoading || !id ? Promise.resolve(null) : socialApi.publicCreator(id)),
+    [id, catalogLoading, !!catalogCreator],
     null as PublicCreator | null
   );
   const creator: Creator | undefined = catalogCreator ?? (signedUp ? fromPublic(signedUp) : undefined);
@@ -90,7 +96,7 @@ const CreatorProfile: React.FC = () => {
     { own: [] as DisplayPost[], engagement: {} as Awaited<ReturnType<typeof socialApi.engagement>> }
   );
 
-  if (!creator && !catalogCreator && creatorLoading) {
+  if (!creator && (catalogLoading || creatorLoading)) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-label="Cargando">
         <div className="w-10 h-10 border-4 border-pink-200 border-t-pink-500 rounded-full animate-spin"></div>
@@ -134,10 +140,18 @@ const CreatorProfile: React.FC = () => {
   );
   const iBlocked = !!user && hasBlocked(platform.blocks, user.id, creator.id);
   const blockedMe = !!user && blockedByProfile(platform.blocks, user.id, creator.id);
-  const isOwner = !!user?.creatorProfileId && user.creatorProfileId === creator.id;
+  // Admins run the platform's own profiles (e.g. "Perfil IA") and publish for them.
+  const managesProfile = user?.role === 'admin' && !!creator.managed;
+  const isOwner = managesProfile || (!!user?.creatorProfileId && user.creatorProfileId === creator.id);
   const isSubscribed = hasSubscription(creator.id) && !iBlocked && !blockedMe;
   const canView = (p: DisplayPost) => !p.isLocked || isSubscribed || isOwner;
   const totalLikes = creator.likes + Object.values(feed.engagement).reduce((sum, e) => sum + e.likes, 0);
+  const removePost = async (postId: string) => {
+    if (!window.confirm('¿Eliminar esta publicación? También se borrará su foto o video.')) return;
+    const result = await deletePost(postId);
+    if (result.ok) platformChanged();
+    setTipSent(result.ok ? 'Publicación eliminada.' : result.error || 'No se pudo eliminar');
+  };
   const goLogin = () => navigate('/login', { state: { from: location.pathname } });
 
   const handleSubscribe = () => {
@@ -220,15 +234,19 @@ const CreatorProfile: React.FC = () => {
                     <i className="fas fa-check-circle mr-1"></i> Verificado
                   </span>
                 )}
+                <ManagedBadge creator={creator} size="md" />
               </div>
               <p className="text-gray-500">@{creator.username}</p>
+              {creator.managed === 'ai' && (
+                <p className="text-xs text-purple-700 mt-1">Personaje creado con inteligencia artificial y gestionado por SugarFans. No es una persona real.</p>
+              )}
             </div>
             <div className="mt-4 sm:mt-0 flex items-center gap-2">
               {iBlocked ? (
                 <button onClick={handleBlock} className="px-6 py-3 rounded-full font-bold bg-gray-200 text-gray-700 hover:bg-gray-300">
                   <i className="fas fa-unlock mr-2"></i>Desbloquear
                 </button>
-              ) : isAuthenticated && user?.role !== 'creator' ? (
+              ) : isAuthenticated && user?.role !== 'creator' && !isOwner ? (
                 <button
                   onClick={handleSubscribe}
                   className={`px-6 py-3 rounded-full font-bold transition-all ${
@@ -248,7 +266,15 @@ const CreatorProfile: React.FC = () => {
                   Iniciar sesión para suscribirse
                 </Link>
               ) : null}
-              {isOwner && (
+              {managesProfile && (
+                <button
+                  onClick={() => setComposing(!composing)}
+                  className="px-6 py-3 rounded-full font-bold bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:opacity-90 shadow-lg"
+                >
+                  <i className="fas fa-plus mr-2"></i>Publicar como {creator.name}
+                </button>
+              )}
+              {isOwner && !managesProfile && (
                 <Link to="/creator/dashboard?tab=content" className="px-6 py-3 rounded-full font-bold bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:opacity-90 shadow-lg">
                   <i className="fas fa-plus mr-2"></i>Nueva publicación
                 </Link>
@@ -332,6 +358,14 @@ const CreatorProfile: React.FC = () => {
         {/* Content */}
         {!iBlocked && activeTab === 'posts' && (
           <div className="space-y-6">
+            {composing && managesProfile && (
+              <NewPostForm
+                verified
+                asProfileId={creator.id}
+                onPublished={() => { setComposing(false); setTipSent('Publicación creada.'); }}
+                onCancel={() => setComposing(false)}
+              />
+            )}
             {tipSent && (
               <div role="status" className="px-4 py-3 rounded-xl border bg-green-50 border-green-200 text-green-700">{tipSent}</div>
             )}
@@ -347,6 +381,7 @@ const CreatorProfile: React.FC = () => {
                 onSubscribe={handleSubscribe}
                 onNeedLogin={goLogin}
                 onTip={() => setTipping({ postId: post.id })}
+                onDelete={feed.own.some((p) => p.id === post.id) && isOwner ? () => removePost(post.id) : undefined}
                 onReport={() => handleReport('post', post.id, `Publicación de ${creator.name}: "${post.content.slice(0, 40)}"`)}
               />
             )) : (

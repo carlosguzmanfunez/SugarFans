@@ -4,20 +4,22 @@ import { usePlatformQuery, platformApi, submitVerification, readImageFile, docTy
 
 const field = 'w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-sm';
 
-const PhotoInput: React.FC<{ name: string; label: string; hint: string; value: string; onChange: (v: string) => void; onError: (e: string) => void }> = ({
-  name,
-  label,
-  hint,
-  value,
-  onChange,
-  onError,
-}) => (
+const PhotoInput: React.FC<{
+  name: string;
+  label: string;
+  hint: string;
+  icon: string;
+  capture?: 'user' | 'environment';
+  value: string;
+  onChange: (v: string) => void;
+  onError: (e: string) => void;
+}> = ({ name, label, hint, icon, capture, value, onChange, onError }) => (
   <label className="block border-2 border-dashed border-gray-200 rounded-xl p-3 text-center cursor-pointer hover:border-pink-300 transition">
     {value ? (
       <img src={value} alt={label} className="h-28 w-full object-contain rounded-lg" />
     ) : (
       <div className="h-28 flex flex-col items-center justify-center text-gray-400">
-        <i className="fas fa-camera text-2xl mb-2"></i>
+        <i className={`fas ${icon} text-2xl mb-2`}></i>
         <span className="text-xs">{hint}</span>
       </div>
     )}
@@ -26,6 +28,8 @@ const PhotoInput: React.FC<{ name: string; label: string; hint: string; value: s
       type="file"
       name={name}
       accept="image/*"
+      // On phones this opens the front (selfie) or back camera directly.
+      capture={capture}
       className="sr-only"
       onChange={async (e) => {
         const file = e.target.files?.[0];
@@ -55,7 +59,6 @@ const IdentityVerification: React.FC = () => {
   const [docType, setDocType] = useState<DocType>('dni');
   const [docNumber, setDocNumber] = useState('');
   const [docFront, setDocFront] = useState('');
-  const [docBack, setDocBack] = useState('');
   const [selfie, setSelfie] = useState('');
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(false);
@@ -66,13 +69,12 @@ const IdentityVerification: React.FC = () => {
 
   const submit = async () => {
     setSending(true);
-    const result = await submitVerification(user, { legalName, birthDate, country, docType, docNumber, docFront, docBack, selfie });
+    const result = await submitVerification(user, { legalName, birthDate, country, docType, docNumber, docFront, selfie });
     setSending(false);
     if (!result.ok) return setError(result.error || 'No se pudo enviar la solicitud');
     setError('');
     setRetry(false);
     setDocFront('');
-    setDocBack('');
     setSelfie('');
   };
 
@@ -80,8 +82,8 @@ const IdentityVerification: React.FC = () => {
     <>
       <h2 className="text-lg font-bold text-gray-900 mb-2">Verificación de identidad</h2>
       <p className="text-sm text-gray-600 mb-6">
-        Verificamos la identidad con un documento oficial y un selfie. Es obligatoria para que los creadores publiquen y cobren, y
-        añade la insignia <span className="text-blue-700 font-medium">Verificado</span> a tu perfil.
+        Solo necesitamos dos fotos: el frente de tu documento oficial y un selfie de frente. Comprobamos que eres mayor de edad y que
+        la cara del selfie coincide con la del documento. Es obligatoria para que los creadores publiquen y cobren, y añade la insignia <span className="text-blue-700 font-medium">Verificado</span> a tu perfil.
       </p>
     </>
   );
@@ -153,12 +155,27 @@ const IdentityVerification: React.FC = () => {
           </select>
           <input className={`${field} sm:col-span-2`} name="docNumber" placeholder="Número de documento" value={docNumber} onChange={(e) => setDocNumber(e.target.value)} />
         </div>
-        <div className={`grid gap-3 ${docType === 'passport' ? 'grid-cols-2' : 'grid-cols-1 sm:grid-cols-3'}`}>
-          <PhotoInput name="docFront" label={docType === 'passport' ? 'Página de datos' : 'Frente del documento'} hint="Foto nítida, sin reflejos" value={docFront} onChange={setDocFront} onError={setError} />
-          {docType !== 'passport' && (
-            <PhotoInput name="docBack" label="Reverso del documento" hint="Todo el documento visible" value={docBack} onChange={setDocBack} onError={setError} />
-          )}
-          <PhotoInput name="selfie" label="Selfie con el documento" hint="Tu cara y el documento" value={selfie} onChange={setSelfie} onError={setError} />
+        <div className="grid grid-cols-2 gap-3">
+          <PhotoInput
+            name="docFront"
+            label={docType === 'passport' ? 'Página de datos del pasaporte' : 'Frente del documento'}
+            hint="Con tu foto y fecha de nacimiento visibles"
+            icon="fa-id-card"
+            capture="environment"
+            value={docFront}
+            onChange={setDocFront}
+            onError={setError}
+          />
+          <PhotoInput
+            name="selfie"
+            label="Selfie de frente"
+            hint="Cara descubierta, buena luz, sin gafas de sol"
+            icon="fa-camera"
+            capture="user"
+            value={selfie}
+            onChange={setSelfie}
+            onError={setError}
+          />
         </div>
         <p className="text-xs text-gray-500">
           <i className="fas fa-shield-alt mr-1"></i>Solo el equipo de verificación ve estas imágenes y se eliminan en cuanto se aprueba la solicitud.

@@ -267,7 +267,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       return error ? dbError(error, 'No se pudo actualizar la suscripción') : ok;
     },
 
-    async addPost(user, content, isLocked, media) {
+    async addPost(user, content, isLocked, media, asProfileId) {
       if (!content.trim() && !media) return fail('Escribe algo o añade una foto o video');
       const { error } = await sb.from('creator_posts').insert({
         creator_id: user.id,
@@ -275,15 +275,19 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
         is_locked: isLocked,
         media_path: media?.path ?? null,
         media_type: media?.type ?? null,
+        // The server keeps it only for admins posting as a managed profile.
+        creator_profile_id: asProfileId ?? null,
       });
       return error ? dbError(error, 'No se pudo publicar') : ok;
     },
 
-    async deletePost(user, postId) {
-      const { data, error } = await sb.from('creator_posts').delete().eq('id', postId).eq('creator_id', user.id).select('media_path');
-      if (error) return dbError(error, 'No se pudo eliminar la publicación');
-      const path = data?.[0]?.media_path;
-      if (path) await sb.storage.from('post-media').remove([path]);
+    async deletePost(_user, postId) {
+      // RLS: the author, or any admin for a managed profile's post. The file goes
+      // first because the admin storage rule looks the post up.
+      const { data: post } = await sb.from('creator_posts').select('media_path').eq('id', postId).maybeSingle();
+      if (post?.media_path) await sb.storage.from('post-media').remove([post.media_path]);
+      const { data, error } = await sb.from('creator_posts').delete().eq('id', postId).select('id');
+      if (error || !data?.length) return dbError(error, 'No se pudo eliminar la publicación');
       return ok;
     },
 
