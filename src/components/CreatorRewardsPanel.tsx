@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { usePlatformQuery } from '../lib/platform';
+import { usePlatformQuery, money } from '../lib/platform';
 import {
+  CREATOR_INVITE_BONUS,
+  CREATOR_INVITE_MONTHS,
   GOALS,
   LEVELS,
   MAX_SHARE,
@@ -15,27 +17,28 @@ import {
 } from '../lib/rewards';
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
-const EMPTY: CreatorRewards = { level: 'bronce', activeFans: 0, share: 0.8, bonus: 0, attractedThisMonth: 0, attractedLastMonth: 0, referrals: [] };
+const EMPTY: CreatorRewards = { level: 'bronce', activeFans: 0, share: 0.8, bonus: 0, attractedThisMonth: 0, attractedLastMonth: 0, referrals: [], invitedCreators: [] };
 
 // Creator panel > Recompensas: invitation link, level, monthly goals and the fans the link brought.
 const CreatorRewardsPanel: React.FC = () => {
   const { user } = useAuth();
   const { data } = usePlatformQuery(() => (user ? rewardsApi.myRewards(user) : Promise.resolve(EMPTY)), [user?.id], EMPTY);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState('');
   if (!user) return null;
 
   const link = `${window.location.origin}/r/${user.creatorProfileId ?? user.id}`;
+  const creatorLink = `${link}?as=creator`;
   const level = levelById(data.level);
   const next = nextLevel(level);
   const goalsHit = GOALS.filter((g) => data.attractedThisMonth >= g.fans);
   const nextGoal = GOALS.find((g) => data.attractedThisMonth < g.fans);
 
-  const copy = async () => {
+  const copy = async (text: string) => {
     try {
-      await navigator.clipboard.writeText(link);
-      setCopied(true);
+      await navigator.clipboard.writeText(text);
+      setCopied(text);
     } catch {
-      setCopied(false);
+      setCopied('');
     }
   };
 
@@ -68,10 +71,36 @@ const CreatorRewardsPanel: React.FC = () => {
         </p>
         <div className="mt-4 flex flex-col sm:flex-row gap-2">
           <input readOnly value={link} aria-label="Enlace de invitación" data-testid="referral-link" className="flex-1 px-4 py-2.5 rounded-xl text-gray-900 text-sm" onFocus={(e) => e.target.select()} />
-          <button type="button" onClick={copy} className="bg-white text-pink-600 px-5 py-2.5 rounded-xl font-bold hover:bg-pink-50">
-            {copied ? 'Copiado' : 'Copiar enlace'}
+          <button type="button" onClick={() => copy(link)} className="bg-white text-pink-600 px-5 py-2.5 rounded-xl font-bold hover:bg-pink-50">
+            {copied === link ? 'Copiado' : 'Copiar enlace'}
           </button>
         </div>
+      </div>
+
+      <div className="bg-white rounded-2xl p-6 shadow-sm" data-testid="invite-creators">
+        <h3 className="font-bold text-gray-900 mb-1"><i className="fas fa-user-plus text-purple-500 mr-2"></i>Invita a otros creadores</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Por cada creador que se registre con este enlace ganas un {pct(CREATOR_INVITE_BONUS)} extra de todo lo que venda durante {CREATOR_INVITE_MONTHS} meses.
+          Lo pone SugarFans: al creador que invitas no se le descuenta nada.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input readOnly value={creatorLink} aria-label="Enlace para invitar creadores" data-testid="creator-invite-link" className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm" onFocus={(e) => e.target.select()} />
+          <button type="button" onClick={() => copy(creatorLink)} className="bg-purple-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-purple-700">
+            {copied === creatorLink ? 'Copiado' : 'Copiar enlace'}
+          </button>
+        </div>
+        {data.invitedCreators.length === 0 ? (
+          <p className="text-sm text-gray-500 mt-4">Todavía no has invitado a ningún creador.</p>
+        ) : (
+          <div className="divide-y divide-gray-100 mt-4">
+            {data.invitedCreators.map((c, i) => (
+              <div key={i} className="py-2 flex items-center justify-between text-sm" data-testid="invited-creator">
+                <span>{c.name} · <span className="text-gray-500">bono hasta el {fmtDate(c.until)}</span></span>
+                <span className="text-green-600 font-medium">{money(c.bonus)} ganados</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl p-6 shadow-sm">

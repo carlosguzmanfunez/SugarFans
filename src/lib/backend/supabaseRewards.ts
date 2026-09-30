@@ -6,7 +6,7 @@ import type { CreatorRewards, FeaturedCreator, LevelId, RewardsBackend } from '.
 
 type Row = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
-const EMPTY: CreatorRewards = { level: 'bronce', activeFans: 0, share: 0.8, bonus: 0, attractedThisMonth: 0, attractedLastMonth: 0, referrals: [] };
+const EMPTY: CreatorRewards = { level: 'bronce', activeFans: 0, share: 0.8, bonus: 0, attractedThisMonth: 0, attractedLastMonth: 0, referrals: [], invitedCreators: [] };
 
 export const createSupabaseRewards = (sb: SupabaseClient): RewardsBackend => ({
   async myRewards() {
@@ -21,6 +21,7 @@ export const createSupabaseRewards = (sb: SupabaseClient): RewardsBackend => ({
       attractedThisMonth: r.attracted_this_month,
       attractedLastMonth: r.attracted_last_month,
       referrals: (r.referrals as Row[]).map((f) => ({ name: f.name, joinedAt: f.joined_at, paid: f.paid, referralUntil: f.referral_until })),
+      invitedCreators: ((r.invited_creators ?? []) as Row[]).map((c) => ({ name: c.name, joinedAt: c.joined_at, until: c.until, bonus: Number(c.bonus) })),
     };
   },
 

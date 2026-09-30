@@ -25,6 +25,8 @@ interface Deps {
   setVerified(userId: string): void;
   // Creator's cut of a subscription, renewal or tip (rewards: level, goals, referral).
   shareFor(fanId: string, creatorProfileId: string, at: Date): number;
+  // Adds (and keeps in step) the 5% bonus rows for creators who invited the seller.
+  withInviteBonuses(transactions: Store['transactions']): Store['transactions'];
   notify(): void;
 }
 
@@ -81,7 +83,8 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
   };
 
   const commit = (fn: (s: Store) => Store): AuthResult => {
-    if (!writeJSONChecked(KEY, fn(load()))) return fail('No se pudo guardar: el almacenamiento del navegador está lleno');
+    const next = fn(load());
+    if (!writeJSONChecked(KEY, { ...next, transactions: deps.withInviteBonuses(next.transactions) })) return fail('No se pudo guardar: el almacenamiento del navegador está lleno');
     deps.notify();
     return ok;
   };

@@ -1,7 +1,9 @@
 // Browser-only creator rewards (dev and offline tests). Referrals are recorded at
 // sign-up; levels, goals and featured spots are worked out from the platform's books.
 import { readJSON, writeJSON } from '../storage';
+import { round2 } from '../platformRules';
 import {
+  CREATOR_INVITE_BONUS,
   GOALS,
   LEVELS,
   REFERRAL_DAYS,
@@ -10,11 +12,14 @@ import {
   baseShare,
   goalBonus,
   levelFor,
+  inviteUntil,
   monthStart,
   shareFor,
+  type CreatorInvite,
   type Referral,
 } from '../rewardRules';
 import type { LocalLedger } from './localPlatform';
+import type { Transaction } from './platformTypes';
 import type { User } from './types';
 import type { FeaturedCreator, RewardsBackend } from './rewardTypes';
 
@@ -26,27 +31,74 @@ interface Deps {
 }
 
 const KEY = 'referrals';
+const INVITES_KEY = 'creator_invites';
+type Row = Transaction & { key: string };
 const DAY = 86_400_000;
 
 export const createLocalRewards = (deps: Deps): RewardsBackend & {
-  recordReferral(fanId: string, creatorProfileId: string): void;
+  // A fan joins as a referral; a creator joins as an invited creator.
+  recordReferral(userId: string, role: 'fan' | 'creator', creatorProfileId: string): void;
+  withInviteBonuses(transactions: Row[]): Row[];
   shareFor(fanId: string, creatorProfileId: string, at?: Date): number;
   purgeUser(userId: string): Promise<void>;
 } => {
   const refs = () => readJSON<Referral[]>(KEY, []);
+  const invites = () => readJSON<CreatorInvite[]>(INVITES_KEY, []);
   const txs = () => deps.ledger().transactions();
   const levelOf = (id: string) => levelFor(activeFans(txs(), id)).id;
 
   return {
-    recordReferral(fanId, creatorProfileId) {
-      if (refs().some((r) => r.fanId === fanId)) return;
-      writeJSON(KEY, [...refs(), { fanId, creatorProfileId, joinedAt: new Date().toISOString() }]);
+    recordReferral(userId, role, creatorProfileId) {
+      const joinedAt = new Date().toISOString();
+      if (role === 'fan') {
+        if (!refs().some((r) => r.fanId === userId)) writeJSON(KEY, [...refs(), { fanId: userId, creatorProfileId, joinedAt }]);
+      } else if (!invites().some((i) => i.creatorProfileId === userId)) {
+        writeJSON(INVITES_KEY, [...invites(), { creatorProfileId: userId, referrerProfileId: creatorProfileId, joinedAt }]);
+      }
+    },
+
+    // Every paid sale of an invited creator (within 12 months) gets a bonus row for
+    // the creator who invited them; the row follows the sale if it is refunded.
+    withInviteBonuses(transactions) {
+      const all = invites();
+      if (!all.length) return transactions;
+      const byId = new Map(transactions.map((t) => [t.id, t]));
+      const has = new Set(transactions.filter((t) => t.kind === 'referral').map((t) => t.key));
+      const names = new Map(deps.listAccounts().flatMap((a) => (a.creatorProfileId ? [[a.creatorProfileId, a.name] as const] : [])));
+      const synced = transactions.map((t) => {
+        const sale = t.kind === 'referral' ? byId.get(t.key.slice('bonus:'.length)) : undefined;
+        return sale && sale.status !== t.status ? { ...t, status: sale.status } : t;
+      });
+      const added: Row[] = [];
+      for (const t of transactions) {
+        if (t.kind === 'referral' || t.status !== 'paid' || has.has(`bonus:${t.id}`)) continue;
+        const inv = all.find((i) => i.creatorProfileId === t.creatorProfileId);
+        const amount = round2(t.amount * CREATOR_INVITE_BONUS);
+        if (!inv || t.createdAt < inv.joinedAt || t.createdAt >= inviteUntil(inv.joinedAt) || amount < 0.01) continue;
+        added.push({
+          id: `bonus-${t.id}`,
+          key: `bonus:${t.id}`,
+          payerId: null,
+          payerName: 'SugarFans',
+          creatorProfileId: inv.referrerProfileId,
+          creatorName: names.get(inv.referrerProfileId) ?? 'Creador',
+          kind: 'referral',
+          amount,
+          share: 1,
+          note: `Por ${t.creatorName}`,
+          methodLabel: 'Bono de invitación',
+          status: 'paid',
+          createdAt: t.createdAt,
+        });
+      }
+      return added.length ? [...synced, ...added] : synced;
     },
 
     shareFor: (fanId, creatorProfileId, at = new Date()) => shareFor(refs(), txs(), fanId, creatorProfileId, at),
 
     async purgeUser(userId) {
       writeJSON(KEY, refs().filter((r) => r.fanId !== userId));
+      writeJSON(INVITES_KEY, invites().filter((i) => i.creatorProfileId !== userId));
     },
 
     async myRewards(user) {
@@ -73,6 +125,19 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
             paid: payers.has(r.fanId),
             referralUntil: new Date(new Date(r.joinedAt).getTime() + REFERRAL_DAYS * DAY).toISOString(),
           })),
+        invitedCreators: invites()
+          .filter((i) => i.referrerProfileId === id)
+          .sort((a, b) => b.joinedAt.localeCompare(a.joinedAt))
+          .map((i) => {
+            const sales = new Set(books.filter((t) => t.creatorProfileId === i.creatorProfileId).map((t) => `bonus:${t.id}`));
+            const bonus = (books as Row[]).filter((t) => t.kind === 'referral' && t.status === 'paid' && sales.has(t.key));
+            return {
+              name: names.get(i.creatorProfileId) ?? 'Creador',
+              joinedAt: i.joinedAt,
+              until: inviteUntil(i.joinedAt),
+              bonus: round2(bonus.reduce((s, t) => s + t.amount, 0)),
+            };
+          }),
       };
     },
 

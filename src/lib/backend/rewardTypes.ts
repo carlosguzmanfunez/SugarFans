@@ -11,6 +11,13 @@ export interface ReferredFan {
   referralUntil: string; // end of the 90 days at 90%
 }
 
+export interface InvitedCreator {
+  name: string;
+  joinedAt: string;
+  until: string; // end of the 12 months with the 5% bonus
+  bonus: number; // earned so far (USD)
+}
+
 export interface CreatorRewards {
   level: LevelId;
   activeFans: number;
@@ -19,6 +26,7 @@ export interface CreatorRewards {
   attractedThisMonth: number;
   attractedLastMonth: number;
   referrals: ReferredFan[];
+  invitedCreators: InvitedCreator[];
 }
 
 export interface FeaturedCreator {

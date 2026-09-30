@@ -237,4 +237,5 @@ export const transactionLabel: Record<Transaction['kind'], string> = {
   renewal: 'Renovación',
   tip: 'Propina',
   gift: 'Regalo',
+  referral: 'Bono por creador invitado',
 };

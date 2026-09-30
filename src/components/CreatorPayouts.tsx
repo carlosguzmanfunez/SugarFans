@@ -164,7 +164,7 @@ const CreatorPayouts: React.FC = () => {
                   <p className="font-medium text-gray-900">{transactionLabel[t.kind]} · {t.payerName}</p>
                   <p className="text-xs text-gray-500">
                     {fmtDate(t.createdAt)} · pagó {money(t.amount)}
-                    {t.kind === 'gift' && t.note ? ` · ${t.note}` : ''}
+                    {(t.kind === 'gift' || t.kind === 'referral') && t.note ? ` · ${t.note}` : ''}
                   </p>
                 </div>
                 {t.status === 'refunded' ? (

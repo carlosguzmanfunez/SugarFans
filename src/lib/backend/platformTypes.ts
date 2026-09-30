@@ -50,7 +50,8 @@ export interface Transaction {
   payerName: string;
   creatorProfileId: string;
   creatorName: string;
-  kind: 'subscription' | 'renewal' | 'tip' | 'gift';
+  // referral: the 5% bonus a creator earns on what a creator they invited sells.
+  kind: 'subscription' | 'renewal' | 'tip' | 'gift' | 'referral';
   amount: number;
   note?: string; // the fan's message with a tip or gift
   share?: number; // creator's cut; 80% unless set (gifts pay 60%)

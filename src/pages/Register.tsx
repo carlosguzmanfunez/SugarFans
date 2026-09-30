@@ -14,6 +14,7 @@ const CREATOR_BENEFITS = [
   'Tu enlace de invitación: te quedas con el 90% de lo que paguen los fans que traigas durante 3 meses',
   'Metas mensuales: atrae 10, 25 o 50 fans y gana hasta 10 puntos más de comisión el mes siguiente',
   'Niveles Plata, Oro y Diamante con insignia, y espacios en Creadores destacados',
+  'Invita a otros creadores y gana un 5% extra de lo que vendan durante 12 meses, sin quitarles nada',
   'Publica fotos y videos, gratis o solo para suscriptores',
   'Vende experiencias VIP y videollamadas en vivo',
   'Tu Círculo privado y tu Bóveda para los fans que más te apoyan',
@@ -70,7 +71,7 @@ const Register: React.FC = () => {
       return;
     }
     setSubmitting(true);
-    const result = await register(name, email, password, role, role === 'fan' ? readRefCode() : undefined);
+    const result = await register(name, email, password, role, readRefCode());
     setSubmitting(false);
     if (!result.ok) {
       setError(result.error || 'No se pudo crear la cuenta');

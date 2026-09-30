@@ -151,6 +151,7 @@ const platform = createLocalPlatform({
     })),
   setVerified: (userId) => mutate(userId, (a) => ({ ...a, isVerified: true })),
   shareFor: (fanId, creatorProfileId, at) => rewards.shareFor(fanId, creatorProfileId, at),
+  withInviteBonuses: (transactions) => rewards.withInviteBonuses(transactions),
   notify,
 });
 
@@ -244,9 +245,9 @@ export const localBackend: Backend = {
       salt,
       passwordHash: await hashPassword(password, salt),
     };
-    // A fan who arrived through a creator's link is that creator's referral.
-    if (role === 'fan' && ref && accounts.some((a) => a.role !== 'fan' && a.creatorProfileId === ref)) {
-      rewards.recordReferral(id, ref);
+    // Someone who arrived through a creator's link: a referred fan or an invited creator.
+    if (ref && accounts.some((a) => a.role !== 'fan' && a.creatorProfileId === ref)) {
+      rewards.recordReferral(id, role === 'creator' ? 'creator' : 'fan', ref);
     }
     saveAccounts([...accounts, account]);
     writeSession(id, true);

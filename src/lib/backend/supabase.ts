@@ -208,7 +208,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
         email: cleanEmail,
         password,
         // The terms checkbox at sign-up confirms the user is 18+.
-        options: { data: { name: name.trim(), role, age_verified: true, ...(role === 'fan' && ref ? { ref } : {}) }, emailRedirectTo: `${window.location.origin}/login` },
+        options: { data: { name: name.trim(), role, age_verified: true, ...(ref ? { ref } : {}) }, emailRedirectTo: `${window.location.origin}/login` },
       });
       if (error) return fail(translateAuthError(error.message));
       // With "Confirm email" enabled Supabase returns no session and, for an

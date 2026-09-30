@@ -5,6 +5,7 @@
 // both in sync.
 import type { Transaction } from './backend/platformTypes';
 import type { LevelId } from './backend/rewardTypes';
+import { addMonths } from './platformRules';
 
 export interface Level {
   id: LevelId;
@@ -24,6 +25,11 @@ export const LEVELS: Level[] = [
 // Fans who sign up with the creator's link pay the creator 90% for 90 days.
 export const REFERRAL_SHARE = 0.9;
 export const REFERRAL_DAYS = 90;
+// A creator who invites another creator earns 5% of everything the new creator
+// sells for 12 months, paid from SugarFans' part: the new creator loses nothing.
+export const CREATOR_INVITE_BONUS = 0.05;
+export const CREATOR_INVITE_MONTHS = 12;
+
 // No bonus takes the creator's cut above this.
 export const MAX_SHARE = 0.9;
 // A fan counts as active with a payment to the creator in the last 30 days.
@@ -54,6 +60,14 @@ export const goalBonus = (attracted: number) => GOALS.filter((g) => attracted >=
 
 // Month boundaries in UTC, like the monthly credit.
 export const monthStart = (at: Date, offset = 0) => new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth() + offset, 1)).toISOString();
+
+export interface CreatorInvite {
+  creatorProfileId: string; // the invited creator
+  referrerProfileId: string;
+  joinedAt: string;
+}
+
+export const inviteUntil = (joinedAt: string) => addMonths(joinedAt, CREATOR_INVITE_MONTHS).toISOString();
 
 export interface Referral {
   fanId: string;
