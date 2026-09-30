@@ -3,6 +3,8 @@ import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { posts, type Creator } from '../data/mockData';
 import { useCreatorCatalog } from '../lib/catalog';
 import ManagedBadge from '../components/ManagedBadge';
+import LevelBadge from '../components/LevelBadge';
+import { useLevels } from '../lib/rewards';
 import { useAuth } from '../context/AuthContext';
 import CheckoutDialog from '../components/CheckoutDialog';
 import ReportDialog from '../components/ReportDialog';
@@ -72,6 +74,7 @@ const CreatorProfile: React.FC = () => {
     null as PublicCreator | null
   );
   const creator: Creator | undefined = catalogCreator ?? (signedUp ? fromPublic(signedUp) : undefined);
+  const levels = useLevels(id ? [id] : []);
 
   // Posts published from the creator panel, then like/comment totals for every post.
   const { data: feed } = usePlatformQuery(
@@ -238,6 +241,7 @@ const CreatorProfile: React.FC = () => {
                   </span>
                 )}
                 <ManagedBadge creator={creator} size="md" />
+                <LevelBadge level={levels[creator.id]} />
               </div>
               <p className="text-gray-500">@{creator.username}</p>
 

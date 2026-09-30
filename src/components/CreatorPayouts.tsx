@@ -74,7 +74,7 @@ const CreatorPayouts: React.FC = () => {
       )}
       <div className="bg-white rounded-2xl shadow-sm p-6">
         <h3 className="font-bold text-gray-900 mb-1">Resumen de Ingresos</h3>
-        <p className="text-sm text-gray-500 mb-4">Recibes el {CREATOR_SHARE * 100}% de lo que pagan tus fans ({GIFT_SHARE * 100}% de los regalos); el resto queda para la plataforma.</p>
+        <p className="text-sm text-gray-500 mb-4">Recibes del {CREATOR_SHARE * 100}% al 90% de lo que pagan tus fans según tu nivel, tus metas y tus invitados ({GIFT_SHARE * 100}% de los regalos); el resto queda para la plataforma.</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-green-50 rounded-xl p-4">
             <p className="text-sm text-green-700">Saldo disponible</p>

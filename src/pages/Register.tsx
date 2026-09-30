@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth, UserRole } from '../context/AuthContext';
 import { isValidEmail } from '../lib/storage';
+import { clearRefCode, readRefCode } from '../lib/rewardRules';
 import { useLanguage } from '../context/LanguageContext';
 import LanguageSelector from '../components/LanguageSelector';
 
@@ -9,7 +10,10 @@ import LanguageSelector from '../components/LanguageSelector';
 const CREATOR_BENEFITS = [
   'Insignia Verify tras verificar tu identidad con tu ID y un selfie',
   'Tú fijas el precio de tu suscripción mensual',
-  'Recibes el 80% de suscripciones y propinas, y el 60% de los regalos',
+  'Recibes del 80% al 85% de suscripciones y propinas según tu nivel, y el 60% de los regalos',
+  'Tu enlace de invitación: te quedas con el 90% de lo que paguen los fans que traigas durante 3 meses',
+  'Metas mensuales: atrae 10, 25 o 50 fans y gana hasta 10 puntos más de comisión el mes siguiente',
+  'Niveles Plata, Oro y Diamante con insignia, y espacios en Creadores destacados',
   'Publica fotos y videos, gratis o solo para suscriptores',
   'Vende experiencias VIP y videollamadas en vivo',
   'Tu Círculo privado y tu Bóveda para los fans que más te apoyan',
@@ -66,7 +70,7 @@ const Register: React.FC = () => {
       return;
     }
     setSubmitting(true);
-    const result = await register(name, email, password, role);
+    const result = await register(name, email, password, role, role === 'fan' ? readRefCode() : undefined);
     setSubmitting(false);
     if (!result.ok) {
       setError(result.error || 'No se pudo crear la cuenta');
@@ -74,6 +78,7 @@ const Register: React.FC = () => {
       if (result.error?.includes('email') || result.error?.includes('nombre')) setStep(1);
       return;
     }
+    clearRefCode();
     if (result.needsConfirmation) {
       setConfirmNotice(result.notice || 'Revisa tu correo para confirmar la cuenta.');
       return;

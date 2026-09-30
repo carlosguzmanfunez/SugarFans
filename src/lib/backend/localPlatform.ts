@@ -23,6 +23,8 @@ interface Deps {
   listAccounts(): User[];
   setSubscription(userId: string, creatorId: string, price: number): void;
   setVerified(userId: string): void;
+  // Creator's cut of a subscription, renewal or tip (rewards: level, goals, referral).
+  shareFor(fanId: string, creatorProfileId: string, at: Date): number;
   notify(): void;
 }
 
@@ -228,6 +230,7 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
             creatorName,
             kind: 'subscription',
             amount: round2(price),
+            share: deps.shareFor(user.id, creatorProfileId, new Date(at)),
             methodLabel: method.label,
             status: 'paid',
             createdAt: at,
@@ -261,6 +264,7 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
             creatorName,
             kind: 'tip',
             amount: round2(amount),
+            share: deps.shareFor(user.id, creatorProfileId, new Date(at)),
             methodLabel: method.label,
             status: 'paid',
             createdAt: at,
@@ -291,6 +295,7 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
             creatorName: creatorNames[sub.creatorId] ?? 'Creador',
             kind: 'renewal',
             amount: round2(sub.price),
+            share: deps.shareFor(user.id, sub.creatorId, addMonths(sub.since, n)),
             methodLabel: method?.label ?? 'Sin método de pago',
             status: method ? 'paid' : 'failed',
             createdAt: addMonths(sub.since, n).toISOString(),

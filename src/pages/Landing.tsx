@@ -3,11 +3,16 @@ import { Link } from 'react-router-dom';
 import { categories } from '../data/mockData';
 import { useCreatorCatalog } from '../lib/catalog';
 import ManagedBadge from '../components/ManagedBadge';
+import LevelBadge from '../components/LevelBadge';
+import { featuredFirst, useFeatured } from '../lib/rewards';
 import { useLanguage } from '../context/LanguageContext';
 
 const Landing: React.FC = () => {
   const { t } = useLanguage();
   const { creators } = useCreatorCatalog();
+  // Creators featured by the rewards program (Oro, Diamante, monthly goals) come first.
+  const featured = useFeatured();
+  const level = new Map(featured.map((f) => [f.creatorProfileId, f.level]));
 
   return (
     <div className="min-h-screen">
@@ -50,7 +55,7 @@ const Landing: React.FC = () => {
             <p className="text-gray-600">{t('landing.featured.subtitle')}</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {creators.slice(0, 6).map((creator) => (
+            {featuredFirst(creators, featured).slice(0, 6).map((creator) => (
               <Link to={`/creator/${creator.id}`} key={creator.id} className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all overflow-hidden group">
                 <div className="h-32 bg-gradient-to-r from-pink-400 to-purple-500 relative overflow-hidden">
                   <img src={creator.cover} alt="" className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-300" />
@@ -62,6 +67,7 @@ const Landing: React.FC = () => {
                       <h3 className="font-bold text-gray-900">{creator.name}</h3>
                       {creator.isVerified && <i className="fas fa-check-circle text-blue-500 ml-1 text-sm"></i>}
                       <ManagedBadge creator={creator} />
+                      <LevelBadge level={level.get(creator.id)} />
                     </div>
                     <p className="text-sm text-gray-500 mt-1 line-clamp-2">{creator.bio}</p>
                     <div className="flex justify-between items-center mt-4">

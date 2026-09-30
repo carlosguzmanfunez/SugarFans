@@ -2,6 +2,7 @@
 import type { PlatformBackend } from './platformTypes';
 import type { MediaUpload, SocialBackend } from './socialTypes';
 import type { GiftsBackend } from './giftTypes';
+import type { RewardsBackend } from './rewardTypes';
 export type * from './platformTypes';
 export type * from './socialTypes';
 export type * from './giftTypes';
@@ -121,7 +122,7 @@ export interface Backend {
   // Fires when the session or the signed-in user's data may have changed elsewhere.
   onChange(cb: () => void): () => void;
   login(email: string, password: string, remember: boolean): Promise<AuthResult>;
-  register(name: string, email: string, password: string, role: UserRole): Promise<AuthResult & { needsConfirmation?: boolean }>;
+  register(name: string, email: string, password: string, role: UserRole, ref?: string): Promise<AuthResult & { needsConfirmation?: boolean }>;
   logout(): Promise<void>;
   updateProfile(user: User, patch: ProfilePatch): Promise<AuthResult>;
   changePassword(user: User, current: string, next: string): Promise<AuthResult>;
@@ -146,4 +147,6 @@ export interface Backend {
   social: SocialBackend;
   // Terrones, gifts, Círculo privado and gift perks (see giftTypes.ts).
   gifts: GiftsBackend;
+  // Creator rewards: referral link, levels, monthly goals, featured (see rewardTypes.ts).
+  rewards: RewardsBackend;
 }

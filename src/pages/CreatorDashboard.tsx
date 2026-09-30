@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import CreatorPayouts from '../components/CreatorPayouts';
 import CreatorGiftsPanel from '../components/CreatorGiftsPanel';
+import CreatorRewardsPanel from '../components/CreatorRewardsPanel';
 import { usePlatformQuery, platformApi, computeEarnings, iBlocked, blockUser, unblockUser, money, CREATOR_SHARE, creatorCut, transactionLabel } from '../lib/platform';
 import { statusLabel, formatLongDate, WEEKDAYS, ALL_HOURS, MAX_BOOKING_MONTHS, DEFAULT_AVAILABILITY } from '../lib/vip';
 import { backend } from '../lib/backend';
@@ -116,7 +117,7 @@ const CreatorDashboard: React.FC = () => {
   const activeSubscribers = subscribers.filter((sub) => !isBlocked(sub.id)).length;
 
   const stats = [
-    { label: 'Por acreditar el día 1', value: money(earnings?.pending ?? 0), change: `${CREATOR_SHARE * 100}%`, icon: 'fa-dollar-sign', color: 'green' },
+    { label: 'Por acreditar el día 1', value: money(earnings?.pending ?? 0), change: 'Según tu nivel', icon: 'fa-dollar-sign', color: 'green' },
     { label: 'Suscriptores activos', value: String(activeSubscribers), change: 'activos', icon: 'fa-users', color: 'blue' },
     { label: 'Publicaciones', value: String(user?.posts ?? 0), change: '+12', icon: 'fa-image', color: 'purple' },
     { label: 'Me gusta totales', value: compactCount(content.likes), change: 'total', icon: 'fa-heart', color: 'pink' },
@@ -187,6 +188,7 @@ const CreatorDashboard: React.FC = () => {
             { id: 'subscribers', label: 'Suscriptores', icon: 'fa-users' },
             { id: 'earnings', label: 'Ingresos', icon: 'fa-wallet' },
             { id: 'gifts', label: 'Regalos', icon: 'fa-gift' },
+            { id: 'rewards', label: 'Recompensas', icon: 'fa-trophy' },
             { id: 'vip', label: `Experiencias VIP${pendingVip ? ` (${pendingVip})` : ''}`, icon: 'fa-crown' },
             { id: 'settings', label: 'Configuración', icon: 'fa-cog' },
           ].map((tab) => (
@@ -384,6 +386,7 @@ const CreatorDashboard: React.FC = () => {
         {activeTab === 'earnings' && <CreatorPayouts />}
 
         {activeTab === 'gifts' && <CreatorGiftsPanel />}
+        {activeTab === 'rewards' && <CreatorRewardsPanel />}
 
         {activeTab === 'vip' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -15,7 +15,7 @@ interface AuthContextType {
   ageVerified: boolean;
   backendMode: 'supabase' | 'local';
   login: (email: string, password: string, remember?: boolean) => Promise<AuthResult>;
-  register: (name: string, email: string, password: string, role: UserRole) => Promise<AuthResult & { needsConfirmation?: boolean }>;
+  register: (name: string, email: string, password: string, role: UserRole, ref?: string) => Promise<AuthResult & { needsConfirmation?: boolean }>;
   logout: () => Promise<void>;
   verifyAge: () => void;
   updateUser: (data: ProfilePatch) => Promise<AuthResult>;
@@ -71,8 +71,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = (email: string, password: string, remember = true) => run(() => backend.login(email, password, remember));
 
-  const register = async (name: string, email: string, password: string, role: UserRole) => {
-    const result = await backend.register(name, email, password, role);
+  const register = async (name: string, email: string, password: string, role: UserRole, ref?: string) => {
+    const result = await backend.register(name, email, password, role, ref);
     await refreshUser();
     if (result.ok) {
       // The sign-up form includes the 18+ confirmation.

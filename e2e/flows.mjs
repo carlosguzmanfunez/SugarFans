@@ -218,7 +218,7 @@ const run = async () => {
       await page.goto(`${BASE}/help`);
       await page.getByRole('button', { name: /Para Creadores/ }).click();
       await page.getByText('¿Cuándo recibo mis pagos?').waitFor();
-      expect((await page.locator('details').count()) === 3, 'la categoría no filtra');
+      expect((await page.locator('details').count()) === 4, 'la categoría no filtra');
       await page.getByRole('button', { name: /Para Creadores/ }).click();
       await page.fill('input[placeholder="Buscar en la ayuda..."]', 'selfie');
       await page.getByText('¿Cómo verifico mi identidad?').waitFor();
@@ -1331,6 +1331,104 @@ const run = async () => {
     });
     await giftsCtx.close();
 
+    // ------------------------------------------------------------------
+    const rewardsCtx = await newContext(browser, { locale: 'es-ES' });
+    const rc = await newPage(rewardsCtx);
+    const rf = await newPage(rewardsCtx);
+    for (const pg of [rc, rf]) {
+      await pg.goto(`${BASE}/age-verification`);
+      await pg.getByRole('button', { name: /Soy mayor|18/ }).first().click();
+    }
+    await login(rc, 'creator@sugarfans.com', 'demo1234', { remember: false });
+    await waitPath(rc, '/explore');
+    // Paid fans for creator profile 1: `count` payers on `at`, optionally joined through the link.
+    const seedFans = (page, count, at, referred) =>
+      page.evaluate(({ count, at, referred }) => {
+        const p = JSON.parse(localStorage.getItem('sugarfans_platform') || '{}');
+        const refs = JSON.parse(localStorage.getItem('sugarfans_referrals') || '[]');
+        for (let i = 0; i < count; i++) {
+          const fanId = `seed-${at}-${i}`;
+          p.transactions = [...(p.transactions || []), {
+            id: fanId, key: fanId, payerId: fanId, payerName: `Fan ${i}`, creatorProfileId: '1', creatorName: 'Valentina Rose',
+            kind: 'subscription', amount: 9.99, share: 0.8, methodLabel: 'Visa •••• 4242', status: 'paid', createdAt: at,
+          }];
+          if (referred) refs.push({ fanId, creatorProfileId: '1', joinedAt: at });
+        }
+        localStorage.setItem('sugarfans_platform', JSON.stringify(p));
+        localStorage.setItem('sugarfans_referrals', JSON.stringify(refs));
+      }, { count, at, referred });
+    const openRewards = async () => {
+      await rc.goto(`${BASE}/creator/dashboard?tab=rewards`);
+      return rc.getByTestId('rewards-panel');
+    };
+
+    console.log('\nRecompensas para creadores: enlace, niveles, metas y destacados');
+    await check('El creador ve su nivel, su comisión, su enlace de invitación y sus metas', async () => {
+      const panel = await openRewards();
+      await panel.getByTestId('rewards-level').getByText('Bronce').waitFor();
+      await panel.getByTestId('rewards-share').getByText('80%').waitFor();
+      expect((await panel.getByTestId('referral-link').inputValue()).endsWith('/r/1'), 'el enlace no apunta a /r/1');
+      await panel.getByTestId('goal-summary').getByText('Te faltan 10 fans para la primera meta.').waitFor();
+    });
+    await check('Un fan que llega con el enlace queda invitado y el creador cobra el 90% de su suscripción', async () => {
+      await rf.goto(`${BASE}/r/1`);
+      await waitPath(rf, '/creator/1');
+      await register(rf, { name: 'Lucía Invitada', email: 'lucia.invitada@test.com', password: 'password123' });
+      await waitPath(rf, '/explore');
+      await rf.goto(`${BASE}/creator/1`);
+      await rf.getByRole('button', { name: /Suscribirse \$/ }).first().click();
+      const dialog = rf.getByRole('dialog');
+      await addCard(dialog);
+      await dialog.getByText('Visa •••• 4242').waitFor();
+      await dialog.getByRole('button', { name: /Suscribirme y pagar/ }).click();
+      await rf.getByRole('button', { name: /Suscrito/ }).waitFor();
+      const sub = (await platformData(rf)).transactions.find((t) => t.payerName === 'Lucía Invitada');
+      expect(sub?.share === 0.9, `la suscripción del invitado no paga 90% (${sub?.share})`);
+      const panel = await openRewards();
+      await panel.getByTestId('referred-fan').filter({ hasText: 'Lucía Invitada' }).getByText(/90% hasta el/).waitFor();
+      await panel.getByTestId('rewards-attracted').getByText('1', { exact: true }).waitFor();
+    });
+    await check('Un fan que se registra sin enlace no cuenta como invitado', async () => {
+      // Lucía's sign-up used up the link: signing up again from this browser counts nobody.
+      await logoutViaMenu(rf);
+      await register(rf, { name: 'Pedro Directo', email: 'pedro.directo@test.com', password: 'password123' });
+      await waitPath(rf, '/explore');
+      const refs = await rf.evaluate(() => JSON.parse(localStorage.getItem('sugarfans_referrals') || '[]'));
+      expect(refs.length === 1, `se registró un invitado de más (${refs.length})`);
+      await logoutViaMenu(rf);
+    });
+    await check('Cumplir la meta de 10 fans el mes pasado sube la comisión y destaca al creador', async () => {
+      const lastMonth = new Date();
+      lastMonth.setUTCDate(1);
+      lastMonth.setUTCMonth(lastMonth.getUTCMonth() - 1);
+      lastMonth.setUTCHours(12, 0, 0, 0);
+      await seedFans(rc, 10, lastMonth.toISOString(), true);
+      const panel = await openRewards();
+      await panel.getByTestId('rewards-share').getByText('82%').waitFor();
+      await panel.getByText(/\+ 2% por la meta del mes pasado/).waitFor();
+      await rc.goto(`${BASE}/explore`);
+      const first = rc.locator('a[href^="/creator/"]').filter({ has: rc.getByTestId('featured-tag') }).first();
+      await first.getByText('Valentina Rose').waitFor();
+    });
+    await check('Con 10 fans activos sube a Plata: insignia en el perfil y más comisión en los nuevos pagos', async () => {
+      await seedFans(rc, 10, new Date(Date.now() - 86400000).toISOString(), false);
+      const panel = await openRewards();
+      await panel.getByTestId('rewards-level').getByText('Plata').waitFor();
+      await panel.getByTestId('rewards-share').getByText('84%').waitFor();
+      await rf.goto(`${BASE}/creator/1`);
+      await rf.getByTestId('level-badge').getByText('Plata').waitFor();
+      await login(rf, 'fan@sugarfans.com', 'demo1234');
+      await waitPath(rf, '/explore');
+      await rf.goto(`${BASE}/creator/1`);
+      await rf.getByRole('button', { name: /Suscribirse \$/ }).first().click();
+      await rf.getByRole('dialog').getByText('Visa •••• 4242').waitFor();
+      await rf.getByRole('button', { name: /Suscribirme y pagar/ }).click();
+      await rf.getByRole('button', { name: /Suscrito/ }).waitFor();
+      const sub = (await platformData(rf)).transactions.find((t) => t.payerId === 'demo-fan' && t.kind === 'subscription');
+      expect(sub?.share === 0.84, `la suscripción no se registró al 84% (${sub?.share})`);
+    });
+    await rewardsCtx.close();
+
     const visitor = await newContext(browser, { locale: 'es-ES' });
     const vp = await newPage(visitor);
     await check('La antigua página de precios lleva al registro de creador con sus beneficios', async () => {
@@ -1346,6 +1444,7 @@ const run = async () => {
       await pw.nth(1).fill('password123');
       await vp.getByRole('button', { name: 'Continuar' }).click();
       await vp.getByTestId('creator-benefits').getByText(/60% de los regalos/).waitFor();
+      await vp.getByTestId('creator-benefits').getByText(/Tu enlace de invitación/).waitFor();
     });
     await visitor.close();
 
