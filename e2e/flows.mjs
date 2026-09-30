@@ -1234,7 +1234,10 @@ const run = async () => {
       await dialog.getByRole('button', { name: /Corona de azúcar/ }).click();
       await dialog.getByTestId('gift-perks').getByText('Entras al Círculo privado por 30 días').waitFor();
       await dialog.getByLabel('Mensaje del regalo').fill('¡Para mi reina!');
+      const art = dialog.getByRole('button', { name: /Corona de azúcar/ }).locator('img');
+      expect(await art.evaluate((img) => img.complete && img.naturalWidth > 0), 'la ilustración 3D del regalo no cargó');
       await dialog.getByRole('button', { name: /Enviar Corona de azúcar/ }).click();
+      await gf.getByTestId('gift-celebration').getByText('¡Corona de azúcar para Valentina Rose!').waitFor();
       await gf.getByText('¡👑 Corona de azúcar enviado a Valentina Rose!').waitFor();
       const gifts = (await platformData(gf)).transactions.filter((t) => t.kind === 'gift');
       expect(gifts.length === 1 && gifts[0].amount === 100 && gifts[0].share === 0.6, 'el regalo no se registró con 60%');

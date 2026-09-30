@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { User } from '../context/AuthContext';
 import BuyCoinsDialog from './BuyCoinsDialog';
+import GiftArt from './GiftArt';
 import { usePlatformQuery, money } from '../lib/platform';
 import { DAILY_UNVERIFIED_LIMIT, formatCoins, giftById, giftsApi, packById, type PerkRequest, type SentGift, type Wallet } from '../lib/gifts';
 
@@ -74,7 +75,7 @@ const WalletPanel: React.FC<{ user: User }> = ({ user }) => {
               const gift = giftById(g.giftId);
               return (
                 <div key={g.id} className="py-2 flex items-center justify-between text-sm" data-testid="sent-gift">
-                  <span>{gift?.icon} {gift?.name ?? 'Regalo'} · <Link to={`/creator/${g.creatorProfileId}`} className="text-pink-600">{g.creatorName}</Link></span>
+                  <span className="flex items-center gap-2">{gift && <GiftArt gift={gift} size={28} />}{gift?.name ?? 'Regalo'} · <Link to={`/creator/${g.creatorProfileId}`} className="text-pink-600">{g.creatorName}</Link></span>
                   <span className="text-gray-500">{g.status === 'refunded' ? 'Devuelto' : `🍬 ${formatCoins(g.coins)}`}</span>
                 </div>
               );

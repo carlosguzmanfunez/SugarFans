@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usePlatformQuery, platformApi, money } from '../lib/platform';
 import { socialApi } from '../lib/social';
+import GiftArt from './GiftArt';
 import {
   CALL_MIN,
   CALL_MINUTES,
@@ -15,6 +16,7 @@ import {
   addVaultItem,
   deleteVaultItem,
   deliverVideo,
+  giftById,
   giftsApi,
   saveGiftSettings,
   scheduleCall,
@@ -232,7 +234,10 @@ const CreatorGiftsPanel: React.FC = () => {
           <div className="divide-y divide-gray-100">
             {data.gifts.slice(0, 30).map((t) => (
               <div key={t.id} className="py-2 flex items-center justify-between text-sm" data-testid="gift-received">
-                <span>{t.note} · {t.payerName}</span>
+                <span className="flex items-center gap-2">
+                  {t.giftId && giftById(t.giftId) && <GiftArt gift={giftById(t.giftId)!} size={28} />}
+                  {t.note} · {t.payerName}
+                </span>
                 {t.status === 'refunded' ? (
                   <span className="text-xs text-gray-500">Devuelto</span>
                 ) : (
