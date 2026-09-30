@@ -148,6 +148,9 @@ const addCard = async (scope, number = '4242 4242 4242 4242') => {
   await scope.getByRole('button', { name: 'Guardar método de pago' }).click();
 };
 
+const amountOf = (text) => Number(String(text).replace(/[^0-9.]/g, ''));
+const money = (n) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 const platformData = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('sugarfans_platform') || '{}'));
 
 const errorText = async (page) => (await page.locator('[class*="bg-red-50"]').first().textContent({ timeout: 3000 }))?.trim();
@@ -703,67 +706,72 @@ const run = async () => {
     });
 
     console.log('\nIngresos y retiros del creador');
-    await check('Creadora nueva: saldo 0 y el retiro exige cuenta y mínimo de $50', async () => {
+    await check('Creadora nueva: saldo 0 y no puede retirar por debajo de $50', async () => {
       await page.goto(`${BASE}/creator/dashboard?tab=earnings`);
       expect((await page.getByTestId('available-balance').textContent()) === '$0.00', 'saldo inicial inesperado');
-      await page.fill('input[name=payoutAmount]', '60');
-      await page.getByRole('button', { name: 'Solicitar retiro' }).click();
-      await page.getByText('Añade una cuenta bancaria para retiros').waitFor();
+      expect(await page.getByRole('button', { name: 'Retirar $0.00' }).isDisabled(), 'el botón de retiro no está bloqueado');
+      await page.getByText(/Podrás retirar cuando tu saldo disponible llegue a \$50\.00/).waitFor();
+      expect((await page.locator('input[name=payoutAmount]').count()) === 0, 'no debe poder elegir el monto');
     });
-    await check('Creadora demo: su saldo es solo el 80% de lo que pagaron los fans', async () => {
+    await check('Creadora demo: 80% de los pagos; lo de este mes se acredita el día 1', async () => {
       await logoutViaMenu(page);
       await login(page, 'creator@sugarfans.com', 'demo1234');
       await waitPath(page, '/explore');
       await page.goto(`${BASE}/creator/dashboard?tab=earnings`);
-      // 80% of (9.99 subscription + 2 x 9.99 renewals) = 23.98, with no demo money added
-      const balance = await page.getByTestId('available-balance').textContent();
-      expect(balance === '$23.98', `saldo inesperado: ${balance}`);
+      // 80% of (9.99 subscription + 2 x 9.99 renewals) = 23.98 in total, no demo money.
+      // The renewal from last month is credited; this month's payments wait for the 1st.
+      const available = amountOf(await page.getByTestId('available-balance').textContent());
+      const pending = amountOf(await page.getByTestId('pending-balance').textContent());
+      expect(Math.abs(available + pending - 23.98) < 0.02, `total inesperado: ${available} + ${pending}`);
+      expect(pending >= 7.99, 'el pago de este mes debería estar por acreditar');
       await page.getByText('+$7.99').first().waitFor();
     });
-    await check('Creadora demo: el retiro se confirma solo, sin paso del administrador', async () => {
-      // Another fan payment of $100 so the balance passes the $50 minimum: 23.98 + 80 = 103.98.
-      await page.evaluate(() => {
+    const addSale = (amount, monthsAgo) =>
+      page.evaluate(([amount, monthsAgo]) => {
         const data = JSON.parse(localStorage.getItem('sugarfans_platform'));
+        const d = new Date();
+        d.setUTCDate(10);
+        d.setUTCMonth(d.getUTCMonth() - monthsAgo);
+        const id = `tx-e2e-${amount}-${monthsAgo}-${data.transactions.length}`;
         data.transactions.push({
-          id: 'tx-e2e', key: 'tx-e2e', payerId: null, payerName: 'Fan de prueba', creatorProfileId: '1', creatorName: 'Valentina Rose',
-          kind: 'subscription', amount: 100, methodLabel: 'Visa •••• 4242', status: 'paid', createdAt: new Date().toISOString(),
+          id, key: id, payerId: null, payerName: 'Fan de prueba', creatorProfileId: '1', creatorName: 'Valentina Rose',
+          kind: 'subscription', amount, methodLabel: 'Visa •••• 4242', status: 'paid', createdAt: d.toISOString(),
         });
         localStorage.setItem('sugarfans_platform', JSON.stringify(data));
-      });
+      }, [amount, monthsAgo]);
+    await check('Creadora demo: retira siempre el saldo completo y queda pagado al momento', async () => {
+      const before = amountOf(await page.getByTestId('available-balance').textContent());
+      const pendingBefore = amountOf(await page.getByTestId('pending-balance').textContent());
+      await addSale(100, 1); // credited on this month's 1st: +80
+      await addSale(50, 0); // paid this month: waits for next 1st (+40 pending)
       await page.reload();
-      expect((await page.getByTestId('available-balance').textContent()) === '$103.98', 'no sumó el pago');
+      const available = amountOf(await page.getByTestId('available-balance').textContent());
+      expect(Math.abs(available - (before + 80)) < 0.001, `saldo inesperado: ${available}`);
+      expect(Math.abs(amountOf(await page.getByTestId('pending-balance').textContent()) - (pendingBefore + 40)) < 0.001, 'no quedó por acreditar');
+      const label = `Retirar ${money(available)}`;
+      await page.getByRole('button', { name: label }).click();
+      await page.getByText('Añade una cuenta bancaria para retiros').waitFor();
       await page.getByPlaceholder('Titular de la cuenta').fill('Valentina Rose');
       await page.getByPlaceholder('Banco').fill('Banco Dos');
       await page.getByPlaceholder('IBAN / CLABE / número de cuenta').fill('002010077777777771');
       await page.getByRole('button', { name: 'Guardar cuenta' }).click();
       await page.getByText('Banco Dos •••• 7771').waitFor();
-      await page.fill('input[name=payoutAmount]', '20');
-      await page.getByRole('button', { name: 'Solicitar retiro' }).click();
-      await page.getByText('El mínimo de retiro es $50.00 USD').waitFor();
-      await page.fill('input[name=payoutAmount]', '5000');
-      await page.getByRole('button', { name: 'Solicitar retiro' }).click();
-      await page.getByText(/Tu saldo disponible es/).waitFor();
-      await page.fill('input[name=payoutAmount]', '60');
-      await page.getByRole('button', { name: 'Solicitar retiro' }).click();
-      await page.getByText(/Retiro confirmado: se paga el/).waitFor();
-      expect((await page.getByTestId('available-balance').textContent()) === '$43.98', 'el saldo no bajó');
-      const confirmed = page.getByTestId('payouts-confirmed');
-      await confirmed.getByText('Retiraste $60.00').waitFor();
-      await confirmed.getByText(/Disponías de \$103\.98/).waitFor();
-    });
-    await check('Llegado el día 1 el retiro aparece como pagado con check verde', async () => {
-      await page.evaluate(() => {
-        const data = JSON.parse(localStorage.getItem('sugarfans_platform'));
-        data.payouts.forEach((p) => { p.scheduledFor = new Date(Date.now() - 86400000).toISOString(); });
-        localStorage.setItem('sugarfans_platform', JSON.stringify(data));
-      });
-      await page.reload();
+      await page.getByRole('button', { name: label }).click();
+      await page.getByText(`Retiro pagado: ${money(available)} enviados a tu cuenta`).waitFor();
+      expect((await page.getByTestId('available-balance').textContent()) === '$0.00', 'el saldo no quedó en cero');
       const paid = page.getByTestId('payouts');
       await paid.getByText('Pagado', { exact: true }).waitFor();
-      await paid.getByText('Retiraste $60.00').waitFor();
-      await paid.getByText(/Disponías de \$103\.98/).waitFor();
+      await paid.getByText(`Retiraste ${money(available)}`).waitFor();
+      await paid.getByText(`Disponías de ${money(available)}`).waitFor();
       await paid.locator('i.fa-check-circle.text-green-600').first().waitFor({ state: 'attached' });
-      expect((await page.getByTestId('payouts-confirmed').count()) === 0, 'sigue como pendiente');
+      expect(Math.abs(amountOf(await page.getByTestId('pending-balance').textContent()) - (pendingBefore + 40)) < 0.001, 'se retiró lo que aún no estaba acreditado');
+    });
+    await check('Los saldos no retirados se acumulan hasta el siguiente retiro', async () => {
+      await addSale(40, 1);
+      await addSale(40, 2);
+      await page.reload();
+      expect((await page.getByTestId('available-balance').textContent()) === '$64.00', 'no se acumularon 32 + 32');
+      expect(!(await page.getByRole('button', { name: 'Retirar $64.00' }).isDisabled()), 'debería poder retirar');
     });
     await check('La creadora ve a un suscriptor real, lo bloquea y él deja de ver su perfil', async () => {
       await logoutViaMenu(page);
@@ -799,7 +807,7 @@ const run = async () => {
       await page.goto(`${BASE}/admin`);
       await page.getByRole('button', { name: 'Retiros', exact: true }).click();
       const box = page.getByTestId('admin-payouts');
-      await box.getByText('Valentina Rose · $60.00').waitFor();
+      await box.getByText(/Valentina Rose · \$/).first().waitFor();
       await box.getByText('Pagado', { exact: true }).waitFor();
       expect((await box.getByRole('button').count()) === 0, 'el admin aún tiene acciones sobre retiros');
     });

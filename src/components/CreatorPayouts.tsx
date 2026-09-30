@@ -10,7 +10,7 @@ import {
   money,
   CREATOR_SHARE,
   MIN_PAYOUT,
-  firstOfNextMonth,
+  nextCreditDate,
 } from '../lib/platform';
 
 const field = 'w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-sm';
@@ -41,14 +41,14 @@ const CreatorPayouts: React.FC = () => {
   const [bank, setBank] = useState('');
   const [account, setAccount] = useState('');
   const [editingAccount, setEditingAccount] = useState(false);
-  const [amount, setAmount] = useState('');
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
 
   if (!user) return null;
   const { sales, payoutAccount } = data;
   const earnings = computeEarnings(sales, data.payouts);
-  const confirmed = data.payouts.filter((p) => p.status === 'scheduled');
-  const paid = data.payouts.filter((p) => p.status === 'paid');
+  const paid = data.payouts;
+  const creditDay = fmtDate(nextCreditDate());
+  const canWithdraw = earnings.available >= MIN_PAYOUT;
   const verified = !!user.isVerified;
 
   const saveAccount = async () => {
@@ -58,13 +58,8 @@ const CreatorPayouts: React.FC = () => {
   };
 
   const withdraw = async () => {
-    const r = await requestPayout(user, parseFloat(amount));
-    setNotice(
-      r.ok
-        ? { ok: true, text: `Retiro confirmado: se paga el ${fmtDate(firstOfNextMonth().toISOString())}` }
-        : { ok: false, text: r.error! }
-    );
-    if (r.ok) setAmount('');
+    const r = await requestPayout(user);
+    setNotice(r.ok ? { ok: true, text: `Retiro pagado: ${money(r.amount ?? 0)} enviados a tu cuenta` } : { ok: false, text: r.error! });
   };
 
   return (
@@ -83,8 +78,8 @@ const CreatorPayouts: React.FC = () => {
             <p className="text-2xl font-bold text-green-900" data-testid="available-balance">{money(earnings.available)}</p>
           </div>
           <div className="bg-blue-50 rounded-xl p-4">
-            <p className="text-sm text-blue-700">Este mes (neto)</p>
-            <p className="text-2xl font-bold text-blue-900">{money(earnings.thisMonth)}</p>
+            <p className="text-sm text-blue-700">Por acreditar el {creditDay}</p>
+            <p className="text-2xl font-bold text-blue-900" data-testid="pending-balance">{money(earnings.pending)}</p>
           </div>
           <div className="bg-purple-50 rounded-xl p-4">
             <p className="text-sm text-purple-700">Total ganado</p>
@@ -94,9 +89,10 @@ const CreatorPayouts: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm p-6">
-        <h3 className="font-bold text-gray-900 mb-1">Solicitar retiro</h3>
+        <h3 className="font-bold text-gray-900 mb-1">Retirar saldo</h3>
         <p className="text-sm text-gray-500 mb-4">
-          Mínimo {money(MIN_PAYOUT)} USD. Los retiros se pagan una vez al mes, el día 1, a tu cuenta bancaria.
+          Tus ingresos se acreditan el día 1 de cada mes y se acumulan si no los retiras. Puedes retirar en cualquier momento del mes, siempre el
+          saldo completo, a partir de {money(MIN_PAYOUT)} USD.
         </p>
         {!verified && (
           <p className="text-sm bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl p-3 mb-4">
@@ -121,41 +117,36 @@ const CreatorPayouts: React.FC = () => {
             <button type="button" onClick={saveAccount} className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium">Guardar cuenta</button>
           </div>
         )}
-        <div className="flex gap-3 max-w-lg">
-          <div className="relative flex-1">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-            <input type="number" name="payoutAmount" min={MIN_PAYOUT} step="0.01" placeholder={String(MIN_PAYOUT)} value={amount} onChange={(e) => setAmount(e.target.value)} className={`${field} pl-8`} />
-          </div>
-          <button type="button" onClick={withdraw} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-5 rounded-xl text-sm font-medium hover:opacity-90">
-            Solicitar retiro
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <button
+            type="button"
+            onClick={withdraw}
+            disabled={!canWithdraw}
+            className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-5 py-3 rounded-xl text-sm font-medium hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Retirar {money(earnings.available)}
           </button>
+          {!canWithdraw && (
+            <p className="text-xs text-gray-500">Podrás retirar cuando tu saldo disponible llegue a {money(MIN_PAYOUT)}.</p>
+          )}
         </div>
-        {[
-          { title: 'Retiros confirmados', note: 'Se pagan automáticamente el día 1.', list: confirmed, testid: 'payouts-confirmed' },
-          { title: 'Retiros pagados', note: '', list: paid, testid: 'payouts' },
-        ]
-          .filter((g) => g.list.length > 0)
-          .map((g) => (
-            <div key={g.testid} className="mt-6" data-testid={g.testid}>
-              <p className="text-sm font-semibold text-gray-900">{g.title}</p>
-              {g.note && <p className="text-xs text-gray-500">{g.note}</p>}
-              <div className="divide-y divide-gray-100">
-                {g.list.map((p) => (
-                  <div key={p.id} className="py-3 flex items-center gap-3 text-sm">
-                    <i className="fas fa-check-circle text-green-600 text-lg" aria-hidden="true"></i>
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">Retiraste {money(p.amount)} · {p.accountLabel}</p>
-                      <p className="text-xs text-gray-500">
-                        Disponías de {money(p.availableBefore)} · solicitado {fmtDate(p.requestedAt)} ·{' '}
-                        {p.status === 'paid' ? `pagado el ${fmtDate(p.paidAt ?? p.scheduledFor)}` : `se paga el ${fmtDate(p.scheduledFor)}`}
-                      </p>
-                    </div>
-                    <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">{p.status === 'paid' ? 'Pagado' : 'Confirmado'}</span>
+        {paid.length > 0 && (
+          <div className="mt-6" data-testid="payouts">
+            <p className="text-sm font-semibold text-gray-900">Retiros pagados</p>
+            <div className="divide-y divide-gray-100">
+              {paid.map((p) => (
+                <div key={p.id} className="py-3 flex items-center gap-3 text-sm">
+                  <i className="fas fa-check-circle text-green-600 text-lg" aria-hidden="true"></i>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">Retiraste {money(p.amount)} · {p.accountLabel}</p>
+                    <p className="text-xs text-gray-500">Disponías de {money(p.availableBefore)} · pagado el {fmtDate(p.paidAt)}</p>
                   </div>
-                ))}
-              </div>
+                  <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">Pagado</span>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm p-6">

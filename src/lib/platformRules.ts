@@ -169,27 +169,29 @@ export const validateReport = (input: ReportInput, signedIn: boolean): Check => 
   return good;
 };
 
-// The creator keeps 80% of what fans paid, minus what they already withdrew.
+// Start of the current month in UTC, the same boundary the database uses.
+export const creditCutoff = (at = new Date()) => new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), 1)).toISOString();
+export const nextCreditDate = (at = new Date()) => new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth() + 1, 1)).toISOString();
+
+// The creator keeps 80% of what fans paid. Earnings are credited on the 1st of
+// each month (everything paid before that day) and add up until withdrawn; a
+// withdrawal always takes the whole credited balance.
 export const computeEarnings = (sales: Transaction[], payouts: Payout[], at = new Date()) => {
   const paid = sales.filter((t) => t.status === 'paid');
-  const gross = paid.reduce((s, t) => s + t.amount, 0);
-  const net = round2(gross * CREATOR_SHARE);
-  const monthStart = new Date(at.getFullYear(), at.getMonth(), 1).toISOString();
-  const thisMonth = round2(paid.filter((t) => t.createdAt >= monthStart).reduce((s, t) => s + t.amount, 0) * CREATOR_SHARE);
-  const withdrawn = payouts.reduce((s, p) => s + p.amount, 0);
+  const cutoff = creditCutoff(at);
+  const share = (list: Transaction[]) => round2(list.reduce((s, t) => s + t.amount, 0) * CREATOR_SHARE);
+  const credited = share(paid.filter((t) => t.createdAt < cutoff));
+  const pending = share(paid.filter((t) => t.createdAt >= cutoff));
+  const withdrawn = round2(payouts.reduce((s, p) => s + p.amount, 0));
   return {
-    gross: round2(gross),
-    net,
-    thisMonth,
-    totalEarned: net,
-    withdrawn: round2(withdrawn),
-    available: round2(net - withdrawn),
+    gross: round2(paid.reduce((s, t) => s + t.amount, 0)),
+    thisMonth: pending,
+    pending, // credited on the 1st of next month
+    totalEarned: round2(credited + pending),
+    withdrawn,
+    available: round2(credited - withdrawn),
   };
 };
-
-// Payouts settle by themselves once their date arrives (no admin step).
-export const settlePayout = (p: Payout, at = new Date()): Payout =>
-  p.status === 'scheduled' && new Date(p.scheduledFor) <= at ? { ...p, status: 'paid', paidAt: p.scheduledFor } : p;
 
 // Downscale an uploaded photo so it stays small (browser storage / database row).
 export const readImageFile = (file: File, maxSize = 900): Promise<string> =>

@@ -304,7 +304,7 @@ const AdminDashboard: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden" data-testid="admin-payouts">
             <div className="p-5 border-b border-gray-100">
               <h3 className="font-bold text-gray-900">Retiros de creadores</h3>
-              <p className="text-sm text-gray-600 mt-1">Registro automático: cada retiro se confirma al solicitarlo y se paga solo el día 1 del mes siguiente.</p>
+              <p className="text-sm text-gray-600 mt-1">Registro automático: el creador retira su saldo completo (desde $50) y queda pagado al momento.</p>
             </div>
             <div className="divide-y divide-gray-100">
               {payouts.length === 0 && <p className="p-6 text-center text-sm text-gray-500">No hay solicitudes de retiro</p>}
@@ -312,10 +312,10 @@ const AdminDashboard: React.FC = () => {
                 <div key={p.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
                     <p className="font-medium text-gray-900 text-sm">{p.creatorName} · {money(p.amount)}</p>
-                    <p className="text-xs text-gray-500">{p.accountLabel} • Disponía de {money(p.availableBefore)} • Pago el {new Date(p.scheduledFor).toLocaleDateString('es')}</p>
+                    <p className="text-xs text-gray-500">{p.accountLabel} • Disponía de {money(p.availableBefore)} • Pagado el {new Date(p.paidAt).toLocaleDateString('es')}</p>
                   </div>
                   <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
-                    <i className="fas fa-check-circle mr-1"></i>{p.status === 'paid' ? 'Pagado' : 'Confirmado'}
+                    <i className="fas fa-check-circle mr-1"></i>Pagado
                   </span>
                 </div>
               ))}

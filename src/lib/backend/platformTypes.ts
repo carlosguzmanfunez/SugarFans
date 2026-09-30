@@ -69,12 +69,11 @@ export interface Payout {
   creatorName: string;
   amount: number;
   accountLabel: string;
-  // Confirmed automatically on request; paid automatically on scheduledFor (the 1st of next month).
-  status: 'scheduled' | 'paid';
-  availableBefore: number; // balance the creator had when requesting
+  // Paid at once when the creator withdraws (always the whole credited balance).
+  status: 'paid';
+  availableBefore: number; // balance the creator had when withdrawing
   requestedAt: string;
-  scheduledFor: string;
-  paidAt?: string;
+  paidAt: string;
 }
 
 export type ReportKind = 'post' | 'creator' | 'support' | 'other';
@@ -158,7 +157,8 @@ export interface PlatformBackend {
   payoutAccount(userId: string): Promise<PayoutAccount | null>;
   setPayoutAccount(user: User, account: PayoutAccount): Promise<AuthResult>;
   myPayouts(userId: string): Promise<Payout[]>;
-  requestPayout(user: User, amount: number): Promise<AuthResult>;
+  // Withdraws the whole credited balance (minimum $50); returns the amount paid.
+  requestPayout(user: User): Promise<AuthResult & { amount?: number }>;
   listPayouts(): Promise<Payout[]>; // admin
 
   submitReport(reporter: User | null, input: ReportInput): Promise<AuthResult>;
