@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { usePlatformQuery, money } from '../lib/platform';
 import {
   CREATOR_INVITE_BONUS,
-  CREATOR_INVITE_MONTHS,
+  CREATOR_INVITE_MIN,
   GOALS,
   LEVELS,
   MAX_SHARE,
@@ -80,8 +80,9 @@ const CreatorRewardsPanel: React.FC = () => {
       <div className="bg-white rounded-2xl p-6 shadow-sm" data-testid="invite-creators">
         <h3 className="font-bold text-gray-900 mb-1"><i className="fas fa-user-plus text-purple-500 mr-2"></i>Invita a otros creadores</h3>
         <p className="text-sm text-gray-500 mb-4">
-          Por cada creador que se registre con este enlace ganas un {pct(CREATOR_INVITE_BONUS)} extra de todo lo que venda durante {CREATOR_INVITE_MONTHS} meses.
-          Lo pone SugarFans: al creador que invitas no se le descuenta nada.
+          Cuando al menos {CREATOR_INVITE_MIN} creadores se registren con este enlace, ganas un {pct(CREATOR_INVITE_BONUS)} extra de lo que venda cada uno
+          (suscripciones, renovaciones y propinas) durante un mes. Lo pone SugarFans: al creador que invitas no se le descuenta nada.
+          Entre todos los beneficios, nadie supera el {pct(MAX_SHARE)} de una venta.
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
           <input readOnly value={creatorLink} aria-label="Enlace para invitar creadores" data-testid="creator-invite-link" className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm" onFocus={(e) => e.target.select()} />
@@ -95,7 +96,12 @@ const CreatorRewardsPanel: React.FC = () => {
           <div className="divide-y divide-gray-100 mt-4">
             {data.invitedCreators.map((c, i) => (
               <div key={i} className="py-2 flex items-center justify-between text-sm" data-testid="invited-creator">
-                <span>{c.name} · <span className="text-gray-500">bono hasta el {fmtDate(c.until)}</span></span>
+                <span>
+                  {c.name} ·{' '}
+                  <span className="text-gray-500">
+                    {c.until ? `bono hasta el ${fmtDate(c.until)}` : `se activa con ${CREATOR_INVITE_MIN} creadores invitados`}
+                  </span>
+                </span>
                 <span className="text-green-600 font-medium">{money(c.bonus)} ganados</span>
               </div>
             ))}

@@ -14,7 +14,8 @@ export interface ReferredFan {
 export interface InvitedCreator {
   name: string;
   joinedAt: string;
-  until: string; // end of the 12 months with the 5% bonus
+  from?: string; // the bonus month, once the inviter has 2 invited creators
+  until?: string;
   bonus: number; // earned so far (USD)
 }
 

@@ -21,7 +21,13 @@ export const createSupabaseRewards = (sb: SupabaseClient): RewardsBackend => ({
       attractedThisMonth: r.attracted_this_month,
       attractedLastMonth: r.attracted_last_month,
       referrals: (r.referrals as Row[]).map((f) => ({ name: f.name, joinedAt: f.joined_at, paid: f.paid, referralUntil: f.referral_until })),
-      invitedCreators: ((r.invited_creators ?? []) as Row[]).map((c) => ({ name: c.name, joinedAt: c.joined_at, until: c.until, bonus: Number(c.bonus) })),
+      invitedCreators: ((r.invited_creators ?? []) as Row[]).map((c) => ({
+        name: c.name,
+        joinedAt: c.joined_at,
+        from: c.from ?? undefined,
+        until: c.until ?? undefined,
+        bonus: Number(c.bonus),
+      })),
     };
   },
 

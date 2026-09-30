@@ -3,7 +3,6 @@
 import { readJSON, writeJSON } from '../storage';
 import { round2 } from '../platformRules';
 import {
-  CREATOR_INVITE_BONUS,
   GOALS,
   LEVELS,
   REFERRAL_DAYS,
@@ -12,7 +11,8 @@ import {
   baseShare,
   goalBonus,
   levelFor,
-  inviteUntil,
+  inviteBonusFor,
+  inviteWindow,
   monthStart,
   shareFor,
   type CreatorInvite,
@@ -57,7 +57,7 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
       }
     },
 
-    // Every paid sale of an invited creator (within 12 months) gets a bonus row for
+    // Paid sales of an invited creator during the bonus month get a bonus row for
     // the creator who invited them; the row follows the sale if it is refunded.
     withInviteBonuses(transactions) {
       const all = invites();
@@ -71,10 +71,11 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
       });
       const added: Row[] = [];
       for (const t of transactions) {
-        if (t.kind === 'referral' || t.status !== 'paid' || has.has(`bonus:${t.id}`)) continue;
+        if (t.kind === 'referral' || t.kind === 'gift' || t.status !== 'paid' || has.has(`bonus:${t.id}`)) continue;
         const inv = all.find((i) => i.creatorProfileId === t.creatorProfileId);
-        const amount = round2(t.amount * CREATOR_INVITE_BONUS);
-        if (!inv || t.createdAt < inv.joinedAt || t.createdAt >= inviteUntil(inv.joinedAt) || amount < 0.01) continue;
+        const window = inv && inviteWindow(inv, all);
+        const amount = inviteBonusFor(t);
+        if (!inv || !window || t.createdAt < window.from || t.createdAt >= window.until || amount < 0.01) continue;
         added.push({
           id: `bonus-${t.id}`,
           key: `bonus:${t.id}`,
@@ -131,10 +132,11 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
           .map((i) => {
             const sales = new Set(books.filter((t) => t.creatorProfileId === i.creatorProfileId).map((t) => `bonus:${t.id}`));
             const bonus = (books as Row[]).filter((t) => t.kind === 'referral' && t.status === 'paid' && sales.has(t.key));
+            const window = inviteWindow(i, invites());
             return {
               name: names.get(i.creatorProfileId) ?? 'Creador',
               joinedAt: i.joinedAt,
-              until: inviteUntil(i.joinedAt),
+              ...(window ?? {}),
               bonus: round2(bonus.reduce((s, t) => s + t.amount, 0)),
             };
           }),

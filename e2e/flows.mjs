@@ -1427,32 +1427,51 @@ const run = async () => {
       const sub = (await platformData(rf)).transactions.find((t) => t.payerId === 'demo-fan' && t.kind === 'subscription');
       expect(sub?.share === 0.84, `la suscripción no se registró al 84% (${sub?.share})`);
     });
-    await check('Un creador invitado con el enlace de creadores da un 5% extra a quien lo invitó, sin descontarle nada', async () => {
-      const panel = await openRewards();
-      expect((await panel.getByTestId('creator-invite-link').inputValue()).endsWith('/r/1?as=creator'), 'el enlace de creadores no es /r/1?as=creator');
+    // Signs a creator up through Valentina's creator link and returns their profile id.
+    const inviteCreator = async (name, email) => {
       await logoutViaMenu(rf);
       await rf.goto(`${BASE}/r/1?as=creator`);
       await waitPath(rf, '/register');
-      await register(rf, { name: 'Mara Invitada', email: 'mara.invitada@test.com', password: 'password123', role: 'creator' });
+      await register(rf, { name, email, password: 'password123', role: 'creator' });
       await waitPath(rf, '/creator/dashboard');
-      const maraId = await rf.evaluate(() => JSON.parse(localStorage.getItem('sugarfans_accounts')).find((a) => a.email === 'mara.invitada@test.com').creatorProfileId);
+      return rf.evaluate((e) => JSON.parse(localStorage.getItem('sugarfans_accounts')).find((a) => a.email === e).creatorProfileId, email);
+    };
+    const tipAsDemoFan = async (creatorId, name) => {
       await logoutViaMenu(rf);
       await login(rf, 'fan@sugarfans.com', 'demo1234');
       await waitPath(rf, '/explore');
-      await rf.goto(`${BASE}/creator/${maraId}`);
+      await rf.goto(`${BASE}/creator/${creatorId}`);
       await rf.getByRole('button', { name: 'Enviar propina' }).click();
       const dialog = rf.getByRole('dialog', { name: /Propina para/ });
       await dialog.getByRole('button', { name: '$10' }).click();
       await dialog.getByRole('button', { name: /Continuar/ }).click();
       await rf.getByRole('button', { name: /Enviar propina \$10\.00/ }).click();
-      await rf.getByText(/Tu propina de \$10\.00 llegó a Mara Invitada/).waitFor();
+      await rf.getByText(new RegExp(`Tu propina de \\$10\\.00 llegó a ${name}`)).waitFor();
       const txs = (await platformData(rf)).transactions;
-      const tip = txs.find((t) => t.kind === 'tip' && t.creatorProfileId === maraId);
-      const bonus = txs.find((t) => t.kind === 'referral' && t.key === `bonus:${tip?.id}`);
+      const tip = txs.filter((t) => t.kind === 'tip' && t.creatorProfileId === creatorId).pop();
+      return { tip, bonus: txs.find((t) => t.kind === 'referral' && t.key === `bonus:${tip?.id}`) };
+    };
+    let maraId = '';
+    await check('Con un solo creador invitado todavía no hay bono', async () => {
+      const panel = await openRewards();
+      expect((await panel.getByTestId('creator-invite-link').inputValue()).endsWith('/r/1?as=creator'), 'el enlace de creadores no es /r/1?as=creator');
+      maraId = await inviteCreator('Mara Invitada', 'mara.invitada@test.com');
+      const { tip, bonus } = await tipAsDemoFan(maraId, 'Mara Invitada');
       expect(tip?.share === 0.8, `a la creadora invitada se le descontó (${tip?.share})`);
-      expect(bonus?.creatorProfileId === '1' && bonus.amount === 0.5 && bonus.share === 1, 'no se generó el bono de $0.50 para Valentina');
+      expect(!bonus, 'hubo bono con un solo creador invitado');
       const again = await openRewards();
-      await again.getByTestId('invited-creator').filter({ hasText: 'Mara Invitada' }).getByText('$0.50 ganados').waitFor();
+      await again.getByTestId('invited-creator').filter({ hasText: 'Mara Invitada' }).getByText('se activa con 2 creadores invitados').waitFor();
+    });
+    await check('Desde el segundo creador invitado, quien invita gana un 5% extra durante un mes, sin descontarles nada', async () => {
+      const nicoId = await inviteCreator('Nico Invitado', 'nico.invitado@test.com');
+      const nico = await tipAsDemoFan(nicoId, 'Nico Invitado');
+      expect(nico.tip?.share === 0.8, `al creador invitado se le descontó (${nico.tip?.share})`);
+      expect(nico.bonus?.creatorProfileId === '1' && nico.bonus.amount === 0.5 && nico.bonus.share === 1, 'no se generó el bono de $0.50 por Nico');
+      const mara = await tipAsDemoFan(maraId, 'Mara Invitada');
+      expect(mara.bonus?.amount === 0.5, 'no se generó el bono por Mara tras activarse');
+      const panel = await openRewards();
+      await panel.getByTestId('invited-creator').filter({ hasText: 'Nico Invitado' }).getByText('$0.50 ganados').waitFor();
+      await panel.getByTestId('invited-creator').filter({ hasText: 'Mara Invitada' }).getByText(/bono hasta el/).waitFor();
     });
     await rewardsCtx.close();
 

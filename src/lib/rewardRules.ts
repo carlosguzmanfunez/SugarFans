@@ -25,10 +25,14 @@ export const LEVELS: Level[] = [
 // Fans who sign up with the creator's link pay the creator 90% for 90 days.
 export const REFERRAL_SHARE = 0.9;
 export const REFERRAL_DAYS = 90;
-// A creator who invites another creator earns 5% of everything the new creator
-// sells for 12 months, paid from SugarFans' part: the new creator loses nothing.
+// A creator who has invited at least 2 creators earns 5% of what each of them
+// sells (subscriptions, renewals and tips; gifts have their own rules) for one
+// month, paid from SugarFans' part: the invited creator loses nothing. SugarFans
+// always keeps at least 10% of a sale, so the bonus shrinks when the seller
+// already gets 90%.
 export const CREATOR_INVITE_BONUS = 0.05;
-export const CREATOR_INVITE_MONTHS = 12;
+export const CREATOR_INVITE_MONTHS = 1;
+export const CREATOR_INVITE_MIN = 2;
 
 // No bonus takes the creator's cut above this.
 export const MAX_SHARE = 0.9;
@@ -67,7 +71,18 @@ export interface CreatorInvite {
   joinedAt: string;
 }
 
-export const inviteUntil = (joinedAt: string) => addMonths(joinedAt, CREATOR_INVITE_MONTHS).toISOString();
+// The month with the bonus starts when the inviter reaches 2 invited creators,
+// or when this creator joins if that is later. Null until then.
+export const inviteWindow = (invite: CreatorInvite, all: CreatorInvite[]): { from: string; until: string } | null => {
+  const joined = all.filter((i) => i.referrerProfileId === invite.referrerProfileId).map((i) => i.joinedAt).sort();
+  if (joined.length < CREATOR_INVITE_MIN) return null;
+  const qualified = joined[CREATOR_INVITE_MIN - 1];
+  const from = invite.joinedAt > qualified ? invite.joinedAt : qualified;
+  return { from, until: addMonths(from, CREATOR_INVITE_MONTHS).toISOString() };
+};
+
+export const inviteBonusFor = (sale: Pick<Transaction, 'amount' | 'share'>) =>
+  Math.max(0, Math.round(sale.amount * Math.min(CREATOR_INVITE_BONUS, MAX_SHARE - (sale.share ?? 0.8)) * 100) / 100);
 
 export interface Referral {
   fanId: string;
