@@ -1,7 +1,9 @@
 // Pure rules shared by the UI and both backends: validation, dates and money.
 import type {
   DocType,
+  ManagedProfileInput,
   NewPaymentMethod,
+  PaymentKind,
   Payout,
   PayoutAccount,
   ReportInput,
@@ -58,10 +60,40 @@ export const validateVerification = (input: VerificationInput): Check => {
   if (ageFrom(input.birthDate) < 18) return bad('Debes ser mayor de 18 años');
   if (!input.country.trim()) return bad('Indica el país que emitió el documento');
   if (!/^[A-Za-z0-9-]{5,20}$/.test(input.docNumber.trim())) return bad('El número de documento no es válido');
-  if (!input.docFront) return bad('Sube la foto del frente del documento');
-  if (input.docType !== 'passport' && !input.docBack) return bad('Sube la foto del reverso del documento');
-  if (!input.selfie) return bad('Sube un selfie sosteniendo tu documento');
+  if (!input.docFront) return bad('Sube la foto del frente de tu documento');
+  if (!input.selfie) return bad('Sube un selfie de frente');
   return good;
+};
+
+export const MANAGED_CATEGORIES = ['Modelaje', 'Fitness', 'Lifestyle', 'Arte', 'Música', 'Cocina', 'Gaming', 'Educación', 'Experiencias VIP'];
+
+export const managedAvatar = (username: string) => `https://api.dicebear.com/7.0/adventurer/svg?seed=${encodeURIComponent(username)}`;
+export const MANAGED_COVER = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=400&fit=crop';
+
+// Trims the admin's input and fills in default images.
+export const buildManagedProfile = (
+  input: ManagedProfileInput,
+  takenUsernames: string[]
+): { profile?: ManagedProfileInput; error?: string } => {
+  const name = input.name.trim();
+  const username = input.username.trim().replace(/^@/, '').toLowerCase();
+  if (name.length < 2) return { error: 'Escribe el nombre del perfil' };
+  if (!/^[a-z0-9_]{3,30}$/.test(username)) return { error: 'El usuario debe tener de 3 a 30 letras minúsculas, números o _' };
+  if (takenUsernames.includes(username)) return { error: 'Ese nombre de usuario ya existe' };
+  if (input.bio.trim().length > 500) return { error: 'La biografía admite hasta 500 caracteres' };
+  if (!(input.subscriptionPrice >= 0.99 && input.subscriptionPrice <= 999)) return { error: 'El precio debe estar entre $0.99 y $999' };
+  return {
+    profile: {
+      name,
+      username,
+      bio: input.bio.trim(),
+      avatar: input.avatar || managedAvatar(username),
+      cover: input.cover || MANAGED_COVER,
+      category: input.category || MANAGED_CATEGORIES[0],
+      subscriptionPrice: round2(input.subscriptionPrice),
+      isAi: input.isAi,
+    },
+  };
 };
 
 const luhn = (digits: string) => {
@@ -77,48 +109,50 @@ const luhn = (digits: string) => {
   return sum % 10 === 0;
 };
 
-export const cardBrand = (digits: string) => {
+// Only Visa and Mastercard are accepted.
+export const cardBrand = (digits: string): 'Visa' | 'Mastercard' | null => {
   if (/^4/.test(digits)) return 'Visa';
-  if (/^(5[1-5]|2[2-7])/.test(digits)) return 'Mastercard';
-  if (/^3[47]/.test(digits)) return 'Amex';
-  if (/^6/.test(digits)) return 'Discover';
-  return 'Tarjeta';
+  if (/^(5[1-5]|222[1-9]|22[3-9]\d|2[3-6]\d{2}|27[01]\d|2720)/.test(digits)) return 'Mastercard';
+  return null;
 };
 
 export type PaymentMethodInput =
   | { kind: 'card'; holder: string; number: string; expiry: string; cvc: string }
-  | { kind: 'bank'; holder: string; bank: string; account: string }
-  | { kind: 'crypto'; network: 'BTC' | 'ETH' | 'USDT'; wallet: string };
+  | { kind: 'paypal'; email: string }
+  | { kind: 'google_pay'; email: string };
+
+export const paymentKindLabel: Record<PaymentKind, string> = { card: 'Tarjeta', paypal: 'PayPal', google_pay: 'Google Pay' };
+
+const emailOk = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const maskEmail = (email: string) => {
+  const [name, domain] = email.split('@');
+  return `${name.slice(0, 2)}•••@${domain}`;
+};
 
 const accountOk = (account: string) => /^[A-Za-z0-9]{8,34}$/.test(account);
 
 // Validates what the user typed and returns only the masked data we keep.
-// INTEGRATION: with a real gateway (Stripe Elements, PayPal) the card is tokenised
-// in the browser and only the token + brand + last 4 reach our backend.
+// INTEGRATION: with a real gateway the card is tokenised in the browser (Stripe
+// Elements), PayPal is linked with the PayPal JS SDK (vaulted billing agreement)
+// and Google Pay returns a token through Stripe's Payment Request button; only the
+// token + brand + last 4 / account email reach our backend.
 export const buildPaymentMethod = (input: PaymentMethodInput): { method?: NewPaymentMethod; error?: string } => {
   if (input.kind === 'card') {
     const digits = input.number.replace(/\D/g, '');
     if (!input.holder.trim()) return { error: 'Escribe el nombre del titular' };
     if (digits.length < 13 || digits.length > 19 || !luhn(digits)) return { error: 'El número de tarjeta no es válido' };
+    const brand = cardBrand(digits);
+    if (!brand) return { error: 'Solo aceptamos tarjetas Visa y Mastercard' };
     const m = input.expiry.trim().match(/^(\d{2})\s*\/\s*(\d{2})$/);
     if (!m || Number(m[1]) < 1 || Number(m[1]) > 12) return { error: 'La fecha de expiración debe tener el formato MM/AA' };
     if (new Date(2000 + Number(m[2]), Number(m[1]), 1) <= new Date()) return { error: 'La tarjeta está vencida' };
     if (!/^\d{3,4}$/.test(input.cvc.trim())) return { error: 'El CVC no es válido' };
-    return { method: { kind: 'card', label: `${cardBrand(digits)} •••• ${digits.slice(-4)}`, detail: `Expira ${m[1]}/${m[2]}` } };
+    return { method: { kind: 'card', label: `${brand} •••• ${digits.slice(-4)}`, detail: `Expira ${m[1]}/${m[2]}` } };
   }
-  if (input.kind === 'bank') {
-    const account = input.account.replace(/\s/g, '');
-    if (!input.holder.trim()) return { error: 'Escribe el nombre del titular' };
-    if (!input.bank.trim()) return { error: 'Escribe el nombre del banco' };
-    if (!accountOk(account)) return { error: 'La cuenta o IBAN no es válido' };
-    return { method: { kind: 'bank', label: `Transferencia •••• ${account.slice(-4)}`, detail: input.bank.trim() } };
-  }
-  const wallet = input.wallet.trim();
-  const valid =
-    input.network === 'BTC' ? /^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,62}$/.test(wallet) : /^0x[a-fA-F0-9]{40}$/.test(wallet);
-  if (!valid) return { error: `La dirección de wallet ${input.network} no es válida` };
-  const detail = input.network === 'USDT' ? 'USDT (ERC-20)' : input.network === 'BTC' ? 'Bitcoin' : 'Ethereum';
-  return { method: { kind: 'crypto', label: `${input.network} ${wallet.slice(0, 6)}…${wallet.slice(-4)}`, detail } };
+  const email = input.email.trim().toLowerCase();
+  const name = paymentKindLabel[input.kind];
+  if (!emailOk(email)) return { error: `Escribe el email de tu cuenta de ${name}` };
+  return { method: { kind: input.kind, label: `${name} · ${maskEmail(email)}`, detail: input.kind === 'paypal' ? 'Cuenta PayPal' : 'Cuenta de Google' } };
 };
 
 export const buildPayoutAccount = (holder: string, bank: string, account: string): { account?: PayoutAccount; error?: string } => {

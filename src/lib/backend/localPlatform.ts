@@ -2,9 +2,10 @@
 // Everything lives in one localStorage key; accounts are touched through the
 // callbacks local.ts passes in.
 import { readJSON, writeJSONChecked, newId } from '../storage';
-import { OPENING_BALANCES, addMonths, round2, validateReport, validateVerification, computeEarnings, MIN_PAYOUT, money, firstOfNextMonth } from '../platformRules';
+import { OPENING_BALANCES, addMonths, round2, validateReport, validateVerification, computeEarnings, MIN_PAYOUT, money, firstOfNextMonth, buildManagedProfile } from '../platformRules';
+import { creators as catalogue } from '../../data/mockData';
 import type { AuthResult, User } from './types';
-import type { Block, PaymentMethod, Payout, PayoutAccount, PlatformBackend, Report, Transaction, VerificationRequest } from './platformTypes';
+import type { Block, ManagedProfile, PaymentMethod, Payout, PayoutAccount, PlatformBackend, Report, Transaction, VerificationRequest } from './platformTypes';
 
 interface Store {
   verifications: VerificationRequest[];
@@ -15,6 +16,7 @@ interface Store {
   reports: Report[];
   blocks: Block[];
   removedPosts: string[];
+  managedProfiles: ManagedProfile[];
 }
 
 interface Deps {
@@ -36,6 +38,7 @@ const empty = (): Store => ({
   reports: [],
   blocks: [],
   removedPosts: [],
+  managedProfiles: [],
 });
 
 const now = () => new Date().toISOString();
@@ -106,7 +109,6 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
             legalName: input.legalName.trim(),
             country: input.country.trim(),
             docNumber: input.docNumber.trim().toUpperCase(),
-            docBack: input.docType === 'passport' ? undefined : input.docBack,
             id: newId(),
             userId: user.id,
             userName: user.name,
@@ -137,7 +139,7 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
                 rejectionReason: approve ? undefined : reason.trim(),
                 reviewedAt: now(),
                 // Documents are deleted once approved (data minimisation).
-                ...(approve ? { docFront: '', docBack: undefined, selfie: '' } : {}),
+                ...(approve ? { docFront: '', selfie: '' } : {}),
               }
             : v
         ),
@@ -400,6 +402,42 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
           blocks: s.blocks.filter((b) => b.blockerId !== userId && b.targetId !== userId),
         };
       });
+    },
+
+    async managedProfiles(includeHidden = false) {
+      return load()
+        .managedProfiles.filter((m) => includeHidden || !m.hidden)
+        .sort(byNewest('createdAt'));
+    },
+
+    async saveManagedProfile(admin, input, id) {
+      if (admin.role !== 'admin') return fail('Esta acción no está permitida');
+      const s = load();
+      const existing = id ? s.managedProfiles.find((m) => m.id === id) : undefined;
+      if (id && !existing) return fail('El perfil ya no existe');
+      const taken = [...catalogue.map((c) => c.username), ...s.managedProfiles.filter((m) => m.id !== id).map((m) => m.username)];
+      const { profile, error } = buildManagedProfile(input, taken);
+      if (!profile) return fail(error!);
+      const saved: ManagedProfile = existing
+        ? { ...existing, ...profile, updatedAt: now() }
+        : { ...profile, id: `m-${newId()}`, hidden: false, createdBy: admin.id, createdAt: now(), updatedAt: now() };
+      const result = commit((st) => ({
+        ...st,
+        managedProfiles: existing ? st.managedProfiles.map((m) => (m.id === id ? saved : m)) : [...st.managedProfiles, saved],
+      }));
+      return result.ok ? { ...result, id: saved.id } : result;
+    },
+
+    async setManagedProfileHidden(admin, id, hidden) {
+      if (admin.role !== 'admin') return fail('Esta acción no está permitida');
+      return commit((s) => ({ ...s, managedProfiles: s.managedProfiles.map((m) => (m.id === id ? { ...m, hidden, updatedAt: now() } : m)) }));
+    },
+
+    async deleteManagedProfile(admin, id) {
+      if (admin.role !== 'admin') return fail('Esta acción no está permitida');
+      if (deps.listAccounts().some((u) => u.subscriptions.some((sub) => sub.creatorId === id)))
+        return fail('Este perfil tiene suscriptores activos: ocúltalo en lugar de eliminarlo');
+      return commit((s) => ({ ...s, managedProfiles: s.managedProfiles.filter((m) => m.id !== id) }));
     },
   };
 };

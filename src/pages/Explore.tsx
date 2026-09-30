@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { creators, categories, posts } from '../data/mockData';
+import { categories, posts } from '../data/mockData';
+import { useCreatorCatalog } from '../lib/catalog';
+import ManagedBadge from '../components/ManagedBadge';
 import { useAuth } from '../context/AuthContext';
 import { usePlatformQuery, platformApi, isCutOff } from '../lib/platform';
 
 const Explore: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
+  const { creators } = useCreatorCatalog();
   const { data: platform } = usePlatformQuery(
     async () => {
       const [removedPosts, blocks] = await Promise.all([platformApi.removedPosts(), user ? platformApi.blocks(user) : Promise.resolve([])]);
@@ -104,6 +107,7 @@ const Explore: React.FC = () => {
                       <div className="flex items-center">
                         <h3 className="font-bold text-gray-900 text-sm">{creator.name}</h3>
                         {creator.isVerified && <i className="fas fa-check-circle text-blue-500 ml-1 text-xs"></i>}
+                        <ManagedBadge creator={creator} />
                       </div>
                       <p className="text-xs text-gray-500">@{creator.username}</p>
                     </div>

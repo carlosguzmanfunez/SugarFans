@@ -4,7 +4,13 @@ import { addPaymentMethod, type PaymentKind } from '../lib/platform';
 
 const input = 'w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-sm';
 
-// Add a card, bank transfer account or crypto wallet. Only masked data is stored.
+export const paymentKindIcon: Record<PaymentKind, string> = {
+  card: 'fas fa-credit-card',
+  paypal: 'fab fa-paypal',
+  google_pay: 'fab fa-google-pay',
+};
+
+// Add a Visa/Mastercard card, a PayPal account or Google Pay. Only masked data is stored.
 const PaymentMethodForm: React.FC<{ user: User; onAdded: (id: string) => void; onCancel?: () => void }> = ({
   user,
   onAdded,
@@ -15,23 +21,13 @@ const PaymentMethodForm: React.FC<{ user: User; onAdded: (id: string) => void; o
   const [number, setNumber] = useState('');
   const [expiry, setExpiry] = useState('');
   const [cvc, setCvc] = useState('');
-  const [bank, setBank] = useState('');
-  const [account, setAccount] = useState('');
-  const [network, setNetwork] = useState<'BTC' | 'ETH' | 'USDT'>('USDT');
-  const [wallet, setWallet] = useState('');
+  const [email, setEmail] = useState(user.email);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
   const submit = async () => {
     setSaving(true);
-    const result = await addPaymentMethod(
-      user,
-      kind === 'card'
-        ? { kind, holder, number, expiry, cvc }
-        : kind === 'bank'
-          ? { kind, holder, bank, account }
-          : { kind, network, wallet }
-    );
+    const result = await addPaymentMethod(user, kind === 'card' ? { kind, holder, number, expiry, cvc } : { kind, email });
     setSaving(false);
     if (!result.ok || !result.id) return setError(result.error || 'No se pudo guardar el método de pago');
     setError('');
@@ -48,9 +44,9 @@ const PaymentMethodForm: React.FC<{ user: User; onAdded: (id: string) => void; o
     <div className="border border-gray-200 rounded-xl p-4 space-y-3" data-testid="payment-method-form">
       <div className="flex gap-1 bg-gray-100 rounded-lg p-1" role="tablist">
         {[
-          { id: 'card', label: 'Tarjeta', icon: 'fa-credit-card' },
-          { id: 'bank', label: 'Transferencia', icon: 'fa-university' },
-          { id: 'crypto', label: 'Cripto', icon: 'fa-bitcoin' },
+          { id: 'card', label: 'Visa / Mastercard' },
+          { id: 'paypal', label: 'PayPal' },
+          { id: 'google_pay', label: 'Google Pay' },
         ].map((k) => (
           <button
             key={k.id}
@@ -60,7 +56,7 @@ const PaymentMethodForm: React.FC<{ user: User; onAdded: (id: string) => void; o
             onClick={() => { setKind(k.id as PaymentKind); setError(''); }}
             className={`flex-1 py-2 rounded-md text-xs font-medium transition ${kind === k.id ? 'bg-white shadow text-pink-700' : 'text-gray-600'}`}
           >
-            <i className={`${k.id === 'crypto' ? 'fab' : 'fas'} ${k.icon} mr-1`}></i>{k.label}
+            <i className={`${paymentKindIcon[k.id as PaymentKind]} mr-1`}></i>{k.label}
           </button>
         ))}
       </div>
@@ -73,24 +69,26 @@ const PaymentMethodForm: React.FC<{ user: User; onAdded: (id: string) => void; o
             <input className={input} placeholder="MM/AA" inputMode="numeric" autoComplete="cc-exp" value={expiry} onChange={(e) => setExpiry(formatExpiry(e.target.value))} />
             <input className={input} placeholder="CVC" inputMode="numeric" autoComplete="cc-csc" value={cvc} onChange={(e) => setCvc(e.target.value.replace(/\D/g, '').slice(0, 4))} />
           </div>
-          <p className="text-xs text-gray-500"><i className="fas fa-lock mr-1"></i>Solo guardamos la marca y los últimos 4 dígitos; el CVC nunca se almacena.</p>
+          <p className="text-xs text-gray-500">
+            <i className="fas fa-lock mr-1"></i>Aceptamos Visa y Mastercard de crédito o débito. Solo guardamos la marca y los últimos 4 dígitos; el CVC nunca se almacena.
+          </p>
         </>
       )}
-      {kind === 'bank' && (
+      {kind !== 'card' && (
         <>
-          <input className={input} placeholder="Titular de la cuenta" value={holder} onChange={(e) => setHolder(e.target.value)} />
-          <input className={input} placeholder="Banco" value={bank} onChange={(e) => setBank(e.target.value)} />
-          <input className={input} placeholder="IBAN / CLABE / número de cuenta" value={account} onChange={(e) => setAccount(e.target.value)} />
-        </>
-      )}
-      {kind === 'crypto' && (
-        <>
-          <select className={input} value={network} onChange={(e) => setNetwork(e.target.value as 'BTC' | 'ETH' | 'USDT')} aria-label="Red">
-            <option value="USDT">USDT (ERC-20)</option>
-            <option value="ETH">Ethereum</option>
-            <option value="BTC">Bitcoin</option>
-          </select>
-          <input className={input} placeholder="Dirección de tu wallet" value={wallet} onChange={(e) => setWallet(e.target.value)} />
+          <input
+            className={input}
+            type="email"
+            name="walletEmail"
+            placeholder={kind === 'paypal' ? 'Email de tu cuenta PayPal' : 'Email de tu cuenta de Google'}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <p className="text-xs text-gray-500">
+            {kind === 'paypal'
+              ? 'Autorizas a SugarFans a cobrar tus suscripciones desde PayPal. Puedes quitarlo cuando quieras.'
+              : 'Pagarás con la tarjeta guardada en tu Google Pay. Puedes quitarlo cuando quieras.'}
+          </p>
         </>
       )}
 
@@ -100,7 +98,7 @@ const PaymentMethodForm: React.FC<{ user: User; onAdded: (id: string) => void; o
           <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancelar</button>
         )}
         <button type="button" onClick={submit} disabled={saving} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:opacity-90">
-          Guardar método de pago
+          {kind === 'card' ? 'Guardar método de pago' : kind === 'paypal' ? 'Vincular PayPal' : 'Vincular Google Pay'}
         </button>
       </div>
     </div>

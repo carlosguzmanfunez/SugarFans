@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
-import { creators } from '../data/mockData';
+import { useCreatorCatalog } from '../lib/catalog';
 import { statusLabel, formatLongDate, type BookingStatus } from '../lib/vip';
 import { backend } from '../lib/backend';
 import { useBackendData } from '../lib/useBackendData';
@@ -11,6 +11,7 @@ const formatDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day
 
 const Profile: React.FC = () => {
   const { user, toggleSubscription } = useAuth();
+  const { creators } = useCreatorCatalog();
   const { data: myBookings, reload } = useBackendData(() => (user ? backend.fanBookings(user.id) : Promise.resolve([])), [user?.id], []);
   const { data: verification } = usePlatformQuery(() => (user ? platformApi.myVerification(user.id) : Promise.resolve(null)), [user?.id], null);
   const [bookingError, setBookingError] = useState('');

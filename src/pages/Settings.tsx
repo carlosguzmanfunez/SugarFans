@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth, defaultSettings, UserSettings } from '../context/AuthContext';
-import { creators } from '../data/mockData';
+import { useCreatorCatalog } from '../lib/catalog';
 import IdentityVerification from '../components/IdentityVerification';
-import PaymentMethodForm from '../components/PaymentMethodForm';
+import PaymentMethodForm, { paymentKindIcon } from '../components/PaymentMethodForm';
 import {
   usePlatformQuery,
   platformApi,
@@ -32,6 +32,7 @@ const fmtDate = (iso: string | Date) => new Date(iso).toLocaleDateString('es', {
 
 const Settings: React.FC = () => {
   const { user, updateUser, changePassword, deleteAccount, toggleSubscription } = useAuth();
+  const { creators } = useCreatorCatalog();
   const userId = user?.id ?? '';
   const { data: platform } = usePlatformQuery(
     async () => {
@@ -449,13 +450,13 @@ const Settings: React.FC = () => {
               <div className="space-y-6">
                 <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="payment-methods">
                   <h2 className="text-lg font-bold text-gray-900 mb-2">Métodos de Pago</h2>
-                  <p className="text-sm text-gray-500 mb-6">Aceptamos tarjetas de crédito/débito, transferencia bancaria y criptomonedas.</p>
+                  <p className="text-sm text-gray-500 mb-6">Aceptamos tarjetas Visa y Mastercard, PayPal y Google Pay.</p>
                   <div className="space-y-3">
                     {myMethods.length === 0 && <p className="text-sm text-gray-500">Aún no tienes métodos de pago.</p>}
                     {myMethods.map((m) => (
                       <div key={m.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-xl">
                         <div className="flex items-center space-x-3">
-                          <i className={`text-2xl text-gray-600 ${m.kind === 'card' ? 'fas fa-credit-card' : m.kind === 'bank' ? 'fas fa-university' : 'fab fa-bitcoin'}`}></i>
+                          <i className={`text-2xl text-gray-600 ${paymentKindIcon[m.kind]}`}></i>
                           <div>
                             <p className="text-sm font-medium text-gray-900">{m.label}</p>
                             <p className="text-xs text-gray-500">{m.detail}</p>

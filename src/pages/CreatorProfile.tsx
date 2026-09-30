@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
-import { creators, posts } from '../data/mockData';
+import { posts } from '../data/mockData';
+import { useCreatorCatalog } from '../lib/catalog';
+import ManagedBadge from '../components/ManagedBadge';
 import { useAuth } from '../context/AuthContext';
 import CheckoutDialog from '../components/CheckoutDialog';
 import ReportDialog from '../components/ReportDialog';
@@ -32,8 +34,10 @@ const CreatorProfile: React.FC = () => {
   const [checkout, setCheckout] = useState(false);
   const [reporting, setReporting] = useState<{ kind: 'post' | 'creator'; targetId: string; label: string } | null>(null);
 
+  const { creators, loading: catalogLoading } = useCreatorCatalog();
   const creator = creators.find(c => c.id === id);
 
+  if (!creator && catalogLoading) return null;
   if (!creator) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -134,8 +138,12 @@ const CreatorProfile: React.FC = () => {
                     <i className="fas fa-check-circle mr-1"></i> Verificado
                   </span>
                 )}
+                <ManagedBadge creator={creator} size="md" />
               </div>
               <p className="text-gray-500">@{creator.username}</p>
+              {creator.managed === 'ai' && (
+                <p className="text-xs text-purple-700 mt-1">Personaje creado con inteligencia artificial y gestionado por SugarFans. No es una persona real.</p>
+              )}
             </div>
             <div className="mt-4 sm:mt-0 flex items-center gap-2">
               {iBlocked ? (

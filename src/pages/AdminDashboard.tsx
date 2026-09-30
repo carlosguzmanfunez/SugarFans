@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import ManagedProfilesAdmin from '../components/ManagedProfilesAdmin';
 import {
   usePlatformQuery,
   platformApi,
@@ -8,6 +9,7 @@ import {
   restorePost,
   processPayout,
   docTypeLabel,
+  ageFrom,
   money,
   type VerificationRequest,
 } from '../lib/platform';
@@ -151,6 +153,7 @@ const AdminDashboard: React.FC = () => {
             { id: 'verifications', label: `Verificaciones (${pendingVerifications.length})`, icon: 'fa-id-card' },
             { id: 'reports', label: `Reportes (${pendingReports.length})`, icon: 'fa-flag' },
             { id: 'payouts', label: `Retiros (${scheduledPayouts.length})`, icon: 'fa-money-check-alt' },
+            { id: 'managed', label: 'Perfiles gestionados', icon: 'fa-robot' },
             { id: 'users', label: 'Usuarios', icon: 'fa-users' },
             { id: 'content', label: 'Contenido', icon: 'fa-images' },
           ].map((tab) => (
@@ -206,7 +209,7 @@ const AdminDashboard: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden" data-testid="admin-verifications">
             <div className="p-5 border-b border-gray-100">
               <h3 className="font-bold text-gray-900">Gestión de Verificaciones</h3>
-              <p className="text-sm text-gray-600 mt-1">Compara el documento con el selfie y los datos declarados antes de aprobar.</p>
+              <p className="text-sm text-gray-600 mt-1">Compara la cara del selfie con la foto del documento y confirma que es mayor de edad antes de aprobar.</p>
             </div>
             <div className="divide-y divide-gray-100">
               {pendingVerifications.length === 0 && <p className="p-6 text-center text-sm text-gray-500">No hay solicitudes pendientes</p>}
@@ -342,15 +345,17 @@ const AdminDashboard: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm mb-4">
                 <p><span className="text-gray-500">Nombre legal:</span> {viewing.legalName}</p>
-                <p><span className="text-gray-500">Nacimiento:</span> {new Date(viewing.birthDate + 'T00:00:00').toLocaleDateString('es')}</p>
+                <p><span className="text-gray-500">Nacimiento:</span> {new Date(viewing.birthDate + 'T00:00:00').toLocaleDateString('es')} ({ageFrom(viewing.birthDate)} años)</p>
                 <p><span className="text-gray-500">Documento:</span> {docTypeLabel[viewing.docType]}</p>
                 <p><span className="text-gray-500">Número:</span> {viewing.docNumber} ({viewing.country})</p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+              <p className="text-sm text-gray-600 mb-2">
+                Comprueba que la cara del selfie es la misma que la de la foto del documento y que la fecha de nacimiento del documento coincide.
+              </p>
+              <div className="grid grid-cols-2 gap-3 mb-4">
                 {[
-                  { src: viewing.docFront, label: 'Frente' },
-                  { src: viewing.docBack, label: 'Reverso' },
-                  { src: viewing.selfie, label: 'Selfie' },
+                  { src: viewing.docFront, label: 'Documento (frente)' },
+                  { src: viewing.selfie, label: 'Selfie de frente' },
                 ].filter((x) => x.src).map((x) => (
                   <figure key={x.label} className="bg-gray-100 rounded-xl p-2">
                     <img src={x.src} alt={x.label} className="w-full h-48 object-contain" />
@@ -378,6 +383,8 @@ const AdminDashboard: React.FC = () => {
         )}
 
         {/* Users */}
+        {activeTab === 'managed' && <ManagedProfilesAdmin transactions={platform.transactions} />}
+
         {activeTab === 'users' && (
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div className="p-5 border-b border-gray-100 flex justify-between items-center">

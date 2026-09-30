@@ -136,7 +136,6 @@ const submitVerification = async (page, { name = 'Nombre Apellido', birth = '199
   await page.fill('input[name=country]', 'México');
   await page.fill('input[name=docNumber]', 'ABC123456');
   await page.setInputFiles('input[name=docFront]', photo('frente.png'));
-  await page.setInputFiles('input[name=docBack]', photo('reverso.png'));
   await page.setInputFiles('input[name=selfie]', photo('selfie.png'));
   await page.getByRole('button', { name: 'Enviar para verificación' }).click();
 };
@@ -409,30 +408,36 @@ const run = async () => {
       const again = await page.getByTestId('payment-history').getByText(/Renovación · Valentina Rose/).count();
       expect(again === 2, 'la renovación se cobró dos veces');
     });
-    await check('Métodos de pago: transferencia y cripto, cambiar principal y eliminar', async () => {
+    await check('Métodos de pago: solo Visa/Mastercard, PayPal y Google Pay; cambiar principal y eliminar', async () => {
       const box = page.getByTestId('payment-methods');
       await box.getByRole('button', { name: /Añadir método de pago/ }).click();
-      await box.getByRole('tab', { name: /Transferencia/ }).click();
-      await box.getByPlaceholder('Titular de la cuenta').fill('Ana Prueba');
-      await box.getByPlaceholder('Banco').fill('Banco Uno');
-      await box.getByPlaceholder('IBAN / CLABE / número de cuenta').fill('ES9121000418450200051332');
+      const tabs = await box.getByRole('tab').allTextContents();
+      expect(tabs.join('|') === 'Visa / Mastercard|PayPal|Google Pay', `pestañas: ${tabs.join('|')}`);
+      await addCard(box, '3782 822463 10005');
+      await box.getByText('Solo aceptamos tarjetas Visa y Mastercard').waitFor();
+      await box.getByPlaceholder('Número de tarjeta').fill('5555 5555 5555 4444');
       await box.getByRole('button', { name: 'Guardar método de pago' }).click();
-      await box.getByText('Transferencia •••• 1332').waitFor();
+      await box.getByText('Mastercard •••• 4444').waitFor();
       await box.getByRole('button', { name: /Añadir método de pago/ }).click();
-      await box.getByRole('tab', { name: /Cripto/ }).click();
-      await box.getByPlaceholder('Dirección de tu wallet').fill('0x123');
-      await box.getByRole('button', { name: 'Guardar método de pago' }).click();
-      await box.getByText(/wallet USDT no es válida/).waitFor();
-      await box.getByPlaceholder('Dirección de tu wallet').fill('0x52908400098527886E0F7030069857D2E4169EE7');
-      await box.getByRole('button', { name: 'Guardar método de pago' }).click();
-      await box.getByText('USDT 0x5290…9EE7').waitFor();
-      await box.getByRole('button', { name: 'Hacer principal' }).first().click();
+      await box.getByRole('tab', { name: 'PayPal' }).click();
+      await box.getByPlaceholder('Email de tu cuenta PayPal').fill('ana.paypal');
+      await box.getByRole('button', { name: 'Vincular PayPal' }).click();
+      await box.getByText('Escribe el email de tu cuenta de PayPal').waitFor();
+      await box.getByPlaceholder('Email de tu cuenta PayPal').fill('ana.paypal@test.com');
+      await box.getByRole('button', { name: 'Vincular PayPal' }).click();
+      await box.getByText('PayPal · an•••@test.com').waitFor();
+      await box.getByRole('button', { name: /Añadir método de pago/ }).click();
+      await box.getByRole('tab', { name: 'Google Pay' }).click();
+      await box.getByPlaceholder('Email de tu cuenta de Google').fill('ana.google@test.com');
+      await box.getByRole('button', { name: 'Vincular Google Pay' }).click();
+      await box.getByText('Google Pay · an•••@test.com').waitFor();
+      await box.locator('div.border', { hasText: 'PayPal · an•••@test.com' }).getByRole('button', { name: 'Hacer principal' }).click();
       await page.reload();
-      const rows = page.getByTestId('payment-methods').locator('div.border', { hasText: 'Transferencia •••• 1332' });
+      const rows = page.getByTestId('payment-methods').locator('div.border', { hasText: 'PayPal · an•••@test.com' });
       await rows.getByText('Principal').waitFor();
-      await page.getByRole('button', { name: 'Eliminar USDT 0x5290…9EE7' }).click();
+      await page.getByRole('button', { name: 'Eliminar Google Pay · an•••@test.com' }).click();
       await page.reload();
-      expect((await page.getByText('USDT 0x5290…9EE7').count()) === 0, 'no se eliminó');
+      expect((await page.getByText('Google Pay · an•••@test.com').count()) === 0, 'no se eliminó');
     });
     await check('Reportar una publicación desde el perfil del creador', async () => {
       await page.goto(`${BASE}/creator/1`);
@@ -578,7 +583,8 @@ const run = async () => {
       await page.fill('input[name=country]', 'España');
       await page.fill('input[name=docNumber]', 'X1234567');
       await page.getByRole('button', { name: 'Enviar para verificación' }).click();
-      await page.getByText('Sube la foto del frente del documento').waitFor();
+      await page.getByText('Sube la foto del frente de tu documento').waitFor();
+      expect((await page.locator('input[type=file]').count()) === 2, 'la verificación debe pedir solo 2 fotos');
     });
     await check('Verificación: el creador envía documento y selfie', async () => {
       await submitVerification(page, { name: 'Lola Creadora' });
@@ -606,6 +612,43 @@ const run = async () => {
       await page.getByText('Identidad de Lola Creadora aprobada').waitFor();
       await list.getByText('No hay solicitudes pendientes').waitFor();
       await list.getByText('Rechazada: La foto del documento está borrosa').waitFor();
+    });
+    await check('Admin crea un perfil IA sin verificación y aparece etiquetado en Explorar', async () => {
+      await page.getByRole('button', { name: /Perfiles gestionados/ }).click();
+      const box = page.getByTestId('managed-profiles');
+      await box.getByRole('button', { name: /Nuevo perfil/ }).click();
+      await page.fill('input[name=managedName]', 'Luna Neón');
+      await page.fill('input[name=managedUsername]', 'valentina_rose');
+      await page.fill('textarea[name=managedBio]', 'Personaje virtual de moda y lifestyle.');
+      await page.fill('input[name=managedPrice]', '7.5');
+      await page.setInputFiles('input[name=managedAvatar]', photo('luna.png'));
+      await box.getByRole('button', { name: 'Guardar perfil' }).click();
+      await box.getByText('Ese nombre de usuario ya existe').waitFor();
+      await page.fill('input[name=managedUsername]', 'luna_neon');
+      await box.getByRole('button', { name: 'Guardar perfil' }).click();
+      await box.getByText('Perfil creado y publicado en Explorar').waitFor();
+      await box.getByTestId('managed-row').filter({ hasText: 'Luna Neón' }).getByText('Perfil IA').waitFor();
+      await page.goto(`${BASE}/explore`);
+      const card = page.locator('a', { hasText: 'Luna Neón' });
+      await card.getByTestId('managed-badge').getByText('Perfil IA').waitFor();
+      await card.click();
+      await page.getByText('No es una persona real').waitFor();
+      await page.getByRole('heading', { name: 'Luna Neón' }).waitFor();
+    });
+    await check('Admin oculta y elimina un perfil gestionado', async () => {
+      await page.goto(`${BASE}/admin`);
+      await page.getByRole('button', { name: /Perfiles gestionados/ }).click();
+      const row = page.getByTestId('managed-row').filter({ hasText: 'Luna Neón' });
+      await row.getByRole('button', { name: 'Ocultar' }).click();
+      await row.getByText('Oculto').waitFor();
+      await page.goto(`${BASE}/explore`);
+      await page.getByText('Valentina Rose').first().waitFor();
+      expect((await page.getByText('Luna Neón').count()) === 0, 'el perfil oculto sigue en Explorar');
+      await page.goto(`${BASE}/admin`);
+      await page.getByRole('button', { name: /Perfiles gestionados/ }).click();
+      await page.getByTestId('managed-row').filter({ hasText: 'Luna Neón' }).getByRole('button', { name: 'Eliminar' }).click();
+      await page.getByText('Perfil eliminado').waitFor();
+      expect((await page.getByTestId('managed-row').count()) === 0, 'no se eliminó');
     });
     await check('Admin ve el reporte y retira la publicación reportada', async () => {
       await page.getByRole('button', { name: /Reportes \(2\)/ }).click();
@@ -815,7 +858,7 @@ const run = async () => {
     });
     await check('Eliminar la cuenta borra sus métodos de pago y documentos', async () => {
       const data = await platformData(page);
-      expect(!data.paymentMethods.some((m) => m.label === 'Transferencia •••• 1332'), 'quedaron métodos de pago');
+      expect(!data.paymentMethods.some((m) => m.label === 'PayPal · an•••@test.com'), 'quedaron métodos de pago');
       expect(!data.verifications.some((v) => v.userName === 'Ana Editada'), 'quedaron documentos de verificación');
       expect(data.transactions.some((t) => t.payerName === 'Cuenta eliminada'), 'los pagos no se anonimizaron');
     });
