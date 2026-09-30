@@ -2,7 +2,7 @@
 // Everything lives in one localStorage key; accounts are touched through the
 // callbacks local.ts passes in.
 import { readJSON, writeJSONChecked, newId } from '../storage';
-import { settlePayout, addMonths, round2, validateReport, validateTip, validateVerification, computeEarnings, MIN_PAYOUT, money, firstOfNextMonth, buildManagedProfile } from '../platformRules';
+import { addMonths, round2, validateReport, validateTip, validateVerification, computeEarnings, MIN_PAYOUT, money, buildManagedProfile } from '../platformRules';
 import { creators as catalogue } from '../../data/mockData';
 import type { AuthResult, User } from './types';
 import type { Block, ManagedProfile, PaymentMethod, Payout, PayoutAccount, PlatformBackend, Report, Transaction, VerificationRequest } from './platformTypes';
@@ -301,21 +301,21 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
     },
 
     async myPayouts(userId) {
-      return load().payouts.filter((p) => p.userId === userId).map((p) => settlePayout(p)).sort(byNewest('requestedAt'));
+      return load().payouts.filter((p) => p.userId === userId).sort(byNewest('requestedAt'));
     },
 
-    // Confirmed right away, no admin step; it becomes paid on the 1st of next month.
-    // INTEGRATION: Stripe Connect / PayPal Payouts would send the money on that date.
-    async requestPayout(user, amount) {
+    // Pays the whole credited balance at once; no admin step.
+    // INTEGRATION: Stripe Connect / PayPal Payouts would send the money here.
+    async requestPayout(user) {
       const s = load();
       if (user.role !== 'creator') return fail('Solo los creadores pueden retirar');
       if (!user.isVerified) return fail('Verifica tu identidad antes de solicitar un retiro');
       const account = s.payoutAccounts[user.id];
       if (!account) return fail('Añade una cuenta bancaria para retiros');
-      if (!(amount >= MIN_PAYOUT)) return fail(`El mínimo de retiro es ${money(MIN_PAYOUT)} USD`);
       const { available } = earningsOf(s, user);
-      if (amount > available) return fail(`Tu saldo disponible es ${money(available)}`);
-      return commit((data) => ({
+      if (available < MIN_PAYOUT)
+        return fail(`Necesitas al menos ${money(MIN_PAYOUT)} USD acreditados para retirar; tu saldo disponible es ${money(available)}`);
+      const result = commit((data) => ({
         ...data,
         payouts: [
           ...data.payouts,
@@ -323,19 +323,20 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
             id: newId(),
             userId: user.id,
             creatorName: user.name,
-            amount: round2(amount),
+            amount: available,
             accountLabel: `${account.bank} •••• ${account.accountLast4}`,
-            status: 'scheduled',
+            status: 'paid',
             availableBefore: available,
             requestedAt: now(),
-            scheduledFor: firstOfNextMonth().toISOString(),
+            paidAt: now(),
           },
         ],
       }));
+      return result.ok ? { ...result, amount: available } : result;
     },
 
     async listPayouts() {
-      return load().payouts.map((p) => settlePayout(p)).sort(byNewest('requestedAt'));
+      return [...load().payouts].sort(byNewest('requestedAt'));
     },
 
     async submitReport(reporter, input) {

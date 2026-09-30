@@ -95,8 +95,7 @@ const toPayout = (r: Row): Payout => ({
   status: r.status,
   availableBefore: Number(r.available_before ?? 0),
   requestedAt: r.requested_at,
-  scheduledFor: r.scheduled_for,
-  paidAt: r.paid_at ?? undefined,
+  paidAt: r.paid_at,
 });
 
 const toReport = (r: Row): Report => ({
@@ -255,17 +254,16 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
   },
 
   async myPayouts(userId) {
-    await sb.rpc('settle_due_payouts');
     const { data } = await sb.from('payouts').select('*').eq('user_id', userId).order('requested_at', { ascending: false });
     return (data ?? []).map(toPayout);
   },
 
-  async requestPayout(_user, amount) {
-    return done((await sb.rpc('request_payout', { p_amount: amount })).error, 'No se pudo solicitar el retiro');
+  async requestPayout() {
+    const { data, error } = await sb.rpc('request_payout');
+    return error ? dbError(error, 'No se pudo hacer el retiro') : { ok: true, amount: Number(data) };
   },
 
   async listPayouts() {
-    await sb.rpc('settle_due_payouts');
     const { data } = await sb.from('payouts').select('*').order('requested_at', { ascending: false });
     return (data ?? []).map(toPayout);
   },

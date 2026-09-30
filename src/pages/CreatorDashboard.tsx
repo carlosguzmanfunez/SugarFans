@@ -115,7 +115,7 @@ const CreatorDashboard: React.FC = () => {
   const activeSubscribers = subscribers.filter((sub) => !isBlocked(sub.id)).length;
 
   const stats = [
-    { label: 'Ingresos del mes', value: money(earnings?.thisMonth ?? 0), change: `${CREATOR_SHARE * 100}%`, icon: 'fa-dollar-sign', color: 'green' },
+    { label: 'Por acreditar el día 1', value: money(earnings?.pending ?? 0), change: `${CREATOR_SHARE * 100}%`, icon: 'fa-dollar-sign', color: 'green' },
     { label: 'Suscriptores activos', value: String(activeSubscribers), change: 'activos', icon: 'fa-users', color: 'blue' },
     { label: 'Publicaciones', value: String(user?.posts ?? 0), change: '+12', icon: 'fa-image', color: 'purple' },
     { label: 'Me gusta totales', value: compactCount(content.likes), change: 'total', icon: 'fa-heart', color: 'pink' },
