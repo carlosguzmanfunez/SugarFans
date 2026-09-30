@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import GiftDialog from '../components/GiftDialog';
+import GiftCelebration from '../components/GiftCelebration';
+import { giftById, type Gift } from '../lib/gifts';
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../lib/backend';
 import { sessionMinutes, formatLongDate, liveState, liveWindow, type VipBooking } from '../lib/vip';
@@ -46,6 +48,7 @@ const LiveRoom: React.FC = () => {
   const [chat, setChat] = useState<ChatLine[]>([]);
   const [draft, setDraft] = useState('');
   const [gifting, setGifting] = useState(false);
+  const [celebration, setCelebration] = useState<{ gift: Gift; caption: string } | null>(null);
 
   const localVideo = useRef<HTMLVideoElement>(null);
   const remoteVideo = useRef<HTMLVideoElement>(null);
@@ -155,6 +158,9 @@ const LiveRoom: React.FC = () => {
         setStatus(`${otherName} salió de la sala. Puedes esperar a que vuelva.`);
       } else if (m.type === 'chat') {
         setChat((c) => [...c, { mine: false, name: m.name, text: m.text, at: m.at }]);
+      } else if (m.type === 'gift') {
+        const gift = giftById(m.giftId);
+        if (gift) setCelebration({ gift, caption: `¡${m.name} te envió ${gift.name}!` });
       }
     },
     [isCreator, makeOffer, newPeer, otherName, send]
@@ -384,11 +390,14 @@ const LiveRoom: React.FC = () => {
             const at = new Date().toISOString();
             const text = `${gift.icon} Envió ${gift.name}`;
             send({ type: 'chat', text, name: user.name, at });
+            send({ type: 'gift', giftId: gift.id, name: user.name });
             setChat((c) => [...c, { mine: true, name: user.name, text, at }]);
+            setCelebration({ gift, caption: `¡${gift.name} para ${booking.creatorName}!` });
           }}
           onClose={() => setGifting(false)}
         />
       )}
+      {celebration && <GiftCelebration gift={celebration.gift} caption={celebration.caption} onDone={() => setCelebration(null)} />}
     </div>
   );
 };

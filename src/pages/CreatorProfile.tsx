@@ -4,6 +4,8 @@ import { posts, type Creator } from '../data/mockData';
 import { useCreatorCatalog } from '../lib/catalog';
 import ManagedBadge from '../components/ManagedBadge';
 import LevelBadge from '../components/LevelBadge';
+import GiftCelebration from '../components/GiftCelebration';
+import type { Gift } from '../lib/gifts';
 import { useLevels } from '../lib/rewards';
 import { useAuth } from '../context/AuthContext';
 import CheckoutDialog from '../components/CheckoutDialog';
@@ -62,6 +64,7 @@ const CreatorProfile: React.FC = () => {
   const [tipping, setTipping] = useState<{ postId?: string } | null>(null);
   const [tipSent, setTipSent] = useState('');
   const [gifting, setGifting] = useState<{ postId?: string } | null>(null);
+  const [celebrating, setCelebrating] = useState<Gift | null>(null);
   const [composing, setComposing] = useState(false);
 
   // Demo creators and platform-run profiles first, then creators who signed up.
@@ -520,11 +523,13 @@ const CreatorProfile: React.FC = () => {
           postId={gifting.postId}
           onSent={(gift) => {
             setGifting(null);
+            setCelebrating(gift);
             setTipSent(`¡${gift.icon} ${gift.name} enviado a ${creator.name}!`);
           }}
           onClose={() => setGifting(null)}
         />
       )}
+      {celebrating && <GiftCelebration gift={celebrating} caption={`¡${celebrating.name} para ${creator.name}!`} onDone={() => setCelebrating(null)} />}
       {reporting && (
         <ReportDialog kind={reporting.kind} targetId={reporting.targetId} targetLabel={reporting.label} onClose={() => setReporting(null)} />
       )}

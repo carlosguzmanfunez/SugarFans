@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import type { User } from '../context/AuthContext';
 import BuyCoinsDialog from './BuyCoinsDialog';
+import GiftArt from './GiftArt';
 import { usePlatformQuery, money } from '../lib/platform';
 import {
   GIFTS,
   GIFT_CATEGORIES,
-  GIFT_SHARE,
   VIDEO_MIN,
   CALL_MIN,
   DEFAULT_GIFT_SETTINGS,
@@ -16,6 +16,15 @@ import {
   sendGift,
   type Gift,
 } from '../lib/gifts';
+
+// Tile tint per category, from sweet to luxury.
+const TINT: Record<string, [string, string]> = {
+  Dulces: ['#fdf2f8', '#fbcfe8'],
+  Repostería: ['#fff7ed', '#fed7aa'],
+  Romance: ['#fff1f2', '#fecdd3'],
+  Lujo: ['#f5f3ff', '#ddd6fe'],
+  Fantasía: ['#fefce8', '#fde68a'],
+};
 
 interface Props {
   user: User;
@@ -87,9 +96,10 @@ const GiftDialog: React.FC<Props> = ({ user, creatorProfileId, creatorName, post
                   aria-pressed={selected?.id === g.id}
                   aria-label={`${g.name}, ${formatCoins(g.coins)} terrones`}
                   onClick={() => { setSelected(g); setError(''); }}
-                  className={`p-2 rounded-xl border text-center transition ${selected?.id === g.id ? 'border-pink-500 bg-pink-50 ring-2 ring-pink-200' : 'border-gray-200 hover:border-pink-300'}`}
+                  style={{ '--tile': TINT[cat][0], '--tile-edge': TINT[cat][1] } as React.CSSProperties}
+                  className={`gift-tile p-2 pt-3 rounded-2xl border text-center ${selected?.id === g.id ? 'border-pink-500 ring-2 ring-pink-300' : 'border-white/80'}`}
                 >
-                  <span className="block text-3xl" aria-hidden="true">{g.icon}</span>
+                  <GiftArt gift={g} size={56} className="mx-auto" />
                   <span className="block text-xs font-medium text-gray-800 truncate">{g.name}</span>
                   <span className="block text-[11px] text-gray-500">🍬 {formatCoins(g.coins)}</span>
                 </button>
@@ -100,10 +110,15 @@ const GiftDialog: React.FC<Props> = ({ user, creatorProfileId, creatorName, post
 
         {selected && (
           <div className="border-t border-gray-100 pt-4 space-y-3">
-            <p className="text-sm text-gray-700">
-              <span className="text-2xl mr-2" aria-hidden="true">{selected.icon}</span>
-              <span className="font-semibold">{selected.name}</span> · {money(value)} en regalo. {creatorName} recibe el {GIFT_SHARE * 100}%.
-            </p>
+            <div className="flex items-center gap-4">
+              <div className="gift-pedestal shrink-0 w-24 h-24 rounded-3xl flex items-center justify-center">
+                <GiftArt key={selected.id} gift={selected} size={80} float className="gift-pop" />
+              </div>
+              <p className="text-sm text-gray-700">
+                <span className="block text-base font-bold text-gray-900">{selected.name}</span>
+                {money(value)} en regalo para {creatorName}.
+              </p>
+            </div>
             {(perks.circle || perks.vault || perks.video || perks.call) && (
               <ul className="text-sm text-purple-800 bg-purple-50 rounded-xl p-3 space-y-1" data-testid="gift-perks">
                 {perks.circle && <li><i className="fas fa-users mr-2"></i>Entras al Círculo privado por 30 días</li>}

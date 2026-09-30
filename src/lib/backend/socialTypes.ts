@@ -58,7 +58,8 @@ export type LiveSignal =
   | { type: 'hello' | 'bye' }
   | { type: 'offer' | 'answer'; sdp: string }
   | { type: 'ice'; candidate: RTCIceCandidateInit }
-  | { type: 'chat'; text: string; name: string; at: string };
+  | { type: 'chat'; text: string; name: string; at: string }
+  | { type: 'gift'; giftId: string; name: string };
 
 export type LiveMessage = LiveSignal & { from: string };
 
