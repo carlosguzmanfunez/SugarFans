@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth, defaultSettings, UserSettings } from '../context/AuthContext';
+import { useCreatorCatalog } from '../lib/catalog';
+import IdentityVerification from '../components/IdentityVerification';
+import PaymentMethodForm, { paymentKindIcon } from '../components/PaymentMethodForm';
+import {
+  usePlatformQuery,
+  platformApi,
+  removePaymentMethod,
+  setDefaultPaymentMethod,
+  unblockUser,
+  exportUserData,
+  nextRenewal,
+  money,
+} from '../lib/platform';
 
 const notificationItems: { key: string; label: string }[] = [
   { key: 'newPosts', label: 'Nuevas publicaciones de creadores que sigues' },
@@ -13,10 +26,32 @@ const notificationItems: { key: string; label: string }[] = [
   { key: 'push', label: 'Notificaciones push' },
 ];
 
-const sections = ['profile', 'security', 'notifications', 'privacy', 'payments', 'blocking'];
+const sections = ['profile', 'security', 'verification', 'notifications', 'privacy', 'payments', 'blocking'];
+
+const fmtDate = (iso: string | Date) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 
 const Settings: React.FC = () => {
-  const { user, updateUser, changePassword, deleteAccount } = useAuth();
+  const { user, updateUser, changePassword, deleteAccount, toggleSubscription } = useAuth();
+  const { creators } = useCreatorCatalog();
+  const userId = user?.id ?? '';
+  const { data: platform } = usePlatformQuery(
+    async () => {
+      if (!user) return { methods: [], payments: [], blocks: [] };
+      const [methods, payments, blocks] = await Promise.all([
+        platformApi.paymentMethods(user.id),
+        platformApi.myPayments(user.id),
+        platformApi.blocks(user),
+      ]);
+      return { methods, payments, blocks: blocks.filter((b) => b.blockerId === user.id) };
+    },
+    [userId],
+    {
+      methods: [] as Awaited<ReturnType<typeof platformApi.paymentMethods>>,
+      payments: [] as Awaited<ReturnType<typeof platformApi.myPayments>>,
+      blocks: [] as Awaited<ReturnType<typeof platformApi.blocks>>,
+    }
+  );
+  const [addingMethod, setAddingMethod] = useState(false);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSection = searchParams.get('section');
@@ -108,6 +143,24 @@ const Settings: React.FC = () => {
     else showResult(result);
   };
 
+  const downloadMyData = async () => {
+    if (!user) return;
+    const blob = new Blob([JSON.stringify(await exportUserData(user), null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sugarfans-mis-datos-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setSaved('Descarga de tus datos iniciada');
+  };
+
+  const { methods: myMethods, payments: myPayments, blocks: myBlocks } = platform;
+  const mySubscriptions = (user?.subscriptions ?? []).map((sub) => ({
+    sub,
+    name: creators.find((c) => c.id === sub.creatorId)?.name ?? 'Creador',
+  }));
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -131,6 +184,7 @@ const Settings: React.FC = () => {
               {[
                 { id: 'profile', label: 'Perfil', icon: 'fa-user' },
                 { id: 'security', label: 'Seguridad', icon: 'fa-lock' },
+                { id: 'verification', label: 'Verificación', icon: 'fa-id-card' },
                 { id: 'notifications', label: 'Notificaciones', icon: 'fa-bell' },
                 { id: 'privacy', label: 'Privacidad', icon: 'fa-eye-slash' },
                 { id: 'payments', label: 'Pagos', icon: 'fa-credit-card' },
@@ -255,6 +309,8 @@ const Settings: React.FC = () => {
               </div>
             )}
 
+            {activeSection === 'verification' && <IdentityVerification />}
+
             {activeSection === 'notifications' && (
               <div className="bg-white rounded-2xl shadow-sm p-6">
                 <h2 className="text-lg font-bold text-gray-900 mb-6">Notificaciones</h2>
@@ -330,6 +386,15 @@ const Settings: React.FC = () => {
                       <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-500"></div>
                     </label>
                   </div>
+                  <div className="flex items-center justify-between py-3">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Descargar mis datos</p>
+                      <p className="text-xs text-gray-500">Copia de tu cuenta, pagos, verificación y bloqueos en formato JSON (GDPR)</p>
+                    </div>
+                    <button type="button" onClick={downloadMyData} className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">
+                      <i className="fas fa-download mr-1"></i> Descargar
+                    </button>
+                  </div>
                   <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl">
                     <h3 className="font-medium text-red-800 mb-2">Zona de peligro</h3>
                     <p className="text-sm text-red-600 mb-3">Eliminar tu cuenta es permanente y no se puede deshacer.</p>
@@ -381,46 +446,133 @@ const Settings: React.FC = () => {
               </div>
             )}
 
-            {activeSection === 'payments' && (
-              <div className="bg-white rounded-2xl shadow-sm p-6">
-                <h2 className="text-lg font-bold text-gray-900 mb-6">Métodos de Pago</h2>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-xl">
-                    <div className="flex items-center space-x-3">
-                      <i className="fab fa-cc-visa text-2xl text-blue-700"></i>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">Visa •••• 4242</p>
-                        <p className="text-xs text-gray-500">Expira 12/25</p>
+            {activeSection === 'payments' && user && (
+              <div className="space-y-6">
+                <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="payment-methods">
+                  <h2 className="text-lg font-bold text-gray-900 mb-2">Métodos de Pago</h2>
+                  <p className="text-sm text-gray-500 mb-6">Aceptamos tarjetas Visa y Mastercard, PayPal y Google Pay.</p>
+                  <div className="space-y-3">
+                    {myMethods.length === 0 && <p className="text-sm text-gray-500">Aún no tienes métodos de pago.</p>}
+                    {myMethods.map((m) => (
+                      <div key={m.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-xl">
+                        <div className="flex items-center space-x-3">
+                          <i className={`text-2xl text-gray-600 ${paymentKindIcon[m.kind]}`}></i>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{m.label}</p>
+                            <p className="text-xs text-gray-500">{m.detail}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {m.isDefault ? (
+                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Principal</span>
+                          ) : (
+                            <button type="button" onClick={() => setDefaultPaymentMethod(user, m.id)} className="text-xs text-pink-600 hover:text-pink-700">
+                              Hacer principal
+                            </button>
+                          )}
+                          <button type="button" aria-label={`Eliminar ${m.label}`} onClick={() => removePaymentMethod(user, m.id)} className="p-2 text-gray-400 hover:text-red-500">
+                            <i className="fas fa-trash"></i>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Principal</span>
-                  </div>
-                  <button className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-pink-300 hover:text-pink-500 transition">
-                    <i className="fas fa-plus mr-2"></i> Añadir método de pago
-                  </button>
-                </div>
-                {user?.role === 'creator' && (
-                  <div className="mt-8">
-                    <h3 className="font-medium text-gray-900 mb-4">Cuenta para retiros</h3>
-                    <div className="p-4 bg-gray-50 rounded-xl">
-                      <p className="text-sm text-gray-600">Balance disponible: <strong className="text-green-600">$1,245.00</strong></p>
-                      <button className="mt-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">
-                        Solicitar retiro
+                    ))}
+                    {addingMethod ? (
+                      <PaymentMethodForm
+                        user={user}
+                        onAdded={() => { setAddingMethod(false); setSaved('Método de pago añadido'); }}
+                        onCancel={() => setAddingMethod(false)}
+                      />
+                    ) : (
+                      <button type="button" onClick={() => setAddingMethod(true)} className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-pink-300 hover:text-pink-500 transition">
+                        <i className="fas fa-plus mr-2"></i> Añadir método de pago
                       </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="settings-subscriptions">
+                  <h2 className="text-lg font-bold text-gray-900 mb-2">Suscripciones</h2>
+                  <p className="text-sm text-gray-500 mb-4">Se renuevan cada mes en la misma fecha en que te suscribiste. Puedes cancelar cuando quieras, sin permanencia.</p>
+                  {mySubscriptions.length === 0 ? (
+                    <p className="text-sm text-gray-500">No tienes suscripciones activas.</p>
+                  ) : (
+                    <div className="divide-y divide-gray-100">
+                      {mySubscriptions.map(({ sub, name }) => (
+                        <div key={sub.creatorId} className="py-3 flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{name} · {money(sub.price)}/mes</p>
+                            <p className="text-xs text-gray-500">Próxima renovación: {fmtDate(nextRenewal(sub.since))}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => window.confirm(`¿Cancelar tu suscripción a ${name}?`) && toggleSubscription(sub.creatorId, sub.price)}
+                            className="text-xs text-red-600 hover:text-red-700"
+                          >
+                            Cancelar suscripción
+                          </button>
+                        </div>
+                      ))}
                     </div>
+                  )}
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="payment-history">
+                  <h2 className="text-lg font-bold text-gray-900 mb-4">Historial de pagos</h2>
+                  {myPayments.length === 0 ? (
+                    <p className="text-sm text-gray-500">Aún no has realizado pagos.</p>
+                  ) : (
+                    <div className="divide-y divide-gray-100">
+                      {myPayments.map((t) => (
+                        <div key={t.id} className="py-3 flex items-center justify-between text-sm">
+                          <div>
+                            <p className="font-medium text-gray-900">{t.kind === 'renewal' ? 'Renovación' : 'Suscripción'} · {t.creatorName}</p>
+                            <p className="text-xs text-gray-500">{fmtDate(t.createdAt)} · {t.methodLabel}</p>
+                          </div>
+                          <span className={t.status === 'paid' ? 'font-bold text-gray-900' : 'text-red-600 text-xs'}>
+                            {t.status === 'paid' ? money(t.amount) : 'Pago fallido'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {user.role === 'creator' && (
+                  <div className="bg-white rounded-2xl shadow-sm p-6">
+                    <h2 className="text-lg font-bold text-gray-900 mb-2">Cuenta para retiros</h2>
+                    <p className="text-sm text-gray-600">Tu saldo, la cuenta bancaria y los retiros se gestionan en el panel de creador.</p>
+                    <Link to="/creator/dashboard?tab=earnings" className="mt-3 inline-block bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">
+                      Gestionar retiros
+                    </Link>
                   </div>
                 )}
               </div>
             )}
 
             {activeSection === 'blocking' && (
-              <div className="bg-white rounded-2xl shadow-sm p-6">
+              <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="blocked-users">
                 <h2 className="text-lg font-bold text-gray-900 mb-6">Usuarios Bloqueados</h2>
-                <div className="text-center py-8 text-gray-500">
-                  <i className="fas fa-shield-alt text-4xl text-gray-300 mb-3"></i>
-                  <p>No has bloqueado a ningún usuario</p>
-                  <p className="text-sm mt-1">Los usuarios bloqueados no podrán interactuar contigo</p>
-                </div>
+                {myBlocks.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <i className="fas fa-shield-alt text-4xl text-gray-300 mb-3"></i>
+                    <p>No has bloqueado a ningún usuario</p>
+                    <p className="text-sm mt-1">Los usuarios bloqueados no podrán interactuar contigo</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {myBlocks.map((b) => (
+                      <div key={b.targetId} className="py-3 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{b.targetName}</p>
+                          <p className="text-xs text-gray-500">Bloqueado el {fmtDate(b.createdAt)}</p>
+                        </div>
+                        <button type="button" onClick={() => user && unblockUser(user, b.targetId)} className="text-sm text-pink-600 hover:text-pink-700">
+                          Desbloquear
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

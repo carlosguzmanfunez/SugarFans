@@ -19,6 +19,7 @@ import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import VIPExperiences from './pages/VIPExperiences';
 import LegalPolicies from './pages/LegalPolicies';
+import PlatformSync from './components/PlatformSync';
 
 const LoadingScreen: React.FC = () => (
   <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-label="Cargando">
@@ -145,6 +146,7 @@ function App() {
     <Router>
       <LanguageProvider>
         <AuthProvider>
+          <PlatformSync />
           <AppRoutes />
         </AuthProvider>
       </LanguageProvider>

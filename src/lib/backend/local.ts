@@ -13,6 +13,7 @@ import {
   validateRegistration,
 } from './shared';
 import type { Availability, Backend, BookingStatus, User, VipBooking } from './types';
+import { createLocalPlatform } from './localPlatform';
 
 interface StoredAccount extends User {
   passwordHash: string;
@@ -137,11 +138,23 @@ const takenFor = (id: string) =>
     .filter((b) => b.creatorProfileId === id && ACTIVE_STATUSES.includes(b.status))
     .map((b) => ({ date: b.date, time: b.time }));
 
+const platform = createLocalPlatform({
+  listAccounts: () => loadAccounts().map(toPublic),
+  setSubscription: (userId, creatorId, price) =>
+    mutate(userId, (a) => ({
+      ...a,
+      subscriptions: [...a.subscriptions.filter((s) => s.creatorId !== creatorId), { creatorId, price, since: new Date().toISOString() }],
+    })),
+  setVerified: (userId) => mutate(userId, (a) => ({ ...a, isVerified: true })),
+  notify,
+});
+
 const ok = { ok: true } as const;
 const fail = (error: string) => ({ ok: false, error });
 
 export const localBackend: Backend = {
   mode: 'local',
+  platform,
 
   async getCurrentUser() {
     const id = readSession();
@@ -225,6 +238,7 @@ export const localBackend: Backend = {
     if (!(await checkPassword(user.id, password))) return fail('La contraseña no es correcta');
     saveAccounts(loadAccounts().filter((a) => a.id !== user.id));
     saveBookings(listBookings().filter((b) => b.fanId !== user.id));
+    await platform.purgeUser(user.id);
     writeSession(null);
     return ok;
   },

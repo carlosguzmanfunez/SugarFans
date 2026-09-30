@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import CreatorPayouts from '../components/CreatorPayouts';
+import { usePlatformQuery, platformApi, computeEarnings, iBlocked, blockUser, unblockUser, money, CREATOR_SHARE } from '../lib/platform';
 import { statusLabel, formatLongDate, WEEKDAYS, ALL_HOURS, MAX_BOOKING_MONTHS, DEFAULT_AVAILABILITY } from '../lib/vip';
 import { backend } from '../lib/backend';
 import { useBackendData } from '../lib/useBackendData';
 
 const CreatorDashboard: React.FC = () => {
   const { user, addPost, deletePost, updateUser } = useAuth();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'overview');
   const [showNewPost, setShowNewPost] = useState(false);
   const [postText, setPostText] = useState('');
   const [postLocked, setPostLocked] = useState(false);
@@ -29,6 +33,27 @@ const CreatorDashboard: React.FC = () => {
   const { data: vipBookings, reload: reloadBookings } = useBackendData(() => backend.creatorBookings(profileId), [profileId], []);
   const pendingVip = vipBookings.filter((b) => b.status === 'pending').length;
 
+  // Real verification state, fan payments (80% for the creator), subscribers and blocks.
+  const verified = !!user?.isVerified;
+  const { data: live } = usePlatformQuery(
+    async () => {
+      if (!user) return null;
+      const [verification, sales, payouts, subs, blocks] = await Promise.all([
+        platformApi.myVerification(user.id),
+        platformApi.creatorSales(profileId),
+        platformApi.myPayouts(user.id),
+        platformApi.mySubscribers(user),
+        platformApi.blocks(user),
+      ]);
+      return { verification, sales, payouts, subs, blocks };
+    },
+    [user?.id, profileId],
+    null
+  );
+  const verificationStatus = live?.verification?.status;
+  const earnings = live ? computeEarnings(live.sales, live.payouts) : null;
+  const monthName = (iso: string) => new Date(iso).toLocaleDateString('es', { month: 'short', year: 'numeric' });
+
   const toggle = <T,>(list: T[], item: T) => (list.includes(item) ? list.filter((x) => x !== item) : [...list, item]);
 
   const show = (result: { ok: boolean; error?: string }, okText: string) =>
@@ -45,6 +70,7 @@ const CreatorDashboard: React.FC = () => {
   };
 
   const handlePublish = async () => {
+    if (!verified) return show({ ok: false, error: 'Verifica tu identidad antes de publicar contenido' }, '');
     const result = await addPost(postText, postLocked);
     if (!result.ok) return show(result, '');
     setPostText('');
@@ -69,27 +95,25 @@ const CreatorDashboard: React.FC = () => {
     show(result, 'Cambios guardados exitosamente');
   };
 
+  const subscribers = (live?.subs ?? []).map((sub) => ({ ...sub, since: monthName(sub.since), plan: 'Mensual' }));
+  const isBlocked = (fanId: string) => !!user && !!live && iBlocked(live.blocks, user.id, fanId);
+  const activeSubscribers = subscribers.filter((sub) => !isBlocked(sub.id)).length;
+
   const stats = [
-    { label: 'Ingresos del mes', value: '$2,450.00', change: '+12%', icon: 'fa-dollar-sign', color: 'green' },
-    { label: 'Suscriptores activos', value: '245', change: '+8', icon: 'fa-users', color: 'blue' },
+    { label: 'Por acreditar el día 1', value: money(earnings?.pending ?? 0), change: `${CREATOR_SHARE * 100}%`, icon: 'fa-dollar-sign', color: 'green' },
+    { label: 'Suscriptores activos', value: String(activeSubscribers), change: 'activos', icon: 'fa-users', color: 'blue' },
     { label: 'Publicaciones', value: String(user?.posts ?? 0), change: '+12', icon: 'fa-image', color: 'purple' },
     { label: 'Me gusta totales', value: '89.2K', change: '+5.2K', icon: 'fa-heart', color: 'pink' },
   ];
 
-  const recentTransactions = [
-    { id: '1', type: 'Suscripción', user: 'Carlos M.', amount: '$9.99', date: 'Hoy, 10:30', status: 'completed' },
-    { id: '2', type: 'Propina', user: 'Ana R.', amount: '$5.00', date: 'Hoy, 09:15', status: 'completed' },
-    { id: '3', type: 'PPV', user: 'Miguel S.', amount: '$4.99', date: 'Ayer, 22:00', status: 'completed' },
-    { id: '4', type: 'Suscripción', user: 'Laura P.', amount: '$9.99', date: 'Ayer, 18:45', status: 'completed' },
-    { id: '5', type: 'Suscripción', user: 'Pedro G.', amount: '$9.99', date: 'Ayer, 15:30', status: 'pending' },
-  ];
-
-  const subscribers = [
-    { id: '1', name: 'Carlos M.', avatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=carlos', since: 'Ene 2024', plan: 'Mensual' },
-    { id: '2', name: 'Ana R.', avatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=ana', since: 'Dic 2023', plan: 'Anual' },
-    { id: '3', name: 'Miguel S.', avatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=miguel', since: 'Ene 2024', plan: 'Mensual' },
-    { id: '4', name: 'Laura P.', avatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=laura', since: 'Nov 2023', plan: 'Mensual' },
-  ];
+  const recentTransactions = (live?.sales ?? []).slice(0, 5).map((t) => ({
+    id: t.id,
+    type: 'Suscripción',
+    user: t.payerName,
+    amount: `+${money(t.amount * CREATOR_SHARE)}`,
+    date: new Date(t.createdAt).toLocaleString('es'),
+    status: 'completed',
+  }));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -107,6 +131,24 @@ const CreatorDashboard: React.FC = () => {
             <i className="fas fa-plus mr-2"></i> Nueva Publicación
           </button>
         </div>
+
+        {!verified && live && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3" data-testid="verification-banner">
+            <p className="text-sm text-yellow-800">
+              <i className="fas fa-id-card mr-2"></i>
+              {verificationStatus === 'pending'
+                ? 'Tu verificación de identidad está en revisión. Podrás publicar y cobrar en cuanto se apruebe.'
+                : verificationStatus === 'rejected'
+                  ? 'Tu verificación fue rechazada. Revisa el motivo y envíala de nuevo para poder publicar.'
+                  : 'Verifica tu identidad para publicar contenido y recibir pagos.'}
+            </p>
+            {verificationStatus !== 'pending' && (
+              <Link to="/settings?section=verification" className="bg-yellow-500 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-yellow-600">
+                Verificar identidad
+              </Link>
+            )}
+          </div>
+        )}
 
         {/* New Post Modal */}
         {showNewPost && (
@@ -219,6 +261,7 @@ const CreatorDashboard: React.FC = () => {
                 <h3 className="font-bold text-gray-900">Transacciones Recientes</h3>
               </div>
               <div className="divide-y divide-gray-100">
+                {recentTransactions.length === 0 && <p className="p-6 text-center text-sm text-gray-500">Aún no hay pagos de fans</p>}
                 {recentTransactions.map((tx) => (
                   <div key={tx.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
                     <div className="flex items-center space-x-3">
@@ -302,6 +345,7 @@ const CreatorDashboard: React.FC = () => {
               </button>
             </div>
             <div className="divide-y divide-gray-100">
+              {subscribers.length === 0 && <p className="p-6 text-center text-sm text-gray-500">Aún no tienes suscriptores</p>}
               {subscribers.map((sub) => (
                 <div key={sub.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
                   <div className="flex items-center space-x-3">
@@ -315,9 +359,19 @@ const CreatorDashboard: React.FC = () => {
                     <button className="p-2 text-gray-400 hover:text-pink-500 transition">
                       <i className="fas fa-envelope"></i>
                     </button>
-                    <button className="p-2 text-gray-400 hover:text-red-500 transition">
-                      <i className="fas fa-ban"></i>
-                    </button>
+                    {isBlocked(sub.id) ? (
+                      <button onClick={() => user && unblockUser(user, sub.id)} className="px-3 py-1 text-xs text-pink-600 hover:text-pink-700">
+                        Desbloquear
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => user && window.confirm(`¿Bloquear a ${sub.name}? No podrá ver tu contenido ni contactarte.`) && blockUser(user, sub.id, sub.name)}
+                        aria-label={`Bloquear a ${sub.name}`}
+                        className="p-2 text-gray-400 hover:text-red-500 transition"
+                      >
+                        <i className="fas fa-ban"></i>
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -325,53 +379,7 @@ const CreatorDashboard: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'earnings' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl shadow-sm p-6">
-              <h3 className="font-bold text-gray-900 mb-4">Resumen de Ingresos</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-green-50 rounded-xl p-4">
-                  <p className="text-sm text-green-700">Este mes</p>
-                  <p className="text-2xl font-bold text-green-900">$2,450.00</p>
-                </div>
-                <div className="bg-blue-50 rounded-xl p-4">
-                  <p className="text-sm text-blue-700">Mes anterior</p>
-                  <p className="text-2xl font-bold text-blue-900">$2,180.00</p>
-                </div>
-                <div className="bg-purple-50 rounded-xl p-4">
-                  <p className="text-sm text-purple-700">Total acumulado</p>
-                  <p className="text-2xl font-bold text-purple-900">$15,890.00</p>
-                </div>
-              </div>
-            </div>
-            <div className="bg-white rounded-2xl shadow-sm p-6">
-              <h3 className="font-bold text-gray-900 mb-4">Desglose por tipo</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Suscripciones</span>
-                  <span className="font-bold">$1,850.00 (75%)</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-pink-500 h-2 rounded-full" style={{ width: '75%' }}></div>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Contenido PPV</span>
-                  <span className="font-bold">$420.00 (17%)</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-purple-500 h-2 rounded-full" style={{ width: '17%' }}></div>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Propinas</span>
-                  <span className="font-bold">$180.00 (8%)</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-green-500 h-2 rounded-full" style={{ width: '8%' }}></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {activeTab === 'earnings' && <CreatorPayouts />}
 
         {activeTab === 'vip' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

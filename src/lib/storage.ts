@@ -53,3 +53,13 @@ export const newId = (): string =>
     : `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
 
 export const isValidEmail = (email: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+
+// Like writeJSON, but reports whether the write landed (e.g. quota exceeded by uploaded images).
+export const writeJSONChecked = (key: string, value: unknown): boolean => {
+  try {
+    localStorage.setItem(PREFIX + key, JSON.stringify(value));
+    return true;
+  } catch {
+    return false;
+  }
+};

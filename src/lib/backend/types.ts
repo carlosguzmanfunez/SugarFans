@@ -1,4 +1,7 @@
 // Shared domain types and the contract every data backend implements.
+import type { PlatformBackend } from './platformTypes';
+export type * from './platformTypes';
+
 // Two backends exist: Supabase (real, shared across devices) and a local
 // browser-only one used when Supabase is not configured (dev, tests).
 
@@ -127,4 +130,7 @@ export interface Backend {
   updateBooking(user: User, bookingId: string, next: BookingStatus): Promise<AuthResult>;
   fanBookings(fanId: string): Promise<VipBooking[]>;
   creatorBookings(creatorProfileId: string): Promise<VipBooking[]>;
+
+  // Verification, payments, payouts, reports and blocks (see platformTypes.ts).
+  platform: PlatformBackend;
 }

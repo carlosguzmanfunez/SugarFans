@@ -1,15 +1,31 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { creators, categories, posts } from '../data/mockData';
+import { categories, posts } from '../data/mockData';
+import { useCreatorCatalog } from '../lib/catalog';
+import ManagedBadge from '../components/ManagedBadge';
 import { useAuth } from '../context/AuthContext';
+import { usePlatformQuery, platformApi, isCutOff } from '../lib/platform';
 
 const Explore: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const { creators } = useCreatorCatalog();
+  const { data: platform } = usePlatformQuery(
+    async () => {
+      const [removedPosts, blocks] = await Promise.all([platformApi.removedPosts(), user ? platformApi.blocks(user) : Promise.resolve([])]);
+      return { removedPosts, blocks };
+    },
+    [user?.id],
+    { removedPosts: [] as string[], blocks: [] as Awaited<ReturnType<typeof platformApi.blocks>> }
+  );
+  // Blocked profiles (either direction) and posts removed by moderation are hidden.
+  const hidden = (creatorId: string) => !!user && isCutOff(platform.blocks, user.id, creatorId);
+  const visiblePosts = posts.filter((p) => !platform.removedPosts.includes(p.id) && !hidden(p.creatorId));
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [viewMode, setViewMode] = useState<'creators' | 'posts'>('creators');
 
   const filteredCreators = creators.filter(c => {
+    if (hidden(c.id)) return false;
     const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.username.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = !selectedCategory || c.category === selectedCategory;
@@ -91,6 +107,7 @@ const Explore: React.FC = () => {
                       <div className="flex items-center">
                         <h3 className="font-bold text-gray-900 text-sm">{creator.name}</h3>
                         {creator.isVerified && <i className="fas fa-check-circle text-blue-500 ml-1 text-xs"></i>}
+                        <ManagedBadge creator={creator} />
                       </div>
                       <p className="text-xs text-gray-500">@{creator.username}</p>
                     </div>
@@ -115,7 +132,7 @@ const Explore: React.FC = () => {
         {/* Posts Grid */}
         {viewMode === 'posts' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {posts.map((post) => (
+            {visiblePosts.map((post) => (
               <div key={post.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
                 <div className="p-4 flex items-center space-x-3">
                   <img src={post.creatorAvatar} alt="" className="w-10 h-10 rounded-full" />

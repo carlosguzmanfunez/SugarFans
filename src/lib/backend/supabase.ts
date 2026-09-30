@@ -5,6 +5,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { WRONG_CREDENTIALS, cleanPatch, mergeSettings, normalizeEmail, validateRegistration } from './shared';
 import { DEFAULT_AVAILABILITY, normalizeAvailability } from '../vip';
 import type { Backend, BookingStatus, User, UserRole, VipBooking } from './types';
+import { createSupabasePlatform } from './supabasePlatform';
 
 const REMEMBER_KEY = 'sugarfans_remember';
 
@@ -146,6 +147,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
 
   return {
     mode: 'supabase',
+    platform: createSupabasePlatform(sb),
 
     async getCurrentUser() {
       const { data: sessionData } = await sb.auth.getSession();

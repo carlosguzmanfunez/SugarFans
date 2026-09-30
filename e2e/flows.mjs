@@ -17,7 +17,7 @@ const check = async (name, fn) => {
     console.log(`  ✓ ${name}`);
   } catch (err) {
     results.push({ name, ok: false, error: String(err.message || err).split('\n')[0] });
-    console.log(`  ✗ ${name}\n      ${String(err.message || err).split('\n')[0]}`);
+    console.log(`  ✗ ${name}\n      ${String(err.message || err).split('\n').slice(0, 3).join('\n      ')}`);
   }
 };
 
@@ -125,6 +125,40 @@ const pickDate = async (page, iso) => {
   await cal.locator(`button[data-date="${iso}"]`).click();
 };
 
+// 1x1 PNG, enough for the upload/downscale pipeline.
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+const photo = (name) => ({ name, mimeType: 'image/png', buffer: PNG });
+
+const submitVerification = async (page, { name = 'Nombre Apellido', birth = '1990-05-10' } = {}) => {
+  await page.goto(`${BASE}/settings?section=verification`);
+  await page.fill('input[name=legalName]', name);
+  await page.fill('input[name=birthDate]', birth);
+  await page.fill('input[name=country]', 'México');
+  await page.fill('input[name=docNumber]', 'ABC123456');
+  await page.setInputFiles('input[name=docFront]', photo('frente.png'));
+  await page.setInputFiles('input[name=selfie]', photo('selfie.png'));
+  await page.getByRole('button', { name: 'Enviar para verificación' }).click();
+};
+
+const addCard = async (scope, number = '4242 4242 4242 4242') => {
+  await scope.getByPlaceholder('Titular de la tarjeta').fill('Ana Prueba');
+  await scope.getByPlaceholder('Número de tarjeta').fill(number);
+  await scope.getByPlaceholder('MM/AA').fill('12/30');
+  await scope.getByPlaceholder('CVC').fill('123');
+  await scope.getByRole('button', { name: 'Guardar método de pago' }).click();
+};
+
+const amountOf = (text) => Number(String(text).replace(/[^0-9.]/g, ''));
+// Balances render $0.00 until the earnings query resolves, so wait for it before reading.
+const readAmount = async (page, testId) => {
+  await page.locator('[data-testid=earnings][aria-busy=false]').waitFor();
+  return amountOf(await page.getByTestId(testId).textContent());
+};
+const waitAmount = (page, testId, text) => page.getByTestId(testId).filter({ hasText: new RegExp(`^\\${text.replace('.', '\\.')}$`) }).waitFor();
+const money = (n) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+const platformData = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('sugarfans_platform') || '{}'));
+
 const errorText = async (page) => (await page.locator('[class*="bg-red-50"]').first().textContent({ timeout: 3000 }))?.trim();
 
 const run = async () => {
@@ -155,6 +189,24 @@ const run = async () => {
       await page.reload();
       await page.goto(`${BASE}/settings`);
       await waitPath(page, '/login');
+    });
+    await check('Ayuda: cada categoría filtra sus preguntas y el buscador busca en las respuestas', async () => {
+      await page.goto(`${BASE}/help`);
+      await page.getByRole('button', { name: /Para Creadores/ }).click();
+      await page.getByText('¿Cuándo recibo mis pagos?').waitFor();
+      expect((await page.locator('details').count()) === 3, 'la categoría no filtra');
+      await page.getByRole('button', { name: /Para Creadores/ }).click();
+      await page.fill('input[placeholder="Buscar en la ayuda..."]', 'selfie');
+      await page.getByText('¿Cómo verifico mi identidad?').waitFor();
+    });
+    await check('Ayuda: el formulario de reporte exige email a un visitante y se envía', async () => {
+      await page.fill('input[placeholder="Buscar en la ayuda..."]', '');
+      await page.fill('#report-description', 'Perfil falso que pide dinero por mensaje');
+      await page.getByRole('button', { name: 'Enviar Reporte' }).click();
+      await page.getByText('Deja un email de contacto válido').waitFor();
+      await page.fill('#report-email', 'visitante@test.com');
+      await page.getByRole('button', { name: 'Enviar Reporte' }).click();
+      await page.getByText(/Reporte enviado/).waitFor();
     });
     await check('Ruta inexistente muestra 404', async () => {
       await page.goto(`${BASE}/no-existe`);
@@ -322,12 +374,118 @@ const run = async () => {
     });
 
     console.log('\nSuscripciones y reservas VIP');
-    await check('Suscribirse a un creador persiste tras recargar', async () => {
+    await check('Suscribirse sin método de pago pide añadir uno y rechaza una tarjeta inválida', async () => {
       await page.goto(`${BASE}/creator/1`);
       await page.getByRole('button', { name: /Suscribirse \$/ }).first().click();
+      const dialog = page.getByRole('dialog');
+      await dialog.getByTestId('payment-method-form').waitFor();
+      await addCard(dialog, '4242 4242 4242 4241');
+      await dialog.getByText('El número de tarjeta no es válido').waitFor();
+    });
+    await check('Suscribirse con tarjeta cobra y persiste tras recargar', async () => {
+      const dialog = page.getByRole('dialog');
+      await addCard(dialog);
+      await dialog.getByText('Visa •••• 4242').waitFor();
+      await dialog.getByRole('button', { name: /Suscribirme y pagar/ }).click();
       await page.getByRole('button', { name: /Suscrito/ }).waitFor();
       await page.reload();
       await page.getByRole('button', { name: /Suscrito/ }).waitFor();
+    });
+    await check('El cobro aparece en el historial y la suscripción muestra su próxima renovación', async () => {
+      await page.goto(`${BASE}/settings?section=payments`);
+      await page.getByTestId('payment-history').getByText(/Suscripción · Valentina Rose/).waitFor();
+      await page.getByTestId('payment-history').getByText('$9.99').waitFor();
+      await page.getByTestId('settings-subscriptions').getByText(/Próxima renovación/).waitFor();
+      await page.getByTestId('payment-methods').getByText('Principal').waitFor();
+    });
+    await check('La renovación mensual se cobra en la misma fecha (simulando 2 meses)', async () => {
+      await page.evaluate(() => {
+        const accounts = JSON.parse(localStorage.getItem('sugarfans_accounts'));
+        const id = JSON.parse(localStorage.getItem('sugarfans_session'));
+        const me = accounts.find((a) => a.id === id);
+        const d = new Date();
+        d.setMonth(d.getMonth() - 2);
+        d.setDate(Math.min(d.getDate(), 28));
+        me.subscriptions[0].since = d.toISOString();
+        localStorage.setItem('sugarfans_accounts', JSON.stringify(accounts));
+      });
+      await page.reload();
+      await page.getByTestId('payment-history').getByText(/Renovación · Valentina Rose/).first().waitFor();
+      const renewals = await page.getByTestId('payment-history').getByText(/Renovación · Valentina Rose/).count();
+      expect(renewals === 2, `se esperaban 2 renovaciones, hay ${renewals}`);
+      await page.reload();
+      const again = await page.getByTestId('payment-history').getByText(/Renovación · Valentina Rose/).count();
+      expect(again === 2, 'la renovación se cobró dos veces');
+    });
+    await check('Métodos de pago: solo Visa/Mastercard, PayPal y Google Pay; cambiar principal y eliminar', async () => {
+      const box = page.getByTestId('payment-methods');
+      await box.getByRole('button', { name: /Añadir método de pago/ }).click();
+      const tabs = await box.getByRole('tab').allTextContents();
+      expect(tabs.join('|') === 'Visa / Mastercard|PayPal|Google Pay', `pestañas: ${tabs.join('|')}`);
+      await addCard(box, '3782 822463 10005');
+      await box.getByText('Solo aceptamos tarjetas Visa y Mastercard').waitFor();
+      await box.getByPlaceholder('Número de tarjeta').fill('5555 5555 5555 4444');
+      await box.getByRole('button', { name: 'Guardar método de pago' }).click();
+      await box.getByText('Mastercard •••• 4444').waitFor();
+      await box.getByRole('button', { name: /Añadir método de pago/ }).click();
+      await box.getByRole('tab', { name: 'PayPal' }).click();
+      await box.getByPlaceholder('Email de tu cuenta PayPal').fill('ana.paypal');
+      await box.getByRole('button', { name: 'Vincular PayPal' }).click();
+      await box.getByText('Escribe el email de tu cuenta de PayPal').waitFor();
+      await box.getByPlaceholder('Email de tu cuenta PayPal').fill('ana.paypal@test.com');
+      await box.getByRole('button', { name: 'Vincular PayPal' }).click();
+      await box.getByText('PayPal · an•••@test.com').waitFor();
+      await box.getByRole('button', { name: /Añadir método de pago/ }).click();
+      await box.getByRole('tab', { name: 'Google Pay' }).click();
+      await box.getByPlaceholder('Email de tu cuenta de Google').fill('ana.google@test.com');
+      await box.getByRole('button', { name: 'Vincular Google Pay' }).click();
+      await box.getByText('Google Pay · an•••@test.com').waitFor();
+      await box.locator('div.border', { hasText: 'PayPal · an•••@test.com' }).getByRole('button', { name: 'Hacer principal' }).click();
+      await page.reload();
+      const rows = page.getByTestId('payment-methods').locator('div.border', { hasText: 'PayPal · an•••@test.com' });
+      await rows.getByText('Principal').waitFor();
+      await page.getByRole('button', { name: 'Eliminar Google Pay · an•••@test.com' }).click();
+      await page.reload();
+      expect((await page.getByText('Google Pay · an•••@test.com').count()) === 0, 'no se eliminó');
+    });
+    await check('Reportar una publicación desde el perfil del creador', async () => {
+      await page.goto(`${BASE}/creator/1`);
+      await page.getByRole('button', { name: 'Reportar publicación' }).first().click();
+      const dialog = page.getByRole('dialog', { name: 'Reportar' });
+      await dialog.getByRole('button', { name: 'Enviar reporte' }).click();
+      await dialog.getByText(/mínimo 10 caracteres/).waitFor();
+      await dialog.getByLabel('Descripción del reporte').fill('Esta publicación incumple las normas');
+      await dialog.getByRole('button', { name: 'Enviar reporte' }).click();
+      await dialog.getByText('Reporte enviado').waitFor();
+      await dialog.getByRole('button', { name: 'Cerrar' }).click();
+    });
+    await check('Bloquear a un creador lo oculta, aparece en Bloqueos y se puede desbloquear', async () => {
+      await page.goto(`${BASE}/creator/2`);
+      await page.getByRole('button', { name: 'Bloquear' }).click();
+      await page.getByText('Has bloqueado a Diego Torres').waitFor();
+      await page.goto(`${BASE}/explore`);
+      await page.getByText('Valentina Rose').first().waitFor();
+      expect((await page.getByText('Diego Torres').count()) === 0, 'sigue apareciendo en Explorar');
+      await page.goto(`${BASE}/settings?section=blocking`);
+      await page.getByTestId('blocked-users').getByText('Diego Torres').waitFor();
+      await page.getByRole('button', { name: 'Desbloquear' }).click();
+      await page.getByText('No has bloqueado a ningún usuario').waitFor();
+      await page.goto(`${BASE}/explore`);
+      await page.getByText('Diego Torres').first().waitFor();
+    });
+    await check('Un fan puede solicitar la verificación y ve el estado "en revisión"', async () => {
+      await submitVerification(page, { birth: '2015-01-01' });
+      await page.getByText('Debes ser mayor de 18 años').waitFor();
+      await page.fill('input[name=birthDate]', '1992-03-04');
+      await page.getByRole('button', { name: 'Enviar para verificación' }).click();
+      await page.getByText('Solicitud en revisión').waitFor();
+      await page.reload();
+      await page.getByText('Solicitud en revisión').waitFor();
+    });
+    await check('Descargar mis datos genera un archivo JSON', async () => {
+      await page.goto(`${BASE}/settings?section=privacy`);
+      const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: /Descargar/ }).click()]);
+      expect(download.suggestedFilename().startsWith('sugarfans-mis-datos'), 'nombre de archivo inesperado');
     });
     await check('La suscripción aparece en el perfil y se puede cancelar', async () => {
       await page.goto(`${BASE}/profile`);
@@ -420,7 +578,107 @@ const run = async () => {
       await register(page, { name: 'Lola Creadora', email: creatorEmail, password: 'clave-creadora-1', role: 'creator' });
       await waitPath(page, '/creator/dashboard');
     });
+    await check('Un creador sin verificar no puede publicar', async () => {
+      await page.getByTestId('verification-banner').waitFor();
+      await page.getByRole('button', { name: /Nueva Publicación/ }).click();
+      await page.fill('textarea', 'Intento sin verificar');
+      await page.getByRole('button', { name: 'Publicar' }).click();
+      await page.getByText('Verifica tu identidad antes de publicar contenido').waitFor();
+    });
+    await check('Verificación: exige las fotos del documento', async () => {
+      await page.goto(`${BASE}/settings?section=verification`);
+      await page.fill('input[name=legalName]', 'Lola Creadora');
+      await page.fill('input[name=birthDate]', '1995-07-07');
+      await page.fill('input[name=country]', 'España');
+      await page.fill('input[name=docNumber]', 'X1234567');
+      await page.getByRole('button', { name: 'Enviar para verificación' }).click();
+      await page.getByText('Sube la foto del frente de tu documento').waitFor();
+      expect((await page.locator('input[type=file]').count()) === 2, 'la verificación debe pedir solo 2 fotos');
+    });
+    await check('Verificación: el creador envía documento y selfie', async () => {
+      await submitVerification(page, { name: 'Lola Creadora' });
+      await page.getByText('Solicitud en revisión').waitFor();
+      await page.goto(`${BASE}/creator/dashboard`);
+      await page.getByTestId('verification-banner').getByText(/en revisión/).waitFor();
+    });
+    await check('Admin ve los documentos, rechaza la del fan con motivo y aprueba la del creador', async () => {
+      await logoutViaMenu(page);
+      await login(page, 'admin@sugarfans.com', 'demo1234');
+      await waitPath(page, '/explore');
+      await page.goto(`${BASE}/admin`);
+      await page.getByRole('button', { name: /Verificaciones \(2\)/ }).click();
+      const list = page.getByTestId('admin-verifications');
+      await list.locator('div.p-4', { hasText: 'Ana Editada' }).getByRole('button', { name: /Revisar documentos/ }).click();
+      const dialog = page.getByRole('dialog', { name: 'Revisar documentos' });
+      await dialog.getByRole('img', { name: 'Selfie' }).waitFor();
+      await dialog.getByRole('button', { name: /Rechazar/ }).click();
+      await dialog.getByText('Indica el motivo del rechazo').waitFor();
+      await dialog.getByPlaceholder(/Motivo del rechazo/).fill('La foto del documento está borrosa');
+      await dialog.getByRole('button', { name: /Rechazar/ }).click();
+      await list.locator('div.p-4', { hasText: 'Lola Creadora' }).getByRole('button', { name: /Revisar documentos/ }).click();
+      await dialog.getByText('X1234567').or(dialog.getByText('ABC123456')).first().waitFor();
+      await dialog.getByRole('button', { name: /Aprobar identidad/ }).click();
+      await page.getByText('Identidad de Lola Creadora aprobada').waitFor();
+      await list.getByText('No hay solicitudes pendientes').waitFor();
+      await list.getByText('Rechazada: La foto del documento está borrosa').waitFor();
+    });
+    await check('Admin crea un perfil IA sin verificación: lleva P-IA y los humanos verificados Verify', async () => {
+      await page.getByRole('button', { name: /Perfiles gestionados/ }).click();
+      const box = page.getByTestId('managed-profiles');
+      await box.getByRole('button', { name: /Nuevo perfil/ }).click();
+      await page.fill('input[name=managedName]', 'Luna Neón');
+      await page.fill('input[name=managedUsername]', 'valentina_rose');
+      await page.fill('textarea[name=managedBio]', 'Personaje virtual de moda y lifestyle.');
+      await page.fill('input[name=managedPrice]', '7.5');
+      await page.setInputFiles('input[name=managedAvatar]', photo('luna.png'));
+      await box.getByRole('button', { name: 'Guardar perfil' }).click();
+      await box.getByText('Ese nombre de usuario ya existe').waitFor();
+      await page.fill('input[name=managedUsername]', 'luna_neon');
+      await box.getByRole('button', { name: 'Guardar perfil' }).click();
+      await box.getByText('Perfil creado y publicado en Explorar').waitFor();
+      await box.getByTestId('managed-row').filter({ hasText: 'Luna Neón' }).getByText('P-IA').waitFor();
+      await page.goto(`${BASE}/explore`);
+      const card = page.locator('a', { hasText: 'Luna Neón' });
+      await card.getByTestId('managed-badge').getByText('P-IA', { exact: true }).waitFor();
+      await card.click();
+      await page.getByRole('heading', { name: 'Luna Neón' }).waitFor();
+      await page.getByTestId('managed-badge').getByText('P-IA', { exact: true }).waitFor();
+      expect((await page.getByText('Verify', { exact: true }).count()) === 0, 'un perfil IA no debe llevar Verify');
+      await page.goto(`${BASE}/creator/1`);
+      await page.getByText('Verify', { exact: true }).waitFor();
+      expect((await page.getByTestId('managed-badge').count()) === 0, 'una creadora humana no debe llevar P-IA');
+    });
+    await check('Admin oculta y elimina un perfil gestionado', async () => {
+      await page.goto(`${BASE}/admin`);
+      await page.getByRole('button', { name: /Perfiles gestionados/ }).click();
+      const row = page.getByTestId('managed-row').filter({ hasText: 'Luna Neón' });
+      await row.getByRole('button', { name: 'Ocultar' }).click();
+      await row.getByText('Oculto').waitFor();
+      await page.goto(`${BASE}/explore`);
+      await page.getByText('Valentina Rose').first().waitFor();
+      expect((await page.getByText('Luna Neón').count()) === 0, 'el perfil oculto sigue en Explorar');
+      await page.goto(`${BASE}/admin`);
+      await page.getByRole('button', { name: /Perfiles gestionados/ }).click();
+      await page.getByTestId('managed-row').filter({ hasText: 'Luna Neón' }).getByRole('button', { name: 'Eliminar' }).click();
+      await page.getByText('Perfil eliminado').waitFor();
+      expect((await page.getByTestId('managed-row').count()) === 0, 'no se eliminó');
+    });
+    await check('Admin ve el reporte y retira la publicación reportada', async () => {
+      await page.getByRole('button', { name: /Reportes \(2\)/ }).click();
+      const table = page.getByTestId('admin-reports');
+      await table.getByText('Esta publicación incumple las normas').waitFor();
+      await table.getByRole('button', { name: /Retirar contenido/ }).click();
+      await table.getByText('Contenido retirado').waitFor();
+      await page.goto(`${BASE}/creator/1`);
+      const remaining = await page.getByRole('button', { name: 'Reportar publicación' }).count();
+      expect(remaining === 1, `se esperaba 1 publicación visible, hay ${remaining}`);
+      await logoutViaMenu(page);
+      await login(page, creatorEmail, 'clave-creadora-1');
+      await waitPath(page, '/explore');
+      await page.goto(`${BASE}/creator/dashboard`);
+    });
     await check('Nueva publicación se guarda y persiste', async () => {
+      expect((await page.getByTestId('verification-banner').count()) === 0, 'sigue el aviso de verificación');
       await page.getByRole('button', { name: /Nueva Publicación/ }).click();
       await page.fill('textarea', 'Mi primera publicación de prueba');
       await page.getByRole('button', { name: /Exclusivo/ }).click();
@@ -453,7 +711,112 @@ const run = async () => {
       await page.getByText(/precio debe estar/).waitFor();
     });
 
+    console.log('\nIngresos y retiros del creador');
+    await check('Creadora nueva: saldo 0 y no puede retirar por debajo de $50', async () => {
+      await page.goto(`${BASE}/creator/dashboard?tab=earnings`);
+      expect((await readAmount(page, 'available-balance')) === 0, 'saldo inicial inesperado');
+      expect(await page.getByRole('button', { name: 'Retirar $0.00' }).isDisabled(), 'el botón de retiro no está bloqueado');
+      await page.getByText(/Podrás retirar cuando tu saldo disponible llegue a \$50\.00/).waitFor();
+      expect((await page.locator('input[name=payoutAmount]').count()) === 0, 'no debe poder elegir el monto');
+    });
+    await check('Creadora demo: 80% de los pagos; lo de este mes se acredita el día 1', async () => {
+      await logoutViaMenu(page);
+      await login(page, 'creator@sugarfans.com', 'demo1234');
+      await waitPath(page, '/explore');
+      await page.goto(`${BASE}/creator/dashboard?tab=earnings`);
+      // 80% of (9.99 subscription + 2 x 9.99 renewals) = 23.98 in total, no demo money.
+      // The renewal from last month is credited; this month's payments wait for the 1st.
+      const available = (await readAmount(page, 'available-balance'));
+      const pending = (await readAmount(page, 'pending-balance'));
+      expect(Math.abs(available + pending - 23.98) < 0.02, `total inesperado: ${available} + ${pending}`);
+      expect(pending >= 7.99, 'el pago de este mes debería estar por acreditar');
+      await page.getByText('+$7.99').first().waitFor();
+    });
+    const addSale = (amount, monthsAgo) =>
+      page.evaluate(([amount, monthsAgo]) => {
+        const data = JSON.parse(localStorage.getItem('sugarfans_platform'));
+        const d = new Date();
+        d.setUTCDate(10);
+        d.setUTCMonth(d.getUTCMonth() - monthsAgo);
+        const id = `tx-e2e-${amount}-${monthsAgo}-${data.transactions.length}`;
+        data.transactions.push({
+          id, key: id, payerId: null, payerName: 'Fan de prueba', creatorProfileId: '1', creatorName: 'Valentina Rose',
+          kind: 'subscription', amount, methodLabel: 'Visa •••• 4242', status: 'paid', createdAt: d.toISOString(),
+        });
+        localStorage.setItem('sugarfans_platform', JSON.stringify(data));
+      }, [amount, monthsAgo]);
+    await check('Creadora demo: retira siempre el saldo completo y queda pagado al momento', async () => {
+      const before = (await readAmount(page, 'available-balance'));
+      const pendingBefore = (await readAmount(page, 'pending-balance'));
+      await addSale(100, 1); // credited on this month's 1st: +80
+      await addSale(50, 0); // paid this month: waits for next 1st (+40 pending)
+      await page.reload();
+      const available = (await readAmount(page, 'available-balance'));
+      expect(Math.abs(available - (before + 80)) < 0.001, `saldo inesperado: ${available}`);
+      expect(Math.abs((await readAmount(page, 'pending-balance')) - (pendingBefore + 40)) < 0.001, 'no quedó por acreditar');
+      const label = `Retirar ${money(available)}`;
+      await page.getByRole('button', { name: label }).click();
+      await page.getByText('Añade una cuenta bancaria para retiros').waitFor();
+      await page.getByPlaceholder('Titular de la cuenta').fill('Valentina Rose');
+      await page.getByPlaceholder('Banco').fill('Banco Dos');
+      await page.getByPlaceholder('IBAN / CLABE / número de cuenta').fill('002010077777777771');
+      await page.getByRole('button', { name: 'Guardar cuenta' }).click();
+      await page.getByText('Banco Dos •••• 7771').waitFor();
+      await page.getByRole('button', { name: label }).click();
+      await page.getByText(`Retiro pagado: ${money(available)} enviados a tu cuenta`).waitFor();
+      await waitAmount(page, 'available-balance', '$0.00');
+      const paid = page.getByTestId('payouts');
+      await paid.getByText('Pagado', { exact: true }).waitFor();
+      await paid.getByText(`Retiraste ${money(available)}`).waitFor();
+      await paid.getByText(`Disponías de ${money(available)}`).waitFor();
+      await paid.locator('i.fa-check-circle.text-green-600').first().waitFor({ state: 'attached' });
+      expect(Math.abs((await readAmount(page, 'pending-balance')) - (pendingBefore + 40)) < 0.001, 'se retiró lo que aún no estaba acreditado');
+    });
+    await check('Los saldos no retirados se acumulan hasta el siguiente retiro', async () => {
+      await addSale(40, 1);
+      await addSale(40, 2);
+      await page.reload();
+      expect((await readAmount(page, 'available-balance')) === 64, 'no se acumularon 32 + 32');
+      expect(!(await page.getByRole('button', { name: 'Retirar $64.00' }).isDisabled()), 'debería poder retirar');
+    });
+    await check('La creadora ve a un suscriptor real, lo bloquea y él deja de ver su perfil', async () => {
+      await logoutViaMenu(page);
+      await login(page, 'fan@sugarfans.com', 'demo1234');
+      await waitPath(page, '/explore');
+      await page.goto(`${BASE}/creator/1`);
+      await page.getByRole('button', { name: /Suscribirse \$/ }).first().click();
+      await page.getByRole('dialog').getByText('Visa •••• 4242').waitFor();
+      await page.getByRole('button', { name: /Suscribirme y pagar/ }).click();
+      await page.getByRole('button', { name: /Suscrito/ }).waitFor();
+      await logoutViaMenu(page);
+      await login(page, 'creator@sugarfans.com', 'demo1234');
+      await waitPath(page, '/explore');
+      await page.goto(`${BASE}/creator/dashboard`);
+      await page.getByRole('button', { name: /Suscriptores/ }).click();
+      await page.getByText('Carlos M.').waitFor();
+      await page.getByRole('button', { name: 'Bloquear a Carlos M.' }).click();
+      await page.getByRole('button', { name: 'Desbloquear' }).waitFor();
+      await logoutViaMenu(page);
+      await login(page, 'fan@sugarfans.com', 'demo1234');
+      await waitPath(page, '/explore');
+      await page.getByText('Diego Torres').first().waitFor();
+      expect((await page.getByText('Valentina Rose').count()) === 0, 'la creadora que lo bloqueó sigue visible');
+      await page.goto(`${BASE}/creator/1`);
+      await page.getByText('Perfil no disponible').waitFor();
+    });
+
     console.log('\nPanel de administración');
+    await check('Admin solo consulta los retiros: sin botones de pagar o rechazar', async () => {
+      await logoutViaMenu(page);
+      await login(page, 'admin@sugarfans.com', 'demo1234');
+      await waitPath(page, '/explore');
+      await page.goto(`${BASE}/admin`);
+      await page.getByRole('button', { name: 'Retiros', exact: true }).click();
+      const box = page.getByTestId('admin-payouts');
+      await box.getByText(/Valentina Rose · \$/).first().waitFor();
+      await box.getByText('Pagado', { exact: true }).waitFor();
+      expect((await box.getByRole('button').count()) === 0, 'el admin aún tiene acciones sobre retiros');
+    });
     await check('Admin ve las cuentas reales y puede buscarlas', async () => {
       await logoutViaMenu(page);
       await login(page, 'admin@sugarfans.com', 'demo1234');
@@ -535,6 +898,12 @@ const run = async () => {
       await page.getByRole('link', { name: 'Iniciar Sesión' }).first().waitFor();
       await login(page, fanEmail, 'nueva-clave-2');
       expect((await errorText(page))?.includes('incorrectos'), 'la cuenta borrada aún entra');
+    });
+    await check('Eliminar la cuenta borra sus métodos de pago y documentos', async () => {
+      const data = await platformData(page);
+      expect(!data.paymentMethods.some((m) => m.label === 'PayPal · an•••@test.com'), 'quedaron métodos de pago');
+      expect(!data.verifications.some((v) => v.userName === 'Ana Editada'), 'quedaron documentos de verificación');
+      expect(data.transactions.some((t) => t.payerName === 'Cuenta eliminada'), 'los pagos no se anonimizaron');
     });
     await check('Se puede volver a registrar con el email de la cuenta eliminada', async () => {
       await register(page, { name: 'Ana Vuelve', email: fanEmail, password: 'clave-segura-9' });

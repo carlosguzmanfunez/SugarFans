@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
-import { creators } from '../data/mockData';
+import { useCreatorCatalog } from '../lib/catalog';
 import { statusLabel, formatLongDate, type BookingStatus } from '../lib/vip';
 import { backend } from '../lib/backend';
 import { useBackendData } from '../lib/useBackendData';
+import { usePlatformQuery, platformApi, nextRenewal } from '../lib/platform';
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 
 const Profile: React.FC = () => {
   const { user, toggleSubscription } = useAuth();
+  const { creators } = useCreatorCatalog();
   const { data: myBookings, reload } = useBackendData(() => (user ? backend.fanBookings(user.id) : Promise.resolve([])), [user?.id], []);
+  const { data: verification } = usePlatformQuery(() => (user ? platformApi.myVerification(user.id) : Promise.resolve(null)), [user?.id], null);
   const [bookingError, setBookingError] = useState('');
 
   if (!user) return null;
@@ -37,6 +40,11 @@ const Profile: React.FC = () => {
             <div className="mt-4">
               <div className="flex items-center space-x-2">
                 <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
+                {user.isVerified && (
+                  <span className="flex items-center bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                    <i className="fas fa-check-circle mr-1"></i> Verify
+                  </span>
+                )}
                 <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                   user.role === 'admin' ? 'bg-red-100 text-red-700' :
                   user.role === 'creator' ? 'bg-purple-100 text-purple-700' :
@@ -147,7 +155,7 @@ const Profile: React.FC = () => {
                       <img src={creator.avatar} alt="" className="w-8 h-8 rounded-full" />
                       <div>
                         <p className="text-sm font-medium text-gray-900">{creator.name}</p>
-                        <p className="text-xs text-gray-500">Desde {formatDate(sub.since)} · ${sub.price}/mes</p>
+                        <p className="text-xs text-gray-500">Desde {formatDate(sub.since)} · ${sub.price}/mes · Renueva {formatDate(nextRenewal(sub.since).toISOString())}</p>
                       </div>
                     </Link>
                     <button
@@ -183,6 +191,18 @@ const Profile: React.FC = () => {
                 <p className="font-medium text-green-600"><i className="fas fa-check-circle mr-1"></i> Verificado</p>
               ) : (
                 <p className="font-medium text-yellow-600"><i className="fas fa-clock mr-1"></i> Pendiente</p>
+              )}
+            </div>
+            <div>
+              <p className="text-gray-500">Verificación de identidad</p>
+              {user.isVerified ? (
+                <p className="font-medium text-green-600"><i className="fas fa-check-circle mr-1"></i> Verificada</p>
+              ) : verification?.status === 'pending' ? (
+                <p className="font-medium text-yellow-600"><i className="fas fa-clock mr-1"></i> En revisión</p>
+              ) : (
+                <Link to="/settings?section=verification" className="font-medium text-pink-600 hover:text-pink-700">
+                  <i className="fas fa-id-card mr-1"></i> {verification?.status === 'rejected' ? 'Rechazada · volver a enviar' : 'Verificar identidad'}
+                </Link>
               )}
             </div>
             <div>
