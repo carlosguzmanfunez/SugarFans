@@ -50,11 +50,13 @@ export interface Transaction {
   payerName: string;
   creatorProfileId: string;
   creatorName: string;
-  kind: 'subscription' | 'renewal' | 'tip';
+  kind: 'subscription' | 'renewal' | 'tip' | 'gift';
   amount: number;
-  note?: string; // the fan's message with a tip
+  note?: string; // the fan's message with a tip or gift
+  share?: number; // creator's cut; 80% unless set (gifts pay 60%)
+  giftId?: string;
   methodLabel: string;
-  status: 'paid' | 'failed';
+  status: 'paid' | 'failed' | 'refunded';
   createdAt: string;
 }
 

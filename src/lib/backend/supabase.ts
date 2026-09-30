@@ -7,6 +7,7 @@ import { DEFAULT_AVAILABILITY, normalizeAvailability } from '../vip';
 import type { Backend, BookingStatus, User, UserRole, VipBooking } from './types';
 import { createSupabasePlatform } from './supabasePlatform';
 import { createSupabaseSocial } from './supabaseSocial';
+import { createSupabaseGifts } from './supabaseGifts';
 
 const REMEMBER_KEY = 'sugarfans_remember';
 
@@ -150,6 +151,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
     mode: 'supabase',
     platform: createSupabasePlatform(sb),
     social: createSupabaseSocial(sb),
+    gifts: createSupabaseGifts(sb),
 
     async getCurrentUser() {
       const { data: sessionData } = await sb.auth.getSession();

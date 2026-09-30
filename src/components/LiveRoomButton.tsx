@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { vipExperiences } from '../data/mockData';
-import { durationMinutes, liveState, liveWindow, type VipBooking } from '../lib/vip';
+import { sessionMinutes, liveState, liveWindow, type VipBooking } from '../lib/vip';
 
 // "Join live session" for a confirmed booking of a live experience (one with a duration).
 const LiveRoomButton: React.FC<{ booking: VipBooking }> = ({ booking }) => {
@@ -11,7 +10,7 @@ const LiveRoomButton: React.FC<{ booking: VipBooking }> = ({ booking }) => {
     return () => clearInterval(t);
   }, []);
 
-  const minutes = durationMinutes(vipExperiences.find((e) => e.id === booking.experienceId)?.duration);
+  const minutes = sessionMinutes(booking.experienceId);
   if (!minutes || booking.status !== 'confirmed') return null;
 
   const state = liveState(booking.date, booking.time, minutes, now);

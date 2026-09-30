@@ -1,8 +1,10 @@
 // Shared domain types and the contract every data backend implements.
 import type { PlatformBackend } from './platformTypes';
 import type { MediaUpload, SocialBackend } from './socialTypes';
+import type { GiftsBackend } from './giftTypes';
 export type * from './platformTypes';
 export type * from './socialTypes';
+export type * from './giftTypes';
 
 // Two backends exist: Supabase (real, shared across devices) and a local
 // browser-only one used when Supabase is not configured (dev, tests).
@@ -142,4 +144,6 @@ export interface Backend {
   platform: PlatformBackend;
   // Likes, comments, uploads and live rooms (see socialTypes.ts).
   social: SocialBackend;
+  // Terrones, gifts, Círculo privado and gift perks (see giftTypes.ts).
+  gifts: GiftsBackend;
 }

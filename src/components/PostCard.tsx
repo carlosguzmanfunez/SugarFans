@@ -31,11 +31,12 @@ interface Props {
   onSubscribe: () => void;
   onNeedLogin: () => void;
   onTip: () => void;
+  onGift?: () => void;
   onReport: () => void;
   onDelete?: () => void; // the author, or an admin on a platform-run profile
 }
 
-const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner, subscribeLabel, onSubscribe, onNeedLogin, onTip, onReport, onDelete }) => {
+const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner, subscribeLabel, onSubscribe, onNeedLogin, onTip, onGift, onReport, onDelete }) => {
   const [showComments, setShowComments] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
@@ -127,7 +128,12 @@ const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner,
           </button>
           {!isOwner && (
             <button onClick={() => (viewer ? onTip() : onNeedLogin())} className="flex items-center text-sm hover:text-pink-500 transition">
-              <i className="fas fa-gift mr-1"></i> Propina
+              <i className="fas fa-hand-holding-usd mr-1"></i> Propina
+            </button>
+          )}
+          {!isOwner && onGift && (
+            <button onClick={() => (viewer ? onGift() : onNeedLogin())} className="flex items-center text-sm hover:text-pink-500 transition">
+              <i className="fas fa-gift mr-1"></i> Regalo
             </button>
           )}
           <button onClick={share} className="flex items-center text-sm hover:text-pink-500 transition ml-auto">

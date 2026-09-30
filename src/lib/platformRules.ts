@@ -173,13 +173,16 @@ export const validateReport = (input: ReportInput, signedIn: boolean): Check => 
 export const creditCutoff = (at = new Date()) => new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), 1)).toISOString();
 export const nextCreditDate = (at = new Date()) => new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth() + 1, 1)).toISOString();
 
-// The creator keeps 80% of what fans paid. Earnings are credited on the 1st of
+// What the creator earns from one payment: 80%, or 60% of a gift.
+export const creatorCut = (t: Pick<Transaction, 'amount' | 'share'>) => t.amount * (t.share ?? CREATOR_SHARE);
+
+// The creator keeps 80% of what fans paid (60% of gifts). Earnings are credited on the 1st of
 // each month (everything paid before that day) and add up until withdrawn; a
 // withdrawal always takes the whole credited balance.
 export const computeEarnings = (sales: Transaction[], payouts: Payout[], at = new Date()) => {
   const paid = sales.filter((t) => t.status === 'paid');
   const cutoff = creditCutoff(at);
-  const share = (list: Transaction[]) => round2(list.reduce((s, t) => s + t.amount, 0) * CREATOR_SHARE);
+  const share = (list: Transaction[]) => round2(list.reduce((s, t) => s + creatorCut(t), 0));
   const credited = share(paid.filter((t) => t.createdAt < cutoff));
   const pending = share(paid.filter((t) => t.createdAt >= cutoff));
   const withdrawn = round2(payouts.reduce((s, p) => s + p.amount, 0));
@@ -233,4 +236,5 @@ export const transactionLabel: Record<Transaction['kind'], string> = {
   subscription: 'Suscripción',
   renewal: 'Renovación',
   tip: 'Propina',
+  gift: 'Regalo',
 };

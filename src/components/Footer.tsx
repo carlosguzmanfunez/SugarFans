@@ -27,7 +27,7 @@ const Footer: React.FC = () => {
             <h3 className="text-white font-semibold mb-4">{t('footer.platform')}</h3>
             <ul className="space-y-2 text-sm">
               <li><Link to="/explore" className="hover:text-pink-400 transition">{t('footer.explore')}</Link></li>
-              <li><Link to="/pricing" className="hover:text-pink-400 transition">{t('footer.pricing')}</Link></li>
+              <li><Link to="/register?role=creator" className="hover:text-pink-400 transition">{t('footer.pricing')}</Link></li>
               <li><Link to="/help" className="hover:text-pink-400 transition">{t('footer.help')}</Link></li>
               <li><Link to="/register" className="hover:text-pink-400 transition">{t('footer.becomeCreator')}</Link></li>
             </ul>

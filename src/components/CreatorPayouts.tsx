@@ -9,10 +9,12 @@ import {
   requestPayout,
   money,
   CREATOR_SHARE,
+  creatorCut,
   MIN_PAYOUT,
   nextCreditDate,
   transactionLabel,
 } from '../lib/platform';
+import { GIFT_SHARE } from '../lib/giftRules';
 
 const field = 'w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-sm';
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -72,7 +74,7 @@ const CreatorPayouts: React.FC = () => {
       )}
       <div className="bg-white rounded-2xl shadow-sm p-6">
         <h3 className="font-bold text-gray-900 mb-1">Resumen de Ingresos</h3>
-        <p className="text-sm text-gray-500 mb-4">Recibes el {CREATOR_SHARE * 100}% de lo que pagan tus fans; la plataforma retiene el {100 - CREATOR_SHARE * 100}%.</p>
+        <p className="text-sm text-gray-500 mb-4">Recibes el {CREATOR_SHARE * 100}% de lo que pagan tus fans ({GIFT_SHARE * 100}% de los regalos); el resto queda para la plataforma.</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-green-50 rounded-xl p-4">
             <p className="text-sm text-green-700">Saldo disponible</p>
@@ -160,9 +162,16 @@ const CreatorPayouts: React.FC = () => {
               <div key={t.id} className="py-3 flex items-center justify-between text-sm">
                 <div>
                   <p className="font-medium text-gray-900">{transactionLabel[t.kind]} · {t.payerName}</p>
-                  <p className="text-xs text-gray-500">{fmtDate(t.createdAt)} · pagó {money(t.amount)}</p>
+                  <p className="text-xs text-gray-500">
+                    {fmtDate(t.createdAt)} · pagó {money(t.amount)}
+                    {t.kind === 'gift' && t.note ? ` · ${t.note}` : ''}
+                  </p>
                 </div>
-                <span className="font-bold text-green-700">+{money(t.amount * CREATOR_SHARE)}</span>
+                {t.status === 'refunded' ? (
+                  <span className="text-xs font-medium text-gray-500">Devuelto al fan</span>
+                ) : (
+                  <span className="font-bold text-green-700">+{money(creatorCut(t))}</span>
+                )}
               </div>
             ))}
           </div>

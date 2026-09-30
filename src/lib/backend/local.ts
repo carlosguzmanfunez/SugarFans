@@ -15,6 +15,7 @@ import {
 import type { Availability, Backend, BookingStatus, User, VipBooking } from './types';
 import { createLocalPlatform } from './localPlatform';
 import { createLocalSocial } from './localSocial';
+import { createLocalGifts } from './localGifts';
 
 interface StoredAccount extends User {
   passwordHash: string;
@@ -156,6 +157,18 @@ const social = createLocalSocial({
   notify,
 });
 
+const gifts = createLocalGifts({
+  ledger: platform.ledger,
+  listAccounts: () => loadAccounts().map(toPublic),
+  addBooking: (b) => {
+    if (takenFor(b.creatorProfileId).some((t) => t.date === b.date && t.time === b.time))
+      return { ok: false, error: 'Ya tienes otra sesión a esa hora. Elige otro horario.' };
+    saveBookings([...listBookings(), b]);
+    return { ok: true };
+  },
+  notify,
+});
+
 const ok = { ok: true } as const;
 const fail = (error: string) => ({ ok: false, error });
 
@@ -163,6 +176,7 @@ export const localBackend: Backend = {
   mode: 'local',
   platform,
   social,
+  gifts,
 
   async getCurrentUser() {
     const id = readSession();
@@ -247,6 +261,7 @@ export const localBackend: Backend = {
     saveAccounts(loadAccounts().filter((a) => a.id !== user.id));
     saveBookings(listBookings().filter((b) => b.fanId !== user.id));
     await platform.purgeUser(user.id);
+    await gifts.purgeUser(user.id);
     writeSession(null);
     return ok;
   },

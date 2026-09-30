@@ -39,7 +39,7 @@ const tx = async <T,>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBRe
   });
 };
 const urls = new Map<string, string>();
-const fileUrl = async (path: string) => {
+export const fileUrl = async (path: string) => {
   if (urls.has(path)) return urls.get(path);
   const blob = await tx<Blob | undefined>('readonly', (s) => s.get(path) as IDBRequest<Blob | undefined>).catch(() => undefined);
   if (!blob) return undefined;

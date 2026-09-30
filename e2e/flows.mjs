@@ -1163,6 +1163,192 @@ const run = async () => {
     });
     await social.close();
 
+    // ------------------------------------------------------------------
+    const giftsCtx = await newContext(browser, { locale: 'es-ES' });
+    const gc = await newPage(giftsCtx);
+    const gf = await newPage(giftsCtx);
+    for (const pg of [gc, gf]) {
+      await pg.goto(`${BASE}/age-verification`);
+      await pg.getByRole('button', { name: /Soy mayor|18/ }).first().click();
+    }
+    await login(gc, 'creator@sugarfans.com', 'demo1234', { remember: false });
+    await waitPath(gc, '/explore');
+    await login(gf, 'fan@sugarfans.com', 'demo1234', { remember: false });
+    await waitPath(gf, '/explore');
+    const giftsData = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('sugarfans_gifts') || '{}'));
+    const balanceText = (page) => page.getByTestId('wallet-balance').textContent();
+    const buyPack = async (page, name, price) => {
+      await page.getByRole('button', { name: 'Comprar terrones' }).first().click();
+      await page.getByRole('dialog', { name: 'Comprar terrones' }).getByTestId('coin-pack').filter({ hasText: name }).click();
+      await page.getByRole('button', { name: `Comprar terrones ${price}` }).click();
+    };
+    const openGift = async (page) => {
+      await page.goto(`${BASE}/creator/1`);
+      await page.getByRole('button', { name: 'Enviar regalo' }).click();
+      return page.getByRole('dialog', { name: /Regalo para Valentina Rose/ });
+    };
+    // Coins bought on another day (keeps the daily limit out of the way).
+    const grantCoins = (page, coins) =>
+      page.evaluate((c) => {
+        const s = JSON.parse(localStorage.getItem('sugarfans_gifts') || '{}');
+        const old = new Date(Date.now() - 3 * 86400000).toISOString();
+        s.purchases = [...(s.purchases || []), { id: 'seed-' + c, userId: 'demo-fan', packId: 'tesoro', coins: c, price: c / 100, methodLabel: 'Visa •••• 4242', createdAt: old }];
+        localStorage.setItem('sugarfans_gifts', JSON.stringify(s));
+      }, coins);
+
+    console.log('\nRegalos: terrones, Círculo privado, Bóveda, video y videollamada');
+    await check('Terrones: el fan compra un paquete neto y recibe el valor completo', async () => {
+      await gf.goto(`${BASE}/settings?section=wallet`);
+      expect((await balanceText(gf)).includes('0'), 'el saldo inicial no es 0');
+      await buyPack(gf, 'Frasco', '$9.99');
+      await gf.getByText('Compra completada: 1,000 terrones añadidos').waitFor();
+      expect((await balanceText(gf)).includes('1,000'), 'no se acreditaron 1,000 terrones');
+      await gf.getByTestId('coin-purchase').filter({ hasText: '$9.99' }).waitFor();
+    });
+    await check('Sin verificar su identidad, el fan no puede comprar más de $300 al día', async () => {
+      await buyPack(gf, 'Cofre', '$249.99');
+      await gf.getByText('Compra completada: 25,000 terrones añadidos').waitFor();
+      await buyPack(gf, 'Saco', '$49.99');
+      await gf.getByRole('alert').getByText(/puedes comprar hasta \$300 al día/).waitFor();
+      await gf.getByRole('dialog').getByRole('button', { name: 'Cerrar' }).click();
+      expect((await balanceText(gf)).includes('26,000'), 'el saldo no es 26,000');
+    });
+    await check('El creador elige la entrada al Círculo y ofrece video y videollamada', async () => {
+      await gc.goto(`${BASE}/creator/dashboard?tab=gifts`);
+      await gc.fill('input[name=circleMin]', '20');
+      await gc.getByLabel(/Ofrezco video personalizado/).check();
+      await gc.getByLabel(/Ofrezco videollamada privada/).check();
+      await gc.getByRole('button', { name: 'Guardar', exact: true }).click();
+      await gc.getByText('La entrada al Círculo debe estar entre $50 y $1000').waitFor();
+      await gc.fill('input[name=circleMin]', '100');
+      await gc.getByRole('button', { name: 'Guardar', exact: true }).click();
+      await gc.getByText('Configuración de regalos guardada').waitFor();
+    });
+    await check('Un fan sin regalos ve el Círculo cerrado', async () => {
+      await gf.goto(`${BASE}/creator/1?tab=circle`);
+      await gf.getByText(/Entras por 30 días con un regalo de \$100\.00/).waitFor();
+      expect((await gf.getByTestId('circle-chat').count()) === 0, 'el chat del Círculo está abierto sin regalo');
+    });
+    await check('El fan envía una Corona de azúcar y entra al Círculo privado', async () => {
+      const dialog = await openGift(gf);
+      await dialog.getByRole('button', { name: /Corona de azúcar/ }).click();
+      await dialog.getByTestId('gift-perks').getByText('Entras al Círculo privado por 30 días').waitFor();
+      await dialog.getByLabel('Mensaje del regalo').fill('¡Para mi reina!');
+      await dialog.getByRole('button', { name: /Enviar Corona de azúcar/ }).click();
+      await gf.getByText('¡👑 Corona de azúcar enviado a Valentina Rose!').waitFor();
+      const gifts = (await platformData(gf)).transactions.filter((t) => t.kind === 'gift');
+      expect(gifts.length === 1 && gifts[0].amount === 100 && gifts[0].share === 0.6, 'el regalo no se registró con 60%');
+      await gf.getByRole('button', { name: /Círculo/ }).click();
+      await gf.getByTestId('circle-chat').getByText(/Miembro hasta el/).waitFor();
+    });
+    await check('Círculo: fan y creador conversan en el chat privado', async () => {
+      await gf.getByLabel('Mensaje al Círculo').fill('¡Hola Círculo!');
+      await gf.getByTestId('circle-chat').getByRole('button', { name: 'Enviar' }).click();
+      await gf.getByTestId('circle-message').filter({ hasText: '¡Hola Círculo!' }).waitFor();
+      await gc.goto(`${BASE}/creator/1?tab=circle`);
+      await gc.getByTestId('circle-message').filter({ hasText: '¡Hola Círculo!' }).waitFor();
+      await gc.getByLabel('Mensaje al Círculo').fill('¡Bienvenido, Carlos!');
+      await gc.getByTestId('circle-chat').getByRole('button', { name: 'Enviar' }).click();
+      await gf.getByTestId('circle-message').filter({ hasText: '¡Bienvenido, Carlos!' }).getByText('· Creador').waitFor();
+    });
+    await check('Top fans del mes muestra al fan y lo que regaló', async () => {
+      await gf.getByTestId('top-fans').getByText('Carlos M.').waitFor();
+      await gf.getByTestId('top-fans').getByText('$100.00').waitFor();
+    });
+    await check('Sin terrones suficientes el regalo pide comprar más', async () => {
+      const dialog = await openGift(gf);
+      await dialog.getByRole('button', { name: /Castillo de azúcar/ }).click();
+      await dialog.getByRole('button', { name: 'Te faltan 84,000 terrones · Comprar' }).waitFor();
+      await dialog.getByRole('button', { name: 'Cerrar' }).click();
+    });
+    await check('El creador sube contenido a su Bóveda', async () => {
+      await gc.goto(`${BASE}/creator/dashboard?tab=gifts`);
+      await gc.fill('input[name=vaultTitle]', 'Sesión privada');
+      await gc.setInputFiles('input[name=vaultFile]', photo('boveda.png'));
+      await gc.getByRole('button', { name: 'Añadir a la Bóveda' }).click();
+      await gc.getByText('Añadido a tu Bóveda').waitFor();
+      await gc.getByTestId('vault-item').filter({ hasText: 'Sesión privada' }).waitFor();
+    });
+    await check('Con un regalo de $500 el fan abre la Bóveda y pide su video personalizado', async () => {
+      await gf.goto(`${BASE}/creator/1?tab=circle`);
+      expect((await gf.getByTestId('vault').count()) === 0, 'la Bóveda está abierta con un regalo de $100');
+      await grantCoins(gf, 150000);
+      const dialog = await openGift(gf);
+      await dialog.getByRole('button', { name: /Yate de caramelo/ }).click();
+      await dialog.getByTestId('gift-perks').getByText('Video personalizado, entregado en 7 días').waitFor();
+      await dialog.getByLabel('Qué quieres en tu video').fill('Un saludo de cumpleaños');
+      await dialog.getByRole('button', { name: /Enviar Yate de caramelo/ }).click();
+      await gf.getByText(/Yate de caramelo enviado/).waitFor();
+      await gf.getByRole('button', { name: /Círculo/ }).click();
+      await gf.getByTestId('vault').getByTestId('vault-item').filter({ hasText: 'Sesión privada' }).locator('img').waitFor();
+    });
+    await check('Si el video no se entrega en 7 días, el fan recupera sus terrones', async () => {
+      await gf.evaluate(() => {
+        const s = JSON.parse(localStorage.getItem('sugarfans_gifts'));
+        s.perks = s.perks.map((p) => (p.kind === 'video' ? { ...p, dueAt: new Date(Date.now() - 60000).toISOString() } : p));
+        localStorage.setItem('sugarfans_gifts', JSON.stringify(s));
+      });
+      await gf.goto(`${BASE}/settings?section=wallet`);
+      await gf.getByTestId('my-perk').getByText(/te devolvimos los terrones/).waitFor();
+      await gf.getByTestId('sent-gift').filter({ hasText: 'Yate de caramelo' }).getByText('Devuelto').waitFor();
+      expect((await balanceText(gf)).includes('166,000'), `no se devolvieron los terrones: ${await balanceText(gf)}`);
+      const yate = (await platformData(gf)).transactions.find((t) => t.giftId === 'yate');
+      expect(yate.status === 'refunded', 'el regalo no quedó devuelto');
+    });
+    await check('Con $1,000 el creador entrega el video y agenda la videollamada', async () => {
+      const dialog = await openGift(gf);
+      await dialog.getByRole('button', { name: /Castillo de azúcar/ }).click();
+      await dialog.getByTestId('gift-perks').getByText('Videollamada privada, agendada en 30 días').waitFor();
+      await dialog.getByLabel('Qué quieres en tu video').fill('Un saludo para mi hermano');
+      await dialog.getByRole('button', { name: /Enviar Castillo de azúcar/ }).click();
+      await gf.getByText(/Castillo de azúcar enviado/).waitFor();
+      await gc.goto(`${BASE}/creator/dashboard?tab=gifts`);
+      const video = gc.getByTestId('perk-request').filter({ hasText: 'Video personalizado' }).filter({ hasText: 'Pendiente' });
+      await video.getByText('“Un saludo para mi hermano”').waitFor();
+      const webm = Buffer.from(await recordWebm(gc), 'base64');
+      await video.locator('input[name=perkVideo]').setInputFiles({ name: 'saludo.webm', mimeType: 'video/webm', buffer: webm });
+      await gc.getByText('Video entregado a Carlos M.').waitFor();
+      const call = gc.getByTestId('perk-request').filter({ hasText: 'Videollamada privada' });
+      const tomorrow = new Date(Date.now() + 86400000);
+      await call.getByLabel('Día de la videollamada').fill(isoDate(tomorrow));
+      await call.getByLabel('Hora de la videollamada').fill('12:00');
+      await call.getByRole('button', { name: 'Agendar' }).click();
+      await gc.getByText('Videollamada con Carlos M. agendada').waitFor();
+    });
+    await check('El fan ve su video y su videollamada como reserva confirmada', async () => {
+      await gf.goto(`${BASE}/settings?section=wallet`);
+      await gf.getByTestId('my-perk').filter({ hasText: 'Video entregado' }).locator('video').waitFor();
+      await gf.getByTestId('my-perk').filter({ hasText: 'Videollamada agendada' }).getByRole('link', { name: 'Ir a la sala' }).waitFor();
+      await gf.goto(`${BASE}/profile`);
+      await gf.getByTestId('booking').filter({ hasText: 'Videollamada privada (regalo)' }).getByTestId('live-later').waitFor();
+    });
+    await check('El creador cobra el 60% de los regalos (sin los devueltos)', async () => {
+      await gc.goto(`${BASE}/creator/dashboard?tab=gifts`);
+      await gc.getByTestId('gift-earnings').getByText('$660.00').waitFor();
+      await gc.getByTestId('gift-received').filter({ hasText: 'Yate de caramelo' }).getByText('Devuelto').waitFor();
+      await gc.goto(`${BASE}/creator/dashboard?tab=earnings`);
+      await gc.getByText(/Corona de azúcar · “¡Para mi reina!”/).waitFor();
+    });
+    await giftsCtx.close();
+
+    const visitor = await newContext(browser, { locale: 'es-ES' });
+    const vp = await newPage(visitor);
+    await check('La antigua página de precios lleva al registro de creador con sus beneficios', async () => {
+      await vp.goto(`${BASE}/age-verification`);
+      await vp.getByRole('button', { name: /Soy mayor|18/ }).first().click();
+      await vp.goto(`${BASE}/pricing`);
+      await waitPath(vp, '/register');
+      await vp.fill('input[type=text]', 'Nueva Creadora');
+      await vp.fill('input[type=email]', 'nueva.creadora@test.com');
+      await vp.getByRole('button', { name: 'Continuar' }).click();
+      const pw = vp.locator('input[type=password]');
+      await pw.nth(0).fill('password123');
+      await pw.nth(1).fill('password123');
+      await vp.getByRole('button', { name: 'Continuar' }).click();
+      await vp.getByTestId('creator-benefits').getByText(/60% de los regalos/).waitFor();
+    });
+    await visitor.close();
+
     const mobile = await newContext(browser, { viewport: { width: 390, height: 844 }, locale: 'es-ES' });
     const m = await newPage(mobile);
     await check('Móvil: login, perfil y cerrar sesión desde el menú móvil', async () => {

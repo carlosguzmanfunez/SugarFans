@@ -8,6 +8,8 @@ import CheckoutDialog from '../components/CheckoutDialog';
 import ReportDialog from '../components/ReportDialog';
 import PostCard, { type DisplayPost } from '../components/PostCard';
 import TipDialog from '../components/TipDialog';
+import GiftDialog from '../components/GiftDialog';
+import CircleSection from '../components/CircleSection';
 import NewPostForm from '../components/NewPostForm';
 import { socialApi, compactCount, type PublicCreator } from '../lib/social';
 import {
@@ -44,7 +46,7 @@ const CreatorProfile: React.FC = () => {
   const { isAuthenticated, user, isSubscribed: hasSubscription, toggleSubscription, refreshUser, deletePost } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<'posts' | 'media' | 'about'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'media' | 'circle' | 'about'>(new URLSearchParams(location.search).get('tab') === 'circle' ? 'circle' : 'posts');
   const { data: platform } = usePlatformQuery(
     async () => {
       const [removedPosts, blocks] = await Promise.all([platformApi.removedPosts(), user ? platformApi.blocks(user) : Promise.resolve([])]);
@@ -57,6 +59,7 @@ const CreatorProfile: React.FC = () => {
   const [reporting, setReporting] = useState<{ kind: 'post' | 'creator'; targetId: string; label: string } | null>(null);
   const [tipping, setTipping] = useState<{ postId?: string } | null>(null);
   const [tipSent, setTipSent] = useState('');
+  const [gifting, setGifting] = useState<{ postId?: string } | null>(null);
   const [composing, setComposing] = useState(false);
 
   // Demo creators and platform-run profiles first, then creators who signed up.
@@ -279,12 +282,21 @@ const CreatorProfile: React.FC = () => {
               )}
               {!isOwner && !iBlocked && (
                 <button
+                  onClick={() => (isAuthenticated ? setGifting({}) : goLogin())}
+                  aria-label="Enviar regalo"
+                  className="px-5 py-3 rounded-full font-bold bg-white border border-pink-200 text-pink-600 hover:bg-pink-50"
+                >
+                  <i className="fas fa-gift mr-2"></i>Regalo
+                </button>
+              )}
+              {!isOwner && !iBlocked && (
+                <button
                   onClick={() => (isAuthenticated ? setTipping({}) : goLogin())}
                   title="Enviar propina"
                   aria-label="Enviar propina"
                   className="w-11 h-11 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-pink-500"
                 >
-                  <i className="fas fa-gift"></i>
+                  <i className="fas fa-hand-holding-usd"></i>
                 </button>
               )}
               {isAuthenticated && !iBlocked && !isOwner && (
@@ -339,6 +351,12 @@ const CreatorProfile: React.FC = () => {
             <i className="fas fa-images mr-1"></i> Media
           </button>
           <button
+            onClick={() => setActiveTab('circle')}
+            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition ${activeTab === 'circle' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'}`}
+          >
+            <i className="fas fa-users mr-1"></i> Círculo
+          </button>
+          <button
             onClick={() => setActiveTab('about')}
             className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition ${activeTab === 'about' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'}`}
           >
@@ -379,6 +397,7 @@ const CreatorProfile: React.FC = () => {
                 onSubscribe={handleSubscribe}
                 onNeedLogin={goLogin}
                 onTip={() => setTipping({ postId: post.id })}
+                onGift={() => setGifting({ postId: post.id })}
                 onDelete={feed.own.some((p) => p.id === post.id) && isOwner ? () => removePost(post.id) : undefined}
                 onReport={() => handleReport('post', post.id, `Publicación de ${creator.name}: "${post.content.slice(0, 40)}"`)}
               />
@@ -417,6 +436,15 @@ const CreatorProfile: React.FC = () => {
               </a>
             ))}
           </div>
+        )}
+
+        {!iBlocked && activeTab === 'circle' && (
+          <>
+            {tipSent && (
+              <div role="status" className="px-4 py-3 mb-6 rounded-xl border bg-green-50 border-green-200 text-green-700">{tipSent}</div>
+            )}
+            <CircleSection user={user} creatorProfileId={creator.id} creatorName={creator.name} onGift={() => (isAuthenticated ? setGifting({}) : goLogin())} />
+          </>
         )}
 
         {!iBlocked && activeTab === 'about' && (
@@ -478,6 +506,19 @@ const CreatorProfile: React.FC = () => {
             setActiveTab('posts');
           }}
           onClose={() => setTipping(null)}
+        />
+      )}
+      {gifting && user && (
+        <GiftDialog
+          user={user}
+          creatorProfileId={creator.id}
+          creatorName={creator.name}
+          postId={gifting.postId}
+          onSent={(gift) => {
+            setGifting(null);
+            setTipSent(`¡${gift.icon} ${gift.name} enviado a ${creator.name}!`);
+          }}
+          onClose={() => setGifting(null)}
         />
       )}
       {reporting && (

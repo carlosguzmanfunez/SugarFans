@@ -1,9 +1,21 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth, UserRole } from '../context/AuthContext';
 import { isValidEmail } from '../lib/storage';
 import { useLanguage } from '../context/LanguageContext';
 import LanguageSelector from '../components/LanguageSelector';
+
+// What a creator account includes (all of it works in the app today).
+const CREATOR_BENEFITS = [
+  'Insignia Verify tras verificar tu identidad con tu ID y un selfie',
+  'Tú fijas el precio de tu suscripción mensual',
+  'Recibes el 80% de suscripciones y propinas, y el 60% de los regalos',
+  'Publica fotos y videos, gratis o solo para suscriptores',
+  'Vende experiencias VIP y videollamadas en vivo',
+  'Tu Círculo privado y tu Bóveda para los fans que más te apoyan',
+  'Panel con suscriptores, ingresos y estadísticas',
+  'Retira desde $50 a tu cuenta bancaria; tus ingresos se acreditan el día 1',
+];
 
 const Register: React.FC = () => {
   const { register } = useAuth();
@@ -14,7 +26,8 @@ const Register: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('fan');
+  const [searchParams] = useSearchParams();
+  const [role, setRole] = useState<UserRole>(searchParams.get('role') === 'creator' ? 'creator' : 'fan');
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [error, setError] = useState('');
 
@@ -215,6 +228,17 @@ const Register: React.FC = () => {
                   <p className="text-xs text-gray-500 mt-1">{t('register.creatorDesc')}</p>
                 </button>
               </div>
+
+              {role === 'creator' && (
+                <div className="rounded-xl bg-purple-50 border border-purple-100 p-4" data-testid="creator-benefits">
+                  <p className="font-semibold text-gray-900 text-sm mb-2">Lo que obtienes como creador (registro gratis)</p>
+                  <ul className="space-y-1.5 text-xs text-gray-700">
+                    {CREATOR_BENEFITS.map((b) => (
+                      <li key={b} className="flex items-start"><i className="fas fa-check text-green-500 mr-2 mt-0.5"></i>{b}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               <label className="flex items-start space-x-2">
                 <input type="checkbox" checked={agreeTerms} onChange={(e) => setAgreeTerms(e.target.checked)} className="mt-1 w-4 h-4 text-pink-600 rounded" />

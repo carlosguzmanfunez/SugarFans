@@ -48,7 +48,17 @@ const byNewest = <T,>(key: keyof T) => (a: T, b: T) => String(b[key]).localeComp
 
 // purgeUser removes personal data when an account is deleted; sales stay in the
 // creator's books, anonymised (Supabase does the same with foreign keys and a trigger).
-export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(userId: string): Promise<void> } => {
+// The ledger lets the gifts store (localGifts.ts) charge methods and write
+// payments into the same books.
+export interface LocalLedger {
+  methodLabel(userId: string, methodId: string): string | null;
+  cutOff(fanId: string, creatorProfileId: string): boolean;
+  transactions(): Transaction[];
+  addTransaction(t: Omit<Transaction, 'id'> & { key: string }): AuthResult & { id?: string };
+  refund(transactionId: string): void;
+}
+
+export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(userId: string): Promise<void>; ledger: LocalLedger } => {
   const load = (): Store => {
     const store = { ...empty(), ...readJSON<Partial<Store>>(KEY, {}) };
     if (!readJSON<boolean>(SEEDED_KEY, false)) {
@@ -87,7 +97,26 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
     );
   };
 
+  const ledger: LocalLedger = {
+    methodLabel: (userId, methodId) => load().paymentMethods.find((m) => m.id === methodId && m.userId === userId)?.label ?? null,
+    cutOff: (fanId, creatorProfileId) => cutOff(load(), fanId, creatorProfileId),
+    transactions: () => load().transactions,
+    addTransaction(t) {
+      const id = newId();
+      const r = commit((s) => ({ ...s, transactions: [...s.transactions, { ...t, id }] }));
+      return r.ok ? { ...r, id } : r;
+    },
+    refund(transactionId) {
+      commit((s) => ({
+        ...s,
+        transactions: s.transactions.map((t) => (t.id === transactionId && t.status === 'paid' ? { ...t, status: 'refunded' } : t)),
+      }));
+    },
+  };
+
   return {
+    ledger,
+
     async myVerification(userId) {
       return [...load().verifications].reverse().find((v) => v.userId === userId) ?? null;
     },

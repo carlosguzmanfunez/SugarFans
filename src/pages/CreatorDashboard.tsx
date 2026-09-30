@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import CreatorPayouts from '../components/CreatorPayouts';
-import { usePlatformQuery, platformApi, computeEarnings, iBlocked, blockUser, unblockUser, money, CREATOR_SHARE, transactionLabel } from '../lib/platform';
+import CreatorGiftsPanel from '../components/CreatorGiftsPanel';
+import { usePlatformQuery, platformApi, computeEarnings, iBlocked, blockUser, unblockUser, money, CREATOR_SHARE, creatorCut, transactionLabel } from '../lib/platform';
 import { statusLabel, formatLongDate, WEEKDAYS, ALL_HOURS, MAX_BOOKING_MONTHS, DEFAULT_AVAILABILITY } from '../lib/vip';
 import { backend } from '../lib/backend';
 import { useBackendData } from '../lib/useBackendData';
@@ -125,7 +126,7 @@ const CreatorDashboard: React.FC = () => {
     id: t.id,
     type: transactionLabel[t.kind],
     user: t.payerName,
-    amount: `+${money(t.amount * CREATOR_SHARE)}`,
+    amount: `+${money(creatorCut(t))}`,
     date: new Date(t.createdAt).toLocaleString('es'),
     status: 'completed',
   }));
@@ -185,6 +186,7 @@ const CreatorDashboard: React.FC = () => {
             { id: 'content', label: 'Contenido', icon: 'fa-images' },
             { id: 'subscribers', label: 'Suscriptores', icon: 'fa-users' },
             { id: 'earnings', label: 'Ingresos', icon: 'fa-wallet' },
+            { id: 'gifts', label: 'Regalos', icon: 'fa-gift' },
             { id: 'vip', label: `Experiencias VIP${pendingVip ? ` (${pendingVip})` : ''}`, icon: 'fa-crown' },
             { id: 'settings', label: 'Configuración', icon: 'fa-cog' },
           ].map((tab) => (
@@ -380,6 +382,8 @@ const CreatorDashboard: React.FC = () => {
         )}
 
         {activeTab === 'earnings' && <CreatorPayouts />}
+
+        {activeTab === 'gifts' && <CreatorGiftsPanel />}
 
         {activeTab === 'vip' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
