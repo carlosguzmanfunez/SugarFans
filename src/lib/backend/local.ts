@@ -1,7 +1,8 @@
 // Browser-only backend (localStorage). Used when Supabase is not configured,
 // e.g. local development and the offline E2E suite. Data is per browser.
 import { readJSON, writeJSON, removeKey, hashPassword, newId } from '../storage';
-import { ACTIVE_STATUSES, DEFAULT_AVAILABILITY, bookingWindow, freeHoursOn, formatLongDate, normalizeAvailability } from '../vip';
+import { ACTIVE_STATUSES, DEFAULT_AVAILABILITY, bookingWindow, demoExperiences, freeHoursOn, formatLongDate, normalizeAvailability, validateExperience } from '../vip';
+import { nextRenewal, round2 } from '../platformRules';
 import {
   DEMO_PASSWORD,
   WRONG_CREDENTIALS,
@@ -12,7 +13,7 @@ import {
   normalizeEmail,
   validateRegistration,
 } from './shared';
-import type { Availability, Backend, BookingStatus, User, VipBooking } from './types';
+import type { Availability, Backend, BookingStatus, User, VipBooking, VipExperience } from './types';
 import { createLocalPlatform } from './localPlatform';
 import { createLocalSocial } from './localSocial';
 import { createLocalGifts } from './localGifts';
@@ -30,6 +31,8 @@ const SEEDED_KEY = 'seeded_v1';
 const AVAILABILITY_KEY = 'vip_availability';
 const BOOKINGS_KEY = 'vip_bookings';
 const OUTBOX_KEY = 'email_outbox';
+const EXPERIENCES_KEY = 'vip_experiences_v1';
+const RESETS_KEY = 'password_resets';
 const CHANGE_EVENT = 'sugarfans:local-change';
 
 const baseUser = (partial: Pick<User, 'id' | 'name' | 'email' | 'role' | 'avatar'> & Partial<User>): User => ({
@@ -111,10 +114,28 @@ const writeSession = (id: string | null, remember = true) => {
   notify();
 };
 
+// A cancelled subscription counts until its end date, then it is gone.
+const isActiveSub = (s: User['subscriptions'][number], at = new Date().toISOString()) => !s.cancelAt || s.cancelAt > at;
+
 const toPublic = (account: StoredAccount): User => {
   const { passwordHash: _h, salt: _s, ...user } = account;
-  return user;
+  return { ...user, subscriptions: user.subscriptions.filter((s) => isActiveSub(s)) };
 };
+
+const listExperiences = (): VipExperience[] => {
+  const stored = readJSON<VipExperience[] | null>(EXPERIENCES_KEY, null);
+  if (stored) return stored;
+  const seeded = demoExperiences();
+  writeJSON(EXPERIENCES_KEY, seeded);
+  return seeded;
+};
+const saveExperiences = (list: VipExperience[]) => {
+  writeJSON(EXPERIENCES_KEY, list);
+  notify();
+};
+// Someone runs this creator profile: a creator account, or a visible managed profile.
+const creatorAccount = (creatorProfileId: string) =>
+  loadAccounts().find((a) => a.role === 'creator' && a.creatorProfileId === creatorProfileId);
 
 const mutate = (id: string, fn: (a: StoredAccount) => StoredAccount) => {
   const accounts = loadAccounts();
@@ -149,6 +170,12 @@ const platform = createLocalPlatform({
       ...a,
       subscriptions: [...a.subscriptions.filter((s) => s.creatorId !== creatorId), { creatorId, price, since: new Date().toISOString() }],
     })),
+  setCancelAt: (userId, creatorId, at) =>
+    mutate(userId, (a) => ({
+      ...a,
+      subscriptions: a.subscriptions.map((s) => (s.creatorId === creatorId ? { ...s, cancelAt: at } : s)),
+    })),
+  creatorPrice: (creatorProfileId) => creatorAccount(creatorProfileId)?.subscriptionPrice ?? null,
   setVerified: (userId) => mutate(userId, (a) => ({ ...a, isVerified: true })),
   shareFor: (fanId, creatorProfileId, at) => rewards.shareFor(fanId, creatorProfileId, at),
   withInviteBonuses: (transactions) => rewards.withInviteBonuses(transactions),
@@ -298,6 +325,51 @@ export const localBackend: Backend = {
     return ok;
   },
 
+  async cancelSubscription(user, creatorId) {
+    const account = loadAccounts().find((a) => a.id === user.id);
+    const sub = account?.subscriptions.find((s) => s.creatorId === creatorId && isActiveSub(s));
+    if (!sub) return fail('No tienes una suscripción activa a este perfil');
+    const until = sub.cancelAt ?? nextRenewal(sub.since).toISOString();
+    mutate(user.id, (a) => ({ ...a, subscriptions: a.subscriptions.map((s) => (s.creatorId === creatorId ? { ...s, cancelAt: until } : s)) }));
+    return { ok: true, until };
+  },
+
+  // The local store "sends" the email to the outbox; the link carries a one-time token.
+  async requestPasswordReset(email) {
+    await seedPromise;
+    const clean = normalizeEmail(email);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) return fail('Introduce un email válido');
+    const notice = 'Si existe una cuenta con ese email, te enviamos un enlace para crear una nueva contraseña.';
+    if (!loadAccounts().some((a) => a.email === clean)) return { ok: true, notice };
+    const token = newId();
+    const expires = new Date(Date.now() + 60 * 60_000).toISOString();
+    writeJSON(RESETS_KEY, [...readJSON<{ token: string; email: string; expires: string }[]>(RESETS_KEY, []).filter((r) => r.email !== clean), { token, email: clean, expires }]);
+    writeJSON(OUTBOX_KEY, [
+      ...readJSON<unknown[]>(OUTBOX_KEY, []),
+      {
+        id: newId(),
+        to: clean,
+        subject: 'Crea una nueva contraseña',
+        body: `Abre este enlace para elegir una nueva contraseña (caduca en 1 hora): ${window.location.origin}/reset-password?token=${token}`,
+        sentAt: new Date().toISOString(),
+      },
+    ]);
+    return { ok: true, notice };
+  },
+
+  async resetPassword(password, token) {
+    if (password.length < 8) return fail('La contraseña debe tener al menos 8 caracteres');
+    const resets = readJSON<{ token: string; email: string; expires: string }[]>(RESETS_KEY, []);
+    const reset = resets.find((r) => r.token === token && r.expires > new Date().toISOString());
+    const account = reset && loadAccounts().find((a) => a.email === reset.email);
+    if (!account) return fail('El enlace no es válido o ya caducó. Pide uno nuevo.');
+    const salt = newId();
+    const passwordHash = await hashPassword(password, salt);
+    mutate(account.id, (a) => ({ ...a, salt, passwordHash }));
+    writeJSON(RESETS_KEY, resets.filter((r) => r.token !== token));
+    return ok;
+  },
+
   async addPost(user, content, isLocked, media, asProfileId) {
     if (!content.trim() && !media) return fail('Escribe algo o añade una foto o video');
     if (asProfileId && (user.role !== 'admin' || !asProfileId.startsWith('m-'))) return fail('Esta acción no está permitida');
@@ -353,18 +425,28 @@ export const localBackend: Backend = {
   async createBooking(user, input) {
     if (!input.date) return fail('Elige un día en el calendario');
     if (!input.time) return fail('Elige una hora disponible');
-    if (user.creatorProfileId === input.creatorProfileId) return fail('No puedes reservar tu propia experiencia');
+    const exp = listExperiences().find((e) => e.id === input.experienceId && e.active);
+    if (!exp) return fail('Experiencia no encontrada');
+    if (user.creatorProfileId === exp.creatorProfileId) return fail('No puedes reservar tu propia experiencia');
+    if (platform.ledger.cutOff(user.id, exp.creatorProfileId)) return fail('No puedes reservar con este perfil');
     const { min, max } = bookingWindow();
     if (input.date < min || input.date > max) return fail('La fecha debe estar dentro de los próximos 3 meses');
-    if (!freeHoursOn(loadAvailability(input.creatorProfileId), takenFor(input.creatorProfileId), input.date).includes(input.time)) {
+    if (!freeHoursOn(loadAvailability(exp.creatorProfileId), takenFor(exp.creatorProfileId), input.date).includes(input.time)) {
       return fail('Ese horario ya no está disponible. Elige otro.');
     }
     const now = new Date().toISOString();
     saveBookings([
       ...listBookings(),
       {
-        ...input,
-        message: input.message.trim(),
+        experienceId: exp.id,
+        creatorProfileId: exp.creatorProfileId,
+        title: exp.title,
+        creatorName: exp.creatorName,
+        price: exp.price,
+        ...(exp.durationMinutes ? { durationMinutes: exp.durationMinutes } : {}),
+        date: input.date,
+        time: input.time,
+        message: input.message.trim().slice(0, 500),
         id: newId(),
         fanId: user.id,
         fanName: user.name,
@@ -385,29 +467,91 @@ export const localBackend: Backend = {
     const isCreator = !!user.creatorProfileId && b.creatorProfileId === user.creatorProfileId;
     const allowed =
       (isCreator && b.status === 'pending' && (next === 'accepted' || next === 'rejected')) ||
-      (isFan && (b.status === 'pending' || b.status === 'accepted') && next === 'cancelled') ||
-      (isFan && b.status === 'accepted' && next === 'confirmed');
+      (isFan && (b.status === 'pending' || b.status === 'accepted') && next === 'cancelled');
     if (!allowed) return fail('Esta acción no está permitida');
-    const now = new Date().toISOString();
     b.status = next;
-    b.updatedAt = now;
-    if (next === 'confirmed') {
-      // Payment is simulated; the confirmation email only goes out after the
-      // creator accepted AND the fan paid.
-      b.paidAt = now;
-      b.emailSentAt = now;
-      writeJSON(OUTBOX_KEY, [
-        ...readJSON<unknown[]>(OUTBOX_KEY, []),
-        {
-          id: newId(),
-          to: b.fanEmail,
-          subject: `Confirmación: ${b.title}`,
-          body: `Hola ${b.fanName}, tu experiencia "${b.title}" con ${b.creatorName} está confirmada para el ${formatLongDate(b.date)} a las ${b.time}. Pago recibido: $${b.price} USD.`,
-          sentAt: now,
-        },
-      ]);
-    }
+    b.updatedAt = new Date().toISOString();
     saveBookings(bookings);
+    return ok;
+  },
+
+  // Payment is simulated; the confirmation email only goes out after the
+  // creator accepted AND the fan paid. The creator is credited like any sale.
+  async payBooking(user, bookingId, methodId) {
+    const bookings = listBookings();
+    const b = bookings.find((x) => x.id === bookingId);
+    if (!b || b.fanId !== user.id) return fail('Reserva no encontrada');
+    if (b.status !== 'accepted') return fail('Solo puedes pagar una reserva aceptada por el creador');
+    const methodLabel = platform.ledger.methodLabel(user.id, methodId);
+    if (!methodLabel) return fail('Elige un método de pago');
+    const now = new Date().toISOString();
+    const charged = platform.ledger.addTransaction({
+      key: `vip:${b.id}`,
+      payerId: user.id,
+      payerName: b.fanName,
+      creatorProfileId: b.creatorProfileId,
+      creatorName: b.creatorName,
+      kind: 'vip',
+      amount: round2(b.price),
+      note: b.title,
+      methodLabel,
+      status: 'paid',
+      createdAt: now,
+    });
+    if (!charged.ok) return charged;
+    b.status = 'confirmed';
+    b.updatedAt = now;
+    b.paidAt = now;
+    b.emailSentAt = now;
+    writeJSON(OUTBOX_KEY, [
+      ...readJSON<unknown[]>(OUTBOX_KEY, []),
+      {
+        id: newId(),
+        to: b.fanEmail,
+        subject: `Confirmación: ${b.title}`,
+        body: `Hola ${b.fanName}, tu experiencia "${b.title}" con ${b.creatorName} está confirmada para el ${formatLongDate(b.date)} a las ${b.time}. Pago recibido: $${b.price} USD.`,
+        sentAt: now,
+      },
+    ]);
+    saveBookings(bookings);
+    return ok;
+  },
+
+  async listExperiences() {
+    return listExperiences();
+  },
+
+  async saveExperience(user, input, id) {
+    if (user.role !== 'creator' || !user.creatorProfileId) return fail('Solo los creadores publican experiencias VIP');
+    const check = validateExperience(input);
+    if (!check.ok) return fail(check.error!);
+    const list = listExperiences();
+    const existing = id ? list.find((e) => e.id === id) : undefined;
+    if (id && (!existing || existing.creatorProfileId !== user.creatorProfileId)) return fail('Experiencia no encontrada');
+    const clean = {
+      title: input.title.trim(),
+      description: input.description.trim(),
+      type: input.type,
+      price: round2(input.price),
+      durationMinutes: input.durationMinutes,
+      image: input.image,
+      active: input.active,
+      creatorProfileId: user.creatorProfileId,
+      creatorName: user.name,
+    };
+    saveExperiences(
+      existing
+        ? list.map((e) => (e.id === id ? { ...e, ...clean } : e))
+        : [...list, { ...clean, id: newId(), createdAt: new Date().toISOString() }]
+    );
+    return ok;
+  },
+
+  async deleteExperience(user, id) {
+    const list = listExperiences();
+    const exp = list.find((e) => e.id === id);
+    if (!exp || exp.creatorProfileId !== user.creatorProfileId) return fail('Experiencia no encontrada');
+    saveExperiences(list.filter((e) => e.id !== id));
     return ok;
   },
 

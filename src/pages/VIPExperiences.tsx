@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { vipExperiences, VIPExperience } from '../data/mockData';
-import { useLanguage } from '../context/LanguageContext';
 import BookingCalendar from '../components/BookingCalendar';
-import { formatLongDate, DEFAULT_AVAILABILITY, type Availability, type TakenSlot } from '../lib/vip';
+import { formatLongDate, DEFAULT_AVAILABILITY, EXPERIENCE_TYPES, type Availability, type TakenSlot, type VipExperience } from '../lib/vip';
 import { backend } from '../lib/backend';
+import { usePlatformQuery } from '../lib/platform';
+import { useCreatorCatalog } from '../lib/catalog';
 
 const VIPExperiences: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
@@ -20,30 +20,24 @@ const VIPExperiences: React.FC = () => {
   const [availability, setAvailability] = useState<Availability>(DEFAULT_AVAILABILITY);
   const [taken, setTaken] = useState<TakenSlot[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
-  const { t } = useLanguage();
   const [selectedType, setSelectedType] = useState<string>('all');
-  const [selectedExperience, setSelectedExperience] = useState<VIPExperience | null>(null);
+  const [selectedExperience, setSelectedExperience] = useState<VipExperience | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const { data: experiences, loading } = usePlatformQuery(() => backend.listExperiences(), [], [] as VipExperience[]);
+  const { creators } = useCreatorCatalog();
+  const creatorOf = (exp: VipExperience) => creators.find((c) => c.id === exp.creatorProfileId);
 
-  const experienceTypes = [
-    { id: 'all', name: 'Todas', icon: '✨' },
-    { id: 'meet-greet', name: 'Meet & Greet', icon: '👋' },
-    { id: 'qa-session', name: 'Sesiones Q&A', icon: '💬' },
-    { id: 'custom-content', name: 'Contenido Personalizado', icon: '🎨' },
-    { id: 'early-access', name: 'Acceso Anticipado', icon: '🚀' },
-    { id: 'collaboration', name: 'Colaboraciones', icon: '🤝' },
-  ];
+  const experienceTypes = [{ id: 'all', name: 'Todas', icon: '✨' }, ...EXPERIENCE_TYPES];
 
-  const filteredExperiences = selectedType === 'all' 
-    ? vipExperiences 
-    : vipExperiences.filter(exp => exp.type === selectedType);
+  const active = experiences.filter((e) => e.active);
+  const filteredExperiences = selectedType === 'all' ? active : active.filter((exp) => exp.type === selectedType);
 
-  const handleBookExperience = (experience: VIPExperience) => {
+  const handleBookExperience = (experience: VipExperience) => {
     if (!isAuthenticated) {
       navigate('/login', { state: { from: location.pathname } });
       return;
     }
-    if (user?.creatorProfileId === experience.creatorId) {
+    if (user?.creatorProfileId === experience.creatorProfileId) {
       alert('No puedes reservar tu propia experiencia');
       return;
     }
@@ -55,7 +49,7 @@ const VIPExperiences: React.FC = () => {
     setBookingDone(false);
     setShowBookingModal(true);
     setSlotsLoading(true);
-    Promise.all([backend.getAvailability(experience.creatorId), backend.takenSlots(experience.creatorId)]).then(([a, t]) => {
+    Promise.all([backend.getAvailability(experience.creatorProfileId), backend.takenSlots(experience.creatorProfileId)]).then(([a, t]) => {
       setAvailability(a);
       setTaken(t);
       setSlotsLoading(false);
@@ -67,10 +61,6 @@ const VIPExperiences: React.FC = () => {
     setSubmitting(true);
     const result = await backend.createBooking(user, {
       experienceId: selectedExperience.id,
-      creatorProfileId: selectedExperience.creatorId,
-      title: selectedExperience.title,
-      creatorName: selectedExperience.creatorName,
-      price: selectedExperience.price,
       date: bookingDate,
       time: bookingTime,
       message: bookingMessage.trim(),
@@ -79,42 +69,19 @@ const VIPExperiences: React.FC = () => {
     if (!result.ok) {
       setBookingError(result.error || 'No se pudo enviar la reserva');
       // Someone may have taken the slot meanwhile: refresh what is free.
-      backend.takenSlots(selectedExperience.creatorId).then(setTaken);
+      backend.takenSlots(selectedExperience.creatorProfileId).then(setTaken);
       return;
     }
     setBookingError('');
     setBookingDone(true);
   };
 
-  const getTypeIcon = (type: string) => {
-    const icons: Record<string, string> = {
-      'meet-greet': '👋',
-      'qa-session': '💬',
-      'custom-content': '🎨',
-      'early-access': '🚀',
-      'collaboration': '🤝',
-    };
-    return icons[type] || '✨';
-  };
-
-  const getTypeName = (type: string) => {
-    const names: Record<string, string> = {
-      'meet-greet': 'Meet & Greet',
-      'qa-session': 'Sesión Q&A',
-      'custom-content': 'Contenido Personalizado',
-      'early-access': 'Acceso Anticipado',
-      'collaboration': 'Colaboración',
-    };
-    return names[type] || type;
-  };
+  const typeOf = (type: string) => EXPERIENCE_TYPES.find((t) => t.id === type) ?? { icon: '✨', name: type };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-yellow-50">
       {/* Hero Section */}
       <div className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-yellow-500 text-white overflow-hidden">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%23ffffff%22%20fill-opacity%3D%220.1%22%3E%3Cpath%20d%3D%22M36%2034v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6%2034v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6%204V0H4v4H0v2h4v4h2V6h4V4H6z%22%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E')]"></div>
-        </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative z-10">
           <div className="text-center">
             <div className="inline-block mb-4">
@@ -124,23 +91,9 @@ const VIPExperiences: React.FC = () => {
               Experiencias VIP
             </h1>
             <p className="text-xl text-white/90 max-w-2xl mx-auto">
-              Vive momentos únicos y exclusivos con tus creadores favoritos. 
-              Accede a experiencias personalizadas que no encontrarás en ningún otro lugar.
+              Vive momentos únicos y exclusivos con tus creadores favoritos.
+              Reserva día y hora, el creador confirma y la sesión es en vivo dentro de SugarFans.
             </p>
-            <div className="flex flex-wrap justify-center gap-4 mt-8">
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg px-6 py-3">
-                <div className="text-2xl font-bold">500+</div>
-                <div className="text-sm">Experiencias Disponibles</div>
-              </div>
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg px-6 py-3">
-                <div className="text-2xl font-bold">4.9★</div>
-                <div className="text-sm">Calificación Promedio</div>
-              </div>
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg px-6 py-3">
-                <div className="text-2xl font-bold">100%</div>
-                <div className="text-sm">Satisfacción Garantizada</div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -183,64 +136,35 @@ const VIPExperiences: React.FC = () => {
                 />
                 <div className="absolute top-3 right-3">
                   <span className="bg-white/90 backdrop-blur-sm text-purple-700 px-3 py-1 rounded-full text-sm font-semibold">
-                    {getTypeIcon(experience.type)} {getTypeName(experience.type)}
+                    {typeOf(experience.type).icon} {typeOf(experience.type).name}
                   </span>
                 </div>
-                {experience.availableSlots <= 3 && (
-                  <div className="absolute top-3 left-3">
-                    <span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold animate-pulse">
-                      ¡Últimos Lugares!
-                    </span>
-                  </div>
-                )}
               </div>
 
               {/* Content */}
               <div className="p-6">
                 {/* Creator Info */}
-                <div className="flex items-center mb-3">
-                  <img
-                    src={experience.creatorAvatar}
-                    alt={experience.creatorName}
-                    className="w-10 h-10 rounded-full border-2 border-purple-200"
-                  />
-                  <div className="ml-3">
-                    <p className="font-semibold text-gray-900">{experience.creatorName}</p>
-                    <div className="flex items-center text-sm text-gray-500">
-                      <span className="text-yellow-500 mr-1">★</span>
-                      {experience.rating} ({experience.reviews} reseñas)
-                    </div>
-                  </div>
-                </div>
+                <Link to={`/creator/${experience.creatorProfileId}`} className="flex items-center mb-3">
+                  {creatorOf(experience)?.avatar && (
+                    <img
+                      src={creatorOf(experience)!.avatar}
+                      alt={experience.creatorName}
+                      className="w-10 h-10 rounded-full border-2 border-purple-200 mr-3"
+                    />
+                  )}
+                  <p className="font-semibold text-gray-900">
+                    {experience.creatorName}
+                  </p>
+                </Link>
 
                 {/* Title & Description */}
                 <h3 className="text-xl font-bold text-gray-900 mb-2">{experience.title}</h3>
                 <p className="text-gray-600 text-sm mb-4 line-clamp-2">{experience.description}</p>
 
-                {/* Tags */}
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {experience.tags.map((tag, idx) => (
-                    <span
-                      key={idx}
-                      className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-medium"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Duration & Slots */}
-                <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-                  {experience.duration && (
-                    <div className="flex items-center">
-                      <i className="fas fa-clock mr-2 text-purple-600"></i>
-                      {experience.duration}
-                    </div>
-                  )}
-                  <div className="flex items-center">
-                    <i className="fas fa-users mr-2 text-purple-600"></i>
-                    {experience.availableSlots} de {experience.totalSlots} disponibles
-                  </div>
+                {/* Duration */}
+                <div className="flex items-center text-sm text-gray-600 mb-4">
+                  <i className="fas fa-clock mr-2 text-purple-600"></i>
+                  {experience.durationMinutes ? `${experience.durationMinutes} min en vivo` : 'Sin sesión en vivo'}
                 </div>
 
                 {/* Price & Book Button */}
@@ -250,16 +174,19 @@ const VIPExperiences: React.FC = () => {
                     <span className="text-gray-500 text-sm ml-1">USD</span>
                   </div>
                   <button
-                    onClick={() => handleBookExperience(experience)}
-                    className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all transform hover:scale-105"
-                  >
-                    Reservar Ahora
-                  </button>
+                      onClick={() => handleBookExperience(experience)}
+                      className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
+                    >
+                      Reservar Ahora
+                    </button>
                 </div>
               </div>
             </div>
           ))}
         </div>
+        {!loading && filteredExperiences.length === 0 && (
+          <p className="text-center text-gray-500 py-12">Todavía no hay experiencias de este tipo.</p>
+        )}
 
         {/* Benefits Section */}
         <div className="mt-16 bg-white rounded-3xl shadow-xl p-8 md:p-12">
@@ -289,9 +216,9 @@ const VIPExperiences: React.FC = () => {
               <div className="w-16 h-16 bg-gradient-to-br from-yellow-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <i className="fas fa-shield-alt text-white text-2xl"></i>
               </div>
-              <h3 className="text-xl font-bold mb-2">100% Seguro</h3>
+              <h3 className="text-xl font-bold mb-2">Pago seguro</h3>
               <p className="text-gray-600">
-                Todas las experiencias están verificadas y protegidas. Tu privacidad y seguridad son nuestra prioridad.
+                Solo pagas cuando el creador acepta tu reserva, y la sesión en vivo es privada entre tú y el creador.
               </p>
             </div>
           </div>
@@ -396,10 +323,10 @@ const VIPExperiences: React.FC = () => {
                       <span className="text-purple-600 font-semibold">
                         ${selectedExperience.price} USD
                       </span>
-                      {selectedExperience.duration && (
+                      {selectedExperience.durationMinutes && (
                         <span className="text-gray-600">
                           <i className="fas fa-clock mr-1"></i>
-                          {selectedExperience.duration}
+                          {selectedExperience.durationMinutes} min
                         </span>
                       )}
                     </div>

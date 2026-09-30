@@ -2,20 +2,22 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { useCreatorCatalog } from '../lib/catalog';
-import { statusLabel, formatLongDate, type BookingStatus } from '../lib/vip';
+import { statusLabel, formatLongDate, type BookingStatus, type VipBooking } from '../lib/vip';
+import CheckoutDialog from '../components/CheckoutDialog';
 import { backend } from '../lib/backend';
 import { useBackendData } from '../lib/useBackendData';
 import LiveRoomButton from '../components/LiveRoomButton';
-import { usePlatformQuery, platformApi, nextRenewal } from '../lib/platform';
+import { usePlatformQuery, platformApi, platformChanged, nextRenewal } from '../lib/platform';
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 
 const Profile: React.FC = () => {
-  const { user, toggleSubscription } = useAuth();
+  const { user, cancelSubscription } = useAuth();
   const { creators } = useCreatorCatalog();
   const { data: myBookings, reload } = useBackendData(() => (user ? backend.fanBookings(user.id) : Promise.resolve([])), [user?.id], []);
   const { data: verification } = usePlatformQuery(() => (user ? platformApi.myVerification(user.id) : Promise.resolve(null)), [user?.id], null);
   const [bookingError, setBookingError] = useState('');
+  const [paying, setPaying] = useState<VipBooking | null>(null);
 
   if (!user) return null;
 
@@ -23,6 +25,17 @@ const Profile: React.FC = () => {
     const result = await backend.updateBooking(user, id, next);
     setBookingError(result.ok ? '' : result.error || 'No se pudo actualizar la reserva');
     await reload();
+  };
+
+  const payBooking = async (methodId: string) => {
+    const result = await backend.payBooking(user, paying!.id, methodId);
+    if (result.ok) {
+      setPaying(null);
+      setBookingError('');
+      platformChanged();
+      await reload();
+    }
+    return result;
   };
 
   const subscribedCreators = user.subscriptions.flatMap((sub) => {
@@ -114,7 +127,7 @@ const Profile: React.FC = () => {
                         <LiveRoomButton booking={b} />
                         {b.status === 'accepted' && (
                           <button
-                            onClick={() => changeBooking(b.id, 'confirmed')}
+                            onClick={() => setPaying(b)}
                             className="text-xs bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-1.5 rounded-lg font-medium"
                           >
                             Pagar ${b.price}
@@ -157,15 +170,20 @@ const Profile: React.FC = () => {
                       <img src={creator.avatar} alt="" className="w-8 h-8 rounded-full" />
                       <div>
                         <p className="text-sm font-medium text-gray-900">{creator.name}</p>
-                        <p className="text-xs text-gray-500">Desde {formatDate(sub.since)} · ${sub.price}/mes · Renueva {formatDate(nextRenewal(sub.since).toISOString())}</p>
+                        <p className="text-xs text-gray-500">
+                          Desde {formatDate(sub.since)} · ${sub.price}/mes ·{' '}
+                          {sub.cancelAt ? `Cancelada: acceso hasta ${formatDate(sub.cancelAt)}` : `Renueva ${formatDate(nextRenewal(sub.since).toISOString())}`}
+                        </p>
                       </div>
                     </Link>
-                    <button
-                      onClick={() => toggleSubscription(creator.id, sub.price)}
-                      className="text-xs text-red-600 hover:text-red-700"
-                    >
-                      Cancelar
-                    </button>
+                    {!sub.cancelAt && (
+                      <button
+                        onClick={() => window.confirm(`¿Cancelar tu suscripción a ${creator.name}? Seguirás viendo su contenido hasta el final del mes que ya pagaste.`) && cancelSubscription(creator.id)}
+                        className="text-xs text-red-600 hover:text-red-700"
+                      >
+                        Cancelar
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -214,6 +232,17 @@ const Profile: React.FC = () => {
           </div>
         </div>
       </div>
+      {paying && (
+        <CheckoutDialog
+          user={user}
+          title={`Pagar: ${paying.title}`}
+          amount={paying.price}
+          note={`Con ${paying.creatorName} · ${formatLongDate(paying.date)} · ${paying.time}`}
+          confirmLabel="Confirmar pago"
+          onConfirm={payBooking}
+          onClose={() => setPaying(null)}
+        />
+      )}
     </div>
   );
 };

@@ -98,7 +98,7 @@ const Login: React.FC = () => {
                 <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500" />
                 <span className="ml-2 text-sm text-gray-600">{t('login.remember')}</span>
               </label>
-              <Link to="/help" className="text-sm text-pink-600 hover:text-pink-700">{t('login.forgot')}</Link>
+              <Link to="/forgot-password" className="text-sm text-pink-600 hover:text-pink-700">{t('login.forgot')}</Link>
             </div>
 
             <button type="submit" disabled={submitting} className="w-full disabled:opacity-60 bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-xl font-bold hover:opacity-90 transition-all shadow-lg">

@@ -126,6 +126,7 @@ export const createLocalGifts = (deps: Deps): GiftsBackend & { purgeUser(userId:
       const gift = giftById(input.giftId);
       if (!gift) return fail('Regalo no encontrado');
       if (user.creatorProfileId === input.creatorProfileId) return fail('No puedes enviarte un regalo a ti mismo');
+      if (!deps.ledger.acceptsPayments(input.creatorProfileId)) return fail('Este perfil no existe');
       if (deps.ledger.cutOff(user.id, input.creatorProfileId)) return fail('No puedes enviar regalos a este perfil');
       settle();
       const s = load();

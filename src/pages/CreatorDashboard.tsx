@@ -10,6 +10,7 @@ import { backend } from '../lib/backend';
 import { useBackendData } from '../lib/useBackendData';
 import NewPostForm from '../components/NewPostForm';
 import LiveRoomButton from '../components/LiveRoomButton';
+import CreatorExperiencesPanel from '../components/CreatorExperiencesPanel';
 import { socialApi, compactCount } from '../lib/social';
 import { posts as catalogPosts } from '../data/mockData';
 
@@ -390,6 +391,7 @@ const CreatorDashboard: React.FC = () => {
 
         {activeTab === 'vip' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CreatorExperiencesPanel />
             <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="vip-availability">
               <h3 className="font-bold text-gray-900 mb-1">Mis horarios para experiencias VIP</h3>
               <p className="text-sm text-gray-500 mb-5">

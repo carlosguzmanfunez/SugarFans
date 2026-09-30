@@ -238,4 +238,5 @@ export const transactionLabel: Record<Transaction['kind'], string> = {
   tip: 'Propina',
   gift: 'Regalo',
   referral: 'Bono por creador invitado',
+  vip: 'Experiencia VIP',
 };

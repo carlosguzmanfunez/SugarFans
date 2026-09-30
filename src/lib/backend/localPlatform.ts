@@ -22,6 +22,10 @@ interface Store {
 interface Deps {
   listAccounts(): User[];
   setSubscription(userId: string, creatorId: string, price: number): void;
+  // Ends a subscription at `at` (a cancellation or a renewal that could not be charged).
+  setCancelAt(userId: string, creatorId: string, at: string | undefined): void;
+  // Monthly price of a creator account's profile, or null when no account owns it.
+  creatorPrice(creatorProfileId: string): number | null;
   setVerified(userId: string): void;
   // Creator's cut of a subscription, renewal or tip (rewards: level, goals, referral).
   shareFor(fanId: string, creatorProfileId: string, at: Date): number;
@@ -57,6 +61,8 @@ const byNewest = <T,>(key: keyof T) => (a: T, b: T) => String(b[key]).localeComp
 export interface LocalLedger {
   methodLabel(userId: string, methodId: string): string | null;
   cutOff(fanId: string, creatorProfileId: string): boolean;
+  // Someone runs this profile (a creator account or a visible managed profile), so it can take money.
+  acceptsPayments(creatorProfileId: string): boolean;
   transactions(): Transaction[];
   addTransaction(t: Omit<Transaction, 'id'> & { key: string }): AuthResult & { id?: string };
   refund(transactionId: string): void;
@@ -94,6 +100,15 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
   const cutOff = (s: Store, fanId: string, creatorProfileId: string) =>
     s.blocks.some((b) => b.blockerId === fanId && b.targetId === creatorProfileId) || creatorBlockedFan(s, fanId, creatorProfileId);
 
+  // The price is never taken from the browser: the owning account's price, then a
+  // visible managed profile, then the demo catalogue (kept while the site is in test mode).
+  const priceOf = (s: Store, creatorProfileId: string): number | null =>
+    deps.creatorPrice(creatorProfileId) ??
+    s.managedProfiles.find((m) => m.id === creatorProfileId && !m.hidden)?.subscriptionPrice ??
+    catalogue.find((c) => c.id === creatorProfileId)?.subscriptionPrice ??
+    null;
+  const UNKNOWN = 'Este perfil no existe';
+
   const earningsOf = (s: Store, user: User) => {
     const profileId = user.creatorProfileId ?? user.id;
     return computeEarnings(
@@ -105,6 +120,7 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
   const ledger: LocalLedger = {
     methodLabel: (userId, methodId) => load().paymentMethods.find((m) => m.id === methodId && m.userId === userId)?.label ?? null,
     cutOff: (fanId, creatorProfileId) => cutOff(load(), fanId, creatorProfileId),
+    acceptsPayments: (creatorProfileId) => priceOf(load(), creatorProfileId) !== null,
     transactions: () => load().transactions,
     addTransaction(t) {
       const id = newId();
@@ -214,11 +230,20 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
     },
 
     // INTEGRATION: a real gateway charge (Stripe PaymentIntent / PayPal order) goes here.
-    async subscribeAndPay(user, creatorProfileId, creatorName, price, methodId) {
+    async subscribeAndPay(user, creatorProfileId, creatorName, _price, methodId) {
       const s = load();
+      const price = priceOf(s, creatorProfileId);
+      if (price === null) return fail(UNKNOWN);
+      if (user.creatorProfileId === creatorProfileId) return fail('No puedes suscribirte a tu propio perfil');
+      if (cutOff(s, user.id, creatorProfileId)) return fail('No puedes suscribirte a este perfil');
+      // Still inside a cancelled month: keep the subscription, no new charge.
+      const current = deps.listAccounts().find((a) => a.id === user.id)?.subscriptions.find((x) => x.creatorId === creatorProfileId);
+      if (current) {
+        deps.setCancelAt(user.id, creatorProfileId, undefined);
+        return ok;
+      }
       const method = s.paymentMethods.find((m) => m.id === methodId && m.userId === user.id);
       if (!method) return fail('Elige un método de pago');
-      if (cutOff(s, user.id, creatorProfileId)) return fail('No puedes suscribirte a este perfil');
       const at = now();
       const result = commit((data) => ({
         ...data,
@@ -249,6 +274,7 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
       if (!check.ok) return check;
       if (user.creatorProfileId === creatorProfileId) return fail('No puedes enviarte una propina a ti mismo');
       const s = load();
+      if (priceOf(s, creatorProfileId) === null) return fail(UNKNOWN);
       const method = s.paymentMethods.find((m) => m.id === methodId && m.userId === user.id);
       if (!method) return fail('Elige un método de pago');
       if (cutOff(s, user.id, creatorProfileId)) return fail('No puedes enviar propinas a este perfil');
@@ -287,6 +313,8 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
       for (const sub of user.subscriptions) {
         if (cutOff(s, user.id, sub.creatorId)) continue;
         for (let n = 1; addMonths(sub.since, n) <= at; n++) {
+          const due = addMonths(sub.since, n);
+          if (sub.cancelAt && due.toISOString() >= sub.cancelAt) break;
           const key = `renew:${user.id}:${sub.creatorId}:${sub.since}:${n}`;
           if (s.transactions.some((t) => t.key === key)) continue;
           missing.push({
@@ -301,8 +329,13 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
             share: deps.shareFor(user.id, sub.creatorId, addMonths(sub.since, n)),
             methodLabel: method?.label ?? 'Sin método de pago',
             status: method ? 'paid' : 'failed',
-            createdAt: addMonths(sub.since, n).toISOString(),
+            createdAt: due.toISOString(),
           });
+          // A renewal that cannot be charged ends the subscription that day.
+          if (!method) {
+            deps.setCancelAt(user.id, sub.creatorId, due.toISOString());
+            break;
+          }
         }
       }
       if (missing.length) commit((data) => ({ ...data, transactions: [...data.transactions, ...missing] }));

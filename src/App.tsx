@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
+import React, { Suspense, lazy, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import Navbar from './components/Navbar';
@@ -9,18 +9,23 @@ import AgeVerification from './pages/AgeVerification';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Explore from './pages/Explore';
-import CreatorProfile from './pages/CreatorProfile';
-import ReferralLink from './pages/ReferralLink';
-import CreatorDashboard from './pages/CreatorDashboard';
-import AdminDashboard from './pages/AdminDashboard';
-import Help from './pages/Help';
-import Policies from './pages/Policies';
-import Settings from './pages/Settings';
-import Profile from './pages/Profile';
-import VIPExperiences from './pages/VIPExperiences';
-import LegalPolicies from './pages/LegalPolicies';
-import LiveRoom from './pages/LiveRoom';
 import PlatformSync from './components/PlatformSync';
+import { openedFromRecoveryLink } from './lib/backend';
+
+// Less visited pages load on demand, so the first visit downloads less.
+const CreatorProfile = lazy(() => import('./pages/CreatorProfile'));
+const ReferralLink = lazy(() => import('./pages/ReferralLink'));
+const CreatorDashboard = lazy(() => import('./pages/CreatorDashboard'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const Help = lazy(() => import('./pages/Help'));
+const Policies = lazy(() => import('./pages/Policies'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Profile = lazy(() => import('./pages/Profile'));
+const VIPExperiences = lazy(() => import('./pages/VIPExperiences'));
+const LegalPolicies = lazy(() => import('./pages/LegalPolicies'));
+const LiveRoom = lazy(() => import('./pages/LiveRoom'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 
 const LoadingScreen: React.FC = () => (
   <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-label="Cargando">
@@ -60,8 +65,19 @@ const AppLayout: React.FC<{ children: React.ReactNode; hideNav?: boolean }> = ({
   );
 };
 
+// The "new password" email link may land on any page: take the user to the form.
+const RecoveryRedirect: React.FC = () => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (openedFromRecoveryLink && window.location.pathname !== '/reset-password') navigate('/reset-password', { replace: true });
+  }, [navigate]);
+  return null;
+};
+
 const AppRoutes: React.FC = () => {
   return (
+    <Suspense fallback={<LoadingScreen />}>
+    <RecoveryRedirect />
     <Routes>
       {/* Age Verification */}
       <Route path="/age-verification" element={
@@ -74,6 +90,13 @@ const AppRoutes: React.FC = () => {
       } />
       <Route path="/register" element={
         <AppLayout hideNav={true}><GuestOnlyRoute><Register /></GuestOnlyRoute></AppLayout>
+      } />
+      <Route path="/forgot-password" element={
+        <AppLayout hideNav={true}><GuestOnlyRoute><ForgotPassword /></GuestOnlyRoute></AppLayout>
+      } />
+      {/* Not guest-only: the emailed link signs the user in to change the password. */}
+      <Route path="/reset-password" element={
+        <AppLayout hideNav={true}><ResetPassword /></AppLayout>
       } />
 
       {/* Public pages */}
@@ -143,6 +166,7 @@ const AppRoutes: React.FC = () => {
         </AppLayout>
       } />
     </Routes>
+    </Suspense>
   );
 };
 

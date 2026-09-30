@@ -15,6 +15,7 @@ import {
   nextRenewal,
   money,
   transactionLabel,
+  computeEarnings,
 } from '../lib/platform';
 
 const notificationItems: { key: string; label: string }[] = [
@@ -33,24 +34,31 @@ const sections = ['profile', 'security', 'verification', 'notifications', 'priva
 const fmtDate = (iso: string | Date) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 
 const Settings: React.FC = () => {
-  const { user, updateUser, changePassword, deleteAccount, toggleSubscription } = useAuth();
+  const { user, updateUser, changePassword, deleteAccount, cancelSubscription } = useAuth();
   const { creators } = useCreatorCatalog();
   const userId = user?.id ?? '';
   const { data: platform } = usePlatformQuery(
     async () => {
-      if (!user) return { methods: [], payments: [], blocks: [] };
-      const [methods, payments, blocks] = await Promise.all([
+      if (!user) return { methods: [], payments: [], blocks: [], unpaid: 0 };
+      const creatorId = user.role === 'creator' ? user.creatorProfileId : undefined;
+      const [methods, payments, blocks, sales, payouts] = await Promise.all([
         platformApi.paymentMethods(user.id),
         platformApi.myPayments(user.id),
         platformApi.blocks(user),
+        creatorId ? platformApi.creatorSales(creatorId) : Promise.resolve([]),
+        creatorId ? platformApi.myPayouts(user.id) : Promise.resolve([]),
       ]);
-      return { methods, payments, blocks: blocks.filter((b) => b.blockerId === user.id) };
+      // Earnings not withdrawn yet (credited + pending), lost if the account is deleted.
+      const e = computeEarnings(sales, payouts);
+      const unpaid = Math.max(0, e.available) + e.pending;
+      return { methods, payments, blocks: blocks.filter((b) => b.blockerId === user.id), unpaid };
     },
     [userId],
     {
       methods: [] as Awaited<ReturnType<typeof platformApi.paymentMethods>>,
       payments: [] as Awaited<ReturnType<typeof platformApi.myPayments>>,
       blocks: [] as Awaited<ReturnType<typeof platformApi.blocks>>,
+      unpaid: 0,
     }
   );
   const [addingMethod, setAddingMethod] = useState(false);
@@ -401,6 +409,11 @@ const Settings: React.FC = () => {
                   <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl">
                     <h3 className="font-medium text-red-800 mb-2">Zona de peligro</h3>
                     <p className="text-sm text-red-600 mb-3">Eliminar tu cuenta es permanente y no se puede deshacer.</p>
+                    {platform.unpaid > 0 && (
+                      <p data-testid="delete-balance-warning" className="text-sm font-medium text-red-700 mb-3">
+                        Tienes {money(platform.unpaid)} de ganancias sin retirar. Si eliminas la cuenta los perderás: retíralas antes desde tu panel de creador.
+                      </p>
+                    )}
                     {!showDelete ? (
                       <button
                         type="button"
@@ -495,7 +508,7 @@ const Settings: React.FC = () => {
 
                 <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="settings-subscriptions">
                   <h2 className="text-lg font-bold text-gray-900 mb-2">Suscripciones</h2>
-                  <p className="text-sm text-gray-500 mb-4">Se renuevan cada mes en la misma fecha en que te suscribiste. Puedes cancelar cuando quieras, sin permanencia.</p>
+                  <p className="text-sm text-gray-500 mb-4">Se renuevan cada mes en la misma fecha en que te suscribiste. Puedes cancelar cuando quieras, sin permanencia: conservas el acceso hasta el final del mes que ya pagaste.</p>
                   {mySubscriptions.length === 0 ? (
                     <p className="text-sm text-gray-500">No tienes suscripciones activas.</p>
                   ) : (
@@ -504,15 +517,19 @@ const Settings: React.FC = () => {
                         <div key={sub.creatorId} className="py-3 flex items-center justify-between">
                           <div>
                             <p className="text-sm font-medium text-gray-900">{name} · {money(sub.price)}/mes</p>
-                            <p className="text-xs text-gray-500">Próxima renovación: {fmtDate(nextRenewal(sub.since))}</p>
+                            <p className="text-xs text-gray-500">
+                              {sub.cancelAt ? `Cancelada: tienes acceso hasta el ${fmtDate(new Date(sub.cancelAt))}` : `Próxima renovación: ${fmtDate(nextRenewal(sub.since))}`}
+                            </p>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => window.confirm(`¿Cancelar tu suscripción a ${name}?`) && toggleSubscription(sub.creatorId, sub.price)}
-                            className="text-xs text-red-600 hover:text-red-700"
-                          >
-                            Cancelar suscripción
-                          </button>
+                          {!sub.cancelAt && (
+                            <button
+                              type="button"
+                              onClick={() => window.confirm(`¿Cancelar tu suscripción a ${name}? Seguirás viendo su contenido hasta el final del mes que ya pagaste.`) && cancelSubscription(sub.creatorId)}
+                              className="text-xs text-red-600 hover:text-red-700"
+                            >
+                              Cancelar suscripción
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>

@@ -78,6 +78,8 @@ export interface SocialBackend {
   uploadMedia(user: User, file: File): Promise<AuthResult & { media?: MediaUpload }>;
   removeMedia(user: User, path: string): Promise<void>;
   publicCreator(creatorProfileId: string): Promise<PublicCreator | null>;
+  // Every creator who signed up (the demo catalogue is listed by the app itself).
+  publicCreators(): Promise<PublicCreator[]>;
   // Joins the private room of a confirmed VIP booking (fan or creator only).
   joinLive(user: User, bookingId: string, onMessage: (m: LiveMessage) => void): Promise<AuthResult & { channel?: LiveChannel }>;
 }

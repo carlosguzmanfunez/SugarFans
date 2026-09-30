@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { posts, type Creator } from '../data/mockData';
-import { useCreatorCatalog } from '../lib/catalog';
+import { useCreatorCatalog, fromPublic } from '../lib/catalog';
 import ManagedBadge from '../components/ManagedBadge';
 import LevelBadge from '../components/LevelBadge';
 import GiftCelebration from '../components/GiftCelebration';
@@ -27,27 +27,11 @@ import {
   addMonths,
 } from '../lib/platform';
 
-const DEFAULT_COVER = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=400&fit=crop';
-
-const fromPublic = (c: PublicCreator): Creator => ({
-  id: c.id,
-  name: c.name,
-  username: c.name.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''),
-  avatar: c.avatar,
-  cover: DEFAULT_COVER,
-  bio: c.bio || 'Creador en SugarFans.',
-  isVerified: c.isVerified,
-  subscriptionPrice: c.subscriptionPrice,
-  followers: 0,
-  likes: 0,
-  postsCount: c.posts,
-  category: '',
-  tags: [],
-});
+const formatDay = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' });
 
 const CreatorProfile: React.FC = () => {
   const { id } = useParams();
-  const { isAuthenticated, user, isSubscribed: hasSubscription, toggleSubscription, refreshUser, deletePost } = useAuth();
+  const { isAuthenticated, user, isSubscribed: hasSubscription, toggleSubscription, cancelSubscription, subscriptionOf, refreshUser, deletePost } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<'posts' | 'media' | 'circle' | 'about'>(new URLSearchParams(location.search).get('tab') === 'circle' ? 'circle' : 'posts');
@@ -153,6 +137,7 @@ const CreatorProfile: React.FC = () => {
   const managesProfile = user?.role === 'admin' && !!creator.managed;
   const isOwner = managesProfile || (!!user?.creatorProfileId && user.creatorProfileId === creator.id);
   const isSubscribed = hasSubscription(creator.id) && !iBlocked && !blockedMe;
+  const mySub = subscriptionOf(creator.id);
   const canView = (p: DisplayPost) => !p.isLocked || isSubscribed || isOwner;
   const totalLikes = creator.likes + Object.values(feed.engagement).reduce((sum, e) => sum + e.likes, 0);
   const removePost = async (postId: string) => {
@@ -169,11 +154,24 @@ const CreatorProfile: React.FC = () => {
       return;
     }
     if (isSubscribed) {
-      if (window.confirm(`¿Cancelar tu suscripción a ${creator.name}?`)) toggleSubscription(creator.id, creator.subscriptionPrice);
+      if (mySub?.cancelAt) {
+        // Still inside the paid month: keep it going, no new charge.
+        platformApi.subscribeAndPay(user!, creator.id, creator.name, creator.subscriptionPrice, '').then(async (r) => {
+          await refreshUser();
+          setTipSent(r.ok ? 'Tu suscripción vuelve a renovarse cada mes.' : r.error || 'No se pudo reactivar');
+        });
+        return;
+      }
+      if (!window.confirm(`¿Cancelar tu suscripción a ${creator.name}? Seguirás viendo su contenido hasta el final del mes que ya pagaste.`)) return;
+      cancelSubscription(creator.id).then((r) =>
+        setTipSent(r.ok ? `Suscripción cancelada. Tienes acceso hasta el ${formatDay(r.until!)}.` : r.error || 'No se pudo cancelar')
+      );
       return;
     }
     setCheckout(true);
   };
+  const openTip = (postId?: string) => (!isAuthenticated ? goLogin() : setTipping({ postId }));
+  const openGift = (postId?: string) => (!isAuthenticated ? goLogin() : setGifting({ postId }));
 
   const confirmPayment = async (methodId: string) => {
     const result = await platformApi.subscribeAndPay(user!, creator.id, creator.name, creator.subscriptionPrice, methodId);
@@ -263,7 +261,9 @@ const CreatorProfile: React.FC = () => {
                       : 'bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:opacity-90 shadow-lg'
                   }`}
                 >
-                  {isSubscribed ? (
+                  {isSubscribed && mySub?.cancelAt ? (
+                    <><i className="fas fa-redo mr-2"></i>Activa hasta el {formatDay(mySub.cancelAt)} · Reactivar</>
+                  ) : isSubscribed ? (
                     <><i className="fas fa-check mr-2"></i>Suscrito · Cancelar</>
                   ) : (
                     <><i className="fas fa-star mr-2"></i>Suscribirse ${creator.subscriptionPrice}/mes</>
@@ -289,7 +289,7 @@ const CreatorProfile: React.FC = () => {
               )}
               {!isOwner && !iBlocked && (
                 <button
-                  onClick={() => (isAuthenticated ? setGifting({}) : goLogin())}
+                  onClick={() => openGift()}
                   aria-label="Enviar regalo"
                   className="px-5 py-3 rounded-full font-bold bg-white border border-pink-200 text-pink-600 hover:bg-pink-50"
                 >
@@ -298,7 +298,7 @@ const CreatorProfile: React.FC = () => {
               )}
               {!isOwner && !iBlocked && (
                 <button
-                  onClick={() => (isAuthenticated ? setTipping({}) : goLogin())}
+                  onClick={() => openTip()}
                   title="Enviar propina"
                   aria-label="Enviar propina"
                   className="w-11 h-11 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-pink-500"
@@ -403,8 +403,8 @@ const CreatorProfile: React.FC = () => {
                 subscribeLabel={`Suscribirse $${creator.subscriptionPrice}/mes`}
                 onSubscribe={handleSubscribe}
                 onNeedLogin={goLogin}
-                onTip={() => setTipping({ postId: post.id })}
-                onGift={() => setGifting({ postId: post.id })}
+                onTip={() => openTip(post.id)}
+                onGift={() => openGift(post.id)}
                 onDelete={feed.own.some((p) => p.id === post.id) && isOwner ? () => removePost(post.id) : undefined}
                 onReport={() => handleReport('post', post.id, `Publicación de ${creator.name}: "${post.content.slice(0, 40)}"`)}
               />

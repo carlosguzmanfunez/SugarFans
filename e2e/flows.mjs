@@ -148,6 +148,16 @@ const addCard = async (scope, number = '4242 4242 4242 4242') => {
   await scope.getByRole('button', { name: 'Guardar método de pago' }).click();
 };
 
+// Pay an accepted VIP booking: the dialog preselects a saved card, or asks for one.
+const payBooking = async (page, booking) => {
+  await booking.getByRole('button', { name: /Pagar/ }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('button', { name: /Confirmar pago/ }).waitFor();
+  if (await dialog.getByPlaceholder('Número de tarjeta').count()) await addCard(dialog);
+  await dialog.getByRole('button', { name: /Confirmar pago/ }).click();
+  await dialog.waitFor({ state: 'detached' });
+};
+
 const amountOf = (text) => Number(String(text).replace(/[^0-9.]/g, ''));
 // Balances render $0.00 until the earnings query resolves, so wait for it before reading.
 const readAmount = async (page, testId) => {
@@ -438,6 +448,7 @@ const run = async () => {
       const renewals = await page.getByTestId('payment-history').getByText(/Renovación · Valentina Rose/).count();
       expect(renewals === 2, `se esperaban 2 renovaciones, hay ${renewals}`);
       await page.reload();
+      await page.getByTestId('payment-history').getByText(/Renovación · Valentina Rose/).first().waitFor();
       const again = await page.getByTestId('payment-history').getByText(/Renovación · Valentina Rose/).count();
       expect(again === 2, 'la renovación se cobró dos veces');
     });
@@ -516,9 +527,11 @@ const run = async () => {
       const subs = page.getByTestId('subscriptions');
       await subs.getByText('Valentina Rose').waitFor();
       await subs.getByRole('button', { name: 'Cancelar' }).click();
-      await subs.getByText('No tienes suscripciones activas').waitFor();
+      // Cancelling stops the renewals; the paid month stays available.
+      await subs.getByText(/Cancelada: acceso hasta/).waitFor();
       await page.reload();
-      await page.getByTestId('subscriptions').getByText('No tienes suscripciones activas').waitFor();
+      await page.getByTestId('subscriptions').getByText(/Cancelada: acceso hasta/).waitFor();
+      expect((await page.getByTestId('subscriptions').getByRole('button', { name: 'Cancelar' }).count()) === 0, 'se puede cancelar dos veces');
     });
     await check('Reserva VIP exige elegir día y hora', async () => {
       await openBooking(page);
@@ -711,6 +724,7 @@ const run = async () => {
       await table.getByRole('button', { name: /Retirar contenido/ }).click();
       await table.getByText('Contenido retirado').waitFor();
       await page.goto(`${BASE}/creator/1`);
+      await page.getByRole('button', { name: 'Reportar publicación' }).first().waitFor();
       const remaining = await page.getByRole('button', { name: 'Reportar publicación' }).count();
       expect(remaining === 1, `se esperaba 1 publicación visible, hay ${remaining}`);
       await logoutViaMenu(page);
@@ -750,6 +764,24 @@ const run = async () => {
       await page.fill('input[name=price]', '0');
       await page.getByRole('button', { name: 'Guardar cambios' }).click();
       await page.getByText(/precio debe estar/).waitFor();
+    });
+    await check('Una creadora nueva crea su experiencia VIP y aparece en la página VIP', async () => {
+      await page.goto(`${BASE}/creator/dashboard?tab=vip`);
+      const panel = page.getByTestId('vip-experiences-admin');
+      await panel.getByRole('button', { name: /Nueva experiencia/ }).click();
+      const form = panel.getByTestId('experience-form');
+      await form.locator('input[name=expTitle]').fill('Clase privada de baile');
+      await form.locator('textarea[name=expDescription]').fill('Una clase uno a uno por videollamada.');
+      await form.locator('input[name=expPrice]').fill('40');
+      await form.getByRole('button', { name: 'Guardar experiencia' }).click();
+      await panel.getByTestId('my-experience').filter({ hasText: 'Clase privada de baile' }).waitFor();
+      await page.goto(`${BASE}/vip-experiences`);
+      await page.getByText('Clase privada de baile').waitFor();
+      await page.getByText('Lola Creadora').first().waitFor();
+    });
+    await check('La creadora que se registra aparece en Explorar', async () => {
+      await page.goto(`${BASE}/explore`);
+      await page.getByText('Lola Creadora').first().waitFor();
     });
 
     console.log('\nIngresos y retiros del creador');
@@ -905,12 +937,16 @@ const run = async () => {
       const booking = page.getByTestId('booking').filter({ hasText: '12:00' });
       await booking.getByText('Aceptada · pendiente de pago').waitFor();
       expect((await booking.getByText(/Correo de confirmación/).count()) === 0, 'envió correo antes del pago');
-      await booking.getByRole('button', { name: /Pagar/ }).click();
+      await payBooking(page, booking);
       await page.reload();
       const paid = page.getByTestId('booking').filter({ hasText: '12:00' });
       await paid.getByText('Confirmada').waitFor();
       await paid.getByText(`Correo de confirmación enviado a ${fanEmail}`).waitFor();
       await page.getByTestId('booking').filter({ hasText: '16:00' }).getByText('Rechazada por el creador').waitFor();
+    });
+    await check('El pago VIP queda en el historial del fan como cualquier otro pago', async () => {
+      await page.goto(`${BASE}/settings?section=payments`);
+      await page.getByTestId('payment-history').getByText(/Experiencia VIP/).first().waitFor();
     });
     await check('Los nuevos horarios del creador se reflejan al reservar', async () => {
       await openBooking(page);
@@ -921,6 +957,30 @@ const run = async () => {
       await logoutViaMenu(page);
     });
 
+    await check('Olvidé mi contraseña: el enlace del correo permite crear una nueva', async () => {
+      const resetTo = async (password) => {
+        await page.goto(`${BASE}/login`);
+        await page.getByRole('link', { name: /Olvidaste/ }).click();
+        await waitPath(page, '/forgot-password');
+        await page.fill('input[type=email]', fanEmail);
+        await page.getByRole('button', { name: 'Enviar enlace' }).click();
+        await page.getByText(/te enviamos un enlace/).waitFor();
+        const link = await page.evaluate(() => {
+          const mails = JSON.parse(localStorage.getItem('sugarfans_email_outbox'));
+          return mails.filter((m) => m.subject === 'Crea una nueva contraseña').pop().body.match(/https?:\/\/\S+/)[0];
+        });
+        await page.goto(link);
+        await page.fill('input[name=newPassword]', password);
+        await page.fill('input[name=confirmPassword]', password);
+        await page.getByRole('button', { name: 'Guardar contraseña' }).click();
+        await page.getByText('Tu contraseña se cambió correctamente.').waitFor();
+      };
+      await resetTo('clave-recuperada-3');
+      await login(page, fanEmail, 'clave-recuperada-3');
+      await waitPath(page, '/explore');
+      await logoutViaMenu(page);
+      await resetTo('nueva-clave-2');
+    });
     console.log('\nCierre (eliminación) de cuenta');
     await check('Eliminar cuenta exige contraseña correcta', async () => {
       await login(page, fanEmail, 'nueva-clave-2');
@@ -972,14 +1032,10 @@ const run = async () => {
       await other.close();
       await logoutViaMenu(page);
     });
-    await check('El idioma elegido persiste tras recargar', async () => {
+    await check('La web se muestra solo en español (sin selector de idioma a medio traducir)', async () => {
       await page.goto(BASE);
-      await page.click('button[aria-label="Seleccionar idioma"]');
-      await page.getByRole('button', { name: /English/ }).click();
-      await page.reload();
-      await page.getByRole('link', { name: 'Log In' }).first().waitFor();
-      await page.click('button[aria-label="Seleccionar idioma"]');
-      await page.getByRole('button', { name: /Español/ }).click();
+      await page.getByRole('link', { name: 'Iniciar Sesión' }).first().waitFor();
+      expect((await page.locator('button[aria-label="Seleccionar idioma"]').count()) === 0, 'sigue el selector de idioma');
     });
     await context.close();
 
@@ -1126,7 +1182,7 @@ const run = async () => {
       await cp.getByTestId('vip-request').filter({ hasText: '12:00' }).getByRole('button', { name: 'Aceptar' }).click();
       await fp.goto(`${BASE}/profile`);
       const booking = fp.getByTestId('booking').filter({ hasText: '12:00' });
-      await booking.getByRole('button', { name: /Pagar/ }).click();
+      await payBooking(fp, booking);
       await booking.getByText('Confirmada').waitFor();
       await booking.getByTestId('live-later').waitFor();
       expect((await booking.getByTestId('join-live').count()) === 0, 'la sala se abre antes de tiempo');
