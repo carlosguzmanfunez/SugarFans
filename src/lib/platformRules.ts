@@ -219,3 +219,18 @@ export const readImageFile = (file: File, maxSize = 900): Promise<string> =>
     };
     reader.readAsDataURL(file);
   });
+
+// Tips: fixed amounts or a custom one between $1 and $500.
+export const TIP_PRESETS = [2, 5, 10, 20];
+export const MIN_TIP = 1;
+export const MAX_TIP = 500;
+export const validateTip = (amount: number): { ok: boolean; error?: string } =>
+  Number.isFinite(amount) && amount >= MIN_TIP && amount <= MAX_TIP
+    ? { ok: true }
+    : { ok: false, error: `La propina debe estar entre $${MIN_TIP} y $${MAX_TIP}` };
+
+export const transactionLabel: Record<Transaction['kind'], string> = {
+  subscription: 'Suscripción',
+  renewal: 'Renovación',
+  tip: 'Propina',
+};

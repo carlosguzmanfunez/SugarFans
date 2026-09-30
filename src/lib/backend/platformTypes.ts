@@ -50,8 +50,9 @@ export interface Transaction {
   payerName: string;
   creatorProfileId: string;
   creatorName: string;
-  kind: 'subscription' | 'renewal';
+  kind: 'subscription' | 'renewal' | 'tip';
   amount: number;
+  note?: string; // the fan's message with a tip
   methodLabel: string;
   status: 'paid' | 'failed';
   createdAt: string;
@@ -149,6 +150,8 @@ export interface PlatformBackend {
   subscribeAndPay(user: User, creatorProfileId: string, creatorName: string, price: number, methodId: string): Promise<AuthResult>;
   // Bills every monthly cycle that came due since each subscription started (idempotent).
   billDueRenewals(user: User, creatorNames: Record<string, string>): Promise<void>;
+  // One-off tip to a creator (optionally for a post), charged to a saved method.
+  sendTip(user: User, creatorProfileId: string, creatorName: string, amount: number, methodId: string, postId?: string, message?: string): Promise<AuthResult>;
   myPayments(userId: string): Promise<Transaction[]>;
   creatorSales(creatorProfileId: string): Promise<Transaction[]>;
   allPayments(): Promise<Transaction[]>; // admin

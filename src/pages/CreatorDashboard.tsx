@@ -2,18 +2,20 @@ import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import CreatorPayouts from '../components/CreatorPayouts';
-import { usePlatformQuery, platformApi, computeEarnings, iBlocked, blockUser, unblockUser, money, CREATOR_SHARE } from '../lib/platform';
+import { usePlatformQuery, platformApi, computeEarnings, iBlocked, blockUser, unblockUser, money, CREATOR_SHARE, transactionLabel } from '../lib/platform';
 import { statusLabel, formatLongDate, WEEKDAYS, ALL_HOURS, MAX_BOOKING_MONTHS, DEFAULT_AVAILABILITY } from '../lib/vip';
 import { backend } from '../lib/backend';
 import { useBackendData } from '../lib/useBackendData';
+import NewPostForm from '../components/NewPostForm';
+import LiveRoomButton from '../components/LiveRoomButton';
+import { socialApi, compactCount } from '../lib/social';
+import { posts as catalogPosts } from '../data/mockData';
 
 const CreatorDashboard: React.FC = () => {
-  const { user, addPost, deletePost, updateUser } = useAuth();
+  const { user, deletePost, updateUser } = useAuth();
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'overview');
   const [showNewPost, setShowNewPost] = useState(false);
-  const [postText, setPostText] = useState('');
-  const [postLocked, setPostLocked] = useState(false);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
 
   const [displayName, setDisplayName] = useState(user?.name ?? '');
@@ -69,15 +71,28 @@ const CreatorDashboard: React.FC = () => {
     await reloadBookings();
   };
 
-  const handlePublish = async () => {
-    if (!verified) return show({ ok: false, error: 'Verifica tu identidad antes de publicar contenido' }, '');
-    const result = await addPost(postText, postLocked);
-    if (!result.ok) return show(result, '');
-    setPostText('');
-    setPostLocked(false);
+  // My published posts (with their photo/video) and likes/comments on everything on my profile.
+  const { data: content } = usePlatformQuery(
+    async () => {
+      const mine = await socialApi.postsByCreator(profileId);
+      const catalog = catalogPosts.filter((p) => p.creatorId === profileId);
+      const engagement = await socialApi.engagement([...mine.map((p) => p.id), ...catalog.map((p) => p.id)], user);
+      const likes = catalog.reduce((sum, p) => sum + p.likes, 0) + Object.values(engagement).reduce((sum, e) => sum + e.likes, 0);
+      return { mine, engagement, likes };
+    },
+    [profileId, user?.id],
+    { mine: [] as Awaited<ReturnType<typeof socialApi.postsByCreator>>, engagement: {} as Awaited<ReturnType<typeof socialApi.engagement>>, likes: 0 }
+  );
+
+  const handlePublished = () => {
     setShowNewPost(false);
     setActiveTab('content');
-    show(result, 'Publicación creada');
+    show({ ok: true }, 'Publicación creada. Ya aparece en tu perfil público.');
+  };
+
+  const handleDeletePost = async (id: string) => {
+    if (!window.confirm('¿Eliminar esta publicación? También se borrará su foto o video.')) return;
+    show(await deletePost(id), 'Publicación eliminada');
   };
 
   const handleSaveSettings = async () => {
@@ -103,12 +118,12 @@ const CreatorDashboard: React.FC = () => {
     { label: 'Por acreditar el día 1', value: money(earnings?.pending ?? 0), change: `${CREATOR_SHARE * 100}%`, icon: 'fa-dollar-sign', color: 'green' },
     { label: 'Suscriptores activos', value: String(activeSubscribers), change: 'activos', icon: 'fa-users', color: 'blue' },
     { label: 'Publicaciones', value: String(user?.posts ?? 0), change: '+12', icon: 'fa-image', color: 'purple' },
-    { label: 'Me gusta totales', value: '89.2K', change: '+5.2K', icon: 'fa-heart', color: 'pink' },
+    { label: 'Me gusta totales', value: compactCount(content.likes), change: 'total', icon: 'fa-heart', color: 'pink' },
   ];
 
   const recentTransactions = (live?.sales ?? []).slice(0, 5).map((t) => ({
     id: t.id,
-    type: 'Suscripción',
+    type: transactionLabel[t.kind],
     user: t.payerName,
     amount: `+${money(t.amount * CREATOR_SHARE)}`,
     date: new Date(t.createdAt).toLocaleString('es'),
@@ -125,7 +140,7 @@ const CreatorDashboard: React.FC = () => {
             <p className="text-gray-600">Bienvenida, {user?.name}</p>
           </div>
           <button
-            onClick={() => setShowNewPost(!showNewPost)}
+            onClick={() => { setShowNewPost(!showNewPost); setNotice(null); }}
             className="mt-4 sm:mt-0 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition shadow-lg"
           >
             <i className="fas fa-plus mr-2"></i> Nueva Publicación
@@ -150,42 +165,10 @@ const CreatorDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* New Post Modal */}
+        {/* New post: text + photo or video */}
         {showNewPost && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-pink-100">
-            <h3 className="font-bold text-lg mb-4">Crear nueva publicación</h3>
-            <textarea
-              value={postText}
-              onChange={(e) => setPostText(e.target.value)}
-              className="w-full p-4 border border-gray-200 rounded-xl resize-none h-24 focus:ring-2 focus:ring-pink-500 outline-none"
-              placeholder="¿Qué quieres compartir con tus fans?"
-            ></textarea>
-            <div className="flex items-center justify-between mt-4">
-              <div className="flex space-x-3">
-                <button className="flex items-center text-sm text-gray-600 hover:text-pink-500 transition">
-                  <i className="fas fa-image mr-1"></i> Foto
-                </button>
-                <button className="flex items-center text-sm text-gray-600 hover:text-pink-500 transition">
-                  <i className="fas fa-video mr-1"></i> Video
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={postLocked}
-                  onClick={() => setPostLocked(!postLocked)}
-                  className={`flex items-center text-sm transition ${postLocked ? 'text-pink-600 font-medium' : 'text-gray-600 hover:text-pink-500'}`}
-                >
-                  <i className="fas fa-lock mr-1"></i> Exclusivo{postLocked ? ' ✓' : ''}
-                </button>
-              </div>
-              <div className="flex space-x-3">
-                <button onClick={() => setShowNewPost(false)} className="px-4 py-2 text-gray-600 hover:text-gray-800">
-                  Cancelar
-                </button>
-                <button onClick={handlePublish} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-2 rounded-xl font-medium hover:opacity-90">
-                  Publicar
-                </button>
-              </div>
-            </div>
+          <div className="mb-8">
+            <NewPostForm verified={verified} onPublished={handlePublished} onCancel={() => setShowNewPost(false)} />
           </div>
         )}
 
@@ -292,47 +275,64 @@ const CreatorDashboard: React.FC = () => {
 
         {activeTab === 'content' && (
           <div className="bg-white rounded-2xl shadow-sm p-6">
-            <h3 className="font-bold text-gray-900 mb-4">Gestión de Contenido</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {user?.createdPosts.map((post) => (
-                <div key={post.id} data-testid="created-post" className="border border-gray-200 rounded-xl p-4">
-                  <div className="flex items-center justify-between mb-2 gap-2">
-                    <span className="text-sm font-medium text-gray-900 break-words">{post.content}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${post.isLocked ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
-                      {post.isLocked ? 'Exclusivo' : 'Público'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-gray-500">
-                    <span>{new Date(post.createdAt).toLocaleString('es')}</span>
-                    <button onClick={() => deletePost(post.id)} className="text-red-500 hover:text-red-700">
-                      <i className="fas fa-trash mr-1"></i>Eliminar
-                    </button>
-                  </div>
-                </div>
-              ))}
-              <div className="border border-gray-200 rounded-xl p-4 hover:border-pink-300 transition cursor-pointer">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-900">Set de fotos - Playa</span>
-                  <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Público</span>
-                </div>
-                <div className="flex items-center space-x-3 text-xs text-gray-500">
-                  <span><i className="fas fa-heart mr-1"></i>342</span>
-                  <span><i className="fas fa-comment mr-1"></i>56</span>
-                  <span><i className="fas fa-eye mr-1"></i>1.2K</span>
-                </div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div>
+                <h3 className="font-bold text-gray-900">Gestión de Contenido</h3>
+                <p className="text-sm text-gray-500">Aquí subes fotos y videos. Lo que publiques aparece en tu perfil público.</p>
               </div>
-              <div className="border border-gray-200 rounded-xl p-4 hover:border-pink-300 transition cursor-pointer">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-900">Video exclusivo - Sesión</span>
-                  <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">Exclusivo</span>
-                </div>
-                <div className="flex items-center space-x-3 text-xs text-gray-500">
-                  <span><i className="fas fa-heart mr-1"></i>890</span>
-                  <span><i className="fas fa-comment mr-1"></i>123</span>
-                  <span><i className="fas fa-dollar-sign mr-1"></i>$4.99</span>
-                </div>
+              <div className="flex gap-2">
+                <Link to={`/creator/${profileId}`} className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 hover:border-pink-300">
+                  <i className="fas fa-eye mr-1"></i> Ver mi perfil
+                </Link>
+                {!showNewPost && (
+                  <button onClick={() => { setShowNewPost(true); setNotice(null); }} className="px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white text-sm font-medium">
+                    <i className="fas fa-upload mr-1"></i> Subir foto o video
+                  </button>
+                )}
               </div>
             </div>
+            {content.mine.length === 0 ? (
+              <p className="text-sm text-gray-500 py-8 text-center">Aún no has publicado nada. Pulsa “Subir foto o video” para empezar.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {content.mine.map((post) => {
+                  const e = content.engagement[post.id];
+                  return (
+                    <div key={post.id} data-testid="created-post" className="border border-gray-200 rounded-xl overflow-hidden flex flex-col">
+                      {post.mediaUrl ? (
+                        post.mediaType === 'video' ? (
+                          <video src={post.mediaUrl} controls playsInline preload="metadata" className="w-full h-44 object-cover bg-black" />
+                        ) : (
+                          <img src={post.mediaUrl} alt="" className="w-full h-44 object-cover" />
+                        )
+                      ) : (
+                        <div className="w-full h-20 bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center text-gray-300">
+                          <i className="fas fa-align-left text-2xl"></i>
+                        </div>
+                      )}
+                      <div className="p-4 flex-1 flex flex-col">
+                        <div className="flex items-start justify-between mb-2 gap-2">
+                          <span className="text-sm font-medium text-gray-900 break-words">{post.content || (post.mediaType === 'video' ? 'Video' : 'Foto')}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${post.isLocked ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
+                            {post.isLocked ? 'Exclusivo' : 'Público'}
+                          </span>
+                        </div>
+                        <div className="mt-auto flex items-center justify-between text-xs text-gray-500">
+                          <span className="flex gap-3">
+                            <span><i className="fas fa-heart mr-1"></i>{e?.likes ?? 0}</span>
+                            <span><i className="fas fa-comment mr-1"></i>{e?.comments ?? 0}</span>
+                            <span>{new Date(post.createdAt).toLocaleDateString('es')}</span>
+                          </span>
+                          <button onClick={() => handleDeletePost(post.id)} className="text-red-500 hover:text-red-700">
+                            <i className="fas fa-trash mr-1"></i>Eliminar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -445,6 +445,7 @@ const CreatorDashboard: React.FC = () => {
                       {b.message && <p className="text-sm text-gray-600 mt-2 italic">“{b.message}”</p>}
                       <div className="flex items-center justify-between mt-3">
                         <span className={`text-xs px-2 py-1 rounded-full ${statusLabel[b.status].className}`}>{statusLabel[b.status].text}</span>
+                        {b.status === 'confirmed' && <LiveRoomButton booking={b} />}
                         {b.status === 'pending' && (
                           <div className="flex gap-2">
                             <button onClick={() => handleBookingDecision(b.id, 'rejected')} className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">

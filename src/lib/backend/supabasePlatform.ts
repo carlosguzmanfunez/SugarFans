@@ -1,7 +1,7 @@
 // Supabase implementation of the platform features. Tables and the functions
 // that enforce the rules live in supabase/migrations/20260930000001_platform.sql.
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { buildManagedProfile, validateReport, validateVerification } from '../platformRules';
+import { buildManagedProfile, validateReport, validateTip, validateVerification } from '../platformRules';
 import { creators as catalogue } from '../../data/mockData';
 import type { AuthResult } from './types';
 import type {
@@ -83,6 +83,7 @@ const toTransaction = (r: Row): Transaction => ({
   methodLabel: r.method_label,
   status: r.status,
   createdAt: r.created_at,
+  note: r.note ?? undefined,
 });
 
 const toPayout = (r: Row): Payout => ({
@@ -192,6 +193,20 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
       p_method_id: methodId,
     });
     return done(error, 'No se pudo completar el pago');
+  },
+
+  async sendTip(_user, creatorProfileId, creatorName, amount, methodId, postId, message) {
+    const check = validateTip(amount);
+    if (!check.ok) return check;
+    const { error } = await sb.rpc('send_tip', {
+      p_creator_profile_id: creatorProfileId,
+      p_creator_name: creatorName,
+      p_amount: amount,
+      p_method_id: methodId,
+      p_post_id: postId ?? null,
+      p_message: message ?? '',
+    });
+    return done(error, 'No se pudo enviar la propina');
   },
 
   async billDueRenewals(_user, creatorNames) {

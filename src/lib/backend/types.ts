@@ -1,6 +1,8 @@
 // Shared domain types and the contract every data backend implements.
 import type { PlatformBackend } from './platformTypes';
+import type { MediaUpload, SocialBackend } from './socialTypes';
 export type * from './platformTypes';
+export type * from './socialTypes';
 
 // Two backends exist: Supabase (real, shared across devices) and a local
 // browser-only one used when Supabase is not configured (dev, tests).
@@ -29,6 +31,10 @@ export interface CreatorPost {
   content: string;
   isLocked: boolean;
   createdAt: string;
+  mediaPath?: string;
+  mediaType?: MediaUpload['type'];
+  // Set when an admin published it as a platform-run profile.
+  creatorProfileId?: string;
 }
 
 export interface User {
@@ -119,7 +125,8 @@ export interface Backend {
   changePassword(user: User, current: string, next: string): Promise<AuthResult>;
   deleteAccount(user: User, password: string): Promise<AuthResult>;
   setSubscription(user: User, creatorId: string, price: number, subscribed: boolean): Promise<AuthResult>;
-  addPost(user: User, content: string, isLocked: boolean): Promise<AuthResult>;
+  // Admins can publish as a platform-run profile (asProfileId "m-…").
+  addPost(user: User, content: string, isLocked: boolean, media?: MediaUpload, asProfileId?: string): Promise<AuthResult>;
   deletePost(user: User, postId: string): Promise<AuthResult>;
   listAccounts(): Promise<User[]>;
 
@@ -133,4 +140,6 @@ export interface Backend {
 
   // Verification, payments, payouts, reports and blocks (see platformTypes.ts).
   platform: PlatformBackend;
+  // Likes, comments, uploads and live rooms (see socialTypes.ts).
+  social: SocialBackend;
 }

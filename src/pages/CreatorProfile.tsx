@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
-import { posts } from '../data/mockData';
+import { posts, type Creator } from '../data/mockData';
 import { useCreatorCatalog } from '../lib/catalog';
 import ManagedBadge from '../components/ManagedBadge';
 import { useAuth } from '../context/AuthContext';
 import CheckoutDialog from '../components/CheckoutDialog';
 import ReportDialog from '../components/ReportDialog';
+import PostCard, { type DisplayPost } from '../components/PostCard';
+import TipDialog from '../components/TipDialog';
+import NewPostForm from '../components/NewPostForm';
+import { socialApi, compactCount, type PublicCreator } from '../lib/social';
 import {
   usePlatformQuery,
   platformApi,
@@ -17,9 +21,27 @@ import {
   addMonths,
 } from '../lib/platform';
 
+const DEFAULT_COVER = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=400&fit=crop';
+
+const fromPublic = (c: PublicCreator): Creator => ({
+  id: c.id,
+  name: c.name,
+  username: c.name.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''),
+  avatar: c.avatar,
+  cover: DEFAULT_COVER,
+  bio: c.bio || 'Creador en SugarFans.',
+  isVerified: c.isVerified,
+  subscriptionPrice: c.subscriptionPrice,
+  followers: 0,
+  likes: 0,
+  postsCount: c.posts,
+  category: '',
+  tags: [],
+});
+
 const CreatorProfile: React.FC = () => {
   const { id } = useParams();
-  const { isAuthenticated, user, isSubscribed: hasSubscription, toggleSubscription, refreshUser } = useAuth();
+  const { isAuthenticated, user, isSubscribed: hasSubscription, toggleSubscription, refreshUser, deletePost } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<'posts' | 'media' | 'about'>('posts');
@@ -33,11 +55,55 @@ const CreatorProfile: React.FC = () => {
   );
   const [checkout, setCheckout] = useState(false);
   const [reporting, setReporting] = useState<{ kind: 'post' | 'creator'; targetId: string; label: string } | null>(null);
+  const [tipping, setTipping] = useState<{ postId?: string } | null>(null);
+  const [tipSent, setTipSent] = useState('');
+  const [composing, setComposing] = useState(false);
 
+  // Demo creators and platform-run profiles first, then creators who signed up.
   const { creators, loading: catalogLoading } = useCreatorCatalog();
-  const creator = creators.find(c => c.id === id);
+  const catalogCreator = creators.find(c => c.id === id);
+  // Creators who signed up have no catalogue entry: load their public card.
+  const { data: signedUp, loading: creatorLoading } = usePlatformQuery(
+    () => (catalogCreator || catalogLoading || !id ? Promise.resolve(null) : socialApi.publicCreator(id)),
+    [id, catalogLoading, !!catalogCreator],
+    null as PublicCreator | null
+  );
+  const creator: Creator | undefined = catalogCreator ?? (signedUp ? fromPublic(signedUp) : undefined);
 
-  if (!creator && catalogLoading) return null;
+  // Posts published from the creator panel, then like/comment totals for every post.
+  const { data: feed } = usePlatformQuery(
+    async () => {
+      if (!id) return { own: [] as DisplayPost[], engagement: {} as Awaited<ReturnType<typeof socialApi.engagement>> };
+      const published = await socialApi.postsByCreator(id);
+      const own: DisplayPost[] = published.map((p) => ({
+        id: p.id,
+        creatorProfileId: p.creatorProfileId,
+        // Filled in below from the creator card.
+        creatorName: '',
+        creatorAvatar: '',
+        content: p.content,
+        mediaUrl: p.mediaUrl,
+        mediaType: p.mediaType,
+        isLocked: p.isLocked,
+        createdAt: p.createdAt,
+        baseLikes: 0,
+        baseComments: 0,
+      }));
+      const ids = [...own.map((p) => p.id), ...posts.filter((p) => p.creatorId === id).map((p) => p.id)];
+      return { own, engagement: await socialApi.engagement(ids, user) };
+    },
+    [id, user?.id],
+    { own: [] as DisplayPost[], engagement: {} as Awaited<ReturnType<typeof socialApi.engagement>> }
+  );
+
+  if (!creator && (catalogLoading || creatorLoading)) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-label="Cargando">
+        <div className="w-10 h-10 border-4 border-pink-200 border-t-pink-500 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   if (!creator) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -53,10 +119,40 @@ const CreatorProfile: React.FC = () => {
     );
   }
 
-  const creatorPosts = posts.filter(p => p.creatorId === creator.id && !platform.removedPosts.includes(p.id));
+  const catalogPosts: DisplayPost[] = posts
+    .filter((p) => p.creatorId === creator.id)
+    .map((p) => ({
+      id: p.id,
+      creatorProfileId: p.creatorId,
+      creatorName: p.creatorName,
+      creatorAvatar: p.creatorAvatar,
+      content: p.content,
+      mediaUrl: p.media,
+      mediaType: p.mediaType,
+      isLocked: p.isLocked,
+      price: p.price,
+      createdAt: p.createdAt,
+      baseLikes: p.likes,
+      baseComments: p.comments,
+    }));
+  const creatorPosts = [...feed.own.map((p) => ({ ...p, creatorName: creator.name, creatorAvatar: creator.avatar })), ...catalogPosts].filter(
+    (p) => !platform.removedPosts.includes(p.id)
+  );
   const iBlocked = !!user && hasBlocked(platform.blocks, user.id, creator.id);
   const blockedMe = !!user && blockedByProfile(platform.blocks, user.id, creator.id);
+  // Admins run the platform's own profiles (e.g. "Perfil IA") and publish for them.
+  const managesProfile = user?.role === 'admin' && !!creator.managed;
+  const isOwner = managesProfile || (!!user?.creatorProfileId && user.creatorProfileId === creator.id);
   const isSubscribed = hasSubscription(creator.id) && !iBlocked && !blockedMe;
+  const canView = (p: DisplayPost) => !p.isLocked || isSubscribed || isOwner;
+  const totalLikes = creator.likes + Object.values(feed.engagement).reduce((sum, e) => sum + e.likes, 0);
+  const removePost = async (postId: string) => {
+    if (!window.confirm('¿Eliminar esta publicación? También se borrará su foto o video.')) return;
+    const result = await deletePost(postId);
+    if (result.ok) platformChanged();
+    setTipSent(result.ok ? 'Publicación eliminada.' : result.error || 'No se pudo eliminar');
+  };
+  const goLogin = () => navigate('/login', { state: { from: location.pathname } });
 
   const handleSubscribe = () => {
     if (!isAuthenticated) {
@@ -148,7 +244,7 @@ const CreatorProfile: React.FC = () => {
                 <button onClick={handleBlock} className="px-6 py-3 rounded-full font-bold bg-gray-200 text-gray-700 hover:bg-gray-300">
                   <i className="fas fa-unlock mr-2"></i>Desbloquear
                 </button>
-              ) : isAuthenticated && user?.role !== 'creator' ? (
+              ) : isAuthenticated && user?.role !== 'creator' && !isOwner ? (
                 <button
                   onClick={handleSubscribe}
                   className={`px-6 py-3 rounded-full font-bold transition-all ${
@@ -168,7 +264,30 @@ const CreatorProfile: React.FC = () => {
                   Iniciar sesión para suscribirse
                 </Link>
               ) : null}
-              {isAuthenticated && !iBlocked && (
+              {managesProfile && (
+                <button
+                  onClick={() => setComposing(!composing)}
+                  className="px-6 py-3 rounded-full font-bold bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:opacity-90 shadow-lg"
+                >
+                  <i className="fas fa-plus mr-2"></i>Publicar como {creator.name}
+                </button>
+              )}
+              {isOwner && !managesProfile && (
+                <Link to="/creator/dashboard?tab=content" className="px-6 py-3 rounded-full font-bold bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:opacity-90 shadow-lg">
+                  <i className="fas fa-plus mr-2"></i>Nueva publicación
+                </Link>
+              )}
+              {!isOwner && !iBlocked && (
+                <button
+                  onClick={() => (isAuthenticated ? setTipping({}) : goLogin())}
+                  title="Enviar propina"
+                  aria-label="Enviar propina"
+                  className="w-11 h-11 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-pink-500"
+                >
+                  <i className="fas fa-gift"></i>
+                </button>
+              )}
+              {isAuthenticated && !iBlocked && !isOwner && (
                 <button onClick={handleBlock} title="Bloquear" aria-label="Bloquear" className="w-11 h-11 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-red-500">
                   <i className="fas fa-ban"></i>
                 </button>
@@ -179,15 +298,15 @@ const CreatorProfile: React.FC = () => {
           {/* Stats */}
           <div className="flex space-x-6 mt-6 text-sm">
             <div className="text-center">
-              <p className="font-bold text-gray-900">{(creator.followers / 1000).toFixed(1)}K</p>
+              <p className="font-bold text-gray-900">{compactCount(creator.followers)}</p>
               <p className="text-gray-500">Seguidores</p>
             </div>
             <div className="text-center">
-              <p className="font-bold text-gray-900">{creator.postsCount}</p>
+              <p className="font-bold text-gray-900">{catalogCreator ? creator.postsCount + feed.own.length : feed.own.length}</p>
               <p className="text-gray-500">Publicaciones</p>
             </div>
             <div className="text-center">
-              <p className="font-bold text-gray-900">{(creator.likes / 1000).toFixed(1)}K</p>
+              <p className="font-bold text-gray-900">{compactCount(totalLikes)}</p>
               <p className="text-gray-500">Me gusta</p>
             </div>
           </div>
@@ -237,65 +356,32 @@ const CreatorProfile: React.FC = () => {
         {/* Content */}
         {!iBlocked && activeTab === 'posts' && (
           <div className="space-y-6">
+            {composing && managesProfile && (
+              <NewPostForm
+                verified
+                asProfileId={creator.id}
+                onPublished={() => { setComposing(false); setTipSent('Publicación creada.'); }}
+                onCancel={() => setComposing(false)}
+              />
+            )}
+            {tipSent && (
+              <div role="status" className="px-4 py-3 rounded-xl border bg-green-50 border-green-200 text-green-700">{tipSent}</div>
+            )}
             {creatorPosts.length > 0 ? creatorPosts.map((post) => (
-              <div key={post.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
-                <div className="p-4 flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <img src={post.creatorAvatar} alt="" className="w-10 h-10 rounded-full" />
-                    <div>
-                      <p className="font-medium text-gray-900 text-sm">{post.creatorName}</p>
-                      <p className="text-xs text-gray-500">{new Date(post.createdAt).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                    </div>
-                  </div>
-                  {post.price && !isSubscribed && (
-                    <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-medium">
-                      <i className="fas fa-lock mr-1"></i>${post.price}
-                    </span>
-                  )}
-                </div>
-                <div className="relative">
-                  {post.media && <img src={post.media} alt="" className="w-full h-72 object-cover" />}
-                  {(post.isLocked && !isSubscribed) && (
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
-                      <div className="text-center text-white p-6">
-                        <i className="fas fa-lock text-4xl mb-3"></i>
-                        <p className="font-bold text-lg">Contenido exclusivo para suscriptores</p>
-                        <p className="text-sm mt-2 text-pink-200">Suscríbete para desbloquear todo el contenido</p>
-                        <button
-                          onClick={handleSubscribe}
-                          className="mt-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-2 rounded-full font-medium hover:opacity-90"
-                        >
-                          Suscribirse ${creator.subscriptionPrice}/mes
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="p-4">
-                  <p className="text-gray-700">{post.content}</p>
-                  <div className="flex items-center space-x-6 mt-4 text-gray-500">
-                    <button className="flex items-center text-sm hover:text-pink-500 transition">
-                      <i className="fas fa-heart mr-1"></i> {post.likes}
-                    </button>
-                    <button className="flex items-center text-sm hover:text-pink-500 transition">
-                      <i className="fas fa-comment mr-1"></i> {post.comments}
-                    </button>
-                    <button className="flex items-center text-sm hover:text-pink-500 transition">
-                      <i className="fas fa-gift mr-1"></i> Propina
-                    </button>
-                    <button className="flex items-center text-sm hover:text-pink-500 transition ml-auto">
-                      <i className="fas fa-share mr-1"></i> Compartir
-                    </button>
-                    <button
-                      onClick={() => handleReport('post', post.id, `Publicación de ${creator.name}: "${post.content.slice(0, 40)}"`)}
-                      className="flex items-center text-sm hover:text-red-500 transition"
-                      aria-label="Reportar publicación"
-                    >
-                      <i className="fas fa-flag mr-1"></i> Reportar
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <PostCard
+                key={post.id}
+                post={post}
+                engagement={feed.engagement[post.id]}
+                viewer={user}
+                canView={canView(post)}
+                isOwner={isOwner}
+                subscribeLabel={`Suscribirse $${creator.subscriptionPrice}/mes`}
+                onSubscribe={handleSubscribe}
+                onNeedLogin={goLogin}
+                onTip={() => setTipping({ postId: post.id })}
+                onDelete={feed.own.some((p) => p.id === post.id) && isOwner ? () => removePost(post.id) : undefined}
+                onReport={() => handleReport('post', post.id, `Publicación de ${creator.name}: "${post.content.slice(0, 40)}"`)}
+              />
             )) : (
               <div className="text-center py-12 bg-white rounded-2xl">
                 <i className="fas fa-image text-4xl text-gray-300 mb-4"></i>
@@ -307,21 +393,28 @@ const CreatorProfile: React.FC = () => {
 
         {!iBlocked && activeTab === 'media' && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {creatorPosts.filter(p => p.media).map((post) => (
-              <div key={post.id} className="relative aspect-square rounded-xl overflow-hidden group cursor-pointer">
-                <img src={post.media} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                {post.isLocked && !isSubscribed && (
+            {creatorPosts.filter(p => p.mediaUrl || p.mediaType).map((post) => (
+              <a key={post.id} href={`#post-${post.id}`} onClick={() => setActiveTab('posts')} className="relative aspect-square rounded-xl overflow-hidden group cursor-pointer bg-gradient-to-br from-pink-200 to-purple-300">
+                {post.mediaUrl && canView(post) && (post.mediaType === 'video' ? (
+                  <video src={post.mediaUrl} muted playsInline preload="metadata" className="w-full h-full object-cover" />
+                ) : (
+                  <img src={post.mediaUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                ))}
+                {post.mediaType === 'video' && canView(post) && (
+                  <span className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full"><i className="fas fa-play"></i></span>
+                )}
+                {!canView(post) && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                     <i className="fas fa-lock text-white text-xl"></i>
                   </div>
                 )}
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition">
                   <div className="flex items-center space-x-3 text-white text-xs">
-                    <span><i className="fas fa-heart mr-1"></i>{post.likes}</span>
-                    <span><i className="fas fa-comment mr-1"></i>{post.comments}</span>
+                    <span><i className="fas fa-heart mr-1"></i>{compactCount(post.baseLikes + (feed.engagement[post.id]?.likes ?? 0))}</span>
+                    <span><i className="fas fa-comment mr-1"></i>{compactCount(post.baseComments + (feed.engagement[post.id]?.comments ?? 0))}</span>
                   </div>
                 </div>
-              </div>
+              </a>
             ))}
           </div>
         )}
@@ -371,6 +464,20 @@ const CreatorProfile: React.FC = () => {
           confirmLabel="Suscribirme y pagar"
           onConfirm={confirmPayment}
           onClose={() => setCheckout(false)}
+        />
+      )}
+      {tipping && user && (
+        <TipDialog
+          user={user}
+          creatorProfileId={creator.id}
+          creatorName={creator.name}
+          postId={tipping.postId}
+          onDone={(amount) => {
+            setTipping(null);
+            setTipSent(`¡Gracias! Tu propina de $${amount.toFixed(2)} llegó a ${creator.name}.`);
+            setActiveTab('posts');
+          }}
+          onClose={() => setTipping(null)}
         />
       )}
       {reporting && (

@@ -56,3 +56,31 @@ export const statusLabel: Record<BookingStatus, { text: string; className: strin
   rejected: { text: 'Rechazada por el creador', className: 'bg-red-100 text-red-700' },
   cancelled: { text: 'Cancelada', className: 'bg-gray-100 text-gray-500' },
 };
+
+// Live video sessions: experiences with a duration happen live in the app's
+// room (/live/:bookingId). It opens 15 minutes before the booked time and
+// closes 30 minutes after the booked duration.
+export const LIVE_EARLY_MIN = 15;
+export const LIVE_GRACE_MIN = 30;
+
+export const durationMinutes = (duration?: string): number | null => {
+  const m = duration?.match(/(\d+)\s*min/);
+  return m ? Number(m[1]) : null;
+};
+
+export const liveWindow = (date: string, time: string, minutes: number) => {
+  const start = fromISODate(date);
+  const [h, mm] = time.split(':').map(Number);
+  start.setHours(h, mm || 0, 0, 0);
+  return {
+    start,
+    opens: new Date(start.getTime() - LIVE_EARLY_MIN * 60_000),
+    closes: new Date(start.getTime() + (minutes + LIVE_GRACE_MIN) * 60_000),
+  };
+};
+
+export type LiveState = 'early' | 'open' | 'over';
+export const liveState = (date: string, time: string, minutes: number, now = new Date()): LiveState => {
+  const w = liveWindow(date, time, minutes);
+  return now < w.opens ? 'early' : now > w.closes ? 'over' : 'open';
+};

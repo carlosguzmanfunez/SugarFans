@@ -13,6 +13,7 @@ import {
   exportUserData,
   nextRenewal,
   money,
+  transactionLabel,
 } from '../lib/platform';
 
 const notificationItems: { key: string; label: string }[] = [
@@ -525,7 +526,7 @@ const Settings: React.FC = () => {
                       {myPayments.map((t) => (
                         <div key={t.id} className="py-3 flex items-center justify-between text-sm">
                           <div>
-                            <p className="font-medium text-gray-900">{t.kind === 'renewal' ? 'Renovación' : 'Suscripción'} · {t.creatorName}</p>
+                            <p className="font-medium text-gray-900">{transactionLabel[t.kind]} · {t.creatorName}</p>
                             <p className="text-xs text-gray-500">{fmtDate(t.createdAt)} · {t.methodLabel}</p>
                           </div>
                           <span className={t.status === 'paid' ? 'font-bold text-gray-900' : 'text-red-600 text-xs'}>
