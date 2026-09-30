@@ -126,6 +126,7 @@ const dbError = (error: { message?: string } | null, fallback: string) => {
 const translateAuthError = (message: string): string => {
   if (/invalid login credentials/i.test(message)) return WRONG_CREDENTIALS;
   if (/already registered|already exists/i.test(message)) return 'Ya existe una cuenta con este email';
+  if (/email address .* is invalid|invalid email|email_address_invalid/i.test(message)) return 'Introduce un email válido';
   if (/email not confirmed/i.test(message)) return 'Confirma tu email antes de iniciar sesión (revisa tu bandeja de entrada)';
   if (/password/i.test(message) && /least|short|weak/i.test(message)) return 'La contraseña es demasiado débil';
   if (/fetch|network|load failed/i.test(message)) return 'No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.';
