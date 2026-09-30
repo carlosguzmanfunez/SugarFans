@@ -1479,6 +1479,25 @@ const run = async () => {
     });
     await rewardsCtx.close();
 
+    const priceCtx = await newContext(browser, { locale: 'es-ES' });
+    const pp = await newPage(priceCtx);
+    await check('El precio que la creadora demo pone en su panel es el que ven y pagan los fans', async () => {
+      await login(pp, 'creator@sugarfans.com', 'demo1234');
+      await waitPath(pp, '/explore');
+      await pp.goto(`${BASE}/creator/dashboard`);
+      await pp.getByRole('button', { name: /Configuración/ }).last().click();
+      await pp.fill('input[name=price]', '12.5');
+      await pp.getByRole('button', { name: 'Guardar cambios' }).click();
+      await pp.getByText('Cambios guardados exitosamente').waitFor();
+      await logoutViaMenu(pp);
+      await login(pp, 'fan@sugarfans.com', 'demo1234');
+      await waitPath(pp, '/explore');
+      await pp.getByText('$12.5/mes').first().waitFor();
+      await pp.goto(`${BASE}/creator/1`);
+      await pp.getByRole('button', { name: /Suscribirse \$12\.5\/mes|Suscrito/ }).first().waitFor();
+    });
+    await priceCtx.close();
+
     const visitor = await newContext(browser, { locale: 'es-ES' });
     const vp = await newPage(visitor);
     await check('La antigua página de precios lleva al registro de creador con sus beneficios', async () => {
