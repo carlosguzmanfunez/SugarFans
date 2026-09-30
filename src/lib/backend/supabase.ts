@@ -7,6 +7,8 @@ import { DEFAULT_AVAILABILITY, normalizeAvailability } from '../vip';
 import type { Backend, BookingStatus, User, UserRole, VipBooking } from './types';
 import { createSupabasePlatform } from './supabasePlatform';
 import { createSupabaseSocial } from './supabaseSocial';
+import { createSupabaseGifts } from './supabaseGifts';
+import { createSupabaseRewards } from './supabaseRewards';
 
 const REMEMBER_KEY = 'sugarfans_remember';
 
@@ -150,6 +152,8 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
     mode: 'supabase',
     platform: createSupabasePlatform(sb),
     social: createSupabaseSocial(sb),
+    gifts: createSupabaseGifts(sb),
+    rewards: createSupabaseRewards(sb),
 
     async getCurrentUser() {
       const { data: sessionData } = await sb.auth.getSession();
@@ -191,7 +195,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       return error ? fail(translateAuthError(error.message)) : ok;
     },
 
-    async register(name, email, password, role) {
+    async register(name, email, password, role, ref) {
       const cleanEmail = normalizeEmail(email);
       const valid = validateRegistration(name, cleanEmail, password, role);
       if (!valid.ok) return valid;
@@ -204,7 +208,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
         email: cleanEmail,
         password,
         // The terms checkbox at sign-up confirms the user is 18+.
-        options: { data: { name: name.trim(), role, age_verified: true }, emailRedirectTo: `${window.location.origin}/login` },
+        options: { data: { name: name.trim(), role, age_verified: true, ...(ref ? { ref } : {}) }, emailRedirectTo: `${window.location.origin}/login` },
       });
       if (error) return fail(translateAuthError(error.message));
       // With "Confirm email" enabled Supabase returns no session and, for an

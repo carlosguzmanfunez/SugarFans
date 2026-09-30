@@ -10,9 +10,9 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Explore from './pages/Explore';
 import CreatorProfile from './pages/CreatorProfile';
+import ReferralLink from './pages/ReferralLink';
 import CreatorDashboard from './pages/CreatorDashboard';
 import AdminDashboard from './pages/AdminDashboard';
-import Pricing from './pages/Pricing';
 import Help from './pages/Help';
 import Policies from './pages/Policies';
 import Settings from './pages/Settings';
@@ -89,9 +89,8 @@ const AppRoutes: React.FC = () => {
       <Route path="/vip-experiences" element={
         <AppLayout><VIPExperiences /></AppLayout>
       } />
-      <Route path="/pricing" element={
-        <AppLayout><Pricing /></AppLayout>
-      } />
+      <Route path="/r/:id" element={<ReferralLink />} />
+      <Route path="/pricing" element={<Navigate to="/register?role=creator" replace />} />
       <Route path="/help" element={
         <AppLayout><Help /></AppLayout>
       } />

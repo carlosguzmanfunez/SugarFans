@@ -1,6 +1,8 @@
 // VIP experience scheduling helpers: booking window, availability math and labels.
 // Data access lives in the backend (src/lib/backend).
 import type { Availability, BookingStatus, TakenSlot } from './backend/types';
+import { vipExperiences } from '../data/mockData';
+import { CALL_MINUTES } from './giftRules';
 
 export type { Availability, BookingStatus, VipBooking, TakenSlot } from './backend/types';
 
@@ -67,6 +69,12 @@ export const durationMinutes = (duration?: string): number | null => {
   const m = duration?.match(/(\d+)\s*min/);
   return m ? Number(m[1]) : null;
 };
+
+// Minutes of a booking's live session: the experience's duration, or the
+// private video call a $1,000 gift includes (booked as experience "gift-call").
+export const GIFT_CALL_EXPERIENCE = 'gift-call';
+export const sessionMinutes = (experienceId?: string): number | null =>
+  experienceId === GIFT_CALL_EXPERIENCE ? CALL_MINUTES : durationMinutes(vipExperiences.find((e) => e.id === experienceId)?.duration);
 
 export const liveWindow = (date: string, time: string, minutes: number) => {
   const start = fromISODate(date);

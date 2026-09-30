@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import GiftDialog from '../components/GiftDialog';
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../lib/backend';
-import { vipExperiences } from '../data/mockData';
-import { durationMinutes, formatLongDate, liveState, liveWindow, type VipBooking } from '../lib/vip';
+import { sessionMinutes, formatLongDate, liveState, liveWindow, type VipBooking } from '../lib/vip';
 import type { LiveChannel, LiveMessage, LiveSignal } from '../lib/social';
 
 // 1:1 video call between the fan and the creator of a confirmed VIP booking.
@@ -45,6 +45,7 @@ const LiveRoom: React.FC = () => {
   const [hasMedia, setHasMedia] = useState(false);
   const [chat, setChat] = useState<ChatLine[]>([]);
   const [draft, setDraft] = useState('');
+  const [gifting, setGifting] = useState(false);
 
   const localVideo = useRef<HTMLVideoElement>(null);
   const remoteVideo = useRef<HTMLVideoElement>(null);
@@ -56,7 +57,7 @@ const LiveRoom: React.FC = () => {
 
   const isCreator = !!booking && !!user?.creatorProfileId && user.creatorProfileId === booking.creatorProfileId;
   const otherName = booking ? (isCreator ? booking.fanName : booking.creatorName) : '';
-  const minutes = durationMinutes(vipExperiences.find((e) => e.id === booking?.experienceId)?.duration) ?? 0;
+  const minutes = sessionMinutes(booking?.experienceId) ?? 0;
 
   // Find the booking among mine (as fan or as creator).
   useEffect(() => {
@@ -70,7 +71,7 @@ const LiveRoom: React.FC = () => {
       const b = lists.flat().find((x) => x.id === bookingId) ?? null;
       if (!active) return;
       setBooking(b);
-      const mins = durationMinutes(vipExperiences.find((e) => e.id === b?.experienceId)?.duration);
+      const mins = sessionMinutes(b?.experienceId);
       if (!b) setProblem('No encontramos esta reserva en tu cuenta.');
       else if (b.status !== 'confirmed') setProblem('La sala se abre cuando la reserva está aceptada y pagada.');
       else if (!mins) setProblem('Esta experiencia no es una sesión en vivo.');
@@ -364,10 +365,30 @@ const LiveRoom: React.FC = () => {
             <form onSubmit={sendChat} className="flex gap-2 mt-3">
               <input value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={500} aria-label="Mensaje" placeholder="Escribe un mensaje…" className="flex-1 px-3 py-2 rounded-xl bg-white/10 outline-none focus:ring-2 focus:ring-pink-500 text-sm" />
               <button type="submit" className="px-4 py-2 rounded-xl bg-pink-600 text-sm font-medium">Enviar</button>
+              {!isCreator && (
+                <button type="button" onClick={() => setGifting(true)} aria-label="Regalar" title="Enviar un regalo" className="px-3 py-2 rounded-xl bg-white/10 text-sm">
+                  <i className="fas fa-gift"></i>
+                </button>
+              )}
             </form>
           </div>
         </div>
       </div>
+      {gifting && user && booking && (
+        <GiftDialog
+          user={user}
+          creatorProfileId={booking.creatorProfileId}
+          creatorName={booking.creatorName}
+          onSent={(gift) => {
+            setGifting(false);
+            const at = new Date().toISOString();
+            const text = `${gift.icon} Envió ${gift.name}`;
+            send({ type: 'chat', text, name: user.name, at });
+            setChat((c) => [...c, { mine: true, name: user.name, text, at }]);
+          }}
+          onClose={() => setGifting(false)}
+        />
+      )}
     </div>
   );
 };

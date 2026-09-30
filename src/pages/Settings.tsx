@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth, defaultSettings, UserSettings } from '../context/AuthContext';
 import { useCreatorCatalog } from '../lib/catalog';
 import IdentityVerification from '../components/IdentityVerification';
+import WalletPanel from '../components/WalletPanel';
 import PaymentMethodForm, { paymentKindIcon } from '../components/PaymentMethodForm';
 import {
   usePlatformQuery,
@@ -27,7 +28,7 @@ const notificationItems: { key: string; label: string }[] = [
   { key: 'push', label: 'Notificaciones push' },
 ];
 
-const sections = ['profile', 'security', 'verification', 'notifications', 'privacy', 'payments', 'blocking'];
+const sections = ['profile', 'security', 'verification', 'notifications', 'privacy', 'payments', 'wallet', 'blocking'];
 
 const fmtDate = (iso: string | Date) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -189,6 +190,7 @@ const Settings: React.FC = () => {
                 { id: 'notifications', label: 'Notificaciones', icon: 'fa-bell' },
                 { id: 'privacy', label: 'Privacidad', icon: 'fa-eye-slash' },
                 { id: 'payments', label: 'Pagos', icon: 'fa-credit-card' },
+                { id: 'wallet', label: 'Terrones', icon: 'fa-gift' },
                 { id: 'blocking', label: 'Bloqueos', icon: 'fa-ban' },
               ].map((item) => (
                 <button
@@ -549,6 +551,8 @@ const Settings: React.FC = () => {
                 )}
               </div>
             )}
+
+            {activeSection === 'wallet' && user && <WalletPanel user={user} />}
 
             {activeSection === 'blocking' && (
               <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="blocked-users">

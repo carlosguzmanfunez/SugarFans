@@ -15,6 +15,9 @@ import {
 import type { Availability, Backend, BookingStatus, User, VipBooking } from './types';
 import { createLocalPlatform } from './localPlatform';
 import { createLocalSocial } from './localSocial';
+import { createLocalGifts } from './localGifts';
+import { createLocalRewards } from './localRewards';
+import { creators as demoCreators } from '../../data/mockData';
 
 interface StoredAccount extends User {
   passwordHash: string;
@@ -147,12 +150,38 @@ const platform = createLocalPlatform({
       subscriptions: [...a.subscriptions.filter((s) => s.creatorId !== creatorId), { creatorId, price, since: new Date().toISOString() }],
     })),
   setVerified: (userId) => mutate(userId, (a) => ({ ...a, isVerified: true })),
+  shareFor: (fanId, creatorProfileId, at) => rewards.shareFor(fanId, creatorProfileId, at),
+  withInviteBonuses: (transactions) => rewards.withInviteBonuses(transactions),
   notify,
+});
+
+// Declared after the platform but only called later, once both exist.
+const rewards = createLocalRewards({
+  ledger: () => platform.ledger,
+  listAccounts: () => loadAccounts().map(toPublic),
+  creatorProfileIds: () => [
+    ...new Set([
+      ...demoCreators.map((c) => c.id),
+      ...loadAccounts().flatMap((a) => (a.role === 'creator' && a.creatorProfileId ? [a.creatorProfileId] : [])),
+    ]),
+  ],
 });
 
 const social = createLocalSocial({
   listAccounts: () => loadAccounts().map(toPublic),
   listBookings: () => listBookings(),
+  notify,
+});
+
+const gifts = createLocalGifts({
+  ledger: platform.ledger,
+  listAccounts: () => loadAccounts().map(toPublic),
+  addBooking: (b) => {
+    if (takenFor(b.creatorProfileId).some((t) => t.date === b.date && t.time === b.time))
+      return { ok: false, error: 'Ya tienes otra sesión a esa hora. Elige otro horario.' };
+    saveBookings([...listBookings(), b]);
+    return { ok: true };
+  },
   notify,
 });
 
@@ -163,6 +192,8 @@ export const localBackend: Backend = {
   mode: 'local',
   platform,
   social,
+  gifts,
+  rewards,
 
   async getCurrentUser() {
     const id = readSession();
@@ -191,7 +222,7 @@ export const localBackend: Backend = {
     return ok;
   },
 
-  async register(name, email, password, role) {
+  async register(name, email, password, role, ref) {
     await seedPromise;
     const cleanEmail = normalizeEmail(email);
     const valid = validateRegistration(name, cleanEmail, password, role);
@@ -214,6 +245,10 @@ export const localBackend: Backend = {
       salt,
       passwordHash: await hashPassword(password, salt),
     };
+    // Someone who arrived through a creator's link: a referred fan or an invited creator.
+    if (ref && accounts.some((a) => a.role !== 'fan' && a.creatorProfileId === ref)) {
+      rewards.recordReferral(id, role === 'creator' ? 'creator' : 'fan', ref);
+    }
     saveAccounts([...accounts, account]);
     writeSession(id, true);
     return ok;
@@ -247,6 +282,8 @@ export const localBackend: Backend = {
     saveAccounts(loadAccounts().filter((a) => a.id !== user.id));
     saveBookings(listBookings().filter((b) => b.fanId !== user.id));
     await platform.purgeUser(user.id);
+    await gifts.purgeUser(user.id);
+    await rewards.purgeUser(user.id);
     writeSession(null);
     return ok;
   },

@@ -84,6 +84,8 @@ const toTransaction = (r: Row): Transaction => ({
   status: r.status,
   createdAt: r.created_at,
   note: r.note ?? undefined,
+  share: r.creator_share == null ? undefined : Number(r.creator_share),
+  giftId: r.gift_id ?? undefined,
 });
 
 const toPayout = (r: Row): Payout => ({

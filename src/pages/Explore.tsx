@@ -3,12 +3,16 @@ import { Link } from 'react-router-dom';
 import { categories, posts } from '../data/mockData';
 import { useCreatorCatalog } from '../lib/catalog';
 import ManagedBadge from '../components/ManagedBadge';
+import LevelBadge from '../components/LevelBadge';
+import { featuredFirst, useFeatured } from '../lib/rewards';
 import { useAuth } from '../context/AuthContext';
 import { usePlatformQuery, platformApi, isCutOff } from '../lib/platform';
 
 const Explore: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
   const { creators } = useCreatorCatalog();
+  const featured = useFeatured();
+  const featuredIds = new Map(featured.map((f) => [f.creatorProfileId, f.level]));
   const { data: platform } = usePlatformQuery(
     async () => {
       const [removedPosts, blocks] = await Promise.all([platformApi.removedPosts(), user ? platformApi.blocks(user) : Promise.resolve([])]);
@@ -24,7 +28,7 @@ const Explore: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [viewMode, setViewMode] = useState<'creators' | 'posts'>('creators');
 
-  const filteredCreators = creators.filter(c => {
+  const filteredCreators = featuredFirst(creators, featured).filter(c => {
     if (hidden(c.id)) return false;
     const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.username.toLowerCase().includes(searchQuery.toLowerCase());
@@ -108,8 +112,12 @@ const Explore: React.FC = () => {
                         <h3 className="font-bold text-gray-900 text-sm">{creator.name}</h3>
                         {creator.isVerified && <i className="fas fa-check-circle text-blue-500 ml-1 text-xs"></i>}
                         <ManagedBadge creator={creator} />
+                        <LevelBadge level={featuredIds.get(creator.id)} />
                       </div>
                       <p className="text-xs text-gray-500">@{creator.username}</p>
+                      {featuredIds.has(creator.id) && (
+                        <span data-testid="featured-tag" className="inline-block mt-1 text-[10px] font-semibold uppercase tracking-wide text-pink-600">Destacado</span>
+                      )}
                     </div>
                   </div>
                   <p className="text-sm text-gray-600 mt-3 line-clamp-2">{creator.bio}</p>

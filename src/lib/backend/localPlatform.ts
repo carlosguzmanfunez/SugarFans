@@ -23,6 +23,10 @@ interface Deps {
   listAccounts(): User[];
   setSubscription(userId: string, creatorId: string, price: number): void;
   setVerified(userId: string): void;
+  // Creator's cut of a subscription, renewal or tip (rewards: level, goals, referral).
+  shareFor(fanId: string, creatorProfileId: string, at: Date): number;
+  // Adds (and keeps in step) the 5% bonus rows for creators who invited the seller.
+  withInviteBonuses(transactions: Store['transactions']): Store['transactions'];
   notify(): void;
 }
 
@@ -48,7 +52,17 @@ const byNewest = <T,>(key: keyof T) => (a: T, b: T) => String(b[key]).localeComp
 
 // purgeUser removes personal data when an account is deleted; sales stay in the
 // creator's books, anonymised (Supabase does the same with foreign keys and a trigger).
-export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(userId: string): Promise<void> } => {
+// The ledger lets the gifts store (localGifts.ts) charge methods and write
+// payments into the same books.
+export interface LocalLedger {
+  methodLabel(userId: string, methodId: string): string | null;
+  cutOff(fanId: string, creatorProfileId: string): boolean;
+  transactions(): Transaction[];
+  addTransaction(t: Omit<Transaction, 'id'> & { key: string }): AuthResult & { id?: string };
+  refund(transactionId: string): void;
+}
+
+export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(userId: string): Promise<void>; ledger: LocalLedger } => {
   const load = (): Store => {
     const store = { ...empty(), ...readJSON<Partial<Store>>(KEY, {}) };
     if (!readJSON<boolean>(SEEDED_KEY, false)) {
@@ -69,7 +83,8 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
   };
 
   const commit = (fn: (s: Store) => Store): AuthResult => {
-    if (!writeJSONChecked(KEY, fn(load()))) return fail('No se pudo guardar: el almacenamiento del navegador está lleno');
+    const next = fn(load());
+    if (!writeJSONChecked(KEY, { ...next, transactions: deps.withInviteBonuses(next.transactions) })) return fail('No se pudo guardar: el almacenamiento del navegador está lleno');
     deps.notify();
     return ok;
   };
@@ -87,7 +102,26 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
     );
   };
 
+  const ledger: LocalLedger = {
+    methodLabel: (userId, methodId) => load().paymentMethods.find((m) => m.id === methodId && m.userId === userId)?.label ?? null,
+    cutOff: (fanId, creatorProfileId) => cutOff(load(), fanId, creatorProfileId),
+    transactions: () => load().transactions,
+    addTransaction(t) {
+      const id = newId();
+      const r = commit((s) => ({ ...s, transactions: [...s.transactions, { ...t, id }] }));
+      return r.ok ? { ...r, id } : r;
+    },
+    refund(transactionId) {
+      commit((s) => ({
+        ...s,
+        transactions: s.transactions.map((t) => (t.id === transactionId && t.status === 'paid' ? { ...t, status: 'refunded' } : t)),
+      }));
+    },
+  };
+
   return {
+    ledger,
+
     async myVerification(userId) {
       return [...load().verifications].reverse().find((v) => v.userId === userId) ?? null;
     },
@@ -199,6 +233,7 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
             creatorName,
             kind: 'subscription',
             amount: round2(price),
+            share: deps.shareFor(user.id, creatorProfileId, new Date(at)),
             methodLabel: method.label,
             status: 'paid',
             createdAt: at,
@@ -232,6 +267,7 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
             creatorName,
             kind: 'tip',
             amount: round2(amount),
+            share: deps.shareFor(user.id, creatorProfileId, new Date(at)),
             methodLabel: method.label,
             status: 'paid',
             createdAt: at,
@@ -262,6 +298,7 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
             creatorName: creatorNames[sub.creatorId] ?? 'Creador',
             kind: 'renewal',
             amount: round2(sub.price),
+            share: deps.shareFor(user.id, sub.creatorId, addMonths(sub.since, n)),
             methodLabel: method?.label ?? 'Sin método de pago',
             status: method ? 'paid' : 'failed',
             createdAt: addMonths(sub.since, n).toISOString(),
