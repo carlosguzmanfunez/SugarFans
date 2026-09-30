@@ -7,7 +7,6 @@ import {
   reviewVerification,
   resolveReport,
   restorePost,
-  processPayout,
   docTypeLabel,
   ageFrom,
   money,
@@ -58,12 +57,11 @@ const AdminDashboard: React.FC = () => {
   const reports = [...platform.reports].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const pendingReports = reports.filter((r) => r.status === 'pending');
   const payouts = [...platform.payouts].sort((a, b) => b.requestedAt.localeCompare(a.requestedAt));
-  const scheduledPayouts = payouts.filter((p) => p.status === 'scheduled');
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
   const monthRevenue = platform.transactions
     .filter((t) => t.status === 'paid' && t.createdAt >= monthStart)
     .reduce((s, t) => s + t.amount, 0);
-  const pendingTotal = pendingVerifications.length + pendingReports.length + scheduledPayouts.length;
+  const pendingTotal = pendingVerifications.length + pendingReports.length;
 
   const stats = [
     { label: 'Usuarios registrados', value: String(accounts.length), icon: 'fa-users', color: 'blue' },
@@ -152,7 +150,7 @@ const AdminDashboard: React.FC = () => {
             { id: 'overview', label: 'Resumen', icon: 'fa-chart-pie' },
             { id: 'verifications', label: `Verificaciones (${pendingVerifications.length})`, icon: 'fa-id-card' },
             { id: 'reports', label: `Reportes (${pendingReports.length})`, icon: 'fa-flag' },
-            { id: 'payouts', label: `Retiros (${scheduledPayouts.length})`, icon: 'fa-money-check-alt' },
+            { id: 'payouts', label: 'Retiros', icon: 'fa-money-check-alt' },
             { id: 'managed', label: 'Perfiles gestionados', icon: 'fa-robot' },
             { id: 'users', label: 'Usuarios', icon: 'fa-users' },
             { id: 'content', label: 'Contenido', icon: 'fa-images' },
@@ -306,7 +304,7 @@ const AdminDashboard: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden" data-testid="admin-payouts">
             <div className="p-5 border-b border-gray-100">
               <h3 className="font-bold text-gray-900">Retiros de creadores</h3>
-              <p className="text-sm text-gray-600 mt-1">Se pagan el día 1 de cada mes. Marca cada retiro como pagado cuando se haya transferido.</p>
+              <p className="text-sm text-gray-600 mt-1">Registro automático: cada retiro se confirma al solicitarlo y se paga solo el día 1 del mes siguiente.</p>
             </div>
             <div className="divide-y divide-gray-100">
               {payouts.length === 0 && <p className="p-6 text-center text-sm text-gray-500">No hay solicitudes de retiro</p>}
@@ -314,18 +312,11 @@ const AdminDashboard: React.FC = () => {
                 <div key={p.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
                     <p className="font-medium text-gray-900 text-sm">{p.creatorName} · {money(p.amount)}</p>
-                    <p className="text-xs text-gray-500">{p.accountLabel} • Programado para {new Date(p.scheduledFor).toLocaleDateString('es')}</p>
+                    <p className="text-xs text-gray-500">{p.accountLabel} • Disponía de {money(p.availableBefore)} • Pago el {new Date(p.scheduledFor).toLocaleDateString('es')}</p>
                   </div>
-                  {p.status === 'scheduled' ? (
-                    <div className="flex gap-2">
-                      <button onClick={() => processPayout(p.id, true)} className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-medium hover:bg-green-200">Marcar pagado</button>
-                      <button onClick={() => processPayout(p.id, false)} className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-medium hover:bg-red-200">Rechazar</button>
-                    </div>
-                  ) : (
-                    <span className={`text-xs px-2 py-1 rounded-full ${p.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      {p.status === 'paid' ? 'Pagado' : 'Rechazado'}
-                    </span>
-                  )}
+                  <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
+                    <i className="fas fa-check-circle mr-1"></i>{p.status === 'paid' ? 'Pagado' : 'Confirmado'}
+                  </span>
                 </div>
               ))}
             </div>

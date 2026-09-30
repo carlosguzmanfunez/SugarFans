@@ -51,7 +51,6 @@ export const setPayoutAccount = async (user: User, holder: string, bank: string,
   return after(p.setPayoutAccount(user, built.account as PayoutAccount));
 };
 export const requestPayout = (user: User, amount: number) => after(p.requestPayout(user, amount));
-export const processPayout = (id: string, paid: boolean) => after(p.processPayout(id, paid));
 
 export const submitReport = (reporter: User | null, input: ReportInput) => after(p.submitReport(reporter, input));
 export const resolveReport = (id: string, action: 'remove' | 'resolve' | 'dismiss') => after(p.resolveReport(id, action));
