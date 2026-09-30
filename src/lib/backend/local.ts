@@ -14,6 +14,7 @@ import {
 } from './shared';
 import type { Availability, Backend, BookingStatus, User, VipBooking } from './types';
 import { createLocalPlatform } from './localPlatform';
+import { createLocalSocial } from './localSocial';
 
 interface StoredAccount extends User {
   passwordHash: string;
@@ -149,12 +150,19 @@ const platform = createLocalPlatform({
   notify,
 });
 
+const social = createLocalSocial({
+  listAccounts: () => loadAccounts().map(toPublic),
+  listBookings: () => listBookings(),
+  notify,
+});
+
 const ok = { ok: true } as const;
 const fail = (error: string) => ({ ok: false, error });
 
 export const localBackend: Backend = {
   mode: 'local',
   platform,
+  social,
 
   async getCurrentUser() {
     const id = readSession();
@@ -253,17 +261,22 @@ export const localBackend: Backend = {
     return ok;
   },
 
-  async addPost(user, content, isLocked) {
-    if (!content.trim()) return fail('Escribe algo antes de publicar');
-    mutate(user.id, (a) => ({
-      ...a,
-      posts: (a.posts ?? 0) + 1,
-      createdPosts: [{ id: newId(), content: content.trim(), isLocked, createdAt: new Date().toISOString() }, ...a.createdPosts],
-    }));
+  async addPost(user, content, isLocked, media) {
+    if (!content.trim() && !media) return fail('Escribe algo o añade una foto o video');
+    const post = {
+      id: newId(),
+      content: content.trim(),
+      isLocked,
+      createdAt: new Date().toISOString(),
+      ...(media ? { mediaPath: media.path, mediaType: media.type } : {}),
+    };
+    mutate(user.id, (a) => ({ ...a, posts: (a.posts ?? 0) + 1, createdPosts: [post, ...a.createdPosts] }));
     return ok;
   },
 
   async deletePost(user, postId) {
+    const media = loadAccounts().find((a) => a.id === user.id)?.createdPosts.find((p) => p.id === postId)?.mediaPath;
+    if (media) await social.removeMedia(user, media);
     mutate(user.id, (a) => ({
       ...a,
       posts: Math.max(0, (a.posts ?? 0) - 1),

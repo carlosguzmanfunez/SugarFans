@@ -6,6 +6,7 @@ import { WRONG_CREDENTIALS, cleanPatch, mergeSettings, normalizeEmail, validateR
 import { DEFAULT_AVAILABILITY, normalizeAvailability } from '../vip';
 import type { Backend, BookingStatus, User, UserRole, VipBooking } from './types';
 import { createSupabasePlatform } from './supabasePlatform';
+import { createSupabaseSocial } from './supabaseSocial';
 
 const REMEMBER_KEY = 'sugarfans_remember';
 
@@ -148,6 +149,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
   return {
     mode: 'supabase',
     platform: createSupabasePlatform(sb),
+    social: createSupabaseSocial(sb),
 
     async getCurrentUser() {
       const { data: sessionData } = await sb.auth.getSession();
@@ -156,12 +158,19 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       const [profile, subs, posts] = await Promise.all([
         sb.from('profiles').select('*').eq('id', uid).maybeSingle(),
         sb.from('subscriptions').select('creator_id, price, since').eq('fan_id', uid),
-        sb.from('creator_posts').select('id, content, is_locked, created_at').eq('creator_id', uid).order('created_at', { ascending: false }),
+        sb.from('creator_posts').select('id, content, is_locked, created_at, media_path, media_type').eq('creator_id', uid).order('created_at', { ascending: false }),
       ]);
       if (!profile.data) return null;
       return toUser(profile.data as ProfileRow, {
         subscriptions: (subs.data ?? []).map((s) => ({ creatorId: s.creator_id, price: Number(s.price), since: s.since })),
-        createdPosts: (posts.data ?? []).map((p) => ({ id: p.id, content: p.content, isLocked: p.is_locked, createdAt: p.created_at })),
+        createdPosts: (posts.data ?? []).map((p) => ({
+          id: p.id,
+          content: p.content,
+          isLocked: p.is_locked,
+          createdAt: p.created_at,
+          mediaPath: p.media_path ?? undefined,
+          mediaType: p.media_type ?? undefined,
+        })),
       });
     },
 
@@ -258,15 +267,24 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       return error ? dbError(error, 'No se pudo actualizar la suscripción') : ok;
     },
 
-    async addPost(user, content, isLocked) {
-      if (!content.trim()) return fail('Escribe algo antes de publicar');
-      const { error } = await sb.from('creator_posts').insert({ creator_id: user.id, content: content.trim(), is_locked: isLocked });
+    async addPost(user, content, isLocked, media) {
+      if (!content.trim() && !media) return fail('Escribe algo o añade una foto o video');
+      const { error } = await sb.from('creator_posts').insert({
+        creator_id: user.id,
+        content: content.trim(),
+        is_locked: isLocked,
+        media_path: media?.path ?? null,
+        media_type: media?.type ?? null,
+      });
       return error ? dbError(error, 'No se pudo publicar') : ok;
     },
 
     async deletePost(user, postId) {
-      const { error } = await sb.from('creator_posts').delete().eq('id', postId).eq('creator_id', user.id);
-      return error ? dbError(error, 'No se pudo eliminar la publicación') : ok;
+      const { data, error } = await sb.from('creator_posts').delete().eq('id', postId).eq('creator_id', user.id).select('media_path');
+      if (error) return dbError(error, 'No se pudo eliminar la publicación');
+      const path = data?.[0]?.media_path;
+      if (path) await sb.storage.from('post-media').remove([path]);
+      return ok;
     },
 
     async listAccounts() {

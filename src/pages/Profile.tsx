@@ -5,6 +5,7 @@ import { creators } from '../data/mockData';
 import { statusLabel, formatLongDate, type BookingStatus } from '../lib/vip';
 import { backend } from '../lib/backend';
 import { useBackendData } from '../lib/useBackendData';
+import LiveRoomButton from '../components/LiveRoomButton';
 import { usePlatformQuery, platformApi, nextRenewal } from '../lib/platform';
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -106,9 +107,10 @@ const Profile: React.FC = () => {
                       </div>
                       <span className="text-sm font-bold text-gray-900">${b.price}</span>
                     </div>
-                    <div className="flex items-center justify-between mt-2 gap-2">
+                    <div className="flex flex-wrap items-center justify-between mt-2 gap-2">
                       <span className={`text-xs px-2 py-1 rounded-full ${statusLabel[b.status].className}`}>{statusLabel[b.status].text}</span>
                       <div className="flex items-center gap-3">
+                        <LiveRoomButton booking={b} />
                         {b.status === 'accepted' && (
                           <button
                             onClick={() => changeBooking(b.id, 'confirmed')}

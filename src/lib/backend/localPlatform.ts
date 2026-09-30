@@ -2,7 +2,7 @@
 // Everything lives in one localStorage key; accounts are touched through the
 // callbacks local.ts passes in.
 import { readJSON, writeJSONChecked, newId } from '../storage';
-import { OPENING_BALANCES, addMonths, round2, validateReport, validateVerification, computeEarnings, MIN_PAYOUT, money, firstOfNextMonth } from '../platformRules';
+import { OPENING_BALANCES, addMonths, round2, validateReport, validateTip, validateVerification, computeEarnings, MIN_PAYOUT, money, firstOfNextMonth } from '../platformRules';
 import type { AuthResult, User } from './types';
 import type { Block, PaymentMethod, Payout, PayoutAccount, PlatformBackend, Report, Transaction, VerificationRequest } from './platformTypes';
 
@@ -206,6 +206,38 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
       }));
       if (result.ok) deps.setSubscription(user.id, creatorProfileId, price);
       return result;
+    },
+
+    async sendTip(user, creatorProfileId, creatorName, amount, methodId, _postId, message) {
+      const check = validateTip(amount);
+      if (!check.ok) return check;
+      if (user.creatorProfileId === creatorProfileId) return fail('No puedes enviarte una propina a ti mismo');
+      const s = load();
+      const method = s.paymentMethods.find((m) => m.id === methodId && m.userId === user.id);
+      if (!method) return fail('Elige un método de pago');
+      if (cutOff(s, user.id, creatorProfileId)) return fail('No puedes enviar propinas a este perfil');
+      const at = now();
+      const note = (message ?? '').trim().slice(0, 200);
+      return commit((data) => ({
+        ...data,
+        transactions: [
+          ...data.transactions,
+          {
+            id: newId(),
+            key: `tip:${user.id}:${newId()}`,
+            payerId: user.id,
+            payerName: user.name,
+            creatorProfileId,
+            creatorName,
+            kind: 'tip',
+            amount: round2(amount),
+            methodLabel: method.label,
+            status: 'paid',
+            createdAt: at,
+            ...(note ? { note } : {}),
+          },
+        ],
+      }));
     },
 
     // INTEGRATION: in production the gateway's recurring billing + a webhook does this.

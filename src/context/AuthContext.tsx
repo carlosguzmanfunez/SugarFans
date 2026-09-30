@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { readJSON, writeJSON } from '../lib/storage';
-import { backend, type AuthResult, type ProfilePatch, type User, type UserRole } from '../lib/backend';
+import { backend, type AuthResult, type MediaUpload, type ProfilePatch, type User, type UserRole } from '../lib/backend';
 
 export type { User, UserRole, UserSettings, Subscription, CreatorPost, AuthResult } from '../lib/backend';
 export { defaultSettings } from '../lib/backend';
@@ -23,7 +23,7 @@ interface AuthContextType {
   deleteAccount: (password: string) => Promise<AuthResult>;
   isSubscribed: (creatorId: string) => boolean;
   toggleSubscription: (creatorId: string, price: number) => Promise<AuthResult>;
-  addPost: (content: string, isLocked: boolean) => Promise<AuthResult>;
+  addPost: (content: string, isLocked: boolean, media?: MediaUpload) => Promise<AuthResult>;
   deletePost: (id: string) => Promise<AuthResult>;
   listAccounts: () => Promise<User[]>;
   refreshUser: () => Promise<void>;
@@ -110,8 +110,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const toggleSubscription = (creatorId: string, price: number) =>
     user ? run(() => backend.setSubscription(user, creatorId, price, !isSubscribed(creatorId))) : Promise.resolve(notSignedIn);
 
-  const addPost = (content: string, isLocked: boolean) =>
-    user ? run(() => backend.addPost(user, content, isLocked)) : Promise.resolve(notSignedIn);
+  const addPost = (content: string, isLocked: boolean, media?: MediaUpload) =>
+    user ? run(() => backend.addPost(user, content, isLocked, media)) : Promise.resolve(notSignedIn);
 
   const deletePost = (id: string) => (user ? run(() => backend.deletePost(user, id)) : Promise.resolve(notSignedIn));
 

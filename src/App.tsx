@@ -19,6 +19,7 @@ import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import VIPExperiences from './pages/VIPExperiences';
 import LegalPolicies from './pages/LegalPolicies';
+import LiveRoom from './pages/LiveRoom';
 import PlatformSync from './components/PlatformSync';
 
 const LoadingScreen: React.FC = () => (
@@ -102,6 +103,11 @@ const AppRoutes: React.FC = () => {
       } />
 
       {/* Protected pages */}
+      <Route path="/live/:bookingId" element={
+        <AppLayout>
+          <ProtectedRoute><LiveRoom /></ProtectedRoute>
+        </AppLayout>
+      } />
       <Route path="/profile" element={
         <AppLayout>
           <ProtectedRoute><Profile /></ProtectedRoute>

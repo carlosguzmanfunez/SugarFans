@@ -151,11 +151,35 @@ const addCard = async (scope, number = '4242 4242 4242 4242') => {
 
 const platformData = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('sugarfans_platform') || '{}'));
 
+// A short WebM recorded in the browser (a real, playable file).
+const recordWebm = (page) =>
+  page.evaluate(async () => {
+    const canvas = Object.assign(document.createElement('canvas'), { width: 160, height: 120 });
+    const ctx = canvas.getContext('2d');
+    const rec = new MediaRecorder(canvas.captureStream(15), { mimeType: 'video/webm' });
+    const chunks = [];
+    rec.ondataavailable = (e) => chunks.push(e.data);
+    const done = new Promise((r) => (rec.onstop = r));
+    rec.start();
+    for (let i = 0; i < 12; i++) {
+      ctx.fillStyle = `hsl(${i * 30}, 80%, 60%)`;
+      ctx.fillRect(0, 0, 160, 120);
+      await new Promise((r) => setTimeout(r, 60));
+    }
+    rec.stop();
+    await done;
+    const buf = new Uint8Array(await new Blob(chunks).arrayBuffer());
+    let bin = '';
+    buf.forEach((b) => (bin += String.fromCharCode(b)));
+    return btoa(bin);
+  });
+
 const errorText = async (page) => (await page.locator('[class*="bg-red-50"]').first().textContent({ timeout: 3000 }))?.trim();
 
 const run = async () => {
   const server = await startServer();
-  const browser = await chromium.launch();
+  // Fake camera/microphone so the live VIP room can be tested end to end.
+  const browser = await chromium.launch({ args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] });
   const stamp = Date.now();
   const fanEmail = `nuevo.fan.${stamp}@test.com`;
   const creatorEmail = `nueva.creadora.${stamp}@test.com`;
@@ -625,7 +649,7 @@ const run = async () => {
       expect((await page.getByTestId('verification-banner').count()) === 0, 'sigue el aviso de verificación');
       await page.getByRole('button', { name: /Nueva Publicación/ }).click();
       await page.fill('textarea', 'Mi primera publicación de prueba');
-      await page.getByRole('button', { name: /Exclusivo/ }).click();
+      await page.getByRole('button', { name: /Solo suscriptores/ }).click();
       await page.getByRole('button', { name: 'Publicar' }).click();
       await page.getByTestId('created-post').getByText('Mi primera publicación de prueba').waitFor();
       await page.reload();
@@ -855,6 +879,186 @@ const run = async () => {
       await page.getByRole('button', { name: /Español/ }).click();
     });
     await context.close();
+
+    // ------------------------------------------------------------------
+    const social = await newContext(browser, { locale: 'es-ES', permissions: ['camera', 'microphone'] });
+    const cp = await newPage(social);
+    const fp = await newPage(social);
+    // Both tabs share this browser profile; without "Recordarme" each keeps its own session.
+    for (const pg of [cp, fp]) {
+      await pg.goto(`${BASE}/age-verification`);
+      await pg.getByRole('button', { name: /Soy mayor|18/ }).first().click();
+    }
+    await login(cp, 'creator@sugarfans.com', 'demo1234', { remember: false });
+    await waitPath(cp, '/explore');
+    await login(fp, 'fan@sugarfans.com', 'demo1234', { remember: false });
+    await waitPath(fp, '/explore');
+    const firstPost = (pg) => pg.getByTestId('post').first();
+
+    console.log('\nPublicaciones: fotos, videos, me gusta, comentarios y propinas');
+    await check('El creador sube una foto desde "Nueva Publicación" y la ve en su panel', async () => {
+      await cp.goto(`${BASE}/creator/dashboard`);
+      await cp.getByRole('button', { name: /Nueva Publicación/ }).click();
+      await cp.getByTestId('image-input').setInputFiles(photo('playa.png'));
+      await cp.getByTestId('media-preview').locator('img').waitFor();
+      await cp.getByLabel('Texto de la publicación').fill('Foto nueva desde la playa');
+      await cp.getByRole('button', { name: 'Publicar' }).click();
+      await cp.getByText('Publicación creada').waitFor();
+      const card = cp.getByTestId('created-post').filter({ hasText: 'Foto nueva desde la playa' });
+      await card.locator('img').waitFor();
+      expect(await card.locator('img').evaluate((img) => img.complete && img.naturalWidth > 0), 'la foto no carga');
+    });
+    await check('El creador sube un video exclusivo para suscriptores', async () => {
+      const webm = Buffer.from(await recordWebm(cp), 'base64');
+      await cp.getByRole('button', { name: /Subir foto o video/ }).click();
+      await cp.getByTestId('video-input').setInputFiles({ name: 'clip.webm', mimeType: 'video/webm', buffer: webm });
+      await cp.getByTestId('media-preview').locator('video').waitFor();
+      await cp.getByLabel('Texto de la publicación').fill('Video solo para suscriptores');
+      await cp.getByRole('button', { name: /Solo suscriptores/ }).click();
+      await cp.getByRole('button', { name: 'Publicar' }).click();
+      await cp.getByText('Publicación creada').waitFor();
+      const card = cp.getByTestId('created-post').filter({ hasText: 'Video solo para suscriptores' });
+      await card.getByText('Exclusivo').waitFor();
+      await cp.waitForFunction(() => [...document.querySelectorAll('[data-testid=created-post] video')].some((v) => v.readyState >= 1));
+    });
+    await check('Un archivo que no es foto ni video se rechaza con un mensaje claro', async () => {
+      await cp.getByRole('button', { name: /Subir foto o video/ }).click();
+      await cp.getByTestId('image-input').setInputFiles({ name: 'notas.txt', mimeType: 'text/plain', buffer: Buffer.from('hola') });
+      await cp.getByText(/Formato no permitido/).waitFor();
+      await cp.getByRole('button', { name: 'Cancelar' }).click();
+    });
+    await check('Lo publicado aparece en el perfil público del creador (foto y video)', async () => {
+      await cp.goto(`${BASE}/creator/1`);
+      await cp.getByTestId('post').filter({ hasText: 'Foto nueva desde la playa' }).getByTestId('post-image').waitFor();
+      await cp.getByTestId('post').filter({ hasText: 'Video solo para suscriptores' }).getByTestId('post-video').waitFor();
+      expect((await cp.getByRole('button', { name: 'Enviar propina' }).count()) === 0, 'el creador puede darse propina');
+    });
+    await check('Un fan sin suscripción ve la foto pero no el video exclusivo', async () => {
+      await fp.goto(`${BASE}/creator/1`);
+      await fp.getByTestId('post').filter({ hasText: 'Foto nueva desde la playa' }).getByTestId('post-image').waitFor();
+      const locked = fp.getByTestId('post').filter({ hasText: 'Video solo para suscriptores' });
+      await locked.getByText('Contenido exclusivo para suscriptores').waitFor();
+      expect((await locked.getByTestId('post-video').count()) === 0, 'el video exclusivo se ve sin suscripción');
+    });
+    await check('Me gusta (corazón) suma, se guarda y se puede quitar', async () => {
+      const post = fp.getByTestId('post').filter({ hasText: 'Foto nueva desde la playa' });
+      expect((await post.getByTestId('like-count').textContent()) === '0', 'contador inicial');
+      await post.getByRole('button', { name: 'Me gusta' }).click();
+      await post.getByRole('button', { name: 'Quitar me gusta' }).waitFor();
+      expect((await post.getByTestId('like-count').textContent()) === '1', 'no sumó el me gusta');
+      await fp.reload();
+      const again = fp.getByTestId('post').filter({ hasText: 'Foto nueva desde la playa' });
+      await again.getByRole('button', { name: 'Quitar me gusta' }).click();
+      await again.getByRole('button', { name: 'Me gusta' }).waitFor();
+      expect((await again.getByTestId('like-count').textContent()) === '0', 'no quitó el me gusta');
+      // A demo post: 342 likes shipped + mine.
+      const demo = fp.getByTestId('post').filter({ hasText: 'Nuevo set de fotos desde la playa' });
+      await demo.getByRole('button', { name: 'Me gusta' }).click();
+      await demo.getByText('343').waitFor();
+    });
+    await check('Me gusta en contenido bloqueado pide suscribirse', async () => {
+      const locked = fp.getByTestId('post').filter({ hasText: 'Video solo para suscriptores' });
+      await locked.getByRole('button', { name: 'Me gusta' }).click();
+      await locked.getByText('Suscríbete para interactuar con este contenido').waitFor();
+    });
+    await check('Comentarios: el fan comenta y el comentario persiste', async () => {
+      const post = fp.getByTestId('post').filter({ hasText: 'Foto nueva desde la playa' });
+      await post.getByRole('button', { name: 'Comentarios' }).click();
+      await post.getByText('Sé el primero en comentar.').waitFor();
+      await post.getByLabel('Escribe un comentario').fill('¡Qué linda foto!');
+      await post.getByRole('button', { name: 'Comentar', exact: true }).click();
+      await post.getByTestId('comment').filter({ hasText: '¡Qué linda foto!' }).getByText('Carlos M.').waitFor();
+      await fp.reload();
+      const again = fp.getByTestId('post').filter({ hasText: 'Foto nueva desde la playa' });
+      expect((await again.getByTestId('comment-count').textContent()) === '1', 'el contador no subió');
+      await again.getByRole('button', { name: 'Comentarios' }).click();
+      await again.getByTestId('comment').filter({ hasText: '¡Qué linda foto!' }).waitFor();
+    });
+    await check('Propina: el fan elige monto, paga y el creador la recibe', async () => {
+      const post = fp.getByTestId('post').filter({ hasText: 'Foto nueva desde la playa' });
+      await post.getByRole('button', { name: 'Propina' }).click();
+      const dialog = fp.getByRole('dialog', { name: /Propina para/ });
+      await dialog.getByRole('button', { name: '$10' }).click();
+      await dialog.getByRole('button', { name: /Continuar/ }).click();
+      await fp.getByRole('button', { name: /Enviar propina \$10\.00/ }).click();
+      await fp.getByText('¡Gracias! Tu propina de $10.00 llegó a Valentina Rose.').waitFor();
+      const tips = (await platformData(fp)).transactions.filter((t) => t.kind === 'tip');
+      expect(tips.length === 1 && tips[0].amount === 10 && tips[0].creatorProfileId === '1', 'la propina no se registró');
+    });
+    await check('Propina con monto inválido se rechaza', async () => {
+      await fp.getByRole('button', { name: 'Enviar propina' }).click();
+      const dialog = fp.getByRole('dialog', { name: /Propina para/ });
+      await dialog.getByLabel('Otro monto (USD)').fill('0.5');
+      await dialog.getByRole('button', { name: /Continuar/ }).click();
+      await dialog.getByText('La propina debe estar entre $1 y $500').waitFor();
+      await dialog.getByRole('button', { name: 'Cerrar' }).click();
+    });
+    await check('El creador ve la propina en su panel y puede borrar comentarios', async () => {
+      await cp.goto(`${BASE}/creator/dashboard`);
+      await cp.getByText('Propina - Carlos M.').waitFor();
+      await cp.goto(`${BASE}/creator/1`);
+      const post = cp.getByTestId('post').filter({ hasText: 'Foto nueva desde la playa' });
+      await post.getByRole('button', { name: 'Comentarios' }).click();
+      await post.getByTestId('comment').filter({ hasText: '¡Qué linda foto!' }).getByRole('button', { name: 'Eliminar comentario' }).click();
+      await post.getByText('Sé el primero en comentar.').waitFor();
+    });
+    await check('Eliminar una publicación la quita del perfil público', async () => {
+      await cp.goto(`${BASE}/creator/dashboard?tab=content`);
+      await cp.getByTestId('created-post').filter({ hasText: 'Foto nueva desde la playa' }).getByRole('button', { name: /Eliminar/ }).click();
+      await cp.getByText('Publicación eliminada').waitFor();
+      await fp.goto(`${BASE}/creator/1`);
+      await firstPost(fp).waitFor();
+      expect((await fp.getByTestId('post').filter({ hasText: 'Foto nueva desde la playa' }).count()) === 0, 'la publicación sigue visible');
+    });
+
+    console.log('\nSesiones VIP en vivo');
+    let liveDate = '';
+    await check('Una reserva confirmada muestra cuándo se abre la sala en vivo', async () => {
+      await openBooking(fp);
+      liveDate = await pickFirstDate(fp);
+      await fp.getByTestId('time-slots').getByRole('button', { name: '12:00' }).click();
+      await fp.getByRole('button', { name: 'Confirmar Reserva' }).click();
+      await fp.getByText('¡Reserva enviada!').waitFor();
+      await cp.goto(`${BASE}/creator/dashboard?tab=vip`);
+      await cp.getByTestId('vip-request').filter({ hasText: '12:00' }).getByRole('button', { name: 'Aceptar' }).click();
+      await fp.goto(`${BASE}/profile`);
+      const booking = fp.getByTestId('booking').filter({ hasText: '12:00' });
+      await booking.getByRole('button', { name: /Pagar/ }).click();
+      await booking.getByText('Confirmada').waitFor();
+      await booking.getByTestId('live-later').waitFor();
+      expect((await booking.getByTestId('join-live').count()) === 0, 'la sala se abre antes de tiempo');
+    });
+    await check('Antes de la hora la sala no deja entrar', async () => {
+      const href = await fp.evaluate(() => JSON.parse(localStorage.getItem('sugarfans_vip_bookings')).find((b) => b.time === '12:00' && b.status === 'confirmed').id);
+      await fp.goto(`${BASE}/live/${href}`);
+      await fp.getByTestId('live-unavailable').getByText(/La sala se abre el/).waitFor();
+    });
+    await check('A la hora reservada fan y creador se ven en video y chatean', async () => {
+      const at = new Date(`${liveDate}T12:05:00`);
+      await fp.clock.setFixedTime(at);
+      await cp.clock.setFixedTime(at);
+      await fp.goto(`${BASE}/profile`);
+      await fp.getByTestId('booking').filter({ hasText: '12:00' }).getByTestId('join-live').click();
+      await fp.getByRole('button', { name: 'Entrar a la sala' }).click();
+      await fp.getByTestId('live-room').getByText(/Esperando a Valentina Rose/).waitFor();
+      await cp.goto(`${BASE}/creator/dashboard?tab=vip`);
+      await cp.getByTestId('vip-request').filter({ hasText: '12:00' }).getByTestId('join-live').click();
+      await cp.getByRole('button', { name: 'Entrar a la sala' }).click();
+      for (const pg of [fp, cp]) {
+        await pg.getByTestId('live-status').getByText('Conectado').waitFor({ timeout: 15000 });
+        await pg.waitForFunction(() => document.querySelector('[data-testid=remote-video]').videoWidth > 0, null, { timeout: 15000 });
+      }
+      await fp.getByLabel('Mensaje').fill('¡Hola Valentina!');
+      await fp.getByRole('button', { name: 'Enviar' }).click();
+      await cp.getByTestId('chat-line').filter({ hasText: '¡Hola Valentina!' }).waitFor();
+    });
+    await check('Cuando uno sale, el otro lo ve y puede esperar', async () => {
+      await fp.getByRole('button', { name: 'Salir de la llamada' }).click();
+      await waitPath(fp, '/profile');
+      await cp.getByText(/Carlos M\. salió de la sala/).waitFor();
+      await cp.getByTestId('live-status').getByText('Sin conexión').waitFor();
+    });
+    await social.close();
 
     const mobile = await newContext(browser, { viewport: { width: 390, height: 844 }, locale: 'es-ES' });
     const m = await newPage(mobile);
