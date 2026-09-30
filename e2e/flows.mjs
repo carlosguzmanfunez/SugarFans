@@ -351,14 +351,21 @@ const run = async () => {
         clicks++;
         expect(clicks <= 3, 'deja avanzar más de 3 meses');
       }
-      expect(clicks === 3, `solo avanzó ${clicks} meses`);
-      const max = isoDate(addMonths(new Date(), 3));
+      // The calendar opens on the month of the first bookable day (tomorrow),
+      // so count months from there to the month of the last bookable day.
+      const now = new Date();
+      const minDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      const maxDay = addMonths(now, 3);
+      const expected = (maxDay.getFullYear() - minDay.getFullYear()) * 12 + maxDay.getMonth() - minDay.getMonth();
+      expect(clicks === expected, `avanzó ${clicks} meses, se esperaban ${expected}`);
+      const max = isoDate(maxDay);
+      expect((await cal.locator(`button[data-date="${max}"]`).count()) === 1, 'el último mes no incluye la fecha límite');
       const late = cal.locator('button[data-date]');
       for (let i = 0; i < (await late.count()); i++) {
         const d = await late.nth(i).getAttribute('data-date');
         if (d > max) expect(await late.nth(i).isDisabled(), `el día ${d} (después del límite) se puede elegir`);
       }
-      for (let i = 0; i < 3; i++) await cal.getByRole('button', { name: 'Mes anterior' }).click();
+      for (let i = 0; i < clicks; i++) await cal.getByRole('button', { name: 'Mes anterior' }).click();
       expect(await cal.getByRole('button', { name: 'Mes anterior' }).isDisabled(), 'deja ir a meses pasados');
     });
     await check('Solo se ofrecen los días y horas del creador', async () => {
