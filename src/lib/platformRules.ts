@@ -13,8 +13,6 @@ import type {
 
 export const CREATOR_SHARE = 0.8;
 export const MIN_PAYOUT = 50;
-// Earnings the demo creator (public profile 1) had before the ledger existed.
-export const OPENING_BALANCES: Record<string, number> = { '1': 1245 };
 
 export const docTypeLabel: Record<DocType, string> = {
   dni: 'Documento nacional de identidad',
@@ -171,22 +169,27 @@ export const validateReport = (input: ReportInput, signedIn: boolean): Check => 
   return good;
 };
 
-export const computeEarnings = (opening: number, sales: Transaction[], payouts: Payout[], at = new Date()) => {
+// The creator keeps 80% of what fans paid, minus what they already withdrew.
+export const computeEarnings = (sales: Transaction[], payouts: Payout[], at = new Date()) => {
   const paid = sales.filter((t) => t.status === 'paid');
   const gross = paid.reduce((s, t) => s + t.amount, 0);
   const net = round2(gross * CREATOR_SHARE);
   const monthStart = new Date(at.getFullYear(), at.getMonth(), 1).toISOString();
   const thisMonth = round2(paid.filter((t) => t.createdAt >= monthStart).reduce((s, t) => s + t.amount, 0) * CREATOR_SHARE);
-  const withdrawn = payouts.filter((p) => p.status !== 'rejected').reduce((s, p) => s + p.amount, 0);
+  const withdrawn = payouts.reduce((s, p) => s + p.amount, 0);
   return {
-    opening,
     gross: round2(gross),
     net,
     thisMonth,
-    totalEarned: round2(opening + net),
-    available: round2(opening + net - withdrawn),
+    totalEarned: net,
+    withdrawn: round2(withdrawn),
+    available: round2(net - withdrawn),
   };
 };
+
+// Payouts settle by themselves once their date arrives (no admin step).
+export const settlePayout = (p: Payout, at = new Date()): Payout =>
+  p.status === 'scheduled' && new Date(p.scheduledFor) <= at ? { ...p, status: 'paid', paidAt: p.scheduledFor } : p;
 
 // Downscale an uploaded photo so it stays small (browser storage / database row).
 export const readImageFile = (file: File, maxSize = 900): Promise<string> =>

@@ -24,20 +24,18 @@ const CreatorPayouts: React.FC = () => {
   const profileId = user?.creatorProfileId ?? userId;
   const { data } = usePlatformQuery(
     async () => {
-      const [sales, payouts, payoutAccount, opening] = await Promise.all([
+      const [sales, payouts, payoutAccount] = await Promise.all([
         platformApi.creatorSales(profileId),
         platformApi.myPayouts(userId),
         platformApi.payoutAccount(userId),
-        platformApi.openingBalance(profileId),
       ]);
-      return { sales, payouts, payoutAccount, opening };
+      return { sales, payouts, payoutAccount };
     },
     [userId, profileId],
-    { sales: [], payouts: [], payoutAccount: null, opening: 0 } as {
+    { sales: [], payouts: [], payoutAccount: null } as {
       sales: Awaited<ReturnType<typeof platformApi.creatorSales>>;
       payouts: Awaited<ReturnType<typeof platformApi.myPayouts>>;
       payoutAccount: Awaited<ReturnType<typeof platformApi.payoutAccount>>;
-      opening: number;
     }
   );
   const [holder, setHolder] = useState('');
@@ -49,7 +47,9 @@ const CreatorPayouts: React.FC = () => {
 
   if (!user) return null;
   const { sales, payoutAccount } = data;
-  const earnings = { ...computeEarnings(data.opening, sales, data.payouts), payouts: data.payouts };
+  const earnings = computeEarnings(sales, data.payouts);
+  const confirmed = data.payouts.filter((p) => p.status === 'scheduled');
+  const paid = data.payouts.filter((p) => p.status === 'paid');
   const verified = !!user.isVerified;
 
   const saveAccount = async () => {
@@ -62,7 +62,7 @@ const CreatorPayouts: React.FC = () => {
     const r = await requestPayout(user, parseFloat(amount));
     setNotice(
       r.ok
-        ? { ok: true, text: `Retiro programado para el ${fmtDate(firstOfNextMonth().toISOString())}` }
+        ? { ok: true, text: `Retiro confirmado: se paga el ${fmtDate(firstOfNextMonth().toISOString())}` }
         : { ok: false, text: r.error! }
     );
     if (r.ok) setAmount('');
@@ -131,27 +131,38 @@ const CreatorPayouts: React.FC = () => {
             Solicitar retiro
           </button>
         </div>
-        {earnings.payouts.length > 0 && (
-          <div className="mt-6 divide-y divide-gray-100" data-testid="payouts">
-            {earnings.payouts.map((p) => (
-              <div key={p.id} className="py-3 flex items-center justify-between text-sm">
-                <div>
-                  <p className="font-medium text-gray-900">{money(p.amount)} · {p.accountLabel}</p>
-                  <p className="text-xs text-gray-500">Solicitado {fmtDate(p.requestedAt)} · Pago previsto {fmtDate(p.scheduledFor)}</p>
-                </div>
-                <span className={`text-xs px-2 py-1 rounded-full ${p.status === 'paid' ? 'bg-green-100 text-green-700' : p.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                  {p.status === 'paid' ? 'Pagado' : p.status === 'rejected' ? 'Rechazado' : 'Programado'}
-                </span>
+        {[
+          { title: 'Retiros confirmados', note: 'Se pagan automáticamente el día 1.', list: confirmed, testid: 'payouts-confirmed' },
+          { title: 'Retiros pagados', note: '', list: paid, testid: 'payouts' },
+        ]
+          .filter((g) => g.list.length > 0)
+          .map((g) => (
+            <div key={g.testid} className="mt-6" data-testid={g.testid}>
+              <p className="text-sm font-semibold text-gray-900">{g.title}</p>
+              {g.note && <p className="text-xs text-gray-500">{g.note}</p>}
+              <div className="divide-y divide-gray-100">
+                {g.list.map((p) => (
+                  <div key={p.id} className="py-3 flex items-center gap-3 text-sm">
+                    <i className="fas fa-check-circle text-green-600 text-lg" aria-hidden="true"></i>
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">Retiraste {money(p.amount)} · {p.accountLabel}</p>
+                      <p className="text-xs text-gray-500">
+                        Disponías de {money(p.availableBefore)} · solicitado {fmtDate(p.requestedAt)} ·{' '}
+                        {p.status === 'paid' ? `pagado el ${fmtDate(p.paidAt ?? p.scheduledFor)}` : `se paga el ${fmtDate(p.scheduledFor)}`}
+                      </p>
+                    </div>
+                    <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">{p.status === 'paid' ? 'Pagado' : 'Confirmado'}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          ))}
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm p-6">
         <h3 className="font-bold text-gray-900 mb-4">Pagos de tus fans</h3>
         {sales.length === 0 ? (
-          <p className="text-sm text-gray-500">Aún no hay pagos registrados{earnings.opening ? ` (saldo previo: ${money(earnings.opening)})` : ''}.</p>
+          <p className="text-sm text-gray-500">Aún no hay pagos registrados.</p>
         ) : (
           <div className="divide-y divide-gray-100">
             {sales.slice(0, 20).map((t) => (

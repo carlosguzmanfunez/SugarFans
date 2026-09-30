@@ -637,7 +637,7 @@ const run = async () => {
       await list.getByText('No hay solicitudes pendientes').waitFor();
       await list.getByText('Rechazada: La foto del documento está borrosa').waitFor();
     });
-    await check('Admin crea un perfil IA sin verificación y aparece etiquetado en Explorar', async () => {
+    await check('Admin crea un perfil IA sin verificación: lleva P-IA y los humanos verificados Verify', async () => {
       await page.getByRole('button', { name: /Perfiles gestionados/ }).click();
       const box = page.getByTestId('managed-profiles');
       await box.getByRole('button', { name: /Nuevo perfil/ }).click();
@@ -651,15 +651,22 @@ const run = async () => {
       await page.fill('input[name=managedUsername]', 'luna_neon');
       await box.getByRole('button', { name: 'Guardar perfil' }).click();
       await box.getByText('Perfil creado y publicado en Explorar').waitFor();
-      await box.getByTestId('managed-row').filter({ hasText: 'Luna Neón' }).getByText('Perfil IA').waitFor();
+      await box.getByTestId('managed-row').filter({ hasText: 'Luna Neón' }).getByText('P-IA').waitFor();
       await page.goto(`${BASE}/explore`);
       const card = page.locator('a', { hasText: 'Luna Neón' });
-      await card.getByTestId('managed-badge').getByText('Perfil IA').waitFor();
+      await card.getByTestId('managed-badge').getByText('P-IA', { exact: true }).waitFor();
       await card.click();
-      await page.getByText('No es una persona real').waitFor();
       await page.getByRole('heading', { name: 'Luna Neón' }).waitFor();
+      await page.getByTestId('managed-badge').getByText('P-IA', { exact: true }).waitFor();
+      expect((await page.getByText('Verify', { exact: true }).count()) === 0, 'un perfil IA no debe llevar Verify');
+      await page.goto(`${BASE}/creator/1`);
+      await page.getByText('Verify', { exact: true }).waitFor();
+      expect((await page.getByTestId('managed-badge').count()) === 0, 'una creadora humana no debe llevar P-IA');
     });
     await check('Admin publica una foto como el perfil IA y la puede borrar', async () => {
+      await page.goto(`${BASE}/explore`);
+      await page.locator('a', { hasText: 'Luna Neón' }).click();
+      await page.getByRole('heading', { name: 'Luna Neón' }).waitFor();
       await page.getByRole('button', { name: 'Publicar como Luna Neón' }).click();
       await page.getByTestId('image-input').setInputFiles(photo('luna-post.png'));
       await page.getByLabel('Texto de la publicación').fill('Primer post de Luna');
@@ -744,15 +751,28 @@ const run = async () => {
       await page.getByRole('button', { name: 'Solicitar retiro' }).click();
       await page.getByText('Añade una cuenta bancaria para retiros').waitFor();
     });
-    await check('Creadora demo: recibe el 80% del pago del fan y programa un retiro', async () => {
+    await check('Creadora demo: su saldo es solo el 80% de lo que pagaron los fans', async () => {
       await logoutViaMenu(page);
       await login(page, 'creator@sugarfans.com', 'demo1234');
       await waitPath(page, '/explore');
       await page.goto(`${BASE}/creator/dashboard?tab=earnings`);
-      // 1245 opening + 80% of (9.99 subscription + 2 x 9.99 renewals) = 1245 + 23.98
+      // 80% of (9.99 subscription + 2 x 9.99 renewals) = 23.98, with no demo money added
       const balance = await page.getByTestId('available-balance').textContent();
-      expect(balance === '$1,268.98', `saldo inesperado: ${balance}`);
+      expect(balance === '$23.98', `saldo inesperado: ${balance}`);
       await page.getByText('+$7.99').first().waitFor();
+    });
+    await check('Creadora demo: el retiro se confirma solo, sin paso del administrador', async () => {
+      // Another fan payment of $100 so the balance passes the $50 minimum: 23.98 + 80 = 103.98.
+      await page.evaluate(() => {
+        const data = JSON.parse(localStorage.getItem('sugarfans_platform'));
+        data.transactions.push({
+          id: 'tx-e2e', key: 'tx-e2e', payerId: null, payerName: 'Fan de prueba', creatorProfileId: '1', creatorName: 'Valentina Rose',
+          kind: 'subscription', amount: 100, methodLabel: 'Visa •••• 4242', status: 'paid', createdAt: new Date().toISOString(),
+        });
+        localStorage.setItem('sugarfans_platform', JSON.stringify(data));
+      });
+      await page.reload();
+      expect((await page.getByTestId('available-balance').textContent()) === '$103.98', 'no sumó el pago');
       await page.getByPlaceholder('Titular de la cuenta').fill('Valentina Rose');
       await page.getByPlaceholder('Banco').fill('Banco Dos');
       await page.getByPlaceholder('IBAN / CLABE / número de cuenta').fill('002010077777777771');
@@ -764,11 +784,27 @@ const run = async () => {
       await page.fill('input[name=payoutAmount]', '5000');
       await page.getByRole('button', { name: 'Solicitar retiro' }).click();
       await page.getByText(/Tu saldo disponible es/).waitFor();
-      await page.fill('input[name=payoutAmount]', '100');
+      await page.fill('input[name=payoutAmount]', '60');
       await page.getByRole('button', { name: 'Solicitar retiro' }).click();
-      await page.getByText(/Retiro programado para el/).waitFor();
-      expect((await page.getByTestId('available-balance').textContent()) === '$1,168.98', 'el saldo no bajó');
-      await page.getByTestId('payouts').getByText('Programado').waitFor();
+      await page.getByText(/Retiro confirmado: se paga el/).waitFor();
+      expect((await page.getByTestId('available-balance').textContent()) === '$43.98', 'el saldo no bajó');
+      const confirmed = page.getByTestId('payouts-confirmed');
+      await confirmed.getByText('Retiraste $60.00').waitFor();
+      await confirmed.getByText(/Disponías de \$103\.98/).waitFor();
+    });
+    await check('Llegado el día 1 el retiro aparece como pagado con check verde', async () => {
+      await page.evaluate(() => {
+        const data = JSON.parse(localStorage.getItem('sugarfans_platform'));
+        data.payouts.forEach((p) => { p.scheduledFor = new Date(Date.now() - 86400000).toISOString(); });
+        localStorage.setItem('sugarfans_platform', JSON.stringify(data));
+      });
+      await page.reload();
+      const paid = page.getByTestId('payouts');
+      await paid.getByText('Pagado', { exact: true }).waitFor();
+      await paid.getByText('Retiraste $60.00').waitFor();
+      await paid.getByText(/Disponías de \$103\.98/).waitFor();
+      await paid.locator('i.fa-check-circle.text-green-600').first().waitFor({ state: 'attached' });
+      expect((await page.getByTestId('payouts-confirmed').count()) === 0, 'sigue como pendiente');
     });
     await check('La creadora ve a un suscriptor real, lo bloquea y él deja de ver su perfil', async () => {
       await logoutViaMenu(page);
@@ -797,20 +833,16 @@ const run = async () => {
     });
 
     console.log('\nPanel de administración');
-    await check('Admin marca el retiro como pagado', async () => {
+    await check('Admin solo consulta los retiros: sin botones de pagar o rechazar', async () => {
       await logoutViaMenu(page);
       await login(page, 'admin@sugarfans.com', 'demo1234');
       await waitPath(page, '/explore');
       await page.goto(`${BASE}/admin`);
-      await page.getByRole('button', { name: /Retiros \(1\)/ }).click();
-      await page.getByTestId('admin-payouts').getByText('Valentina Rose · $100.00').waitFor();
-      await page.getByRole('button', { name: 'Marcar pagado' }).click();
-      await page.getByTestId('admin-payouts').getByText('Pagado', { exact: true }).waitFor();
-      await logoutViaMenu(page);
-      await login(page, 'creator@sugarfans.com', 'demo1234');
-      await waitPath(page, '/explore');
-      await page.goto(`${BASE}/creator/dashboard?tab=earnings`);
-      await page.getByTestId('payouts').getByText('Pagado').waitFor();
+      await page.getByRole('button', { name: 'Retiros', exact: true }).click();
+      const box = page.getByTestId('admin-payouts');
+      await box.getByText('Valentina Rose · $60.00').waitFor();
+      await box.getByText('Pagado', { exact: true }).waitFor();
+      expect((await box.getByRole('button').count()) === 0, 'el admin aún tiene acciones sobre retiros');
     });
     await check('Admin ve las cuentas reales y puede buscarlas', async () => {
       await logoutViaMenu(page);

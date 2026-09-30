@@ -2,7 +2,7 @@
 // Everything lives in one localStorage key; accounts are touched through the
 // callbacks local.ts passes in.
 import { readJSON, writeJSONChecked, newId } from '../storage';
-import { OPENING_BALANCES, addMonths, round2, validateReport, validateTip, validateVerification, computeEarnings, MIN_PAYOUT, money, firstOfNextMonth, buildManagedProfile } from '../platformRules';
+import { settlePayout, addMonths, round2, validateReport, validateTip, validateVerification, computeEarnings, MIN_PAYOUT, money, firstOfNextMonth, buildManagedProfile } from '../platformRules';
 import { creators as catalogue } from '../../data/mockData';
 import type { AuthResult, User } from './types';
 import type { Block, ManagedProfile, PaymentMethod, Payout, PayoutAccount, PlatformBackend, Report, Transaction, VerificationRequest } from './platformTypes';
@@ -82,7 +82,6 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
   const earningsOf = (s: Store, user: User) => {
     const profileId = user.creatorProfileId ?? user.id;
     return computeEarnings(
-      OPENING_BALANCES[profileId] ?? 0,
       s.transactions.filter((t) => t.creatorProfileId === profileId),
       s.payouts.filter((p) => p.userId === user.id)
     );
@@ -293,10 +292,6 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
       });
     },
 
-    async openingBalance(creatorProfileId) {
-      return OPENING_BALANCES[creatorProfileId] ?? 0;
-    },
-
     async payoutAccount(userId) {
       return load().payoutAccounts[userId] ?? null;
     },
@@ -306,10 +301,11 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
     },
 
     async myPayouts(userId) {
-      return load().payouts.filter((p) => p.userId === userId).sort(byNewest('requestedAt'));
+      return load().payouts.filter((p) => p.userId === userId).map((p) => settlePayout(p)).sort(byNewest('requestedAt'));
     },
 
-    // INTEGRATION: payouts would go through Stripe Connect / PayPal Payouts on the scheduled date.
+    // Confirmed right away, no admin step; it becomes paid on the 1st of next month.
+    // INTEGRATION: Stripe Connect / PayPal Payouts would send the money on that date.
     async requestPayout(user, amount) {
       const s = load();
       if (user.role !== 'creator') return fail('Solo los creadores pueden retirar');
@@ -330,6 +326,7 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
             amount: round2(amount),
             accountLabel: `${account.bank} •••• ${account.accountLast4}`,
             status: 'scheduled',
+            availableBefore: available,
             requestedAt: now(),
             scheduledFor: firstOfNextMonth().toISOString(),
           },
@@ -338,16 +335,7 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
     },
 
     async listPayouts() {
-      return load().payouts.sort(byNewest('requestedAt'));
-    },
-
-    async processPayout(id, paid) {
-      return commit((s) => ({
-        ...s,
-        payouts: s.payouts.map((p) =>
-          p.id === id && p.status === 'scheduled' ? { ...p, status: paid ? 'paid' : 'rejected', processedAt: now() } : p
-        ),
-      }));
+      return load().payouts.map((p) => settlePayout(p)).sort(byNewest('requestedAt'));
     },
 
     async submitReport(reporter, input) {

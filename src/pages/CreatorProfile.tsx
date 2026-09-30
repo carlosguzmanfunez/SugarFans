@@ -231,15 +231,13 @@ const CreatorProfile: React.FC = () => {
                 <h1 className="text-2xl font-bold text-gray-900">{creator.name}</h1>
                 {creator.isVerified && (
                   <span className="flex items-center bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium">
-                    <i className="fas fa-check-circle mr-1"></i> Verificado
+                    <i className="fas fa-check-circle mr-1"></i> Verify
                   </span>
                 )}
                 <ManagedBadge creator={creator} size="md" />
               </div>
               <p className="text-gray-500">@{creator.username}</p>
-              {creator.managed === 'ai' && (
-                <p className="text-xs text-purple-700 mt-1">Personaje creado con inteligencia artificial y gestionado por SugarFans. No es una persona real.</p>
-              )}
+
             </div>
             <div className="mt-4 sm:mt-0 flex items-center gap-2">
               {iBlocked ? (

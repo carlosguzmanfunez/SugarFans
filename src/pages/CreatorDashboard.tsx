@@ -40,21 +40,20 @@ const CreatorDashboard: React.FC = () => {
   const { data: live } = usePlatformQuery(
     async () => {
       if (!user) return null;
-      const [verification, sales, payouts, opening, subs, blocks] = await Promise.all([
+      const [verification, sales, payouts, subs, blocks] = await Promise.all([
         platformApi.myVerification(user.id),
         platformApi.creatorSales(profileId),
         platformApi.myPayouts(user.id),
-        platformApi.openingBalance(profileId),
         platformApi.mySubscribers(user),
         platformApi.blocks(user),
       ]);
-      return { verification, sales, payouts, opening, subs, blocks };
+      return { verification, sales, payouts, subs, blocks };
     },
     [user?.id, profileId],
     null
   );
   const verificationStatus = live?.verification?.status;
-  const earnings = live ? computeEarnings(live.opening, live.sales, live.payouts) : null;
+  const earnings = live ? computeEarnings(live.sales, live.payouts) : null;
   const monthName = (iso: string) => new Date(iso).toLocaleDateString('es', { month: 'short', year: 'numeric' });
 
   const toggle = <T,>(list: T[], item: T) => (list.includes(item) ? list.filter((x) => x !== item) : [...list, item]);

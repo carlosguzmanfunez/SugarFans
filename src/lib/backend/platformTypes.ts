@@ -70,10 +70,12 @@ export interface Payout {
   creatorName: string;
   amount: number;
   accountLabel: string;
-  status: 'scheduled' | 'paid' | 'rejected';
+  // Confirmed automatically on request; paid automatically on scheduledFor (the 1st of next month).
+  status: 'scheduled' | 'paid';
+  availableBefore: number; // balance the creator had when requesting
   requestedAt: string;
   scheduledFor: string;
-  processedAt?: string;
+  paidAt?: string;
 }
 
 export type ReportKind = 'post' | 'creator' | 'support' | 'other';
@@ -114,8 +116,8 @@ export interface Subscriber {
 }
 
 // A creator profile run by the platform itself (admins/owners), e.g. an AI-generated
-// persona. It needs no identity verification because no real person is behind it,
-// and fans always see it labelled ("Perfil IA" or "Perfil oficial").
+// persona. It needs no identity verification because no real person is behind it;
+// AI personas carry a small "P-IA" tag.
 export interface ManagedProfileInput {
   name: string;
   username: string;
@@ -156,13 +158,11 @@ export interface PlatformBackend {
   allPayments(): Promise<Transaction[]>; // admin
   mySubscribers(user: User): Promise<Subscriber[]>;
 
-  openingBalance(creatorProfileId: string): Promise<number>;
   payoutAccount(userId: string): Promise<PayoutAccount | null>;
   setPayoutAccount(user: User, account: PayoutAccount): Promise<AuthResult>;
   myPayouts(userId: string): Promise<Payout[]>;
   requestPayout(user: User, amount: number): Promise<AuthResult>;
   listPayouts(): Promise<Payout[]>; // admin
-  processPayout(id: string, paid: boolean): Promise<AuthResult>; // admin
 
   submitReport(reporter: User | null, input: ReportInput): Promise<AuthResult>;
   listReports(): Promise<Report[]>; // admin

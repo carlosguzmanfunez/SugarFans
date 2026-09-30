@@ -65,7 +65,7 @@ const ImagePicker: React.FC<{ name: string; label: string; value: string; maxSiz
 
 // Admin > Perfiles gestionados: platform-run creator profiles (e.g. AI personas).
 // They skip identity verification because no real person is behind them, and
-// fans always see a "Perfil IA" / "Perfil oficial" label.
+// AI personas carry a small "P-IA" tag.
 const ManagedProfilesAdmin: React.FC<{ transactions: Transaction[] }> = ({ transactions }) => {
   const { user } = useAuth();
   const { data: profiles } = usePlatformQuery(() => platformApi.managedProfiles(true), [], [] as ManagedProfile[]);
@@ -104,8 +104,8 @@ const ManagedProfilesAdmin: React.FC<{ transactions: Transaction[] }> = ({ trans
         <div>
           <h3 className="font-bold text-gray-900">Perfiles gestionados por SugarFans</h3>
           <p className="text-sm text-gray-500">
-            Perfiles que crea y administra el equipo, por ejemplo personajes generados con IA. No pasan por la verificación de identidad
-            y los fans siempre ven la etiqueta <span className="font-medium text-purple-700">Perfil IA</span> u <span className="font-medium">Perfil oficial</span>. Sus ingresos son de la plataforma.
+            Perfiles que crea y administra el equipo, por ejemplo personajes generados con IA. No pasan por la verificación de identidad;
+            los de IA llevan la etiqueta <span className="font-semibold text-purple-700">P-IA</span>. Sus ingresos son de la plataforma.
           </p>
         </div>
         {!editing && (
@@ -158,7 +158,7 @@ const ManagedProfilesAdmin: React.FC<{ transactions: Transaction[] }> = ({ trans
             <span>
               Personaje generado con IA
               <span className="block text-xs text-gray-500">
-                {editing.input.isAi ? 'Los fans verán "Perfil IA" y el aviso de que no es una persona real.' : 'Los fans verán "Perfil oficial".'}
+                {editing.input.isAi ? 'Se muestra la etiqueta "P-IA".' : 'Sin etiqueta.'}
               </span>
             </span>
           </label>
@@ -182,9 +182,7 @@ const ManagedProfilesAdmin: React.FC<{ transactions: Transaction[] }> = ({ trans
                 <div className="min-w-0">
                   <p className="font-medium text-gray-900 truncate">
                     {m.name}{' '}
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${m.isAi ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'}`}>
-                      {m.isAi ? 'Perfil IA' : 'Perfil oficial'}
-                    </span>
+                    {m.isAi && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">P-IA</span>}
                     {m.hidden && <span className="ml-1 text-[10px] px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">Oculto</span>}
                   </p>
                   <p className="text-xs text-gray-500">@{m.username} • {m.category} • {money(m.subscriptionPrice)}/mes</p>

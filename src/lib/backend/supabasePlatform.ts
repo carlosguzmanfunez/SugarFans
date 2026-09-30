@@ -93,9 +93,10 @@ const toPayout = (r: Row): Payout => ({
   amount: Number(r.amount),
   accountLabel: r.account_label,
   status: r.status,
+  availableBefore: Number(r.available_before ?? 0),
   requestedAt: r.requested_at,
   scheduledFor: r.scheduled_for,
-  processedAt: r.processed_at ?? undefined,
+  paidAt: r.paid_at ?? undefined,
 });
 
 const toReport = (r: Row): Report => ({
@@ -237,11 +238,6 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
     return ((data ?? []) as Row[]).map((r) => ({ id: r.id, name: r.name, avatar: r.avatar, since: r.since }));
   },
 
-  async openingBalance(creatorProfileId) {
-    const { data } = await sb.from('creator_opening_balances').select('amount').eq('creator_profile_id', creatorProfileId).maybeSingle();
-    return data ? Number(data.amount) : 0;
-  },
-
   async payoutAccount(userId) {
     const { data } = await sb.from('payout_accounts').select('*').eq('user_id', userId).maybeSingle();
     return data ? { holder: data.holder, bank: data.bank, accountLast4: data.account_last4 } : null;
@@ -259,6 +255,7 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
   },
 
   async myPayouts(userId) {
+    await sb.rpc('settle_due_payouts');
     const { data } = await sb.from('payouts').select('*').eq('user_id', userId).order('requested_at', { ascending: false });
     return (data ?? []).map(toPayout);
   },
@@ -268,12 +265,9 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
   },
 
   async listPayouts() {
+    await sb.rpc('settle_due_payouts');
     const { data } = await sb.from('payouts').select('*').order('requested_at', { ascending: false });
     return (data ?? []).map(toPayout);
-  },
-
-  async processPayout(id, paid) {
-    return done((await sb.rpc('process_payout', { p_id: id, p_paid: paid })).error, 'No se pudo actualizar el retiro');
   },
 
   async submitReport(reporter, input) {
