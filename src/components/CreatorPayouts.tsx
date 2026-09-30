@@ -22,7 +22,7 @@ const CreatorPayouts: React.FC = () => {
   const { user } = useAuth();
   const userId = user?.id ?? '';
   const profileId = user?.creatorProfileId ?? userId;
-  const { data } = usePlatformQuery(
+  const { data, loading } = usePlatformQuery(
     async () => {
       const [sales, payouts, payoutAccount] = await Promise.all([
         platformApi.creatorSales(profileId),
@@ -64,7 +64,7 @@ const CreatorPayouts: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6" data-testid="earnings">
+    <div className="space-y-6" data-testid="earnings" aria-busy={loading}>
       {notice && (
         <div role={notice.ok ? 'status' : 'alert'} className={`px-4 py-3 rounded-xl border ${notice.ok ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
           {notice.text}
