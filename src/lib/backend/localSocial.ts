@@ -4,7 +4,7 @@
 import { readJSON, writeJSONChecked, newId } from '../storage';
 import { extensionOf, validateMedia } from '../media';
 import type { AuthResult, User, VipBooking } from './types';
-import type { FeedPost, LiveMessage, PostComment, SocialBackend } from './socialTypes';
+import type { FeedPost, LiveMessage, PostComment, PublicCreator, SocialBackend } from './socialTypes';
 
 interface Store {
   likes: Record<string, string[]>; // post id -> user ids
@@ -18,6 +18,18 @@ interface Deps {
 }
 
 const KEY = 'social';
+// Demo catalogue ids (src/data/mockData.ts); the app lists those itself.
+const DEMO_IDS = ['1', '2', '3', '4', '5', '6'];
+const toPublicCreator = (a: User): PublicCreator => ({
+  id: a.creatorProfileId!,
+  name: a.name,
+  avatar: a.avatar,
+  bio: a.bio ?? '',
+  isVerified: !!a.isVerified,
+  subscriptionPrice: a.subscriptionPrice ?? 9.99,
+  posts: a.createdPosts.length,
+  createdAt: a.createdAt,
+});
 const ok: AuthResult = { ok: true };
 const fail = (error: string): AuthResult => ({ ok: false, error });
 
@@ -156,17 +168,15 @@ export const createLocalSocial = (deps: Deps): SocialBackend => {
 
     async publicCreator(creatorProfileId) {
       const a = deps.listAccounts().find((x) => x.role === 'creator' && x.creatorProfileId === creatorProfileId);
-      if (!a) return null;
-      return {
-        id: creatorProfileId,
-        name: a.name,
-        avatar: a.avatar,
-        bio: a.bio ?? '',
-        isVerified: !!a.isVerified,
-        subscriptionPrice: a.subscriptionPrice ?? 9.99,
-        posts: a.createdPosts.length,
-        createdAt: a.createdAt,
-      };
+      return a ? toPublicCreator(a) : null;
+    },
+
+    async publicCreators() {
+      return deps
+        .listAccounts()
+        .filter((a) => a.role === 'creator' && a.creatorProfileId && !DEMO_IDS.includes(a.creatorProfileId))
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .map(toPublicCreator);
     },
 
     async joinLive(user, bookingId, onMessage) {

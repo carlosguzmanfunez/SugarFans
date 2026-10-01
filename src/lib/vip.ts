@@ -1,10 +1,10 @@
 // VIP experience scheduling helpers: booking window, availability math and labels.
 // Data access lives in the backend (src/lib/backend).
-import type { Availability, BookingStatus, TakenSlot } from './backend/types';
+import type { Availability, BookingStatus, ExperienceType, TakenSlot, VipBooking, VipExperience, VipExperienceInput } from './backend/types';
 import { vipExperiences } from '../data/mockData';
 import { CALL_MINUTES } from './giftRules';
 
-export type { Availability, BookingStatus, VipBooking, TakenSlot } from './backend/types';
+export type { Availability, BookingStatus, VipBooking, TakenSlot, VipExperience, VipExperienceInput, ExperienceType } from './backend/types';
 
 export const MAX_BOOKING_MONTHS = 3;
 
@@ -73,8 +73,53 @@ export const durationMinutes = (duration?: string): number | null => {
 // Minutes of a booking's live session: the experience's duration, or the
 // private video call a $1,000 gift includes (booked as experience "gift-call").
 export const GIFT_CALL_EXPERIENCE = 'gift-call';
-export const sessionMinutes = (experienceId?: string): number | null =>
-  experienceId === GIFT_CALL_EXPERIENCE ? CALL_MINUTES : durationMinutes(vipExperiences.find((e) => e.id === experienceId)?.duration);
+export const sessionMinutes = (booking?: Pick<VipBooking, 'experienceId' | 'durationMinutes'> | null): number | null => {
+  if (!booking) return null;
+  if (booking.durationMinutes) return booking.durationMinutes;
+  if (booking.experienceId === GIFT_CALL_EXPERIENCE) return CALL_MINUTES;
+  // Bookings made before the duration was stored with them.
+  return durationMinutes(vipExperiences.find((e) => e.id === booking.experienceId)?.duration);
+};
+
+// --- Experiences ------------------------------------------------------------
+export const EXPERIENCE_TYPES: { id: ExperienceType; name: string; icon: string }[] = [
+  { id: 'meet-greet', name: 'Meet & Greet', icon: '👋' },
+  { id: 'qa-session', name: 'Sesión Q&A', icon: '💬' },
+  { id: 'custom-content', name: 'Contenido Personalizado', icon: '🎨' },
+  { id: 'early-access', name: 'Acceso Anticipado', icon: '🚀' },
+  { id: 'collaboration', name: 'Colaboración', icon: '🤝' },
+];
+export const MIN_EXPERIENCE_PRICE = 5;
+export const MAX_EXPERIENCE_PRICE = 5000;
+export const DEFAULT_EXPERIENCE_IMAGE = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&h=400&fit=crop';
+
+export const validateExperience = (input: VipExperienceInput): { ok: boolean; error?: string } => {
+  const title = input.title.trim();
+  if (title.length < 3 || title.length > 80) return { ok: false, error: 'El título debe tener entre 3 y 80 caracteres' };
+  if (input.description.trim().length > 600) return { ok: false, error: 'La descripción admite hasta 600 caracteres' };
+  if (!EXPERIENCE_TYPES.some((t) => t.id === input.type)) return { ok: false, error: 'Elige el tipo de experiencia' };
+  if (!Number.isFinite(input.price) || input.price < MIN_EXPERIENCE_PRICE || input.price > MAX_EXPERIENCE_PRICE)
+    return { ok: false, error: `El precio debe estar entre $${MIN_EXPERIENCE_PRICE} y $${MAX_EXPERIENCE_PRICE}` };
+  if (input.durationMinutes !== undefined && (!Number.isInteger(input.durationMinutes) || input.durationMinutes < 10 || input.durationMinutes > 180))
+    return { ok: false, error: 'La sesión en vivo debe durar entre 10 y 180 minutos' };
+  return { ok: true };
+};
+
+// The demo catalogue as stored experiences (same ids as the Supabase seed).
+export const demoExperiences = (): VipExperience[] =>
+  vipExperiences.map((e) => ({
+    id: e.id,
+    creatorProfileId: e.creatorId,
+    creatorName: e.creatorName,
+    title: e.title,
+    description: e.description,
+    type: e.type as ExperienceType,
+    price: e.price,
+    durationMinutes: durationMinutes(e.duration) ?? undefined,
+    image: e.image,
+    active: true,
+    createdAt: '2024-01-01T00:00:00.000Z',
+  }));
 
 export const liveWindow = (date: string, time: string, minutes: number) => {
   const start = fromISODate(date);

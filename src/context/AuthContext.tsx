@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { readJSON, writeJSON } from '../lib/storage';
-import { backend, type AuthResult, type MediaUpload, type ProfilePatch, type User, type UserRole } from '../lib/backend';
+import { backend, type AuthResult, type MediaUpload, type ProfilePatch, type Subscription, type User, type UserRole } from '../lib/backend';
 
 export type { User, UserRole, UserSettings, Subscription, CreatorPost, AuthResult } from '../lib/backend';
 export { defaultSettings } from '../lib/backend';
@@ -23,6 +23,9 @@ interface AuthContextType {
   deleteAccount: (password: string) => Promise<AuthResult>;
   isSubscribed: (creatorId: string) => boolean;
   toggleSubscription: (creatorId: string, price: number) => Promise<AuthResult>;
+  // Stops renewing; access lasts until the end of the paid month (`until`).
+  cancelSubscription: (creatorId: string) => Promise<AuthResult & { until?: string }>;
+  subscriptionOf: (creatorId: string) => Subscription | undefined;
   addPost: (content: string, isLocked: boolean, media?: MediaUpload, asProfileId?: string) => Promise<AuthResult>;
   deletePost: (id: string) => Promise<AuthResult>;
   listAccounts: () => Promise<User[]>;
@@ -110,6 +113,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const toggleSubscription = (creatorId: string, price: number) =>
     user ? run(() => backend.setSubscription(user, creatorId, price, !isSubscribed(creatorId))) : Promise.resolve(notSignedIn);
 
+  const cancelSubscription = async (creatorId: string) => {
+    if (!user) return notSignedIn;
+    const result = await backend.cancelSubscription(user, creatorId);
+    await refreshUser();
+    return result;
+  };
+
+  const subscriptionOf = (creatorId: string) => user?.subscriptions.find((s) => s.creatorId === creatorId);
+
   const addPost = (content: string, isLocked: boolean, media?: MediaUpload, asProfileId?: string) =>
     user ? run(() => backend.addPost(user, content, isLocked, media, asProfileId)) : Promise.resolve(notSignedIn);
 
@@ -134,6 +146,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         deleteAccount,
         isSubscribed,
         toggleSubscription,
+        cancelSubscription,
+        subscriptionOf,
         addPost,
         deletePost,
         listAccounts: () => backend.listAccounts(),

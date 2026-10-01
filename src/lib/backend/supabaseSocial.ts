@@ -5,7 +5,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { newId } from '../storage';
 import { extensionOf, validateMedia } from '../media';
 import type { AuthResult } from './types';
-import type { FeedPost, LiveMessage, PostComment, SocialBackend } from './socialTypes';
+import type { FeedPost, LiveMessage, PostComment, PublicCreator, SocialBackend } from './socialTypes';
 
 type Row = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -23,6 +23,17 @@ const toComment = (r: Row): PostComment => ({
   userName: r.user_name,
   userAvatar: r.user_avatar,
   body: r.body,
+  createdAt: r.created_at,
+});
+
+const toPublicCreator = (r: Row): PublicCreator => ({
+  id: r.id,
+  name: r.name,
+  avatar: r.avatar,
+  bio: r.bio ?? '',
+  isVerified: r.is_verified,
+  subscriptionPrice: Number(r.subscription_price ?? 9.99),
+  posts: r.posts,
   createdAt: r.created_at,
 });
 
@@ -111,17 +122,12 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
   async publicCreator(creatorProfileId) {
     const { data } = await sb.rpc('public_creator', { p_creator_profile_id: creatorProfileId });
     const r = (data as Row[] | null)?.[0];
-    if (!r) return null;
-    return {
-      id: r.id,
-      name: r.name,
-      avatar: r.avatar,
-      bio: r.bio ?? '',
-      isVerified: r.is_verified,
-      subscriptionPrice: Number(r.subscription_price ?? 9.99),
-      posts: r.posts,
-      createdAt: r.created_at,
-    };
+    return r ? toPublicCreator(r) : null;
+  },
+
+  async publicCreators() {
+    const { data } = await sb.rpc('public_creators');
+    return ((data as Row[] | null) ?? []).map(toPublicCreator);
   },
 
   async joinLive(user, bookingId, onMessage) {

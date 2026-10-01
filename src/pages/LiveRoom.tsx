@@ -60,7 +60,7 @@ const LiveRoom: React.FC = () => {
 
   const isCreator = !!booking && !!user?.creatorProfileId && user.creatorProfileId === booking.creatorProfileId;
   const otherName = booking ? (isCreator ? booking.fanName : booking.creatorName) : '';
-  const minutes = sessionMinutes(booking?.experienceId) ?? 0;
+  const minutes = sessionMinutes(booking) ?? 0;
 
   // Find the booking among mine (as fan or as creator).
   useEffect(() => {
@@ -74,7 +74,7 @@ const LiveRoom: React.FC = () => {
       const b = lists.flat().find((x) => x.id === bookingId) ?? null;
       if (!active) return;
       setBooking(b);
-      const mins = sessionMinutes(b?.experienceId);
+      const mins = sessionMinutes(b);
       if (!b) setProblem('No encontramos esta reserva en tu cuenta.');
       else if (b.status !== 'confirmed') setProblem('La sala se abre cuando la reserva está aceptada y pagada.');
       else if (!mins) setProblem('Esta experiencia no es una sesión en vivo.');

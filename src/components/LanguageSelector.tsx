@@ -1,19 +1,23 @@
 import React, { useState } from 'react';
-import { useLanguage, Language, languageNames } from '../context/LanguageContext';
+import { useLanguage, Language, languageNames, ENABLED_LANGUAGES } from '../context/LanguageContext';
 
 const LanguageSelector: React.FC = () => {
   const { language, setLanguage } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
 
-  const languages: { code: Language; flag: string }[] = [
-    { code: 'es', flag: '🇪🇸' },
-    { code: 'en', flag: '🇺🇸' },
-    { code: 'pt', flag: '🇧🇷' },
-    { code: 'fr', flag: '🇫🇷' },
-    { code: 'it', flag: '🇮🇹' },
-  ];
+  const languages: { code: Language; flag: string }[] = (
+    [
+      { code: 'es', flag: '🇪🇸' },
+      { code: 'en', flag: '🇺🇸' },
+      { code: 'pt', flag: '🇧🇷' },
+      { code: 'fr', flag: '🇫🇷' },
+      { code: 'it', flag: '🇮🇹' },
+    ] as { code: Language; flag: string }[]
+  ).filter((l) => ENABLED_LANGUAGES.includes(l.code));
 
   const currentFlag = languages.find(l => l.code === language)?.flag || '🌐';
+  // Nothing to choose while the site is in a single language.
+  if (ENABLED_LANGUAGES.length < 2) return null;
 
   return (
     <div className="relative">

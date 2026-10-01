@@ -10,7 +10,7 @@ const LiveRoomButton: React.FC<{ booking: VipBooking }> = ({ booking }) => {
     return () => clearInterval(t);
   }, []);
 
-  const minutes = sessionMinutes(booking.experienceId);
+  const minutes = sessionMinutes(booking);
   if (!minutes || booking.status !== 'confirmed') return null;
 
   const state = liveState(booking.date, booking.time, minutes, now);

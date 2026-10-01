@@ -11,21 +11,16 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 // Detect browser language
+// Only languages the whole site is written in are offered. Most pages exist only
+// in Spanish, so the others stay off until those pages are translated; add them
+// back here to bring the selector back.
+export const ENABLED_LANGUAGES: Language[] = ['es'];
+
 const detectLanguage = (): Language => {
   const saved = localStorage.getItem('sugarfans_language') as Language;
-  if (saved && ['es', 'en', 'pt', 'fr', 'it'].includes(saved)) {
-    return saved;
-  }
-  
-  const browserLang = navigator.language || (navigator as any).userLanguage;
-  if (browserLang) {
-    const langCode = browserLang.split('-')[0].toLowerCase();
-    if (['es', 'en', 'pt', 'fr', 'it'].includes(langCode)) {
-      return langCode as Language;
-    }
-  }
-  
-  return 'es';
+  if (saved && ENABLED_LANGUAGES.includes(saved)) return saved;
+  const browserLang = (navigator.language || '').split('-')[0].toLowerCase() as Language;
+  return ENABLED_LANGUAGES.includes(browserLang) ? browserLang : 'es';
 };
 
 // Translations
@@ -45,11 +40,11 @@ const translations: Record<Language, Record<string, string>> = {
     // Landing
     'landing.hero.title1': 'Conecta con tus',
     'landing.hero.title2': 'creadores favoritos',
-    'landing.hero.subtitle': 'Descubre contenido exclusivo de miles de creadores. Suscríbete, apoya y disfruta de experiencias únicas.',
+    'landing.hero.subtitle': 'Descubre contenido exclusivo de tus creadores favoritos. Suscríbete, apoya y disfruta de experiencias únicas.',
     'landing.hero.cta1': 'Comenzar Gratis',
     'landing.hero.cta2': 'Explorar Creadores',
-    'landing.hero.stats1': '+50K Creadores',
-    'landing.hero.stats2': '100% Seguro',
+    'landing.hero.stats1': 'Creadores verificados',
+    'landing.hero.stats2': 'Solo mayores de 18',
     'landing.hero.stats3': 'Pagos Seguros',
     'landing.featured.title': 'Creadores Destacados',
     'landing.featured.subtitle': 'Descubre a los creadores más populares de nuestra plataforma',
@@ -179,11 +174,11 @@ const translations: Record<Language, Record<string, string>> = {
     // Landing
     'landing.hero.title1': 'Connect with your',
     'landing.hero.title2': 'favorite creators',
-    'landing.hero.subtitle': 'Discover exclusive content from thousands of creators. Subscribe, support, and enjoy unique experiences.',
+    'landing.hero.subtitle': 'Discover exclusive content from your favorite creators. Subscribe, support, and enjoy unique experiences.',
     'landing.hero.cta1': 'Start Free',
     'landing.hero.cta2': 'Explore Creators',
-    'landing.hero.stats1': '+50K Creators',
-    'landing.hero.stats2': '100% Safe',
+    'landing.hero.stats1': 'Verified creators',
+    'landing.hero.stats2': 'Adults only (18+)',
     'landing.hero.stats3': 'Secure Payments',
     'landing.featured.title': 'Featured Creators',
     'landing.featured.subtitle': 'Discover the most popular creators on our platform',
@@ -313,11 +308,11 @@ const translations: Record<Language, Record<string, string>> = {
     // Landing
     'landing.hero.title1': 'Conecte-se com seus',
     'landing.hero.title2': 'criadores favoritos',
-    'landing.hero.subtitle': 'Descubra conteúdo exclusivo de milhares de criadores. Assine, apoie e desfrute de experiências únicas.',
+    'landing.hero.subtitle': 'Descubra conteúdo exclusivo dos seus criadores favoritos. Assine, apoie e desfrute de experiências únicas.',
     'landing.hero.cta1': 'Começar Grátis',
     'landing.hero.cta2': 'Explorar Criadores',
-    'landing.hero.stats1': '+50K Criadores',
-    'landing.hero.stats2': '100% Seguro',
+    'landing.hero.stats1': 'Criadores verificados',
+    'landing.hero.stats2': 'Apenas maiores de 18',
     'landing.hero.stats3': 'Pagamentos Seguros',
     'landing.featured.title': 'Criadores em Destaque',
     'landing.featured.subtitle': 'Descubra os criadores mais populares da nossa plataforma',
@@ -447,11 +442,11 @@ const translations: Record<Language, Record<string, string>> = {
     // Landing
     'landing.hero.title1': 'Connectez-vous avec vos',
     'landing.hero.title2': 'créateurs favoris',
-    'landing.hero.subtitle': 'Découvrez du contenu exclusif de milliers de créateurs. Abonnez-vous, soutenez et profitez d\'expériences uniques.',
+    'landing.hero.subtitle': 'Découvrez du contenu exclusif de vos créateurs préférés. Abonnez-vous, soutenez et profitez d\'expériences uniques.',
     'landing.hero.cta1': 'Commencer Gratuitement',
     'landing.hero.cta2': 'Explorer les Créateurs',
-    'landing.hero.stats1': '+50K Créateurs',
-    'landing.hero.stats2': '100% Sûr',
+    'landing.hero.stats1': 'Créateurs vérifiés',
+    'landing.hero.stats2': 'Réservé aux 18 ans et plus',
     'landing.hero.stats3': 'Paiements Sécurisés',
     'landing.featured.title': 'Créateurs en Vedette',
     'landing.featured.subtitle': 'Découvrez les créateurs les plus populaires de notre plateforme',
@@ -581,11 +576,11 @@ const translations: Record<Language, Record<string, string>> = {
     // Landing
     'landing.hero.title1': 'Connettiti con i tuoi',
     'landing.hero.title2': 'creatori preferiti',
-    'landing.hero.subtitle': 'Scopri contenuti esclusivi da migliaia di creatori. Iscriviti, supporta e goditi esperienze uniche.',
+    'landing.hero.subtitle': 'Scopri contenuti esclusivi dai tuoi creatori preferiti. Iscriviti, supporta e goditi esperienze uniche.',
     'landing.hero.cta1': 'Inizia Gratis',
     'landing.hero.cta2': 'Esplora Creatori',
-    'landing.hero.stats1': '+50K Creatori',
-    'landing.hero.stats2': '100% Sicuro',
+    'landing.hero.stats1': 'Creatori verificati',
+    'landing.hero.stats2': 'Solo maggiorenni',
     'landing.hero.stats3': 'Pagamenti Sicuri',
     'landing.featured.title': 'Creatori in Evidenza',
     'landing.featured.subtitle': 'Scopri i creatori più popolari sulla nostra piattaforma',

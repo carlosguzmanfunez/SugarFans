@@ -27,6 +27,8 @@ export interface Subscription {
   creatorId: string;
   price: number;
   since: string;
+  // Set when the fan cancelled: access lasts until this date, then it ends.
+  cancelAt?: string;
 }
 
 export interface CreatorPost {
@@ -101,17 +103,36 @@ export interface VipBooking {
   updatedAt: string;
   paidAt?: string;
   emailSentAt?: string;
+  // Minutes of the live video session, when the experience has one.
+  durationMinutes?: number;
 }
 
+// The creator, title and price come from the experience itself (server side).
 export interface BookingInput {
   experienceId: string;
-  creatorProfileId: string;
-  title: string;
-  creatorName: string;
-  price: number;
   date: string;
   time: string;
   message: string;
+}
+
+export type ExperienceType = 'meet-greet' | 'qa-session' | 'custom-content' | 'early-access' | 'collaboration';
+
+export interface VipExperienceInput {
+  title: string;
+  description: string;
+  type: ExperienceType;
+  price: number;
+  // Minutes of the live video session; undefined for experiences without one.
+  durationMinutes?: number;
+  image: string;
+  active: boolean;
+}
+
+export interface VipExperience extends VipExperienceInput {
+  id: string;
+  creatorProfileId: string;
+  creatorName: string;
+  createdAt: string;
 }
 
 export type ProfilePatch = Partial<Pick<User, 'name' | 'email' | 'avatar' | 'bio' | 'subscriptionPrice' | 'settings' | 'ageVerified'>>;
@@ -127,7 +148,14 @@ export interface Backend {
   updateProfile(user: User, patch: ProfilePatch): Promise<AuthResult>;
   changePassword(user: User, current: string, next: string): Promise<AuthResult>;
   deleteAccount(user: User, password: string): Promise<AuthResult>;
+  // Removes a subscription at once (used when blocking a creator).
   setSubscription(user: User, creatorId: string, price: number, subscribed: boolean): Promise<AuthResult>;
+  // Stops renewing; access lasts until the end of the paid month (returned as `until`).
+  cancelSubscription(user: User, creatorId: string): Promise<AuthResult & { until?: string }>;
+  // Emails a link to choose a new password (says nothing about whether the account exists).
+  requestPasswordReset(email: string): Promise<AuthResult>;
+  // Sets the new password from the emailed link (`token` is only used by the local store).
+  resetPassword(password: string, token?: string): Promise<AuthResult>;
   // Admins can publish as a platform-run profile (asProfileId "m-…").
   addPost(user: User, content: string, isLocked: boolean, media?: MediaUpload, asProfileId?: string): Promise<AuthResult>;
   deletePost(user: User, postId: string): Promise<AuthResult>;
@@ -137,7 +165,14 @@ export interface Backend {
   setAvailability(creatorProfileId: string, availability: Availability): Promise<AuthResult>;
   takenSlots(creatorProfileId: string): Promise<TakenSlot[]>;
   createBooking(user: User, input: BookingInput): Promise<AuthResult>;
+  // Creator accepts/rejects, fan cancels. Paying goes through payBooking.
   updateBooking(user: User, bookingId: string, next: BookingStatus): Promise<AuthResult>;
+  // Charges an accepted booking to a saved payment method and confirms it.
+  payBooking(user: User, bookingId: string, methodId: string): Promise<AuthResult>;
+  // Active experiences of every creator, plus the signed-in creator's inactive ones.
+  listExperiences(): Promise<VipExperience[]>;
+  saveExperience(user: User, input: VipExperienceInput, id?: string): Promise<AuthResult>;
+  deleteExperience(user: User, id: string): Promise<AuthResult>;
   fanBookings(fanId: string): Promise<VipBooking[]>;
   creatorBookings(creatorProfileId: string): Promise<VipBooking[]>;
 
