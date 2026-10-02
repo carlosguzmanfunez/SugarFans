@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { User } from '../context/AuthContext';
 import { addPaymentMethod, type PaymentKind } from '../lib/platform';
 import { BRAND } from '../config/brand';
+import { isDemoEmail } from '../config/demoAccounts';
 
 const input = 'w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-sm';
 
@@ -22,7 +23,7 @@ const PaymentMethodForm: React.FC<{ user: User; onAdded: (id: string) => void; o
   const [number, setNumber] = useState('');
   const [expiry, setExpiry] = useState('');
   const [cvc, setCvc] = useState('');
-  const [email, setEmail] = useState(user.email);
+  const [email, setEmail] = useState(isDemoEmail(user.email) ? '' : user.email);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 

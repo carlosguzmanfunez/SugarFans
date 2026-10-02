@@ -8,6 +8,7 @@ import { backend } from '../lib/backend';
 import { useBackendData } from '../lib/useBackendData';
 import LiveRoomButton from '../components/LiveRoomButton';
 import { usePlatformQuery, platformApi, platformChanged, nextRenewal } from '../lib/platform';
+import { displayEmail } from '../config/demoAccounts';
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -67,7 +68,7 @@ const Profile: React.FC = () => {
                   {user.role === 'admin' ? 'Administrador' : user.role === 'creator' ? 'Creador' : 'Fan'}
                 </span>
               </div>
-              <p className="text-gray-500">{user.email}</p>
+              <p className="text-gray-500">{displayEmail(user.email)}</p>
               {user.bio && <p className="text-gray-600 mt-2">{user.bio}</p>}
             </div>
             {user.role === 'creator' && (
@@ -203,7 +204,7 @@ const Profile: React.FC = () => {
             </div>
             <div>
               <p className="text-gray-500">Email</p>
-              <p className="font-medium text-gray-900">{user.email}</p>
+              <p className="font-medium text-gray-900">{displayEmail(user.email)}</p>
             </div>
             <div>
               <p className="text-gray-500">Verificación de edad</p>

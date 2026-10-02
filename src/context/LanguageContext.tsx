@@ -66,10 +66,7 @@ const translations: Record<Language, Record<string, string>> = {
     'login.or': 'o continúa con',
     'login.noAccount': '¿No tienes cuenta?',
     'login.register': 'Regístrate gratis',
-    'login.demo': 'Demo rápida:',
-    'login.demoFan': 'Fan: fan@sugarfans.com / demo1234',
-    'login.demoCreator': 'Creador: creator@sugarfans.com / demo1234',
-    'login.demoAdmin': 'Admin: admin@sugarfans.com / demo1234',
+    'login.demo': 'Acceso demo',
     
     // Register
     'register.createAccount': 'Crear cuenta',
@@ -156,9 +153,6 @@ const translations: Record<Language, Record<string, string>> = {
     'login.noAccount': 'Don\'t have an account?',
     'login.register': 'Sign up for free',
     'login.demo': 'Quick demo:',
-    'login.demoFan': 'Fan: fan@sugarfans.com / demo1234',
-    'login.demoCreator': 'Creator: creator@sugarfans.com / demo1234',
-    'login.demoAdmin': 'Admin: admin@sugarfans.com / demo1234',
     
     // Register
     'register.createAccount': 'Create account',
@@ -245,9 +239,6 @@ const translations: Record<Language, Record<string, string>> = {
     'login.noAccount': 'Não tem conta?',
     'login.register': 'Cadastre-se grátis',
     'login.demo': 'Demo rápida:',
-    'login.demoFan': 'Fan: fan@sugarfans.com / demo1234',
-    'login.demoCreator': 'Criador: creator@sugarfans.com / demo1234',
-    'login.demoAdmin': 'Admin: admin@sugarfans.com / demo1234',
     
     // Register
     'register.createAccount': 'Criar conta',
@@ -334,9 +325,6 @@ const translations: Record<Language, Record<string, string>> = {
     'login.noAccount': 'Vous n\'avez pas de compte?',
     'login.register': 'Inscrivez-vous gratuitement',
     'login.demo': 'Démo rapide:',
-    'login.demoFan': 'Fan: fan@sugarfans.com / demo1234',
-    'login.demoCreator': 'Créateur: creator@sugarfans.com / demo1234',
-    'login.demoAdmin': 'Admin: admin@sugarfans.com / demo1234',
     
     // Register
     'register.createAccount': 'Créer un compte',
@@ -423,9 +411,6 @@ const translations: Record<Language, Record<string, string>> = {
     'login.noAccount': 'Non hai un account?',
     'login.register': 'Registrati gratuitamente',
     'login.demo': 'Demo veloce:',
-    'login.demoFan': 'Fan: fan@sugarfans.com / demo1234',
-    'login.demoCreator': 'Creatore: creator@sugarfans.com / demo1234',
-    'login.demoAdmin': 'Admin: admin@sugarfans.com / demo1234',
     
     // Register
     'register.createAccount': 'Crea account',

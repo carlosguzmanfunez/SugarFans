@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import LanguageSelector from '../components/LanguageSelector';
 import BrandLogo from '../components/BrandLogo';
+import { DEMO_ACCOUNTS, type DemoAccount } from '../config/demoAccounts';
 
 const Login: React.FC = () => {
   const { login } = useAuth();
@@ -18,20 +19,29 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) {
-      setError('Por favor completa todos los campos');
-      return;
-    }
+  const signIn = async (mail: string, pass: string) => {
     setSubmitting(true);
-    const result = await login(email, password, remember);
+    setError('');
+    const result = await login(mail, pass, remember);
     setSubmitting(false);
     if (result.ok) {
       navigate(from, { replace: true });
     } else {
       setError(result.error || 'Credenciales incorrectas');
     }
+  };
+
+  // Test mode: the demo accounts sign in with their internal credentials, which
+  // are never shown (see src/config/demoAccounts.ts).
+  const signInDemo = (account: DemoAccount) => signIn(account.email, account.password);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setError('Por favor completa todos los campos');
+      return;
+    }
+    await signIn(email, password);
   };
 
   return (
@@ -121,13 +131,28 @@ const Login: React.FC = () => {
           </p>
         </div>
 
-        {/* Demo hint */}
-        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-700">
-          <p className="font-medium mb-1"><i aria-hidden="true" className="fas fa-info-circle mr-1"></i> {t('login.demo')}</p>
-          <p>• {t('login.demoFan')}</p>
-          <p>• {t('login.demoCreator')}</p>
-          <p>• {t('login.demoAdmin')}</p>
-        </div>
+        {/* Demo accounts (test mode) */}
+        <section className="mt-4 rounded-2xl border border-line bg-white/70 p-4" aria-labelledby="demo-access">
+          <p id="demo-access" className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">
+            <i aria-hidden="true" className="fas fa-flask mr-1.5"></i>{t('login.demo')}
+          </p>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {DEMO_ACCOUNTS.map((a) => (
+              <button
+                key={a.role}
+                type="button"
+                disabled={submitting}
+                onClick={() => signInDemo(a)}
+                title={a.description}
+                data-testid={`demo-${a.role}`}
+                className="flex items-center gap-2.5 rounded-xl border border-line bg-white px-3 py-2.5 text-left text-sm font-semibold text-ink transition hover:border-pink-300 hover:bg-pink-50 disabled:opacity-60 sm:flex-col sm:gap-1.5 sm:text-center"
+              >
+                <i aria-hidden="true" className={`fas ${a.icon} text-pink-600`}></i>
+                {a.label}
+              </button>
+            ))}
+          </div>
+        </section>
       </div>
       </div>
     </div>

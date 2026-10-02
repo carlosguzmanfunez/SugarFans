@@ -12,6 +12,7 @@ import {
   money,
   type VerificationRequest,
 } from '../lib/platform';
+import { displayEmail } from '../config/demoAccounts';
 
 const ago = (iso: string) => {
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
@@ -98,7 +99,7 @@ const AdminDashboard: React.FC = () => {
     <div key={v.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-gray-50">
       <div>
         <p className="font-medium text-gray-900 text-sm">{v.userName}</p>
-        <p className="text-xs text-gray-500">{v.email} • {roleName[v.role]} • {ago(v.submittedAt)}</p>
+        <p className="text-xs text-gray-500">{displayEmail(v.email)} • {roleName[v.role]} • {ago(v.submittedAt)}</p>
         {!compact && <p className="text-xs text-gray-400">{docTypeLabel[v.docType]} • {v.country}</p>}
       </div>
       <button onClick={() => { setViewing(v); setRejectReason(''); }} className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200">
@@ -219,7 +220,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="space-y-2">
                   {platform.verifications.filter((v) => v.status !== 'pending').map((v) => (
                     <div key={v.id} className="flex justify-between text-sm">
-                      <span className="text-gray-700">{v.userName} · {v.email}</span>
+                      <span className="text-gray-700">{v.userName} · {displayEmail(v.email)}</span>
                       <span className={v.status === 'approved' ? 'text-green-600' : 'text-red-600'}>
                         {v.status === 'approved' ? 'Aprobada' : `Rechazada: ${v.rejectionReason}`}
                       </span>
@@ -330,7 +331,7 @@ const AdminDashboard: React.FC = () => {
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900">{viewing.userName}</h3>
-                  <p className="text-sm text-gray-500">{viewing.email} • {roleName[viewing.role]}</p>
+                  <p className="text-sm text-gray-500">{displayEmail(viewing.email)} • {roleName[viewing.role]}</p>
                 </div>
                 <button onClick={() => setViewing(null)} aria-label="Cerrar" className="text-gray-400 hover:text-gray-600"><i aria-hidden="true" className="fas fa-times"></i></button>
               </div>
@@ -397,7 +398,7 @@ const AdminDashboard: React.FC = () => {
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">{u.name}</p>
-                      <p className="text-xs text-gray-500">{u.email} • {u.role} • Registrado: {u.date}</p>
+                      <p className="text-xs text-gray-500">{displayEmail(u.email)} • {u.role} • Registrado: {u.date}</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">

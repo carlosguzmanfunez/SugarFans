@@ -232,7 +232,7 @@ const run = async () => {
       expect(broken.length === 0, `imágenes rotas: ${broken.map((i) => i.src).join(', ')}`);
     });
     await check('Ninguna página pública muestra la marca antigua, Terrones ni imágenes externas', async () => {
-      for (const path of ['/', '/explore', '/creator/1', '/vip', '/help', '/legal', '/register']) {
+      for (const path of ['/', '/explore', '/creator/1', '/vip', '/help', '/legal', '/register', '/login']) {
         await page.goto(`${BASE}${path}`);
         await page.locator('main, #root').first().waitFor();
         await page.waitForTimeout(150);
@@ -300,6 +300,24 @@ const run = async () => {
     });
 
     console.log('\nInicio de sesión, persistencia y cierre de sesión');
+    await check('Login ofrece Demo Fan, Demo Creator y Demo Admin sin mostrar correos antiguos', async () => {
+      await page.goto(`${BASE}/login`);
+      for (const label of ['Demo Fan', 'Demo Creator', 'Demo Admin']) await page.getByRole('button', { name: label }).waitFor();
+      const html = await page.content();
+      expect(!/@sugarfans\.com|sugar\s?fans/i.test(html), 'el login contiene la marca o los correos antiguos');
+    });
+    for (const [role, label] of [['fan', 'Demo Fan'], ['creator', 'Demo Creator'], ['admin', 'Demo Admin']]) {
+      await check(`El botón ${label} inicia sesión con la cuenta demo`, async () => {
+        await page.goto(`${BASE}/login`);
+        await page.getByTestId(`demo-${role}`).click();
+        await waitPath(page, '/explore');
+        await page.click('button[aria-label="Menú de cuenta"]');
+        await page.getByText(`Cuenta ${label}`).first().waitFor();
+        expect(!/sugarfans/i.test(await page.locator('body').innerText()), 'el menú muestra el correo interno');
+        await page.getByRole('button', { name: /Cerrar Sesión/ }).click();
+        await waitPath(page, '/');
+      });
+    }
     await check('Login con contraseña incorrecta muestra error', async () => {
       await login(page, 'fan@sugarfans.com', 'mala-clave');
       expect((await errorText(page))?.includes('incorrectos'), 'no apareció el error');
@@ -317,7 +335,8 @@ const run = async () => {
       await page.reload();
       await page.locator('button[aria-label="Menú de cuenta"]').waitFor();
       await page.goto(`${BASE}/profile`);
-      await page.getByText('fan@sugarfans.com').first().waitFor();
+      await page.getByText('Cuenta Demo Fan').first().waitFor();
+      expect(!/sugarfans/i.test(await page.locator('body').innerText()), 'el perfil muestra el correo interno de la cuenta demo');
     });
     await check('Con sesión, /login redirige a Explorar', async () => {
       await page.goto(`${BASE}/login`);

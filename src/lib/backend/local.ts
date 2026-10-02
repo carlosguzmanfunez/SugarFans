@@ -19,6 +19,7 @@ import { createLocalSocial } from './localSocial';
 import { createLocalGifts } from './localGifts';
 import { createLocalRewards } from './localRewards';
 import { creators as demoCreators } from '../../data/mockData';
+import { demoAccount } from '../../config/demoAccounts';
 import { BRAND } from '../../config/brand';
 
 interface StoredAccount extends User {
@@ -46,11 +47,11 @@ const baseUser = (partial: Pick<User, 'id' | 'name' | 'email' | 'role' | 'avatar
 });
 
 const demoUsers: User[] = [
-  baseUser({ id: 'demo-admin', name: `Admin ${BRAND.compactName}`, email: 'admin@sugarfans.com', role: 'admin', avatar: avatarFor('admin') }),
+  baseUser({ id: 'demo-admin', name: `Admin ${BRAND.compactName}`, email: demoAccount('admin').email, role: 'admin', avatar: avatarFor('admin') }),
   baseUser({
     id: 'demo-creator',
     name: 'Valentina Rose',
-    email: 'creator@sugarfans.com',
+    email: demoAccount('creator').email,
     role: 'creator',
     avatar: avatarFor('valentina'),
     bio: 'Modelo y creadora de contenido exclusivo ✨',
@@ -61,7 +62,7 @@ const demoUsers: User[] = [
     following: 340,
     posts: 256,
   }),
-  baseUser({ id: 'demo-fan', name: 'Carlos M.', email: 'fan@sugarfans.com', role: 'fan', avatar: avatarFor('carlos') }),
+  baseUser({ id: 'demo-fan', name: 'Carlos M.', email: demoAccount('fan').email, role: 'fan', avatar: avatarFor('carlos') }),
 ];
 
 const notify = () => window.dispatchEvent(new Event(CHANGE_EVENT));

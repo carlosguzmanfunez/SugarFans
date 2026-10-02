@@ -19,6 +19,7 @@ import {
 } from '../lib/platform';
 import { BRAND } from '../config/brand';
 import { VIRTUAL_CURRENCY, displayMethodLabel } from '../config/currency';
+import { displayEmail, isDemoEmail } from '../config/demoAccounts';
 
 const notificationItems: { key: string; label: string }[] = [
   { key: 'newPosts', label: 'Nuevas publicaciones de creadores que sigues' },
@@ -246,7 +247,11 @@ const Settings: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input type="email" name="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none" />
+                    {isDemoEmail(user?.email) ? (
+                      <input type="text" readOnly value={displayEmail(user?.email)} aria-label="Correo de la cuenta demo" title="Las cuentas demo no cambian su correo" className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-500 outline-none" />
+                    ) : (
+                      <input type="email" name="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none" />
+                    )}
                   </div>
                   {user?.role === 'creator' && (
                     <>

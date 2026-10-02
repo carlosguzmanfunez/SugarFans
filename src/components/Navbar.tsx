@@ -5,6 +5,7 @@ import { useLanguage } from '../context/LanguageContext';
 import LanguageSelector from './LanguageSelector';
 import BrandLogo from './BrandLogo';
 import Avatar from './Avatar';
+import { displayEmail } from '../config/demoAccounts';
 
 const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -80,7 +81,7 @@ const Navbar: React.FC = () => {
                   <div className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-line bg-white py-2 shadow-[var(--shadow-lift)]">
                     <div className="border-b border-line px-4 pb-3 pt-1">
                       <p className="truncate text-sm font-semibold text-ink">{user?.name}</p>
-                      <p className="truncate text-xs text-muted">{user?.email}</p>
+                      <p className="truncate text-xs text-muted">{displayEmail(user?.email)}</p>
                     </div>
                     <Link to="/profile" className="flex items-center gap-3 px-4 py-2.5 text-sm text-ink/80 hover:bg-canvas">
                       <i aria-hidden="true" className="fas fa-user w-4 text-ink/40"></i> {t('nav.profile')}
