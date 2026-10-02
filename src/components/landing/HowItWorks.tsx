@@ -4,7 +4,7 @@ import SectionHeading from './SectionHeading';
 
 // Three steps on a progression line (horizontal on desktop, vertical on mobile).
 const HowItWorks: React.FC = () => (
-  <section aria-labelledby="how-title" className="reveal py-16 md:py-24">
+  <section aria-labelledby="how-title" className="reveal border-y border-line bg-surface py-16 md:py-24">
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <SectionHeading id="how-title" eyebrow={HOW.eyebrow} title={HOW.title} align="center" />
       <ol className="relative grid gap-6 md:grid-cols-3 md:gap-8">

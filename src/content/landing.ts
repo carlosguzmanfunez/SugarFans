@@ -69,8 +69,4 @@ export const CREATOR_CTA = {
     { icon: 'fa-ticket', label: 'Experiencias VIP' },
     { icon: 'fa-comment-dots', label: 'Mensajes directos' },
   ],
-  stats: [
-    { value: '80%', label: 'de cada pago es tuyo' },
-    { value: '$50', label: 'retiro mínimo, cuando quieras' },
-  ],
 };
