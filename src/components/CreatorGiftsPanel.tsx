@@ -1,22 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usePlatformQuery, platformApi, money } from '../lib/platform';
 import { socialApi } from '../lib/social';
 import GiftArt from './GiftArt';
 import {
-  CIRCLE_HIGHEST_MIN,
-  CIRCLE_LOWEST_MIN,
-  DEFAULT_GIFT_SETTINGS,
   GIFT_SHARE,
-  VAULT_MIN,
-  VIDEO_MIN,
   addVaultItem,
   deleteVaultItem,
   deliverVideo,
   giftById,
   giftsApi,
-  saveGiftSettings,
   scheduleCall,
   type PerkRequest,
   type VaultItem,
@@ -33,46 +27,34 @@ const perkStatus: Record<PerkRequest['status'], string> = {
   refunded: 'Devuelto al fan',
 };
 
-// Creator panel > Regalos: what gifts unlock, owed videos and calls, the Bóveda
-// and the gifts received this month.
+// Creator panel > Regalos: what gifts are (support, nothing unlocked), videos and
+// calls still owed from gifts sent before perks were retired, the Bóveda (for
+// subscribers) and the gifts received.
 const CreatorGiftsPanel: React.FC = () => {
   const { user } = useAuth();
   const profileId = user?.creatorProfileId ?? '';
   const { data } = usePlatformQuery(
     async () => {
       if (!user) return null;
-      const [settings, perks, vault, sales] = await Promise.all([
-        giftsApi.giftSettings(profileId),
+      const [perks, vault, sales] = await Promise.all([
         giftsApi.perkRequests(user),
         giftsApi.vaultItems(user, profileId),
         platformApi.creatorSales(profileId),
       ]);
-      return { settings, perks, vault, gifts: sales.filter((t) => t.kind === 'gift') };
+      return { perks, vault, gifts: sales.filter((t) => t.kind === 'gift') };
     },
     [user?.id, profileId],
     null
   );
-  const [circleMin, setCircleMin] = useState(String(DEFAULT_GIFT_SETTINGS.circleMin));
-  const [offersVideo, setOffersVideo] = useState(false);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
   const [vaultTitle, setVaultTitle] = useState('');
   const [vaultFile, setVaultFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [slots, setSlots] = useState<Record<string, { date: string; time: string }>>({});
 
-  useEffect(() => {
-    if (!data) return;
-    setCircleMin(String(data.settings.circleMin));
-    setOffersVideo(data.settings.offersVideo);
-  }, [data?.settings.circleMin, data?.settings.offersVideo]); // eslint-disable-line react-hooks/exhaustive-deps
-
   if (!user || !data) return null;
   const say = (r: { ok: boolean; error?: string }, okText: string) =>
     setNotice(r.ok ? { ok: true, text: okText } : { ok: false, text: r.error || 'No se pudo completar la acción' });
-
-  const save = async () => {
-    say(await saveGiftSettings(user, { circleMin: Number(circleMin), offersVideo, offersCall: false }), 'Configuración de regalos guardada');
-  };
 
   const uploadVault = async () => {
     if (!vaultFile) return setNotice({ ok: false, text: 'Elige una foto o un video' });
@@ -128,34 +110,22 @@ const CreatorGiftsPanel: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
-        <div>
-          <h3 className="font-bold text-gray-900">Qué desbloquean tus regalos</h3>
-          <p className="text-sm text-gray-500">
-            Recibes el {GIFT_SHARE * 100}% de cada regalo, acreditado el día 1 como el resto de tus ingresos.{' '}
-            <Link to={`/creator/${profileId}?tab=circle`} className="text-pink-600 hover:underline">Ver mi Círculo</Link>
-          </p>
-        </div>
-        <label className="block text-sm text-gray-700">
-          Entrada al Círculo privado (USD, entre ${CIRCLE_LOWEST_MIN} y ${CIRCLE_HIGHEST_MIN})
-          <input className={`${field} mt-1 max-w-xs`} type="number" min={CIRCLE_LOWEST_MIN} max={CIRCLE_HIGHEST_MIN} step="1" name="circleMin" value={circleMin} onChange={(e) => setCircleMin(e.target.value)} />
-          <span className="block text-xs text-gray-500 mt-1">Un regalo de ese monto, o regalos que lo sumen en el mes, dan 30 días de Círculo. La Bóveda se abre con {money(VAULT_MIN)}.</span>
-        </label>
-        <label className="flex items-start gap-2 text-sm text-gray-700">
-          <input type="checkbox" className="mt-1" checked={offersVideo} onChange={(e) => setOffersVideo(e.target.checked)} />
-          <span>Ofrezco video personalizado con regalos de {money(VIDEO_MIN)} o más<span className="block text-xs text-gray-500">Tienes 7 días para entregarlo; si no, se devuelve el regalo al fan.</span></span>
-        </label>
-        <p className="text-xs text-gray-500" data-testid="gift-call-retired">
-          Los regalos ya no incluyen videollamadas: ofrécelas como experiencia en <Link to="/creator/dashboard?tab=vip" className="text-pink-600 hover:underline">Reserve</Link>. Las videollamadas ya ganadas con regalos se siguen agendando aquí.
+      <div className="bg-white rounded-2xl shadow-sm p-6 space-y-2" data-testid="gift-perks-retired">
+        <h3 className="font-bold text-gray-900">Qué son tus regalos</h3>
+        <p className="text-sm text-gray-600">
+          Apoyo voluntario de tus fans: recibes el {GIFT_SHARE * 100}% de cada regalo, acreditado el día 1 como el resto de tus ingresos.
         </p>
-        <button type="button" onClick={save} className="bg-gray-900 text-white px-5 py-2 rounded-lg text-sm font-medium">Guardar</button>
+        <p className="text-sm text-gray-600">
+          Los regalos no desbloquean acceso, videos ni videollamadas. Tu <Link to={`/creator/${profileId}?tab=circle`} className="text-pink-600 hover:underline">Círculo</Link> y tu Bóveda son para tus suscriptores, y las videollamadas y experiencias se ofrecen en{' '}
+          <Link to="/creator/dashboard?tab=vip" className="text-pink-600 hover:underline">Reserve</Link>.
+        </p>
       </div>
 
+      {data.perks.length > 0 && (
       <div className="bg-white rounded-2xl shadow-sm p-6">
-        <h3 className="font-bold text-gray-900 mb-3">Videos y videollamadas pedidos</h3>
-        {data.perks.length === 0 ? (
-          <p className="text-sm text-gray-500">Aún no tienes pedidos.</p>
-        ) : (
+        <h3 className="font-bold text-gray-900 mb-1">Pedidos de regalos anteriores</h3>
+        <p className="text-sm text-gray-500 mb-3">Videos y videollamadas que tus fans ganaron antes del cambio. Se siguen entregando aquí.</p>
+        {(
           <div className="divide-y divide-gray-100">
             {data.perks.map((p) => (
               <div key={p.id} className="py-3 text-sm space-y-2" data-testid="perk-request">
@@ -190,10 +160,11 @@ const CreatorGiftsPanel: React.FC = () => {
           </div>
         )}
       </div>
+      )}
 
       <div className="bg-white rounded-2xl shadow-sm p-6 space-y-3">
         <h3 className="font-bold text-gray-900">Tu Bóveda</h3>
-        <p className="text-sm text-gray-500">Contenido exclusivo para fans que te regalan {money(VAULT_MIN)} o más (30 días de acceso).</p>
+        <p className="text-sm text-gray-500">Contenido exclusivo para tus suscriptores, dentro de tu Círculo.</p>
         <div className="flex flex-col sm:flex-row gap-2">
           <input className={field} name="vaultTitle" placeholder="Título" value={vaultTitle} onChange={(e) => setVaultTitle(e.target.value)} />
           <input type="file" name="vaultFile" accept="image/*,video/*" className="text-sm" onChange={(e) => setVaultFile(e.target.files?.[0] ?? null)} />

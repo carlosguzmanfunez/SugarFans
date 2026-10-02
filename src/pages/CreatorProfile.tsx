@@ -480,7 +480,7 @@ const CreatorProfile: React.FC = () => {
             {tipSent && (
               <div role="status" className="px-4 py-3 mb-6 rounded-xl border bg-green-50 border-green-200 text-green-700">{tipSent}</div>
             )}
-            <CircleSection user={user} creatorProfileId={creator.id} creatorName={creator.name} onGift={() => (isAuthenticated ? setGifting({}) : goLogin())} />
+            <CircleSection user={user} creatorProfileId={creator.id} creatorName={creator.name} onSubscribe={isOwner || user?.role === 'creator' ? undefined : handleSubscribe} />
           </>
         )}
 

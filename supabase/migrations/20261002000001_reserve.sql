@@ -552,10 +552,76 @@ insert into public.vip_experiences (id, creator_profile_id, creator_name, title,
 on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------
--- Gifts no longer earn a private video call (a gift never buys a conversation
--- or a meeting; calls are booked as Reserve experiences). Call perks already
--- earned keep working: only the setting that grants new ones is switched off.
+-- Gifts are voluntary support and unlock nothing from 2026-10-02 22:00 UTC: no
+-- Círculo, no Bóveda, no personalised video, no private video call (a gift never
+-- buys a conversation or a meeting; calls are booked as Reserve experiences).
+-- Círculo and Bóveda become subscriber benefits. What fans earned before the
+-- cutoff keeps working: access until it expires, and pending videos and calls.
 -- ---------------------------------------------------------------------------
+update public.creator_gift_settings set offers_video = false where offers_video;
 update public.creator_gift_settings set offers_call = false where offers_call;
 alter table public.creator_gift_settings
+  add constraint creator_gift_settings_no_new_videos check (offers_video = false),
   add constraint creator_gift_settings_no_new_calls check (offers_call = false);
+
+-- Same rules as before, counting only gifts sent before the cutoff.
+create or replace function public.circle_access(p_fan uuid, p_creator_profile_id text, out circle_until timestamptz, out vault_until timestamptz)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  r record;
+  v_min numeric;
+  v_month text := '';
+  v_pile numeric := 0;
+begin
+  select coalesce((select s.circle_min from public.creator_gift_settings s where s.creator_profile_id = p_creator_profile_id), 100)
+    into v_min;
+  for r in
+    select t.amount, t.created_at from public.transactions t
+    where t.payer_id = p_fan and t.creator_profile_id = p_creator_profile_id and t.kind = 'gift' and t.status = 'paid'
+      and t.created_at < timestamptz '2026-10-02 22:00:00+00'
+    order by t.created_at
+  loop
+    if to_char(r.created_at at time zone 'utc', 'YYYY-MM') <> v_month then
+      v_month := to_char(r.created_at at time zone 'utc', 'YYYY-MM');
+      v_pile := 0;
+    end if;
+    v_pile := v_pile + r.amount;
+    if r.amount >= v_min or r.amount >= 200 or v_pile >= v_min then
+      circle_until := greatest(coalesce(circle_until, r.created_at), r.created_at) + interval '30 days';
+      v_pile := 0;
+    end if;
+    if r.amount >= 200 then
+      vault_until := greatest(coalesce(vault_until, r.created_at), r.created_at) + interval '30 days';
+    end if;
+  end loop;
+end;
+$$;
+revoke execute on function public.circle_access(uuid, text) from public, anon, authenticated;
+
+create or replace function public.in_circle(p_creator_profile_id text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select public.owns_creator_profile(p_creator_profile_id)
+      or public.has_subscription(auth.uid(), p_creator_profile_id)
+      or coalesce((select a.circle_until > now() from public.circle_access(auth.uid(), p_creator_profile_id) a), false);
+$$;
+
+create or replace function public.in_vault(p_creator_profile_id text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select public.owns_creator_profile(p_creator_profile_id)
+      or public.has_subscription(auth.uid(), p_creator_profile_id)
+      or coalesce((select a.vault_until > now() from public.circle_access(auth.uid(), p_creator_profile_id) a), false);
+$$;

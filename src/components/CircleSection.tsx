@@ -2,11 +2,10 @@ import React, { useState } from 'react';
 import type { User } from '../context/AuthContext';
 import { usePlatformQuery, money } from '../lib/platform';
 import {
-  DEFAULT_GIFT_SETTINGS,
-  VAULT_MIN,
   giftsApi,
   isActive,
   postCircleMessage,
+  subscribedTo,
   type CircleMessage,
   type CircleStatus,
   type TopFan,
@@ -17,36 +16,35 @@ interface Props {
   user: User | null;
   creatorProfileId: string;
   creatorName: string;
-  onGift: () => void;
+  // Absent when the viewer can't subscribe (the creator, other creators).
+  onSubscribe?: () => void;
 }
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short' });
 const fmtTime = (iso: string) => new Date(iso).toLocaleString('es', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
 // Creator profile > Círculo: this month's top fans, then the private group chat
-// and the Bóveda for fans whose gifts gave them access.
-const CircleSection: React.FC<Props> = ({ user, creatorProfileId, creatorName, onGift }) => {
+// and the Bóveda, both subscriber benefits. Access earned with gifts before gift
+// perks were retired lasts until it expires.
+const CircleSection: React.FC<Props> = ({ user, creatorProfileId, creatorName, onSubscribe }) => {
+  const subscribed = !!user && subscribedTo(user.subscriptions, creatorProfileId);
   const { data } = usePlatformQuery(
     async () => {
-      const [topFans, settings, status] = await Promise.all([
-        giftsApi.topFans(creatorProfileId),
-        giftsApi.giftSettings(creatorProfileId),
-        giftsApi.circleStatus(user, creatorProfileId),
-      ]);
-      const inCircle = status.owner || isActive(status.circleUntil);
-      const inVault = status.owner || isActive(status.vaultUntil);
+      const [topFans, status] = await Promise.all([giftsApi.topFans(creatorProfileId), giftsApi.circleStatus(user, creatorProfileId)]);
+      const member = status.owner || !!status.subscriber;
+      const inCircle = member || isActive(status.circleUntil);
+      const inVault = member || isActive(status.vaultUntil);
       const [messages, vault] = user
         ? await Promise.all([
             inCircle ? giftsApi.circleMessages(user, creatorProfileId) : Promise.resolve([]),
             inVault ? giftsApi.vaultItems(user, creatorProfileId) : Promise.resolve([]),
           ])
         : [[], []];
-      return { topFans, settings, status, inCircle, inVault, messages, vault };
+      return { topFans, status, inCircle, inVault, messages, vault };
     },
-    [user?.id, creatorProfileId],
+    [user?.id, creatorProfileId, subscribed],
     {
       topFans: [] as TopFan[],
-      settings: DEFAULT_GIFT_SETTINGS,
       status: { owner: false } as CircleStatus,
       inCircle: false,
       inVault: false,
@@ -66,7 +64,8 @@ const CircleSection: React.FC<Props> = ({ user, creatorProfileId, creatorName, o
     setDraft('');
   };
 
-  const { settings, status } = data;
+  const { status } = data;
+  const legacy = !status.owner && !status.subscriber;
 
   return (
     <div className="space-y-6" data-testid="circle-section">
@@ -91,18 +90,22 @@ const CircleSection: React.FC<Props> = ({ user, creatorProfileId, creatorName, o
           <i aria-hidden="true" className="fas fa-users text-3xl text-purple-500 mb-3"></i>
           <h3 className="font-bold text-lg text-gray-900">Círculo privado de {creatorName}</h3>
           <p className="text-sm text-gray-600 mt-2 max-w-md mx-auto">
-            Chat grupal con {creatorName} y sus fans más cercanos. Entras por 30 días con un regalo de {money(settings.circleMin)} o más,
-            o sumando {money(settings.circleMin)} en regalos dentro del mes. Con un regalo de {money(VAULT_MIN)} también abres su Bóveda de contenido exclusivo.
+            Chat grupal con {creatorName} y su Bóveda de contenido exclusivo, para sus suscriptores. Los regalos no dan acceso.
           </p>
-          <button type="button" onClick={onGift} className="mt-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-full font-bold hover:opacity-90">
-            <i aria-hidden="true" className="fas fa-gift mr-2"></i>Enviar regalo
-          </button>
+          {onSubscribe && (
+            <button type="button" onClick={onSubscribe} className="mt-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-full font-bold hover:opacity-90">
+              <i aria-hidden="true" className="fas fa-star mr-2"></i>Suscribirse
+            </button>
+          )}
         </div>
       ) : (
         <div className="bg-white rounded-2xl p-6 shadow-sm" data-testid="circle-chat">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-bold text-gray-900"><i aria-hidden="true" className="fas fa-users text-purple-500 mr-2"></i>Círculo privado</h3>
-            {!status.owner && status.circleUntil && (
+            {status.subscriber && !status.owner && (
+              <span className="text-xs text-purple-700 bg-purple-100 px-2 py-1 rounded-full">Suscriptor</span>
+            )}
+            {legacy && status.circleUntil && (
               <span className="text-xs text-purple-700 bg-purple-100 px-2 py-1 rounded-full">Miembro hasta el {fmtDate(status.circleUntil)}</span>
             )}
           </div>
@@ -139,7 +142,7 @@ const CircleSection: React.FC<Props> = ({ user, creatorProfileId, creatorName, o
         <div className="bg-white rounded-2xl p-6 shadow-sm" data-testid="vault">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-bold text-gray-900"><i aria-hidden="true" className="fas fa-gem text-pink-500 mr-2"></i>Bóveda</h3>
-            {!status.owner && status.vaultUntil && (
+            {legacy && status.vaultUntil && (
               <span className="text-xs text-pink-700 bg-pink-100 px-2 py-1 rounded-full">Acceso hasta el {fmtDate(status.vaultUntil)}</span>
             )}
           </div>
@@ -162,7 +165,7 @@ const CircleSection: React.FC<Props> = ({ user, creatorProfileId, creatorName, o
         </div>
       ) : data.inCircle ? (
         <div className="bg-white rounded-2xl p-6 shadow-sm text-sm text-gray-600">
-          <i aria-hidden="true" className="fas fa-gem text-pink-400 mr-2"></i>La Bóveda de {creatorName} se abre con un regalo de {money(VAULT_MIN)} o más.
+          <i aria-hidden="true" className="fas fa-gem text-pink-400 mr-2"></i>La Bóveda de {creatorName} es para sus suscriptores.
         </div>
       ) : null}
     </div>

@@ -466,7 +466,6 @@ export const RESERVE_FLOW = ['Solicitud', 'Aceptación', 'Pago', 'Confirmación'
 export const RESERVE_COPY = {
   principle: 'Reservas experiencias, no personas.',
   gift: 'Los regalos son apoyo voluntario. No garantizan respuesta, conversación, encuentro, acceso ni Reserve.',
-  giftPerks: 'Los regalos son apoyo voluntario. Aparte de los beneficios indicados aquí, no garantizan respuesta, conversación, encuentro ni Reserve.',
   subscription: 'La suscripción da acceso al contenido y a los beneficios que el creator define. No incluye videollamadas, encuentros ni Reserve.',
   reserve: 'Una Reserve es una experiencia concreta, con fecha, duración, precio y condiciones definidas por el creator, que el creator acepta o rechaza.',
   testPayments: 'Pagos en modo de prueba: no se realiza ningún cargo real.',

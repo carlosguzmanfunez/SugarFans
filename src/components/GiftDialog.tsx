@@ -3,7 +3,6 @@ import type { User } from '../context/AuthContext';
 import BuyCoinsDialog from './BuyCoinsDialog';
 import GiftArt from './GiftArt';
 import { ReserveNotice } from './reserve/ReserveBits';
-import { RESERVE_COPY } from '../config/reserve';
 import CoinIcon from './CoinIcon';
 import { currencyWord } from '../config/currency';
 import { giftCategoryLabel } from '../config/gifts';
@@ -11,12 +10,9 @@ import { usePlatformQuery, money } from '../lib/platform';
 import {
   GIFTS,
   GIFT_CATEGORIES,
-  VIDEO_MIN,
-  DEFAULT_GIFT_SETTINGS,
   coinsToUsd,
   formatCoins,
   giftsApi,
-  perksFor,
   sendGift,
   type Gift,
 } from '../lib/gifts';
@@ -39,31 +35,22 @@ interface Props {
   onClose: () => void;
 }
 
-// Pick a gift, add a message (and what you want in a personalised video), pay with the virtual currency.
+// Pick a gift, add a message, pay with the virtual currency. A gift is support: it unlocks nothing.
 const GiftDialog: React.FC<Props> = ({ user, creatorProfileId, creatorName, postId, onSent, onClose }) => {
-  const { data } = usePlatformQuery(
-    async () => {
-      const [wallet, settings] = await Promise.all([giftsApi.wallet(user), giftsApi.giftSettings(creatorProfileId)]);
-      return { coins: wallet.coins, settings };
-    },
-    [user.id, creatorProfileId],
-    { coins: 0, settings: DEFAULT_GIFT_SETTINGS }
-  );
+  const { data } = usePlatformQuery(async () => ({ coins: (await giftsApi.wallet(user)).coins }), [user.id], { coins: 0 });
   const [selected, setSelected] = useState<Gift | null>(null);
   const [message, setMessage] = useState('');
-  const [request, setRequest] = useState('');
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
   const [buying, setBuying] = useState(false);
 
   const value = selected ? coinsToUsd(selected.coins) : 0;
-  const perks = perksFor(value, data.settings);
   const short = selected ? Math.max(0, selected.coins - data.coins) : 0;
 
   const send = async () => {
     if (!selected) return setError('Elige un regalo');
     setSending(true);
-    const r = await sendGift(user, { creatorProfileId, creatorName, giftId: selected.id, postId, message, request });
+    const r = await sendGift(user, { creatorProfileId, creatorName, giftId: selected.id, postId, message });
     setSending(false);
     if (!r.ok) return setError(r.error || 'No se pudo enviar el regalo');
     onSent(selected);
@@ -123,28 +110,7 @@ const GiftDialog: React.FC<Props> = ({ user, creatorProfileId, creatorName, post
                 {money(value)} en regalo para {creatorName}.
               </p>
             </div>
-            {(perks.circle || perks.vault || perks.video || perks.call) && (
-              <ul className="text-sm text-purple-800 bg-purple-50 rounded-xl p-3 space-y-1" data-testid="gift-perks">
-                {perks.circle && <li><i aria-hidden="true" className="fas fa-users mr-2"></i>Entras al Círculo privado por 30 días</li>}
-                {perks.vault && <li><i aria-hidden="true" className="fas fa-lock-open mr-2"></i>Acceso a la Bóveda por 30 días</li>}
-                {perks.video && <li><i aria-hidden="true" className="fas fa-video mr-2"></i>Video personalizado, entregado en 7 días</li>}
-                {perks.call && <li><i aria-hidden="true" className="fas fa-phone mr-2"></i>Videollamada privada, agendada en 30 días</li>}
-              </ul>
-            )}
-            {value >= VIDEO_MIN && !data.settings.offersVideo && (
-              <p className="text-xs text-gray-500">{creatorName} no ofrece video personalizado: el regalo se envía sin ese beneficio.</p>
-            )}
-            <ReserveNotice kind="gift" text={RESERVE_COPY.giftPerks} />
-            {perks.video && (
-              <textarea
-                aria-label="Qué quieres en tu video"
-                value={request}
-                maxLength={500}
-                onChange={(e) => setRequest(e.target.value)}
-                placeholder="¿Qué quieres en tu video personalizado?"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none h-20 resize-none text-sm"
-              />
-            )}
+            <ReserveNotice kind="gift" />
             <input
               aria-label="Mensaje del regalo"
               value={message}

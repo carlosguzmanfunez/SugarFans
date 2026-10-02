@@ -3,7 +3,7 @@
 // functions that enforce the rules live in
 // supabase/migrations/20260930000007_gifts_terrones.sql.
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { DEFAULT_GIFT_SETTINGS, validateCircleMin } from '../giftRules';
+import { DEFAULT_GIFT_SETTINGS, subscribedTo, validateCircleMin } from '../giftRules';
 import type { AuthResult } from './types';
 import { currencyWord } from '../../config/currency';
 import type { CircleMessage, GiftsBackend, PerkRequest, VaultItem } from './giftTypes';
@@ -159,7 +159,12 @@ export const createSupabaseGifts = (sb: SupabaseClient): GiftsBackend => {
       if (!user) return { owner: false };
       const { data } = await sb.rpc('my_circle_status', { p_creator_profile_id: creatorProfileId });
       const r = (data ?? [])[0] as Row | undefined;
-      return { owner: !!r?.owner, circleUntil: r?.circle_until ?? undefined, vaultUntil: r?.vault_until ?? undefined };
+      return {
+        owner: !!r?.owner,
+        subscriber: subscribedTo(user.subscriptions, creatorProfileId),
+        circleUntil: r?.circle_until ?? undefined,
+        vaultUntil: r?.vault_until ?? undefined,
+      };
     },
 
     async circleMessages(_user, creatorProfileId) {

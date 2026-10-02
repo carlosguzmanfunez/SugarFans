@@ -11,6 +11,7 @@ import {
   GIFT_SHARE,
   VIDEO_DAYS,
   circleAccess,
+  subscribedTo,
   coinsToUsd,
   giftById,
   isActive,
@@ -63,7 +64,7 @@ export const createLocalGifts = (deps: Deps): GiftsBackend & { purgeUser(userId:
     giftsFrom(userId).reduce((sum, t) => sum + Math.round(t.amount * 100), 0);
   const owns = (user: User, creatorProfileId: string) => user.role === 'admin' || user.creatorProfileId === creatorProfileId;
   const access = (s: Store, user: User, creatorProfileId: string) => {
-    if (owns(user, creatorProfileId)) return { circle: true, vault: true };
+    if (owns(user, creatorProfileId) || subscribedTo(user.subscriptions, creatorProfileId)) return { circle: true, vault: true };
     const gifts = giftsFrom(user.id)
       .filter((t) => t.creatorProfileId === creatorProfileId)
       .map((t) => ({ value: t.amount, createdAt: t.createdAt }));
@@ -213,7 +214,7 @@ export const createLocalGifts = (deps: Deps): GiftsBackend & { purgeUser(userId:
       const gifts = giftsFrom(user.id)
         .filter((t) => t.creatorProfileId === creatorProfileId)
         .map((t) => ({ value: t.amount, createdAt: t.createdAt }));
-      return { owner: false, ...circleAccess(gifts, settingsOf(load(), creatorProfileId).circleMin) };
+      return { owner: false, subscriber: subscribedTo(user.subscriptions, creatorProfileId), ...circleAccess(gifts, settingsOf(load(), creatorProfileId).circleMin) };
     },
 
     async circleMessages(user, creatorProfileId) {
@@ -227,7 +228,7 @@ export const createLocalGifts = (deps: Deps): GiftsBackend & { purgeUser(userId:
       if (!text) return fail('Escribe un mensaje');
       if (text.length > 1000) return fail('El mensaje no puede superar 1000 caracteres');
       const s = load();
-      if (!access(s, user, creatorProfileId).circle) return fail('Entra al Círculo con un regalo para participar');
+      if (!access(s, user, creatorProfileId).circle) return fail('El Círculo es para suscriptores');
       return commit((st) => ({
         ...st,
         circle: [

@@ -84,16 +84,12 @@ export const validateCircleMin = (min: number) =>
     ? { ok: true }
     : { ok: false, error: `La entrada al Círculo debe estar entre $${CIRCLE_LOWEST_MIN} y $${CIRCLE_HIGHEST_MIN}` };
 
-// Perks a gift of this value earns with this creator's settings. Gifts no longer
-// earn a private video call: calls are experiences booked in Reserve, and a gift
-// never buys a conversation or a meeting. Call perks earned before keep working.
-export const GIFT_CALLS_RETIRED = true;
-export const perksFor = (value: number, s: CreatorGiftSettings) => ({
-  circle: value >= s.circleMin || value >= VAULT_MIN,
-  vault: value >= VAULT_MIN,
-  video: value >= VIDEO_MIN && s.offersVideo,
-  call: !GIFT_CALLS_RETIRED && value >= CALL_MIN && s.offersCall,
-});
+// Gifts are voluntary support: since GIFT_PERKS_RETIRED_AT they earn no access
+// (Círculo, Bóveda), no personalised video and no video call. Círculo and Bóveda
+// are subscriber benefits; calls are Reserve experiences. What was earned before
+// that moment keeps working (access until it expires, pending videos and calls).
+export const GIFT_PERKS_RETIRED_AT = '2026-10-02T22:00:00.000Z';
+export const perksFor = (_value: number, _s: CreatorGiftSettings) => ({ circle: false, vault: false, video: false, call: false });
 
 const DAY = 86_400_000;
 const addDays = (iso: string, days: number) => new Date(new Date(iso).getTime() + days * DAY).toISOString();
@@ -110,7 +106,8 @@ export const circleAccess = (
   let vaultUntil: string | undefined;
   let month = '';
   let pile = 0;
-  for (const gift of [...gifts].sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
+  const earned = gifts.filter((g) => g.createdAt < GIFT_PERKS_RETIRED_AT);
+  for (const gift of [...earned].sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
     const m = gift.createdAt.slice(0, 7);
     if (m !== month) {
       month = m;
@@ -128,3 +125,8 @@ export const circleAccess = (
 };
 
 export const isActive = (until?: string, at = new Date()) => !!until && until > at.toISOString();
+
+// Círculo and Bóveda are open to the creator's subscribers (a cancelled
+// subscription keeps them until the end of the paid month).
+export const subscribedTo = (subscriptions: { creatorId: string; cancelAt?: string }[], creatorProfileId: string, at = new Date()) =>
+  subscriptions.some((s) => s.creatorId === creatorProfileId && (!s.cancelAt || s.cancelAt > at.toISOString()));

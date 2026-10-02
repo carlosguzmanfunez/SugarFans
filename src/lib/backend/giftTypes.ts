@@ -58,6 +58,7 @@ export interface CircleStatus {
   circleUntil?: string;
   vaultUntil?: string;
   owner: boolean; // the creator (or an admin) always has access
+  subscriber?: boolean; // Círculo and Bóveda are subscriber benefits
 }
 
 export interface TopFan {
