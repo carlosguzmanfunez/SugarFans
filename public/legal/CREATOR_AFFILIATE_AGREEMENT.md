@@ -1,4 +1,4 @@
-# CONTRATO PARA CREADORES Y AFILIADOS - SUGARFANS
+# CONTRATO PARA CREADORES Y AFILIADOS - FANS RESERVE
 
 **Última actualización:** Enero 2024  
 **Versión:** 1.0.0  
@@ -8,7 +8,7 @@
 
 ## PREÁMBULO
 
-Este Contrato para Creadores y Afiliados ("Contrato") constituye un acuerdo legal vinculante entre SugarFans ("la Plataforma", "nosotros") y usted ("Creador", "Afiliado", "usted"), que rige su participación como creador de contenido en la Plataforma.
+Este Contrato para Creadores y Afiliados ("Contrato") constituye un acuerdo legal vinculante entre Fans Reserve ("la Plataforma", "nosotros") y usted ("Creador", "Afiliado", "usted"), que rige su participación como creador de contenido en la Plataforma.
 
 **AL REGISTRARSE COMO CREADOR O AFILIADO, USTED ACEPTA ESTAR LEGALMENTE VINCULADO POR ESTE CONTRATO.**
 
@@ -34,7 +34,7 @@ Este Contrato para Creadores y Afiliados ("Contrato") constituye un acuerdo lega
 
 ### 2.1. Naturaleza de la Relación
 
-2.1.1. **Contratista Independiente**: Usted es un contratista independiente, no un empleado, socio o agente de SugarFans.
+2.1.1. **Contratista Independiente**: Usted es un contratista independiente, no un empleado, socio o agente de Fans Reserve.
 
 2.1.2. **Sin Relación Laboral**: Este Contrato no crea relación laboral, de sociedad, agencia o representación.
 
@@ -52,7 +52,7 @@ Este Contrato para Creadores y Afiliados ("Contrato") constituye un acuerdo lega
 - Tener otros empleos o negocios
 - Promocionar otros servicios
 
-2.2.2. **Conflicto de Intereses**: No debe promover activamente plataformas competidoras dentro de SugarFans.
+2.2.2. **Conflicto de Intereses**: No debe promover activamente plataformas competidoras dentro de Fans Reserve.
 
 ---
 
@@ -264,7 +264,7 @@ Pago al Creador = Ingresos Brutos - Comisión Plataforma - Tarifas de Procesamie
 
 7.1.2. **Contenido Cruzado**: Puede publicar el mismo Contenido en otras plataformas (si tiene derechos).
 
-7.1.3. **Promoción**: Puede promocionar su perfil de SugarFans en otras redes sociales.
+7.1.3. **Promoción**: Puede promocionar su perfil de Fans Reserve en otras redes sociales.
 
 ### 7.2. Restricciones
 
@@ -272,7 +272,7 @@ Pago al Creador = Ingresos Brutos - Comisión Plataforma - Tarifas de Procesamie
 
 7.2.2. **No Divulgar Información Confidencial**: No debe compartir información propietaria de la Plataforma.
 
-7.2.3. **No Promover Competidores Activamente**: No debe promocionar activamente plataformas competidoras dentro de SugarFans.
+7.2.3. **No Promover Competidores Activamente**: No debe promocionar activamente plataformas competidoras dentro de Fans Reserve.
 
 ---
 
@@ -342,7 +342,7 @@ Declaramos y garantizamos que:
 
 ### 10.1. Su Obligación de Indemnizar
 
-Usted acepta indemnizar, defender y eximir de responsabilidad a SugarFans, sus afiliados, directores, empleados y agentes de cualquier reclamación, daño, pérdida, costo o gasto (incluyendo honorarios razonables de abogados) que surja de:
+Usted acepta indemnizar, defender y eximir de responsabilidad a Fans Reserve, sus afiliados, directores, empleados y agentes de cualquier reclamación, daño, pérdida, costo o gasto (incluyendo honorarios razonables de abogados) que surja de:
 
 10.1.1. Su violación de este Contrato.
 
@@ -542,7 +542,7 @@ Nada en este Contrato crea relación de sociedad, agencia, empleo o representaci
 ## 16. CONTACTO
 
 Para preguntas sobre este Contrato:
-- **Email**: creators@sugarfans.com
+- **Email**: creators@fansreserve.com
 - **Soporte para Creadores**: [Enlace a soporte]
 - **Dirección postal**: [Dirección fiscal]
 
@@ -582,4 +582,4 @@ Este Contrato está sujeto a las siguientes políticas adicionales:
 
 **AL REGISTRARSE COMO CREADOR, USTED RECONOCE QUE HA LEÍDO, ENTENDIDO Y ACEPTA ESTAR VINCULADO POR ESTE CONTRATO.**
 
-© 2024 SugarFans. Todos los derechos reservados.
+© 2024 Fans Reserve. Todos los derechos reservados.

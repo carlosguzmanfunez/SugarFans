@@ -15,6 +15,7 @@ import {
   rewardsApi,
   type CreatorRewards,
 } from '../lib/rewards';
+import { BRAND } from '../config/brand';
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 const EMPTY: CreatorRewards = { level: 'bronce', activeFans: 0, share: 0.8, bonus: 0, attractedThisMonth: 0, attractedLastMonth: 0, referrals: [], invitedCreators: [] };
@@ -81,7 +82,7 @@ const CreatorRewardsPanel: React.FC = () => {
         <h3 className="font-bold text-gray-900 mb-1"><i className="fas fa-user-plus text-purple-500 mr-2"></i>Invita a otros creadores</h3>
         <p className="text-sm text-gray-500 mb-4">
           Cuando al menos {CREATOR_INVITE_MIN} creadores se registren con este enlace, ganas un {pct(CREATOR_INVITE_BONUS)} extra de lo que venda cada uno
-          (suscripciones, renovaciones y propinas) durante un mes. Lo pone SugarFans: al creador que invitas no se le descuenta nada.
+          (suscripciones, renovaciones y propinas) durante un mes. Lo pone {BRAND.name}: al creador que invitas no se le descuenta nada.
           Entre todos los beneficios, nadie supera el {pct(MAX_SHARE)} de una venta.
         </p>
         <div className="flex flex-col sm:flex-row gap-2">

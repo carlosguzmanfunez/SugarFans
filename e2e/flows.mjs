@@ -167,7 +167,7 @@ const readAmount = async (page, testId) => {
 const waitAmount = (page, testId, text) => page.getByTestId(testId).filter({ hasText: new RegExp(`^\\${text.replace('.', '\\.')}$`) }).waitFor();
 const money = (n) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-const platformData = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('sugarfans_platform') || '{}'));
+const platformData = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('fansreserve_platform') || '{}'));
 
 // A short WebM recorded in the browser (a real, playable file).
 const recordWebm = (page) =>
@@ -209,7 +209,20 @@ const run = async () => {
     console.log('\nNavegación pública y verificación de edad');
     await check('La portada carga', async () => {
       await page.goto(BASE);
-      await page.getByText('SugarFans').first().waitFor();
+      await page.getByRole('link', { name: /Fans Reserve/ }).first().waitFor();
+    });
+    await check('La marca Fans Reserve está en título, metadatos y portada, sin rastro de la anterior', async () => {
+      expect((await page.title()).startsWith('Fans Reserve'), 'título inesperado');
+      const og = await page.locator('meta[property="og:site_name"]').getAttribute('content');
+      expect(og === 'Fans Reserve', 'og:site_name inesperado');
+      expect(!/sugar\s*fans/i.test(await page.locator('body').innerText()), 'queda la marca anterior en la portada');
+    });
+    await check('Los datos guardados con la marca anterior se conservan tras el cambio de nombre', async () => {
+      await page.evaluate(() => localStorage.setItem('sugarfans_ref', JSON.stringify({ id: 'x', at: Date.now() })));
+      await page.reload();
+      const keys = await page.evaluate(() => [localStorage.getItem('fansreserve_ref'), localStorage.getItem('sugarfans_ref')]);
+      expect(keys[0] && JSON.parse(keys[0]).id === 'x' && keys[1] === null, 'no se migró la clave antigua');
+      await page.evaluate(() => localStorage.removeItem('fansreserve_ref'));
     });
     await check('Página protegida sin edad verificada redirige a verificación de edad', async () => {
       await page.goto(`${BASE}/profile`);
@@ -434,14 +447,14 @@ const run = async () => {
     });
     await check('La renovación mensual se cobra en la misma fecha (simulando 2 meses)', async () => {
       await page.evaluate(() => {
-        const accounts = JSON.parse(localStorage.getItem('sugarfans_accounts'));
-        const id = JSON.parse(localStorage.getItem('sugarfans_session'));
+        const accounts = JSON.parse(localStorage.getItem('fansreserve_accounts'));
+        const id = JSON.parse(localStorage.getItem('fansreserve_session'));
         const me = accounts.find((a) => a.id === id);
         const d = new Date();
         d.setMonth(d.getMonth() - 2);
         d.setDate(Math.min(d.getDate(), 28));
         me.subscriptions[0].since = d.toISOString();
-        localStorage.setItem('sugarfans_accounts', JSON.stringify(accounts));
+        localStorage.setItem('fansreserve_accounts', JSON.stringify(accounts));
       });
       await page.reload();
       await page.getByTestId('payment-history').getByText(/Renovación · Valentina Rose/).first().waitFor();
@@ -520,7 +533,7 @@ const run = async () => {
     await check('Descargar mis datos genera un archivo JSON', async () => {
       await page.goto(`${BASE}/settings?section=privacy`);
       const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: /Descargar/ }).click()]);
-      expect(download.suggestedFilename().startsWith('sugarfans-mis-datos'), 'nombre de archivo inesperado');
+      expect(download.suggestedFilename().startsWith('fansreserve-mis-datos'), 'nombre de archivo inesperado');
     });
     await check('La suscripción aparece en el perfil y se puede cancelar', async () => {
       await page.goto(`${BASE}/profile`);
@@ -807,7 +820,7 @@ const run = async () => {
     });
     const addSale = (amount, monthsAgo) =>
       page.evaluate(([amount, monthsAgo]) => {
-        const data = JSON.parse(localStorage.getItem('sugarfans_platform'));
+        const data = JSON.parse(localStorage.getItem('fansreserve_platform'));
         const d = new Date();
         d.setUTCDate(10);
         d.setUTCMonth(d.getUTCMonth() - monthsAgo);
@@ -816,7 +829,7 @@ const run = async () => {
           id, key: id, payerId: null, payerName: 'Fan de prueba', creatorProfileId: '1', creatorName: 'Valentina Rose',
           kind: 'subscription', amount, methodLabel: 'Visa •••• 4242', status: 'paid', createdAt: d.toISOString(),
         });
-        localStorage.setItem('sugarfans_platform', JSON.stringify(data));
+        localStorage.setItem('fansreserve_platform', JSON.stringify(data));
       }, [amount, monthsAgo]);
     await check('Creadora demo: retira siempre el saldo completo y queda pagado al momento', async () => {
       const before = (await readAmount(page, 'available-balance'));
@@ -966,7 +979,7 @@ const run = async () => {
         await page.getByRole('button', { name: 'Enviar enlace' }).click();
         await page.getByText(/te enviamos un enlace/).waitFor();
         const link = await page.evaluate(() => {
-          const mails = JSON.parse(localStorage.getItem('sugarfans_email_outbox'));
+          const mails = JSON.parse(localStorage.getItem('fansreserve_email_outbox'));
           return mails.filter((m) => m.subject === 'Crea una nueva contraseña').pop().body.match(/https?:\/\/\S+/)[0];
         });
         await page.goto(link);
@@ -1188,7 +1201,7 @@ const run = async () => {
       expect((await booking.getByTestId('join-live').count()) === 0, 'la sala se abre antes de tiempo');
     });
     await check('Antes de la hora la sala no deja entrar', async () => {
-      const href = await fp.evaluate(() => JSON.parse(localStorage.getItem('sugarfans_vip_bookings')).find((b) => b.time === '12:00' && b.status === 'confirmed').id);
+      const href = await fp.evaluate(() => JSON.parse(localStorage.getItem('fansreserve_vip_bookings')).find((b) => b.time === '12:00' && b.status === 'confirmed').id);
       await fp.goto(`${BASE}/live/${href}`);
       await fp.getByTestId('live-unavailable').getByText(/La sala se abre el/).waitFor();
     });
@@ -1231,7 +1244,7 @@ const run = async () => {
     await waitPath(gc, '/explore');
     await login(gf, 'fan@sugarfans.com', 'demo1234', { remember: false });
     await waitPath(gf, '/explore');
-    const giftsData = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('sugarfans_gifts') || '{}'));
+    const giftsData = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('fansreserve_gifts') || '{}'));
     const balanceText = (page) => page.getByTestId('wallet-balance').textContent();
     const buyPack = async (page, name, price) => {
       await page.getByRole('button', { name: 'Comprar terrones' }).first().click();
@@ -1246,10 +1259,10 @@ const run = async () => {
     // Coins bought on another day (keeps the daily limit out of the way).
     const grantCoins = (page, coins) =>
       page.evaluate((c) => {
-        const s = JSON.parse(localStorage.getItem('sugarfans_gifts') || '{}');
+        const s = JSON.parse(localStorage.getItem('fansreserve_gifts') || '{}');
         const old = new Date(Date.now() - 3 * 86400000).toISOString();
         s.purchases = [...(s.purchases || []), { id: 'seed-' + c, userId: 'demo-fan', packId: 'tesoro', coins: c, price: c / 100, methodLabel: 'Visa •••• 4242', createdAt: old }];
-        localStorage.setItem('sugarfans_gifts', JSON.stringify(s));
+        localStorage.setItem('fansreserve_gifts', JSON.stringify(s));
       }, coins);
 
     console.log('\nRegalos: terrones, Círculo privado, Bóveda, video y videollamada');
@@ -1344,9 +1357,9 @@ const run = async () => {
     });
     await check('Si el video no se entrega en 7 días, el fan recupera sus terrones', async () => {
       await gf.evaluate(() => {
-        const s = JSON.parse(localStorage.getItem('sugarfans_gifts'));
+        const s = JSON.parse(localStorage.getItem('fansreserve_gifts'));
         s.perks = s.perks.map((p) => (p.kind === 'video' ? { ...p, dueAt: new Date(Date.now() - 60000).toISOString() } : p));
-        localStorage.setItem('sugarfans_gifts', JSON.stringify(s));
+        localStorage.setItem('fansreserve_gifts', JSON.stringify(s));
       });
       await gf.goto(`${BASE}/settings?section=wallet`);
       await gf.getByTestId('my-perk').getByText(/te devolvimos los terrones/).waitFor();
@@ -1404,8 +1417,8 @@ const run = async () => {
     // Paid fans for creator profile 1: `count` payers on `at`, optionally joined through the link.
     const seedFans = (page, count, at, referred) =>
       page.evaluate(({ count, at, referred }) => {
-        const p = JSON.parse(localStorage.getItem('sugarfans_platform') || '{}');
-        const refs = JSON.parse(localStorage.getItem('sugarfans_referrals') || '[]');
+        const p = JSON.parse(localStorage.getItem('fansreserve_platform') || '{}');
+        const refs = JSON.parse(localStorage.getItem('fansreserve_referrals') || '[]');
         for (let i = 0; i < count; i++) {
           const fanId = `seed-${at}-${i}`;
           p.transactions = [...(p.transactions || []), {
@@ -1414,8 +1427,8 @@ const run = async () => {
           }];
           if (referred) refs.push({ fanId, creatorProfileId: '1', joinedAt: at });
         }
-        localStorage.setItem('sugarfans_platform', JSON.stringify(p));
-        localStorage.setItem('sugarfans_referrals', JSON.stringify(refs));
+        localStorage.setItem('fansreserve_platform', JSON.stringify(p));
+        localStorage.setItem('fansreserve_referrals', JSON.stringify(refs));
       }, { count, at, referred });
     const openRewards = async () => {
       await rc.goto(`${BASE}/creator/dashboard?tab=rewards`);
@@ -1453,7 +1466,7 @@ const run = async () => {
       await logoutViaMenu(rf);
       await register(rf, { name: 'Pedro Directo', email: 'pedro.directo@test.com', password: 'password123' });
       await waitPath(rf, '/explore');
-      const refs = await rf.evaluate(() => JSON.parse(localStorage.getItem('sugarfans_referrals') || '[]'));
+      const refs = await rf.evaluate(() => JSON.parse(localStorage.getItem('fansreserve_referrals') || '[]'));
       expect(refs.length === 1, `se registró un invitado de más (${refs.length})`);
       await logoutViaMenu(rf);
     });
@@ -1494,7 +1507,7 @@ const run = async () => {
       await waitPath(rf, '/register');
       await register(rf, { name, email, password: 'password123', role: 'creator' });
       await waitPath(rf, '/creator/dashboard');
-      return rf.evaluate((e) => JSON.parse(localStorage.getItem('sugarfans_accounts')).find((a) => a.email === e).creatorProfileId, email);
+      return rf.evaluate((e) => JSON.parse(localStorage.getItem('fansreserve_accounts')).find((a) => a.email === e).creatorProfileId, email);
     };
     const tipAsDemoFan = async (creatorId, name) => {
       await logoutViaMenu(rf);

@@ -1,4 +1,4 @@
-# POLÍTICA DE COOKIES - SUGARFANS
+# POLÍTICA DE COOKIES - FANS RESERVE
 
 **Última actualización:** Enero 2024
 
@@ -72,7 +72,7 @@ Puede controlar y/o eliminar cookies a través de la configuración de su navega
 - **Edge**: Configuración > Cookies y permisos del sitio
 
 ### 4.2. Panel de Preferencias
-En su cuenta de SugarFans puede:
+En su cuenta de Fans Reserve puede:
 - Ver todas las cookies activas
 - Activar/desactivar cookies no esenciales
 - Eliminar cookies específicas
@@ -102,9 +102,9 @@ Podemos actualizar esta Política de Cookies periódicamente. La fecha de "últi
 ## 7. CONTACTO
 
 Para preguntas sobre cookies:
-- **Email**: privacy@sugarfans.com
-- **Oficial de Protección de Datos**: dpo@sugarfans.com
+- **Email**: privacy@fansreserve.com
+- **Oficial de Protección de Datos**: dpo@fansreserve.com
 
 ---
 
-© 2024 SugarFans. Todos los derechos reservados.
+© 2024 Fans Reserve. Todos los derechos reservados.

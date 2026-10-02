@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { User } from '../context/AuthContext';
 import { addPaymentMethod, type PaymentKind } from '../lib/platform';
+import { BRAND } from '../config/brand';
 
 const input = 'w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-sm';
 
@@ -86,7 +87,7 @@ const PaymentMethodForm: React.FC<{ user: User; onAdded: (id: string) => void; o
           />
           <p className="text-xs text-gray-500">
             {kind === 'paypal'
-              ? 'Autorizas a SugarFans a cobrar tus suscripciones desde PayPal. Puedes quitarlo cuando quieras.'
+              ? `Autorizas a ${BRAND.name} a cobrar tus suscripciones desde PayPal. Puedes quitarlo cuando quieras.`
               : 'Pagarás con la tarjeta guardada en tu Google Pay. Puedes quitarlo cuando quieras.'}
           </p>
         </>

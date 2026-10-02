@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
+import BrandLogo from './BrandLogo';
+import { BRAND } from '../config/brand';
 
 const Footer: React.FC = () => {
   const { t } = useLanguage();
@@ -11,12 +13,7 @@ const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="col-span-1">
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-pink-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">SF</span>
-              </div>
-              <span className="text-xl font-bold text-white">SugarFans</span>
-            </div>
+            <BrandLogo size="sm" tone="dark" className="mb-4" />
             <p className="text-sm text-gray-400">
               {t('footer.description')}
             </p>
@@ -57,7 +54,7 @@ const Footer: React.FC = () => {
 
         <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-sm text-gray-500">
-            © {new Date().getFullYear()} SugarFans. {t('footer.rights')}
+            © {new Date().getFullYear()} {BRAND.name}. {t('footer.rights')}
           </p>
         </div>
       </div>

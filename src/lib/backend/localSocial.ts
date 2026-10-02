@@ -5,6 +5,7 @@ import { readJSON, writeJSONChecked, newId } from '../storage';
 import { extensionOf, validateMedia } from '../media';
 import type { AuthResult, User, VipBooking } from './types';
 import type { FeedPost, LiveMessage, PostComment, PublicCreator, SocialBackend } from './socialTypes';
+import { BRAND } from '../../config/brand';
 
 interface Store {
   likes: Record<string, string[]>; // post id -> user ids
@@ -34,7 +35,7 @@ const ok: AuthResult = { ok: true };
 const fail = (error: string): AuthResult => ({ ok: false, error });
 
 // --- IndexedDB file store -------------------------------------------------
-const DB_NAME = 'sugarfans_media';
+const DB_NAME = `${BRAND.storagePrefix}media`;
 const openDb = () =>
   new Promise<IDBDatabase>((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, 1);
@@ -184,7 +185,7 @@ export const createLocalSocial = (deps: Deps): SocialBackend => {
       const isParticipant = !!b && (b.fanId === user.id || (!!user.creatorProfileId && b.creatorProfileId === user.creatorProfileId));
       if (!b || !isParticipant) return fail('No tienes acceso a esta sesión');
       if (b.status !== 'confirmed') return fail('La sesión se abre cuando la reserva está pagada y confirmada');
-      const bc = new BroadcastChannel(`sugarfans_live_${bookingId}`);
+      const bc = new BroadcastChannel(`${BRAND.storagePrefix}live_${bookingId}`);
       bc.onmessage = (e: MessageEvent<LiveMessage>) => {
         if (e.data?.from !== user.id) onMessage(e.data);
       };

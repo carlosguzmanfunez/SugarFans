@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import LanguageSelector from '../components/LanguageSelector';
+import BrandLogo from '../components/BrandLogo';
 
 const AgeVerification: React.FC = () => {
   const { verifyAge } = useAuth();
@@ -47,8 +48,8 @@ const AgeVerification: React.FC = () => {
       <div className="flex-1 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl p-8 max-w-lg w-full shadow-2xl">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold text-xl">SF</span>
+          <div className="flex justify-center mb-5">
+            <BrandLogo size="md" to={null} />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('age.title')}</h1>
           <p className="text-gray-600">

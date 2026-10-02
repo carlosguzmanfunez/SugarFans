@@ -1,4 +1,4 @@
-# TÉRMINOS Y CONDICIONES DE SERVICIO - SUGARFANS
+# TÉRMINOS Y CONDICIONES DE SERVICIO - FANS RESERVE
 
 **Última actualización:** Enero 2024  
 **Versión:** 1.0.0  
@@ -8,7 +8,7 @@
 
 ## PREÁMBULO
 
-Bienvenido a SugarFans ("la Plataforma", "nosotros", "nuestro"). Estos Términos y Condiciones de Servicio ("Términos") constituyen un acuerdo legal vinculante entre usted ("Usuario", "usted", "su") y SugarFans, que rige el uso de nuestros servicios.
+Bienvenido a Fans Reserve ("la Plataforma", "nosotros", "nuestro"). Estos Términos y Condiciones de Servicio ("Términos") constituyen un acuerdo legal vinculante entre usted ("Usuario", "usted", "su") y Fans Reserve, que rige el uso de nuestros servicios.
 
 **AL ACCEDER O UTILIZAR LA PLATAFORMA, USTED ACEPTA ESTAR LEGALMENTE VINCULADO POR ESTOS TÉRMINOS. SI NO ESTÁ DE ACUERDO CON ALGUNA PARTE DE ESTOS TÉRMINOS, NO DEBE UTILIZAR LA PLATAFORMA.**
 
@@ -16,7 +16,7 @@ Bienvenido a SugarFans ("la Plataforma", "nosotros", "nuestro"). Estos Términos
 
 ## 1. DEFINICIONES
 
-1.1. **"Plataforma"** se refiere al sitio web, aplicaciones móviles, y todos los servicios proporcionados por SugarFans.
+1.1. **"Plataforma"** se refiere al sitio web, aplicaciones móviles, y todos los servicios proporcionados por Fans Reserve.
 
 1.2. **"Usuario"** se refiere a cualquier persona que acceda o utilice la Plataforma, incluyendo pero no limitado a Fans, Creadores y Visitantes.
 
@@ -196,7 +196,7 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 
 ## 7. PROPIEDAD INTELECTUAL
 
-7.1. **Nuestros Derechos**: La Plataforma, incluyendo pero no limitado a software, diseño, logotipos, marcas comerciales, es propiedad exclusiva de SugarFans y está protegida por leyes de propiedad intelectual.
+7.1. **Nuestros Derechos**: La Plataforma, incluyendo pero no limitado a software, diseño, logotipos, marcas comerciales, es propiedad exclusiva de Fans Reserve y está protegida por leyes de propiedad intelectual.
 
 7.2. **Derechos de Creadores**: Los Creadores conservan los derechos de autor de su Contenido original, sujeto a la licencia otorgada en la Sección 4.1.1.
 
@@ -223,7 +223,7 @@ d) Declaración de que el uso no está autorizado
 e) Declaración bajo pena de perjurio de que la información es precisa
 f) Su firma física o electrónica
 
-8.3. **Enviar Notificaciones a**: dmca@sugarfans.com
+8.3. **Enviar Notificaciones a**: dmca@fansreserve.com
 
 8.4. **Contra-notificación**: Si cree que su Contenido fue eliminado erróneamente, puede enviar una contra-notificación.
 
@@ -253,7 +253,7 @@ f) Su firma física o electrónica
 - La calidad de productos o servicios cumplirá sus expectativas
 - La Plataforma será segura o libre de virus
 
-11.3. **LIMITACIÓN DE DAÑOS**: En la máxima extensión permitida por la ley, SugarFans no será responsable por:
+11.3. **LIMITACIÓN DE DAÑOS**: En la máxima extensión permitida por la ley, Fans Reserve no será responsable por:
 - Daños indirectos, incidentales, especiales o consecuentes
 - Pérdida de ganancias, datos o oportunidades
 - Contenido de Usuarios o conducta de terceros
@@ -265,7 +265,7 @@ f) Su firma física o electrónica
 
 ## 11. INDEMNIZACIÓN
 
-Usted acepta indemnizar, defender y eximir de responsabilidad a SugarFans, sus afiliados, directores, empleados y agentes de cualquier reclamación, daño, pérdida, costo o gasto (incluyendo honorarios razonables de abogados) que surja de:
+Usted acepta indemnizar, defender y eximir de responsabilidad a Fans Reserve, sus afiliados, directores, empleados y agentes de cualquier reclamación, daño, pérdida, costo o gasto (incluyendo honorarios razonables de abogados) que surja de:
 - Su uso de la Plataforma
 - Su violación de estos Términos
 - Su violación de derechos de terceros
@@ -298,11 +298,11 @@ Usted acepta indemnizar, defender y eximir de responsabilidad a SugarFans, sus a
 
 ## 14. DISPOSICIONES GENERALES
 
-14.1. **Acuerdo Completo**: Estos Términos constituyen el acuerdo completo entre usted y SugarFans respecto al uso de la Plataforma.
+14.1. **Acuerdo Completo**: Estos Términos constituyen el acuerdo completo entre usted y Fans Reserve respecto al uso de la Plataforma.
 
 14.2. **Separabilidad**: Si alguna disposición es inválida o inaplicable, las demás disposiciones permanecerán en pleno vigor y efecto.
 
-14.3. **Renuncia**: La falla de SugarFans en hacer cumplir cualquier derecho no constituye una renuncia a ese derecho.
+14.3. **Renuncia**: La falla de Fans Reserve en hacer cumplir cualquier derecho no constituye una renuncia a ese derecho.
 
 14.4. **Cesión**: No puede ceder sus derechos u obligaciones bajo estos Términos sin nuestro consentimiento previo por escrito.
 
@@ -313,12 +313,12 @@ Usted acepta indemnizar, defender y eximir de responsabilidad a SugarFans, sus a
 ## 15. CONTACTO
 
 Para preguntas sobre estos Términos:
-- **Email**: legal@sugarfans.com
+- **Email**: legal@fansreserve.com
 - **Dirección postal**: [Dirección fiscal de la empresa]
 - **Teléfono**: [Número de contacto]
 
 ---
 
-**AL UTILIZAR SUGARFANS, USTED RECONOCE QUE HA LEÍDO, ENTENDIDO Y ACEPTA ESTAR VINCULADO POR ESTOS TÉRMINOS Y CONDICIONES.**
+**AL UTILIZAR FANS RESERVE, USTED RECONOCE QUE HA LEÍDO, ENTENDIDO Y ACEPTA ESTAR VINCULADO POR ESTOS TÉRMINOS Y CONDICIONES.**
 
-© 2024 SugarFans. Todos los derechos reservados.
+© 2024 Fans Reserve. Todos los derechos reservados.

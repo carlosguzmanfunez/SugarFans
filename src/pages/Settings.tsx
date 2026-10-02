@@ -17,6 +17,7 @@ import {
   transactionLabel,
   computeEarnings,
 } from '../lib/platform';
+import { BRAND } from '../config/brand';
 
 const notificationItems: { key: string; label: string }[] = [
   { key: 'newPosts', label: 'Nuevas publicaciones de creadores que sigues' },
@@ -159,7 +160,7 @@ const Settings: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `sugarfans-mis-datos-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `${BRAND.compactName.toLowerCase()}-mis-datos-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
     setSaved('Descarga de tus datos iniciada');

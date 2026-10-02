@@ -13,6 +13,7 @@ import LiveRoomButton from '../components/LiveRoomButton';
 import CreatorExperiencesPanel from '../components/CreatorExperiencesPanel';
 import { socialApi, compactCount } from '../lib/social';
 import { posts as catalogPosts } from '../data/mockData';
+import { BRAND, displayPayer } from '../config/brand';
 
 const CreatorDashboard: React.FC = () => {
   const { user, deletePost, updateUser } = useAuth();
@@ -127,7 +128,7 @@ const CreatorDashboard: React.FC = () => {
   const recentTransactions = (live?.sales ?? []).slice(0, 5).map((t) => ({
     id: t.id,
     type: transactionLabel[t.kind],
-    user: t.payerName,
+    user: displayPayer(t.payerName),
     amount: `+${money(creatorCut(t))}`,
     date: new Date(t.createdAt).toLocaleString('es'),
     status: 'completed',

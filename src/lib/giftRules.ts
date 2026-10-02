@@ -1,5 +1,5 @@
 // Gifts paid with "Terrones", the platform's coin (1 terrón = $0.01 of gift
-// value). Fans buy packs at a net price and SugarFans absorbs the card fee; the
+// value). Fans buy packs at a net price and the platform absorbs the card fee; the
 // creator gets 60% of every gift. The same catalogue is seeded in Supabase
 // (migration 20260930000007_gifts_terrones.sql): keep both in sync.
 import type { CoinPack, CreatorGiftSettings, Gift, GiftCategory } from './backend/giftTypes';

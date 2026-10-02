@@ -9,8 +9,9 @@ import { createSupabasePlatform } from './supabasePlatform';
 import { createSupabaseSocial } from './supabaseSocial';
 import { createSupabaseGifts } from './supabaseGifts';
 import { createSupabaseRewards } from './supabaseRewards';
+import { BRAND } from '../../config/brand';
 
-const REMEMBER_KEY = 'sugarfans_remember';
+const REMEMBER_KEY = `${BRAND.storagePrefix}remember`;
 
 // "Remember me" off keeps the session in sessionStorage (dies with the tab).
 const sessionAwareStorage = {

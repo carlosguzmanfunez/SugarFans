@@ -1,4 +1,4 @@
-# POLÍTICA DE PRIVACIDAD - SUGARFANS
+# POLÍTICA DE PRIVACIDAD - FANS RESERVE
 
 **Última actualización:** Enero 2024  
 **Versión:** 1.0.0  
@@ -8,7 +8,7 @@
 
 ## INTRODUCCIÓN
 
-En SugarFans ("nosotros", "nuestro", "la Plataforma"), nos comprometemos a proteger su privacidad y datos personales. Esta Política de Privacidad explica cómo recopilamos, usamos, almacenamos y protegemos su información cuando utiliza nuestros servicios.
+En Fans Reserve ("nosotros", "nuestro", "la Plataforma"), nos comprometemos a proteger su privacidad y datos personales. Esta Política de Privacidad explica cómo recopilamos, usamos, almacenamos y protegemos su información cuando utiliza nuestros servicios.
 
 **AL UTILIZAR NUESTRA PLATAFORMA, USTED CONSENTE LAS PRÁCTICAS DESCRITAS EN ESTA POLÍTICA.**
 
@@ -257,7 +257,7 @@ Si es residente de California:
 
 Para ejercer cualquier derecho:
 
-**Email:** privacy@sugarfans.com  
+**Email:** privacy@fansreserve.com  
 **Formulario web:** [Enlace a formulario de privacidad]  
 **Dirección postal:** [Dirección de privacidad]
 
@@ -321,7 +321,7 @@ En caso de violación de datos:
 ### 8.2. Responsabilidad de Padres/Tutores
 
 Si es padre o tutor y cree que su hijo menor de 18 años ha proporcionado información:
-- Contáctenos inmediatamente: privacy@sugarfans.com
+- Contáctenos inmediatamente: privacy@fansreserve.com
 - Eliminaremos la información y cuenta
 - Cooperaremos con autoridades si es necesario
 
@@ -347,7 +347,7 @@ Su uso continuado después de los cambios constituye aceptación de la nueva pol
 ### 10.1. Oficial de Protección de Datos (DPO)
 
 Para preguntas sobre privacidad:
-- **Email:** privacy@sugarfans.com
+- **Email:** privacy@fansreserve.com
 - **DPO:** [Nombre del DPO]
 - **Teléfono:** [Número de contacto]
 
@@ -372,7 +372,7 @@ Si no está satisfecho con nuestra respuesta, puede contactar:
 
 ### 11.1. Unión Europea (GDPR)
 
-- Responsable del tratamiento: SugarFans [Entidad legal]
+- Responsable del tratamiento: Fans Reserve [Entidad legal]
 - Base legal: Ejecución de contrato, consentimiento, interés legítimo
 - Transferencias: Cláusulas Contractuales Estándar
 - Período de respuesta: 30 días
@@ -419,4 +419,4 @@ Ver nuestra Política de Cookies completa para detalles sobre:
 
 **Esta Política de Privacidad está diseñada para cumplir con GDPR, CCPA, LGPD y otras regulaciones internacionales de protección de datos.**
 
-© 2024 SugarFans. Todos los derechos reservados.
+© 2024 Fans Reserve. Todos los derechos reservados.

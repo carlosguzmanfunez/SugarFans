@@ -23,6 +23,7 @@ import {
   type PerkRequest,
   type VaultItem,
 } from '../lib/gifts';
+import { BRAND, displayPayer } from '../config/brand';
 
 const field = 'w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-sm';
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -236,7 +237,7 @@ const CreatorGiftsPanel: React.FC = () => {
               <div key={t.id} className="py-2 flex items-center justify-between text-sm" data-testid="gift-received">
                 <span className="flex items-center gap-2">
                   {t.giftId && giftById(t.giftId) && <GiftArt gift={giftById(t.giftId)!} size={28} />}
-                  {t.note} · {t.payerName}
+                  {t.note} · {displayPayer(t.payerName)}
                 </span>
                 {t.status === 'refunded' ? (
                   <span className="text-xs text-gray-500">Devuelto</span>
