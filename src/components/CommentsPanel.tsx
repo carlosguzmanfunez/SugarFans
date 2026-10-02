@@ -54,7 +54,7 @@ const CommentsPanel: React.FC<Props> = ({ postId, creatorProfileId, viewer, isOw
               </div>
               {viewer && (c.userId === viewer.id || isOwner || viewer.role === 'admin') && (
                 <button onClick={() => remove(c.id)} aria-label="Eliminar comentario" className="p-1 text-gray-300 hover:text-red-500">
-                  <i className="fas fa-trash text-xs"></i>
+                  <i aria-hidden="true" className="fas fa-trash text-xs"></i>
                 </button>
               )}
             </li>

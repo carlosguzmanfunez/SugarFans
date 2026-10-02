@@ -7,6 +7,7 @@ import { backend } from '../lib/backend';
 import { usePlatformQuery } from '../lib/platform';
 import { useCreatorCatalog } from '../lib/catalog';
 import { BRAND } from '../config/brand';
+import { CoverImage } from '../components/CoverArt';
 
 const VIPExperiences: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
@@ -28,7 +29,7 @@ const VIPExperiences: React.FC = () => {
   const { creators } = useCreatorCatalog();
   const creatorOf = (exp: VipExperience) => creators.find((c) => c.id === exp.creatorProfileId);
 
-  const experienceTypes = [{ id: 'all', name: 'Todas', icon: '✨' }, ...EXPERIENCE_TYPES];
+  const experienceTypes = [{ id: 'all', name: 'Todas', icon: 'fa-star' }, ...EXPERIENCE_TYPES];
 
   const active = experiences.filter((e) => e.active);
   const filteredExperiences = selectedType === 'all' ? active : active.filter((exp) => exp.type === selectedType);
@@ -77,21 +78,25 @@ const VIPExperiences: React.FC = () => {
     setBookingDone(true);
   };
 
-  const typeOf = (type: string) => EXPERIENCE_TYPES.find((t) => t.id === type) ?? { icon: '✨', name: type };
+  const typeOf = (type: string) => EXPERIENCE_TYPES.find((t) => t.id === type) ?? { icon: 'fa-star', name: type };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-yellow-50">
+    <div className="min-h-screen bg-canvas">
       {/* Hero Section */}
-      <div className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-yellow-500 text-white overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative z-10">
+      <div className="relative bg-night-950 text-white overflow-hidden">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-32 -top-40 h-[480px] w-[480px] rounded-full bg-[radial-gradient(closest-side,rgba(200,27,99,0.35),transparent)]" />
+          <div className="absolute -right-32 -bottom-48 h-[480px] w-[480px] rounded-full bg-[radial-gradient(closest-side,rgba(109,60,230,0.3),transparent)]" />
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 md:py-20 relative z-10">
           <div className="text-center">
-            <div className="inline-block mb-4">
-              <span className="text-6xl">👑</span>
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            <span className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-gold-200 to-gold-400 text-xl text-night-900">
+              <i className="fas fa-ticket" aria-hidden="true"></i>
+            </span>
+            <h1 className="text-display-lg mb-4">
               Experiencias VIP
             </h1>
-            <p className="text-xl text-white/90 max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto">
               Vive momentos únicos y exclusivos con tus creadores favoritos.
               Reserva día y hora, el creador confirma y la sesión es en vivo dentro de {BRAND.name}.
             </p>
@@ -110,11 +115,11 @@ const VIPExperiences: React.FC = () => {
                 onClick={() => setSelectedType(type.id)}
                 className={`px-5 py-3 rounded-xl font-medium transition-all ${
                   selectedType === type.id
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg scale-105'
+                    ? 'bg-ink text-white shadow-lg'
                     : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
                 }`}
               >
-                <span className="mr-2">{type.icon}</span>
+                <i className={`fas ${type.icon} mr-2`} aria-hidden="true"></i>
                 {type.name}
               </button>
             ))}
@@ -129,18 +134,13 @@ const VIPExperiences: React.FC = () => {
               className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all transform hover:-translate-y-1"
             >
               {/* Image */}
-              <div className="relative h-48 overflow-hidden">
-                <img
-                  src={experience.image}
-                  alt={experience.title}
-                  className="w-full h-full object-cover"
-                />
+              <CoverImage src={experience.image} seed={`vip-${experience.id}`} alt={experience.title} className="h-48">
                 <div className="absolute top-3 right-3">
                   <span className="bg-white/90 backdrop-blur-sm text-purple-700 px-3 py-1 rounded-full text-sm font-semibold">
-                    {typeOf(experience.type).icon} {typeOf(experience.type).name}
+                    <i className={`fas ${typeOf(experience.type).icon} mr-1`} aria-hidden="true"></i> {typeOf(experience.type).name}
                   </span>
                 </div>
-              </div>
+              </CoverImage>
 
               {/* Content */}
               <div className="p-6">
@@ -164,7 +164,7 @@ const VIPExperiences: React.FC = () => {
 
                 {/* Duration */}
                 <div className="flex items-center text-sm text-gray-600 mb-4">
-                  <i className="fas fa-clock mr-2 text-purple-600"></i>
+                  <i aria-hidden="true" className="fas fa-clock mr-2 text-purple-600"></i>
                   {experience.durationMinutes ? `${experience.durationMinutes} min en vivo` : 'Sin sesión en vivo'}
                 </div>
 
@@ -197,7 +197,7 @@ const VIPExperiences: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="text-center">
               <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <i className="fas fa-star text-white text-2xl"></i>
+                <i aria-hidden="true" className="fas fa-star text-white text-2xl"></i>
               </div>
               <h3 className="text-xl font-bold mb-2">Exclusividad Total</h3>
               <p className="text-gray-600">
@@ -206,7 +206,7 @@ const VIPExperiences: React.FC = () => {
             </div>
             <div className="text-center">
               <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-yellow-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <i className="fas fa-heart text-white text-2xl"></i>
+                <i aria-hidden="true" className="fas fa-heart text-white text-2xl"></i>
               </div>
               <h3 className="text-xl font-bold mb-2">Conexión Real</h3>
               <p className="text-gray-600">
@@ -215,7 +215,7 @@ const VIPExperiences: React.FC = () => {
             </div>
             <div className="text-center">
               <div className="w-16 h-16 bg-gradient-to-br from-yellow-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <i className="fas fa-shield-alt text-white text-2xl"></i>
+                <i aria-hidden="true" className="fas fa-shield-alt text-white text-2xl"></i>
               </div>
               <h3 className="text-xl font-bold mb-2">Pago seguro</h3>
               <p className="text-gray-600">
@@ -278,7 +278,7 @@ const VIPExperiences: React.FC = () => {
             {bookingDone ? (
               <div className="p-8 text-center">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <i className="fas fa-check text-2xl text-green-600"></i>
+                  <i aria-hidden="true" className="fas fa-check text-2xl text-green-600"></i>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Reserva enviada!</h2>
                 <p className="text-gray-600 mb-2">
@@ -312,11 +312,7 @@ const VIPExperiences: React.FC = () => {
               {/* Experience Summary */}
               <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 mb-6">
                 <div className="flex items-start gap-4">
-                  <img
-                    src={selectedExperience.image}
-                    alt={selectedExperience.title}
-                    className="w-24 h-24 rounded-xl object-cover"
-                  />
+                  <CoverImage src={selectedExperience.image} seed={`vip-${selectedExperience.id}`} alt={selectedExperience.title} className="w-24 h-24 shrink-0 rounded-xl" />
                   <div className="flex-1">
                     <h3 className="font-bold text-lg mb-1">{selectedExperience.title}</h3>
                     <p className="text-gray-600 text-sm mb-2">con {selectedExperience.creatorName}</p>
@@ -326,7 +322,7 @@ const VIPExperiences: React.FC = () => {
                       </span>
                       {selectedExperience.durationMinutes && (
                         <span className="text-gray-600">
-                          <i className="fas fa-clock mr-1"></i>
+                          <i aria-hidden="true" className="fas fa-clock mr-1"></i>
                           {selectedExperience.durationMinutes} min
                         </span>
                       )}
@@ -375,7 +371,7 @@ const VIPExperiences: React.FC = () => {
 
                 <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
                   <div className="flex items-start gap-3">
-                    <i className="fas fa-info-circle text-yellow-600 mt-1"></i>
+                    <i aria-hidden="true" className="fas fa-info-circle text-yellow-600 mt-1"></i>
                     <div className="text-sm text-yellow-800">
                       <p className="font-semibold mb-1">Importante:</p>
                       <ul className="list-disc list-inside space-y-1">

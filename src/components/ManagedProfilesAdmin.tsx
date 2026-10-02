@@ -115,7 +115,7 @@ const ManagedProfilesAdmin: React.FC<{ transactions: Transaction[] }> = ({ trans
             onClick={() => { setEditing({ input: { ...blank } }); setNotice(null); }}
             className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap"
           >
-            <i className="fas fa-plus mr-1"></i> Nuevo perfil
+            <i aria-hidden="true" className="fas fa-plus mr-1"></i> Nuevo perfil
           </button>
         )}
       </div>

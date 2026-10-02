@@ -1,0 +1,1 @@
+coin.png: Microsoft Fluent Emoji 3D "Coin" — MIT License (see public/gifts/LICENSE.txt).

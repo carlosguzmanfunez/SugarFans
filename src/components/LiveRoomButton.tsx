@@ -29,12 +29,12 @@ const LiveRoomButton: React.FC<{ booking: VipBooking }> = ({ booking }) => {
     const opens = liveWindow(booking.date, booking.time, minutes).opens;
     return (
       <span className="text-xs text-gray-500" data-testid="live-later">
-        <i className="fas fa-video mr-1"></i>Sala en vivo disponible desde las{' '}
+        <i aria-hidden="true" className="fas fa-video mr-1"></i>Sala en vivo disponible desde las{' '}
         {opens.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })} de ese día
       </span>
     );
   }
-  return <span className="text-xs text-gray-400"><i className="fas fa-video-slash mr-1"></i>Sesión finalizada</span>;
+  return <span className="text-xs text-gray-400"><i aria-hidden="true" className="fas fa-video-slash mr-1"></i>Sesión finalizada</span>;
 };
 
 export default LiveRoomButton;

@@ -71,7 +71,7 @@ const CircleSection: React.FC<Props> = ({ user, creatorProfileId, creatorName, o
   return (
     <div className="space-y-6" data-testid="circle-section">
       <div className="bg-white rounded-2xl p-6 shadow-sm">
-        <h3 className="font-bold text-gray-900 mb-3"><i className="fas fa-trophy text-yellow-500 mr-2"></i>Top fans del mes</h3>
+        <h3 className="font-bold text-gray-900 mb-3"><i aria-hidden="true" className="fas fa-trophy text-yellow-500 mr-2"></i>Top fans del mes</h3>
         {data.topFans.length === 0 ? (
           <p className="text-sm text-gray-500">Aún nadie ha enviado regalos este mes. ¡Sé el primero!</p>
         ) : (
@@ -88,20 +88,20 @@ const CircleSection: React.FC<Props> = ({ user, creatorProfileId, creatorName, o
 
       {!data.inCircle ? (
         <div className="bg-gradient-to-br from-pink-50 to-purple-50 border border-purple-100 rounded-2xl p-6 text-center">
-          <i className="fas fa-users text-3xl text-purple-500 mb-3"></i>
+          <i aria-hidden="true" className="fas fa-users text-3xl text-purple-500 mb-3"></i>
           <h3 className="font-bold text-lg text-gray-900">Círculo privado de {creatorName}</h3>
           <p className="text-sm text-gray-600 mt-2 max-w-md mx-auto">
             Chat grupal con {creatorName} y sus fans más cercanos. Entras por 30 días con un regalo de {money(settings.circleMin)} o más,
             o sumando {money(settings.circleMin)} en regalos dentro del mes. Con un regalo de {money(VAULT_MIN)} también abres su Bóveda de contenido exclusivo.
           </p>
           <button type="button" onClick={onGift} className="mt-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-full font-bold hover:opacity-90">
-            <i className="fas fa-gift mr-2"></i>Enviar regalo
+            <i aria-hidden="true" className="fas fa-gift mr-2"></i>Enviar regalo
           </button>
         </div>
       ) : (
         <div className="bg-white rounded-2xl p-6 shadow-sm" data-testid="circle-chat">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-gray-900"><i className="fas fa-users text-purple-500 mr-2"></i>Círculo privado</h3>
+            <h3 className="font-bold text-gray-900"><i aria-hidden="true" className="fas fa-users text-purple-500 mr-2"></i>Círculo privado</h3>
             {!status.owner && status.circleUntil && (
               <span className="text-xs text-purple-700 bg-purple-100 px-2 py-1 rounded-full">Miembro hasta el {fmtDate(status.circleUntil)}</span>
             )}
@@ -138,7 +138,7 @@ const CircleSection: React.FC<Props> = ({ user, creatorProfileId, creatorName, o
       {data.inVault ? (
         <div className="bg-white rounded-2xl p-6 shadow-sm" data-testid="vault">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-gray-900"><i className="fas fa-gem text-pink-500 mr-2"></i>Bóveda</h3>
+            <h3 className="font-bold text-gray-900"><i aria-hidden="true" className="fas fa-gem text-pink-500 mr-2"></i>Bóveda</h3>
             {!status.owner && status.vaultUntil && (
               <span className="text-xs text-pink-700 bg-pink-100 px-2 py-1 rounded-full">Acceso hasta el {fmtDate(status.vaultUntil)}</span>
             )}
@@ -162,7 +162,7 @@ const CircleSection: React.FC<Props> = ({ user, creatorProfileId, creatorName, o
         </div>
       ) : data.inCircle ? (
         <div className="bg-white rounded-2xl p-6 shadow-sm text-sm text-gray-600">
-          <i className="fas fa-gem text-pink-400 mr-2"></i>La Bóveda de {creatorName} se abre con un regalo de {money(VAULT_MIN)} o más.
+          <i aria-hidden="true" className="fas fa-gem text-pink-400 mr-2"></i>La Bóveda de {creatorName} se abre con un regalo de {money(VAULT_MIN)} o más.
         </div>
       ) : null}
     </div>

@@ -11,7 +11,7 @@ const Policies: React.FC = () => {
           {/* Terms of Service */}
           <section className="bg-white rounded-2xl shadow-sm p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-              <i className="fas fa-file-contract text-pink-500 mr-3"></i> Términos de Servicio
+              <i aria-hidden="true" className="fas fa-file-contract text-pink-500 mr-3"></i> Términos de Servicio
             </h2>
             <div className="prose prose-sm text-gray-600 space-y-4">
               <p><strong>Última actualización:</strong> Enero 2024</p>
@@ -43,7 +43,7 @@ const Policies: React.FC = () => {
           {/* Privacy Policy */}
           <section className="bg-white rounded-2xl shadow-sm p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-              <i className="fas fa-lock text-pink-500 mr-3"></i> Política de Privacidad
+              <i aria-hidden="true" className="fas fa-lock text-pink-500 mr-3"></i> Política de Privacidad
             </h2>
             <div className="prose prose-sm text-gray-600 space-y-4">
               <p><strong>Última actualización:</strong> Enero 2024</p>
@@ -78,7 +78,7 @@ const Policies: React.FC = () => {
           {/* Cookie Policy */}
           <section className="bg-white rounded-2xl shadow-sm p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-              <i className="fas fa-cookie-bite text-pink-500 mr-3"></i> Política de Cookies
+              <i aria-hidden="true" className="fas fa-cookie-bite text-pink-500 mr-3"></i> Política de Cookies
             </h2>
             <div className="prose prose-sm text-gray-600 space-y-4">
               <p>Utilizamos cookies para mejorar tu experiencia en {BRAND.name}.</p>
@@ -95,7 +95,7 @@ const Policies: React.FC = () => {
           {/* DMCA */}
           <section className="bg-white rounded-2xl shadow-sm p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-              <i className="fas fa-gavel text-pink-500 mr-3"></i> Política DMCA
+              <i aria-hidden="true" className="fas fa-gavel text-pink-500 mr-3"></i> Política DMCA
             </h2>
             <div className="prose prose-sm text-gray-600 space-y-4">
               <p>{BRAND.name} respeta los derechos de propiedad intelectual. Si crees que tu trabajo ha sido copiado de manera que constituye infracción de derechos de autor, puedes enviar una notificación DMCA.</p>
@@ -114,7 +114,7 @@ const Policies: React.FC = () => {
           {/* Protection of Minors */}
           <section className="bg-white rounded-2xl shadow-sm p-6 border-2 border-red-200">
             <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-              <i className="fas fa-child text-red-500 mr-3"></i> Protección de Menores
+              <i aria-hidden="true" className="fas fa-child text-red-500 mr-3"></i> Protección de Menores
             </h2>
             <div className="prose prose-sm text-gray-600 space-y-4">
               <p className="font-medium text-red-700">{BRAND.name} tiene TOLERANCIA CERO con cualquier contenido que involucre menores de edad.</p>

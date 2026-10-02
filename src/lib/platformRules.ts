@@ -66,7 +66,8 @@ export const validateVerification = (input: VerificationInput): Check => {
 export const MANAGED_CATEGORIES = ['Modelaje', 'Fitness', 'Lifestyle', 'Arte', 'Música', 'Cocina', 'Gaming', 'Educación', 'Experiencias VIP'];
 
 export const managedAvatar = (username: string) => `https://api.dicebear.com/7.0/adventurer/svg?seed=${encodeURIComponent(username)}`;
-export const MANAGED_COVER = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=400&fit=crop';
+// No cover: profiles show their generated cover art (components/CoverArt).
+export const MANAGED_COVER = '';
 
 // Trims the admin's input and fills in default images.
 export const buildManagedProfile = (

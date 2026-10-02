@@ -103,7 +103,7 @@ const Register: React.FC = () => {
           {confirmNotice ? (
             <div className="text-center py-6" role="status">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i className="fas fa-envelope text-2xl text-green-600"></i>
+                <i aria-hidden="true" className="fas fa-envelope text-2xl text-green-600"></i>
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Cuenta creada!</h2>
               <p className="text-gray-600 mb-6">{confirmNotice}</p>
@@ -139,7 +139,7 @@ const Register: React.FC = () => {
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
-              <i className="fas fa-exclamation-circle mr-2"></i>{error}
+              <i aria-hidden="true" className="fas fa-exclamation-circle mr-2"></i>{error}
             </div>
           )}
 
@@ -213,7 +213,7 @@ const Register: React.FC = () => {
                     role === 'fan' ? 'border-pink-500 bg-pink-50' : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <i className="fas fa-heart text-2xl text-pink-500 mb-2"></i>
+                  <i aria-hidden="true" className="fas fa-heart text-2xl text-pink-500 mb-2"></i>
                   <p className="font-medium text-gray-900">{t('register.fan')}</p>
                   <p className="text-xs text-gray-500 mt-1">{t('register.fanDesc')}</p>
                 </button>
@@ -223,7 +223,7 @@ const Register: React.FC = () => {
                     role === 'creator' ? 'border-pink-500 bg-pink-50' : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <i className="fas fa-star text-2xl text-purple-500 mb-2"></i>
+                  <i aria-hidden="true" className="fas fa-star text-2xl text-purple-500 mb-2"></i>
                   <p className="font-medium text-gray-900">{t('register.creator')}</p>
                   <p className="text-xs text-gray-500 mt-1">{t('register.creatorDesc')}</p>
                 </button>
@@ -234,7 +234,7 @@ const Register: React.FC = () => {
                   <p className="font-semibold text-gray-900 text-sm mb-2">Lo que obtienes como creador (registro gratis)</p>
                   <ul className="space-y-1.5 text-xs text-gray-700">
                     {CREATOR_BENEFITS.map((b) => (
-                      <li key={b} className="flex items-start"><i className="fas fa-check text-green-500 mr-2 mt-0.5"></i>{b}</li>
+                      <li key={b} className="flex items-start"><i aria-hidden="true" className="fas fa-check text-green-500 mr-2 mt-0.5"></i>{b}</li>
                     ))}
                   </ul>
                 </div>

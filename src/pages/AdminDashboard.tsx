@@ -102,7 +102,7 @@ const AdminDashboard: React.FC = () => {
         {!compact && <p className="text-xs text-gray-400">{docTypeLabel[v.docType]} • {v.country}</p>}
       </div>
       <button onClick={() => { setViewing(v); setRejectReason(''); }} className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200">
-        <i className="fas fa-eye mr-1"></i> Revisar documentos
+        <i aria-hidden="true" className="fas fa-eye mr-1"></i> Revisar documentos
       </button>
     </div>
   );
@@ -118,7 +118,7 @@ const AdminDashboard: React.FC = () => {
           </div>
           <div className="mt-4 sm:mt-0 flex items-center space-x-3">
             <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-medium">
-              <i className="fas fa-exclamation-circle mr-1"></i> {pendingTotal} pendientes
+              <i aria-hidden="true" className="fas fa-exclamation-circle mr-1"></i> {pendingTotal} pendientes
             </span>
           </div>
         </div>
@@ -135,7 +135,7 @@ const AdminDashboard: React.FC = () => {
             <div key={i} className="bg-white rounded-2xl p-5 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <div className={`w-10 h-10 rounded-xl bg-${stat.color}-100 flex items-center justify-center`}>
-                  <i className={`fas ${stat.icon} text-${stat.color}-600`}></i>
+                  <i aria-hidden="true" className={`fas ${stat.icon} text-${stat.color}-600`}></i>
                 </div>
               </div>
               <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
@@ -162,7 +162,7 @@ const AdminDashboard: React.FC = () => {
                 activeTab === tab.id ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              <i className={`fas ${tab.icon} mr-1`}></i> {tab.label}
+              <i aria-hidden="true" className={`fas ${tab.icon} mr-1`}></i> {tab.label}
             </button>
           ))}
         </div>
@@ -277,14 +277,14 @@ const AdminDashboard: React.FC = () => {
                           <div className="flex flex-col gap-1 items-start">
                             {r.kind === 'post' && (
                               <button onClick={() => resolveReport(r.id, 'remove')} className="text-red-600 hover:text-red-700 text-xs font-medium">
-                                <i className="fas fa-trash mr-1"></i>Retirar contenido
+                                <i aria-hidden="true" className="fas fa-trash mr-1"></i>Retirar contenido
                               </button>
                             )}
                             <button onClick={() => resolveReport(r.id, 'resolve')} className="text-green-600 hover:text-green-700 text-xs font-medium">
-                              <i className="fas fa-check mr-1"></i>Marcar atendido
+                              <i aria-hidden="true" className="fas fa-check mr-1"></i>Marcar atendido
                             </button>
                             <button onClick={() => resolveReport(r.id, 'dismiss')} className="text-gray-500 hover:text-gray-700 text-xs font-medium">
-                              <i className="fas fa-times mr-1"></i>Descartar
+                              <i aria-hidden="true" className="fas fa-times mr-1"></i>Descartar
                             </button>
                           </div>
                         ) : r.kind === 'post' && r.targetId && platform.removedPosts.includes(r.targetId) ? (
@@ -315,7 +315,7 @@ const AdminDashboard: React.FC = () => {
                     <p className="text-xs text-gray-500">{p.accountLabel} • Disponía de {money(p.availableBefore)} • Pagado el {new Date(p.paidAt).toLocaleDateString('es')}</p>
                   </div>
                   <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
-                    <i className="fas fa-check-circle mr-1"></i>Pagado
+                    <i aria-hidden="true" className="fas fa-check-circle mr-1"></i>Pagado
                   </span>
                 </div>
               ))}
@@ -332,7 +332,7 @@ const AdminDashboard: React.FC = () => {
                   <h3 className="text-lg font-bold text-gray-900">{viewing.userName}</h3>
                   <p className="text-sm text-gray-500">{viewing.email} • {roleName[viewing.role]}</p>
                 </div>
-                <button onClick={() => setViewing(null)} aria-label="Cerrar" className="text-gray-400 hover:text-gray-600"><i className="fas fa-times"></i></button>
+                <button onClick={() => setViewing(null)} aria-label="Cerrar" className="text-gray-400 hover:text-gray-600"><i aria-hidden="true" className="fas fa-times"></i></button>
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm mb-4">
                 <p><span className="text-gray-500">Nombre legal:</span> {viewing.legalName}</p>
@@ -363,10 +363,10 @@ const AdminDashboard: React.FC = () => {
               {notice && !notice.ok && <p role="alert" className="text-sm text-red-600 mb-3">{notice.text}</p>}
               <div className="flex gap-2 justify-end">
                 <button onClick={() => review(viewing, false)} className="px-4 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200">
-                  <i className="fas fa-times mr-1"></i> Rechazar
+                  <i aria-hidden="true" className="fas fa-times mr-1"></i> Rechazar
                 </button>
                 <button onClick={() => review(viewing, true)} className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700">
-                  <i className="fas fa-check mr-1"></i> Aprobar identidad
+                  <i aria-hidden="true" className="fas fa-check mr-1"></i> Aprobar identidad
                 </button>
               </div>
             </div>
@@ -381,7 +381,7 @@ const AdminDashboard: React.FC = () => {
             <div className="p-5 border-b border-gray-100 flex justify-between items-center">
               <h3 className="font-bold text-gray-900">Gestión de Usuarios</h3>
               <div className="relative">
-                <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <i aria-hidden="true" className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                 <input type="text" value={userQuery} onChange={(e) => setUserQuery(e.target.value)} placeholder="Buscar usuario..." className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-pink-500 outline-none" />
               </div>
             </div>
@@ -393,7 +393,7 @@ const AdminDashboard: React.FC = () => {
                 <div key={u.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                      <i className="fas fa-user text-gray-400"></i>
+                      <i aria-hidden="true" className="fas fa-user text-gray-400"></i>
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">{u.name}</p>
@@ -409,7 +409,7 @@ const AdminDashboard: React.FC = () => {
                       {u.status === 'active' ? 'Activo' : u.status === 'verified' ? 'Verificado' : 'Pendiente'}
                     </span>
                     <button className="text-gray-400 hover:text-red-500 transition">
-                      <i className="fas fa-ellipsis-v"></i>
+                      <i aria-hidden="true" className="fas fa-ellipsis-v"></i>
                     </button>
                   </div>
                 </div>
@@ -425,7 +425,7 @@ const AdminDashboard: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="border border-gray-200 rounded-xl p-4">
                 <div className="bg-gray-200 rounded-lg h-32 mb-3 flex items-center justify-center">
-                  <i className="fas fa-image text-gray-400 text-2xl"></i>
+                  <i aria-hidden="true" className="fas fa-image text-gray-400 text-2xl"></i>
                 </div>
                 <p className="text-sm font-medium text-gray-900">Post #1234</p>
                 <p className="text-xs text-gray-500">Por: Valentina Rose</p>
@@ -436,7 +436,7 @@ const AdminDashboard: React.FC = () => {
               </div>
               <div className="border border-gray-200 rounded-xl p-4">
                 <div className="bg-gray-200 rounded-lg h-32 mb-3 flex items-center justify-center">
-                  <i className="fas fa-video text-gray-400 text-2xl"></i>
+                  <i aria-hidden="true" className="fas fa-video text-gray-400 text-2xl"></i>
                 </div>
                 <p className="text-sm font-medium text-gray-900">Video #567</p>
                 <p className="text-xs text-gray-500">Por: Diego Torres</p>
@@ -447,7 +447,7 @@ const AdminDashboard: React.FC = () => {
               </div>
               <div className="border border-yellow-200 rounded-xl p-4 bg-yellow-50">
                 <div className="bg-gray-200 rounded-lg h-32 mb-3 flex items-center justify-center">
-                  <i className="fas fa-exclamation-triangle text-yellow-400 text-2xl"></i>
+                  <i aria-hidden="true" className="fas fa-exclamation-triangle text-yellow-400 text-2xl"></i>
                 </div>
                 <p className="text-sm font-medium text-gray-900">Post #890 ⚠️</p>
                 <p className="text-xs text-gray-500">Reportado - Revisión urgente</p>

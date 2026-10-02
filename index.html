@@ -3,35 +3,42 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>%BRAND_NAME% · %BRAND_TAGLINE%</title>
+    <title>%BRAND_NAME% — %BRAND_TAGLINE%</title>
     <meta name="description" content="%BRAND_DESCRIPTION%" />
     <meta name="application-name" content="%BRAND_NAME%" />
     <meta name="apple-mobile-web-app-title" content="%BRAND_NAME%" />
     <meta name="theme-color" content="%BRAND_THEME%" />
     <link rel="canonical" href="%BRAND_URL%/" />
+    <meta name="robots" content="index, follow" />
+    <meta name="color-scheme" content="light" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="%BRAND_NAME%" />
-    <meta property="og:title" content="%BRAND_NAME% · %BRAND_TAGLINE%" />
+    <meta property="og:title" content="%BRAND_NAME% — %BRAND_TAGLINE%" />
     <meta property="og:description" content="%BRAND_DESCRIPTION%" />
     <meta property="og:url" content="%BRAND_URL%/" />
     <meta property="og:locale" content="es_ES" />
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="%BRAND_NAME% · %BRAND_TAGLINE%" />
+    <meta property="og:image" content="%BRAND_OG_IMAGE%" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="%BRAND_OG_ALT%" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="%BRAND_NAME% — %BRAND_TAGLINE%" />
     <meta name="twitter:description" content="%BRAND_DESCRIPTION%" />
+    <meta name="twitter:image" content="%BRAND_OG_IMAGE%" />
+    <meta name="twitter:image:alt" content="%BRAND_OG_ALT%" />
 
     <script type="application/ld+json">
-      { "@context": "https://schema.org", "@type": "WebSite", "name": "%BRAND_NAME%", "url": "%BRAND_URL%/" }
+      { "@context": "https://schema.org", "@type": "WebSite", "name": "%BRAND_NAME%", "alternateName": "%BRAND_COMPACT%", "url": "%BRAND_URL%/", "description": "%BRAND_DESCRIPTION%" }
     </script>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
     <style>
       html, body {
+        background: #faf7f5;
         margin: 0;
         padding: 0;
         width: 100%;

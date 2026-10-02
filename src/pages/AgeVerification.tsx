@@ -26,7 +26,7 @@ const AgeVerification: React.FC = () => {
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i className="fas fa-times text-2xl text-red-600"></i>
+            <i aria-hidden="true" className="fas fa-times text-2xl text-red-600"></i>
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('age.denied.title')}</h2>
           <p className="text-gray-600 mb-6">
@@ -59,7 +59,7 @@ const AgeVerification: React.FC = () => {
 
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
           <div className="flex items-start">
-            <i className="fas fa-exclamation-triangle text-yellow-600 mt-0.5 mr-3"></i>
+            <i aria-hidden="true" className="fas fa-exclamation-triangle text-yellow-600 mt-0.5 mr-3"></i>
             <div>
               <p className="text-sm text-yellow-800 font-medium">{t('age.warning')}</p>
               <p className="text-sm text-yellow-700 mt-1">
@@ -74,7 +74,7 @@ const AgeVerification: React.FC = () => {
             onClick={handleConfirm}
             className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-4 rounded-xl font-bold text-lg hover:opacity-90 transition-all shadow-lg"
           >
-            <i className="fas fa-check-circle mr-2"></i>
+            <i aria-hidden="true" className="fas fa-check-circle mr-2"></i>
             {t('age.confirm')}
           </button>
           <button

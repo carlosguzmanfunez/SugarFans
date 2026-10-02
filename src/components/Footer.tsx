@@ -1,65 +1,97 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useLanguage } from '../context/LanguageContext';
 import BrandLogo from './BrandLogo';
 import { BRAND } from '../config/brand';
 
-const Footer: React.FC = () => {
-  const { t } = useLanguage();
+const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
+  {
+    title: 'Plataforma',
+    links: [
+      { label: 'Explorar creadores', to: '/explore' },
+      { label: 'Experiencias VIP', to: '/vip-experiences' },
+      { label: 'Crear cuenta', to: '/register' },
+      { label: 'Centro de ayuda', to: '/help' },
+    ],
+  },
+  {
+    title: 'Creadores',
+    links: [
+      { label: 'Empezar como creador', to: '/register?role=creator' },
+      { label: 'Contrato de creadores', to: '/legal?doc=creator' },
+      { label: 'Verificación de identidad', to: '/help' },
+    ],
+  },
+  {
+    title: 'Legal',
+    links: [
+      { label: 'Centro legal', to: '/legal' },
+      { label: 'Términos de servicio', to: '/legal?doc=terms' },
+      { label: 'Privacidad', to: '/legal?doc=privacy' },
+      { label: 'Cookies', to: '/legal?doc=cookies' },
+    ],
+  },
+  {
+    title: 'Seguridad',
+    links: [
+      { label: 'Protección de menores', to: '/legal?doc=minors' },
+      { label: 'Reportar contenido', to: '/help' },
+      { label: 'Derechos de autor (DMCA)', to: '/legal?doc=dmca' },
+    ],
+  },
+];
 
-  return (
-    <footer className="bg-gray-900 text-gray-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Brand */}
-          <div className="col-span-1">
-            <BrandLogo size="sm" tone="dark" className="mb-4" />
-            <p className="text-sm text-gray-400">
-              {t('footer.description')}
-            </p>
-          </div>
-
-          {/* Links */}
-          <div>
-            <h3 className="text-white font-semibold mb-4">{t('footer.platform')}</h3>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/explore" className="hover:text-pink-400 transition">{t('footer.explore')}</Link></li>
-              <li><Link to="/register?role=creator" className="hover:text-pink-400 transition">{t('footer.pricing')}</Link></li>
-              <li><Link to="/help" className="hover:text-pink-400 transition">{t('footer.help')}</Link></li>
-              <li><Link to="/register" className="hover:text-pink-400 transition">{t('footer.becomeCreator')}</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-white font-semibold mb-4">{t('footer.legal')}</h3>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/legal" className="hover:text-pink-400 transition">📋 Centro Legal</Link></li>
-              <li><Link to="/policies" className="hover:text-pink-400 transition">{t('footer.terms')}</Link></li>
-              <li><Link to="/policies" className="hover:text-pink-400 transition">{t('footer.privacy')}</Link></li>
-              <li><Link to="/policies" className="hover:text-pink-400 transition">🤝 Contrato de Creadores</Link></li>
-              <li><Link to="/policies" className="hover:text-pink-400 transition">🛡️ Protección de Menores</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-white font-semibold mb-4">{t('footer.security')}</h3>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/help" className="hover:text-pink-400 transition">{t('footer.reportContent')}</Link></li>
-              <li><Link to="/help" className="hover:text-pink-400 transition">{t('footer.minorProtection')}</Link></li>
-              <li><Link to="/help" className="hover:text-pink-400 transition">{t('footer.identityVerification')}</Link></li>
-              <li><Link to="/help" className="hover:text-pink-400 transition">{t('footer.copyright')}</Link></li>
-            </ul>
-          </div>
+const Footer: React.FC = () => (
+  <footer className="relative overflow-hidden bg-night-950 text-white/70">
+    <div aria-hidden="true" className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-500/50 to-transparent" />
+    <div className="mx-auto max-w-7xl px-4 pb-10 pt-14 sm:px-6 md:pt-16 lg:px-8">
+      <div className="grid gap-12 lg:grid-cols-[1.3fr_2fr]">
+        <div className="max-w-sm">
+          <BrandLogo size="sm" tone="dark" />
+          <p className="mt-5 text-[15px] leading-relaxed text-white/60">
+            Membresías, contenido exclusivo, sesiones en vivo y experiencias VIP. El lugar donde los creadores conectan con sus verdaderos fans.
+          </p>
+          <ul className="mt-6 flex flex-wrap gap-2 text-xs">
+            {[
+              { icon: 'fa-id-card', label: 'Creadores verificados' },
+              { icon: 'fa-lock', label: 'Pagos protegidos' },
+              { icon: 'fa-user-shield', label: '+18' },
+            ].map((b) => (
+              <li key={b.label} className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-white/70">
+                <i className={`fas ${b.icon} text-gold-300`} aria-hidden="true"></i> {b.label}
+              </li>
+            ))}
+          </ul>
         </div>
 
-        <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-sm text-gray-500">
-            © {new Date().getFullYear()} {BRAND.name}. {t('footer.rights')}
-          </p>
+        <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
+          {COLUMNS.map((col) => (
+            <div key={col.title}>
+              <h3 className="font-display text-sm font-semibold text-white">{col.title}</h3>
+              <ul className="mt-4 space-y-3 text-sm">
+                {col.links.map((l) => (
+                  <li key={l.label}>
+                    <Link to={l.to} className="text-white/60 transition-colors hover:text-white">
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
       </div>
-    </footer>
-  );
-};
+
+      <div className="mt-14 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-white/45 md:flex-row md:items-center md:justify-between">
+        <p>
+          © {new Date().getFullYear()} {BRAND.name}. Todos los derechos reservados. Solo para mayores de 18 años.
+        </p>
+        <p className="flex flex-wrap gap-x-4 gap-y-1">
+          <span>{BRAND.domain}</span>
+          <a href={`mailto:${BRAND.emails.support}`} className="hover:text-white">{BRAND.emails.support}</a>
+        </p>
+      </div>
+    </div>
+  </footer>
+);
 
 export default Footer;

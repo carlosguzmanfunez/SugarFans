@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { categories, posts } from '../data/mockData';
-import { useCreatorCatalog } from '../lib/catalog';
-import ManagedBadge from '../components/ManagedBadge';
-import LevelBadge from '../components/LevelBadge';
+import { useCreatorCatalog, useVipCreatorIds } from '../lib/catalog';
+import CreatorCard from '../components/CreatorCard';
+import Avatar from '../components/Avatar';
+import { CoverImage } from '../components/CoverArt';
+import { categoryVisual } from '../config/theme';
 import { featuredFirst, useFeatured } from '../lib/rewards';
 import { useAuth } from '../context/AuthContext';
 import { usePlatformQuery, platformApi, isCutOff } from '../lib/platform';
@@ -13,6 +15,8 @@ const Explore: React.FC = () => {
   const { creators } = useCreatorCatalog();
   const featured = useFeatured();
   const featuredIds = new Map(featured.map((f) => [f.creatorProfileId, f.level]));
+  const vipIds = useVipCreatorIds();
+  const [params] = useSearchParams();
   const { data: platform } = usePlatformQuery(
     async () => {
       const [removedPosts, blocks] = await Promise.all([platformApi.removedPosts(), user ? platformApi.blocks(user) : Promise.resolve([])]);
@@ -25,7 +29,11 @@ const Explore: React.FC = () => {
   const hidden = (creatorId: string) => !!user && isCutOff(platform.blocks, user.id, creatorId);
   const visiblePosts = posts.filter((p) => !platform.removedPosts.includes(p.id) && !hidden(p.creatorId));
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
+  // ?category=<name> preselects a category (landing tiles link here).
+  const [selectedCategory, setSelectedCategory] = useState(() => {
+    const requested = params.get('category') ?? '';
+    return categories.some((c) => c.name === requested) ? requested : '';
+  });
   const [viewMode, setViewMode] = useState<'creators' | 'posts'>('creators');
 
   const filteredCreators = featuredFirst(creators, featured).filter(c => {
@@ -37,27 +45,30 @@ const Explore: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-canvas">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         {/* Search & Filters */}
         <div className="mb-8">
-          <div className="relative max-w-2xl mx-auto">
-            <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+          <h1 className="text-display-md text-ink text-center">Explora creadores</h1>
+          <div className="relative max-w-2xl mx-auto mt-6">
+            <i className="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-ink/35" aria-hidden="true"></i>
             <input
-              type="text"
+              type="search"
+              aria-label="Buscar creadores"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 bg-white border border-gray-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none text-lg"
+              className="w-full pl-12 pr-4 py-4 bg-white border border-line rounded-2xl shadow-[var(--shadow-card)] focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-base md:text-lg"
               placeholder="Buscar creadores, contenido..."
             />
           </div>
 
           {/* Categories */}
-          <div className="flex flex-wrap justify-center gap-2 mt-6">
+          <div className="-mx-4 mt-6 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-hide md:mx-0 md:flex-wrap md:justify-center md:px-0">
             <button
               onClick={() => setSelectedCategory('')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                !selectedCategory ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+              aria-pressed={!selectedCategory}
+              className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition ${
+                !selectedCategory ? 'bg-ink text-white' : 'bg-white text-ink/70 hover:bg-white hover:text-ink border border-line'
               }`}
             >
               Todos
@@ -66,11 +77,13 @@ const Explore: React.FC = () => {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.name)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                  selectedCategory === cat.name ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                aria-pressed={selectedCategory === cat.name}
+                className={`shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition ${
+                  selectedCategory === cat.name ? 'bg-ink text-white' : 'bg-white text-ink/70 hover:text-ink border border-line'
                 }`}
               >
-                {cat.icon} {cat.name}
+                <i className={`fas ${categoryVisual(cat.name).icon} text-xs ${selectedCategory === cat.name ? 'text-gold-200' : 'text-brand-600'}`} aria-hidden="true"></i>
+                {cat.name}
               </button>
             ))}
           </div>
@@ -81,15 +94,17 @@ const Explore: React.FC = () => {
           <div className="flex space-x-2">
             <button
               onClick={() => setViewMode('creators')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium ${viewMode === 'creators' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-100'}`}
+              aria-pressed={viewMode === 'creators'}
+              className={`px-4 py-2 rounded-full text-sm font-medium ${viewMode === 'creators' ? 'bg-brand-50 text-brand-700' : 'text-ink/60 hover:bg-white'}`}
             >
-              <i className="fas fa-users mr-1"></i> Creadores
+              <i aria-hidden="true" className="fas fa-users mr-1"></i> Creadores
             </button>
             <button
               onClick={() => setViewMode('posts')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium ${viewMode === 'posts' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-100'}`}
+              aria-pressed={viewMode === 'posts'}
+              className={`px-4 py-2 rounded-full text-sm font-medium ${viewMode === 'posts' ? 'bg-brand-50 text-brand-700' : 'text-ink/60 hover:bg-white'}`}
             >
-              <i className="fas fa-th mr-1"></i> Publicaciones
+              <i aria-hidden="true" className="fas fa-th mr-1"></i> Publicaciones
             </button>
           </div>
           <span className="text-sm text-gray-500">{filteredCreators.length} resultados</span>
@@ -99,40 +114,13 @@ const Explore: React.FC = () => {
         {viewMode === 'creators' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCreators.map((creator) => (
-              <Link to={`/creator/${creator.id}`} key={creator.id} className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all overflow-hidden group">
-                <div className="h-28 relative overflow-hidden">
-                  <img src={creator.cover} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
-                </div>
-                <div className="p-5 -mt-8 relative">
-                  <div className="flex items-end space-x-3">
-                    <img src={creator.avatar} alt={creator.name} className="w-14 h-14 rounded-full border-3 border-white shadow-md" />
-                    <div className="pb-1">
-                      <div className="flex items-center">
-                        <h3 className="font-bold text-gray-900 text-sm">{creator.name}</h3>
-                        {creator.isVerified && <i className="fas fa-check-circle text-blue-500 ml-1 text-xs"></i>}
-                        <ManagedBadge creator={creator} />
-                        <LevelBadge level={featuredIds.get(creator.id)} />
-                      </div>
-                      <p className="text-xs text-gray-500">@{creator.username}</p>
-                      {featuredIds.has(creator.id) && (
-                        <span data-testid="featured-tag" className="inline-block mt-1 text-[10px] font-semibold uppercase tracking-wide text-pink-600">Destacado</span>
-                      )}
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-600 mt-3 line-clamp-2">{creator.bio}</p>
-                  <div className="flex justify-between items-center mt-4">
-                    <div className="flex space-x-3 text-xs text-gray-500">
-                      <span><i className="fas fa-users mr-1"></i>{(creator.followers / 1000).toFixed(1)}K</span>
-                      <span><i className="fas fa-heart mr-1"></i>{(creator.likes / 1000).toFixed(1)}K</span>
-                      <span><i className="fas fa-image mr-1"></i>{creator.postsCount}</span>
-                    </div>
-                    <span className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-3 py-1 rounded-full text-xs font-bold">
-                      ${creator.subscriptionPrice}/mes
-                    </span>
-                  </div>
-                </div>
-              </Link>
+              <CreatorCard
+                key={creator.id}
+                creator={creator}
+                level={featuredIds.get(creator.id)}
+                featured={featuredIds.has(creator.id)}
+                vip={vipIds.has(creator.id)}
+              />
             ))}
           </div>
         )}
@@ -141,20 +129,20 @@ const Explore: React.FC = () => {
         {viewMode === 'posts' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {visiblePosts.map((post) => (
-              <div key={post.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div key={post.id} className="card overflow-hidden">
                 <div className="p-4 flex items-center space-x-3">
-                  <img src={post.creatorAvatar} alt="" className="w-10 h-10 rounded-full" />
+                  <Avatar src={post.creatorAvatar} name={post.creatorName} size={40} decorative />
                   <div>
                     <p className="font-medium text-gray-900 text-sm">{post.creatorName}</p>
                     <p className="text-xs text-gray-500">{new Date(post.createdAt).toLocaleDateString('es')}</p>
                   </div>
                 </div>
                 <div className="relative">
-                  {post.media && <img src={post.media} alt="" className="w-full h-64 object-cover" />}
+                  {post.media && <CoverImage src={post.media} seed={`post-${post.id}`} className="h-64" />}
                   {post.isLocked && (
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
                       <div className="text-center text-white">
-                        <i className="fas fa-lock text-3xl mb-2"></i>
+                        <i aria-hidden="true" className="fas fa-lock text-3xl mb-2"></i>
                         <p className="font-medium">Contenido exclusivo</p>
                         {post.price && <p className="text-sm mt-1">Desbloquear por ${post.price}</p>}
                         {!isAuthenticated && <p className="text-xs mt-2 text-pink-200">Inicia sesión para ver</p>}
@@ -166,13 +154,13 @@ const Explore: React.FC = () => {
                   <p className="text-sm text-gray-700">{post.content}</p>
                   <div className="flex items-center space-x-6 mt-3 text-gray-500">
                     <button className="flex items-center text-sm hover:text-pink-500 transition">
-                      <i className="fas fa-heart mr-1"></i> {post.likes}
+                      <i aria-hidden="true" className="fas fa-heart mr-1"></i> {post.likes}
                     </button>
                     <button className="flex items-center text-sm hover:text-pink-500 transition">
-                      <i className="fas fa-comment mr-1"></i> {post.comments}
+                      <i aria-hidden="true" className="fas fa-comment mr-1"></i> {post.comments}
                     </button>
                     <button className="flex items-center text-sm hover:text-pink-500 transition">
-                      <i className="fas fa-gift mr-1"></i> Propina
+                      <i aria-hidden="true" className="fas fa-gift mr-1"></i> Propina
                     </button>
                   </div>
                 </div>

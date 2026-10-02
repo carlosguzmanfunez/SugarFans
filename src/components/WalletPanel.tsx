@@ -3,18 +3,20 @@ import { Link } from 'react-router-dom';
 import type { User } from '../context/AuthContext';
 import BuyCoinsDialog from './BuyCoinsDialog';
 import GiftArt from './GiftArt';
+import CoinIcon from './CoinIcon';
+import { VIRTUAL_CURRENCY, currencyWord, displayMethodLabel } from '../config/currency';
 import { usePlatformQuery, money } from '../lib/platform';
 import { DAILY_UNVERIFIED_LIMIT, formatCoins, giftById, giftsApi, packById, type PerkRequest, type SentGift, type Wallet } from '../lib/gifts';
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 
 const perkLabel = (p: PerkRequest) => {
-  if (p.status === 'refunded') return 'No se entregó a tiempo: te devolvimos los terrones';
+  if (p.status === 'refunded') return `No se entregó a tiempo: te devolvimos los ${currencyWord}`;
   if (p.kind === 'video') return p.status === 'delivered' ? 'Video entregado' : `Pendiente, se entrega antes del ${fmtDate(p.dueAt)}`;
   return p.status === 'scheduled' ? 'Videollamada agendada' : `Pendiente de agendar, antes del ${fmtDate(p.dueAt)}`;
 };
 
-// Settings > Terrones: balance, packs bought, gifts sent and the perks owed to the fan.
+// Settings > wallet (virtual currency): balance, packs bought, gifts sent and the perks owed to the fan.
 const WalletPanel: React.FC<{ user: User }> = ({ user }) => {
   const { data } = usePlatformQuery(
     async () => {
@@ -31,12 +33,12 @@ const WalletPanel: React.FC<{ user: User }> = ({ user }) => {
     <div className="space-y-6" data-testid="wallet">
       <div className="bg-gradient-to-br from-pink-500 to-purple-600 text-white rounded-2xl p-6 flex items-center justify-between">
         <div>
-          <p className="text-sm opacity-80">Tus terrones</p>
-          <p className="text-3xl font-bold" data-testid="wallet-balance">🍬 {formatCoins(data.wallet.coins)}</p>
+          <p className="text-sm opacity-80">Tus {currencyWord}</p>
+          <p className="text-3xl font-bold flex items-center gap-2" data-testid="wallet-balance"><CoinIcon size={30} /> {formatCoins(data.wallet.coins)}</p>
           <p className="text-xs opacity-80 mt-1">Equivalen a {money(data.wallet.coins / 100)} en regalos</p>
         </div>
         <button type="button" onClick={() => setBuying(true)} className="bg-white text-pink-600 px-5 py-2.5 rounded-full font-bold hover:bg-pink-50">
-          Comprar terrones
+          Comprar {currencyWord}
         </button>
       </div>
       {notice && <div role="status" className="px-4 py-3 rounded-xl border bg-green-50 border-green-200 text-green-700 text-sm">{notice}</div>}
@@ -76,7 +78,7 @@ const WalletPanel: React.FC<{ user: User }> = ({ user }) => {
               return (
                 <div key={g.id} className="py-2 flex items-center justify-between text-sm" data-testid="sent-gift">
                   <span className="flex items-center gap-2">{gift && <GiftArt gift={gift} size={28} />}{gift?.name ?? 'Regalo'} · <Link to={`/creator/${g.creatorProfileId}`} className="text-pink-600">{g.creatorName}</Link></span>
-                  <span className="text-gray-500">{g.status === 'refunded' ? 'Devuelto' : `🍬 ${formatCoins(g.coins)}`}</span>
+                  <span className="text-gray-500">{g.status === 'refunded' ? 'Devuelto' : <><CoinIcon size={14} /> {formatCoins(g.coins)}</>}</span>
                 </div>
               );
             })}
@@ -85,14 +87,14 @@ const WalletPanel: React.FC<{ user: User }> = ({ user }) => {
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 p-5">
-        <h4 className="font-semibold text-gray-900 mb-3">Compras de terrones</h4>
+        <h4 className="font-semibold text-gray-900 mb-3">Compras de {currencyWord}</h4>
         {data.wallet.purchases.length === 0 ? (
-          <p className="text-sm text-gray-500">Aún no has comprado terrones.</p>
+          <p className="text-sm text-gray-500">Aún no has comprado {currencyWord}.</p>
         ) : (
           <div className="divide-y divide-gray-100">
             {data.wallet.purchases.map((p) => (
               <div key={p.id} className="py-2 flex items-center justify-between text-sm" data-testid="coin-purchase">
-                <span>{packById(p.packId)?.name ?? 'Paquete'} · 🍬 {formatCoins(p.coins)} · {p.methodLabel}</span>
+                <span>{packById(p.packId)?.name ?? 'Paquete'} · <CoinIcon size={14} /> {formatCoins(p.coins)} · {displayMethodLabel(p.methodLabel)}</span>
                 <span className="text-gray-500">{money(p.price)} · {fmtDate(p.createdAt)}</span>
               </div>
             ))}
@@ -103,7 +105,7 @@ const WalletPanel: React.FC<{ user: User }> = ({ user }) => {
       {buying && (
         <BuyCoinsDialog
           user={user}
-          onDone={(coins) => { setBuying(false); setNotice(`Compra completada: ${formatCoins(coins)} terrones añadidos`); }}
+          onDone={(coins) => { setBuying(false); setNotice(`Compra completada: ${formatCoins(coins)} ${currencyWord} añadidos`); }}
           onClose={() => setBuying(false)}
         />
       )}

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import type { Gift } from '../lib/gifts';
+import { giftArt } from '../config/gifts';
 
-// 3D illustration of a gift (Microsoft Fluent Emoji 3D, MIT licence, in public/gifts).
+// 3D illustration of a gift (Microsoft Fluent Emoji 3D, MIT licence, in public/gifts),
+// picked by the gift display config (src/config/gifts.ts).
 // Falls back to the emoji if the image can't load.
 const GiftArt: React.FC<{ gift: Pick<Gift, 'id' | 'icon' | 'name'>; size?: number; className?: string; float?: boolean }> = ({
   gift,
@@ -19,7 +21,7 @@ const GiftArt: React.FC<{ gift: Pick<Gift, 'id' | 'icon' | 'name'>; size?: numbe
   }
   return (
     <img
-      src={`/gifts/${gift.id}.png`}
+      src={`/gifts/${giftArt(gift.id)}.png`}
       alt=""
       aria-hidden="true"
       width={size}

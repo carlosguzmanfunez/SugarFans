@@ -3,6 +3,8 @@ import type { User } from '../context/AuthContext';
 import type { Engagement, MediaType } from '../lib/social';
 import { setLike, compactCount } from '../lib/social';
 import CommentsPanel from './CommentsPanel';
+import Avatar from './Avatar';
+import { CoverImage, isPlaceholderImage } from './CoverArt';
 
 // A post from the demo catalogue or one a creator published from their panel.
 export interface DisplayPost {
@@ -72,26 +74,28 @@ const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner,
   const media = post.mediaUrl && canView
     ? post.mediaType === 'video'
       ? <video src={post.mediaUrl} controls playsInline preload="metadata" className="w-full max-h-[32rem] bg-black" data-testid="post-video" />
-      : <img src={post.mediaUrl} alt="" className="w-full max-h-[32rem] object-cover" data-testid="post-image" />
+      : isPlaceholderImage(post.mediaUrl)
+        ? <CoverImage seed={`post-${post.id}`} className="w-full h-72" />
+        : <img src={post.mediaUrl} alt="" className="w-full max-h-[32rem] object-cover" data-testid="post-image" />
     : post.mediaUrl || post.mediaType
-      ? <div className="w-full h-72 bg-gradient-to-br from-pink-200 via-purple-200 to-purple-300" />
+      ? <CoverImage seed={`post-${post.id}`} className="w-full h-72" />
       : null;
 
   return (
     <div id={`post-${post.id}`} data-testid="post" className="bg-white rounded-2xl shadow-sm overflow-hidden">
       <div className="p-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <img src={post.creatorAvatar} alt="" className="w-10 h-10 rounded-full" />
+          <Avatar src={post.creatorAvatar} name={post.creatorName} size={40} decorative />
           <div>
             <p className="font-medium text-gray-900 text-sm">{post.creatorName}</p>
             <p className="text-xs text-gray-500">{new Date(post.createdAt).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
           </div>
         </div>
         {post.isLocked && (canView ? (
-          <span className="bg-pink-50 text-pink-600 px-3 py-1 rounded-full text-xs font-medium"><i className="fas fa-star mr-1"></i>Exclusivo</span>
+          <span className="bg-pink-50 text-pink-600 px-3 py-1 rounded-full text-xs font-medium"><i aria-hidden="true" className="fas fa-star mr-1"></i>Exclusivo</span>
         ) : (
           <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-medium">
-            <i className="fas fa-lock mr-1"></i>{post.price ? `$${post.price}` : 'Suscriptores'}
+            <i aria-hidden="true" className="fas fa-lock mr-1"></i>{post.price ? `$${post.price}` : 'Suscriptores'}
           </span>
         ))}
       </div>
@@ -100,7 +104,7 @@ const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner,
         {!canView && (
           <div className={`${media ? 'absolute inset-0' : 'py-10'} bg-black/60 backdrop-blur-sm flex items-center justify-center`}>
             <div className="text-center text-white p-6">
-              <i className="fas fa-lock text-4xl mb-3"></i>
+              <i aria-hidden="true" className="fas fa-lock text-4xl mb-3"></i>
               <p className="font-bold text-lg">Contenido exclusivo para suscriptores</p>
               <p className="text-sm mt-2 text-pink-200">Suscríbete para desbloquear todo el contenido</p>
               {!isOwner && (
@@ -121,32 +125,32 @@ const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner,
             aria-label={liked ? 'Quitar me gusta' : 'Me gusta'}
             className={`flex items-center text-sm transition ${liked ? 'text-pink-600' : 'hover:text-pink-500'}`}
           >
-            <i className={`${liked ? 'fas' : 'far'} fa-heart mr-1`}></i> <span data-testid="like-count">{compactCount(likes)}</span>
+            <i aria-hidden="true" className={`${liked ? 'fas' : 'far'} fa-heart mr-1`}></i> <span data-testid="like-count">{compactCount(likes)}</span>
           </button>
           <button onClick={toggleComments} aria-expanded={showComments} aria-label="Comentarios" className={`flex items-center text-sm transition ${showComments ? 'text-pink-600' : 'hover:text-pink-500'}`}>
-            <i className="fas fa-comment mr-1"></i> <span data-testid="comment-count">{compactCount(comments)}</span>
+            <i aria-hidden="true" className="fas fa-comment mr-1"></i> <span data-testid="comment-count">{compactCount(comments)}</span>
           </button>
           {!isOwner && (
             <button onClick={() => (viewer ? onTip() : onNeedLogin())} className="flex items-center text-sm hover:text-pink-500 transition">
-              <i className="fas fa-hand-holding-usd mr-1"></i> Propina
+              <i aria-hidden="true" className="fas fa-hand-holding-usd mr-1"></i> Propina
             </button>
           )}
           {!isOwner && onGift && (
             <button onClick={() => (viewer ? onGift() : onNeedLogin())} className="flex items-center text-sm hover:text-pink-500 transition">
-              <i className="fas fa-gift mr-1"></i> Regalo
+              <i aria-hidden="true" className="fas fa-gift mr-1"></i> Regalo
             </button>
           )}
           <button onClick={share} className="flex items-center text-sm hover:text-pink-500 transition ml-auto">
-            <i className="fas fa-share mr-1"></i> {copied ? 'Enlace copiado' : 'Compartir'}
+            <i aria-hidden="true" className="fas fa-share mr-1"></i> {copied ? 'Enlace copiado' : 'Compartir'}
           </button>
           {onDelete && (
             <button onClick={onDelete} className="flex items-center text-sm hover:text-red-500 transition" aria-label="Eliminar publicación">
-              <i className="fas fa-trash mr-1"></i> Eliminar
+              <i aria-hidden="true" className="fas fa-trash mr-1"></i> Eliminar
             </button>
           )}
           {!isOwner && (
             <button onClick={onReport} className="flex items-center text-sm hover:text-red-500 transition" aria-label="Reportar publicación">
-              <i className="fas fa-flag mr-1"></i> Reportar
+              <i aria-hidden="true" className="fas fa-flag mr-1"></i> Reportar
             </button>
           )}
         </div>

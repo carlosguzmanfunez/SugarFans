@@ -37,7 +37,7 @@ const ReportDialog: React.FC<Props> = ({ kind, targetId, targetLabel, onClose })
       <div className="bg-white rounded-2xl max-w-md w-full p-6">
         {done ? (
           <div className="text-center py-4">
-            <i className="fas fa-check-circle text-4xl text-green-500 mb-3"></i>
+            <i aria-hidden="true" className="fas fa-check-circle text-4xl text-green-500 mb-3"></i>
             <h3 className="text-lg font-bold text-gray-900">Reporte enviado</h3>
             <p className="text-sm text-gray-600 mt-2">Nuestro equipo de moderación lo revisará. Gracias por ayudarnos a mantener la comunidad segura.</p>
             <button type="button" onClick={onClose} className="mt-5 bg-gray-900 text-white px-6 py-2 rounded-xl text-sm font-medium">Cerrar</button>
@@ -46,11 +46,11 @@ const ReportDialog: React.FC<Props> = ({ kind, targetId, targetLabel, onClose })
           <>
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h3 className="text-lg font-bold text-gray-900"><i className="fas fa-flag text-red-500 mr-2"></i>Reportar</h3>
+                <h3 className="text-lg font-bold text-gray-900"><i aria-hidden="true" className="fas fa-flag text-red-500 mr-2"></i>Reportar</h3>
                 <p className="text-sm text-gray-500 mt-1">{targetLabel}</p>
               </div>
               <button type="button" onClick={onClose} aria-label="Cerrar" className="text-gray-400 hover:text-gray-600">
-                <i className="fas fa-times"></i>
+                <i aria-hidden="true" className="fas fa-times"></i>
               </button>
             </div>
             <div className="space-y-3">

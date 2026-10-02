@@ -57,7 +57,7 @@ const PaymentMethodForm: React.FC<{ user: User; onAdded: (id: string) => void; o
             onClick={() => { setKind(k.id as PaymentKind); setError(''); }}
             className={`flex-1 py-2 rounded-md text-xs font-medium transition ${kind === k.id ? 'bg-white shadow text-pink-700' : 'text-gray-600'}`}
           >
-            <i className={`${paymentKindIcon[k.id as PaymentKind]} mr-1`}></i>{k.label}
+            <i aria-hidden="true" className={`${paymentKindIcon[k.id as PaymentKind]} mr-1`}></i>{k.label}
           </button>
         ))}
       </div>
@@ -71,7 +71,7 @@ const PaymentMethodForm: React.FC<{ user: User; onAdded: (id: string) => void; o
             <input className={input} placeholder="CVC" inputMode="numeric" autoComplete="cc-csc" value={cvc} onChange={(e) => setCvc(e.target.value.replace(/\D/g, '').slice(0, 4))} />
           </div>
           <p className="text-xs text-gray-500">
-            <i className="fas fa-lock mr-1"></i>Aceptamos Visa y Mastercard de crédito o débito. Solo guardamos la marca y los últimos 4 dígitos; el CVC nunca se almacena.
+            <i aria-hidden="true" className="fas fa-lock mr-1"></i>Aceptamos Visa y Mastercard de crédito o débito. Solo guardamos la marca y los últimos 4 dígitos; el CVC nunca se almacena.
           </p>
         </>
       )}

@@ -96,7 +96,7 @@ const NewPostForm: React.FC<Props> = ({ verified, asProfileId, onPublished, onCa
             <img src={preview} alt="Vista previa" className="w-full max-h-80 object-contain" />
           )}
           <button type="button" onClick={clearFile} aria-label="Quitar archivo" className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 text-white">
-            <i className="fas fa-times"></i>
+            <i aria-hidden="true" className="fas fa-times"></i>
           </button>
           <p className="text-xs text-gray-500 px-3 py-2 bg-white">{file?.name} · {((file?.size ?? 0) / 1024 / 1024).toFixed(1)} MB</p>
         </div>
@@ -108,10 +108,10 @@ const NewPostForm: React.FC<Props> = ({ verified, asProfileId, onPublished, onCa
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4">
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => imageInput.current?.click()} className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 hover:border-pink-300 hover:text-pink-600">
-            <i className="fas fa-image mr-1"></i> Foto
+            <i aria-hidden="true" className="fas fa-image mr-1"></i> Foto
           </button>
           <button type="button" onClick={() => videoInput.current?.click()} className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 hover:border-pink-300 hover:text-pink-600">
-            <i className="fas fa-video mr-1"></i> Video
+            <i aria-hidden="true" className="fas fa-video mr-1"></i> Video
           </button>
           <button
             type="button"
@@ -119,7 +119,7 @@ const NewPostForm: React.FC<Props> = ({ verified, asProfileId, onPublished, onCa
             onClick={() => setLocked(!locked)}
             className={`px-3 py-2 rounded-xl border text-sm transition ${locked ? 'border-pink-500 bg-pink-50 text-pink-600 font-medium' : 'border-gray-200 text-gray-700 hover:border-pink-300'}`}
           >
-            <i className="fas fa-lock mr-1"></i> Solo suscriptores{locked ? ' ✓' : ''}
+            <i aria-hidden="true" className="fas fa-lock mr-1"></i> Solo suscriptores{locked ? ' ✓' : ''}
           </button>
         </div>
         <div className="flex gap-2 justify-end">

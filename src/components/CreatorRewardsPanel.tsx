@@ -66,7 +66,7 @@ const CreatorRewardsPanel: React.FC = () => {
       </div>
 
       <div className="bg-gradient-to-br from-pink-500 to-purple-600 text-white rounded-2xl p-6">
-        <h3 className="font-bold text-lg"><i className="fas fa-link mr-2"></i>Tu enlace de invitación</h3>
+        <h3 className="font-bold text-lg"><i aria-hidden="true" className="fas fa-link mr-2"></i>Tu enlace de invitación</h3>
         <p className="text-sm opacity-90 mt-1">
           Compártelo en Instagram, TikTok o X. De cada fan que se registre con él te quedas con el {pct(REFERRAL_SHARE)} de lo que te pague durante {REFERRAL_DAYS} días.
         </p>
@@ -79,7 +79,7 @@ const CreatorRewardsPanel: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-2xl p-6 shadow-sm" data-testid="invite-creators">
-        <h3 className="font-bold text-gray-900 mb-1"><i className="fas fa-user-plus text-purple-500 mr-2"></i>Invita a otros creadores</h3>
+        <h3 className="font-bold text-gray-900 mb-1"><i aria-hidden="true" className="fas fa-user-plus text-purple-500 mr-2"></i>Invita a otros creadores</h3>
         <p className="text-sm text-gray-500 mb-4">
           Cuando al menos {CREATOR_INVITE_MIN} creadores se registren con este enlace, ganas un {pct(CREATOR_INVITE_BONUS)} extra de lo que venda cada uno
           (suscripciones, renovaciones y propinas) durante un mes. Lo pone {BRAND.name}: al creador que invitas no se le descuenta nada.
@@ -111,7 +111,7 @@ const CreatorRewardsPanel: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-2xl p-6 shadow-sm">
-        <h3 className="font-bold text-gray-900 mb-1"><i className="fas fa-bullseye text-pink-500 mr-2"></i>Metas del mes</h3>
+        <h3 className="font-bold text-gray-900 mb-1"><i aria-hidden="true" className="fas fa-bullseye text-pink-500 mr-2"></i>Metas del mes</h3>
         <p className="text-sm text-gray-500 mb-4">
           Cuentan los fans que se registran este mes con tu enlace y te pagan algo. La meta más alta que alcances sube tu comisión todo el mes siguiente (hasta {pct(MAX_SHARE)}) y te lleva a Creadores destacados.
         </p>
@@ -122,7 +122,7 @@ const CreatorRewardsPanel: React.FC = () => {
               <div key={g.fans} data-testid="reward-goal">
                 <div className="flex items-center justify-between text-sm mb-1">
                   <span className="font-medium text-gray-900">
-                    {done && <i className="fas fa-check-circle text-green-500 mr-1"></i>}
+                    {done && <i aria-hidden="true" className="fas fa-check-circle text-green-500 mr-1"></i>}
                     {g.label}
                   </span>
                   <span className="text-gray-500">+{pct(g.bonus)} de comisión · {Math.min(data.attractedThisMonth, g.fans)}/{g.fans}</span>
@@ -143,7 +143,7 @@ const CreatorRewardsPanel: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-2xl p-6 shadow-sm">
-        <h3 className="font-bold text-gray-900 mb-3"><i className="fas fa-medal text-amber-500 mr-2"></i>Niveles</h3>
+        <h3 className="font-bold text-gray-900 mb-3"><i aria-hidden="true" className="fas fa-medal text-amber-500 mr-2"></i>Niveles</h3>
         <div className="grid sm:grid-cols-4 gap-3">
           {LEVELS.map((l) => (
             <div key={l.id} className={`rounded-xl p-3 border text-sm ${l.id === level.id ? 'border-pink-400 bg-pink-50' : 'border-gray-100'}`}>
