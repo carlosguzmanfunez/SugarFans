@@ -4,6 +4,7 @@ import type { Creator } from '../data/mockData';
 import type { LevelId } from '../lib/rewards';
 import { compactCount } from '../lib/social';
 import { categoryVisual } from '../config/theme';
+import { categoryFor } from '../config/reserve';
 import { CoverImage } from './CoverArt';
 import Avatar from './Avatar';
 import ManagedBadge from './ManagedBadge';
@@ -33,7 +34,7 @@ const CreatorCard: React.FC<{
           {creator.category ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-black/30 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-md ring-1 ring-white/15">
               <i className={`fas ${visual!.icon} text-[10px]`} aria-hidden="true"></i>
-              {creator.category}
+              {categoryFor(creator.category).name}
             </span>
           ) : (
             <span />
@@ -46,7 +47,7 @@ const CreatorCard: React.FC<{
             )}
             {vip && (
               <span className="inline-flex items-center gap-1 rounded-full bg-night-900/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-gold-200 ring-1 ring-gold-300/30">
-                <i className="fas fa-ticket text-[9px]" aria-hidden="true"></i> VIP
+                <i className="fas fa-ticket text-[9px]" aria-hidden="true"></i> Reserve
               </span>
             )}
           </span>

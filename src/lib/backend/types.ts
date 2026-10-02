@@ -3,6 +3,7 @@ import type { PlatformBackend } from './platformTypes';
 import type { MediaUpload, SocialBackend } from './socialTypes';
 import type { GiftsBackend } from './giftTypes';
 import type { RewardsBackend } from './rewardTypes';
+import type { ApprovalMode, CancellationPolicyId, LocationType, PurposeId, ReserveModality } from '../../config/reserve';
 export type * from './platformTypes';
 export type * from './socialTypes';
 export type * from './giftTypes';
@@ -81,9 +82,50 @@ export interface TakenSlot {
   time: string;
 }
 
-// pending: waiting for the creator · accepted: waiting for the fan's payment
-// confirmed: paid, confirmation email sent · rejected / cancelled: closed
-export type BookingStatus = 'pending' | 'accepted' | 'confirmed' | 'rejected' | 'cancelled';
+// pending: waiting for the creator · countered: the creator proposed other
+// terms, waiting for the fan · accepted: waiting for the fan's payment ·
+// confirmed: paid, confirmation email sent · rejected / cancelled: closed.
+// reschedule_requested, completed and disputed are reserved for the next phase
+// (the database accepts them; "realizada" is derived from the date for now).
+export type BookingStatus =
+  | 'pending'
+  | 'countered'
+  | 'accepted'
+  | 'confirmed'
+  | 'rejected'
+  | 'cancelled'
+  | 'reschedule_requested'
+  | 'completed'
+  | 'disputed';
+
+// Terms a creator proposes instead of the requested ones.
+export interface CounterOffer {
+  price: number;
+  date: string;
+  time: string;
+  durationMinutes?: number;
+  note: string;
+  at: string;
+}
+
+// What a Reserve booking was for (vip_bookings.details). Empty on bookings made
+// before Reserve: those are virtual, for one person.
+export interface BookingDetails {
+  kind?: 'experience' | 'custom';
+  typeId?: string;
+  modality?: ReserveModality;
+  purpose?: PurposeId;
+  participants?: number;
+  locationType?: LocationType;
+  city?: string;
+  venue?: string;
+  // Price before a subscriber discount, and the discount applied.
+  listPrice?: number;
+  discountPercent?: number;
+  counter?: CounterOffer;
+  // Moderation flags for the creator's review (never blocking ones).
+  flags?: string[];
+}
 
 export interface VipBooking {
   id: string;
@@ -103,8 +145,9 @@ export interface VipBooking {
   updatedAt: string;
   paidAt?: string;
   emailSentAt?: string;
-  // Minutes of the live video session, when the experience has one.
+  // Minutes of the experience (the live video session when it is virtual).
   durationMinutes?: number;
+  details?: BookingDetails;
 }
 
 // The creator, title and price come from the experience itself (server side).
@@ -113,19 +156,69 @@ export interface BookingInput {
   date: string;
   time: string;
   message: string;
+  participants?: number;
 }
 
-export type ExperienceType = 'meet-greet' | 'qa-session' | 'custom-content' | 'early-access' | 'collaboration';
+// "Solicitar experiencia personalizada": a structured proposal to a creator.
+export interface CustomRequestInput {
+  creatorProfileId: string;
+  modality: ReserveModality;
+  purpose: PurposeId;
+  purposeNote: string;
+  date: string;
+  time: string;
+  durationMinutes: number;
+  participants: number;
+  locationType: LocationType;
+  city: string;
+  venue: string;
+  budget: number;
+  message: string;
+}
+
+export interface CounterInput {
+  price: number;
+  date: string;
+  time: string;
+  durationMinutes?: number;
+  note: string;
+}
+
+// The five original ids plus the Reserve catalogue (src/config/reserve.ts).
+export type ExperienceType = string;
+
+// How an experience is offered (vip_experiences.details). Experiences created
+// before Reserve have none: they read as virtual, online, manual approval.
+export interface ReserveDetails {
+  modality: ReserveModality;
+  locationTypes: LocationType[];
+  city?: string;
+  venue?: string;
+  includes: string[];
+  excludes: string[];
+  requirements: { verifiedFans: boolean; subscribersOnly: boolean; notes?: string };
+  minNoticeHours: number;
+  maxParticipants: number;
+  approval: ApprovalMode;
+  cancellationPolicy: CancellationPolicyId;
+  conditions?: string;
+  // Explicit subscriber perk: % off this experience.
+  subscriberDiscount?: number;
+  // Days (0–6) and hours this experience can be booked, within the creator's availability.
+  days?: number[];
+  hours?: string[];
+}
 
 export interface VipExperienceInput {
   title: string;
   description: string;
   type: ExperienceType;
   price: number;
-  // Minutes of the live video session; undefined for experiences without one.
+  // Minutes of the experience; undefined for delivered content without a session.
   durationMinutes?: number;
   image: string;
   active: boolean;
+  details?: ReserveDetails;
 }
 
 export interface VipExperience extends VipExperienceInput {
@@ -167,6 +260,11 @@ export interface Backend {
   createBooking(user: User, input: BookingInput): Promise<AuthResult>;
   // Creator accepts/rejects, fan cancels. Paying goes through payBooking.
   updateBooking(user: User, bookingId: string, next: BookingStatus): Promise<AuthResult>;
+  // Reserve: a fan's structured custom request, the creator's counter-offer
+  // (other price, date, time or duration, or a request for changes) and the fan's answer.
+  requestCustomExperience(user: User, input: CustomRequestInput): Promise<AuthResult>;
+  counterOffer(user: User, bookingId: string, input: CounterInput): Promise<AuthResult>;
+  respondCounter(user: User, bookingId: string, accept: boolean): Promise<AuthResult>;
   // Charges an accepted booking to a saved payment method and confirms it.
   payBooking(user: User, bookingId: string, methodId: string): Promise<AuthResult>;
   // Active experiences of every creator, plus the signed-in creator's inactive ones.

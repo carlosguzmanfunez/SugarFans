@@ -5,8 +5,6 @@ import { usePlatformQuery, platformApi, money } from '../lib/platform';
 import { socialApi } from '../lib/social';
 import GiftArt from './GiftArt';
 import {
-  CALL_MIN,
-  CALL_MINUTES,
   CIRCLE_HIGHEST_MIN,
   CIRCLE_LOWEST_MIN,
   DEFAULT_GIFT_SETTINGS,
@@ -56,7 +54,6 @@ const CreatorGiftsPanel: React.FC = () => {
   );
   const [circleMin, setCircleMin] = useState(String(DEFAULT_GIFT_SETTINGS.circleMin));
   const [offersVideo, setOffersVideo] = useState(false);
-  const [offersCall, setOffersCall] = useState(false);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
   const [vaultTitle, setVaultTitle] = useState('');
   const [vaultFile, setVaultFile] = useState<File | null>(null);
@@ -67,15 +64,14 @@ const CreatorGiftsPanel: React.FC = () => {
     if (!data) return;
     setCircleMin(String(data.settings.circleMin));
     setOffersVideo(data.settings.offersVideo);
-    setOffersCall(data.settings.offersCall);
-  }, [data?.settings.circleMin, data?.settings.offersVideo, data?.settings.offersCall]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [data?.settings.circleMin, data?.settings.offersVideo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!user || !data) return null;
   const say = (r: { ok: boolean; error?: string }, okText: string) =>
     setNotice(r.ok ? { ok: true, text: okText } : { ok: false, text: r.error || 'No se pudo completar la acción' });
 
   const save = async () => {
-    say(await saveGiftSettings(user, { circleMin: Number(circleMin), offersVideo, offersCall }), 'Configuración de regalos guardada');
+    say(await saveGiftSettings(user, { circleMin: Number(circleMin), offersVideo, offersCall: false }), 'Configuración de regalos guardada');
   };
 
   const uploadVault = async () => {
@@ -149,10 +145,9 @@ const CreatorGiftsPanel: React.FC = () => {
           <input type="checkbox" className="mt-1" checked={offersVideo} onChange={(e) => setOffersVideo(e.target.checked)} />
           <span>Ofrezco video personalizado con regalos de {money(VIDEO_MIN)} o más<span className="block text-xs text-gray-500">Tienes 7 días para entregarlo; si no, se devuelve el regalo al fan.</span></span>
         </label>
-        <label className="flex items-start gap-2 text-sm text-gray-700">
-          <input type="checkbox" className="mt-1" checked={offersCall} onChange={(e) => setOffersCall(e.target.checked)} />
-          <span>Ofrezco videollamada privada de {CALL_MINUTES} min con regalos de {money(CALL_MIN)}<span className="block text-xs text-gray-500">Agéndala en los 30 días siguientes; si no, se devuelve el regalo.</span></span>
-        </label>
+        <p className="text-xs text-gray-500" data-testid="gift-call-retired">
+          Los regalos ya no incluyen videollamadas: ofrécelas como experiencia en <Link to="/creator/dashboard?tab=vip" className="text-pink-600 hover:underline">Reserve</Link>. Las videollamadas ya ganadas con regalos se siguen agendando aquí.
+        </p>
         <button type="button" onClick={save} className="bg-gray-900 text-white px-5 py-2 rounded-lg text-sm font-medium">Guardar</button>
       </div>
 
@@ -188,7 +183,7 @@ const CreatorGiftsPanel: React.FC = () => {
                   </div>
                 )}
                 {p.status === 'scheduled' && p.bookingId && (
-                  <p className="text-xs text-gray-500">Aparece en tus Experiencias VIP con el botón para entrar a la sala.</p>
+                  <p className="text-xs text-gray-500">Aparece en tu Reserve con el botón para entrar a la sala.</p>
                 )}
               </div>
             ))}

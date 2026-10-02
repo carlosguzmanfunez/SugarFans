@@ -30,3 +30,5 @@ export const sendTip = (
 ) => after(backend.platform.sendTip(user, creatorProfileId, creatorName, amount, methodId, postId, message));
 
 export const compactCount = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, '')}K` : String(n));
+
+export const setFollow = (user: User, creatorProfileId: string, follow: boolean) => after(s.setFollow(user, creatorProfileId, follow));

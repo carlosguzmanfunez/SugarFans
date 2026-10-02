@@ -10,6 +10,7 @@ import { BRAND } from '../../config/brand';
 interface Store {
   likes: Record<string, string[]>; // post id -> user ids
   comments: PostComment[];
+  follows?: Record<string, string[]>; // creator profile id -> user ids
 }
 
 interface Deps {
@@ -30,6 +31,7 @@ const toPublicCreator = (a: User): PublicCreator => ({
   subscriptionPrice: a.subscriptionPrice ?? 9.99,
   posts: a.createdPosts.length,
   createdAt: a.createdAt,
+  category: a.settings.category ?? '',
 });
 const ok: AuthResult = { ok: true };
 const fail = (error: string): AuthResult => ({ ok: false, error });
@@ -178,6 +180,19 @@ export const createLocalSocial = (deps: Deps): SocialBackend => {
         .filter((a) => a.role === 'creator' && a.creatorProfileId && !DEMO_IDS.includes(a.creatorProfileId))
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
         .map(toPublicCreator);
+    },
+
+    async followState(creatorProfileId, viewer) {
+      const ids = load().follows?.[creatorProfileId] ?? [];
+      return { following: !!viewer && ids.includes(viewer.id), count: ids.length };
+    },
+
+    async setFollow(user, creatorProfileId, follow) {
+      if (user.creatorProfileId === creatorProfileId) return fail('No puedes seguir tu propio perfil');
+      return commit((st) => {
+        const ids = (st.follows?.[creatorProfileId] ?? []).filter((id) => id !== user.id);
+        return { ...st, follows: { ...st.follows, [creatorProfileId]: follow ? [...ids, user.id] : ids } };
+      });
     },
 
     async joinLive(user, bookingId, onMessage) {

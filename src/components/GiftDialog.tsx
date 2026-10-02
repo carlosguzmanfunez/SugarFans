@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import type { User } from '../context/AuthContext';
 import BuyCoinsDialog from './BuyCoinsDialog';
 import GiftArt from './GiftArt';
+import { ReserveNotice } from './reserve/ReserveBits';
+import { RESERVE_COPY } from '../config/reserve';
 import CoinIcon from './CoinIcon';
 import { currencyWord } from '../config/currency';
 import { giftCategoryLabel } from '../config/gifts';
@@ -10,7 +12,6 @@ import {
   GIFTS,
   GIFT_CATEGORIES,
   VIDEO_MIN,
-  CALL_MIN,
   DEFAULT_GIFT_SETTINGS,
   coinsToUsd,
   formatCoins,
@@ -131,11 +132,9 @@ const GiftDialog: React.FC<Props> = ({ user, creatorProfileId, creatorName, post
               </ul>
             )}
             {value >= VIDEO_MIN && !data.settings.offersVideo && (
-              <p className="text-xs text-gray-500">{creatorName} no ofrece video personalizado{value >= CALL_MIN && !data.settings.offersCall ? ' ni videollamada' : ''}: el regalo se envía sin esos beneficios.</p>
+              <p className="text-xs text-gray-500">{creatorName} no ofrece video personalizado: el regalo se envía sin ese beneficio.</p>
             )}
-            {value >= CALL_MIN && data.settings.offersVideo && !data.settings.offersCall && (
-              <p className="text-xs text-gray-500">{creatorName} no ofrece videollamada privada.</p>
-            )}
+            <ReserveNotice kind="gift" text={RESERVE_COPY.giftPerks} />
             {perks.video && (
               <textarea
                 aria-label="Qué quieres en tu video"

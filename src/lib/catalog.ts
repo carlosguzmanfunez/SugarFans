@@ -36,7 +36,7 @@ export const fromPublic = (c: PublicCreator): Creator => ({
   followers: 0,
   likes: 0,
   postsCount: c.posts,
-  category: '',
+  category: c.category ?? '',
   tags: [],
 });
 

@@ -17,6 +17,11 @@ import TipDialog from '../components/TipDialog';
 import GiftDialog from '../components/GiftDialog';
 import CircleSection from '../components/CircleSection';
 import NewPostForm from '../components/NewPostForm';
+import AccessLadder, { useFollow } from '../components/reserve/AccessLadder';
+import CreatorReserveSection from '../components/reserve/CreatorReserveSection';
+import { ReserveNotice } from '../components/reserve/ReserveBits';
+import { backend } from '../lib/backend';
+import type { VipExperience } from '../lib/vip';
 import { socialApi, compactCount, type PublicCreator } from '../lib/social';
 import {
   usePlatformQuery,
@@ -64,6 +69,12 @@ const CreatorProfile: React.FC = () => {
   );
   const creator: Creator | undefined = catalogCreator ?? (signedUp ? fromPublic(signedUp) : undefined);
   const levels = useLevels(id ? [id] : []);
+  const follow = useFollow(id, user);
+  const { data: experiences } = usePlatformQuery(
+    async () => (await backend.listExperiences()).filter((e) => e.creatorProfileId === id && e.active),
+    [id],
+    [] as VipExperience[]
+  );
 
   // Posts published from the creator panel, then like/comment totals for every post.
   const { data: feed } = usePlatformQuery(
@@ -315,7 +326,7 @@ const CreatorProfile: React.FC = () => {
           {/* Stats */}
           <div className="flex space-x-6 mt-6 text-sm">
             <div className="text-center">
-              <p className="font-bold text-gray-900">{compactCount(creator.followers)}</p>
+              <p className="font-bold text-gray-900">{compactCount(creator.followers + follow.count)}</p>
               <p className="text-gray-500">Seguidores</p>
             </div>
             <div className="text-center">
@@ -340,6 +351,22 @@ const CreatorProfile: React.FC = () => {
             ))}
           </div>
         </div>
+
+        {!iBlocked && !blockedMe && (
+          <>
+            <AccessLadder
+              creator={{ ...creator, followers: creator.followers + follow.count }}
+              user={user}
+              isOwner={isOwner}
+              isSubscribed={isSubscribed}
+              following={follow.following}
+              experiences={experiences.length}
+              onSubscribe={handleSubscribe}
+              onNeedLogin={goLogin}
+            />
+            <CreatorReserveSection creator={creator} experiences={experiences} user={user} isOwner={isOwner} onNeedLogin={goLogin} />
+          </>
+        )}
 
         {/* Tabs */}
         <div className="flex space-x-1 bg-white rounded-xl p-1 shadow-sm mb-6">
@@ -500,6 +527,7 @@ const CreatorProfile: React.FC = () => {
           amount={creator.subscriptionPrice}
           note={`Mensual. Se renueva el día ${addMonths(new Date().toISOString(), 1).getDate()} de cada mes; cancela cuando quieras.`}
           confirmLabel="Suscribirme y pagar"
+          extra={<ReserveNotice kind="subscription" />}
           onConfirm={confirmPayment}
           onClose={() => setCheckout(false)}
         />

@@ -8,6 +8,8 @@ export const REPORT_REASONS = [
   'Violación de derechos de autor',
   'Spam o fraude',
   'Menores de edad',
+  'Servicio prohibido (sexual, escort o citas)',
+  'Problema con una reserva (no-show, cancelación)',
   'Otro',
 ];
 

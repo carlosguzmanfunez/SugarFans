@@ -5,12 +5,13 @@ import CreatorPayouts from '../components/CreatorPayouts';
 import CreatorGiftsPanel from '../components/CreatorGiftsPanel';
 import CreatorRewardsPanel from '../components/CreatorRewardsPanel';
 import { usePlatformQuery, platformApi, computeEarnings, iBlocked, blockUser, unblockUser, money, CREATOR_SHARE, creatorCut, transactionLabel } from '../lib/platform';
-import { statusLabel, formatLongDate, WEEKDAYS, ALL_HOURS, MAX_BOOKING_MONTHS, DEFAULT_AVAILABILITY } from '../lib/vip';
+import { WEEKDAYS, ALL_HOURS, MAX_BOOKING_MONTHS, DEFAULT_AVAILABILITY } from '../lib/vip';
 import { backend } from '../lib/backend';
 import { useBackendData } from '../lib/useBackendData';
 import NewPostForm from '../components/NewPostForm';
-import LiveRoomButton from '../components/LiveRoomButton';
-import CreatorExperiencesPanel from '../components/CreatorExperiencesPanel';
+import CreatorReservePanel from '../components/reserve/CreatorReservePanel';
+import { CREATOR_CATEGORIES, categoryFor } from '../config/reserve';
+import { creators as demoCreators } from '../data/mockData';
 import { socialApi, compactCount } from '../lib/social';
 import { posts as catalogPosts } from '../data/mockData';
 import { BRAND, displayPayer } from '../config/brand';
@@ -25,7 +26,9 @@ const CreatorDashboard: React.FC = () => {
   const [displayName, setDisplayName] = useState(user?.name ?? '');
   const [bio, setBio] = useState(user?.bio ?? '');
   const [price, setPrice] = useState(String(user?.subscriptionPrice ?? 9.99));
-  const [category, setCategory] = useState(user?.settings.category ?? 'Modelaje');
+  const [category, setCategory] = useState(
+    categoryFor(user?.settings.category || demoCreators.find((c) => c.id === user?.creatorProfileId)?.category).name
+  );
 
   const profileId = user?.creatorProfileId ?? user?.id ?? '';
   const [availDays, setAvailDays] = useState<number[]>(DEFAULT_AVAILABILITY.days);
@@ -37,7 +40,7 @@ const CreatorDashboard: React.FC = () => {
     });
   }, [profileId]);
   const { data: vipBookings, reload: reloadBookings } = useBackendData(() => backend.creatorBookings(profileId), [profileId], []);
-  const pendingVip = vipBookings.filter((b) => b.status === 'pending').length;
+  const pendingVip = vipBookings.filter((b) => b.status === 'pending' || b.status === 'reschedule_requested').length;
 
   // Real verification state, fan payments (80% for the creator), subscribers and blocks.
   const verified = !!user?.isVerified;
@@ -67,12 +70,6 @@ const CreatorDashboard: React.FC = () => {
 
   const handleSaveAvailability = async () => {
     show(await backend.setAvailability(profileId, { days: availDays, hours: availHours }), 'Horarios guardados');
-  };
-
-  const handleBookingDecision = async (id: string, next: 'accepted' | 'rejected') => {
-    if (!user) return;
-    show(await backend.updateBooking(user, id, next), next === 'accepted' ? 'Reserva aceptada. El fan ya puede pagar.' : 'Reserva rechazada');
-    await reloadBookings();
   };
 
   // My published posts (with their photo/video) and likes/comments on everything on my profile.
@@ -191,7 +188,7 @@ const CreatorDashboard: React.FC = () => {
             { id: 'earnings', label: 'Ingresos', icon: 'fa-wallet' },
             { id: 'gifts', label: 'Regalos', icon: 'fa-gift' },
             { id: 'rewards', label: 'Recompensas', icon: 'fa-trophy' },
-            { id: 'vip', label: `Experiencias VIP${pendingVip ? ` (${pendingVip})` : ''}`, icon: 'fa-crown' },
+            { id: 'vip', label: `Reserve${pendingVip ? ` (${pendingVip})` : ''}`, icon: 'fa-ticket' },
             { id: 'settings', label: 'Configuración', icon: 'fa-cog' },
           ].map((tab) => (
             <button
@@ -391,88 +388,54 @@ const CreatorDashboard: React.FC = () => {
         {activeTab === 'rewards' && <CreatorRewardsPanel />}
 
         {activeTab === 'vip' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <CreatorExperiencesPanel />
-            <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="vip-availability">
-              <h3 className="font-bold text-gray-900 mb-1">Mis horarios para experiencias VIP</h3>
-              <p className="text-sm text-gray-500 mb-5">
-                Los fans solo podrán reservar en estos días y horas, con hasta {MAX_BOOKING_MONTHS} meses de antelación.
-              </p>
-              <p className="text-sm font-medium text-gray-700 mb-2">Días</p>
-              <div className="flex flex-wrap gap-2 mb-5">
-                {WEEKDAYS.map((d, i) => (
-                  <button
-                    key={d}
-                    type="button"
-                    aria-pressed={availDays.includes(i)}
-                    onClick={() => setAvailDays(toggle(availDays, i))}
-                    className={`w-12 py-2 rounded-xl text-sm font-medium border transition ${
-                      availDays.includes(i) ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-200 text-gray-600 hover:border-purple-300'
-                    }`}
-                  >
-                    {d}
-                  </button>
-                ))}
-              </div>
-              <p className="text-sm font-medium text-gray-700 mb-2">Horas</p>
-              <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 mb-6">
-                {ALL_HOURS.map((h) => (
-                  <button
-                    key={h}
-                    type="button"
-                    aria-pressed={availHours.includes(h)}
-                    onClick={() => setAvailHours(toggle(availHours, h))}
-                    className={`py-2 rounded-xl text-sm font-medium border transition ${
-                      availHours.includes(h) ? 'bg-pink-500 text-white border-pink-500' : 'border-gray-200 text-gray-600 hover:border-pink-300'
-                    }`}
-                  >
-                    {h}
-                  </button>
-                ))}
-              </div>
-              <button onClick={handleSaveAvailability} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition">
-                Guardar horarios
-              </button>
-            </div>
-
-            <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="vip-requests">
-              <h3 className="font-bold text-gray-900 mb-4">Solicitudes de reserva</h3>
-              {vipBookings.length === 0 ? (
-                <p className="text-sm text-gray-500">Aún no tienes solicitudes.</p>
-              ) : (
-                <div className="space-y-3">
-                  {vipBookings.map((b) => (
-                    <div key={b.id} data-testid="vip-request" className="border border-gray-100 rounded-xl p-4">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{b.title}</p>
-                          <p className="text-xs text-gray-500">
-                            {b.fanName} · <span className="first-letter:uppercase">{formatLongDate(b.date)}</span> · {b.time}
-                          </p>
-                        </div>
-                        <span className="text-sm font-bold text-gray-900">${b.price}</span>
-                      </div>
-                      {b.message && <p className="text-sm text-gray-600 mt-2 italic">“{b.message}”</p>}
-                      <div className="flex items-center justify-between mt-3">
-                        <span className={`text-xs px-2 py-1 rounded-full ${statusLabel[b.status].className}`}>{statusLabel[b.status].text}</span>
-                        {b.status === 'confirmed' && <LiveRoomButton booking={b} />}
-                        {b.status === 'pending' && (
-                          <div className="flex gap-2">
-                            <button onClick={() => handleBookingDecision(b.id, 'rejected')} className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">
-                              Rechazar
-                            </button>
-                            <button onClick={() => handleBookingDecision(b.id, 'accepted')} className="text-xs px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700">
-                              Aceptar
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+          <CreatorReservePanel
+            availability={{ days: availDays, hours: availHours }}
+            bookings={vipBookings}
+            reloadBookings={reloadBookings}
+            availabilityEditor={
+              <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="vip-availability">
+                <h3 className="font-bold text-gray-900 mb-1">Horarios generales de Reserve</h3>
+                <p className="text-sm text-gray-500 mb-5">
+                  Los fans solo podrán reservar en estos días y horas, con hasta {MAX_BOOKING_MONTHS} meses de antelación. Cada experiencia puede limitarlos aún más.
+                </p>
+                <p className="text-sm font-medium text-gray-700 mb-2">Días</p>
+                <div className="flex flex-wrap gap-2 mb-5">
+                  {WEEKDAYS.map((d, i) => (
+                    <button
+                      key={d}
+                      type="button"
+                      aria-pressed={availDays.includes(i)}
+                      onClick={() => setAvailDays(toggle(availDays, i))}
+                      className={`w-12 py-2 rounded-xl text-sm font-medium border transition ${
+                        availDays.includes(i) ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-200 text-gray-600 hover:border-purple-300'
+                      }`}
+                    >
+                      {d}
+                    </button>
                   ))}
                 </div>
-              )}
-            </div>
-          </div>
+                <p className="text-sm font-medium text-gray-700 mb-2">Horas</p>
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 mb-6">
+                  {ALL_HOURS.map((h) => (
+                    <button
+                      key={h}
+                      type="button"
+                      aria-pressed={availHours.includes(h)}
+                      onClick={() => setAvailHours(toggle(availHours, h))}
+                      className={`py-2 rounded-xl text-sm font-medium border transition ${
+                        availHours.includes(h) ? 'bg-pink-500 text-white border-pink-500' : 'border-gray-200 text-gray-600 hover:border-pink-300'
+                      }`}
+                    >
+                      {h}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={handleSaveAvailability} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition">
+                  Guardar horarios
+                </button>
+              </div>
+            }
+          />
         )}
 
         {activeTab === 'settings' && (
@@ -494,12 +457,11 @@ const CreatorDashboard: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Categoría principal</label>
                 <select name="category" value={category} onChange={(e) => setCategory(e.target.value)} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none">
-                  <option>Modelaje</option>
-                  <option>Fitness</option>
-                  <option>Arte</option>
-                  <option>Música</option>
-                  <option>Lifestyle</option>
+                  {CREATOR_CATEGORIES.map((c) => (
+                    <option key={c.id} value={c.name}>{c.name}</option>
+                  ))}
                 </select>
+                <p className="mt-1 text-xs text-gray-500">Define qué experiencias puedes ofrecer en Reserve.</p>
               </div>
               <button onClick={handleSaveSettings} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition">
                 Guardar cambios

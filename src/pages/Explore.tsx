@@ -6,6 +6,7 @@ import CreatorCard from '../components/CreatorCard';
 import Avatar from '../components/Avatar';
 import { CoverImage } from '../components/CoverArt';
 import { categoryVisual } from '../config/theme';
+import { categoryFor, isKnownCategory } from '../config/reserve';
 import { featuredFirst, useFeatured } from '../lib/rewards';
 import { useAuth } from '../context/AuthContext';
 import { usePlatformQuery, platformApi, isCutOff } from '../lib/platform';
@@ -32,7 +33,8 @@ const Explore: React.FC = () => {
   // ?category=<name> preselects a category (landing tiles link here).
   const [selectedCategory, setSelectedCategory] = useState(() => {
     const requested = params.get('category') ?? '';
-    return categories.some((c) => c.name === requested) ? requested : '';
+    const match = categories.find((c) => c.name === requested || (isKnownCategory(requested) && categoryFor(requested).id === c.id));
+    return match?.name ?? '';
   });
   const [viewMode, setViewMode] = useState<'creators' | 'posts'>('creators');
 
@@ -40,7 +42,7 @@ const Explore: React.FC = () => {
     if (hidden(c.id)) return false;
     const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.username.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = !selectedCategory || c.category === selectedCategory;
+    const matchesCategory = !selectedCategory || (!!c.category && categoryFor(c.category).id === categoryFor(selectedCategory).id);
     return matchesSearch && matchesCategory;
   });
 

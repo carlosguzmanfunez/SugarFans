@@ -8,7 +8,7 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
     title: 'Plataforma',
     links: [
       { label: 'Explorar creadores', to: '/explore' },
-      { label: 'Experiencias VIP', to: '/vip-experiences' },
+      { label: 'Reserve', to: '/reserve' },
       { label: 'Crear cuenta', to: '/register' },
       { label: 'Centro de ayuda', to: '/help' },
     ],
@@ -48,7 +48,7 @@ const Footer: React.FC = () => (
         <div className="max-w-sm">
           <BrandLogo size="sm" tone="dark" />
           <p className="mt-5 text-[15px] leading-relaxed text-white/60">
-            Membresías, contenido exclusivo, sesiones en vivo y experiencias VIP. El lugar donde los creadores conectan con sus verdaderos fans.
+            Membresías, contenido exclusivo, sesiones en vivo y Reserve: experiencias definidas por cada creator.
           </p>
           <ul className="mt-6 flex flex-wrap gap-2 text-xs">
             {[

@@ -84,12 +84,15 @@ export const validateCircleMin = (min: number) =>
     ? { ok: true }
     : { ok: false, error: `La entrada al Círculo debe estar entre $${CIRCLE_LOWEST_MIN} y $${CIRCLE_HIGHEST_MIN}` };
 
-// Perks a gift of this value earns with this creator's settings.
+// Perks a gift of this value earns with this creator's settings. Gifts no longer
+// earn a private video call: calls are experiences booked in Reserve, and a gift
+// never buys a conversation or a meeting. Call perks earned before keep working.
+export const GIFT_CALLS_RETIRED = true;
 export const perksFor = (value: number, s: CreatorGiftSettings) => ({
   circle: value >= s.circleMin || value >= VAULT_MIN,
   vault: value >= VAULT_MIN,
   video: value >= VIDEO_MIN && s.offersVideo,
-  call: value >= CALL_MIN && s.offersCall,
+  call: !GIFT_CALLS_RETIRED && value >= CALL_MIN && s.offersCall,
 });
 
 const DAY = 86_400_000;

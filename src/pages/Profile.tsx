@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { useCreatorCatalog } from '../lib/catalog';
-import { statusLabel, formatLongDate, type BookingStatus, type VipBooking } from '../lib/vip';
+import { formatLongDate, type VipBooking } from '../lib/vip';
+import ReserveBookingCard from '../components/reserve/ReserveBookingCard';
 import CheckoutDialog from '../components/CheckoutDialog';
 import { backend } from '../lib/backend';
 import { useBackendData } from '../lib/useBackendData';
-import LiveRoomButton from '../components/LiveRoomButton';
 import { usePlatformQuery, platformApi, platformChanged, nextRenewal } from '../lib/platform';
 import { displayEmail } from '../config/demoAccounts';
 
@@ -17,22 +17,14 @@ const Profile: React.FC = () => {
   const { creators } = useCreatorCatalog();
   const { data: myBookings, reload } = useBackendData(() => (user ? backend.fanBookings(user.id) : Promise.resolve([])), [user?.id], []);
   const { data: verification } = usePlatformQuery(() => (user ? platformApi.myVerification(user.id) : Promise.resolve(null)), [user?.id], null);
-  const [bookingError, setBookingError] = useState('');
   const [paying, setPaying] = useState<VipBooking | null>(null);
 
   if (!user) return null;
-
-  const changeBooking = async (id: string, next: BookingStatus) => {
-    const result = await backend.updateBooking(user, id, next);
-    setBookingError(result.ok ? '' : result.error || 'No se pudo actualizar la reserva');
-    await reload();
-  };
 
   const payBooking = async (methodId: string) => {
     const result = await backend.payBooking(user, paying!.id, methodId);
     if (result.ok) {
       setPaying(null);
-      setBookingError('');
       platformChanged();
       await reload();
     }
@@ -102,54 +94,21 @@ const Profile: React.FC = () => {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white rounded-2xl shadow-sm p-5" data-testid="bookings">
-            <h3 className="font-bold text-gray-900 mb-3">
-              <i aria-hidden="true" className="fas fa-crown text-pink-500 mr-2"></i> Reservas VIP
-            </h3>
-            {bookingError && <p role="alert" className="text-sm text-red-600 mb-2">{bookingError}</p>}
+          <div className="bg-white rounded-2xl shadow-sm p-5 md:col-span-2" data-testid="bookings">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h3 className="font-bold text-gray-900">
+                <i aria-hidden="true" className="fas fa-ticket text-brand-600 mr-2"></i> Mis reservas
+              </h3>
+              <Link to="/reserve" className="text-sm font-medium text-brand-700">Ver Reserve</Link>
+            </div>
             {myBookings.length === 0 ? (
               <p className="text-sm text-gray-500">
-                Aún no tienes reservas. <Link to="/vip-experiences" className="text-pink-600">Ver experiencias</Link>
+                Aún no tienes reservas. <Link to="/reserve" className="text-pink-600">Ver experiencias</Link>
               </p>
             ) : (
               <div className="space-y-3">
                 {myBookings.map((b) => (
-                  <div key={b.id} data-testid="booking" className="py-2 border-b border-gray-100 last:border-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{b.title} - {b.creatorName}</p>
-                        <p className="text-xs text-gray-500 first-letter:uppercase">{formatLongDate(b.date)} · {b.time}</p>
-                      </div>
-                      <span className="text-sm font-bold text-gray-900">${b.price}</span>
-                    </div>
-                    <div className="flex flex-wrap items-center justify-between mt-2 gap-2">
-                      <span className={`text-xs px-2 py-1 rounded-full ${statusLabel[b.status].className}`}>{statusLabel[b.status].text}</span>
-                      <div className="flex items-center gap-3">
-                        <LiveRoomButton booking={b} />
-                        {b.status === 'accepted' && (
-                          <button
-                            onClick={() => setPaying(b)}
-                            className="text-xs bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-1.5 rounded-lg font-medium"
-                          >
-                            Pagar ${b.price}
-                          </button>
-                        )}
-                        {(b.status === 'pending' || b.status === 'accepted') && (
-                          <button
-                            onClick={() => changeBooking(b.id, 'cancelled')}
-                            className="text-xs text-red-600 hover:text-red-700"
-                          >
-                            Cancelar
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    {b.emailSentAt && (
-                      <p className="text-xs text-green-700 mt-2">
-                        <i aria-hidden="true" className="fas fa-envelope mr-1"></i> Correo de confirmación enviado a {b.fanEmail}
-                      </p>
-                    )}
-                  </div>
+                  <ReserveBookingCard key={b.id} booking={b} user={user} as="fan" testId="booking" onChanged={reload} onPay={setPaying} />
                 ))}
               </div>
             )}

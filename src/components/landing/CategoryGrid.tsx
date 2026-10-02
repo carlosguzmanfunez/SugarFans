@@ -14,7 +14,7 @@ const CategoryGrid: React.FC = () => (
       <ul className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-3">
         {categories.map((cat) => {
           const v = categoryVisual(cat.name);
-          const vip = cat.name === 'Experiencias VIP';
+          const vip = false;
           return (
             <li key={cat.id}>
               <Link

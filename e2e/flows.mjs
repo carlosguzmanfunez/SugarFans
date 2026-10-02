@@ -4,6 +4,11 @@
 // "Confirm email" disabled). Serves dist/ with `vite preview`.
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
+import { readFileSync, mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { build } from 'esbuild';
 
 const PORT = 4173;
 const BASE = process.env.E2E_BASE_URL || `http://localhost:${PORT}`;
@@ -19,6 +24,25 @@ const check = async (name, fn) => {
     results.push({ name, ok: false, error: String(err.message || err).split('\n')[0] });
     console.log(`  ✗ ${name}\n      ${String(err.message || err).split('\n').slice(0, 3).join('\n      ')}`);
   }
+};
+
+// Reserve's product rules (categories, allowed experiences, moderation and
+// validation), bundled straight from the sources the app uses.
+const loadReserveRules = async () => {
+  const out = join(mkdtempSync(join(tmpdir(), 'reserve-rules-')), 'rules.mjs');
+  await build({
+    stdin: {
+      contents: "export * from './src/config/reserve.ts'; export * from './src/lib/moderation.ts'; export { validateExperience, defaultDetails } from './src/lib/vip.ts';",
+      resolveDir: new URL('..', import.meta.url).pathname,
+      loader: 'ts',
+    },
+    bundle: true,
+    format: 'esm',
+    platform: 'node',
+    outfile: out,
+    logLevel: 'silent',
+  });
+  return import(pathToFileURL(out).href);
 };
 
 const expect = (cond, msg) => {
@@ -97,24 +121,56 @@ const isoDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2
 const addMonths = (d, n) => new Date(d.getFullYear(), d.getMonth() + n, d.getDate());
 let vipDate = '';
 
-// Opens the booking modal for the first experience (Valentina Rose, creator profile 1).
+// Opens the Reserve request for the first experience (Valentina Rose's 1:1 video
+// call, creator profile 1: manual approval, 24 h minimum notice).
+const RESERVE_BUTTON = /^(Solicitar|Reservar): /;
 const openBooking = async (page) => {
-  await page.goto(`${BASE}/vip-experiences`);
-  await page.getByRole('button', { name: 'Reservar Ahora' }).first().click();
+  await page.goto(`${BASE}/reserve`);
+  await page.getByRole('button', { name: RESERVE_BUTTON }).first().click();
   await page.getByTestId('booking-calendar').waitFor();
 };
 
+// First bookable day at least two days ahead, so the 24 h minimum notice never
+// hides part of the day.
 const pickFirstDate = async (page) => {
   const cal = page.getByTestId('booking-calendar');
+  const from = isoDate(new Date(Date.now() + 2 * 86400000));
   for (let i = 0; i < 4; i++) {
-    const day = cal.locator('button[data-date]:not([disabled])').first();
-    if (await day.count()) {
-      await day.click();
-      return day.getAttribute('data-date');
+    const days = cal.locator('button[data-date]:not([disabled])');
+    for (let j = 0; j < (await days.count()); j++) {
+      const iso = await days.nth(j).getAttribute('data-date');
+      if (iso >= from) {
+        await days.nth(j).click();
+        return iso;
+      }
     }
     await cal.getByRole('button', { name: 'Mes siguiente' }).click();
   }
   throw new Error('no hay días disponibles');
+};
+
+// Creates an experience with the 14-step "Crear experiencia" wizard, keeping the
+// defaults except name, description and price.
+const createExperience = async (page, { title, description, price }) => {
+  await page.getByRole('button', { name: /Crear experiencia/ }).click();
+  const form = page.getByTestId('experience-form');
+  const next = () => form.getByRole('button', { name: 'Siguiente' }).click();
+  await next();
+  await form.locator('input[name=expTitle]').fill(title);
+  await next();
+  await form.locator('textarea[name=expDescription]').fill(description);
+  await next();
+  await next(); // modalidad
+  await next(); // duración
+  await form.locator('input[name=expPrice]').fill(String(price));
+  for (let i = 5; i < 13; i++) await next();
+  await form.getByRole('button', { name: 'Publicar experiencia' }).click();
+};
+
+// Opens a section of the creator's Reserve tab.
+const openReserveSection = async (page, section) => {
+  await page.getByRole('button', { name: /^Reserve/ }).click();
+  await page.getByRole('navigation', { name: 'Secciones de Reserve' }).getByRole('button', { name: new RegExp(`^${section}`) }).click();
 };
 
 const pickDate = async (page, iso) => {
@@ -232,7 +288,7 @@ const run = async () => {
       expect(broken.length === 0, `imágenes rotas: ${broken.map((i) => i.src).join(', ')}`);
     });
     await check('Ninguna página pública muestra la marca antigua, Terrones ni imágenes externas', async () => {
-      for (const path of ['/', '/explore', '/creator/1', '/vip', '/help', '/legal', '/register', '/login']) {
+      for (const path of ['/', '/explore', '/creator/1', '/reserve', '/help', '/legal', '/register', '/login']) {
         await page.goto(`${BASE}${path}`);
         await page.locator('main, #root').first().waitFor();
         await page.waitForTimeout(150);
@@ -474,7 +530,7 @@ const run = async () => {
       await waitPath(page, '/explore');
     });
 
-    console.log('\nSuscripciones y reservas VIP');
+    console.log('\nSuscripciones y Reserve');
     await check('Suscribirse sin método de pago pide añadir uno y rechaza una tarjeta inválida', async () => {
       await page.goto(`${BASE}/creator/1`);
       await page.getByRole('button', { name: /Suscribirse \$/ }).first().click();
@@ -602,7 +658,7 @@ const run = async () => {
     });
     await check('Reserva VIP exige elegir día y hora', async () => {
       await openBooking(page);
-      await page.getByRole('button', { name: 'Confirmar Reserva' }).click();
+      await page.getByRole('button', { name: /Enviar solicitud/ }).click();
       await page.getByText('Elige un día').waitFor();
     });
     await check('El calendario solo permite reservar hasta 3 meses', async () => {
@@ -643,12 +699,12 @@ const run = async () => {
     });
     await check('La reserva queda esperando la aceptación del creador', async () => {
       await page.getByTestId('time-slots').getByRole('button', { name: '12:00' }).click();
-      await page.getByRole('button', { name: 'Confirmar Reserva' }).click();
-      await page.getByText('¡Reserva enviada!').waitFor();
+      await page.getByRole('button', { name: /Enviar solicitud/ }).click();
+      await page.getByText('¡Solicitud enviada!').waitFor();
       await page.getByRole('link', { name: 'Ver mis reservas' }).click();
       await page.reload();
       const booking = page.getByTestId('booking').filter({ hasText: '12:00' });
-      await booking.getByText('Esperando al creador').waitFor();
+      await booking.getByText('Solicitud pendiente').waitFor();
       expect((await booking.getByRole('button', { name: /Pagar/ }).count()) === 0, 'deja pagar antes de que el creador acepte');
       expect((await booking.getByText(/Correo de confirmación/).count()) === 0, 'envió correo antes de tiempo');
     });
@@ -660,8 +716,8 @@ const run = async () => {
         await openBooking(page);
         await pickDate(page, vipDate);
         await page.getByTestId('time-slots').getByRole('button', { name: h }).click();
-        await page.getByRole('button', { name: 'Confirmar Reserva' }).click();
-        await page.getByText('¡Reserva enviada!').waitFor();
+        await page.getByRole('button', { name: /Enviar solicitud/ }).click();
+        await page.getByText('¡Solicitud enviada!').waitFor();
       }
     });
     await check('Cancelar una reserva pendiente persiste', async () => {
@@ -672,8 +728,8 @@ const run = async () => {
     });
     await check('Sin sesión, "Reservar" lleva a login', async () => {
       await logoutViaMenu(page);
-      await page.goto(`${BASE}/vip-experiences`);
-      await page.getByRole('button', { name: 'Reservar Ahora' }).first().click();
+      await page.goto(`${BASE}/reserve`);
+      await page.getByRole('button', { name: RESERVE_BUTTON }).first().click();
       await waitPath(page, '/login');
     });
 
@@ -832,17 +888,12 @@ const run = async () => {
       await page.getByRole('button', { name: 'Guardar cambios' }).click();
       await page.getByText(/precio debe estar/).waitFor();
     });
-    await check('Una creadora nueva crea su experiencia VIP y aparece en la página VIP', async () => {
+    await check('Una creadora nueva crea su experiencia con el asistente y aparece en Reserve', async () => {
       await page.goto(`${BASE}/creator/dashboard?tab=vip`);
-      const panel = page.getByTestId('vip-experiences-admin');
-      await panel.getByRole('button', { name: /Nueva experiencia/ }).click();
-      const form = panel.getByTestId('experience-form');
-      await form.locator('input[name=expTitle]').fill('Clase privada de baile');
-      await form.locator('textarea[name=expDescription]').fill('Una clase uno a uno por videollamada.');
-      await form.locator('input[name=expPrice]').fill('40');
-      await form.getByRole('button', { name: 'Guardar experiencia' }).click();
-      await panel.getByTestId('my-experience').filter({ hasText: 'Clase privada de baile' }).waitFor();
-      await page.goto(`${BASE}/vip-experiences`);
+      await createExperience(page, { title: 'Clase privada de baile', description: 'Una clase uno a uno por videollamada.', price: 40 });
+      await page.getByText('Experiencia publicada.').waitFor();
+      await page.getByTestId('vip-experiences-admin').getByTestId('my-experience').filter({ hasText: 'Clase privada de baile' }).waitFor();
+      await page.goto(`${BASE}/reserve`);
       await page.getByText('Clase privada de baile').waitFor();
       await page.getByText('Lola Creadora').first().waitFor();
     });
@@ -970,31 +1021,33 @@ const run = async () => {
       await logoutViaMenu(page);
     });
 
-    console.log('\nReservas VIP: creador acepta, fan paga, correo de confirmación');
+    console.log('\nReserve: creador acepta, fan paga, correo de confirmación');
     await check('El creador configura sus horarios y persisten', async () => {
       await login(page, 'creator@sugarfans.com', 'demo1234');
       await waitPath(page, '/explore');
       await page.goto(`${BASE}/creator/dashboard`);
-      await page.getByRole('button', { name: /Experiencias VIP/ }).click();
+      await openReserveSection(page, 'Disponibilidad');
       const panel = page.getByTestId('vip-availability');
       await panel.getByRole('button', { name: '10:00' }).click();
       await panel.getByRole('button', { name: '20:00' }).click();
       await panel.getByRole('button', { name: 'Guardar horarios' }).click();
       await page.getByText('Horarios guardados').waitFor();
       await page.reload();
-      await page.getByRole('button', { name: /Experiencias VIP/ }).click();
+      await openReserveSection(page, 'Disponibilidad');
       const saved = page.getByTestId('vip-availability');
       expect((await saved.getByRole('button', { name: '20:00' }).getAttribute('aria-pressed')) === 'true', '20:00 no se guardó');
       expect((await saved.getByRole('button', { name: '10:00' }).getAttribute('aria-pressed')) === 'false', '10:00 no se quitó');
     });
     await check('El creador ve las solicitudes y acepta o rechaza', async () => {
+      await openReserveSection(page, 'Solicitudes');
       const requests = page.getByTestId('vip-requests');
       await requests.getByTestId('vip-request').filter({ hasText: '12:00' }).getByRole('button', { name: 'Aceptar' }).click();
       await requests.getByTestId('vip-request').filter({ hasText: '16:00' }).getByRole('button', { name: 'Rechazar' }).click();
       await page.reload();
-      await page.getByRole('button', { name: /Experiencias VIP/ }).click();
+      await openReserveSection(page, 'Próximas');
       await page.getByTestId('vip-request').filter({ hasText: '12:00' }).getByText('Aceptada · pendiente de pago').waitFor();
-      await page.getByTestId('vip-request').filter({ hasText: '16:00' }).getByText('Rechazada por el creador').waitFor();
+      await openReserveSection(page, 'Historial');
+      await page.getByTestId('vip-request').filter({ hasText: '16:00' }).getByText('Rechazada', { exact: true }).waitFor();
       await logoutViaMenu(page);
     });
     await check('El fan paga y solo entonces recibe el correo de confirmación', async () => {
@@ -1009,18 +1062,18 @@ const run = async () => {
       const paid = page.getByTestId('booking').filter({ hasText: '12:00' });
       await paid.getByText('Confirmada').waitFor();
       await paid.getByText(`Correo de confirmación enviado a ${fanEmail}`).waitFor();
-      await page.getByTestId('booking').filter({ hasText: '16:00' }).getByText('Rechazada por el creador').waitFor();
+      await page.getByTestId('booking').filter({ hasText: '16:00' }).getByText('Rechazada', { exact: true }).waitFor();
     });
     await check('El pago VIP queda en el historial del fan como cualquier otro pago', async () => {
       await page.goto(`${BASE}/settings?section=payments`);
-      await page.getByTestId('payment-history').getByText(/Experiencia VIP/).first().waitFor();
+      await page.getByTestId('payment-history').getByText(/Reserve/).first().waitFor();
     });
     await check('Los nuevos horarios del creador se reflejan al reservar', async () => {
       await openBooking(page);
       await pickFirstDate(page);
       const hours = await page.getByTestId('time-slots').locator('button').allTextContents();
       expect(hours.includes('20:00') && !hours.includes('10:00'), `horas: ${hours}`);
-      await page.getByRole('button', { name: 'Cancelar' }).click();
+      await page.keyboard.press('Escape');
       await logoutViaMenu(page);
     });
 
@@ -1243,9 +1296,10 @@ const run = async () => {
       await openBooking(fp);
       liveDate = await pickFirstDate(fp);
       await fp.getByTestId('time-slots').getByRole('button', { name: '12:00' }).click();
-      await fp.getByRole('button', { name: 'Confirmar Reserva' }).click();
-      await fp.getByText('¡Reserva enviada!').waitFor();
+      await fp.getByRole('button', { name: /Enviar solicitud/ }).click();
+      await fp.getByText('¡Solicitud enviada!').waitFor();
       await cp.goto(`${BASE}/creator/dashboard?tab=vip`);
+      await openReserveSection(cp, 'Solicitudes');
       await cp.getByTestId('vip-request').filter({ hasText: '12:00' }).getByRole('button', { name: 'Aceptar' }).click();
       await fp.goto(`${BASE}/profile`);
       const booking = fp.getByTestId('booking').filter({ hasText: '12:00' });
@@ -1268,6 +1322,7 @@ const run = async () => {
       await fp.getByRole('button', { name: 'Entrar a la sala' }).click();
       await fp.getByTestId('live-room').getByText(/Esperando a Valentina Rose/).waitFor();
       await cp.goto(`${BASE}/creator/dashboard?tab=vip`);
+      await openReserveSection(cp, 'Próximas');
       await cp.getByTestId('vip-request').filter({ hasText: '12:00' }).getByTestId('join-live').click();
       await cp.getByRole('button', { name: 'Entrar a la sala' }).click();
       for (const pg of [fp, cp]) {
@@ -1319,7 +1374,7 @@ const run = async () => {
         localStorage.setItem('fansreserve_gifts', JSON.stringify(s));
       }, coins);
 
-    console.log('\nRegalos: créditos, Círculo privado, Bóveda, video y videollamada');
+    console.log('\nRegalos: créditos, Círculo privado, Bóveda y video');
     await check('Créditos: el fan compra un paquete neto y recibe el valor completo', async () => {
       await gf.goto(`${BASE}/settings?section=wallet`);
       expect((await balanceText(gf)).includes('0'), 'el saldo inicial no es 0');
@@ -1353,7 +1408,8 @@ const run = async () => {
       await gc.goto(`${BASE}/creator/dashboard?tab=gifts`);
       await gc.fill('input[name=circleMin]', '20');
       await gc.getByLabel(/Ofrezco video personalizado/).check();
-      await gc.getByLabel(/Ofrezco videollamada privada/).check();
+      // Gifts no longer earn video calls: they are booked as Reserve experiences.
+      await gc.getByTestId('gift-call-retired').waitFor();
       await gc.getByRole('button', { name: 'Guardar', exact: true }).click();
       await gc.getByText('La entrada al Círculo debe estar entre $50 y $1000').waitFor();
       await gc.fill('input[name=circleMin]', '100');
@@ -1435,10 +1491,12 @@ const run = async () => {
       const yate = (await platformData(gf)).transactions.find((t) => t.giftId === 'yate');
       expect(yate.status === 'refunded', 'el regalo no quedó devuelto');
     });
-    await check('Con $1,000 el creador entrega el video y agenda la videollamada', async () => {
+    await check('Con $1,000 el regalo no incluye videollamada (es Reserve) y el creador entrega el video', async () => {
       const dialog = await openGift(gf);
       await dialog.getByRole('button', { name: /Castillo/ }).click();
-      await dialog.getByTestId('gift-perks').getByText('Videollamada privada, agendada en 30 días').waitFor();
+      await dialog.getByTestId('gift-perks').getByText('Video personalizado, entregado en 7 días').waitFor();
+      expect((await dialog.getByTestId('gift-perks').getByText(/Videollamada/).count()) === 0, 'el regalo promete una videollamada');
+      await dialog.getByTestId('notice-gift').getByText(/no garantizan respuesta, conversación, encuentro ni Reserve/).waitFor();
       await dialog.getByLabel('Qué quieres en tu video').fill('Un saludo para mi hermano');
       await dialog.getByRole('button', { name: /Enviar Castillo/ }).click();
       await gf.getByText(/Castillo enviado/).waitFor();
@@ -1448,19 +1506,11 @@ const run = async () => {
       const webm = Buffer.from(await recordWebm(gc), 'base64');
       await video.locator('input[name=perkVideo]').setInputFiles({ name: 'saludo.webm', mimeType: 'video/webm', buffer: webm });
       await gc.getByText('Video entregado a Carlos M.').waitFor();
-      const call = gc.getByTestId('perk-request').filter({ hasText: 'Videollamada privada' });
-      const tomorrow = new Date(Date.now() + 86400000);
-      await call.getByLabel('Día de la videollamada').fill(isoDate(tomorrow));
-      await call.getByLabel('Hora de la videollamada').fill('12:00');
-      await call.getByRole('button', { name: 'Agendar' }).click();
-      await gc.getByText('Videollamada con Carlos M. agendada').waitFor();
+      expect((await gc.getByTestId('perk-request').filter({ hasText: 'Videollamada privada' }).count()) === 0, 'se creó una videollamada por regalo');
     });
-    await check('El fan ve su video y su videollamada como reserva confirmada', async () => {
+    await check('El fan ve su video entregado', async () => {
       await gf.goto(`${BASE}/settings?section=wallet`);
       await gf.getByTestId('my-perk').filter({ hasText: 'Video entregado' }).locator('video').waitFor();
-      await gf.getByTestId('my-perk').filter({ hasText: 'Videollamada agendada' }).getByRole('link', { name: 'Ir a la sala' }).waitFor();
-      await gf.goto(`${BASE}/profile`);
-      await gf.getByTestId('booking').filter({ hasText: 'Videollamada privada (regalo)' }).getByTestId('live-later').waitFor();
     });
     await check('El creador cobra el 60% de los regalos (sin los devueltos)', async () => {
       await gc.goto(`${BASE}/creator/dashboard?tab=gifts`);
@@ -1668,6 +1718,242 @@ const run = async () => {
       await vp.getByTestId('creator-benefits').getByText(/Tu enlace de invitación/).waitFor();
     });
     await visitor.close();
+
+    // ------------------------------------------------------------------
+    console.log('\nReserve: categorías, experiencias permitidas y seguridad');
+    // The product rules themselves (config + moderation), bundled from the sources.
+    const R = await loadReserveRules();
+    const forbidden = /adult|\+\s?18|sexy|er[oó]tic|xxx/i;
+    const notOffered = /encuentro privado|\bcita\b|\bdate\b|hotel|escort|pasar tiempo|acompañ|noche/i;
+    await check('No existen categorías "Adultos", "+18" ni similares', async () => {
+      const names = R.CREATOR_CATEGORIES.flatMap((c) => [c.name, ...c.aliases]);
+      expect(!names.some((n) => forbidden.test(n)), `categorías: ${names.join(', ')}`);
+    });
+    await check('Modelaje & Glamour existe y marca la línea de contenido', async () => {
+      const mg = R.CREATOR_CATEGORIES.find((c) => c.name === 'Modelaje & Glamour');
+      expect(!!mg, 'falta Modelaje & Glamour');
+      expect(mg.contentLine === 'Glamour permitido. Contenido sexual explícito no permitido.', `línea: ${mg.contentLine}`);
+      expect(R.categoryFor('Modelaje').id === 'modelaje-glamour', 'el nombre antiguo "Modelaje" no se reconoce');
+    });
+    await check('Modelaje & Glamour no ofrece encuentro privado, citas, hotel ni escort', async () => {
+      const types = R.experienceTypesFor(R.categoryFor('Modelaje & Glamour'));
+      const bad = types.filter((t) => notOffered.test(`${t.name} ${t.description}`));
+      expect(bad.length === 0, `tipos prohibidos: ${bad.map((t) => t.name).join(', ')}`);
+      const locs = R.CREATOR_CATEGORIES.find((c) => c.id === 'modelaje-glamour').locations;
+      expect(!locs.some((l) => R.PROHIBITED_LOCATIONS.some((p) => p.id === l)), `ubicaciones: ${locs}`);
+    });
+    await check('Ningún tipo de experiencia es un servicio prohibido, y la BD acepta exactamente los mismos tipos', async () => {
+      const bad = R.RESERVE_EXPERIENCE_TYPES.filter((t) => notOffered.test(`${t.name} ${t.description}`));
+      expect(bad.length === 0, `tipos prohibidos: ${bad.map((t) => t.name).join(', ')}`);
+      const sql = readFileSync(new URL('../supabase/migrations/20261002000001_reserve.sql', import.meta.url), 'utf8');
+      const list = sql.match(/vip_experiences_type_check check \(type in \(([^)]*)\)\)/);
+      expect(!!list, 'no se encontró la lista de tipos en la migración');
+      const dbIds = [...list[1].matchAll(/'([^']+)'/g)].map((m) => m[1]).sort();
+      const ids = R.RESERVE_EXPERIENCE_TYPES.map((t) => t.id).sort();
+      expect(JSON.stringify(dbIds) === JSON.stringify(ids), `config y BD difieren: ${ids.filter((i) => !dbIds.includes(i))} / ${dbIds.filter((i) => !ids.includes(i))}`);
+    });
+    await check('Las opciones dependen de la categoría', async () => {
+      const cocina = R.experienceTypesFor(R.categoryFor('Cocina')).map((t) => t.id);
+      const glamour = R.experienceTypesFor(R.categoryFor('Modelaje & Glamour')).map((t) => t.id);
+      const fitness = R.experienceTypesFor(R.categoryFor('Fitness')).map((t) => t.id);
+      expect(cocina.includes('cooking-class') && !glamour.includes('cooking-class'), 'clase de cocina mal asignada');
+      expect(glamour.includes('photo-session') && !fitness.includes('photo-session'), 'sesión de fotos mal asignada');
+      expect(R.locationsFor(R.categoryFor('Fitness'), R.experienceTypeById('training-1-1'), 'presencial').includes('gym'), 'fitness sin gimnasio');
+      expect(!R.locationsFor(R.categoryFor('Modelaje & Glamour'), null, 'presencial').includes('restaurant'), 'glamour permite restaurantes');
+    });
+    await check('Una experiencia necesita estar definida y moderada para publicarse', async () => {
+      const base = { title: 'Sesión de fotos', description: 'Sesión profesional en estudio.', type: 'photo-session', price: 120, durationMinutes: 60, image: '', active: true };
+      const d = { ...R.defaultDetails(), modality: 'profesional', locationTypes: ['studio'], city: 'Miami' };
+      expect(R.validateExperience({ ...base, details: d }, 'Modelaje & Glamour').ok, 'rechaza una experiencia válida');
+      expect(!R.validateExperience({ ...base, type: 'cita' }, 'Modelaje & Glamour').ok, 'acepta un tipo inexistente');
+      expect(!R.validateExperience({ ...base, details: { ...d, locationTypes: ['hotel-room'] } }, 'Modelaje & Glamour').ok, 'acepta hotel');
+      expect(!R.validateExperience({ ...base, details: d, title: 'Encuentro privado conmigo' }, 'Modelaje & Glamour').ok, 'acepta "encuentro privado"');
+      expect(!R.validateExperience({ ...base, details: d, type: 'cooking-class' }, 'Modelaje & Glamour').ok, 'acepta un tipo de otra categoría');
+      expect(R.validateExperience({ ...base, details: { ...d, excludes: ['Sin contacto fuera de la app'] }, description: 'Sin contenido sexual: solo moda.' }, 'Modelaje & Glamour').ok, 'las negaciones se bloquean');
+      expect(!R.moderate('¿Nos vemos en tu casa? Escríbeme al whatsapp', 'request').ok, 'la solicitud con casa/whatsapp pasa');
+    });
+
+    const reserveCtx = await newContext(browser, { locale: 'es-ES' });
+    const resC = await newPage(reserveCtx);
+    const resF = await newPage(reserveCtx);
+    for (const pg of [resC, resF]) {
+      await pg.goto(`${BASE}/age-verification`);
+      await pg.getByRole('button', { name: /Soy mayor|18/ }).first().click();
+    }
+    await login(resC, 'creator@sugarfans.com', 'demo1234', { remember: false });
+    await waitPath(resC, '/explore');
+    await login(resF, 'fan@sugarfans.com', 'demo1234', { remember: false });
+    await waitPath(resF, '/explore');
+
+    await check('Explorar y la portada muestran Modelaje & Glamour y ninguna categoría +18', async () => {
+      await resF.goto(`${BASE}/explore`);
+      await resF.getByRole('button', { name: /Modelaje & Glamour/ }).waitFor();
+      const chips = (await resF.locator('button[aria-pressed]').allTextContents()).join(' | ');
+      expect(!forbidden.test(chips), `categorías visibles: ${chips}`);
+      await resF.getByRole('button', { name: /Modelaje & Glamour/ }).click();
+      await resF.getByTestId('creator-card').filter({ hasText: 'Valentina Rose' }).waitFor();
+      await resF.goto(`${BASE}/`);
+      await resF.getByText('Sigue a tus creators favoritos, accede a contenido exclusivo y reserva experiencias directamente con ellos.').waitFor();
+      for (const p of ['Discover', 'Subscribe', 'Live', 'Reserve']) await resF.locator('section[aria-labelledby=how-title]').getByText(p, { exact: true }).waitFor();
+    });
+    await check('Perfil: Seguir → Suscribirse → Live → Reserve, y seguir persiste', async () => {
+      await resF.goto(`${BASE}/creator/1`);
+      const ladder = resF.getByTestId('access-ladder');
+      for (const s of ['1 · Seguir', '2 · Suscribirse', '3 · Live', '4 · Reserve']) await ladder.getByText(s).waitFor();
+      await resF.getByTestId('creator-reserve').getByRole('heading', { name: 'Reserve con Valentina' }).waitFor();
+      await ladder.getByTestId('follow-button').click();
+      await ladder.getByTestId('follow-button').getByText('Siguiendo').waitFor();
+      await resF.reload();
+      expect((await resF.getByTestId('follow-button').getAttribute('aria-pressed')) === 'true', 'seguir no persiste');
+    });
+    await check('La suscripción y los regalos dicen que no incluyen Reserve ni encuentros', async () => {
+      const section = resF.getByTestId('creator-reserve');
+      await section.getByTestId('notice-subscription').getByText(/No incluye videollamadas, encuentros ni Reserve/).waitFor();
+      await section.getByTestId('notice-gift').getByText(/No garantizan respuesta, conversación, encuentro, acceso ni Reserve/).waitFor();
+      await resF.getByRole('button', { name: 'Enviar regalo' }).click();
+      const dialog = resF.getByRole('dialog', { name: /Regalo para Valentina Rose/ });
+      await dialog.getByRole('button', { name: /Corona/ }).first().click();
+      await dialog.getByTestId('notice-gift').waitFor();
+      expect((await dialog.getByText(/videollamada/i).count()) === 0, 'el regalo menciona una videollamada');
+    });
+    await check('Cada experiencia muestra modalidad, duración, lugar, reglas y quién aprueba', async () => {
+      await resF.goto(`${BASE}/creator/1`);
+      const card = resF.getByTestId('reserve-card').filter({ hasText: 'Meet & Greet en Miami' });
+      await card.getByText('Presencial').waitFor();
+      await card.getByRole('button', { name: 'Ver detalles' }).click();
+      const dialog = resF.getByTestId('reserve-dialog');
+      for (const t of ['Incluye', 'No incluye', /Cancelación/, 'Solo fans verificados', 'El creator aprueba cada solicitud', /Reserva con 72 horas de anticipación/]) await dialog.getByText(t).first().waitFor();
+      await dialog.getByTestId('notice-reserve').waitFor();
+      await resF.keyboard.press('Escape');
+    });
+    await check('Solicitar experiencia personalizada: 5 pasos estructurados y moderados', async () => {
+      await resF.getByRole('button', { name: /Solicitar experiencia personalizada/ }).click();
+      const dlg = resF.getByTestId('custom-request');
+      const step = (n, name) => dlg.getByTestId('custom-step').getByText(`Paso ${n} de 5 · ${name}`).waitFor();
+      await step(1, 'Modalidad');
+      await dlg.getByRole('button', { name: /^Virtual/ }).click();
+      await dlg.getByRole('button', { name: 'Siguiente', exact: true }).click();
+      await step(2, 'Propósito');
+      await dlg.getByRole('button', { name: 'Siguiente', exact: true }).click();
+      await step(3, 'Fecha y lugar');
+      await dlg.getByRole('button', { name: 'Siguiente', exact: true }).click();
+      await dlg.getByText('Elige un día en el calendario').waitFor();
+      await pickFirstDate(resF);
+      await dlg.getByTestId('time-slots').locator('button:not([disabled])').filter({ hasText: '16:00' }).click();
+      await dlg.getByRole('button', { name: 'Siguiente', exact: true }).click();
+      await step(4, 'Presupuesto');
+      await dlg.locator('input[name=budget]').fill('180');
+      await dlg.getByRole('button', { name: 'Siguiente', exact: true }).click();
+      await step(5, 'Mensaje');
+      await dlg.locator('textarea[name=message]').fill('Mejor nos vemos en tu casa');
+      await dlg.getByRole('button', { name: 'Enviar solicitud' }).click();
+      await dlg.getByRole('alert').waitFor();
+      await dlg.locator('textarea[name=message]').fill('Quiero preparar mi primer book de fotos: poses y estilo.');
+      await dlg.getByTestId('custom-summary').getByText('$180.00').waitFor();
+      await dlg.getByRole('button', { name: 'Enviar solicitud' }).click();
+      await resF.getByText('¡Solicitud enviada!').waitFor();
+      await resF.keyboard.press('Escape');
+    });
+    await check('El creator envía una contraoferta y el fan la acepta', async () => {
+      await resC.goto(`${BASE}/creator/dashboard?tab=vip`);
+      await openReserveSection(resC, 'Solicitudes');
+      const req = resC.getByTestId('vip-request').filter({ hasText: 'Experiencia personalizada' });
+      await req.getByText('Quiero preparar mi primer book').waitFor();
+      await req.getByRole('button', { name: 'Contraoferta' }).click();
+      await req.locator('input[name=counterPrice]').fill('220');
+      await req.locator('input[name=counterNote]').fill('Incluye revisión de 10 fotos');
+      await req.getByRole('button', { name: 'Enviar contraoferta' }).click();
+      await req.getByText('Contraoferta del creator').waitFor();
+      await resF.goto(`${BASE}/profile`);
+      const mine = resF.getByTestId('booking').filter({ hasText: 'Experiencia personalizada' });
+      await mine.getByTestId('counter-offer').getByText('$220.00').waitFor();
+      await mine.getByRole('button', { name: 'Aceptar contraoferta' }).click();
+      await mine.getByText('Aceptada · pendiente de pago').waitFor();
+      await mine.getByRole('button', { name: 'Pagar $220.00' }).waitFor();
+    });
+    await check('El creator solo puede crear experiencias permitidas para su categoría', async () => {
+      await resC.goto(`${BASE}/creator/dashboard?tab=vip`);
+      await resC.getByRole('button', { name: /Crear experiencia/ }).click();
+      const form = resC.getByTestId('experience-form');
+      const types = form.getByTestId('allowed-types');
+      await types.locator('[data-type=photo-session]').waitFor();
+      expect((await types.locator('[data-type=cooking-class]').count()) === 0, 'Modelaje & Glamour ofrece clase de cocina');
+      const text = await types.innerText();
+      expect(!notOffered.test(text), `tipos visibles: ${text}`);
+      await form.getByText('Glamour permitido. Contenido sexual explícito no permitido.').waitFor();
+      await types.locator('[data-type=photo-session]').click();
+      const next = () => form.getByRole('button', { name: 'Siguiente' }).click();
+      await next();
+      await form.locator('input[name=expTitle]').fill('Encuentro privado conmigo');
+      await next();
+      await form.getByRole('alert').waitFor();
+      await form.locator('input[name=expTitle]').fill('Sesión de fotos en estudio');
+      await next();
+      await form.locator('textarea[name=expDescription]').fill('Sesión profesional de 60 minutos para tu portafolio.');
+      await next();
+      await form.getByRole('radio', { name: /Profesional/ }).click();
+      await next(); // → duración
+      await next(); // → precio
+      await next(); // → disponibilidad
+      await next(); // → ubicación
+      await form.getByText('Fans Reserve no ofrece domicilios, hoteles ni “encuentros privados” como ubicación.').waitFor();
+      expect((await form.getByText(/Habitación|Hotel/).count()) === 0, 'se ofrece hotel como lugar');
+      await next();
+      await form.getByText('Elige el tipo de lugar e indica la ciudad').waitFor();
+      await form.locator('input[name=expCity]').fill('Miami');
+      for (let i = 7; i < 12; i++) await next();
+      await form.getByTestId('experience-preview').waitFor();
+      await next();
+      await form.getByRole('button', { name: 'Publicar experiencia' }).click();
+      await resC.getByText('Experiencia publicada.').waitFor();
+      await resC.getByTestId('my-experience').filter({ hasText: 'Sesión de fotos en estudio' }).waitFor();
+      await resF.goto(`${BASE}/creator/1`);
+      await resF.getByTestId('reserve-card').filter({ hasText: 'Sesión de fotos en estudio' }).getByText(/Estudio profesional/).waitFor();
+    });
+    await check('Políticas de Reserve publicadas como borrador con revisión legal', async () => {
+      for (const doc of ['reserve-agreement', 'reserve-policy', 'acceptable-experiences', 'prohibited-services', 'cancellation', 'community']) {
+        await resF.goto(`${BASE}/legal?doc=${doc}`);
+        await resF.getByTestId('reserve-policy-doc').getByText('Requires legal review before production launch.').waitFor();
+      }
+    });
+    await check('Reserve, perfil y políticas no muestran SugarFans ni Terrones', async () => {
+      for (const p of ['/reserve', '/creator/1', '/legal?doc=prohibited-services', '/creator/dashboard?tab=vip']) {
+        const pg = p.startsWith('/creator/dashboard') ? resC : resF;
+        await pg.goto(`${BASE}${p}`);
+        await pg.locator('main, #root').first().waitFor();
+        await pg.waitForTimeout(150);
+        const text = await pg.locator('body').innerText();
+        expect(!/sugar\s?fans|terrones/i.test(text), `${p} muestra SugarFans o Terrones`);
+      }
+    });
+    await reserveCtx.close();
+
+    const narrow = await newContext(browser, { viewport: { width: 360, height: 760 }, locale: 'es-ES' });
+    const n = await newPage(narrow);
+    await check('Móvil 360px: Reserve, perfil y solicitud sin desbordar', async () => {
+      await n.goto(`${BASE}/age-verification`);
+      await n.getByRole('button', { name: /Soy mayor|18/ }).first().click();
+      await login(n, 'fan@sugarfans.com', 'demo1234');
+      await waitPath(n, '/explore');
+      const overflow = () => n.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      for (const p of ['/', '/reserve', '/creator/1', '/profile']) {
+        await n.goto(`${BASE}${p}`);
+        await n.waitForTimeout(200);
+        expect((await overflow()) <= 0, `${p} desborda ${await overflow()}px`);
+      }
+      await n.goto(`${BASE}/creator/1`);
+      await n.getByRole('button', { name: /Solicitar experiencia personalizada/ }).click();
+      await n.getByTestId('custom-step').waitFor();
+      expect((await overflow()) <= 0, 'la solicitud desborda');
+      const box = await n.getByTestId('custom-request').boundingBox();
+      expect(box && box.width <= 360, 'el diálogo es más ancho que la pantalla');
+      await n.keyboard.press('Escape');
+      await n.goto(`${BASE}/reserve`);
+      await n.getByRole('button', { name: RESERVE_BUTTON }).first().click();
+      await n.getByTestId('booking-calendar').waitFor();
+      expect((await overflow()) <= 0, 'la reserva desborda');
+    });
+    await narrow.close();
 
     const mobile = await newContext(browser, { viewport: { width: 390, height: 844 }, locale: 'es-ES' });
     const m = await newPage(mobile);

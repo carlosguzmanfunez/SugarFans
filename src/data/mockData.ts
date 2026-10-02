@@ -1,3 +1,6 @@
+import type { ReserveDetails } from '../lib/backend/types';
+import { CREATOR_CATEGORIES } from '../config/reserve';
+
 export interface Creator {
   id: string;
   name: string;
@@ -36,23 +39,13 @@ export interface Post {
   price?: number;
 }
 
-// Presentation (icon, tint, blurb) lives in src/config/theme.ts.
+// Creator categories (and what each may offer in Reserve) live in src/config/reserve.ts.
 export interface Category {
   id: string;
   name: string;
 }
 
-export const categories: Category[] = [
-  { id: '1', name: 'Fitness' },
-  { id: '2', name: 'Modelaje' },
-  { id: '3', name: 'Arte' },
-  { id: '4', name: 'Música' },
-  { id: '5', name: 'Cocina' },
-  { id: '6', name: 'Lifestyle' },
-  { id: '7', name: 'Gaming' },
-  { id: '8', name: 'Educación' },
-  { id: '9', name: 'Experiencias VIP' },
-];
+export const categories: Category[] = CREATOR_CATEGORIES.map(({ id, name }) => ({ id, name }));
 
 export const creators: Creator[] = [
   {
@@ -67,7 +60,7 @@ export const creators: Creator[] = [
     followers: 12500,
     likes: 89000,
     postsCount: 256,
-    category: 'Modelaje',
+    category: 'Modelaje & Glamour',
     tags: ['fitness', 'moda', 'lifestyle'],
   },
   {
@@ -97,7 +90,7 @@ export const creators: Creator[] = [
     followers: 6700,
     likes: 34000,
     postsCount: 145,
-    category: 'Arte',
+    category: 'Arte & Creatividad',
     tags: ['arte', 'digital', 'tutoriales'],
   },
   {
@@ -244,6 +237,8 @@ export const notifications = [
   { id: '4', text: 'Mariana Silva publicó un video exclusivo', time: 'Hace 5 horas', read: true },
 ];
 
+// Demo Reserve experiences (same ids as the Supabase seed). `details` follows
+// ReserveDetails (src/lib/backend/types.ts); see src/config/reserve.ts.
 export interface VIPExperience {
   id: string;
   creatorId: string;
@@ -251,7 +246,8 @@ export interface VIPExperience {
   creatorAvatar: string;
   title: string;
   description: string;
-  type: 'meet-greet' | 'qa-session' | 'custom-content' | 'early-access' | 'collaboration';
+  type: string;
+  details?: ReserveDetails;
   price: number;
   duration?: string;
   availableSlots: number;
@@ -262,15 +258,30 @@ export interface VIPExperience {
   tags: string[];
 }
 
+const online = { modality: 'virtual' as const, locationTypes: ['online' as const] };
+const noRecording = 'Grabación de la sesión';
+const offPlatform = 'Contacto o pagos fuera de Fans Reserve';
+
 export const vipExperiences: VIPExperience[] = [
   {
     id: '1',
     creatorId: '1',
     creatorName: 'Valentina Rose',
     creatorAvatar: '/creators/valentina.svg',
-    title: 'Video Llamada VIP Personalizada',
-    description: 'Sesión privada de 30 minutos donde podemos conversar, conocer tus intereses y crear contenido personalizado para ti.',
-    type: 'meet-greet',
+    title: 'Videollamada 1:1',
+    description: 'Videollamada privada dentro de Fans Reserve para hablar de moda, estilo y backstage. Tú propones el tema y yo traigo consejos y respuestas.',
+    type: 'video-call',
+    details: {
+      ...online,
+      includes: ['Sala privada de Fans Reserve', 'Tema acordado de antemano', 'Consejos de estilo personalizados'],
+      excludes: [noRecording, offPlatform],
+      requirements: { verifiedFans: false, subscribersOnly: false },
+      minNoticeHours: 24,
+      maxParticipants: 1,
+      approval: 'manual',
+      cancellationPolicy: 'moderate',
+      subscriberDiscount: 10,
+    },
     price: 99.99,
     duration: '30 min',
     availableSlots: 3,
@@ -278,16 +289,26 @@ export const vipExperiences: VIPExperience[] = [
     rating: 4.9,
     reviews: 47,
     image: '',
-    tags: ['Exclusivo', 'Personalizado', 'Premium'],
+    tags: ['Moda', 'Estilo', 'Backstage'],
   },
   {
     id: '2',
     creatorId: '2',
     creatorName: 'Diego Torres',
     creatorAvatar: '/creators/diego.svg',
-    title: 'Plan de Entrenamiento 1:1',
-    description: 'Sesión de coaching personalizado donde diseño un plan de entrenamiento específico para tus objetivos.',
-    type: 'qa-session',
+    title: 'Coaching y plan de entrenamiento',
+    description: 'Sesión de coaching por video en la que diseño un plan de entrenamiento específico para tus objetivos.',
+    type: 'coaching',
+    details: {
+      ...online,
+      includes: ['Evaluación de tu nivel', 'Plan de 4 semanas en PDF'],
+      excludes: [noRecording],
+      requirements: { verifiedFans: false, subscribersOnly: false },
+      minNoticeHours: 24,
+      maxParticipants: 1,
+      approval: 'manual',
+      cancellationPolicy: 'flexible',
+    },
     price: 149.99,
     duration: '60 min',
     availableSlots: 2,
@@ -302,9 +323,19 @@ export const vipExperiences: VIPExperience[] = [
     creatorId: '3',
     creatorName: 'Sofía Luna',
     creatorAvatar: '/creators/sofia.svg',
-    title: 'Tutorial de Arte Personalizado',
-    description: 'Clase privada donde te enseño técnicas específicas de arte digital según tu nivel y preferencias.',
-    type: 'custom-content',
+    title: 'Clase de arte digital',
+    description: 'Clase privada en la que te enseño técnicas de arte digital según tu nivel y preferencias.',
+    type: 'art-class',
+    details: {
+      ...online,
+      includes: ['Archivo de pinceles', 'Ejercicio guiado'],
+      excludes: [noRecording],
+      requirements: { verifiedFans: false, subscribersOnly: false },
+      minNoticeHours: 48,
+      maxParticipants: 2,
+      approval: 'manual',
+      cancellationPolicy: 'moderate',
+    },
     price: 79.99,
     duration: '45 min',
     availableSlots: 5,
@@ -312,32 +343,52 @@ export const vipExperiences: VIPExperience[] = [
     rating: 4.8,
     reviews: 31,
     image: '',
-    tags: ['Tutorial', 'Privado', 'Arte'],
+    tags: ['Tutorial', 'Arte digital'],
   },
   {
     id: '4',
     creatorId: '4',
     creatorName: 'Mariana Silva',
     creatorAvatar: '/creators/mariana.svg',
-    title: 'Behind the Scenes Exclusivo',
-    description: 'Acceso anticipado a mi próximo proyecto de baile + video exclusivo del proceso creativo.',
+    title: 'Acceso anticipado a mi próximo proyecto',
+    description: 'Acceso anticipado a mi próximo proyecto de baile y un video exclusivo del proceso creativo, entregado en la app.',
     type: 'early-access',
+    details: {
+      ...online,
+      includes: ['Estreno 7 días antes', 'Video del proceso creativo'],
+      excludes: ['Sesión en vivo'],
+      requirements: { verifiedFans: false, subscribersOnly: false },
+      minNoticeHours: 24,
+      maxParticipants: 1,
+      approval: 'automatic',
+      cancellationPolicy: 'strict',
+    },
     price: 49.99,
     availableSlots: 10,
     totalSlots: 20,
     rating: 4.7,
     reviews: 56,
     image: '',
-    tags: ['Acceso Anticipado', 'Exclusivo', 'BTS'],
+    tags: ['Acceso anticipado', 'Baile'],
   },
   {
     id: '5',
     creatorId: '6',
     creatorName: 'Camila Reyes',
     creatorAvatar: '/creators/camila.svg',
-    title: 'Clase de Cocina Privada',
-    description: 'Sesión en vivo donde cocinamos juntos una receta exclusiva. Incluye lista de ingredientes y tips profesionales.',
-    type: 'collaboration',
+    title: 'Clase de cocina en vivo',
+    description: 'Clase por video en la que cocinamos juntos una receta exclusiva. Incluye lista de ingredientes y tips profesionales.',
+    type: 'cooking-class',
+    details: {
+      ...online,
+      includes: ['Lista de ingredientes previa', 'Receta en PDF'],
+      excludes: ['Ingredientes', noRecording],
+      requirements: { verifiedFans: false, subscribersOnly: false },
+      minNoticeHours: 48,
+      maxParticipants: 4,
+      approval: 'manual',
+      cancellationPolicy: 'moderate',
+    },
     price: 119.99,
     duration: '90 min',
     availableSlots: 4,
@@ -345,6 +396,92 @@ export const vipExperiences: VIPExperience[] = [
     rating: 4.9,
     reviews: 38,
     image: '',
-    tags: ['Colaboración', 'En Vivo', 'Gastronomía'],
+    tags: ['En vivo', 'Gastronomía'],
+  },
+  {
+    id: '6',
+    creatorId: '1',
+    creatorName: 'Valentina Rose',
+    creatorAvatar: '/creators/valentina.svg',
+    title: 'Meet & Greet en Miami',
+    description: 'Saludo, foto y firma en un venue público de Miami, durante mi agenda de eventos. El lugar exacto se confirma con la reserva.',
+    type: 'meet-greet',
+    details: {
+      modality: 'presencial',
+      locationTypes: ['public-place', 'event-venue'],
+      city: 'Miami',
+      includes: ['Foto juntos', 'Firma personalizada'],
+      excludes: ['Encuentros fuera del venue', 'Transporte'],
+      requirements: { verifiedFans: true, subscribersOnly: false },
+      minNoticeHours: 72,
+      maxParticipants: 2,
+      approval: 'manual',
+      cancellationPolicy: 'moderate',
+    },
+    price: 150,
+    duration: '30 min',
+    availableSlots: 6,
+    totalSlots: 6,
+    rating: 5.0,
+    reviews: 12,
+    image: '',
+    tags: ['Meet & Greet', 'Miami'],
+  },
+  {
+    id: '7',
+    creatorId: '1',
+    creatorName: 'Valentina Rose',
+    creatorAvatar: '/creators/valentina.svg',
+    title: 'Fashion & beauty talk',
+    description: 'Veinte minutos por video para revisar tu estilo, tu rutina de belleza y tus dudas de moda.',
+    type: 'fashion-beauty-talk',
+    details: {
+      ...online,
+      includes: ['Sala privada de Fans Reserve', 'Lista de recomendaciones después de la llamada'],
+      excludes: [noRecording, offPlatform],
+      requirements: { verifiedFans: true, subscribersOnly: false },
+      minNoticeHours: 48,
+      maxParticipants: 1,
+      approval: 'manual',
+      cancellationPolicy: 'moderate',
+      days: [1, 3],
+    },
+    price: 75,
+    duration: '20 min',
+    availableSlots: 4,
+    totalSlots: 4,
+    rating: 4.9,
+    reviews: 18,
+    image: '',
+    tags: ['Moda', 'Belleza'],
+  },
+  {
+    id: '8',
+    creatorId: '2',
+    creatorName: 'Diego Torres',
+    creatorAvatar: '/creators/diego.svg',
+    title: 'Entrenamiento en gimnasio',
+    description: 'Entrenamiento 1:1 en un gimnasio de Ciudad de México: técnica, rutina y correcciones en directo.',
+    type: 'training-1-1',
+    details: {
+      modality: 'presencial',
+      locationTypes: ['gym'],
+      city: 'Ciudad de México',
+      includes: ['Acceso de un día al gimnasio', 'Rutina por escrito'],
+      excludes: ['Suplementos', 'Transporte'],
+      requirements: { verifiedFans: false, subscribersOnly: false },
+      minNoticeHours: 48,
+      maxParticipants: 2,
+      approval: 'automatic',
+      cancellationPolicy: 'flexible',
+    },
+    price: 120,
+    duration: '60 min',
+    availableSlots: 6,
+    totalSlots: 6,
+    rating: 4.9,
+    reviews: 9,
+    image: '',
+    tags: ['Gimnasio', 'Presencial'],
   },
 ];

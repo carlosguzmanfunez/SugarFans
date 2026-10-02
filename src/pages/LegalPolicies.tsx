@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { BRAND } from '../config/brand';
+import { RESERVE_POLICIES, LEGAL_REVIEW_NOTICE } from '../content/reservePolicies';
 
 const LegalPolicies: React.FC = () => {
   const { t } = useLanguage();
@@ -12,7 +13,9 @@ const LegalPolicies: React.FC = () => {
     { id: 'minors', name: 'Protección de Menores', icon: 'fa-user-shield' },
     { id: 'cookies', name: 'Política de Cookies', icon: 'fa-cookie-bite' },
     { id: 'dmca', name: 'Política DMCA', icon: 'fa-scale-balanced' },
+    ...RESERVE_POLICIES.map(({ id, name, icon }) => ({ id, name, icon })),
   ];
+  const reserveDoc = (id: string) => RESERVE_POLICIES.find((d) => d.id === id);
   // ?doc=<id> opens a document directly (footer links).
   const [params] = useSearchParams();
   const requested = params.get('doc');
@@ -304,6 +307,33 @@ const LegalPolicies: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              {reserveDoc(activePolicy) && (() => {
+                const doc = reserveDoc(activePolicy)!;
+                return (
+                  <div data-testid="reserve-policy-doc">
+                    <h2 className="text-3xl font-bold text-gray-900 mb-4">{doc.name}</h2>
+                    <p role="note" className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                      <i aria-hidden="true" className="fas fa-scale-balanced mr-2"></i>
+                      <strong>Borrador.</strong> {LEGAL_REVIEW_NOTICE} Requiere revisión legal antes del lanzamiento a producción.
+                    </p>
+                    <div className="space-y-4 text-gray-600">
+                      <p>{doc.intro}</p>
+                      {doc.sections.map((sec) => (
+                        <section key={sec.heading}>
+                          <h3 className="text-xl font-bold text-gray-900 mt-6 mb-2">{sec.heading}</h3>
+                          {sec.paragraphs?.map((x) => <p key={x} className="mb-2">{x}</p>)}
+                          {sec.bullets && (
+                            <ul className="list-disc space-y-1 pl-6">
+                              {sec.bullets.map((x) => <li key={x}>{x}</li>)}
+                            </ul>
+                          )}
+                        </section>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div className="mt-12 pt-8 border-t border-gray-200">
                 <div className="flex items-center justify-between">

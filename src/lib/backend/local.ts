@@ -1,7 +1,26 @@
 // Browser-only backend (localStorage). Used when Supabase is not configured,
 // e.g. local development and the offline E2E suite. Data is per browser.
 import { readJSON, writeJSON, removeKey, hashPassword, newId } from '../storage';
-import { ACTIVE_STATUSES, DEFAULT_AVAILABILITY, bookingWindow, demoExperiences, freeHoursOn, formatLongDate, normalizeAvailability, validateExperience } from '../vip';
+import {
+  ACTIVE_STATUSES,
+  CUSTOM_EXPERIENCE,
+  DEFAULT_AVAILABILITY,
+  bookingWindow,
+  cleanDetails,
+  customTitle,
+  demoExperiences,
+  detailsOf,
+  experienceAvailability,
+  freeHoursOn,
+  formatLongDate,
+  meetsNotice,
+  needsApproval,
+  normalizeAvailability,
+  priceFor,
+  validateCounter,
+  validateCustomRequest,
+  validateExperience,
+} from '../vip';
 import { nextRenewal, round2 } from '../platformRules';
 import {
   DEMO_PASSWORD,
@@ -19,6 +38,7 @@ import { createLocalSocial } from './localSocial';
 import { createLocalGifts } from './localGifts';
 import { createLocalRewards } from './localRewards';
 import { creators as demoCreators } from '../../data/mockData';
+import { moderate } from '../moderation';
 import { demoAccount } from '../../config/demoAccounts';
 import { BRAND } from '../../config/brand';
 
@@ -126,10 +146,19 @@ const toPublic = (account: StoredAccount): User => {
 
 const listExperiences = (): VipExperience[] => {
   const stored = readJSON<VipExperience[] | null>(EXPERIENCES_KEY, null);
-  if (stored) return stored;
-  const seeded = demoExperiences();
-  writeJSON(EXPERIENCES_KEY, seeded);
-  return seeded;
+  const demo = demoExperiences();
+  if (stored) {
+    // Browsers seeded before Reserve: complete the demo catalogue, keep everything else.
+    const upgraded = stored.map((e) => {
+      const seed = !e.details ? demo.find((d) => d.id === e.id && d.creatorProfileId === e.creatorProfileId) : undefined;
+      return seed ? { ...seed, active: e.active } : e;
+    });
+    const missing = demo.filter((d) => !stored.some((e) => e.id === d.id));
+    if (missing.length || upgraded.some((e, i) => e !== stored[i])) writeJSON(EXPERIENCES_KEY, [...upgraded, ...missing]);
+    return [...upgraded, ...missing];
+  }
+  writeJSON(EXPERIENCES_KEY, demo);
+  return demo;
 };
 const saveExperiences = (list: VipExperience[]) => {
   writeJSON(EXPERIENCES_KEY, list);
@@ -430,12 +459,24 @@ export const localBackend: Backend = {
     const exp = listExperiences().find((e) => e.id === input.experienceId && e.active);
     if (!exp) return fail('Experiencia no encontrada');
     if (user.creatorProfileId === exp.creatorProfileId) return fail('No puedes reservar tu propia experiencia');
+    const note = moderate(input.message ?? '', 'request');
+    if (!note.ok) return fail(note.error!);
     if (platform.ledger.cutOff(user.id, exp.creatorProfileId)) return fail('No puedes reservar con este perfil');
+    const d = detailsOf(exp);
+    const subscribed = user.subscriptions.some((s) => s.creatorId === exp.creatorProfileId);
+    if (d.requirements.verifiedFans && !user.isVerified) return fail('Esta experiencia es solo para fans con identidad verificada');
+    if (d.requirements.subscribersOnly && !subscribed) return fail('Esta experiencia es solo para suscriptores');
+    const participants = input.participants ?? 1;
+    if (!Number.isInteger(participants) || participants < 1 || participants > d.maxParticipants)
+      return fail(`Esta experiencia admite hasta ${d.maxParticipants} participante${d.maxParticipants === 1 ? '' : 's'}`);
     const { min, max } = bookingWindow();
     if (input.date < min || input.date > max) return fail('La fecha debe estar dentro de los próximos 3 meses');
-    if (!freeHoursOn(loadAvailability(exp.creatorProfileId), takenFor(exp.creatorProfileId), input.date).includes(input.time)) {
+    if (!meetsNotice(input.date, input.time, d.minNoticeHours)) return fail(`Reserva con al menos ${d.minNoticeHours} horas de anticipación`);
+    const availability = experienceAvailability(loadAvailability(exp.creatorProfileId), exp);
+    if (!freeHoursOn(availability, takenFor(exp.creatorProfileId), input.date).includes(input.time)) {
       return fail('Ese horario ya no está disponible. Elige otro.');
     }
+    const price = priceFor(exp, subscribed);
     const now = new Date().toISOString();
     saveBookings([
       ...listBookings(),
@@ -444,7 +485,7 @@ export const localBackend: Backend = {
         creatorProfileId: exp.creatorProfileId,
         title: exp.title,
         creatorName: exp.creatorName,
-        price: exp.price,
+        price,
         ...(exp.durationMinutes ? { durationMinutes: exp.durationMinutes } : {}),
         date: input.date,
         time: input.time,
@@ -453,11 +494,109 @@ export const localBackend: Backend = {
         fanId: user.id,
         fanName: user.name,
         fanEmail: user.email,
+        // Automatic approval skips straight to payment.
+        status: needsApproval(exp) ? 'pending' : 'accepted',
+        createdAt: now,
+        updatedAt: now,
+        details: {
+          kind: 'experience',
+          typeId: exp.type,
+          modality: d.modality,
+          participants,
+          ...(d.modality !== 'virtual' ? { locationType: d.locationTypes[0], city: d.city, venue: d.venue } : {}),
+          ...(price !== exp.price ? { listPrice: exp.price, discountPercent: d.subscriberDiscount } : {}),
+        },
+      },
+    ]);
+    return ok;
+  },
+
+  async requestCustomExperience(user, input) {
+    if (user.creatorProfileId === input.creatorProfileId) return fail('No puedes enviarte una solicitud a ti mismo');
+    if (platform.ledger.cutOff(user.id, input.creatorProfileId)) return fail('No puedes reservar con este perfil');
+    const owner = creatorAccount(input.creatorProfileId);
+    const demo = demoCreators.find((c) => c.id === input.creatorProfileId);
+    const check = validateCustomRequest(input, owner?.settings.category || demo?.category);
+    if (!check.ok) return fail(check.error!);
+    const { min, max } = bookingWindow();
+    if (input.date < min || input.date > max) return fail('La fecha debe estar dentro de los próximos 3 meses');
+    if (!freeHoursOn(loadAvailability(input.creatorProfileId), takenFor(input.creatorProfileId), input.date).includes(input.time))
+      return fail('Ese horario ya no está disponible. Elige otro.');
+    const now = new Date().toISOString();
+    saveBookings([
+      ...listBookings(),
+      {
+        id: newId(),
+        experienceId: CUSTOM_EXPERIENCE,
+        creatorProfileId: input.creatorProfileId,
+        title: customTitle(input.purpose, input.purposeNote),
+        creatorName: owner?.name ?? demo?.name ?? 'Creator',
+        price: round2(input.budget),
+        durationMinutes: input.durationMinutes,
+        date: input.date,
+        time: input.time,
+        message: input.message.trim().slice(0, 500),
+        fanId: user.id,
+        fanName: user.name,
+        fanEmail: user.email,
         status: 'pending',
         createdAt: now,
         updatedAt: now,
+        details: {
+          kind: 'custom',
+          modality: input.modality,
+          purpose: input.purpose,
+          participants: input.participants,
+          locationType: input.locationType,
+          ...(input.modality !== 'virtual' ? { city: input.city.trim(), venue: input.venue.trim() } : {}),
+          ...(check.flags?.length ? { flags: check.flags } : {}),
+        },
       },
     ]);
+    return ok;
+  },
+
+  async counterOffer(user, bookingId, input) {
+    const bookings = listBookings();
+    const b = bookings.find((x) => x.id === bookingId);
+    if (!b || !user.creatorProfileId || b.creatorProfileId !== user.creatorProfileId) return fail('Reserva no encontrada');
+    if (b.status !== 'pending') return fail('Solo puedes responder a solicitudes pendientes');
+    const check = validateCounter(input);
+    if (!check.ok) return fail(check.error!);
+    b.status = 'countered';
+    b.updatedAt = new Date().toISOString();
+    b.details = {
+      ...b.details,
+      counter: {
+        price: round2(input.price),
+        date: input.date,
+        time: input.time,
+        ...(input.durationMinutes ? { durationMinutes: input.durationMinutes } : {}),
+        note: input.note.trim(),
+        at: b.updatedAt,
+      },
+    };
+    saveBookings(bookings);
+    return ok;
+  },
+
+  async respondCounter(user, bookingId, accept) {
+    const bookings = listBookings();
+    const b = bookings.find((x) => x.id === bookingId);
+    if (!b || b.fanId !== user.id) return fail('Reserva no encontrada');
+    const c = b.details?.counter;
+    if (b.status !== 'countered' || !c) return fail('Esta reserva no tiene una contraoferta pendiente');
+    if (accept) {
+      const clash = takenFor(b.creatorProfileId).some((t) => t.date === c.date && t.time === c.time);
+      if (clash) return fail('Ese horario ya no está disponible. Pide al creator otra fecha.');
+      b.price = c.price;
+      b.date = c.date;
+      b.time = c.time;
+      if (c.durationMinutes) b.durationMinutes = c.durationMinutes;
+    }
+    b.status = accept ? 'accepted' : 'cancelled';
+    b.updatedAt = new Date().toISOString();
+    saveBookings(bookings);
     return ok;
   },
 
@@ -469,7 +608,7 @@ export const localBackend: Backend = {
     const isCreator = !!user.creatorProfileId && b.creatorProfileId === user.creatorProfileId;
     const allowed =
       (isCreator && b.status === 'pending' && (next === 'accepted' || next === 'rejected')) ||
-      (isFan && (b.status === 'pending' || b.status === 'accepted') && next === 'cancelled');
+      (isFan && (b.status === 'pending' || b.status === 'accepted' || b.status === 'countered') && next === 'cancelled');
     if (!allowed) return fail('Esta acción no está permitida');
     b.status = next;
     b.updatedAt = new Date().toISOString();
@@ -524,8 +663,9 @@ export const localBackend: Backend = {
   },
 
   async saveExperience(user, input, id) {
-    if (user.role !== 'creator' || !user.creatorProfileId) return fail('Solo los creadores publican experiencias VIP');
-    const check = validateExperience(input);
+    if (user.role !== 'creator' || !user.creatorProfileId) return fail('Solo los creators publican experiencias');
+    const demo = demoCreators.find((c) => c.id === user.creatorProfileId);
+    const check = validateExperience(input, input.details ? user.settings.category || demo?.category || '' : undefined);
     if (!check.ok) return fail(check.error!);
     const list = listExperiences();
     const existing = id ? list.find((e) => e.id === id) : undefined;
@@ -538,6 +678,7 @@ export const localBackend: Backend = {
       durationMinutes: input.durationMinutes,
       image: input.image,
       active: input.active,
+      ...(input.details ? { details: cleanDetails(input.details) } : {}),
       creatorProfileId: user.creatorProfileId,
       creatorName: user.name,
     };
