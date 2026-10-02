@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import type { User } from '../context/AuthContext';
 import BuyCoinsDialog from './BuyCoinsDialog';
 import GiftArt from './GiftArt';
+import CoinIcon from './CoinIcon';
+import { currencyWord } from '../config/currency';
+import { giftCategoryLabel } from '../config/gifts';
 import { usePlatformQuery, money } from '../lib/platform';
 import {
   GIFTS,
@@ -17,7 +20,7 @@ import {
   type Gift,
 } from '../lib/gifts';
 
-// Tile tint per category, from sweet to luxury.
+// Tile tint per category, from support to legend.
 const TINT: Record<string, [string, string]> = {
   Dulces: ['#fdf2f8', '#fbcfe8'],
   Repostería: ['#fff7ed', '#fed7aa'],
@@ -35,7 +38,7 @@ interface Props {
   onClose: () => void;
 }
 
-// Pick a gift, add a message (and what you want in a personalised video), pay with Terrones.
+// Pick a gift, add a message (and what you want in a personalised video), pay with the virtual currency.
 const GiftDialog: React.FC<Props> = ({ user, creatorProfileId, creatorName, postId, onSent, onClose }) => {
   const { data } = usePlatformQuery(
     async () => {
@@ -76,32 +79,32 @@ const GiftDialog: React.FC<Props> = ({ user, creatorProfileId, creatorName, post
           <div>
             <h3 className="text-lg font-bold text-gray-900">Enviar regalo a {creatorName}</h3>
             <p className="text-sm text-gray-500 mt-1">
-              Tienes <span className="font-semibold text-gray-900" data-testid="coin-balance">🍬 {formatCoins(data.coins)}</span> terrones.{' '}
-              <button type="button" onClick={() => setBuying(true)} className="text-pink-600 font-medium hover:underline">Comprar terrones</button>
+              Tienes <span className="font-semibold text-gray-900" data-testid="coin-balance"><CoinIcon /> {formatCoins(data.coins)}</span> {currencyWord}.{' '}
+              <button type="button" onClick={() => setBuying(true)} className="text-pink-600 font-medium hover:underline">Comprar {currencyWord}</button>
             </p>
           </div>
           <button type="button" onClick={onClose} aria-label="Cerrar" className="p-1 text-gray-400 hover:text-gray-600">
-            <i className="fas fa-times"></i>
+            <i aria-hidden="true" className="fas fa-times"></i>
           </button>
         </div>
 
         {GIFT_CATEGORIES.map((cat) => (
           <div key={cat} className="mb-4">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{cat}</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{giftCategoryLabel(cat)}</p>
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
               {GIFTS.filter((g) => g.category === cat).map((g) => (
                 <button
                   key={g.id}
                   type="button"
                   aria-pressed={selected?.id === g.id}
-                  aria-label={`${g.name}, ${formatCoins(g.coins)} terrones`}
+                  aria-label={`${g.name}, ${formatCoins(g.coins)} ${currencyWord}`}
                   onClick={() => { setSelected(g); setError(''); }}
                   style={{ '--tile': TINT[cat][0], '--tile-edge': TINT[cat][1] } as React.CSSProperties}
                   className={`gift-tile p-2 pt-3 rounded-2xl border text-center ${selected?.id === g.id ? 'border-pink-500 ring-2 ring-pink-300' : 'border-white/80'}`}
                 >
                   <GiftArt gift={g} size={56} className="mx-auto" />
-                  <span className="block text-xs font-medium text-gray-800 truncate">{g.name}</span>
-                  <span className="block text-[11px] text-gray-500">🍬 {formatCoins(g.coins)}</span>
+                  <span className="mt-0.5 min-h-[2lh] text-xs leading-tight font-medium text-gray-800 text-balance line-clamp-2" title={g.name}>{g.name}</span>
+                  <span className="block text-[11px] text-gray-500"><CoinIcon size={12} /> {formatCoins(g.coins)}</span>
                 </button>
               ))}
             </div>
@@ -121,10 +124,10 @@ const GiftDialog: React.FC<Props> = ({ user, creatorProfileId, creatorName, post
             </div>
             {(perks.circle || perks.vault || perks.video || perks.call) && (
               <ul className="text-sm text-purple-800 bg-purple-50 rounded-xl p-3 space-y-1" data-testid="gift-perks">
-                {perks.circle && <li><i className="fas fa-users mr-2"></i>Entras al Círculo privado por 30 días</li>}
-                {perks.vault && <li><i className="fas fa-lock-open mr-2"></i>Acceso a la Bóveda por 30 días</li>}
-                {perks.video && <li><i className="fas fa-video mr-2"></i>Video personalizado, entregado en 7 días</li>}
-                {perks.call && <li><i className="fas fa-phone mr-2"></i>Videollamada privada, agendada en 30 días</li>}
+                {perks.circle && <li><i aria-hidden="true" className="fas fa-users mr-2"></i>Entras al Círculo privado por 30 días</li>}
+                {perks.vault && <li><i aria-hidden="true" className="fas fa-lock-open mr-2"></i>Acceso a la Bóveda por 30 días</li>}
+                {perks.video && <li><i aria-hidden="true" className="fas fa-video mr-2"></i>Video personalizado, entregado en 7 días</li>}
+                {perks.call && <li><i aria-hidden="true" className="fas fa-phone mr-2"></i>Videollamada privada, agendada en 30 días</li>}
               </ul>
             )}
             {value >= VIDEO_MIN && !data.settings.offersVideo && (
@@ -157,7 +160,7 @@ const GiftDialog: React.FC<Props> = ({ user, creatorProfileId, creatorName, post
         {error && <p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}
         {selected && short > 0 ? (
           <button type="button" onClick={() => setBuying(true)} className="mt-4 w-full bg-gray-900 text-white py-3 rounded-xl font-bold hover:opacity-90">
-            Te faltan {formatCoins(short)} terrones · Comprar
+            Te faltan {formatCoins(short)} {currencyWord} · Comprar
           </button>
         ) : (
           <button
@@ -166,7 +169,7 @@ const GiftDialog: React.FC<Props> = ({ user, creatorProfileId, creatorName, post
             disabled={!selected || sending}
             className="mt-4 w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-xl font-bold hover:opacity-90 disabled:opacity-50"
           >
-            {selected ? `Enviar ${selected.name} · 🍬 ${formatCoins(selected.coins)}` : 'Elige un regalo'}
+            {selected ? <>Enviar {selected.name} · <CoinIcon /> {formatCoins(selected.coins)}</> : 'Elige un regalo'}
           </button>
         )}
       </div>

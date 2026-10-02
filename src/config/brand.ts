@@ -9,10 +9,16 @@ export const BRAND = {
   compactName: 'FansReserve',
   domain,
   url: `https://${domain}`,
-  tagline: 'Conexiones más cercanas. Experiencias exclusivas.',
+  // Public title: "Fans Reserve — <tagline>".
+  tagline: 'Conecta con tus creadores más allá del feed',
   description:
     'Fans Reserve es el espacio donde creadores y sus verdaderos fans se conectan más allá del feed: membresías, contenido exclusivo, experiencias VIP y sesiones en vivo.',
-  themeColor: '#2a1340',
+  themeColor: '#160d1f',
+  backgroundColor: '#faf7f5',
+  // Social preview (1200x630) and app icons, rendered from design/brand/ by
+  // scripts/brand-assets.mjs.
+  ogImage: '/og-fans-reserve.jpg',
+  ogImageAlt: 'Fans Reserve: tu acceso reservado a quienes te inspiran',
   emails: {
     support: `support@${domain}`,
     privacy: `privacy@${domain}`,

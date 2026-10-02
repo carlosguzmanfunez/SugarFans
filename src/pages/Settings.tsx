@@ -18,6 +18,8 @@ import {
   computeEarnings,
 } from '../lib/platform';
 import { BRAND } from '../config/brand';
+import { VIRTUAL_CURRENCY, displayMethodLabel } from '../config/currency';
+import { displayEmail, isDemoEmail } from '../config/demoAccounts';
 
 const notificationItems: { key: string; label: string }[] = [
   { key: 'newPosts', label: 'Nuevas publicaciones de creadores que sigues' },
@@ -179,12 +181,12 @@ const Settings: React.FC = () => {
 
         {saved && (
           <div role="status" className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl mb-6 flex items-center">
-            <i className="fas fa-check-circle mr-2"></i> {saved}
+            <i aria-hidden="true" className="fas fa-check-circle mr-2"></i> {saved}
           </div>
         )}
         {error && (
           <div role="alert" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 flex items-center">
-            <i className="fas fa-exclamation-circle mr-2"></i> {error}
+            <i aria-hidden="true" className="fas fa-exclamation-circle mr-2"></i> {error}
           </div>
         )}
 
@@ -199,7 +201,7 @@ const Settings: React.FC = () => {
                 { id: 'notifications', label: 'Notificaciones', icon: 'fa-bell' },
                 { id: 'privacy', label: 'Privacidad', icon: 'fa-eye-slash' },
                 { id: 'payments', label: 'Pagos', icon: 'fa-credit-card' },
-                { id: 'wallet', label: 'Terrones', icon: 'fa-gift' },
+                { id: 'wallet', label: VIRTUAL_CURRENCY.displayName, icon: 'fa-coins' },
                 { id: 'blocking', label: 'Bloqueos', icon: 'fa-ban' },
               ].map((item) => (
                 <button
@@ -209,7 +211,7 @@ const Settings: React.FC = () => {
                     activeSection === item.id ? 'bg-pink-50 text-pink-700' : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
-                  <i className={`fas ${item.icon} w-5`}></i>
+                  <i aria-hidden="true" className={`fas ${item.icon} w-5`}></i>
                   {item.label}
                 </button>
               ))}
@@ -245,7 +247,11 @@ const Settings: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input type="email" name="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none" />
+                    {isDemoEmail(user?.email) ? (
+                      <input type="text" readOnly value={displayEmail(user?.email)} aria-label="Correo de la cuenta demo" title="Las cuentas demo no cambian su correo" className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-500 outline-none" />
+                    ) : (
+                      <input type="email" name="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none" />
+                    )}
                   </div>
                   {user?.role === 'creator' && (
                     <>
@@ -304,7 +310,7 @@ const Settings: React.FC = () => {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between bg-gray-50 rounded-xl p-4">
                         <div className="flex items-center space-x-3">
-                          <i className="fas fa-laptop text-gray-400"></i>
+                          <i aria-hidden="true" className="fas fa-laptop text-gray-400"></i>
                           <div>
                             <p className="text-sm text-gray-700">Chrome - Windows</p>
                             <p className="text-xs text-gray-500">Sesión actual</p>
@@ -404,7 +410,7 @@ const Settings: React.FC = () => {
                       <p className="text-xs text-gray-500">Copia de tu cuenta, pagos, verificación y bloqueos en formato JSON (GDPR)</p>
                     </div>
                     <button type="button" onClick={downloadMyData} className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">
-                      <i className="fas fa-download mr-1"></i> Descargar
+                      <i aria-hidden="true" className="fas fa-download mr-1"></i> Descargar
                     </button>
                   </div>
                   <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl">
@@ -488,7 +494,7 @@ const Settings: React.FC = () => {
                             </button>
                           )}
                           <button type="button" aria-label={`Eliminar ${m.label}`} onClick={() => removePaymentMethod(user, m.id)} className="p-2 text-gray-400 hover:text-red-500">
-                            <i className="fas fa-trash"></i>
+                            <i aria-hidden="true" className="fas fa-trash"></i>
                           </button>
                         </div>
                       </div>
@@ -501,7 +507,7 @@ const Settings: React.FC = () => {
                       />
                     ) : (
                       <button type="button" onClick={() => setAddingMethod(true)} className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-pink-300 hover:text-pink-500 transition">
-                        <i className="fas fa-plus mr-2"></i> Añadir método de pago
+                        <i aria-hidden="true" className="fas fa-plus mr-2"></i> Añadir método de pago
                       </button>
                     )}
                   </div>
@@ -547,7 +553,7 @@ const Settings: React.FC = () => {
                         <div key={t.id} className="py-3 flex items-center justify-between text-sm">
                           <div>
                             <p className="font-medium text-gray-900">{transactionLabel[t.kind]} · {t.creatorName}</p>
-                            <p className="text-xs text-gray-500">{fmtDate(t.createdAt)} · {t.methodLabel}</p>
+                            <p className="text-xs text-gray-500">{fmtDate(t.createdAt)} · {displayMethodLabel(t.methodLabel)}</p>
                           </div>
                           <span className={t.status === 'paid' ? 'font-bold text-gray-900' : 'text-red-600 text-xs'}>
                             {t.status === 'paid' ? money(t.amount) : 'Pago fallido'}
@@ -577,7 +583,7 @@ const Settings: React.FC = () => {
                 <h2 className="text-lg font-bold text-gray-900 mb-6">Usuarios Bloqueados</h2>
                 {myBlocks.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
-                    <i className="fas fa-shield-alt text-4xl text-gray-300 mb-3"></i>
+                    <i aria-hidden="true" className="fas fa-shield-alt text-4xl text-gray-300 mb-3"></i>
                     <p>No has bloqueado a ningún usuario</p>
                     <p className="text-sm mt-1">Los usuarios bloqueados no podrán interactuar contigo</p>
                   </div>

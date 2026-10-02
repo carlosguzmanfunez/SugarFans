@@ -264,7 +264,7 @@ const LiveRoom: React.FC = () => {
     return (
       <div className="min-h-[60vh] flex items-center justify-center px-4">
         <div className="text-center max-w-md" data-testid="live-unavailable">
-          <i className="fas fa-video-slash text-5xl text-gray-300 mb-4"></i>
+          <i aria-hidden="true" className="fas fa-video-slash text-5xl text-gray-300 mb-4"></i>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Sala en vivo</h1>
           <p className="text-gray-600 mb-6">{problem}</p>
           <Link to={isCreator ? '/creator/dashboard?tab=vip' : '/profile'} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium">
@@ -280,7 +280,7 @@ const LiveRoom: React.FC = () => {
       <div className="min-h-[70vh] flex items-center justify-center px-4 bg-gray-50">
         <div className="bg-white rounded-2xl shadow-sm p-8 max-w-md w-full text-center" data-testid="live-lobby">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center mx-auto mb-4">
-            <i className="fas fa-video text-white text-2xl"></i>
+            <i aria-hidden="true" className="fas fa-video text-white text-2xl"></i>
           </div>
           <h1 className="text-xl font-bold text-gray-900">{booking.title}</h1>
           <p className="text-gray-600 mt-1">con {otherName}</p>
@@ -321,7 +321,7 @@ const LiveRoom: React.FC = () => {
               {!connected && (
                 <div className="absolute inset-0 flex items-center justify-center text-center p-6">
                   <div>
-                    <i className="fas fa-user-clock text-4xl text-gray-500 mb-3"></i>
+                    <i aria-hidden="true" className="fas fa-user-clock text-4xl text-gray-500 mb-3"></i>
                     <p className="text-gray-300">{status}</p>
                     {/failed|Reconectar|salió/.test(status) && (
                       <button onClick={reconnect} className="mt-3 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-sm">Reconectar</button>
@@ -333,32 +333,32 @@ const LiveRoom: React.FC = () => {
                 <video ref={localVideo} autoPlay playsInline muted data-testid="local-video" className={`w-full h-full object-cover -scale-x-100 ${hasMedia && camOn ? '' : 'hidden'}`} />
                 {!(hasMedia && camOn) && (
                   <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                    <i className="fas fa-video-slash mr-1"></i>{hasMedia ? 'Cámara apagada' : 'Sin cámara'}
+                    <i aria-hidden="true" className="fas fa-video-slash mr-1"></i>{hasMedia ? 'Cámara apagada' : 'Sin cámara'}
                   </div>
                 )}
               </div>
             </div>
             {!hasMedia && (
               <p className="text-sm text-yellow-300 mt-3">
-                <i className="fas fa-exclamation-triangle mr-1"></i>
+                <i aria-hidden="true" className="fas fa-exclamation-triangle mr-1"></i>
                 No pudimos usar tu cámara ni tu micrófono. Revisa los permisos del navegador; mientras tanto puedes ver, escuchar y usar el chat.
               </p>
             )}
             <div className="flex justify-center gap-3 mt-4">
               <button onClick={() => toggleTrack('audio')} disabled={!hasMedia} aria-label={micOn ? 'Silenciar micrófono' : 'Activar micrófono'} className={`w-12 h-12 rounded-full ${micOn ? 'bg-white/10 hover:bg-white/20' : 'bg-red-500'} disabled:opacity-40`}>
-                <i className={`fas ${micOn ? 'fa-microphone' : 'fa-microphone-slash'}`}></i>
+                <i aria-hidden="true" className={`fas ${micOn ? 'fa-microphone' : 'fa-microphone-slash'}`}></i>
               </button>
               <button onClick={() => toggleTrack('video')} disabled={!hasMedia} aria-label={camOn ? 'Apagar cámara' : 'Encender cámara'} className={`w-12 h-12 rounded-full ${camOn ? 'bg-white/10 hover:bg-white/20' : 'bg-red-500'} disabled:opacity-40`}>
-                <i className={`fas ${camOn ? 'fa-video' : 'fa-video-slash'}`}></i>
+                <i aria-hidden="true" className={`fas ${camOn ? 'fa-video' : 'fa-video-slash'}`}></i>
               </button>
               <button onClick={hangUp} aria-label="Salir de la llamada" className="px-6 h-12 rounded-full bg-red-600 hover:bg-red-700 font-medium">
-                <i className="fas fa-phone-slash mr-2"></i>Salir
+                <i aria-hidden="true" className="fas fa-phone-slash mr-2"></i>Salir
               </button>
             </div>
           </div>
 
           <div className="bg-gray-800 rounded-2xl p-4 flex flex-col h-[28rem] lg:h-auto" data-testid="live-chat">
-            <h2 className="font-bold mb-3"><i className="fas fa-comments mr-2"></i>Chat</h2>
+            <h2 className="font-bold mb-3"><i aria-hidden="true" className="fas fa-comments mr-2"></i>Chat</h2>
             <div className="flex-1 overflow-y-auto space-y-2 text-sm">
               {chat.length === 0 && <p className="text-gray-400">Los mensajes solo los ven ustedes dos.</p>}
               {chat.map((c, i) => (
@@ -373,7 +373,7 @@ const LiveRoom: React.FC = () => {
               <button type="submit" className="px-4 py-2 rounded-xl bg-pink-600 text-sm font-medium">Enviar</button>
               {!isCreator && (
                 <button type="button" onClick={() => setGifting(true)} aria-label="Regalar" title="Enviar un regalo" className="px-3 py-2 rounded-xl bg-white/10 text-sm">
-                  <i className="fas fa-gift"></i>
+                  <i aria-hidden="true" className="fas fa-gift"></i>
                 </button>
               )}
             </form>

@@ -8,6 +8,7 @@ import { backend } from '../lib/backend';
 import { useBackendData } from '../lib/useBackendData';
 import LiveRoomButton from '../components/LiveRoomButton';
 import { usePlatformQuery, platformApi, platformChanged, nextRenewal } from '../lib/platform';
+import { displayEmail } from '../config/demoAccounts';
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -56,7 +57,7 @@ const Profile: React.FC = () => {
                 <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
                 {user.isVerified && (
                   <span className="flex items-center bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium">
-                    <i className="fas fa-check-circle mr-1"></i> Verify
+                    <i aria-hidden="true" className="fas fa-check-circle mr-1"></i> Verificado
                   </span>
                 )}
                 <span className={`text-xs px-2 py-1 rounded-full font-medium ${
@@ -67,7 +68,7 @@ const Profile: React.FC = () => {
                   {user.role === 'admin' ? 'Administrador' : user.role === 'creator' ? 'Creador' : 'Fan'}
                 </span>
               </div>
-              <p className="text-gray-500">{user.email}</p>
+              <p className="text-gray-500">{displayEmail(user.email)}</p>
               {user.bio && <p className="text-gray-600 mt-2">{user.bio}</p>}
             </div>
             {user.role === 'creator' && (
@@ -88,11 +89,11 @@ const Profile: React.FC = () => {
             )}
             <div className="flex space-x-3 mt-4">
               <Link to="/settings" className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition">
-                <i className="fas fa-cog mr-1"></i> Editar perfil
+                <i aria-hidden="true" className="fas fa-cog mr-1"></i> Editar perfil
               </Link>
               {user.role === 'creator' && (
                 <Link to="/creator/dashboard" className="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl text-sm font-medium hover:opacity-90 transition">
-                  <i className="fas fa-chart-line mr-1"></i> Mi panel
+                  <i aria-hidden="true" className="fas fa-chart-line mr-1"></i> Mi panel
                 </Link>
               )}
             </div>
@@ -103,7 +104,7 @@ const Profile: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-white rounded-2xl shadow-sm p-5" data-testid="bookings">
             <h3 className="font-bold text-gray-900 mb-3">
-              <i className="fas fa-crown text-pink-500 mr-2"></i> Reservas VIP
+              <i aria-hidden="true" className="fas fa-crown text-pink-500 mr-2"></i> Reservas VIP
             </h3>
             {bookingError && <p role="alert" className="text-sm text-red-600 mb-2">{bookingError}</p>}
             {myBookings.length === 0 ? (
@@ -145,7 +146,7 @@ const Profile: React.FC = () => {
                     </div>
                     {b.emailSentAt && (
                       <p className="text-xs text-green-700 mt-2">
-                        <i className="fas fa-envelope mr-1"></i> Correo de confirmación enviado a {b.fanEmail}
+                        <i aria-hidden="true" className="fas fa-envelope mr-1"></i> Correo de confirmación enviado a {b.fanEmail}
                       </p>
                     )}
                   </div>
@@ -156,7 +157,7 @@ const Profile: React.FC = () => {
 
           <div className="bg-white rounded-2xl shadow-sm p-5" data-testid="subscriptions">
             <h3 className="font-bold text-gray-900 mb-3">
-              <i className="fas fa-star text-purple-500 mr-2"></i> Suscripciones Activas
+              <i aria-hidden="true" className="fas fa-star text-purple-500 mr-2"></i> Suscripciones Activas
             </h3>
             {subscribedCreators.length === 0 ? (
               <p className="text-sm text-gray-500">
@@ -194,7 +195,7 @@ const Profile: React.FC = () => {
         {/* Account Info */}
         <div className="mt-6 bg-white rounded-2xl shadow-sm p-5">
           <h3 className="font-bold text-gray-900 mb-4">
-            <i className="fas fa-info-circle text-blue-500 mr-2"></i> Información de la Cuenta
+            <i aria-hidden="true" className="fas fa-info-circle text-blue-500 mr-2"></i> Información de la Cuenta
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
@@ -203,25 +204,25 @@ const Profile: React.FC = () => {
             </div>
             <div>
               <p className="text-gray-500">Email</p>
-              <p className="font-medium text-gray-900">{user.email}</p>
+              <p className="font-medium text-gray-900">{displayEmail(user.email)}</p>
             </div>
             <div>
               <p className="text-gray-500">Verificación de edad</p>
               {user.ageVerified ? (
-                <p className="font-medium text-green-600"><i className="fas fa-check-circle mr-1"></i> Verificado</p>
+                <p className="font-medium text-green-600"><i aria-hidden="true" className="fas fa-check-circle mr-1"></i> Verificado</p>
               ) : (
-                <p className="font-medium text-yellow-600"><i className="fas fa-clock mr-1"></i> Pendiente</p>
+                <p className="font-medium text-yellow-600"><i aria-hidden="true" className="fas fa-clock mr-1"></i> Pendiente</p>
               )}
             </div>
             <div>
               <p className="text-gray-500">Verificación de identidad</p>
               {user.isVerified ? (
-                <p className="font-medium text-green-600"><i className="fas fa-check-circle mr-1"></i> Verificada</p>
+                <p className="font-medium text-green-600"><i aria-hidden="true" className="fas fa-check-circle mr-1"></i> Verificada</p>
               ) : verification?.status === 'pending' ? (
-                <p className="font-medium text-yellow-600"><i className="fas fa-clock mr-1"></i> En revisión</p>
+                <p className="font-medium text-yellow-600"><i aria-hidden="true" className="fas fa-clock mr-1"></i> En revisión</p>
               ) : (
                 <Link to="/settings?section=verification" className="font-medium text-pink-600 hover:text-pink-700">
-                  <i className="fas fa-id-card mr-1"></i> {verification?.status === 'rejected' ? 'Rechazada · volver a enviar' : 'Verificar identidad'}
+                  <i aria-hidden="true" className="fas fa-id-card mr-1"></i> {verification?.status === 'rejected' ? 'Rechazada · volver a enviar' : 'Verificar identidad'}
                 </Link>
               )}
             </div>

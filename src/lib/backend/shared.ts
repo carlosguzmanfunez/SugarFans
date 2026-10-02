@@ -2,7 +2,7 @@
 import { isValidEmail } from '../storage';
 import type { AuthResult, ProfilePatch, UserRole, UserSettings } from './types';
 
-export const DEMO_PASSWORD = 'demo1234';
+export { DEMO_PASSWORD } from '../../config/demoAccounts';
 
 export const defaultSettings = (): UserSettings => ({
   notifications: {

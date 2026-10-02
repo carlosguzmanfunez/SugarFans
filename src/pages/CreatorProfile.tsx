@@ -3,6 +3,8 @@ import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { posts, type Creator } from '../data/mockData';
 import { useCreatorCatalog, fromPublic } from '../lib/catalog';
 import ManagedBadge from '../components/ManagedBadge';
+import Avatar from '../components/Avatar';
+import { CoverImage, isPlaceholderImage } from '../components/CoverArt';
 import LevelBadge from '../components/LevelBadge';
 import GiftCelebration from '../components/GiftCelebration';
 import type { Gift } from '../lib/gifts';
@@ -101,7 +103,7 @@ const CreatorProfile: React.FC = () => {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
-          <i className="fas fa-user-slash text-5xl text-gray-300 mb-4"></i>
+          <i aria-hidden="true" className="fas fa-user-slash text-5xl text-gray-300 mb-4"></i>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Creador no encontrado</h1>
           <p className="text-gray-600 mb-6">Este perfil no existe o fue eliminado.</p>
           <Link to="/explore" className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium">
@@ -205,7 +207,7 @@ const CreatorProfile: React.FC = () => {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
-          <i className="fas fa-user-lock text-5xl text-gray-300 mb-4"></i>
+          <i aria-hidden="true" className="fas fa-user-lock text-5xl text-gray-300 mb-4"></i>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Perfil no disponible</h1>
           <p className="text-gray-600 mb-6">No puedes ver el contenido de este perfil.</p>
           <Link to="/explore" className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium">
@@ -219,26 +221,21 @@ const CreatorProfile: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Cover */}
-      <div className="relative h-48 md:h-64 overflow-hidden">
-        <img src={creator.cover} alt="" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-      </div>
+      <CoverImage src={creator.cover} seed={creator.id + creator.name} className="h-48 md:h-72">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+      </CoverImage>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Profile Header */}
-        <div className="relative -mt-16 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-end sm:space-x-6">
-            <img
-              src={creator.avatar}
-              alt={creator.name}
-              className="w-28 h-28 rounded-full border-4 border-white shadow-lg"
-            />
-            <div className="mt-4 sm:mt-0 flex-1">
-              <div className="flex items-center space-x-2">
-                <h1 className="text-2xl font-bold text-gray-900">{creator.name}</h1>
+        <div className="relative -mt-14 mb-6">
+          <Avatar src={creator.avatar} name={creator.name} size={112} className="ring-4 ring-white shadow-lg" />
+          <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-display-md text-ink">{creator.name}</h1>
                 {creator.isVerified && (
                   <span className="flex items-center bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium">
-                    <i className="fas fa-check-circle mr-1"></i> Verify
+                    <i aria-hidden="true" className="fas fa-check-circle mr-1"></i> Verificado
                   </span>
                 )}
                 <ManagedBadge creator={creator} size="md" />
@@ -247,10 +244,10 @@ const CreatorProfile: React.FC = () => {
               <p className="text-gray-500">@{creator.username}</p>
 
             </div>
-            <div className="mt-4 sm:mt-0 flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {iBlocked ? (
                 <button onClick={handleBlock} className="px-6 py-3 rounded-full font-bold bg-gray-200 text-gray-700 hover:bg-gray-300">
-                  <i className="fas fa-unlock mr-2"></i>Desbloquear
+                  <i aria-hidden="true" className="fas fa-unlock mr-2"></i>Desbloquear
                 </button>
               ) : isAuthenticated && user?.role !== 'creator' && !isOwner ? (
                 <button
@@ -262,11 +259,11 @@ const CreatorProfile: React.FC = () => {
                   }`}
                 >
                   {isSubscribed && mySub?.cancelAt ? (
-                    <><i className="fas fa-redo mr-2"></i>Activa hasta el {formatDay(mySub.cancelAt)} · Reactivar</>
+                    <><i aria-hidden="true" className="fas fa-redo mr-2"></i>Activa hasta el {formatDay(mySub.cancelAt)} · Reactivar</>
                   ) : isSubscribed ? (
-                    <><i className="fas fa-check mr-2"></i>Suscrito · Cancelar</>
+                    <><i aria-hidden="true" className="fas fa-check mr-2"></i>Suscrito · Cancelar</>
                   ) : (
-                    <><i className="fas fa-star mr-2"></i>Suscribirse ${creator.subscriptionPrice}/mes</>
+                    <><i aria-hidden="true" className="fas fa-star mr-2"></i>Suscribirse ${creator.subscriptionPrice}/mes</>
                   )}
                 </button>
               ) : !isAuthenticated ? (
@@ -279,12 +276,12 @@ const CreatorProfile: React.FC = () => {
                   onClick={() => setComposing(!composing)}
                   className="px-6 py-3 rounded-full font-bold bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:opacity-90 shadow-lg"
                 >
-                  <i className="fas fa-plus mr-2"></i>Publicar como {creator.name}
+                  <i aria-hidden="true" className="fas fa-plus mr-2"></i>Publicar como {creator.name}
                 </button>
               )}
               {isOwner && !managesProfile && (
                 <Link to="/creator/dashboard?tab=content" className="px-6 py-3 rounded-full font-bold bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:opacity-90 shadow-lg">
-                  <i className="fas fa-plus mr-2"></i>Nueva publicación
+                  <i aria-hidden="true" className="fas fa-plus mr-2"></i>Nueva publicación
                 </Link>
               )}
               {!isOwner && !iBlocked && (
@@ -293,22 +290,23 @@ const CreatorProfile: React.FC = () => {
                   aria-label="Enviar regalo"
                   className="px-5 py-3 rounded-full font-bold bg-white border border-pink-200 text-pink-600 hover:bg-pink-50"
                 >
-                  <i className="fas fa-gift mr-2"></i>Regalo
+                  <i aria-hidden="true" className="fas fa-gift mr-2"></i>Regalo
                 </button>
               )}
               {!isOwner && !iBlocked && (
                 <button
                   onClick={() => openTip()}
-                  title="Enviar propina"
+                  title="Propina: apoya con un monto libre"
                   aria-label="Enviar propina"
-                  className="w-11 h-11 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-pink-500"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 hover:border-gray-300 hover:text-ink"
                 >
-                  <i className="fas fa-hand-holding-usd"></i>
+                  <i aria-hidden="true" className="fas fa-hand-holding-dollar text-gray-500"></i>
+                  <span>Propina</span>
                 </button>
               )}
               {isAuthenticated && !iBlocked && !isOwner && (
                 <button onClick={handleBlock} title="Bloquear" aria-label="Bloquear" className="w-11 h-11 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-red-500">
-                  <i className="fas fa-ban"></i>
+                  <i aria-hidden="true" className="fas fa-ban"></i>
                 </button>
               )}
             </div>
@@ -347,33 +345,33 @@ const CreatorProfile: React.FC = () => {
         <div className="flex space-x-1 bg-white rounded-xl p-1 shadow-sm mb-6">
           <button
             onClick={() => setActiveTab('posts')}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition ${activeTab === 'posts' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'}`}
+            className={`flex-auto sm:flex-1 whitespace-nowrap px-2 py-2.5 rounded-lg text-[13px] sm:text-sm font-medium transition ${activeTab === 'posts' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'}`}
           >
-            <i className="fas fa-stream mr-1"></i> Publicaciones
+            <i aria-hidden="true" className="fas fa-stream mr-1 max-sm:hidden!"></i> Publicaciones
           </button>
           <button
             onClick={() => setActiveTab('media')}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition ${activeTab === 'media' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'}`}
+            className={`flex-auto sm:flex-1 whitespace-nowrap px-2 py-2.5 rounded-lg text-[13px] sm:text-sm font-medium transition ${activeTab === 'media' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'}`}
           >
-            <i className="fas fa-images mr-1"></i> Media
+            <i aria-hidden="true" className="fas fa-images mr-1 max-sm:hidden!"></i> Media
           </button>
           <button
             onClick={() => setActiveTab('circle')}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition ${activeTab === 'circle' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'}`}
+            className={`flex-auto sm:flex-1 whitespace-nowrap px-2 py-2.5 rounded-lg text-[13px] sm:text-sm font-medium transition ${activeTab === 'circle' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'}`}
           >
-            <i className="fas fa-users mr-1"></i> Círculo
+            <i aria-hidden="true" className="fas fa-users mr-1 max-sm:hidden!"></i> Círculo
           </button>
           <button
             onClick={() => setActiveTab('about')}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition ${activeTab === 'about' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'}`}
+            className={`flex-auto sm:flex-1 whitespace-nowrap px-2 py-2.5 rounded-lg text-[13px] sm:text-sm font-medium transition ${activeTab === 'about' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'}`}
           >
-            <i className="fas fa-info-circle mr-1"></i> Acerca de
+            <i aria-hidden="true" className="fas fa-info-circle mr-1 max-sm:hidden!"></i> <span className="sm:hidden">Info</span><span className="hidden sm:inline">Acerca de</span>
           </button>
         </div>
 
         {iBlocked && (
           <div className="bg-white rounded-2xl p-6 shadow-sm mb-6 text-center text-gray-600">
-            <i className="fas fa-ban text-3xl text-gray-300 mb-2"></i>
+            <i aria-hidden="true" className="fas fa-ban text-3xl text-gray-300 mb-2"></i>
             <p>Has bloqueado a {creator.name}. Desbloquéalo para volver a ver su contenido.</p>
           </div>
         )}
@@ -410,7 +408,7 @@ const CreatorProfile: React.FC = () => {
               />
             )) : (
               <div className="text-center py-12 bg-white rounded-2xl">
-                <i className="fas fa-image text-4xl text-gray-300 mb-4"></i>
+                <i aria-hidden="true" className="fas fa-image text-4xl text-gray-300 mb-4"></i>
                 <p className="text-gray-500">No hay publicaciones aún</p>
               </div>
             )}
@@ -420,24 +418,29 @@ const CreatorProfile: React.FC = () => {
         {!iBlocked && activeTab === 'media' && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {creatorPosts.filter(p => p.mediaUrl || p.mediaType).map((post) => (
-              <a key={post.id} href={`#post-${post.id}`} onClick={() => setActiveTab('posts')} className="relative aspect-square rounded-xl overflow-hidden group cursor-pointer bg-gradient-to-br from-pink-200 to-purple-300">
-                {post.mediaUrl && canView(post) && (post.mediaType === 'video' ? (
+              <a key={post.id} href={`#post-${post.id}`} onClick={() => setActiveTab('posts')} className="relative aspect-square rounded-xl overflow-hidden group cursor-pointer">
+                {post.mediaType === 'video' && post.mediaUrl && canView(post) ? (
                   <video src={post.mediaUrl} muted playsInline preload="metadata" className="w-full h-full object-cover" />
                 ) : (
-                  <img src={post.mediaUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                ))}
+                  <CoverImage
+                    src={canView(post) && !isPlaceholderImage(post.mediaUrl) ? post.mediaUrl : null}
+                    seed={`post-${post.id}`}
+                    className="h-full w-full"
+                    imgClassName="group-hover:scale-105 transition-transform"
+                  />
+                )}
                 {post.mediaType === 'video' && canView(post) && (
-                  <span className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full"><i className="fas fa-play"></i></span>
+                  <span className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full"><i aria-hidden="true" className="fas fa-play"></i></span>
                 )}
                 {!canView(post) && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <i className="fas fa-lock text-white text-xl"></i>
+                    <i aria-hidden="true" className="fas fa-lock text-white text-xl"></i>
                   </div>
                 )}
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition">
                   <div className="flex items-center space-x-3 text-white text-xs">
-                    <span><i className="fas fa-heart mr-1"></i>{compactCount(post.baseLikes + (feed.engagement[post.id]?.likes ?? 0))}</span>
-                    <span><i className="fas fa-comment mr-1"></i>{compactCount(post.baseComments + (feed.engagement[post.id]?.comments ?? 0))}</span>
+                    <span><i aria-hidden="true" className="fas fa-heart mr-1"></i>{compactCount(post.baseLikes + (feed.engagement[post.id]?.likes ?? 0))}</span>
+                    <span><i aria-hidden="true" className="fas fa-comment mr-1"></i>{compactCount(post.baseComments + (feed.engagement[post.id]?.comments ?? 0))}</span>
                   </div>
                 </div>
               </a>
@@ -459,29 +462,29 @@ const CreatorProfile: React.FC = () => {
             <h3 className="font-bold text-lg text-gray-900 mb-4">Acerca de {creator.name}</h3>
             <div className="space-y-4 text-gray-600">
               <div className="flex items-center space-x-3">
-                <i className="fas fa-map-marker-alt text-pink-500 w-5"></i>
+                <i aria-hidden="true" className="fas fa-map-marker-alt text-pink-500 w-5"></i>
                 <span>Latinoamérica</span>
               </div>
               <div className="flex items-center space-x-3">
-                <i className="fas fa-calendar text-pink-500 w-5"></i>
+                <i aria-hidden="true" className="fas fa-calendar text-pink-500 w-5"></i>
                 <span>Miembro desde Enero 2024</span>
               </div>
               <div className="flex items-center space-x-3">
-                <i className="fas fa-shield-alt text-pink-500 w-5"></i>
+                <i aria-hidden="true" className="fas fa-shield-alt text-pink-500 w-5"></i>
                 <span>Identidad verificada</span>
               </div>
               <div className="flex items-center space-x-3">
-                <i className="fas fa-clock text-pink-500 w-5"></i>
+                <i aria-hidden="true" className="fas fa-clock text-pink-500 w-5"></i>
                 <span>Publica contenido nuevo cada semana</span>
               </div>
             </div>
             <hr className="my-6" />
             <div className="flex space-x-4">
               <button onClick={() => handleReport('creator', creator.id, `Perfil de ${creator.name}`)} className="text-gray-500 hover:text-pink-500 transition">
-                <i className="fas fa-flag text-sm"></i> Reportar perfil
+                <i aria-hidden="true" className="fas fa-flag text-sm"></i> Reportar perfil
               </button>
               <button className="text-gray-500 hover:text-pink-500 transition">
-                <i className="fas fa-share text-sm"></i> Compartir perfil
+                <i aria-hidden="true" className="fas fa-share text-sm"></i> Compartir perfil
               </button>
             </div>
           </div>

@@ -28,7 +28,7 @@ const LanguageSelector: React.FC = () => {
       >
         <span className="text-lg">{currentFlag}</span>
         <span className="hidden sm:inline">{languageNames[language]}</span>
-        <i className={`fas fa-chevron-down text-xs transition-transform ${isOpen ? 'rotate-180' : ''}`}></i>
+        <i aria-hidden="true" className={`fas fa-chevron-down text-xs transition-transform ${isOpen ? 'rotate-180' : ''}`}></i>
       </button>
 
       {isOpen && (
@@ -51,7 +51,7 @@ const LanguageSelector: React.FC = () => {
                 <span className="text-lg">{lang.flag}</span>
                 <span>{languageNames[lang.code]}</span>
                 {language === lang.code && (
-                  <i className="fas fa-check text-pink-600 ml-auto text-xs"></i>
+                  <i aria-hidden="true" className="fas fa-check text-pink-600 ml-auto text-xs"></i>
                 )}
               </button>
             ))}

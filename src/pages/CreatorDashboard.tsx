@@ -147,14 +147,14 @@ const CreatorDashboard: React.FC = () => {
             onClick={() => { setShowNewPost(!showNewPost); setNotice(null); }}
             className="mt-4 sm:mt-0 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition shadow-lg"
           >
-            <i className="fas fa-plus mr-2"></i> Nueva Publicación
+            <i aria-hidden="true" className="fas fa-plus mr-2"></i> Nueva Publicación
           </button>
         </div>
 
         {!verified && live && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3" data-testid="verification-banner">
             <p className="text-sm text-yellow-800">
-              <i className="fas fa-id-card mr-2"></i>
+              <i aria-hidden="true" className="fas fa-id-card mr-2"></i>
               {verificationStatus === 'pending'
                 ? 'Tu verificación de identidad está en revisión. Podrás publicar y cobrar en cuanto se apruebe.'
                 : verificationStatus === 'rejected'
@@ -201,7 +201,7 @@ const CreatorDashboard: React.FC = () => {
                 activeTab === tab.id ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              <i className={`fas ${tab.icon} mr-1`}></i> {tab.label}
+              <i aria-hidden="true" className={`fas ${tab.icon} mr-1`}></i> {tab.label}
             </button>
           ))}
         </div>
@@ -214,7 +214,7 @@ const CreatorDashboard: React.FC = () => {
                 <div key={i} className="bg-white rounded-2xl p-5 shadow-sm">
                   <div className="flex items-center justify-between mb-3">
                     <div className={`w-10 h-10 rounded-xl bg-${stat.color}-100 flex items-center justify-center`}>
-                      <i className={`fas ${stat.icon} text-${stat.color}-600`}></i>
+                      <i aria-hidden="true" className={`fas ${stat.icon} text-${stat.color}-600`}></i>
                     </div>
                     <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
                       {stat.change}
@@ -257,7 +257,7 @@ const CreatorDashboard: React.FC = () => {
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                         tx.type === 'Suscripción' ? 'bg-blue-100' : tx.type === 'Propina' ? 'bg-green-100' : 'bg-purple-100'
                       }`}>
-                        <i className={`fas ${
+                        <i aria-hidden="true" className={`fas ${
                           tx.type === 'Suscripción' ? 'fa-user-plus text-blue-600' : tx.type === 'Propina' ? 'fa-gift text-green-600' : 'fa-film text-purple-600'
                         } text-xs`}></i>
                       </div>
@@ -288,11 +288,11 @@ const CreatorDashboard: React.FC = () => {
               </div>
               <div className="flex gap-2">
                 <Link to={`/creator/${profileId}`} className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 hover:border-pink-300">
-                  <i className="fas fa-eye mr-1"></i> Ver mi perfil
+                  <i aria-hidden="true" className="fas fa-eye mr-1"></i> Ver mi perfil
                 </Link>
                 {!showNewPost && (
                   <button onClick={() => { setShowNewPost(true); setNotice(null); }} className="px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white text-sm font-medium">
-                    <i className="fas fa-upload mr-1"></i> Subir foto o video
+                    <i aria-hidden="true" className="fas fa-upload mr-1"></i> Subir foto o video
                   </button>
                 )}
               </div>
@@ -313,7 +313,7 @@ const CreatorDashboard: React.FC = () => {
                         )
                       ) : (
                         <div className="w-full h-20 bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center text-gray-300">
-                          <i className="fas fa-align-left text-2xl"></i>
+                          <i aria-hidden="true" className="fas fa-align-left text-2xl"></i>
                         </div>
                       )}
                       <div className="p-4 flex-1 flex flex-col">
@@ -325,12 +325,12 @@ const CreatorDashboard: React.FC = () => {
                         </div>
                         <div className="mt-auto flex items-center justify-between text-xs text-gray-500">
                           <span className="flex gap-3">
-                            <span><i className="fas fa-heart mr-1"></i>{e?.likes ?? 0}</span>
-                            <span><i className="fas fa-comment mr-1"></i>{e?.comments ?? 0}</span>
+                            <span><i aria-hidden="true" className="fas fa-heart mr-1"></i>{e?.likes ?? 0}</span>
+                            <span><i aria-hidden="true" className="fas fa-comment mr-1"></i>{e?.comments ?? 0}</span>
                             <span>{new Date(post.createdAt).toLocaleDateString('es')}</span>
                           </span>
                           <button onClick={() => handleDeletePost(post.id)} className="text-red-500 hover:text-red-700">
-                            <i className="fas fa-trash mr-1"></i>Eliminar
+                            <i aria-hidden="true" className="fas fa-trash mr-1"></i>Eliminar
                           </button>
                         </div>
                       </div>
@@ -347,7 +347,7 @@ const CreatorDashboard: React.FC = () => {
             <div className="p-5 border-b border-gray-100 flex justify-between items-center">
               <h3 className="font-bold text-gray-900">Suscriptores ({subscribers.length})</h3>
               <button className="text-sm text-pink-600 hover:text-pink-700">
-                <i className="fas fa-envelope mr-1"></i> Enviar mensaje a todos
+                <i aria-hidden="true" className="fas fa-envelope mr-1"></i> Enviar mensaje a todos
               </button>
             </div>
             <div className="divide-y divide-gray-100">
@@ -363,7 +363,7 @@ const CreatorDashboard: React.FC = () => {
                   </div>
                   <div className="flex space-x-2">
                     <button className="p-2 text-gray-400 hover:text-pink-500 transition">
-                      <i className="fas fa-envelope"></i>
+                      <i aria-hidden="true" className="fas fa-envelope"></i>
                     </button>
                     {isBlocked(sub.id) ? (
                       <button onClick={() => user && unblockUser(user, sub.id)} className="px-3 py-1 text-xs text-pink-600 hover:text-pink-700">
@@ -375,7 +375,7 @@ const CreatorDashboard: React.FC = () => {
                         aria-label={`Bloquear a ${sub.name}`}
                         className="p-2 text-gray-400 hover:text-red-500 transition"
                       >
-                        <i className="fas fa-ban"></i>
+                        <i aria-hidden="true" className="fas fa-ban"></i>
                       </button>
                     )}
                   </div>

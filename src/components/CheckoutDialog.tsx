@@ -45,7 +45,7 @@ const CheckoutDialog: React.FC<Props> = ({ user, title, amount, note, confirmLab
             {note && <p className="text-sm text-gray-500 mt-1">{note}</p>}
           </div>
           <button type="button" onClick={onClose} aria-label="Cerrar" className="p-1 text-gray-400 hover:text-gray-600">
-            <i className="fas fa-times"></i>
+            <i aria-hidden="true" className="fas fa-times"></i>
           </button>
         </div>
 
@@ -59,7 +59,7 @@ const CheckoutDialog: React.FC<Props> = ({ user, title, amount, note, confirmLab
           {methods.map((m) => (
             <label key={m.id} className={`flex items-center gap-3 p-3 border rounded-xl cursor-pointer ${selected === m.id ? 'border-pink-500 bg-pink-50' : 'border-gray-200'}`}>
               <input type="radio" name="payment-method" checked={selected === m.id} onChange={() => setSelected(m.id)} />
-              <i className={`${paymentKindIcon[m.kind]} text-gray-500`}></i>
+              <i aria-hidden="true" className={`${paymentKindIcon[m.kind]} text-gray-500`}></i>
               <span className="text-sm font-medium text-gray-900">{m.label}</span>
               <span className="text-xs text-gray-500 ml-auto">{m.detail}</span>
             </label>
@@ -74,7 +74,7 @@ const CheckoutDialog: React.FC<Props> = ({ user, title, amount, note, confirmLab
           />
         ) : (
           <button type="button" onClick={() => setAdding(true)} className="text-sm text-pink-600 hover:text-pink-700 font-medium">
-            <i className="fas fa-plus mr-1"></i> Añadir otro método
+            <i aria-hidden="true" className="fas fa-plus mr-1"></i> Añadir otro método
           </button>
         )}
 
@@ -86,7 +86,7 @@ const CheckoutDialog: React.FC<Props> = ({ user, title, amount, note, confirmLab
           disabled={adding || paying || !selected}
           className="mt-5 w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-xl font-bold hover:opacity-90 disabled:opacity-40"
         >
-          <i className="fas fa-lock mr-2"></i>{confirmLabel} {money(amount)}
+          <i aria-hidden="true" className="fas fa-lock mr-2"></i>{confirmLabel} {money(amount)}
         </button>
         <p className="text-xs text-gray-400 text-center mt-2">Pago de demostración: aún no se conecta a una pasarela real.</p>
       </div>

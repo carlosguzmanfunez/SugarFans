@@ -82,16 +82,18 @@ export const sessionMinutes = (booking?: Pick<VipBooking, 'experienceId' | 'dura
 };
 
 // --- Experiences ------------------------------------------------------------
+// icon: Font Awesome solid icon.
 export const EXPERIENCE_TYPES: { id: ExperienceType; name: string; icon: string }[] = [
-  { id: 'meet-greet', name: 'Meet & Greet', icon: '👋' },
-  { id: 'qa-session', name: 'Sesión Q&A', icon: '💬' },
-  { id: 'custom-content', name: 'Contenido Personalizado', icon: '🎨' },
-  { id: 'early-access', name: 'Acceso Anticipado', icon: '🚀' },
-  { id: 'collaboration', name: 'Colaboración', icon: '🤝' },
+  { id: 'meet-greet', name: 'Meet & Greet', icon: 'fa-handshake' },
+  { id: 'qa-session', name: 'Sesión Q&A', icon: 'fa-comments' },
+  { id: 'custom-content', name: 'Contenido Personalizado', icon: 'fa-wand-magic-sparkles' },
+  { id: 'early-access', name: 'Acceso Anticipado', icon: 'fa-bolt' },
+  { id: 'collaboration', name: 'Colaboración', icon: 'fa-people-arrows' },
 ];
 export const MIN_EXPERIENCE_PRICE = 5;
 export const MAX_EXPERIENCE_PRICE = 5000;
-export const DEFAULT_EXPERIENCE_IMAGE = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&h=400&fit=crop';
+// No image: the experience shows generated art (components/CoverArt).
+export const DEFAULT_EXPERIENCE_IMAGE = '';
 
 export const validateExperience = (input: VipExperienceInput): { ok: boolean; error?: string } => {
   const title = input.title.trim();

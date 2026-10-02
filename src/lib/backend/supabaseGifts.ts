@@ -1,9 +1,11 @@
-// Supabase implementation of Terrones, gifts, the Círculo privado, the Bóveda
-// and the gift perks. Tables and the functions that enforce the rules live in
+// Supabase implementation of the virtual currency (internally "Terrones"),
+// gifts, the Círculo privado, the Bóveda and the gift perks. Tables and the
+// functions that enforce the rules live in
 // supabase/migrations/20260930000007_gifts_terrones.sql.
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { DEFAULT_GIFT_SETTINGS, validateCircleMin } from '../giftRules';
 import type { AuthResult } from './types';
+import { currencyWord } from '../../config/currency';
 import type { CircleMessage, GiftsBackend, PerkRequest, VaultItem } from './giftTypes';
 
 type Row = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -12,10 +14,11 @@ const BUCKET = 'post-media';
 const URL_TTL = 60 * 60;
 const ok: AuthResult = { ok: true };
 const fail = (error: string): AuthResult => ({ ok: false, error });
-// Rule violations raised by the database are written for people; show them as-is.
+// Rule violations raised by the database are written for people; show them as-is
+// (with the currency's current display name).
 const done = (error: { message?: string } | null, fallback: string): AuthResult => {
   if (!error) return ok;
-  const msg = error.message ?? '';
+  const msg = (error.message ?? '').replace(/\bterrones\b/gi, currencyWord);
   return fail(/[áéíóúñ¿$]|Debes|Esta acción|Elige|Escribe|Entra|Ponle|Sube|Solo|No |Ya |Este|Esta|La /.test(msg) ? msg : fallback);
 };
 

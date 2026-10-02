@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
+  <!-- Fans Reserve mark, monochrome dark (for light backgrounds): one ink colour, strokes knocked out -->
+  <defs>
+    <mask id="m">
+      <rect width="40" height="40" fill="#fff"/>
+      <g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.6">
+        <path d="M23 10.5 a4.625 4.625 0 0 1 0 9.25 H20 L28 29.5"/>
+        <path d="M12 29.5 V10.5 H23 M12 19.75 H20"/>
+      </g>
+    </mask>
+  </defs>
+  <rect width="40" height="40" rx="11" fill="#160d1f" mask="url(#m)"/>
+</svg>

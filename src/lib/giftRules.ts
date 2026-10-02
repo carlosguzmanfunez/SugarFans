@@ -1,15 +1,19 @@
-// Gifts paid with "Terrones", the platform's coin (1 terrón = $0.01 of gift
-// value). Fans buy packs at a net price and the platform absorbs the card fee; the
+// Gifts paid with the platform's virtual currency (internally "Terrones"; shown
+// as VIRTUAL_CURRENCY in src/config/currency.ts). 1 unit = $0.01 of gift value.
+// Fans buy packs at a net price and the platform absorbs the card fee; the
 // creator gets 60% of every gift. The same catalogue is seeded in Supabase
-// (migration 20260930000007_gifts_terrones.sql): keep both in sync.
+// (migration 20260930000007_gifts_terrones.sql): keep both in sync. The names
+// below are the stored ones; what users read comes from src/config/gifts.ts.
 import type { CoinPack, CreatorGiftSettings, Gift, GiftCategory } from './backend/giftTypes';
+import { COIN_PACK_DISPLAY, GIFT_DISPLAY } from '../config/gifts';
 
 export const COIN_VALUE = 0.01;
 export const GIFT_SHARE = 0.6;
 export const coinsToUsd = (coins: number) => Math.round(coins) / 100;
 export const formatCoins = (coins: number) => coins.toLocaleString('en-US');
 
-export const COIN_PACKS: CoinPack[] = [
+// Stored catalogue (coin_packs).
+const COIN_PACK_CATALOG: CoinPack[] = [
   { id: 'bolsita', name: 'Bolsita', price: 4.99, coins: 500 },
   { id: 'frasco', name: 'Frasco', price: 9.99, coins: 1_000 },
   { id: 'caja', name: 'Caja', price: 19.99, coins: 2_000 },
@@ -22,7 +26,8 @@ export const COIN_PACKS: CoinPack[] = [
 
 const g = (id: string, name: string, category: GiftCategory, coins: number, icon: string): Gift => ({ id, name, category, coins, icon });
 
-export const GIFTS: Gift[] = [
+// Stored catalogue (gift_catalog).
+const GIFT_CATALOG: Gift[] = [
   g('caramelo', 'Caramelo', 'Dulces', 20, '🍬'),
   g('chicle', 'Chicle rosa', 'Dulces', 20, '🫧'),
   g('piruleta', 'Piruleta', 'Dulces', 20, '🍭'),
@@ -49,6 +54,10 @@ export const GIFTS: Gift[] = [
   g('jet', 'Jet privado', 'Fantasía', 50_000, '✈️'),
   g('castillo', 'Castillo de azúcar', 'Fantasía', 100_000, '🏰'),
 ];
+
+// What the app works with: same ids, prices and categories, display names.
+export const COIN_PACKS: CoinPack[] = COIN_PACK_CATALOG.map((p) => ({ ...p, name: COIN_PACK_DISPLAY[p.id] ?? p.name }));
+export const GIFTS: Gift[] = GIFT_CATALOG.map((x) => ({ ...x, name: GIFT_DISPLAY[x.id]?.name ?? x.name, icon: GIFT_DISPLAY[x.id]?.emoji ?? x.icon }));
 
 export const GIFT_CATEGORIES: GiftCategory[] = ['Dulces', 'Repostería', 'Romance', 'Lujo', 'Fantasía'];
 export const giftById = (id: string) => GIFTS.find((x) => x.id === id);

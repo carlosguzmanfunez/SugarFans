@@ -1,19 +1,22 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { BRAND } from '../config/brand';
 
 const LegalPolicies: React.FC = () => {
   const { t } = useLanguage();
-  const [activePolicy, setActivePolicy] = useState('terms');
-
   const policies = [
-    { id: 'terms', name: 'Términos y Condiciones', icon: '📋' },
-    { id: 'privacy', name: 'Política de Privacidad', icon: '🔒' },
-    { id: 'creator', name: 'Contrato de Creadores', icon: '🤝' },
-    { id: 'minors', name: 'Protección de Menores', icon: '🛡️' },
-    { id: 'cookies', name: 'Política de Cookies', icon: '🍪' },
-    { id: 'dmca', name: 'Política DMCA', icon: '⚖️' },
+    { id: 'terms', name: 'Términos y Condiciones', icon: 'fa-file-contract' },
+    { id: 'privacy', name: 'Política de Privacidad', icon: 'fa-lock' },
+    { id: 'creator', name: 'Contrato de Creadores', icon: 'fa-handshake' },
+    { id: 'minors', name: 'Protección de Menores', icon: 'fa-user-shield' },
+    { id: 'cookies', name: 'Política de Cookies', icon: 'fa-cookie-bite' },
+    { id: 'dmca', name: 'Política DMCA', icon: 'fa-scale-balanced' },
   ];
+  // ?doc=<id> opens a document directly (footer links).
+  const [params] = useSearchParams();
+  const requested = params.get('doc');
+  const [activePolicy, setActivePolicy] = useState(policies.some((p) => p.id === requested) ? requested! : 'terms');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -39,7 +42,7 @@ const LegalPolicies: React.FC = () => {
                         : 'text-gray-700 hover:bg-gray-50'
                     }`}
                   >
-                    <span className="text-xl">{policy.icon}</span>
+                    <i className={`fas ${policy.icon} w-5 text-center`} aria-hidden="true"></i>
                     <span className="font-medium text-sm">{policy.name}</span>
                   </button>
                 ))}
@@ -308,7 +311,7 @@ const LegalPolicies: React.FC = () => {
                     © {new Date().getFullYear()} {BRAND.name}. Todos los derechos reservados.
                   </p>
                   <a href={`mailto:${BRAND.emails.legal}`} className="text-sm text-pink-600 hover:text-pink-700 font-medium">
-                    <i className="fas fa-envelope mr-2"></i>
+                    <i aria-hidden="true" className="fas fa-envelope mr-2"></i>
                     Contactar Departamento Legal
                   </a>
                 </div>

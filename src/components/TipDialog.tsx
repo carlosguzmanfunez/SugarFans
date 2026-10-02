@@ -57,7 +57,7 @@ const TipDialog: React.FC<Props> = ({ user, creatorProfileId, creatorName, postI
             <p className="text-sm text-gray-500 mt-1">Apoya a {creatorName}. El 80% va directo a su saldo.</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Cerrar" className="p-1 text-gray-400 hover:text-gray-600">
-            <i className="fas fa-times"></i>
+            <i aria-hidden="true" className="fas fa-times"></i>
           </button>
         </div>
 

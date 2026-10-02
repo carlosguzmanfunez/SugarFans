@@ -1,6 +1,6 @@
-// Browser-only implementation of Terrones, gifts, the Círculo privado, the
-// Bóveda and the video / video-call perks (dev and offline tests). Gifts are
-// written into the platform's books through the ledger so earnings, payouts and
+// Browser-only implementation of the virtual currency (internally "Terrones"),
+// gifts, the Círculo privado, the Bóveda and the video / video-call perks (dev
+// and offline tests). Gifts are written into the platform's books through the ledger so earnings, payouts and
 // admin reports see them like any other payment.
 import { readJSON, writeJSONChecked, newId } from '../storage';
 import { round2 } from '../platformRules';
@@ -19,6 +19,7 @@ import {
   validateCircleMin,
 } from '../giftRules';
 import { fileUrl } from './localSocial';
+import { currencyWord } from '../../config/currency';
 import type { LocalLedger } from './localPlatform';
 import type { AuthResult, User, VipBooking } from './types';
 import type { CircleMessage, CoinPurchase, CreatorGiftSettings, GiftsBackend, PerkRequest, VaultItem } from './giftTypes';
@@ -130,7 +131,7 @@ export const createLocalGifts = (deps: Deps): GiftsBackend & { purgeUser(userId:
       if (deps.ledger.cutOff(user.id, input.creatorProfileId)) return fail('No puedes enviar regalos a este perfil');
       settle();
       const s = load();
-      if (balance(s, user.id) < gift.coins) return fail('No tienes suficientes terrones');
+      if (balance(s, user.id) < gift.coins) return fail(`No tienes suficientes ${currencyWord}`);
       const value = coinsToUsd(gift.coins);
       const message = (input.message ?? '').trim().slice(0, 200);
       const at = now();
@@ -142,7 +143,7 @@ export const createLocalGifts = (deps: Deps): GiftsBackend & { purgeUser(userId:
         creatorName: input.creatorName,
         kind: 'gift',
         amount: value,
-        methodLabel: 'Terrones',
+        methodLabel: 'Terrones', // stored label, as the database writes it; shown via displayMethodLabel
         status: 'paid',
         createdAt: at,
         share: GIFT_SHARE,

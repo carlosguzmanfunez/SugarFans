@@ -6,7 +6,6 @@ import { backend } from './backend';
 import type { PublicCreator } from './backend/socialTypes';
 import { BRAND } from '../config/brand';
 
-const DEFAULT_COVER = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=400&fit=crop';
 
 export const fromManaged = (m: ManagedProfile): Creator => ({
   id: m.id,
@@ -30,7 +29,7 @@ export const fromPublic = (c: PublicCreator): Creator => ({
   name: c.name,
   username: c.name.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''),
   avatar: c.avatar,
-  cover: DEFAULT_COVER,
+  cover: '', // generated cover art
   bio: c.bio || `Creador en ${BRAND.name}.`,
   isVerified: c.isVerified,
   subscriptionPrice: c.subscriptionPrice,
@@ -65,4 +64,14 @@ export const useCreatorCatalog = () => {
     demoCreators
   );
   return { creators: data, loading };
+};
+
+// Creators who currently offer bookable VIP experiences (VIP badge on cards).
+export const useVipCreatorIds = () => {
+  const { data } = usePlatformQuery(
+    async () => new Set((await backend.listExperiences()).filter((e) => e.active).map((e) => e.creatorProfileId)),
+    [],
+    new Set<string>()
+  );
+  return data;
 };

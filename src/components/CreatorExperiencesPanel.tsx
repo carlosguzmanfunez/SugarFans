@@ -88,7 +88,7 @@ const CreatorExperiencesPanel: React.FC = () => {
         </div>
         {!editing && (
           <button onClick={() => open()} className="shrink-0 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-2 rounded-xl text-sm font-medium">
-            <i className="fas fa-plus mr-1"></i> Nueva experiencia
+            <i aria-hidden="true" className="fas fa-plus mr-1"></i> Nueva experiencia
           </button>
         )}
       </div>
@@ -110,7 +110,7 @@ const CreatorExperiencesPanel: React.FC = () => {
               <span className="text-gray-700 font-medium">Tipo</span>
               <select name="expType" value={editing.input.type} onChange={(e) => set({ type: e.target.value as ExperienceType })} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg">
                 {EXPERIENCE_TYPES.map((t) => (
-                  <option key={t.id} value={t.id}>{t.icon} {t.name}</option>
+                  <option key={t.id} value={t.id}>{t.name}</option>
                 ))}
               </select>
             </label>

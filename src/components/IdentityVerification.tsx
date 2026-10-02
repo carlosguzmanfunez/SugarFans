@@ -19,7 +19,7 @@ const PhotoInput: React.FC<{
       <img src={value} alt={label} className="h-28 w-full object-contain rounded-lg" />
     ) : (
       <div className="h-28 flex flex-col items-center justify-center text-gray-400">
-        <i className={`fas ${icon} text-2xl mb-2`}></i>
+        <i aria-hidden="true" className={`fas ${icon} text-2xl mb-2`}></i>
         <span className="text-xs">{hint}</span>
       </div>
     )}
@@ -83,7 +83,7 @@ const IdentityVerification: React.FC = () => {
       <h2 className="text-lg font-bold text-gray-900 mb-2">Verificación de identidad</h2>
       <p className="text-sm text-gray-600 mb-6">
         Solo necesitamos dos fotos: el frente de tu documento oficial y un selfie de frente. Comprobamos que eres mayor de edad y que
-        la cara del selfie coincide con la del documento. Es obligatoria para que los creadores publiquen y cobren, y añade la insignia <span className="text-blue-700 font-medium">Verify</span> a tu perfil.
+        la cara del selfie coincide con la del documento. Es obligatoria para que los creadores publiquen y cobren, y añade la insignia <span className="text-blue-700 font-medium">Verificado</span> a tu perfil.
       </p>
     </>
   );
@@ -93,7 +93,7 @@ const IdentityVerification: React.FC = () => {
       <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="verification">
         {header}
         <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <i className="fas fa-check-circle text-2xl text-blue-600"></i>
+          <i aria-hidden="true" className="fas fa-check-circle text-2xl text-blue-600"></i>
           <div>
             <p className="font-medium text-blue-900">Identidad verificada</p>
             <p className="text-xs text-blue-700">
@@ -111,7 +111,7 @@ const IdentityVerification: React.FC = () => {
       <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="verification">
         {header}
         <div className="flex items-center gap-3 bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-          <i className="fas fa-hourglass-half text-2xl text-yellow-600"></i>
+          <i aria-hidden="true" className="fas fa-hourglass-half text-2xl text-yellow-600"></i>
           <div>
             <p className="font-medium text-yellow-900">Solicitud en revisión</p>
             <p className="text-xs text-yellow-700">
@@ -128,7 +128,7 @@ const IdentityVerification: React.FC = () => {
       <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="verification">
         {header}
         <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-          <p className="font-medium text-red-800"><i className="fas fa-times-circle mr-2"></i>Solicitud rechazada</p>
+          <p className="font-medium text-red-800"><i aria-hidden="true" className="fas fa-times-circle mr-2"></i>Solicitud rechazada</p>
           <p className="text-sm text-red-700 mt-1">Motivo: {request.rejectionReason}</p>
           <button type="button" onClick={() => setRetry(true)} className="mt-3 bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700">
             Enviar de nuevo
@@ -178,7 +178,7 @@ const IdentityVerification: React.FC = () => {
           />
         </div>
         <p className="text-xs text-gray-500">
-          <i className="fas fa-shield-alt mr-1"></i>Solo el equipo de verificación ve estas imágenes y se eliminan en cuanto se aprueba la solicitud.
+          <i aria-hidden="true" className="fas fa-shield-alt mr-1"></i>Solo el equipo de verificación ve estas imágenes y se eliminan en cuanto se aprueba la solicitud.
         </p>
         {error && <p role="alert" className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
         <button type="button" onClick={submit} disabled={sending} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition">

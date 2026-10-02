@@ -24,6 +24,7 @@ import {
   type VaultItem,
 } from '../lib/gifts';
 import { BRAND, displayPayer } from '../config/brand';
+import { displayGiftNote } from '../config/gifts';
 
 const field = 'w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-sm';
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -175,7 +176,7 @@ const CreatorGiftsPanel: React.FC = () => {
                 {p.status === 'pending' && <p className="text-xs text-gray-500">Vence el {fmtDate(p.dueAt)}</p>}
                 {p.status === 'pending' && p.kind === 'video' && (
                   <label className="inline-block text-xs bg-pink-50 text-pink-700 px-3 py-2 rounded-lg cursor-pointer">
-                    <i className="fas fa-upload mr-1"></i>Subir video y entregar
+                    <i aria-hidden="true" className="fas fa-upload mr-1"></i>Subir video y entregar
                     <input type="file" name="perkVideo" accept="video/*" className="sr-only" disabled={busy} onChange={(e) => e.target.files?.[0] && sendVideo(p, e.target.files[0])} />
                   </label>
                 )}
@@ -220,7 +221,7 @@ const CreatorGiftsPanel: React.FC = () => {
                 onClick={async () => window.confirm(`¿Eliminar "${v.title}" de tu Bóveda?`) && say(await deleteVaultItem(user, v.id), 'Eliminado de tu Bóveda')}
                 className="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/60 text-white text-xs"
               >
-                <i className="fas fa-trash"></i>
+                <i aria-hidden="true" className="fas fa-trash"></i>
               </button>
             </figure>
           ))}
@@ -237,7 +238,7 @@ const CreatorGiftsPanel: React.FC = () => {
               <div key={t.id} className="py-2 flex items-center justify-between text-sm" data-testid="gift-received">
                 <span className="flex items-center gap-2">
                   {t.giftId && giftById(t.giftId) && <GiftArt gift={giftById(t.giftId)!} size={28} />}
-                  {t.note} · {displayPayer(t.payerName)}
+                  {displayGiftNote(t.note, t.giftId)} · {displayPayer(t.payerName)}
                 </span>
                 {t.status === 'refunded' ? (
                   <span className="text-xs text-gray-500">Devuelto</span>

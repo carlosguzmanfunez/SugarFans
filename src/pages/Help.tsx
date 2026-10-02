@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { submitReport } from '../lib/platform';
 import { REPORT_REASONS } from '../components/ReportDialog';
 import { BRAND } from '../config/brand';
+import { currencyWord } from '../config/currency';
 
 interface Faq {
   category: string;
@@ -15,12 +16,12 @@ interface Faq {
 // Every answer here describes a feature that exists in the app, with a link to it.
 export const faqs: Faq[] = [
   { category: 'Cuenta y Perfil', q: '¿Cómo creo una cuenta?', a: 'Haz clic en "Registrarse" y completa el formulario eligiendo si eres fan o creador. Necesitas ser mayor de 18 años.', link: { to: '/register', label: 'Crear cuenta' } },
-  { category: 'Cuenta y Perfil', q: '¿Cómo verifico mi identidad?', a: 'Ve a Configuración > Verificación, completa tus datos y sube solo dos fotos: el frente de tu documento de identidad y un selfie de frente. Comprobamos que eres mayor de edad y que tu cara coincide con la del documento, y verás el estado en esa misma pantalla. Al aprobarse obtienes la insignia "Verify" y tus imágenes se eliminan.', link: { to: '/settings?section=verification', label: 'Ir a Verificación' } },
+  { category: 'Cuenta y Perfil', q: '¿Cómo verifico mi identidad?', a: 'Ve a Configuración > Verificación, completa tus datos y sube solo dos fotos: el frente de tu documento de identidad y un selfie de frente. Comprobamos que eres mayor de edad y que tu cara coincide con la del documento, y verás el estado en esa misma pantalla. Al aprobarse obtienes la insignia "Verificado" y tus imágenes se eliminan.', link: { to: '/settings?section=verification', label: 'Ir a Verificación' } },
   { category: 'Cuenta y Perfil', q: '¿Cómo elimino mi cuenta?', a: 'En Configuración > Privacidad, "Eliminar mi cuenta". Te pediremos tu contraseña; se borran tu cuenta, tus métodos de pago y tus documentos de verificación.', link: { to: '/settings?section=privacy', label: 'Ir a Privacidad' } },
   { category: 'Pagos y Suscripciones', q: '¿Qué métodos de pago aceptan?', a: 'Tarjetas de crédito o débito Visa y Mastercard, PayPal y Google Pay. Añádelos y elige el principal en Configuración > Pagos.', link: { to: '/settings?section=payments', label: 'Ir a Pagos' } },
   { category: 'Pagos y Suscripciones', q: '¿Cuándo se renueva mi suscripción?', a: 'Cada mes en la misma fecha en que te suscribiste, con tu método de pago principal. Ves la próxima fecha de cobro y tu historial de pagos en Configuración > Pagos y en tu perfil.', link: { to: '/settings?section=payments', label: 'Ver mis suscripciones' } },
   { category: 'Pagos y Suscripciones', q: '¿Puedo cancelar mi suscripción en cualquier momento?', a: 'Sí, sin permanencia. Cancélala desde Configuración > Pagos, desde tu perfil o desde el perfil del creador; no se te volverá a cobrar.', link: { to: '/settings?section=payments', label: 'Gestionar suscripciones' } },
-  { category: 'Pagos y Suscripciones', q: '¿Qué son los terrones y los regalos?', a: 'Los terrones son la moneda para enviar regalos a tus creadores: compras un paquete (desde $4.99) y recibes en terrones todo lo que pagas, 100 terrones = $1. Los regalos de $100 o más te dan 30 días en el Círculo privado del creador, los de $200 abren su Bóveda, y según el creador los de $500 incluyen un video personalizado y los de $1,000 una videollamada privada. Si un video o videollamada no se entrega a tiempo, te devolvemos los terrones.', link: { to: '/settings?section=wallet', label: 'Mis terrones' } },
+  { category: 'Pagos y Suscripciones', q: `¿Qué son los ${currencyWord} y los regalos?`, a: `Los ${currencyWord} son la moneda para enviar regalos a tus creadores: compras un paquete (desde $4.99) y recibes en ${currencyWord} todo lo que pagas, 100 ${currencyWord} = $1. Los regalos de $100 o más te dan 30 días en el Círculo privado del creador, los de $200 abren su Bóveda, y según el creador los de $500 incluyen un video personalizado y los de $1,000 una videollamada privada. Si un video o videollamada no se entrega a tiempo, te devolvemos los ${currencyWord}.`, link: { to: '/settings?section=wallet', label: `Mis ${currencyWord}` } },
   { category: 'Seguridad y Privacidad', q: '¿Mis datos están seguros?', a: 'Tu contraseña se guarda cifrada (hash con sal), de tu tarjeta solo guardamos la marca y los últimos 4 dígitos, y los documentos de identidad se borran tras la verificación. Conforme al GDPR puedes descargar todos tus datos o eliminar tu cuenta desde Configuración > Privacidad.', link: { to: '/settings?section=privacy', label: 'Descargar mis datos' } },
   { category: 'Seguridad y Privacidad', q: '¿Cómo protegen mi privacidad?', a: 'Tu información personal nunca se comparte. Puedes usar un alias como nombre visible (Configuración > Perfil) y ocultar tu perfil de las búsquedas o tu actividad en Configuración > Privacidad.', link: { to: '/settings?section=privacy', label: 'Ajustes de privacidad' } },
   { category: 'Para Creadores', q: '¿Cómo puedo monetizar mi contenido?', a: 'Regístrate como creador, verifica tu identidad (es obligatorio para publicar y cobrar), fija tu precio de suscripción en el panel y empieza a publicar. Recibes del 80% al 90% de suscripciones y propinas según tu nivel, tus metas y tus invitados, y el 60% de los regalos.', link: { to: '/creator/dashboard', label: 'Ir al panel de creador' } },
@@ -78,7 +79,7 @@ const Help: React.FC = () => {
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Centro de Ayuda</h1>
           <p className="text-xl text-gray-600 mb-8">¿En qué podemos ayudarte?</p>
           <div className="relative max-w-xl mx-auto">
-            <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            <i aria-hidden="true" className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
             <input
               type="text"
               value={searchQuery}
@@ -99,7 +100,7 @@ const Help: React.FC = () => {
                 selectedCategory === cat.name ? 'border-pink-500 bg-pink-50' : 'border-gray-100'
               }`}
             >
-              <i className={`fas ${cat.icon} text-2xl text-pink-500 mb-2`}></i>
+              <i aria-hidden="true" className={`fas ${cat.icon} text-2xl text-pink-500 mb-2`}></i>
               <h3 className="font-medium text-gray-900 text-sm">{cat.name}</h3>
               <p className="text-xs text-gray-500 mt-1">{faqs.filter((f) => f.category === cat.name).length} artículos</p>
             </button>
@@ -115,13 +116,13 @@ const Help: React.FC = () => {
             <details key={i} className="bg-white rounded-xl shadow-sm group">
               <summary className="p-5 cursor-pointer font-medium text-gray-900 hover:text-pink-600 transition flex items-center justify-between">
                 {faq.q}
-                <i className="fas fa-chevron-down text-gray-400 group-open:rotate-180 transition-transform"></i>
+                <i aria-hidden="true" className="fas fa-chevron-down text-gray-400 group-open:rotate-180 transition-transform"></i>
               </summary>
               <div className="px-5 pb-5 text-gray-600">
                 {faq.a}
                 {faq.link && (
                   <Link to={faq.link.to} className="block mt-3 text-sm font-medium text-pink-600 hover:text-pink-700">
-                    {faq.link.label} <i className="fas fa-arrow-right ml-1 text-xs"></i>
+                    {faq.link.label} <i aria-hidden="true" className="fas fa-arrow-right ml-1 text-xs"></i>
                   </Link>
                 )}
               </div>
@@ -129,7 +130,7 @@ const Help: React.FC = () => {
           ))}
           {filteredFaqs.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              <i className="fas fa-search text-3xl mb-3"></i>
+              <i aria-hidden="true" className="fas fa-search text-3xl mb-3"></i>
               <p>No se encontraron resultados</p>
             </div>
           )}
@@ -141,14 +142,14 @@ const Help: React.FC = () => {
           <p className="text-pink-100 mb-6">Nuestro equipo de soporte está listo para ayudarte</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a href={`mailto:${BRAND.emails.support}`} className="bg-white text-purple-700 px-6 py-3 rounded-xl font-bold hover:bg-yellow-300 transition">
-              <i className="fas fa-envelope mr-2"></i> Email
+              <i aria-hidden="true" className="fas fa-envelope mr-2"></i> Email
             </a>
             <a
               href="#report-form"
               onClick={() => { setReportKind('support'); setReportResult(null); }}
               className="border-2 border-white text-white px-6 py-3 rounded-xl font-bold hover:bg-white hover:text-purple-700 transition"
             >
-              <i className="fas fa-comments mr-2"></i> Escribir a soporte
+              <i aria-hidden="true" className="fas fa-comments mr-2"></i> Escribir a soporte
             </a>
           </div>
         </div>
@@ -157,10 +158,10 @@ const Help: React.FC = () => {
         <div id="report-form" className="mt-8 bg-white rounded-2xl shadow-sm p-6">
           <div className="flex gap-1 bg-gray-100 rounded-lg p-1 mb-4 max-w-sm">
             <button type="button" onClick={() => { setReportKind('other'); setReportResult(null); }} className={`flex-1 py-2 rounded-md text-sm font-medium ${reportKind === 'other' ? 'bg-white shadow text-red-600' : 'text-gray-600'}`}>
-              <i className="fas fa-flag mr-1"></i> Reportar contenido
+              <i aria-hidden="true" className="fas fa-flag mr-1"></i> Reportar contenido
             </button>
             <button type="button" onClick={() => { setReportKind('support'); setReportResult(null); }} className={`flex-1 py-2 rounded-md text-sm font-medium ${reportKind === 'support' ? 'bg-white shadow text-purple-700' : 'text-gray-600'}`}>
-              <i className="fas fa-life-ring mr-1"></i> Soporte
+              <i aria-hidden="true" className="fas fa-life-ring mr-1"></i> Soporte
             </button>
           </div>
           <p className="text-gray-600 text-sm mb-4">
@@ -199,7 +200,7 @@ const Help: React.FC = () => {
               </p>
             )}
             <button type="button" onClick={sendReport} className={`${reportKind === 'support' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-red-600 hover:bg-red-700'} text-white px-6 py-3 rounded-xl font-medium transition`}>
-              <i className="fas fa-paper-plane mr-2"></i> {reportKind === 'support' ? 'Enviar mensaje' : 'Enviar Reporte'}
+              <i aria-hidden="true" className="fas fa-paper-plane mr-2"></i> {reportKind === 'support' ? 'Enviar mensaje' : 'Enviar Reporte'}
             </button>
           </div>
         </div>

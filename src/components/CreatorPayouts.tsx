@@ -16,6 +16,7 @@ import {
 } from '../lib/platform';
 import { GIFT_SHARE } from '../lib/giftRules';
 import { BRAND, displayPayer } from '../config/brand';
+import { displayGiftNote } from '../config/gifts';
 
 const field = 'w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-sm';
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -100,7 +101,7 @@ const CreatorPayouts: React.FC = () => {
         </p>
         {!verified && (
           <p className="text-sm bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl p-3 mb-4">
-            <i className="fas fa-id-card mr-2"></i>Para retirar necesitas verificar tu identidad.{' '}
+            <i aria-hidden="true" className="fas fa-id-card mr-2"></i>Para retirar necesitas verificar tu identidad.{' '}
             <Link to="/settings?section=verification" className="font-medium underline">Verificar ahora</Link>
           </p>
         )}
@@ -165,7 +166,7 @@ const CreatorPayouts: React.FC = () => {
                   <p className="font-medium text-gray-900">{transactionLabel[t.kind]} · {displayPayer(t.payerName)}</p>
                   <p className="text-xs text-gray-500">
                     {fmtDate(t.createdAt)} · pagó {money(t.amount)}
-                    {(t.kind === 'gift' || t.kind === 'referral') && t.note ? ` · ${t.note}` : ''}
+                    {(t.kind === 'gift' || t.kind === 'referral') && t.note ? ` · ${displayGiftNote(t.note, t.giftId)}` : ''}
                   </p>
                 </div>
                 {t.status === 'refunded' ? (

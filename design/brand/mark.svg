@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
+  <!-- Fans Reserve Identity V1 mark: an R whose first strokes form an F. Same drawing as src/components/BrandLogo.tsx -->
+  <defs>
+    <radialGradient id="g" cx="0.12" cy="0.05" r="1.15">
+      <stop offset="0" stop-color="#f7639b"/>
+      <stop offset="0.38" stop-color="#c81b63" stop-opacity="0.85"/>
+      <stop offset="0.8" stop-color="#4b1d7a" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#160d1f" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="q" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fbe7b5"/>
+      <stop offset="1" stop-color="#e3a93a"/>
+    </linearGradient>
+  </defs>
+  <rect width="40" height="40" rx="11" fill="#160d1f"/>
+  <rect width="40" height="40" rx="11" fill="url(#g)"/>
+  <rect x="0.6" y="0.6" width="38.8" height="38.8" rx="10.4" fill="none" stroke="#fff" stroke-opacity="0.14" stroke-width="0.6"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.6">
+    <path d="M23 10.5 a4.625 4.625 0 0 1 0 9.25 H20 L28 29.5" stroke="url(#q)"/>
+    <path d="M12 29.5 V10.5 H23 M12 19.75 H20" stroke="#fff"/>
+  </g>
+</svg>

@@ -3,7 +3,7 @@ export interface Creator {
   name: string;
   username: string;
   avatar: string;
-  cover: string;
+  cover: string; // empty: generated cover art (components/CoverArt) until a photo is uploaded
   bio: string;
   isVerified: boolean;
   subscriptionPrice: number;
@@ -15,6 +15,10 @@ export interface Creator {
   // Set on platform-run profiles (see lib/catalog.ts); fans always see the label.
   managed?: 'ai' | 'official';
 }
+
+// Demo media are drawn as generated art (components/CoverArt) instead of
+// loading third-party stock photos.
+export const DEMO_ART = 'art:demo';
 
 export interface Post {
   id: string;
@@ -32,23 +36,22 @@ export interface Post {
   price?: number;
 }
 
+// Presentation (icon, tint, blurb) lives in src/config/theme.ts.
 export interface Category {
   id: string;
   name: string;
-  icon: string;
-  count: number;
 }
 
 export const categories: Category[] = [
-  { id: '1', name: 'Fitness', icon: '💪', count: 2340 },
-  { id: '2', name: 'Modelaje', icon: '📸', count: 5670 },
-  { id: '3', name: 'Arte', icon: '🎨', count: 1890 },
-  { id: '4', name: 'Música', icon: '🎵', count: 3210 },
-  { id: '5', name: 'Cocina', icon: '🍳', count: 980 },
-  { id: '6', name: 'Lifestyle', icon: '✨', count: 4560 },
-  { id: '7', name: 'Gaming', icon: '🎮', count: 2100 },
-  { id: '8', name: 'Educación', icon: '📚', count: 1540 },
-  { id: '9', name: 'Experiencias VIP', icon: '👑', count: 890 },
+  { id: '1', name: 'Fitness' },
+  { id: '2', name: 'Modelaje' },
+  { id: '3', name: 'Arte' },
+  { id: '4', name: 'Música' },
+  { id: '5', name: 'Cocina' },
+  { id: '6', name: 'Lifestyle' },
+  { id: '7', name: 'Gaming' },
+  { id: '8', name: 'Educación' },
+  { id: '9', name: 'Experiencias VIP' },
 ];
 
 export const creators: Creator[] = [
@@ -56,9 +59,9 @@ export const creators: Creator[] = [
     id: '1',
     name: 'Valentina Rose',
     username: 'valentina_rose',
-    avatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=valentina',
-    cover: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=400&fit=crop',
-    bio: 'Modelo profesional y creadora de contenido exclusivo. Fitness, moda y lifestyle. 💋✨',
+    avatar: '/creators/valentina.svg',
+    cover: '',
+    bio: 'Modelo y creadora de contenido. Moda, fitness y lifestyle, con sesiones y backstage exclusivos.',
     isVerified: true,
     subscriptionPrice: 9.99,
     followers: 12500,
@@ -71,9 +74,9 @@ export const creators: Creator[] = [
     id: '2',
     name: 'Diego Torres',
     username: 'diego_fit',
-    avatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=diego',
-    cover: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=400&fit=crop',
-    bio: 'Entrenador personal certificado. Rutinas exclusivas y planes nutricionales. 🔥',
+    avatar: '/creators/diego.svg',
+    cover: '',
+    bio: 'Entrenador personal certificado. Rutinas exclusivas y planes de nutrición a tu medida.',
     isVerified: true,
     subscriptionPrice: 14.99,
     followers: 8900,
@@ -86,9 +89,9 @@ export const creators: Creator[] = [
     id: '3',
     name: 'Sofía Luna',
     username: 'sofia_art',
-    avatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=sofia',
-    cover: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&h=400&fit=crop',
-    bio: 'Artista digital y pintora. Tutoriales exclusivos y proceso creativo. 🎨',
+    avatar: '/creators/sofia.svg',
+    cover: '',
+    bio: 'Artista digital y pintora. Tutoriales exclusivos y todo mi proceso creativo.',
     isVerified: true,
     subscriptionPrice: 7.99,
     followers: 6700,
@@ -101,9 +104,9 @@ export const creators: Creator[] = [
     id: '4',
     name: 'Mariana Silva',
     username: 'mariana_s',
-    avatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=mariana',
-    cover: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=400&fit=crop',
-    bio: 'Bailarina y coreógrafa profesional. Contenido detrás de cámaras. 💃',
+    avatar: '/creators/mariana.svg',
+    cover: '',
+    bio: 'Bailarina y coreógrafa profesional. Ensayos, coreografías y detrás de cámaras.',
     isVerified: false,
     subscriptionPrice: 12.99,
     followers: 15200,
@@ -116,9 +119,9 @@ export const creators: Creator[] = [
     id: '5',
     name: 'Andrés Vega',
     username: 'andres_music',
-    avatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=andres',
-    cover: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&h=400&fit=crop',
-    bio: 'Productor musical y DJ. Beats exclusivos y sesiones en vivo. 🎵',
+    avatar: '/creators/andres.svg',
+    cover: '',
+    bio: 'Productor musical y DJ. Beats exclusivos, estrenos y sesiones en vivo.',
     isVerified: true,
     subscriptionPrice: 5.99,
     followers: 4300,
@@ -131,9 +134,9 @@ export const creators: Creator[] = [
     id: '6',
     name: 'Camila Reyes',
     username: 'camila_r',
-    avatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=camila',
-    cover: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=400&fit=crop',
-    bio: 'Chef profesional. Recetas exclusivas y técnicas de cocina avanzada. 👩‍🍳',
+    avatar: '/creators/camila.svg',
+    cover: '',
+    bio: 'Chef profesional. Recetas exclusivas, técnicas avanzadas y clases privadas.',
     isVerified: true,
     subscriptionPrice: 8.99,
     followers: 9800,
@@ -149,9 +152,9 @@ export const posts: Post[] = [
     id: '1',
     creatorId: '1',
     creatorName: 'Valentina Rose',
-    creatorAvatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=valentina',
+    creatorAvatar: '/creators/valentina.svg',
     content: '¡Nuevo set de fotos desde la playa! 🏖️ ¿Les gusta? Suscríbanse para ver el contenido completo 💕',
-    media: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=600&fit=crop',
+    media: DEMO_ART,
     mediaType: 'image',
     isLocked: false,
     likes: 342,
@@ -163,9 +166,9 @@ export const posts: Post[] = [
     id: '2',
     creatorId: '1',
     creatorName: 'Valentina Rose',
-    creatorAvatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=valentina',
+    creatorAvatar: '/creators/valentina.svg',
     content: 'Sesión exclusiva para suscriptores 🔥 Contenido premium disponible ahora',
-    media: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&h=600&fit=crop',
+    media: DEMO_ART,
     mediaType: 'image',
     isLocked: true,
     likes: 890,
@@ -178,9 +181,9 @@ export const posts: Post[] = [
     id: '3',
     creatorId: '2',
     creatorName: 'Diego Torres',
-    creatorAvatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=diego',
+    creatorAvatar: '/creators/diego.svg',
     content: 'Rutina de pecho y tríceps para hoy 💪 4 series de 12 reps. ¡No hay excusas!',
-    media: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&h=600&fit=crop',
+    media: DEMO_ART,
     mediaType: 'image',
     isLocked: false,
     likes: 567,
@@ -192,9 +195,9 @@ export const posts: Post[] = [
     id: '4',
     creatorId: '3',
     creatorName: 'Sofía Luna',
-    creatorAvatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=sofia',
+    creatorAvatar: '/creators/sofia.svg',
     content: 'Proceso de mi nueva obra digital 🎨 Tutorial completo disponible para suscriptores',
-    media: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&h=600&fit=crop',
+    media: DEMO_ART,
     mediaType: 'image',
     isLocked: true,
     likes: 234,
@@ -207,9 +210,9 @@ export const posts: Post[] = [
     id: '5',
     creatorId: '4',
     creatorName: 'Mariana Silva',
-    creatorAvatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=mariana',
+    creatorAvatar: '/creators/mariana.svg',
     content: 'Behind the scenes de mi última presentación 💃 ¡Gracias por todo el apoyo!',
-    media: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=600&fit=crop',
+    media: DEMO_ART,
     mediaType: 'image',
     isLocked: false,
     likes: 1200,
@@ -221,9 +224,9 @@ export const posts: Post[] = [
     id: '6',
     creatorId: '6',
     creatorName: 'Camila Reyes',
-    creatorAvatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=camila',
+    creatorAvatar: '/creators/camila.svg',
     content: 'Receta exclusiva: Risotto de trufa negra 🍄 Paso a paso en video para suscriptores',
-    media: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=600&fit=crop',
+    media: DEMO_ART,
     mediaType: 'image',
     isLocked: true,
     likes: 456,
@@ -264,7 +267,7 @@ export const vipExperiences: VIPExperience[] = [
     id: '1',
     creatorId: '1',
     creatorName: 'Valentina Rose',
-    creatorAvatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=valentina',
+    creatorAvatar: '/creators/valentina.svg',
     title: 'Video Llamada VIP Personalizada',
     description: 'Sesión privada de 30 minutos donde podemos conversar, conocer tus intereses y crear contenido personalizado para ti.',
     type: 'meet-greet',
@@ -274,14 +277,14 @@ export const vipExperiences: VIPExperience[] = [
     totalSlots: 5,
     rating: 4.9,
     reviews: 47,
-    image: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&h=400&fit=crop',
+    image: '',
     tags: ['Exclusivo', 'Personalizado', 'Premium'],
   },
   {
     id: '2',
     creatorId: '2',
     creatorName: 'Diego Torres',
-    creatorAvatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=diego',
+    creatorAvatar: '/creators/diego.svg',
     title: 'Plan de Entrenamiento 1:1',
     description: 'Sesión de coaching personalizado donde diseño un plan de entrenamiento específico para tus objetivos.',
     type: 'qa-session',
@@ -291,14 +294,14 @@ export const vipExperiences: VIPExperience[] = [
     totalSlots: 4,
     rating: 5.0,
     reviews: 23,
-    image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
+    image: '',
     tags: ['Coaching', 'Personalizado', 'Fitness'],
   },
   {
     id: '3',
     creatorId: '3',
     creatorName: 'Sofía Luna',
-    creatorAvatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=sofia',
+    creatorAvatar: '/creators/sofia.svg',
     title: 'Tutorial de Arte Personalizado',
     description: 'Clase privada donde te enseño técnicas específicas de arte digital según tu nivel y preferencias.',
     type: 'custom-content',
@@ -308,14 +311,14 @@ export const vipExperiences: VIPExperience[] = [
     totalSlots: 8,
     rating: 4.8,
     reviews: 31,
-    image: 'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=600&h=400&fit=crop',
+    image: '',
     tags: ['Tutorial', 'Privado', 'Arte'],
   },
   {
     id: '4',
     creatorId: '4',
     creatorName: 'Mariana Silva',
-    creatorAvatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=mariana',
+    creatorAvatar: '/creators/mariana.svg',
     title: 'Behind the Scenes Exclusivo',
     description: 'Acceso anticipado a mi próximo proyecto de baile + video exclusivo del proceso creativo.',
     type: 'early-access',
@@ -324,14 +327,14 @@ export const vipExperiences: VIPExperience[] = [
     totalSlots: 20,
     rating: 4.7,
     reviews: 56,
-    image: 'https://images.unsplash.com/photo-1508700929628-666bc8bd84ea?w=600&h=400&fit=crop',
+    image: '',
     tags: ['Acceso Anticipado', 'Exclusivo', 'BTS'],
   },
   {
     id: '5',
     creatorId: '6',
     creatorName: 'Camila Reyes',
-    creatorAvatar: 'https://api.dicebear.com/7.0/adventurer/svg?seed=camila',
+    creatorAvatar: '/creators/camila.svg',
     title: 'Clase de Cocina Privada',
     description: 'Sesión en vivo donde cocinamos juntos una receta exclusiva. Incluye lista de ingredientes y tips profesionales.',
     type: 'collaboration',
@@ -341,7 +344,7 @@ export const vipExperiences: VIPExperience[] = [
     totalSlots: 6,
     rating: 4.9,
     reviews: 38,
-    image: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=600&h=400&fit=crop',
+    image: '',
     tags: ['Colaboración', 'En Vivo', 'Gastronomía'],
   },
 ];
