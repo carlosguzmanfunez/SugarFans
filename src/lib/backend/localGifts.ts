@@ -1,5 +1,5 @@
 // Browser-only implementation of the virtual currency (internally "Terrones"),
-// gifts, the Círculo privado, the Bóveda and the video / video-call perks (dev
+// gifts and the video / video-call perks earned before they were retired (dev
 // and offline tests). Gifts are written into the platform's books through the ledger so earnings, payouts and
 // admin reports see them like any other payment.
 import { readJSON, writeJSONChecked, newId } from '../storage';
@@ -10,11 +10,8 @@ import {
   DEFAULT_GIFT_SETTINGS,
   GIFT_SHARE,
   VIDEO_DAYS,
-  circleAccess,
-  subscribedTo,
   coinsToUsd,
   giftById,
-  isActive,
   packById,
   perksFor,
   validateCircleMin,
@@ -23,14 +20,12 @@ import { fileUrl } from './localSocial';
 import { currencyWord } from '../../config/currency';
 import type { LocalLedger } from './localPlatform';
 import type { AuthResult, User, VipBooking } from './types';
-import type { CircleMessage, CoinPurchase, CreatorGiftSettings, GiftsBackend, PerkRequest, VaultItem } from './giftTypes';
+import type { CoinPurchase, CreatorGiftSettings, GiftsBackend, PerkRequest } from './giftTypes';
 
 interface Store {
   purchases: CoinPurchase[];
   settings: Record<string, CreatorGiftSettings>;
   perks: PerkRequest[];
-  circle: CircleMessage[];
-  vault: VaultItem[];
 }
 
 interface Deps {
@@ -49,7 +44,7 @@ const now = () => new Date().toISOString();
 const inDays = (days: number) => new Date(Date.now() + days * DAY).toISOString();
 
 export const createLocalGifts = (deps: Deps): GiftsBackend & { purgeUser(userId: string): Promise<void> } => {
-  const load = (): Store => ({ purchases: [], settings: {}, perks: [], circle: [], vault: [], ...readJSON<Partial<Store>>(KEY, {}) });
+  const load = (): Store => ({ purchases: [], settings: {}, perks: [], ...readJSON<Partial<Store>>(KEY, {}) });
   const commit = (fn: (s: Store) => Store): AuthResult => {
     if (!writeJSONChecked(KEY, fn(load()))) return fail('No se pudo guardar: el almacenamiento del navegador está lleno');
     deps.notify();
@@ -62,16 +57,6 @@ export const createLocalGifts = (deps: Deps): GiftsBackend & { purgeUser(userId:
   const balance = (s: Store, userId: string) =>
     s.purchases.filter((p) => p.userId === userId).reduce((sum, p) => sum + p.coins, 0) -
     giftsFrom(userId).reduce((sum, t) => sum + Math.round(t.amount * 100), 0);
-  const owns = (user: User, creatorProfileId: string) => user.role === 'admin' || user.creatorProfileId === creatorProfileId;
-  const access = (s: Store, user: User, creatorProfileId: string) => {
-    if (owns(user, creatorProfileId) || subscribedTo(user.subscriptions, creatorProfileId)) return { circle: true, vault: true };
-    const gifts = giftsFrom(user.id)
-      .filter((t) => t.creatorProfileId === creatorProfileId)
-      .map((t) => ({ value: t.amount, createdAt: t.createdAt }));
-    const a = circleAccess(gifts, settingsOf(s, creatorProfileId).circleMin);
-    return { circle: isActive(a.circleUntil), vault: isActive(a.vaultUntil) };
-  };
-
   // A perk not delivered in time refunds the whole gift (coins back, creator's cut removed).
   const settle = () => {
     const s = load();
@@ -196,85 +181,6 @@ export const createLocalGifts = (deps: Deps): GiftsBackend & { purgeUser(userId:
       return commit((s) => ({ ...s, settings: { ...s.settings, [user.creatorProfileId!]: { ...settings, circleMin: round2(settings.circleMin) } } }));
     },
 
-    async topFans(creatorProfileId) {
-      const month = now().slice(0, 7);
-      const totals = new Map<string, { name: string; value: number }>();
-      for (const t of deps.ledger.transactions()) {
-        if (t.kind !== 'gift' || t.status !== 'paid' || t.creatorProfileId !== creatorProfileId || !t.createdAt.startsWith(month)) continue;
-        const key = t.payerId ?? t.payerName;
-        const cur = totals.get(key) ?? { name: t.payerName, value: 0 };
-        totals.set(key, { ...cur, value: round2(cur.value + t.amount) });
-      }
-      return [...totals.values()].sort((a, b) => b.value - a.value).slice(0, 5);
-    },
-
-    async circleStatus(user, creatorProfileId) {
-      if (!user) return { owner: false };
-      if (owns(user, creatorProfileId)) return { owner: true };
-      const gifts = giftsFrom(user.id)
-        .filter((t) => t.creatorProfileId === creatorProfileId)
-        .map((t) => ({ value: t.amount, createdAt: t.createdAt }));
-      return { owner: false, subscriber: subscribedTo(user.subscriptions, creatorProfileId), ...circleAccess(gifts, settingsOf(load(), creatorProfileId).circleMin) };
-    },
-
-    async circleMessages(user, creatorProfileId) {
-      const s = load();
-      if (!access(s, user, creatorProfileId).circle) return [];
-      return s.circle.filter((m) => m.creatorProfileId === creatorProfileId).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-    },
-
-    async postCircleMessage(user, creatorProfileId, body) {
-      const text = body.trim();
-      if (!text) return fail('Escribe un mensaje');
-      if (text.length > 1000) return fail('El mensaje no puede superar 1000 caracteres');
-      const s = load();
-      if (!access(s, user, creatorProfileId).circle) return fail('El Círculo es para suscriptores');
-      return commit((st) => ({
-        ...st,
-        circle: [
-          ...st.circle,
-          {
-            id: newId(),
-            creatorProfileId,
-            userId: user.id,
-            userName: user.name,
-            userAvatar: user.avatar,
-            body: text,
-            fromCreator: user.creatorProfileId === creatorProfileId,
-            createdAt: now(),
-          },
-        ],
-      }));
-    },
-
-    async vaultItems(user, creatorProfileId) {
-      const s = load();
-      if (!access(s, user, creatorProfileId).vault) return [];
-      return Promise.all(
-        s.vault.filter((v) => v.creatorProfileId === creatorProfileId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(withUrl)
-      );
-    },
-
-    async addVaultItem(user, title, media) {
-      if (!user.creatorProfileId || user.role !== 'creator') return fail('Solo los creadores publican en su Bóveda');
-      const name = title.trim();
-      if (!name) return fail('Ponle un título');
-      if (name.length > 120) return fail('El título no puede superar 120 caracteres');
-      return commit((s) => ({
-        ...s,
-        vault: [
-          ...s.vault,
-          { id: newId(), creatorProfileId: user.creatorProfileId!, title: name, mediaPath: media.path, mediaType: media.type, createdAt: now() },
-        ],
-      }));
-    },
-
-    async deleteVaultItem(user, id) {
-      const item = load().vault.find((v) => v.id === id);
-      if (!item || !owns(user, item.creatorProfileId)) return fail('Esta acción no está permitida');
-      return commit((s) => ({ ...s, vault: s.vault.filter((v) => v.id !== id) }));
-    },
-
     async perkRequests(user) {
       settle();
       const mine = load().perks.filter((p) => p.fanId === user.id || (!!user.creatorProfileId && p.creatorProfileId === user.creatorProfileId));
@@ -333,7 +239,6 @@ export const createLocalGifts = (deps: Deps): GiftsBackend & { purgeUser(userId:
       commit((s) => ({
         ...s,
         purchases: s.purchases.filter((p) => p.userId !== userId),
-        circle: s.circle.filter((m) => m.userId !== userId),
         perks: s.perks.filter((p) => p.fanId !== userId),
       }));
     },

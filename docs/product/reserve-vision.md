@@ -15,7 +15,7 @@ Una Reserve es siempre una experiencia concreta, descrita de antemano por el cre
 | Pilar | Qué da | Qué no da |
 |---|---|---|
 | **Discover / Seguir** | Gratis: contenido público y novedades. | Acceso exclusivo. |
-| **Subscribe / Suscribirse** | Contenido exclusivo, el Círculo privado y la Bóveda del creator. Puede haber un descuento explícito en Reserve. | Videollamadas, encuentros ni Reserve. |
+| **Subscribe / Suscribirse** | Contenido exclusivo del creator. Puede haber un descuento explícito en Reserve. | Videollamadas, encuentros ni Reserve. |
 | **Live** | Sesiones en vivo en la sala privada de Fans Reserve (hoy: las sesiones virtuales reservadas en Reserve). | — |
 | **Reserve** | Una experiencia definida, aprobada por el creator, con fecha, precio y reglas. | Compañía, citas ni nada fuera de lo descrito. |
 
@@ -23,7 +23,7 @@ El perfil del creator muestra los cuatro en ese orden (`AccessLadder`) y una sec
 
 ## 3. Gift vs Reserve
 
-- **Gift**: apoyo voluntario. No garantiza respuesta, conversación, encuentro, acceso ni Reserve. No desbloquea nada: desde el 2 de octubre de 2026 ningún regalo da Círculo, Bóveda, video personalizado ni videollamada. Lo ganado antes de esa fecha se respeta hasta que vence.
+- **Gift**: apoyo voluntario. No garantiza respuesta, conversación, encuentro, acceso ni Reserve. No desbloquea nada: desde el 2 de octubre de 2026 ningún regalo da video personalizado ni videollamada; los videos y videollamadas ganados antes se siguen entregando. El Círculo y la Bóveda se eliminaron (decisión de Carlos: comprometían demasiado al creator).
 - **Reserve**: compra o solicitud de una experiencia concreta.
 - Los regalos **ya no** dan videollamadas privadas: las videollamadas son experiencias de Reserve. Las videollamadas ganadas con regalos antes del cambio siguen funcionando.
 - El copy aparece en el diálogo de regalo, en el perfil y en la página Reserve (`RESERVE_COPY` en `src/config/reserve.ts`).

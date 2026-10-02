@@ -278,7 +278,7 @@ export interface Backend {
   platform: PlatformBackend;
   // Likes, comments, uploads and live rooms (see socialTypes.ts).
   social: SocialBackend;
-  // Terrones, gifts, Círculo privado and gift perks (see giftTypes.ts).
+  // Terrones, gifts and gift perks (see giftTypes.ts).
   gifts: GiftsBackend;
   // Creator rewards: referral link, levels, monthly goals, featured (see rewardTypes.ts).
   rewards: RewardsBackend;

@@ -18,7 +18,6 @@ const CREATOR_BENEFITS = [
   'Invita a 2 o más creadores y gana un 5% extra de lo que vendan durante un mes, sin quitarles nada',
   'Publica fotos y videos, gratis o solo para suscriptores',
   'Publica experiencias en Reserve: clases, sesiones, eventos y colaboraciones, con tus reglas',
-  'Tu Círculo privado y tu Bóveda para tus suscriptores',
   'Panel con suscriptores, ingresos y estadísticas',
   'Retira desde $50 a tu cuenta bancaria; tus ingresos se acreditan el día 1',
 ];

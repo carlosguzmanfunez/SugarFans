@@ -1,6 +1,6 @@
-// Types and backend contract for Terrones (coin packs), gifts, the creator's
-// Círculo privado and Bóveda, and the video / video-call perks. Implemented by
-// localGifts.ts and supabaseGifts.ts.
+// Types and backend contract for Terrones (coin packs), gifts, the creator's gift
+// settings and the video / video-call perks earned before gift perks were retired.
+// Implemented by localGifts.ts and supabaseGifts.ts.
 import type { AuthResult, User } from './types';
 import type { MediaUpload } from './socialTypes';
 
@@ -54,39 +54,6 @@ export interface CreatorGiftSettings {
   offersCall: boolean;
 }
 
-export interface CircleStatus {
-  circleUntil?: string;
-  vaultUntil?: string;
-  owner: boolean; // the creator (or an admin) always has access
-  subscriber?: boolean; // Círculo and Bóveda are subscriber benefits
-}
-
-export interface TopFan {
-  name: string;
-  value: number; // USD gifted this month
-}
-
-export interface CircleMessage {
-  id: string;
-  creatorProfileId: string;
-  userId: string;
-  userName: string;
-  userAvatar: string;
-  body: string;
-  fromCreator: boolean;
-  createdAt: string;
-}
-
-export interface VaultItem {
-  id: string;
-  creatorProfileId: string;
-  title: string;
-  mediaPath: string;
-  mediaType: MediaUpload['type'];
-  mediaUrl?: string;
-  createdAt: string;
-}
-
 export type PerkKind = 'video' | 'call';
 export type PerkStatus = 'pending' | 'scheduled' | 'delivered' | 'refunded';
 
@@ -125,13 +92,6 @@ export interface GiftsBackend {
   sentGifts(user: User): Promise<SentGift[]>;
   giftSettings(creatorProfileId: string): Promise<CreatorGiftSettings>;
   saveGiftSettings(user: User, settings: CreatorGiftSettings): Promise<AuthResult>;
-  topFans(creatorProfileId: string): Promise<TopFan[]>;
-  circleStatus(user: User | null, creatorProfileId: string): Promise<CircleStatus>;
-  circleMessages(user: User, creatorProfileId: string): Promise<CircleMessage[]>;
-  postCircleMessage(user: User, creatorProfileId: string, body: string): Promise<AuthResult>;
-  vaultItems(user: User, creatorProfileId: string): Promise<VaultItem[]>;
-  addVaultItem(user: User, title: string, media: MediaUpload): Promise<AuthResult>;
-  deleteVaultItem(user: User, id: string): Promise<AuthResult>;
   // Perks the fan is owed (fan) or owes (creator). Refunds the overdue ones first.
   perkRequests(user: User): Promise<PerkRequest[]>;
   deliverVideo(user: User, perkId: string, media: MediaUpload): Promise<AuthResult>;

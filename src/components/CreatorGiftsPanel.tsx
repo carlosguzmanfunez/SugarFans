@@ -6,14 +6,11 @@ import { socialApi } from '../lib/social';
 import GiftArt from './GiftArt';
 import {
   GIFT_SHARE,
-  addVaultItem,
-  deleteVaultItem,
   deliverVideo,
   giftById,
   giftsApi,
   scheduleCall,
   type PerkRequest,
-  type VaultItem,
 } from '../lib/gifts';
 import { BRAND, displayPayer } from '../config/brand';
 import { displayGiftNote } from '../config/gifts';
@@ -28,46 +25,26 @@ const perkStatus: Record<PerkRequest['status'], string> = {
 };
 
 // Creator panel > Regalos: what gifts are (support, nothing unlocked), videos and
-// calls still owed from gifts sent before perks were retired, the Bóveda (for
-// subscribers) and the gifts received.
+// calls still owed from gifts sent before perks were retired, and the gifts received.
 const CreatorGiftsPanel: React.FC = () => {
   const { user } = useAuth();
   const profileId = user?.creatorProfileId ?? '';
   const { data } = usePlatformQuery(
     async () => {
       if (!user) return null;
-      const [perks, vault, sales] = await Promise.all([
-        giftsApi.perkRequests(user),
-        giftsApi.vaultItems(user, profileId),
-        platformApi.creatorSales(profileId),
-      ]);
-      return { perks, vault, gifts: sales.filter((t) => t.kind === 'gift') };
+      const [perks, sales] = await Promise.all([giftsApi.perkRequests(user), platformApi.creatorSales(profileId)]);
+      return { perks, gifts: sales.filter((t) => t.kind === 'gift') };
     },
     [user?.id, profileId],
     null
   );
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
-  const [vaultTitle, setVaultTitle] = useState('');
-  const [vaultFile, setVaultFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [slots, setSlots] = useState<Record<string, { date: string; time: string }>>({});
 
   if (!user || !data) return null;
   const say = (r: { ok: boolean; error?: string }, okText: string) =>
     setNotice(r.ok ? { ok: true, text: okText } : { ok: false, text: r.error || 'No se pudo completar la acción' });
-
-  const uploadVault = async () => {
-    if (!vaultFile) return setNotice({ ok: false, text: 'Elige una foto o un video' });
-    setBusy(true);
-    const up = await socialApi.uploadMedia(user, vaultFile);
-    const r = up.ok && up.media ? await addVaultItem(user, vaultTitle, up.media) : up;
-    setBusy(false);
-    say(r, 'Añadido a tu Bóveda');
-    if (r.ok) {
-      setVaultTitle('');
-      setVaultFile(null);
-    }
-  };
 
   const sendVideo = async (perk: PerkRequest, file: File) => {
     setBusy(true);
@@ -116,7 +93,7 @@ const CreatorGiftsPanel: React.FC = () => {
           Apoyo voluntario de tus fans: recibes el {GIFT_SHARE * 100}% de cada regalo, acreditado el día 1 como el resto de tus ingresos.
         </p>
         <p className="text-sm text-gray-600">
-          Los regalos no desbloquean acceso, videos ni videollamadas. Tu <Link to={`/creator/${profileId}?tab=circle`} className="text-pink-600 hover:underline">Círculo</Link> y tu Bóveda son para tus suscriptores, y las videollamadas y experiencias se ofrecen en{' '}
+          Los regalos no desbloquean acceso, videos ni videollamadas. Las videollamadas y experiencias se ofrecen en{' '}
           <Link to="/creator/dashboard?tab=vip" className="text-pink-600 hover:underline">Reserve</Link>.
         </p>
       </div>
@@ -161,38 +138,6 @@ const CreatorGiftsPanel: React.FC = () => {
         )}
       </div>
       )}
-
-      <div className="bg-white rounded-2xl shadow-sm p-6 space-y-3">
-        <h3 className="font-bold text-gray-900">Tu Bóveda</h3>
-        <p className="text-sm text-gray-500">Contenido exclusivo para tus suscriptores, dentro de tu Círculo.</p>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <input className={field} name="vaultTitle" placeholder="Título" value={vaultTitle} onChange={(e) => setVaultTitle(e.target.value)} />
-          <input type="file" name="vaultFile" accept="image/*,video/*" className="text-sm" onChange={(e) => setVaultFile(e.target.files?.[0] ?? null)} />
-          <button type="button" onClick={uploadVault} disabled={busy} className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap disabled:opacity-50">
-            Añadir a la Bóveda
-          </button>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {data.vault.map((v: VaultItem) => (
-            <figure key={v.id} className="rounded-xl overflow-hidden bg-gray-100 relative" data-testid="vault-item">
-              {v.mediaUrl && (v.mediaType === 'video' ? (
-                <video src={v.mediaUrl} muted playsInline className="w-full aspect-square object-cover" />
-              ) : (
-                <img src={v.mediaUrl} alt={v.title} className="w-full aspect-square object-cover" />
-              ))}
-              <figcaption className="px-2 py-1 text-xs text-gray-700 truncate">{v.title}</figcaption>
-              <button
-                type="button"
-                aria-label={`Eliminar ${v.title}`}
-                onClick={async () => window.confirm(`¿Eliminar "${v.title}" de tu Bóveda?`) && say(await deleteVaultItem(user, v.id), 'Eliminado de tu Bóveda')}
-                className="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/60 text-white text-xs"
-              >
-                <i aria-hidden="true" className="fas fa-trash"></i>
-              </button>
-            </figure>
-          ))}
-        </div>
-      </div>
 
       <div className="bg-white rounded-2xl shadow-sm p-6">
         <h3 className="font-bold text-gray-900 mb-3">Regalos recibidos</h3>

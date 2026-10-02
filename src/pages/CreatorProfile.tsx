@@ -15,7 +15,6 @@ import ReportDialog from '../components/ReportDialog';
 import PostCard, { type DisplayPost } from '../components/PostCard';
 import TipDialog from '../components/TipDialog';
 import GiftDialog from '../components/GiftDialog';
-import CircleSection from '../components/CircleSection';
 import NewPostForm from '../components/NewPostForm';
 import AccessLadder, { useFollow } from '../components/reserve/AccessLadder';
 import CreatorReserveSection from '../components/reserve/CreatorReserveSection';
@@ -41,7 +40,7 @@ const CreatorProfile: React.FC = () => {
   const { isAuthenticated, user, isSubscribed: hasSubscription, toggleSubscription, cancelSubscription, subscriptionOf, refreshUser, deletePost } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<'posts' | 'media' | 'circle' | 'about'>(new URLSearchParams(location.search).get('tab') === 'circle' ? 'circle' : 'posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'media' | 'about'>('posts');
   const { data: platform } = usePlatformQuery(
     async () => {
       const [removedPosts, blocks] = await Promise.all([platformApi.removedPosts(), user ? platformApi.blocks(user) : Promise.resolve([])]);
@@ -383,12 +382,6 @@ const CreatorProfile: React.FC = () => {
             <i aria-hidden="true" className="fas fa-images mr-1 max-sm:hidden!"></i> Media
           </button>
           <button
-            onClick={() => setActiveTab('circle')}
-            className={`flex-auto sm:flex-1 whitespace-nowrap px-2 py-2.5 rounded-lg text-[13px] sm:text-sm font-medium transition ${activeTab === 'circle' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'}`}
-          >
-            <i aria-hidden="true" className="fas fa-users mr-1 max-sm:hidden!"></i> Círculo
-          </button>
-          <button
             onClick={() => setActiveTab('about')}
             className={`flex-auto sm:flex-1 whitespace-nowrap px-2 py-2.5 rounded-lg text-[13px] sm:text-sm font-medium transition ${activeTab === 'about' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'}`}
           >
@@ -473,15 +466,6 @@ const CreatorProfile: React.FC = () => {
               </a>
             ))}
           </div>
-        )}
-
-        {!iBlocked && activeTab === 'circle' && (
-          <>
-            {tipSent && (
-              <div role="status" className="px-4 py-3 mb-6 rounded-xl border bg-green-50 border-green-200 text-green-700">{tipSent}</div>
-            )}
-            <CircleSection user={user} creatorProfileId={creator.id} creatorName={creator.name} onSubscribe={isOwner || user?.role === 'creator' ? undefined : handleSubscribe} />
-          </>
         )}
 
         {!iBlocked && activeTab === 'about' && (

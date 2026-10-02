@@ -63,14 +63,12 @@ export const GIFT_CATEGORIES: GiftCategory[] = ['Dulces', 'Repostería', 'Romanc
 export const giftById = (id: string) => GIFTS.find((x) => x.id === id);
 export const packById = (id: string) => COIN_PACKS.find((x) => x.id === id);
 
-// Perks unlocked by a single gift (USD value), and the Círculo rules.
+// Perk thresholds of the retired gift perks (USD value) and the stored settings.
 export const CIRCLE_DEFAULT_MIN = 100;
 export const CIRCLE_LOWEST_MIN = 50;
 export const CIRCLE_HIGHEST_MIN = 1_000;
-export const VAULT_MIN = 200;
 export const VIDEO_MIN = 500;
 export const CALL_MIN = 1_000;
-export const ACCESS_DAYS = 30;
 export const VIDEO_DAYS = 7;
 export const CALL_DAYS = 30;
 export const CALL_MINUTES = 20;
@@ -84,49 +82,8 @@ export const validateCircleMin = (min: number) =>
     ? { ok: true }
     : { ok: false, error: `La entrada al Círculo debe estar entre $${CIRCLE_LOWEST_MIN} y $${CIRCLE_HIGHEST_MIN}` };
 
-// Gifts are voluntary support: since GIFT_PERKS_RETIRED_AT they earn no access
-// (Círculo, Bóveda), no personalised video and no video call. Círculo and Bóveda
-// are subscriber benefits; calls are Reserve experiences. What was earned before
-// that moment keeps working (access until it expires, pending videos and calls).
-export const GIFT_PERKS_RETIRED_AT = '2026-10-02T22:00:00.000Z';
-export const perksFor = (_value: number, _s: CreatorGiftSettings) => ({ circle: false, vault: false, video: false, call: false });
-
-const DAY = 86_400_000;
-const addDays = (iso: string, days: number) => new Date(new Date(iso).getTime() + days * DAY).toISOString();
-const later = (a: string | undefined, b: string) => (a && a > b ? a : b);
-
-// Círculo access: a gift of at least the creator's minimum, or gifts adding up to
-// it within one calendar month (UTC), give 30 days; each new qualifying gift adds
-// 30 more. The Bóveda works the same way with a single gift of $200 or more.
-export const circleAccess = (
-  gifts: { value: number; createdAt: string }[],
-  circleMin: number
-): { circleUntil?: string; vaultUntil?: string } => {
-  let circleUntil: string | undefined;
-  let vaultUntil: string | undefined;
-  let month = '';
-  let pile = 0;
-  const earned = gifts.filter((g) => g.createdAt < GIFT_PERKS_RETIRED_AT);
-  for (const gift of [...earned].sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
-    const m = gift.createdAt.slice(0, 7);
-    if (m !== month) {
-      month = m;
-      pile = 0;
-    }
-    pile += gift.value;
-    const single = gift.value >= circleMin || gift.value >= VAULT_MIN;
-    if (single || pile >= circleMin) {
-      circleUntil = addDays(later(circleUntil, gift.createdAt), ACCESS_DAYS);
-      pile = 0;
-    }
-    if (gift.value >= VAULT_MIN) vaultUntil = addDays(later(vaultUntil, gift.createdAt), ACCESS_DAYS);
-  }
-  return { circleUntil, vaultUntil };
-};
-
-export const isActive = (until?: string, at = new Date()) => !!until && until > at.toISOString();
-
-// Círculo and Bóveda are open to the creator's subscribers (a cancelled
-// subscription keeps them until the end of the paid month).
-export const subscribedTo = (subscriptions: { creatorId: string; cancelAt?: string }[], creatorProfileId: string, at = new Date()) =>
-  subscriptions.some((s) => s.creatorId === creatorProfileId && (!s.cancelAt || s.cancelAt > at.toISOString()));
+// Gifts are voluntary support: since 2026-10-02 22:00 UTC they earn nothing (no
+// personalised video, no video call; the Círculo and the Bóveda were removed).
+// Calls are Reserve experiences. Videos and calls owed from earlier gifts are
+// still delivered.
+export const perksFor = (_value: number, _s: CreatorGiftSettings) => ({ video: false, call: false });

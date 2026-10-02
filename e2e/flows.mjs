@@ -1374,7 +1374,7 @@ const run = async () => {
         localStorage.setItem('fansreserve_gifts', JSON.stringify(s));
       }, coins);
 
-    console.log('\nRegalos: créditos y apoyo; Círculo y Bóveda para suscriptores');
+    console.log('\nRegalos: créditos y apoyo, sin Círculo ni Bóveda');
     await check('Créditos: el fan compra un paquete neto y recibe el valor completo', async () => {
       await gf.goto(`${BASE}/settings?section=wallet`);
       expect((await balanceText(gf)).includes('0'), 'el saldo inicial no es 0');
@@ -1404,19 +1404,23 @@ const run = async () => {
       await gf.getByRole('dialog').getByRole('button', { name: 'Cerrar' }).click();
       expect((await balanceText(gf)).includes('26,000'), 'el saldo no es 26,000');
     });
-    await check('El panel de regalos explica que no desbloquean nada (sin entrada al Círculo ni video)', async () => {
+    await check('El panel de regalos explica que no desbloquean nada (sin Círculo, Bóveda ni video)', async () => {
       await gc.goto(`${BASE}/creator/dashboard?tab=gifts`);
       await gc.getByTestId('gift-perks-retired').getByText(/no desbloquean acceso, videos ni videollamadas/).waitFor();
+      expect(!/Círculo|Bóveda/.test(await gc.getByTestId('creator-gifts').innerText()), 'el panel de regalos aún habla del Círculo o la Bóveda');
       expect((await gc.locator('input[name=circleMin]').count()) === 0, 'el creador aún configura una entrada al Círculo por regalos');
       expect((await gc.getByLabel(/Ofrezco video personalizado/).count()) === 0, 'el creador aún ofrece video por regalos');
       expect((await gc.getByTestId('perk-request').count()) === 0, 'hay pedidos de regalos sin regalos anteriores');
     });
-    await check('Un fan sin suscripción ve el Círculo cerrado y para suscriptores', async () => {
+    await check('El perfil del creador ya no tiene Círculo', async () => {
+      await gf.goto(`${BASE}/creator/1`);
+      await gf.getByRole('button', { name: /Publicaciones/ }).waitFor();
+      expect((await gf.getByRole('button', { name: /Círculo/ }).count()) === 0, 'el perfil aún muestra la pestaña Círculo');
       await gf.goto(`${BASE}/creator/1?tab=circle`);
-      await gf.getByText(/para sus suscriptores\. Los regalos no dan acceso\./).waitFor();
-      expect((await gf.getByTestId('circle-chat').count()) === 0, 'el chat del Círculo está abierto sin suscripción');
+      await gf.getByRole('button', { name: /Publicaciones/ }).waitFor();
+      expect((await gf.getByTestId('circle-section').count()) === 0, '?tab=circle aún abre el Círculo');
     });
-    await check('El fan envía una Corona: es apoyo y no abre el Círculo', async () => {
+    await check('El fan envía una Corona: es apoyo y no promete nada', async () => {
       const dialog = await openGift(gf);
       await dialog.getByRole('button', { name: /Corona/ }).click();
       await dialog.getByTestId('notice-gift').getByText(/No garantizan respuesta, conversación, encuentro, acceso ni Reserve/).waitFor();
@@ -1432,13 +1436,6 @@ const run = async () => {
       const gifts = (await platformData(gf)).transactions.filter((t) => t.kind === 'gift');
       expect(gifts.length === 1 && gifts[0].amount === 100 && gifts[0].share === 0.6, 'el regalo no se registró con 60%');
       expect(((await giftsData(gf)).perks || []).length === 0, 'el regalo creó un beneficio');
-      await gf.goto(`${BASE}/creator/1?tab=circle`);
-      await gf.getByText(/Los regalos no dan acceso\./).waitFor();
-      expect((await gf.getByTestId('circle-chat').count()) === 0, 'la Corona abrió el Círculo');
-    });
-    await check('Top fans del mes muestra al fan y lo que regaló', async () => {
-      await gf.getByTestId('top-fans').getByText('Carlos M.').waitFor();
-      await gf.getByTestId('top-fans').getByText('$100.00').waitFor();
     });
     await check('Sin créditos suficientes el regalo pide comprar más', async () => {
       const dialog = await openGift(gf);
@@ -1446,7 +1443,7 @@ const run = async () => {
       await dialog.getByRole('button', { name: 'Te faltan 84,000 créditos · Comprar' }).waitFor();
       await dialog.getByRole('button', { name: 'Cerrar' }).click();
     });
-    await check('Un regalo grande (Castillo) tampoco da video, videollamada ni Bóveda', async () => {
+    await check('Un regalo grande (Castillo) tampoco da video ni videollamada', async () => {
       await grantCoins(gf, 150000);
       const dialog = await openGift(gf);
       await dialog.getByRole('button', { name: /Castillo/ }).click();
@@ -1455,36 +1452,6 @@ const run = async () => {
       await dialog.getByRole('button', { name: /Enviar Castillo/ }).click();
       await gf.getByText(/Castillo enviado/).waitFor();
       expect(((await giftsData(gf)).perks || []).length === 0, 'el Castillo creó un beneficio');
-      await gf.goto(`${BASE}/creator/1?tab=circle`);
-      expect((await gf.getByTestId('vault').count()) === 0, 'el Castillo abrió la Bóveda');
-    });
-    await check('El creador sube contenido a su Bóveda', async () => {
-      await gc.goto(`${BASE}/creator/dashboard?tab=gifts`);
-      await gc.fill('input[name=vaultTitle]', 'Sesión privada');
-      await gc.setInputFiles('input[name=vaultFile]', photo('boveda.png'));
-      await gc.getByRole('button', { name: 'Añadir a la Bóveda' }).click();
-      await gc.getByText('Añadido a tu Bóveda').waitFor();
-      await gc.getByTestId('vault-item').filter({ hasText: 'Sesión privada' }).waitFor();
-    });
-    await check('Al suscribirse desde el Círculo, el fan entra al Círculo y a la Bóveda', async () => {
-      await gf.goto(`${BASE}/creator/1?tab=circle`);
-      await gf.getByTestId('circle-section').getByRole('button', { name: 'Suscribirse', exact: true }).click();
-      // Uses the card the fan saved when buying credits.
-      const dialog = gf.getByRole('dialog');
-      await dialog.getByText('Visa •••• 4242').waitFor();
-      await dialog.getByRole('button', { name: /Suscribirme y pagar/ }).click();
-      await gf.getByTestId('circle-chat').getByText('Suscriptor').waitFor();
-      await gf.getByTestId('vault').getByTestId('vault-item').filter({ hasText: 'Sesión privada' }).locator('img').waitFor();
-    });
-    await check('Círculo: fan suscrito y creador conversan en el chat privado', async () => {
-      await gf.getByLabel('Mensaje al Círculo').fill('¡Hola Círculo!');
-      await gf.getByTestId('circle-chat').getByRole('button', { name: 'Enviar' }).click();
-      await gf.getByTestId('circle-message').filter({ hasText: '¡Hola Círculo!' }).waitFor();
-      await gc.goto(`${BASE}/creator/1?tab=circle`);
-      await gc.getByTestId('circle-message').filter({ hasText: '¡Hola Círculo!' }).waitFor();
-      await gc.getByLabel('Mensaje al Círculo').fill('¡Bienvenido, Carlos!');
-      await gc.getByTestId('circle-chat').getByRole('button', { name: 'Enviar' }).click();
-      await gf.getByTestId('circle-message').filter({ hasText: '¡Bienvenido, Carlos!' }).getByText('· Creador').waitFor();
     });
     await check('Un video ganado con un regalo anterior al cambio se sigue entregando', async () => {
       // Seeds a perk from before gift perks were retired.
