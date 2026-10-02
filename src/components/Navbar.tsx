@@ -73,7 +73,7 @@ const Navbar: React.FC = () => {
                   className="flex items-center gap-2 rounded-full p-0.5 pr-0.5 ring-1 ring-line transition hover:ring-brand-200 sm:pr-2.5"
                 >
                   <Avatar src={user?.avatar} name={user?.name ?? 'Cuenta'} size={34} decorative />
-                  <i className="fas fa-chevron-down hidden text-[10px] text-ink/50 sm:inline" aria-hidden="true"></i>
+                  <i className="fas fa-chevron-down text-[10px] text-ink/50 max-sm:hidden!" aria-hidden="true"></i>
                 </button>
                 {showMenu && <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)}></div>}
                 {showMenu && (

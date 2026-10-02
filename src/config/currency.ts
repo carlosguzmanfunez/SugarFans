@@ -7,14 +7,16 @@
 // stored row changes. Everything the user reads comes from here, so renaming the
 // currency later is a one-line change.
 //
-// "Créditos" is a neutral placeholder until the final name is chosen.
+// "Créditos" (singular "Crédito") is the official display name (Identity V1).
+// Never show Terrones, Coins, Tokens or similar to users.
 
 export const VIRTUAL_CURRENCY_ID = 'terrones'; // internal identifier, do not change
 
 export const VIRTUAL_CURRENCY = {
   displayName: 'Créditos', // plural, as used in copy: "500 créditos"
   singular: 'Crédito',
-  // Rendered with the coin artwork in public/brand/coin.png (CoinIcon).
+  // Fans Reserve coin with the FR mark: source design/brand/coin.svg, rendered to
+  // public/brand/coin.png by scripts/brand-assets.mjs (shown by CoinIcon).
   icon: '/brand/coin.png',
 } as const;
 

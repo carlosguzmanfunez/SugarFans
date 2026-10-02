@@ -9,7 +9,7 @@ import BrandLogo from '../components/BrandLogo';
 
 // What a creator account includes (all of it works in the app today).
 const CREATOR_BENEFITS = [
-  'Insignia Verify tras verificar tu identidad con tu ID y un selfie',
+  'Insignia Verificado tras verificar tu identidad con tu ID y un selfie',
   'Tú fijas el precio de tu suscripción mensual',
   'Recibes del 80% al 85% de suscripciones y propinas según tu nivel, y el 60% de los regalos',
   'Tu enlace de invitación: te quedas con el 90% de lo que paguen los fans que traigas durante 3 meses',

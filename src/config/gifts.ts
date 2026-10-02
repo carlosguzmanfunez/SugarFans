@@ -13,44 +13,45 @@ export interface GiftDisplay {
   art: string; // file in public/gifts (without .png)
   emoji: string; // fallback when the artwork can't load
   legacyName: string; // name stored in the database (gift_catalog.name)
+  formerNames?: string[]; // earlier display names, still present in old notes
 }
 
-// Fans Reserve collection: applause and support first, then celebration, then
-// luxury and "legend" gifts. Artwork: Microsoft Fluent Emoji 3D (MIT).
+// Fans Reserve collection (Identity V1): reactions first, then celebration,
+// specials, prestige and "legend" gifts. Artwork: Microsoft Fluent Emoji 3D (MIT).
 export const GIFT_DISPLAY: Record<string, GiftDisplay> = {
   caramelo: { name: 'Chispa', art: 'chispa', emoji: '✨', legacyName: 'Caramelo' },
   chicle: { name: 'Aplauso', art: 'aplauso', emoji: '👏', legacyName: 'Chicle rosa' },
   piruleta: { name: 'Café', art: 'cafe', emoji: '☕', legacyName: 'Piruleta' },
-  gomita: { name: 'Osito', art: 'gomita', emoji: '🧸', legacyName: 'Gomita osito' },
+  gomita: { name: 'Abrazo', art: 'gomita', emoji: '🧸', legacyName: 'Gomita osito', formerNames: ['Osito'] },
   algodon: { name: 'Estrella', art: 'estrella', emoji: '🌟', legacyName: 'Algodón de azúcar' },
   bombon: { name: 'Fuego', art: 'fuego', emoji: '🔥', legacyName: 'Bombón' },
   cupcake: { name: 'Micrófono', art: 'microfono', emoji: '🎤', legacyName: 'Cupcake' },
-  donut: { name: 'Palomitas', art: 'palomitas', emoji: '🍿', legacyName: 'Donut glaseado' },
+  donut: { name: 'Estreno', art: 'palomitas', emoji: '🍿', legacyName: 'Donut glaseado', formerNames: ['Palomitas'] },
   macaron: { name: 'Rayo', art: 'rayo', emoji: '⚡', legacyName: 'Macaron' },
   helado: { name: 'Trofeo', art: 'trofeo', emoji: '🏆', legacyName: 'Helado de fresa' },
   churros: { name: 'Cohete', art: 'cohete', emoji: '🚀', legacyName: 'Churros con chocolate' },
   manzana: { name: 'Confeti', art: 'confeti', emoji: '🎉', legacyName: 'Manzana de caramelo' },
   tarta: { name: 'Pase VIP', art: 'entrada', emoji: '🎟️', legacyName: 'Tarta de fresas' },
-  bombones: { name: 'Regalo sorpresa', art: 'bombones', emoji: '🎁', legacyName: 'Caja de bombones' },
-  rosas: { name: 'Ramo de rosas', art: 'rosas', emoji: '💐', legacyName: 'Ramo de rosas' },
+  bombones: { name: 'Sorpresa', art: 'bombones', emoji: '🎁', legacyName: 'Caja de bombones', formerNames: ['Regalo sorpresa'] },
+  rosas: { name: 'Rosas', art: 'rosas', emoji: '💐', legacyName: 'Ramo de rosas' },
   champan: { name: 'Brindis', art: 'champan', emoji: '🥂', legacyName: 'Copa de champán' },
-  perfume: { name: 'Flor de cerezo', art: 'perfume', emoji: '🌸', legacyName: 'Perfume' },
-  corazon: { name: 'Corazón de cristal', art: 'corazon', emoji: '💖', legacyName: 'Corazón de cristal' },
-  perlas: { name: 'Medalla de oro', art: 'medalla', emoji: '🥇', legacyName: 'Collar de perlas' },
+  perfume: { name: 'Flor de Cerezo', art: 'perfume', emoji: '🌸', legacyName: 'Perfume', formerNames: ['Flor de cerezo'] },
+  corazon: { name: 'Corazón de Cristal', art: 'corazon', emoji: '💖', legacyName: 'Corazón de cristal' },
+  perlas: { name: 'Medalla de Oro', art: 'medalla', emoji: '🥇', legacyName: 'Collar de perlas', formerNames: ['Medalla de oro'] },
   tacones: { name: 'Diamante', art: 'diamante', emoji: '💎', legacyName: 'Tacones de diamante' },
   corona: { name: 'Corona', art: 'corona', emoji: '👑', legacyName: 'Corona de azúcar' },
   limusina: { name: 'Limusina', art: 'limusina', emoji: '🚘', legacyName: 'Limusina rosa' },
   yate: { name: 'Yate', art: 'yate', emoji: '🛥️', legacyName: 'Yate de caramelo' },
-  jet: { name: 'Jet privado', art: 'jet', emoji: '✈️', legacyName: 'Jet privado' },
+  jet: { name: 'Jet Privado', art: 'jet', emoji: '✈️', legacyName: 'Jet privado' },
   castillo: { name: 'Castillo', art: 'castillo', emoji: '🏰', legacyName: 'Castillo de azúcar' },
 };
 
 // Internal category keys (gift_catalog.category) and how they read.
 export const GIFT_CATEGORY_DISPLAY: Record<string, string> = {
-  Dulces: 'Apoyo',
-  Repostería: 'Ovación',
+  Dulces: 'Reacciones',
+  Repostería: 'Celebración',
   Romance: 'Especiales',
-  Lujo: 'Lujo',
+  Lujo: 'Prestige',
   Fantasía: 'Leyenda',
 };
 
@@ -74,12 +75,16 @@ export const coinPackName = (id: string, fallback = 'Paquete') => COIN_PACK_DISP
 // Notes on gift transactions start with the gift name ("Corona de azúcar · “msg”").
 // Show the current name whatever name was stored.
 export const displayGiftNote = (note: string | undefined, giftId?: string) => {
-  if (!note || !giftId) return note ?? '';
-  const d = GIFT_DISPLAY[giftId];
-  if (!d) return note;
-  for (const old of [d.legacyName, d.name]) {
-    if (note === old) return d.name;
-    if (note.startsWith(`${old} · `)) return d.name + note.slice(old.length);
+  if (!note) return '';
+  // Without an id, recognise the note by any name a gift ever had.
+  const candidates = giftId && GIFT_DISPLAY[giftId] ? [GIFT_DISPLAY[giftId]] : Object.values(GIFT_DISPLAY);
+  for (const d of candidates) {
+    // Longest first so "Corazón de cristal" wins over a shorter prefix.
+    const olds = [d.legacyName, ...(d.formerNames ?? []), d.name].sort((a, b) => b.length - a.length);
+    for (const old of olds) {
+      if (note === old) return d.name;
+      if (note.startsWith(`${old} · `)) return d.name + note.slice(old.length);
+    }
   }
   return note;
 };

@@ -83,7 +83,7 @@ const IdentityVerification: React.FC = () => {
       <h2 className="text-lg font-bold text-gray-900 mb-2">Verificación de identidad</h2>
       <p className="text-sm text-gray-600 mb-6">
         Solo necesitamos dos fotos: el frente de tu documento oficial y un selfie de frente. Comprobamos que eres mayor de edad y que
-        la cara del selfie coincide con la del documento. Es obligatoria para que los creadores publiquen y cobren, y añade la insignia <span className="text-blue-700 font-medium">Verify</span> a tu perfil.
+        la cara del selfie coincide con la del documento. Es obligatoria para que los creadores publiquen y cobren, y añade la insignia <span className="text-blue-700 font-medium">Verificado</span> a tu perfil.
       </p>
     </>
   );

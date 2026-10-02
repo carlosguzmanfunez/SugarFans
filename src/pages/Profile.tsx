@@ -56,7 +56,7 @@ const Profile: React.FC = () => {
                 <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
                 {user.isVerified && (
                   <span className="flex items-center bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium">
-                    <i aria-hidden="true" className="fas fa-check-circle mr-1"></i> Verify
+                    <i aria-hidden="true" className="fas fa-check-circle mr-1"></i> Verificado
                   </span>
                 )}
                 <span className={`text-xs px-2 py-1 rounded-full font-medium ${

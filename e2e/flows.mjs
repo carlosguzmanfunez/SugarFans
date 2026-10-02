@@ -231,6 +231,20 @@ const run = async () => {
       expect(external.length === 0, `imágenes externas: ${external.map((i) => i.src).join(', ')}`);
       expect(broken.length === 0, `imágenes rotas: ${broken.map((i) => i.src).join(', ')}`);
     });
+    await check('Ninguna página pública muestra la marca antigua, Terrones ni imágenes externas', async () => {
+      for (const path of ['/', '/explore', '/creator/1', '/vip', '/help', '/legal', '/register']) {
+        await page.goto(`${BASE}${path}`);
+        await page.locator('main, #root').first().waitFor();
+        await page.waitForTimeout(150);
+        const text = await page.locator('body').innerText();
+        expect(!/sugar\s?fans|terrones|de azúcar|\bverify\b|\bverified\b/i.test(text), `${path} muestra copy antiguo`);
+        const ext = await page.evaluate(() => [...document.images].map((i) => i.currentSrc || i.src).filter((src) => src && !src.startsWith(location.origin) && !src.startsWith('data:')));
+        expect(ext.length === 0, `${path} carga imágenes externas: ${ext.join(', ')}`);
+      }
+      await page.goto(`${BASE}/creator/1`);
+      await page.getByText('Verificado', { exact: true }).waitFor();
+      expect((await fetch(`${BASE}/brand/coin.png`)).ok, 'falta el icono de créditos');
+    });
     await check('Favicon, iconos PWA y preview social existen', async () => {
       const manifest = await (await fetch(`${BASE}/manifest.webmanifest`)).json();
       expect(manifest.name === 'Fans Reserve', 'manifest sin la marca');
@@ -693,7 +707,7 @@ const run = async () => {
       await list.getByText('No hay solicitudes pendientes').waitFor();
       await list.getByText('Rechazada: La foto del documento está borrosa').waitFor();
     });
-    await check('Admin crea un perfil IA sin verificación: lleva P-IA y los humanos verificados Verify', async () => {
+    await check('Admin crea un perfil IA sin verificación: lleva P-IA y los humanos verificados Verificado', async () => {
       await page.getByRole('button', { name: /Perfiles gestionados/ }).click();
       const box = page.getByTestId('managed-profiles');
       await box.getByRole('button', { name: /Nuevo perfil/ }).click();
@@ -714,9 +728,9 @@ const run = async () => {
       await card.click();
       await page.getByRole('heading', { name: 'Luna Neón' }).waitFor();
       await page.getByTestId('managed-badge').getByText('P-IA', { exact: true }).waitFor();
-      expect((await page.getByText('Verify', { exact: true }).count()) === 0, 'un perfil IA no debe llevar Verify');
+      expect((await page.getByText('Verificado', { exact: true }).count()) === 0, 'un perfil IA no debe llevar Verificado');
       await page.goto(`${BASE}/creator/1`);
-      await page.getByText('Verify', { exact: true }).waitFor();
+      await page.getByText('Verificado', { exact: true }).waitFor();
       expect((await page.getByTestId('managed-badge').count()) === 0, 'una creadora humana no debe llevar P-IA');
     });
     await check('Admin publica una foto como el perfil IA y la puede borrar', async () => {
@@ -1295,6 +1309,19 @@ const run = async () => {
       expect((await balanceText(gf)).includes('1,000'), 'no se acreditaron 1,000 créditos');
       await gf.getByTestId('coin-purchase').filter({ hasText: '$9.99' }).waitFor();
     });
+    await check('Regalos: nombres y categorías Identity V1, completos y en créditos', async () => {
+      const dialog = await openGift(gf);
+      for (const cat of ['Reacciones', 'Celebración', 'Especiales', 'Prestige', 'Leyenda']) await dialog.getByText(cat, { exact: true }).waitFor();
+      for (const name of ['Abrazo', 'Estreno', 'Sorpresa', 'Rosas', 'Flor de Cerezo', 'Corazón de Cristal', 'Medalla de Oro', 'Jet Privado'])
+        await dialog.getByRole('button', { name: new RegExp(`^${name}, `) }).waitFor();
+      const cut = await dialog.locator('.gift-tile span[title]').evaluateAll((els) =>
+        els.filter((e) => e.scrollHeight > e.clientHeight + 1 || e.scrollWidth > e.clientWidth + 1).map((e) => e.textContent));
+      expect(cut.length === 0, `nombres de regalos cortados: ${cut.join(', ')}`);
+      const text = await dialog.innerText();
+      expect(/créditos/.test(text) && !/terrones|coins|tokens/i.test(text), 'el regalo no habla en créditos');
+      await dialog.getByRole('button', { name: 'Cerrar' }).click();
+      await gf.goto(`${BASE}/settings?section=wallet`);
+    });
     await check('Sin verificar su identidad, el fan no puede comprar más de $300 al día', async () => {
       await buyPack(gf, 'Premium', '$249.99');
       await gf.getByText('Compra completada: 25,000 créditos añadidos').waitFor();
@@ -1422,6 +1449,22 @@ const run = async () => {
       await gc.getByTestId('gift-received').filter({ hasText: 'Yate' }).getByText('Devuelto').waitFor();
       await gc.goto(`${BASE}/creator/dashboard?tab=earnings`);
       await gc.getByText(/Corona · “¡Para mi reina!”/).waitFor();
+    });
+    await check('Notas antiguas de regalos (Corona de azúcar, Castillo de azúcar...) se muestran con el nombre actual', async () => {
+      await gc.evaluate(() => {
+        const s = JSON.parse(localStorage.getItem('fansreserve_platform'));
+        for (const t of s.transactions) {
+          if (t.giftId === 'corona') t.note = t.note.replace(/^Corona/, 'Corona de azúcar');
+          if (t.giftId === 'yate') t.note = 'Yate de caramelo';
+        }
+        localStorage.setItem('fansreserve_platform', JSON.stringify(s));
+      });
+      await gc.goto(`${BASE}/creator/dashboard?tab=earnings`);
+      await gc.getByText(/Corona · “¡Para mi reina!”/).waitFor();
+      await gc.goto(`${BASE}/creator/dashboard?tab=gifts`);
+      await gc.getByTestId('gift-received').first().waitFor();
+      const text = await gc.locator('body').innerText();
+      expect(!/de azúcar|de caramelo|terrones/i.test(text), 'se ven nombres antiguos de regalos o de la moneda');
     });
     await giftsCtx.close();
 

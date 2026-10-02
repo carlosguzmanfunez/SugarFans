@@ -31,13 +31,13 @@ const WalletPanel: React.FC<{ user: User }> = ({ user }) => {
 
   return (
     <div className="space-y-6" data-testid="wallet">
-      <div className="bg-gradient-to-br from-pink-500 to-purple-600 text-white rounded-2xl p-6 flex items-center justify-between">
+      <div className="bg-gradient-to-br from-pink-500 to-purple-600 text-white rounded-2xl p-6 flex items-center justify-between gap-4">
         <div>
           <p className="text-sm opacity-80">Tus {currencyWord}</p>
           <p className="text-3xl font-bold flex items-center gap-2" data-testid="wallet-balance"><CoinIcon size={30} /> {formatCoins(data.wallet.coins)}</p>
           <p className="text-xs opacity-80 mt-1">Equivalen a {money(data.wallet.coins / 100)} en regalos</p>
         </div>
-        <button type="button" onClick={() => setBuying(true)} className="bg-white text-pink-600 px-5 py-2.5 rounded-full font-bold hover:bg-pink-50">
+        <button type="button" onClick={() => setBuying(true)} className="shrink-0 whitespace-nowrap bg-white text-pink-600 px-4 sm:px-5 py-2.5 rounded-full font-bold hover:bg-pink-50">
           Comprar {currencyWord}
         </button>
       </div>

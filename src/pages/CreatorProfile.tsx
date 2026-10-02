@@ -235,7 +235,7 @@ const CreatorProfile: React.FC = () => {
                 <h1 className="text-display-md text-ink">{creator.name}</h1>
                 {creator.isVerified && (
                   <span className="flex items-center bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium">
-                    <i aria-hidden="true" className="fas fa-check-circle mr-1"></i> Verify
+                    <i aria-hidden="true" className="fas fa-check-circle mr-1"></i> Verificado
                   </span>
                 )}
                 <ManagedBadge creator={creator} size="md" />
@@ -296,11 +296,12 @@ const CreatorProfile: React.FC = () => {
               {!isOwner && !iBlocked && (
                 <button
                   onClick={() => openTip()}
-                  title="Enviar propina"
+                  title="Propina: apoya con un monto libre"
                   aria-label="Enviar propina"
-                  className="w-11 h-11 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-pink-500"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 hover:border-gray-300 hover:text-ink"
                 >
-                  <i aria-hidden="true" className="fas fa-hand-holding-usd"></i>
+                  <i aria-hidden="true" className="fas fa-hand-holding-dollar text-gray-500"></i>
+                  <span>Propina</span>
                 </button>
               )}
               {isAuthenticated && !iBlocked && !isOwner && (
@@ -344,27 +345,27 @@ const CreatorProfile: React.FC = () => {
         <div className="flex space-x-1 bg-white rounded-xl p-1 shadow-sm mb-6">
           <button
             onClick={() => setActiveTab('posts')}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition ${activeTab === 'posts' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'}`}
+            className={`flex-auto sm:flex-1 whitespace-nowrap px-2 py-2.5 rounded-lg text-[13px] sm:text-sm font-medium transition ${activeTab === 'posts' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'}`}
           >
-            <i aria-hidden="true" className="fas fa-stream mr-1"></i> Publicaciones
+            <i aria-hidden="true" className="fas fa-stream mr-1 max-sm:hidden!"></i> Publicaciones
           </button>
           <button
             onClick={() => setActiveTab('media')}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition ${activeTab === 'media' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'}`}
+            className={`flex-auto sm:flex-1 whitespace-nowrap px-2 py-2.5 rounded-lg text-[13px] sm:text-sm font-medium transition ${activeTab === 'media' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'}`}
           >
-            <i aria-hidden="true" className="fas fa-images mr-1"></i> Media
+            <i aria-hidden="true" className="fas fa-images mr-1 max-sm:hidden!"></i> Media
           </button>
           <button
             onClick={() => setActiveTab('circle')}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition ${activeTab === 'circle' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'}`}
+            className={`flex-auto sm:flex-1 whitespace-nowrap px-2 py-2.5 rounded-lg text-[13px] sm:text-sm font-medium transition ${activeTab === 'circle' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'}`}
           >
-            <i aria-hidden="true" className="fas fa-users mr-1"></i> Círculo
+            <i aria-hidden="true" className="fas fa-users mr-1 max-sm:hidden!"></i> Círculo
           </button>
           <button
             onClick={() => setActiveTab('about')}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition ${activeTab === 'about' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'}`}
+            className={`flex-auto sm:flex-1 whitespace-nowrap px-2 py-2.5 rounded-lg text-[13px] sm:text-sm font-medium transition ${activeTab === 'about' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'}`}
           >
-            <i aria-hidden="true" className="fas fa-info-circle mr-1"></i> Acerca de
+            <i aria-hidden="true" className="fas fa-info-circle mr-1 max-sm:hidden!"></i> <span className="sm:hidden">Info</span><span className="hidden sm:inline">Acerca de</span>
           </button>
         </div>
 

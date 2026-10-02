@@ -103,7 +103,7 @@ const GiftDialog: React.FC<Props> = ({ user, creatorProfileId, creatorName, post
                   className={`gift-tile p-2 pt-3 rounded-2xl border text-center ${selected?.id === g.id ? 'border-pink-500 ring-2 ring-pink-300' : 'border-white/80'}`}
                 >
                   <GiftArt gift={g} size={56} className="mx-auto" />
-                  <span className="block text-xs font-medium text-gray-800 truncate">{g.name}</span>
+                  <span className="mt-0.5 min-h-[2lh] text-xs leading-tight font-medium text-gray-800 text-balance line-clamp-2" title={g.name}>{g.name}</span>
                   <span className="block text-[11px] text-gray-500"><CoinIcon size={12} /> {formatCoins(g.coins)}</span>
                 </button>
               ))}

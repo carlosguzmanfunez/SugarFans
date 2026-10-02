@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
+  <!-- Créditos: Fans Reserve virtual currency symbol. Champagne-gold coin with the FR mark engraved. Rendered to public/brand/coin.png by scripts/brand-assets.mjs -->
+  <defs>
+    <radialGradient id="face" cx="0.34" cy="0.28" r="0.85">
+      <stop offset="0" stop-color="#fff4d6"/>
+      <stop offset="0.45" stop-color="#f2cf7c"/>
+      <stop offset="1" stop-color="#d79a2b"/>
+    </radialGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f7dc9a"/>
+      <stop offset="0.55" stop-color="#c98a24"/>
+      <stop offset="1" stop-color="#8f5a12"/>
+    </linearGradient>
+  </defs>
+  <circle cx="20" cy="20" r="19.5" fill="url(#rim)"/>
+  <circle cx="20" cy="20" r="16.3" fill="url(#face)"/>
+  <circle cx="20" cy="20" r="16.3" fill="none" stroke="#8f5a12" stroke-opacity="0.45" stroke-width="0.8"/>
+  <circle cx="20" cy="20" r="13.6" fill="none" stroke="#fff8e6" stroke-opacity="0.7" stroke-width="0.7"/>
+  <g transform="translate(20 20) scale(0.6) translate(-20 -20)" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="5">
+    <g stroke="#fff8e6" stroke-opacity="0.85" transform="translate(0 0.9)">
+      <path d="M23 10.5 a4.625 4.625 0 0 1 0 9.25 H20 L28 29.5"/><path d="M12 29.5 V10.5 H23 M12 19.75 H20"/>
+    </g>
+    <g stroke="#7a4a0c">
+      <path d="M23 10.5 a4.625 4.625 0 0 1 0 9.25 H20 L28 29.5"/><path d="M12 29.5 V10.5 H23 M12 19.75 H20"/>
+    </g>
+  </g>
+  <path d="M8.5 13.5 A13 13 0 0 1 17 6.6" fill="none" stroke="#fff" stroke-opacity="0.75" stroke-linecap="round" stroke-width="1.4"/>
+</svg>
