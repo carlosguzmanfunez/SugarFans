@@ -2,7 +2,9 @@
 // Every read/write is guarded so a blocked or full storage never crashes the app.
 // This is the single place to swap for a real backend (e.g. Supabase) later.
 
-const PREFIX = 'sugarfans_';
+import { BRAND } from '../config/brand';
+
+const PREFIX = BRAND.storagePrefix;
 
 export const readJSON = <T,>(key: string, fallback: T): T => {
   try {

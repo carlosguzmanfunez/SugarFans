@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { BRAND } from '../config/brand';
 
 const LegalPolicies: React.FC = () => {
   const { t } = useLanguage();
@@ -19,7 +20,7 @@ const LegalPolicies: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Políticas Legales</h1>
-          <p className="text-xl text-gray-600">Documentos legales y políticas de SugarFans</p>
+          <p className="text-xl text-gray-600">Documentos legales y políticas de {BRAND.name}</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -56,7 +57,7 @@ const LegalPolicies: React.FC = () => {
                     <p className="text-sm text-gray-500"><strong>Última actualización:</strong> Enero 2024</p>
                     
                     <h3 className="text-xl font-bold text-gray-900 mt-6">1. Aceptación de los Términos</h3>
-                    <p>Al acceder o utilizar SugarFans, usted acepta estar legalmente vinculado por estos Términos y Condiciones. Si no está de acuerdo con alguna parte, no debe utilizar la Plataforma.</p>
+                    <p>Al acceder o utilizar {BRAND.name}, usted acepta estar legalmente vinculado por estos Términos y Condiciones. Si no está de acuerdo con alguna parte, no debe utilizar la Plataforma.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">2. Elegibilidad y Edad</h3>
                     <p><strong>RESTRICCIÓN DE EDAD:</strong> Debe tener al menos DIECIOCHO (18) AÑOS de edad. Al registrarse, declara bajo juramento que tiene 18 años o más.</p>
@@ -211,7 +212,7 @@ const LegalPolicies: React.FC = () => {
                       <div>
                         <h3 className="font-bold text-red-900 text-lg mb-2">POLÍTICA DE TOLERANCIA CERO</h3>
                         <p className="text-red-800">
-                          SugarFans mantiene una política de TOLERANCIA CERO hacia cualquier forma de explotación, 
+                          {BRAND.name} mantiene una política de TOLERANCIA CERO hacia cualquier forma de explotación, 
                           abuso o contenido que involucre menores de edad.
                         </p>
                       </div>
@@ -244,7 +245,7 @@ const LegalPolicies: React.FC = () => {
                         📞 ¿Necesita reportar contenido con menores?
                       </p>
                       <p className="text-sm text-yellow-700">
-                        <strong>Email urgente:</strong> minors@sugarfans.com<br/>
+                        <strong>Email urgente:</strong> {BRAND.emails.minors}<br/>
                         <strong>Teléfono 24/7:</strong> [Número de emergencia]<br/>
                         <strong>NCMEC:</strong> 1-800-843-5678
                       </p>
@@ -269,7 +270,7 @@ const LegalPolicies: React.FC = () => {
                     </ul>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">Gestión de Cookies</h3>
-                    <p>Puede controlar cookies desde la configuración de su navegador o desde su panel de preferencias en SugarFans.</p>
+                    <p>Puede controlar cookies desde la configuración de su navegador o desde su panel de preferencias en {BRAND.name}.</p>
                   </div>
                 </div>
               )}
@@ -282,7 +283,7 @@ const LegalPolicies: React.FC = () => {
                     <p>Respetamos los derechos de propiedad intelectual y esperamos que nuestros Usuarios hagan lo mismo.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">Notificación de Infracción</h3>
-                    <p>Si cree que su trabajo ha sido copiado ilegalmente, envíe una notificación DMCA a: <strong>dmca@sugarfans.com</strong></p>
+                    <p>Si cree que su trabajo ha sido copiado ilegalmente, envíe una notificación DMCA a: <strong>{BRAND.emails.dmca}</strong></p>
                     <p>Debe incluir:</p>
                     <ul className="list-disc pl-5 space-y-2">
                       <li>Identificación de la obra protegida</li>
@@ -304,9 +305,9 @@ const LegalPolicies: React.FC = () => {
               <div className="mt-12 pt-8 border-t border-gray-200">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-gray-500">
-                    © 2024 SugarFans. Todos los derechos reservados.
+                    © {new Date().getFullYear()} {BRAND.name}. Todos los derechos reservados.
                   </p>
-                  <a href="mailto:legal@sugarfans.com" className="text-sm text-pink-600 hover:text-pink-700 font-medium">
+                  <a href={`mailto:${BRAND.emails.legal}`} className="text-sm text-pink-600 hover:text-pink-700 font-medium">
                     <i className="fas fa-envelope mr-2"></i>
                     Contactar Departamento Legal
                   </a>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { BRAND } from '../config/brand';
 
 const Policies: React.FC = () => {
   return (
@@ -14,10 +15,10 @@ const Policies: React.FC = () => {
             </h2>
             <div className="prose prose-sm text-gray-600 space-y-4">
               <p><strong>Última actualización:</strong> Enero 2024</p>
-              <p>Bienvenido a SugarFans. Al utilizar nuestra plataforma, aceptas estos términos de servicio. Lee cuidadosamente antes de usar el servicio.</p>
+              <p>Bienvenido a {BRAND.name}. Al utilizar nuestra plataforma, aceptas estos términos de servicio. Lee cuidadosamente antes de usar el servicio.</p>
               
               <h3 className="text-lg font-semibold text-gray-900 mt-6">1. Elegibilidad</h3>
-              <p>Debes tener al menos 18 años de edad para usar SugarFans. Al registrarte, declaras y garantizas que cumples con este requisito. Los menores de edad tienen estrictamente prohibido el uso de la plataforma.</p>
+              <p>Debes tener al menos 18 años de edad para usar {BRAND.name}. Al registrarte, declaras y garantizas que cumples con este requisito. Los menores de edad tienen estrictamente prohibido el uso de la plataforma.</p>
               
               <h3 className="text-lg font-semibold text-gray-900 mt-6">2. Cuentas de Creadores</h3>
               <p>Los creadores deben verificar su identidad con un documento oficial válido. Todo contenido publicado debe contar con el consentimiento expreso de todas las personas que aparezcan en él. La plataforma se reserva el derecho de rechazar o eliminar cuentas que no cumplan con estos requisitos.</p>
@@ -35,7 +36,7 @@ const Policies: React.FC = () => {
               <p>Las suscripciones se renuevan automáticamente. Los reembolsos se evalúan caso por caso. Los creadores reciben el 80% de los ingresos generados, con pagos mensuales.</p>
 
               <h3 className="text-lg font-semibold text-gray-900 mt-6">5. Propiedad Intelectual</h3>
-              <p>Los creadores mantienen los derechos de su contenido. Al publicar en SugarFans, otorgan una licencia limitada para la distribución a través de la plataforma. Reporta cualquier violación de derechos de autor mediante nuestro sistema DMCA.</p>
+              <p>Los creadores mantienen los derechos de su contenido. Al publicar en {BRAND.name}, otorgan una licencia limitada para la distribución a través de la plataforma. Reporta cualquier violación de derechos de autor mediante nuestro sistema DMCA.</p>
             </div>
           </section>
 
@@ -46,7 +47,7 @@ const Policies: React.FC = () => {
             </h2>
             <div className="prose prose-sm text-gray-600 space-y-4">
               <p><strong>Última actualización:</strong> Enero 2024</p>
-              <p>En SugarFans nos tomamos tu privacidad muy seriamente. Esta política describe cómo recopilamos, usamos y protegemos tu información.</p>
+              <p>En {BRAND.name} nos tomamos tu privacidad muy seriamente. Esta política describe cómo recopilamos, usamos y protegemos tu información.</p>
 
               <h3 className="text-lg font-semibold text-gray-900 mt-6">Datos que recopilamos</h3>
               <ul className="list-disc pl-5 space-y-1">
@@ -67,7 +68,7 @@ const Policies: React.FC = () => {
               </ul>
 
               <h3 className="text-lg font-semibold text-gray-900 mt-6">Tus derechos</h3>
-              <p>Tienes derecho a acceder, rectificar, eliminar y portar tus datos. También puedes oponerte al procesamiento y solicitar la limitación del mismo. Para ejercer estos derechos, contacta a privacidad@sugarfans.com</p>
+              <p>Tienes derecho a acceder, rectificar, eliminar y portar tus datos. También puedes oponerte al procesamiento y solicitar la limitación del mismo. Para ejercer estos derechos, contacta a {BRAND.emails.privacy}</p>
 
               <h3 className="text-lg font-semibold text-gray-900 mt-6">Seguridad</h3>
               <p>Implementamos medidas de seguridad de nivel bancario incluyendo encriptación TLS/SSL, almacenamiento seguro de datos y auditorías regulares de seguridad.</p>
@@ -80,7 +81,7 @@ const Policies: React.FC = () => {
               <i className="fas fa-cookie-bite text-pink-500 mr-3"></i> Política de Cookies
             </h2>
             <div className="prose prose-sm text-gray-600 space-y-4">
-              <p>Utilizamos cookies para mejorar tu experiencia en SugarFans.</p>
+              <p>Utilizamos cookies para mejorar tu experiencia en {BRAND.name}.</p>
               <h3 className="text-lg font-semibold text-gray-900 mt-6">Tipos de cookies</h3>
               <ul className="list-disc pl-5 space-y-1">
                 <li><strong>Esenciales:</strong> Necesarias para el funcionamiento de la plataforma</li>
@@ -97,9 +98,9 @@ const Policies: React.FC = () => {
               <i className="fas fa-gavel text-pink-500 mr-3"></i> Política DMCA
             </h2>
             <div className="prose prose-sm text-gray-600 space-y-4">
-              <p>SugarFans respeta los derechos de propiedad intelectual. Si crees que tu trabajo ha sido copiado de manera que constituye infracción de derechos de autor, puedes enviar una notificación DMCA.</p>
+              <p>{BRAND.name} respeta los derechos de propiedad intelectual. Si crees que tu trabajo ha sido copiado de manera que constituye infracción de derechos de autor, puedes enviar una notificación DMCA.</p>
               <h3 className="text-lg font-semibold text-gray-900 mt-6">Cómo enviar una notificación</h3>
-              <p>Envía un email a dmca@sugarfans.com incluyendo:</p>
+              <p>Envía un email a {BRAND.emails.dmca} incluyendo:</p>
               <ul className="list-disc pl-5 space-y-1">
                 <li>Identificación de la obra protegida</li>
                 <li>Ubicación del contenido infractor en la plataforma</li>
@@ -116,7 +117,7 @@ const Policies: React.FC = () => {
               <i className="fas fa-child text-red-500 mr-3"></i> Protección de Menores
             </h2>
             <div className="prose prose-sm text-gray-600 space-y-4">
-              <p className="font-medium text-red-700">SugarFans tiene TOLERANCIA CERO con cualquier contenido que involucre menores de edad.</p>
+              <p className="font-medium text-red-700">{BRAND.name} tiene TOLERANCIA CERO con cualquier contenido que involucre menores de edad.</p>
               <ul className="list-disc pl-5 space-y-1">
                 <li>Todos los creadores deben verificar su mayoría de edad con documento oficial</li>
                 <li>Se requiere verificación de consentimiento de todas las personas en el contenido</li>
@@ -124,7 +125,7 @@ const Policies: React.FC = () => {
                 <li>Reportamos activamente a las autoridades cualquier sospecha de contenido con menores</li>
                 <li>Las cuentas vinculadas a menores son eliminadas inmediatamente y reportadas</li>
               </ul>
-              <p className="mt-4">Si sospechas de contenido con menores, contacta inmediatamente a <strong>seguridad@sugarfans.com</strong> o reporta a las autoridades locales.</p>
+              <p className="mt-4">Si sospechas de contenido con menores, contacta inmediatamente a <strong>{BRAND.emails.safety}</strong> o reporta a las autoridades locales.</p>
             </div>
           </section>
         </div>

@@ -1,4 +1,4 @@
-# Sistema Multilenguaje - SugarFans
+# Sistema Multilenguaje - Fans Reserve
 
 ## Características Implementadas
 
@@ -74,7 +74,7 @@ const MyComponent = () => {
    - Si no, usa español por defecto
 
 2. **Visitas posteriores**:
-   - Sistema verifica `localStorage.getItem('sugarfans_language')`
+   - Sistema verifica `localStorage.getItem('fansreserve_language')`
    - Si existe, usa ese idioma
    - Si no, vuelve a detectar del navegador
 

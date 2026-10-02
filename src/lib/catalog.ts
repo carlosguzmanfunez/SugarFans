@@ -4,6 +4,7 @@ import { creators as demoCreators, type Creator } from '../data/mockData';
 import { usePlatformQuery, platformApi, type ManagedProfile } from './platform';
 import { backend } from './backend';
 import type { PublicCreator } from './backend/socialTypes';
+import { BRAND } from '../config/brand';
 
 const DEFAULT_COVER = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=400&fit=crop';
 
@@ -30,7 +31,7 @@ export const fromPublic = (c: PublicCreator): Creator => ({
   username: c.name.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''),
   avatar: c.avatar,
   cover: DEFAULT_COVER,
-  bio: c.bio || 'Creador en SugarFans.',
+  bio: c.bio || `Creador en ${BRAND.name}.`,
   isVerified: c.isVerified,
   subscriptionPrice: c.subscriptionPrice,
   followers: 0,

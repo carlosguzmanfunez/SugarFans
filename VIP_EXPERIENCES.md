@@ -1,4 +1,4 @@
-# Experiencias VIP - SugarFans
+# Experiencias VIP - Fans Reserve
 
 ## 🎯 Descripción General
 
@@ -254,7 +254,7 @@ interface VIPExperience {
 ## 📞 Soporte
 
 Para preguntas o problemas relacionados con Experiencias VIP:
-- Email: vip@sugarfans.com
+- Email: vip@fansreserve.com
 - Chat en vivo: Disponible 24/7
 - Centro de ayuda: Sección VIP dedicada
 

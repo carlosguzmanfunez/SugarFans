@@ -1,4 +1,4 @@
-# POLÍTICA DE PROTECCIÓN DE MENORES - SUGARFANS
+# POLÍTICA DE PROTECCIÓN DE MENORES - FANS RESERVE
 
 **Última actualización:** Enero 2024  
 **Versión:** 1.0.0  
@@ -8,7 +8,7 @@
 
 ## DECLARACIÓN DE COMPROMISO
 
-**SUGARFANS MANTIENE UNA POLÍTICA DE TOLERANCIA CERO HACIA CUALQUIER FORMA DE EXPLOTACIÓN, ABUSO O CONTENIDO QUE INVOLUCRE MENORES DE EDAD.**
+**FANS RESERVE MANTIENE UNA POLÍTICA DE TOLERANCIA CERO HACIA CUALQUIER FORMA DE EXPLOTACIÓN, ABUSO O CONTENIDO QUE INVOLUCRE MENORES DE EDAD.**
 
 Esta Política establece los protocolos, procedimientos y medidas de seguridad para garantizar que ninguna persona menor de 18 años acceda, participe o sea representada en nuestra Plataforma.
 
@@ -42,7 +42,7 @@ Cualquier forma de abuso, uso inapropiado, o comercialización de menores, inclu
 
 **ESTÁ ESTRICTAMENTE PROHIBIDO:**
 
-2.1.1. **Registro de Menores**: Ninguna persona menor de 18 años puede crear una cuenta en SugarFans.
+2.1.1. **Registro de Menores**: Ninguna persona menor de 18 años puede crear una cuenta en Fans Reserve.
 
 2.1.2. **Acceso de Menores**: Ninguna persona menor de 18 años puede acceder, navegar o utilizar la Plataforma.
 
@@ -426,7 +426,7 @@ Si usted o alguien que conoce es víctima de explotación:
 
 12.1.1. **Botón de Reporte**: En cada Contenido hay un botón de reporte.
 
-12.1.2. **Email Directo**: minors@sugarfans.com (prioridad máxima)
+12.1.2. **Email Directo**: minors@fansreserve.com (prioridad máxima)
 
 12.1.3. **Formulario Web**: Formulario específico para reportes de menores.
 
@@ -522,7 +522,7 @@ Reconocemos que operamos en un entorno sensible y asumimos la responsabilidad de
 
 ### 15.2. Declaración Final
 
-**SUGARFANS SE COMPROMETE A SER LÍDER EN PROTECCIÓN DE MENORES Y A MANTENER LOS MÁS ALTOS ESTÁNDARES DE SEGURIDAD Y ÉTICA.**
+**FANS RESERVE SE COMPROMETE A SER LÍDER EN PROTECCIÓN DE MENORES Y A MANTENER LOS MÁS ALTOS ESTÁNDARES DE SEGURIDAD Y ÉTICA.**
 
 Cualquier violación de esta Política será tratada con la máxima severidad y cooperación total con autoridades.
 
@@ -532,24 +532,24 @@ Cualquier violación de esta Política será tratada con la máxima severidad y 
 
 ### 16.1. Para Reportar Contenido con Menores
 
-**Email de Prioridad Máxima:** minors@sugarfans.com  
+**Email de Prioridad Máxima:** minors@fansreserve.com  
 **Teléfono 24/7:** [Número de emergencia]  
 **Chat en Vivo:** Disponible 24/7 para reportes urgentes
 
 ### 16.2. Para Autoridades
 
 **Línea Directa para Policía:** [Número dedicado]  
-**Email para Autoridades:** lawenforcement@sugarfans.com  
+**Email para Autoridades:** lawenforcement@fansreserve.com  
 **Portal de Solicitudes Legales:** [URL segura]
 
 ### 16.3. Oficial de Protección de Menores
 
 **Nombre:** [Nombre del Oficial]  
-**Email:** childprotection@sugarfans.com  
+**Email:** childprotection@fansreserve.com  
 **Responsabilidades:** Supervisión de cumplimiento, capacitación, relaciones con autoridades
 
 ---
 
 **ESTA POLÍTICA ES DE CUMPLIMIENTO OBLIGATORIO. SU VIOLACIÓN RESULTARÁ EN ACCIONES INMEDIATAS Y SEVERAS.**
 
-© 2024 SugarFans. Todos los derechos reservados.
+© 2024 Fans Reserve. Todos los derechos reservados.

@@ -5,6 +5,7 @@ import { isValidEmail } from '../lib/storage';
 import { clearRefCode, readRefCode } from '../lib/rewardRules';
 import { useLanguage } from '../context/LanguageContext';
 import LanguageSelector from '../components/LanguageSelector';
+import BrandLogo from '../components/BrandLogo';
 
 // What a creator account includes (all of it works in the app today).
 const CREATOR_BENEFITS = [
@@ -95,14 +96,7 @@ const Register: React.FC = () => {
       <div className="flex-1 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center space-x-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold">SF</span>
-            </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent">
-              SugarFans
-            </span>
-          </Link>
+          <BrandLogo size="md" />
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8">

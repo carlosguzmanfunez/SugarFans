@@ -19,6 +19,7 @@ import { createLocalSocial } from './localSocial';
 import { createLocalGifts } from './localGifts';
 import { createLocalRewards } from './localRewards';
 import { creators as demoCreators } from '../../data/mockData';
+import { BRAND } from '../../config/brand';
 
 interface StoredAccount extends User {
   passwordHash: string;
@@ -33,7 +34,7 @@ const BOOKINGS_KEY = 'vip_bookings';
 const OUTBOX_KEY = 'email_outbox';
 const EXPERIENCES_KEY = 'vip_experiences_v1';
 const RESETS_KEY = 'password_resets';
-const CHANGE_EVENT = 'sugarfans:local-change';
+const CHANGE_EVENT = `${BRAND.compactName.toLowerCase()}:local-change`;
 
 const baseUser = (partial: Pick<User, 'id' | 'name' | 'email' | 'role' | 'avatar'> & Partial<User>): User => ({
   ageVerified: true,
@@ -45,7 +46,7 @@ const baseUser = (partial: Pick<User, 'id' | 'name' | 'email' | 'role' | 'avatar
 });
 
 const demoUsers: User[] = [
-  baseUser({ id: 'demo-admin', name: 'Admin SugarFans', email: 'admin@sugarfans.com', role: 'admin', avatar: avatarFor('admin') }),
+  baseUser({ id: 'demo-admin', name: `Admin ${BRAND.compactName}`, email: 'admin@sugarfans.com', role: 'admin', avatar: avatarFor('admin') }),
   baseUser({
     id: 'demo-creator',
     name: 'Valentina Rose',
@@ -96,7 +97,7 @@ const seedPromise: Promise<void> = (async () => {
 // The session lives in localStorage ("remember me") or sessionStorage (this tab only).
 const readSession = (): string | null => {
   try {
-    return JSON.parse(sessionStorage.getItem('sugarfans_' + SESSION_KEY) || 'null') ?? readJSON<string | null>(SESSION_KEY, null);
+    return JSON.parse(sessionStorage.getItem(BRAND.storagePrefix + SESSION_KEY) || 'null') ?? readJSON<string | null>(SESSION_KEY, null);
   } catch {
     return readJSON<string | null>(SESSION_KEY, null);
   }
@@ -104,8 +105,8 @@ const readSession = (): string | null => {
 
 const writeSession = (id: string | null, remember = true) => {
   try {
-    sessionStorage.removeItem('sugarfans_' + SESSION_KEY);
-    if (id && !remember) sessionStorage.setItem('sugarfans_' + SESSION_KEY, JSON.stringify(id));
+    sessionStorage.removeItem(BRAND.storagePrefix + SESSION_KEY);
+    if (id && !remember) sessionStorage.setItem(BRAND.storagePrefix + SESSION_KEY, JSON.stringify(id));
   } catch {
     // ignore
   }
@@ -231,7 +232,7 @@ export const localBackend: Backend = {
 
   onChange(cb) {
     const onStorage = (e: StorageEvent) => {
-      if (!e.key || e.key.startsWith('sugarfans_')) cb();
+      if (!e.key || e.key.startsWith(BRAND.storagePrefix)) cb();
     };
     window.addEventListener(CHANGE_EVENT, cb);
     window.addEventListener('storage', onStorage);

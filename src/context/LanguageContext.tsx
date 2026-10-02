@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { BRAND } from '../config/brand';
+
+const LANGUAGE_KEY = `${BRAND.storagePrefix}language`;
 
 export type Language = 'es' | 'en' | 'pt' | 'fr' | 'it';
 
@@ -17,7 +20,7 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export const ENABLED_LANGUAGES: Language[] = ['es'];
 
 const detectLanguage = (): Language => {
-  const saved = localStorage.getItem('sugarfans_language') as Language;
+  const saved = localStorage.getItem(LANGUAGE_KEY) as Language;
   if (saved && ENABLED_LANGUAGES.includes(saved)) return saved;
   const browserLang = (navigator.language || '').split('-')[0].toLowerCase() as Language;
   return ENABLED_LANGUAGES.includes(browserLang) ? browserLang : 'es';
@@ -38,40 +41,40 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.register': 'Registrarse',
     
     // Landing
-    'landing.hero.title1': 'Conecta con tus',
-    'landing.hero.title2': 'creadores favoritos',
-    'landing.hero.subtitle': 'Descubre contenido exclusivo de tus creadores favoritos. Suscríbete, apoya y disfruta de experiencias únicas.',
-    'landing.hero.cta1': 'Comenzar Gratis',
-    'landing.hero.cta2': 'Explorar Creadores',
+    'landing.hero.title1': 'Más cerca de quienes',
+    'landing.hero.title2': 'te inspiran',
+    'landing.hero.subtitle': 'Membresías, contenido exclusivo, experiencias VIP y sesiones en vivo con creadores que conectan contigo más allá del feed.',
+    'landing.hero.cta1': 'Crear cuenta gratis',
+    'landing.hero.cta2': 'Explorar creadores',
     'landing.hero.stats1': 'Creadores verificados',
-    'landing.hero.stats2': 'Solo mayores de 18',
-    'landing.hero.stats3': 'Pagos Seguros',
-    'landing.featured.title': 'Creadores Destacados',
-    'landing.featured.subtitle': 'Descubre a los creadores más populares de nuestra plataforma',
+    'landing.hero.stats2': 'Comunidad +18',
+    'landing.hero.stats3': 'Pagos protegidos',
+    'landing.featured.title': 'Creadores destacados',
+    'landing.featured.subtitle': 'Perfiles que su comunidad sigue de cerca',
     'landing.featured.viewAll': 'Ver todos los creadores',
-    'landing.categories.title': 'Explora por Categorías',
-    'landing.categories.subtitle': 'Encuentra exactamente lo que buscas',
+    'landing.categories.title': 'Explora por categorías',
+    'landing.categories.subtitle': 'Música, fitness, gaming, arte y mucho más',
     'landing.how.title': '¿Cómo funciona?',
-    'landing.how.subtitle': 'Es fácil comenzar en SugarFans',
+    'landing.how.subtitle': 'Tres pasos para empezar en {brand}',
     'landing.how.step1.title': '1. Crea tu cuenta',
-    'landing.how.step1.desc': 'Regístrate gratis y verifica tu edad para acceder a todo el contenido.',
+    'landing.how.step1.desc': 'Regístrate gratis y confirma tu edad en un minuto.',
     'landing.how.step2.title': '2. Descubre creadores',
-    'landing.how.step2.desc': 'Explora perfiles, encuentra tu contenido favorito y suscríbete.',
-    'landing.how.step3.title': '3. Disfruta y apoya',
-    'landing.how.step3.desc': 'Accede a contenido exclusivo, envía mensajes y apoya a tus favoritos.',
-    'landing.cta.title': '¿Eres creador de contenido?',
-    'landing.cta.subtitle': 'Únete a SugarFans y monetiza tu contenido. Controla tus precios, conecta con tus fans y crece tu comunidad.',
-    'landing.cta.button': 'Comenzar como Creador',
+    'landing.how.step2.desc': 'Explora perfiles, encuentra a quienes te inspiran y únete a su membresía.',
+    'landing.how.step3.title': '3. Conecta y apoya',
+    'landing.how.step3.desc': 'Accede a contenido exclusivo, escribe a tus creadores y apóyalos con propinas y regalos.',
+    'landing.cta.title': '¿Creas contenido o experiencias?',
+    'landing.cta.subtitle': 'Convierte a tu audiencia en una comunidad que te apoya. En {brand} tú defines tus precios, tus membresías y tus experiencias.',
+    'landing.cta.button': 'Empezar como creador',
     
     // Age Verification
-    'age.title': 'Verificación de Edad',
-    'age.description': 'Este sitio contiene contenido exclusivo para adultos. Debes confirmar que eres mayor de 18 años para continuar.',
-    'age.warning': 'Aviso Legal',
+    'age.title': 'Verificación de edad',
+    'age.description': '{brand} es una comunidad solo para mayores de 18 años. Algunos creadores publican contenido para adultos. Confirma tu edad para continuar.',
+    'age.warning': 'Aviso legal',
     'age.warningText': 'Al ingresar, declaras bajo juramento que tienes 18 años o más. El acceso a menores está estrictamente prohibido.',
     'age.confirm': 'Sí, soy mayor de 18 años',
     'age.deny': 'No, soy menor de 18 años',
-    'age.denied.title': 'Acceso Denegado',
-    'age.denied.text': 'Lo sentimos, debes ser mayor de 18 años para acceder a SugarFans. Serás redirigido en unos momentos.',
+    'age.denied.title': 'Acceso denegado',
+    'age.denied.text': 'Lo sentimos, debes ser mayor de 18 años para acceder a {brand}. Serás redirigido en unos momentos.',
     'age.denied.button': 'Salir del sitio',
     'age.terms': 'Al continuar, aceptas nuestros',
     'age.termsLink': 'Términos de Servicio',
@@ -100,7 +103,7 @@ const translations: Record<Language, Record<string, string>> = {
     'register.accountType': 'Tipo de cuenta',
     'register.basicInfo': 'Ingresa tus datos básicos',
     'register.passwordInfo': 'Crea una contraseña segura',
-    'register.howToUse': '¿Cómo quieres usar SugarFans?',
+    'register.howToUse': '¿Cómo quieres usar {brand}?',
     'register.fullName': 'Nombre completo',
     'register.email': 'Correo electrónico',
     'register.password': 'Contraseña',
@@ -121,12 +124,12 @@ const translations: Record<Language, Record<string, string>> = {
     'register.login': 'Inicia sesión',
     
     // Footer
-    'footer.description': 'La plataforma de suscripciones para creadores de contenido. Conecta con tus creadores favoritos.',
+    'footer.description': '{brand} conecta a creadores con sus verdaderos fans: membresías, contenido exclusivo y experiencias VIP.',
     'footer.platform': 'Plataforma',
     'footer.explore': 'Explorar',
     'footer.pricing': 'Ser creador',
-    'footer.help': 'Centro de Ayuda',
-    'footer.becomeCreator': 'Ser Creador',
+    'footer.help': 'Centro de ayuda',
+    'footer.becomeCreator': 'Únete como creador',
     'footer.legal': 'Legal',
     'footer.terms': 'Términos de Servicio',
     'footer.privacy': 'Política de Privacidad',
@@ -186,7 +189,7 @@ const translations: Record<Language, Record<string, string>> = {
     'landing.categories.title': 'Explore by Categories',
     'landing.categories.subtitle': 'Find exactly what you\'re looking for',
     'landing.how.title': 'How does it work?',
-    'landing.how.subtitle': 'It\'s easy to get started on SugarFans',
+    'landing.how.subtitle': 'It\'s easy to get started on {brand}',
     'landing.how.step1.title': '1. Create your account',
     'landing.how.step1.desc': 'Sign up for free and verify your age to access all content.',
     'landing.how.step2.title': '2. Discover creators',
@@ -194,7 +197,7 @@ const translations: Record<Language, Record<string, string>> = {
     'landing.how.step3.title': '3. Enjoy and support',
     'landing.how.step3.desc': 'Access exclusive content, send messages, and support your favorites.',
     'landing.cta.title': 'Are you a content creator?',
-    'landing.cta.subtitle': 'Join SugarFans and monetize your content. Control your prices, connect with your fans, and grow your community.',
+    'landing.cta.subtitle': 'Join {brand} and monetize your content. Control your prices, connect with your fans, and grow your community.',
     'landing.cta.button': 'Start as a Creator',
     
     // Age Verification
@@ -205,7 +208,7 @@ const translations: Record<Language, Record<string, string>> = {
     'age.confirm': 'Yes, I am over 18 years old',
     'age.deny': 'No, I am under 18 years old',
     'age.denied.title': 'Access Denied',
-    'age.denied.text': 'Sorry, you must be over 18 years old to access SugarFans. You will be redirected in a moment.',
+    'age.denied.text': 'Sorry, you must be over 18 years old to access {brand}. You will be redirected in a moment.',
     'age.denied.button': 'Exit site',
     'age.terms': 'By continuing, you accept our',
     'age.termsLink': 'Terms of Service',
@@ -234,7 +237,7 @@ const translations: Record<Language, Record<string, string>> = {
     'register.accountType': 'Account type',
     'register.basicInfo': 'Enter your basic information',
     'register.passwordInfo': 'Create a secure password',
-    'register.howToUse': 'How do you want to use SugarFans?',
+    'register.howToUse': 'How do you want to use {brand}?',
     'register.fullName': 'Full name',
     'register.email': 'Email address',
     'register.password': 'Password',
@@ -320,7 +323,7 @@ const translations: Record<Language, Record<string, string>> = {
     'landing.categories.title': 'Explore por Categorias',
     'landing.categories.subtitle': 'Encontre exatamente o que você procura',
     'landing.how.title': 'Como funciona?',
-    'landing.how.subtitle': 'É fácil começar no SugarFans',
+    'landing.how.subtitle': 'É fácil começar no {brand}',
     'landing.how.step1.title': '1. Crie sua conta',
     'landing.how.step1.desc': 'Cadastre-se grátis e verifique sua idade para acessar todo o conteúdo.',
     'landing.how.step2.title': '2. Descubra criadores',
@@ -328,7 +331,7 @@ const translations: Record<Language, Record<string, string>> = {
     'landing.how.step3.title': '3. Aproveite e apoie',
     'landing.how.step3.desc': 'Acesse conteúdo exclusivo, envie mensagens e apoie seus favoritos.',
     'landing.cta.title': 'Você é criador de conteúdo?',
-    'landing.cta.subtitle': 'Junte-se ao SugarFans e monetize seu conteúdo. Controle seus preços, conecte-se com seus fãs e cresça sua comunidade.',
+    'landing.cta.subtitle': 'Junte-se ao {brand} e monetize seu conteúdo. Controle seus preços, conecte-se com seus fãs e cresça sua comunidade.',
     'landing.cta.button': 'Começar como Criador',
     
     // Age Verification
@@ -339,7 +342,7 @@ const translations: Record<Language, Record<string, string>> = {
     'age.confirm': 'Sim, tenho mais de 18 anos',
     'age.deny': 'Não, tenho menos de 18 anos',
     'age.denied.title': 'Acesso Negado',
-    'age.denied.text': 'Desculpe, você deve ter mais de 18 anos para acessar o SugarFans. Você será redirecionado em um momento.',
+    'age.denied.text': 'Desculpe, você deve ter mais de 18 anos para acessar o {brand}. Você será redirecionado em um momento.',
     'age.denied.button': 'Sair do site',
     'age.terms': 'Ao continuar, você aceita nossos',
     'age.termsLink': 'Termos de Serviço',
@@ -368,7 +371,7 @@ const translations: Record<Language, Record<string, string>> = {
     'register.accountType': 'Tipo de conta',
     'register.basicInfo': 'Insira seus dados básicos',
     'register.passwordInfo': 'Crie uma senha segura',
-    'register.howToUse': 'Como você quer usar o SugarFans?',
+    'register.howToUse': 'Como você quer usar o {brand}?',
     'register.fullName': 'Nome completo',
     'register.email': 'Endereço de email',
     'register.password': 'Senha',
@@ -454,7 +457,7 @@ const translations: Record<Language, Record<string, string>> = {
     'landing.categories.title': 'Explorer par Catégories',
     'landing.categories.subtitle': 'Trouvez exactement ce que vous cherchez',
     'landing.how.title': 'Comment ça marche?',
-    'landing.how.subtitle': 'C\'est facile de commencer sur SugarFans',
+    'landing.how.subtitle': 'C\'est facile de commencer sur {brand}',
     'landing.how.step1.title': '1. Créez votre compte',
     'landing.how.step1.desc': 'Inscrivez-vous gratuitement et vérifiez votre âge pour accéder à tout le contenu.',
     'landing.how.step2.title': '2. Découvrez les créateurs',
@@ -462,7 +465,7 @@ const translations: Record<Language, Record<string, string>> = {
     'landing.how.step3.title': '3. Profitez et soutenez',
     'landing.how.step3.desc': 'Accédez au contenu exclusif, envoyez des messages et soutenez vos favoris.',
     'landing.cta.title': 'Êtes-vous créateur de contenu?',
-    'landing.cta.subtitle': 'Rejoignez SugarFans et monétisez votre contenu. Contrôlez vos prix, connectez-vous avec vos fans et développez votre communauté.',
+    'landing.cta.subtitle': 'Rejoignez {brand} et monétisez votre contenu. Contrôlez vos prix, connectez-vous avec vos fans et développez votre communauté.',
     'landing.cta.button': 'Commencer en tant que Créateur',
     
     // Age Verification
@@ -473,7 +476,7 @@ const translations: Record<Language, Record<string, string>> = {
     'age.confirm': 'Oui, j\'ai plus de 18 ans',
     'age.deny': 'Non, j\'ai moins de 18 ans',
     'age.denied.title': 'Accès Refusé',
-    'age.denied.text': 'Désolé, vous devez avoir plus de 18 ans pour accéder à SugarFans. Vous serez redirigé dans un instant.',
+    'age.denied.text': 'Désolé, vous devez avoir plus de 18 ans pour accéder à {brand}. Vous serez redirigé dans un instant.',
     'age.denied.button': 'Quitter le site',
     'age.terms': 'En continuant, vous acceptez nos',
     'age.termsLink': 'Conditions d\'Utilisation',
@@ -502,7 +505,7 @@ const translations: Record<Language, Record<string, string>> = {
     'register.accountType': 'Type de compte',
     'register.basicInfo': 'Entrez vos informations de base',
     'register.passwordInfo': 'Créez un mot de passe sécurisé',
-    'register.howToUse': 'Comment voulez-vous utiliser SugarFans?',
+    'register.howToUse': 'Comment voulez-vous utiliser {brand}?',
     'register.fullName': 'Nom complet',
     'register.email': 'Adresse email',
     'register.password': 'Mot de passe',
@@ -588,7 +591,7 @@ const translations: Record<Language, Record<string, string>> = {
     'landing.categories.title': 'Esplora per Categorie',
     'landing.categories.subtitle': 'Trova esattamente ciò che cerchi',
     'landing.how.title': 'Come funziona?',
-    'landing.how.subtitle': 'È facile iniziare su SugarFans',
+    'landing.how.subtitle': 'È facile iniziare su {brand}',
     'landing.how.step1.title': '1. Crea il tuo account',
     'landing.how.step1.desc': 'Registrati gratuitamente e verifica la tua età per accedere a tutti i contenuti.',
     'landing.how.step2.title': '2. Scopri i creatori',
@@ -596,7 +599,7 @@ const translations: Record<Language, Record<string, string>> = {
     'landing.how.step3.title': '3. Goditi e supporta',
     'landing.how.step3.desc': 'Accedi a contenuti esclusivi, invia messaggi e supporta i tuoi preferiti.',
     'landing.cta.title': 'Sei un creatore di contenuti?',
-    'landing.cta.subtitle': 'Unisciti a SugarFans e monetizza i tuoi contenuti. Controlla i tuoi prezzi, connettiti con i tuoi fan e fai crescere la tua community.',
+    'landing.cta.subtitle': 'Unisciti a {brand} e monetizza i tuoi contenuti. Controlla i tuoi prezzi, connettiti con i tuoi fan e fai crescere la tua community.',
     'landing.cta.button': 'Inizia come Creatore',
     
     // Age Verification
@@ -607,7 +610,7 @@ const translations: Record<Language, Record<string, string>> = {
     'age.confirm': 'Sì, ho più di 18 anni',
     'age.deny': 'No, ho meno di 18 anni',
     'age.denied.title': 'Accesso Negato',
-    'age.denied.text': 'Spiacenti, devi avere più di 18 anni per accedere a SugarFans. Sarai reindirizzato tra un momento.',
+    'age.denied.text': 'Spiacenti, devi avere più di 18 anni per accedere a {brand}. Sarai reindirizzato tra un momento.',
     'age.denied.button': 'Esci dal sito',
     'age.terms': 'Continuando, accetti i nostri',
     'age.termsLink': 'Termini di Servizio',
@@ -636,7 +639,7 @@ const translations: Record<Language, Record<string, string>> = {
     'register.accountType': 'Tipo di account',
     'register.basicInfo': 'Inserisci le tue informazioni di base',
     'register.passwordInfo': 'Crea una password sicura',
-    'register.howToUse': 'Come vuoi usare SugarFans?',
+    'register.howToUse': 'Come vuoi usare {brand}?',
     'register.fullName': 'Nome completo',
     'register.email': 'Indirizzo email',
     'register.password': 'Password',
@@ -700,7 +703,7 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [language, setLanguageState] = useState<Language>(detectLanguage());
 
   useEffect(() => {
-    localStorage.setItem('sugarfans_language', language);
+    localStorage.setItem(LANGUAGE_KEY, language);
     document.documentElement.lang = language;
   }, [language]);
 
@@ -709,7 +712,8 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   const t = (key: string): string => {
-    return translations[language][key] || key;
+    const text = translations[language][key] || key;
+    return text.replace(/\{brand\}/g, BRAND.name);
   };
 
   return (

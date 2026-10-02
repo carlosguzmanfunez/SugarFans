@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { submitReport } from '../lib/platform';
 import { REPORT_REASONS } from '../components/ReportDialog';
+import { BRAND } from '../config/brand';
 
 interface Faq {
   category: string;
@@ -26,7 +27,7 @@ export const faqs: Faq[] = [
   { category: 'Para Creadores', q: '¿Qué recompensas tengo como creador?', a: 'En tu panel, pestaña Recompensas, tienes tu enlace de invitación: de cada fan que se registre con él te quedas con el 90% de lo que te pague durante 90 días. Subes de nivel según tus fans activos (Plata 10, Oro 50, Diamante 200), con comisión del 82%, 84% u 85% e insignia en tu perfil. Cada mes, si atraes con tu enlace 10, 25 o 50 fans que te paguen, tu comisión sube 2, 5 o 10 puntos todo el mes siguiente (máximo 90%). Oro, Diamante y quienes cumplen una meta aparecen en Creadores destacados. Y cuando al menos 2 creadores se registran con tu enlace de creadores, ganas un 5% extra de lo que venda cada uno (suscripciones, renovaciones y propinas) durante un mes, sin que a ellos se les descuente nada. Sumando todos los beneficios, un creador nunca supera el 90% de una venta. Los regalos tienen sus propias reglas.', link: { to: '/creator/dashboard?tab=rewards', label: 'Ver mis recompensas' } },
   { category: 'Para Creadores', q: '¿Cuándo recibo mis pagos?', a: 'Tu saldo se acumula en Panel > Ingresos. Tus ingresos se acreditan el día 1 de cada mes y se acumulan; retira el saldo completo a tu cuenta bancaria cuando quieras desde $50 USD y se paga al momento.', link: { to: '/creator/dashboard?tab=earnings', label: 'Ver mis ingresos' } },
   { category: 'Para Creadores', q: '¿Cómo publico contenido exclusivo?', a: 'En el panel de creador pulsa "Nueva Publicación" y marca "Exclusivo": solo lo verán tus suscriptores.', link: { to: '/creator/dashboard', label: 'Nueva publicación' } },
-  { category: 'Reportes y Bloqueos', q: '¿Cómo reporto contenido inapropiado?', a: 'Cada publicación tiene un botón "Reportar", y cada perfil uno en "Acerca de". También puedes usar el formulario al final de esta página o escribir a soporte@sugarfans.com. El equipo de moderación revisa cada reporte y puede retirar el contenido.' },
+  { category: 'Reportes y Bloqueos', q: '¿Cómo reporto contenido inapropiado?', a: 'Cada publicación tiene un botón "Reportar", y cada perfil uno en "Acerca de". También puedes usar el formulario al final de esta página o escribir a ' + BRAND.emails.support + '. El equipo de moderación revisa cada reporte y puede retirar el contenido.' },
   { category: 'Reportes y Bloqueos', q: '¿Cómo bloqueo a un usuario?', a: 'Ve al perfil del usuario y pulsa el botón de bloquear. No podrá contactarte ni ver tu contenido, y dejarás de verlo en Explorar. Gestiona y desbloquea a quien quieras en Configuración > Bloqueos.', link: { to: '/settings?section=blocking', label: 'Ver bloqueados' } },
 ];
 
@@ -139,7 +140,7 @@ const Help: React.FC = () => {
           <h3 className="text-2xl font-bold mb-2">¿No encuentras lo que buscas?</h3>
           <p className="text-pink-100 mb-6">Nuestro equipo de soporte está listo para ayudarte</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="mailto:soporte@sugarfans.com" className="bg-white text-purple-700 px-6 py-3 rounded-xl font-bold hover:bg-yellow-300 transition">
+            <a href={`mailto:${BRAND.emails.support}`} className="bg-white text-purple-700 px-6 py-3 rounded-xl font-bold hover:bg-yellow-300 transition">
               <i className="fas fa-envelope mr-2"></i> Email
             </a>
             <a

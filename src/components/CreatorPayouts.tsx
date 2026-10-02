@@ -15,6 +15,7 @@ import {
   transactionLabel,
 } from '../lib/platform';
 import { GIFT_SHARE } from '../lib/giftRules';
+import { BRAND, displayPayer } from '../config/brand';
 
 const field = 'w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-sm';
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -161,7 +162,7 @@ const CreatorPayouts: React.FC = () => {
             {sales.slice(0, 20).map((t) => (
               <div key={t.id} className="py-3 flex items-center justify-between text-sm">
                 <div>
-                  <p className="font-medium text-gray-900">{transactionLabel[t.kind]} · {t.payerName}</p>
+                  <p className="font-medium text-gray-900">{transactionLabel[t.kind]} · {displayPayer(t.payerName)}</p>
                   <p className="text-xs text-gray-500">
                     {fmtDate(t.createdAt)} · pagó {money(t.amount)}
                     {(t.kind === 'gift' || t.kind === 'referral') && t.note ? ` · ${t.note}` : ''}

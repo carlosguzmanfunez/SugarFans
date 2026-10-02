@@ -6,6 +6,7 @@
 import type { Transaction } from './backend/platformTypes';
 import type { LevelId } from './backend/rewardTypes';
 import { addMonths } from './platformRules';
+import { BRAND } from '../config/brand';
 
 export interface Level {
   id: LevelId;
@@ -27,7 +28,7 @@ export const REFERRAL_SHARE = 0.9;
 export const REFERRAL_DAYS = 90;
 // A creator who has invited at least 2 creators earns 5% of what each of them
 // sells (subscriptions, renewals and tips; gifts have their own rules) for one
-// month, paid from SugarFans' part: the invited creator loses nothing. SugarFans
+// month, paid from the platform's part: the invited creator loses nothing. The platform
 // always keeps at least 10% of a sale, so the bonus shrinks when the seller
 // already gets 90%.
 export const CREATOR_INVITE_BONUS = 0.05;
@@ -120,7 +121,7 @@ export const shareFor = (refs: Referral[], txs: Transaction[], fanId: string, cr
   referralActive(refs.find((r) => r.fanId === fanId), creatorProfileId, at) ? REFERRAL_SHARE : baseShare(refs, txs, creatorProfileId, at);
 
 // Referral links look like /r/<creator profile id>; the code waits in the browser until sign-up.
-export const REF_KEY = 'sugarfans_ref';
+export const REF_KEY = `${BRAND.storagePrefix}ref`;
 export const REF_TTL_DAYS = 30;
 
 export const saveRefCode = (creatorProfileId: string) => {

@@ -14,6 +14,7 @@ import {
   type ManagedProfileInput,
   type Transaction,
 } from '../lib/platform';
+import { BRAND } from '../config/brand';
 
 const field = 'w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-sm';
 
@@ -102,7 +103,7 @@ const ManagedProfilesAdmin: React.FC<{ transactions: Transaction[] }> = ({ trans
     <div className="space-y-4" data-testid="managed-profiles">
       <div className="bg-white rounded-2xl shadow-sm p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h3 className="font-bold text-gray-900">Perfiles gestionados por SugarFans</h3>
+          <h3 className="font-bold text-gray-900">Perfiles gestionados por {BRAND.name}</h3>
           <p className="text-sm text-gray-500">
             Perfiles que crea y administra el equipo, por ejemplo personajes generados con IA. No pasan por la verificación de identidad;
             los de IA llevan la etiqueta <span className="font-semibold text-purple-700">P-IA</span>. Sus ingresos son de la plataforma.

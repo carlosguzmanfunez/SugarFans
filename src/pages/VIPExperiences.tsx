@@ -6,6 +6,7 @@ import { formatLongDate, DEFAULT_AVAILABILITY, EXPERIENCE_TYPES, type Availabili
 import { backend } from '../lib/backend';
 import { usePlatformQuery } from '../lib/platform';
 import { useCreatorCatalog } from '../lib/catalog';
+import { BRAND } from '../config/brand';
 
 const VIPExperiences: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
@@ -92,7 +93,7 @@ const VIPExperiences: React.FC = () => {
             </h1>
             <p className="text-xl text-white/90 max-w-2xl mx-auto">
               Vive momentos únicos y exclusivos con tus creadores favoritos.
-              Reserva día y hora, el creador confirma y la sesión es en vivo dentro de SugarFans.
+              Reserva día y hora, el creador confirma y la sesión es en vivo dentro de {BRAND.name}.
             </p>
           </div>
         </div>

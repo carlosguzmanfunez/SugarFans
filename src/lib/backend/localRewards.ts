@@ -22,6 +22,7 @@ import type { LocalLedger } from './localPlatform';
 import type { Transaction } from './platformTypes';
 import type { User } from './types';
 import type { FeaturedCreator, RewardsBackend } from './rewardTypes';
+import { BRAND } from '../../config/brand';
 
 interface Deps {
   ledger: () => LocalLedger;
@@ -80,7 +81,7 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
           id: `bonus-${t.id}`,
           key: `bonus:${t.id}`,
           payerId: null,
-          payerName: 'SugarFans',
+          payerName: BRAND.name,
           creatorProfileId: inv.referrerProfileId,
           creatorName: names.get(inv.referrerProfileId) ?? 'Creador',
           kind: 'referral',

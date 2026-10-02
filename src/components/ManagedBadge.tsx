@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Creator } from '../data/mockData';
 
-// Small "P-IA" tag on AI personas run by SugarFans. Platform profiles that are
+// Small "P-IA" tag on AI personas run by the platform. Platform profiles that are
 // not AI carry no tag; verified human creators show the "Verify" badge instead.
 const ManagedBadge: React.FC<{ creator: Creator; size?: 'sm' | 'md' }> = ({ creator, size = 'sm' }) => {
   if (creator.managed !== 'ai') return null;
