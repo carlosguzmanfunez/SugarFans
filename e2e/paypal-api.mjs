@@ -116,6 +116,11 @@ globalThis.fetch = async (url, init = {}) => {
     db.payouts.set(id, { user: body.p_user, status: 'sending', amount: 160, fee: 3.2, net: 156.8 });
     return res(200, { id, amount: 160, fee: 3.2, net: 156.8, email: 'vale@example.com' });
   }
+  if (u.includes('/rest/v1/payouts?user_id=eq.')) {
+    if (h.apikey !== 'sb_secret_test') return res(401, {});
+    const user = decodeURIComponent(u.split('user_id=eq.')[1].split('&')[0]);
+    return res(200, [...db.payouts].filter(([, x]) => x.user === user && x.status === 'sending').map(([id]) => ({ id, paypal_batch_id: `BATCH-${id}` })));
+  }
   if (u.endsWith('/rest/v1/rpc/paypal_payout_mark')) {
     if (h.apikey !== 'sb_secret_test') return res(401, {});
     const x = db.payouts.get(body.p_id);
@@ -406,8 +411,19 @@ await check('Un retiro devuelto por PayPal (no reclamado) regresa al saldo', asy
   expect(h.status === 200 && db.payouts.get('po-1').status === 'failed', JSON.stringify(db.payouts.get('po-1')));
 });
 
+await check('Si el aviso de PayPal no llega, al abrir Ingresos se le vuelve a preguntar', async () => {
+  pp.payoutStatus = 'PENDING';
+  const r = await post({ action: 'payout' });
+  expect(r.status === 200 && db.payouts.get('po-4').status === 'sending', JSON.stringify(r.data));
+  const pending = await post({ action: 'payout-check' });
+  expect(pending.status === 200 && pending.data.items[0]?.paypalStatus === 'PENDING' && db.payouts.get('po-4').status === 'sending', JSON.stringify(pending.data));
+  pp.payoutStatus = 'SUCCESS';
+  const done = await post({ action: 'payout-check' });
+  expect(done.data.items[0]?.status === 'paid' && db.payouts.get('po-4').status === 'paid', JSON.stringify(done.data));
+});
+
 await check('La service role solo se usa en llamadas del servidor', async () => {
-  const leaked = calls.filter((c) => c.h.apikey === 'sb_secret_test' && !/paypal_(register|fulfill|mark|catalog|subscription_(register|activate|payment|ended)|payout_(start|mark))/.test(c.u));
+  const leaked = calls.filter((c) => c.h.apikey === 'sb_secret_test' && !/paypal_(register|fulfill|mark|catalog|subscription_(register|activate|payment|ended)|payout_(start|mark))|\/rest\/v1\/payouts\?/.test(c.u));
   expect(leaked.length === 0, leaked.map((c) => c.u).join(', '));
 });
 

@@ -33,6 +33,16 @@ const payoutBadge: Record<Payout['status'], { label: string; chip: string; icon:
   failed: { label: 'No se pudo enviar', chip: 'bg-red-100 text-red-700', icon: 'fa-times-circle text-red-600' },
 };
 
+// What PayPal says about a withdrawal still on its way.
+const sendingNote = (state?: string) =>
+  state === 'UNCLAIMED'
+    ? 'PayPal no encontró una cuenta con ese email: el dinero espera a que se abra una (si no, vuelve a tu saldo en 30 días)'
+    : state === 'ONHOLD'
+      ? 'PayPal lo retuvo para revisarlo'
+      : state
+        ? `PayPal lo está enviando (estado en PayPal: ${state})`
+        : 'PayPal lo está enviando';
+
 // Creator dashboard > Ingresos: real balance (80% of fan payments), PayPal account and withdrawals.
 const CreatorPayouts: React.FC = () => {
   const { user } = useAuth();
@@ -177,7 +187,7 @@ const CreatorPayouts: React.FC = () => {
                       Disponías de {money(p.availableBefore)}
                       {p.fee > 0 && ` · recibes ${money(p.net)} (comisión de PayPal ${money(p.fee)})`}
                       {p.status === 'paid' && p.paidAt && ` · pagado el ${fmtDate(p.paidAt)}`}
-                      {p.status === 'sending' && ' · PayPal lo está enviando'}
+                      {p.status === 'sending' && ` · ${sendingNote(p.paypalState)}`}
                       {p.status === 'failed' && ' · el monto volvió a tu saldo'}
                     </p>
                   </div>

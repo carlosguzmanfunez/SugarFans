@@ -263,8 +263,23 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
   },
 
   async myPayouts(userId) {
-    const { data } = await sb.from('payouts').select('*').eq('user_id', userId).order('requested_at', { ascending: false });
-    return (data ?? []).map(toPayout);
+    const read = async () => {
+      const { data } = await sb.from('payouts').select('*').eq('user_id', userId).order('requested_at', { ascending: false });
+      return (data ?? []).map(toPayout);
+    };
+    const payouts = await read();
+    if (!payouts.some((p) => p.status === 'sending')) return payouts;
+    // A withdrawal on its way: ask PayPal again, in case its notification didn't arrive.
+    const token = (await sb.auth.getSession()).data.session?.access_token;
+    const r = await fetch('/api/paypal', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token ?? ''}` },
+      body: JSON.stringify({ action: 'payout-check' }),
+    }).catch(() => null);
+    const body = (await r?.json().catch(() => null)) as { items?: { id: string; paypalStatus: string }[] } | null;
+    if (!r?.ok || !body?.items?.length) return payouts;
+    const states = new Map(body.items.map((i) => [i.id, i.paypalStatus]));
+    return (await read()).map((p) => (p.status === 'sending' && states.has(p.id) ? { ...p, paypalState: states.get(p.id) } : p));
   },
 
   async requestPayout() {

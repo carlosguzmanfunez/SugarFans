@@ -225,6 +225,27 @@ const sendPayout = async (e: Env, token: string, userId: string): Promise<Respon
   return json(200, { ok: true, status, net, fee });
 };
 
+// Asks PayPal again about the creator's withdrawals still 'sending' (in case a webhook
+// never arrived) and returns PayPal's own state of each one.
+const checkPayouts = async (e: Env, token: string, userId: string): Promise<Response> => {
+  const mine = await supabase(
+    `/rest/v1/payouts?user_id=eq.${encodeURIComponent(userId)}&status=eq.sending&paypal_batch_id=not.is.null&select=id,paypal_batch_id`,
+    asServer(e.serviceKey)
+  );
+  const rows = Array.isArray(mine.data) ? (mine.data as { id: string; paypal_batch_id: string }[]) : [];
+  const items: { id: string; status: string; paypalStatus: string }[] = [];
+  for (const row of rows) {
+    const batch = await paypal(e, token, `/v1/payments/payouts/${encodeURIComponent(row.paypal_batch_id)}`);
+    const item = batch.data?.items?.[0];
+    const paypalStatus = String(item?.transaction_status ?? batch.data?.batch_header?.batch_status ?? 'UNKNOWN');
+    const status = item ? payoutStatus(paypalStatus) : 'sending';
+    await markPayout(e, row.id, status, row.paypal_batch_id, item?.payout_item_id ? String(item.payout_item_id) : null,
+      item?.errors?.name ? String(item.errors.name) : status === 'failed' ? paypalStatus : null);
+    items.push({ id: row.id, status, paypalStatus });
+  }
+  return json(200, { items });
+};
+
 // POST /api/paypal?webhook: PayPal's notifications, checked with PayPal itself.
 const webhook = async (request: Request, e: Env): Promise<Response> => {
   if (!e.webhookId) return json(503, { error: 'Falta PAYPAL_WEBHOOK_ID' });
@@ -316,6 +337,7 @@ export async function GET(): Promise<Response> {
 // POST /api/paypal {action: 'activate', subscriptionId}     → {ok: true}
 // POST /api/paypal {action: 'cancel-subscription', creatorProfileId} → {ok: true, until}
 // POST /api/paypal {action: 'payout'} → {ok: true, status, net, fee} (creator withdrawal)
+// POST /api/paypal {action: 'payout-check'} → {items: [{id, status, paypalStatus}]}
 // POST /api/paypal?webhook (from PayPal)
 export async function POST(request: Request): Promise<Response> {
   const base = env();
@@ -493,6 +515,7 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     if (body.action === 'payout') return await sendPayout(e, ppToken, userId);
+    if (body.action === 'payout-check') return await checkPayouts(e, ppToken, userId);
 
     return json(400, { error: 'Acción no válida.' });
   } catch (err) {
