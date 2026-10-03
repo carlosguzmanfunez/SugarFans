@@ -44,8 +44,9 @@ const LiveBroadcast: React.FC = () => {
     return () => clearTimeout(t);
   }, []);
 
-  // Everyone in the room but the creator.
-  const countViewers = (room: Room) => setViewers(Math.max(0, room.numParticipants - 1));
+  // Everyone in the room but the creator: the creator sees only fans; a fan sees
+  // the creator plus the other fans, and counts themselves.
+  const countViewers = (room: Room) => setViewers(room.remoteParticipants.size);
 
   const join = useCallback(async () => {
     if (!creatorId) return;
@@ -109,7 +110,8 @@ const LiveBroadcast: React.FC = () => {
       setNeedsAudio(!room.canPlaybackAudio);
       countViewers(room);
       setPhase('on');
-    } catch {
+    } catch (err) {
+      console.warn('Live: no se pudo conectar', err);
       roomRef.current = null;
       setProblem('No se pudo conectar al Live. Revisa tu conexión e inténtalo de nuevo.');
       setPhase('error');

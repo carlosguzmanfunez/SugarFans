@@ -18,6 +18,7 @@ interface Store {
 
 interface Deps {
   followers(creatorProfileId: string): string[];
+  currentUserId(): string | null;
   onChange(cb: () => void): () => void;
   notify(): void;
 }
@@ -117,8 +118,20 @@ export const createLocalLive = (deps: Deps): LiveBackend => {
       save({ ...st, notifications: { ...st.notifications, [user.id]: mine.map((n) => ({ ...n, read: true })) } });
     },
 
-    async broadcastAccess() {
-      return fail('El video del Live solo funciona en la web publicada.');
+    async broadcastAccess(creatorProfileId) {
+      // Only the LiveKit test (npm run e2e:live) builds with this flag: it serves
+      // api/live-token.ts and treats the local user id as the session token.
+      if (!import.meta.env.VITE_LIVE_LOCAL_API) return fail('El video del Live solo funciona en la web publicada.');
+      const userId = deps.currentUserId();
+      if (!userId) return fail('Inicia sesión para ver el Live.');
+      const r = await fetch('/api/live-token', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${userId}` },
+        body: JSON.stringify({ creatorProfileId }),
+      });
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok || !body.token) return fail(body.error ?? 'No se pudo conectar al Live.');
+      return { ok: true, access: { url: body.url, token: body.token, host: !!body.host } };
     },
 
     watchNotifications(_userId, cb) {

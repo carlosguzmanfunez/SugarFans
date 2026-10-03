@@ -246,6 +246,7 @@ const gifts = createLocalGifts({
 
 const live = createLocalLive({
   followers: (creatorProfileId) => readJSON<{ follows?: Record<string, string[]> }>('social', {}).follows?.[creatorProfileId] ?? [],
+  currentUserId: () => readSession(),
   onChange: (cb) => localBackend.onChange(cb),
   notify,
 });
