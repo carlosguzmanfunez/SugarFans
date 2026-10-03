@@ -200,7 +200,7 @@ Pago al Creador = Precio pagado por el fan × su parte (según 6.1.2)
 
 6.2.2. **Ejemplo**: una suscripción de $10 USD de un Creador Bronce le deja $8 USD.
 
-6.2.3. **Reembolsos y contracargos**: Cuando exista un procesador de pagos real, los reembolsos y contracargos de una venta podrán descontarse de la parte del Creador. Las reglas concretas se definirán antes del lanzamiento.
+6.2.3. **Reembolsos y contracargos**: Si una venta se reembolsa o un fan presenta un contracargo y el incumplimiento fue del Creador, su parte de esa venta se descuenta de su saldo. Si el fallo no fue suyo, no se le descuenta nada.
 
 ### 6.3. Cronograma de Pagos
 
@@ -211,10 +211,17 @@ Pago al Creador = Precio pagado por el fan × su parte (según 6.1.2)
 - Mínimo: $50 USD; si no lo alcanza, el saldo se acumula
 - Cualquier día del mes, sin aprobación previa
 - A cuenta bancaria
+- La comisión que cobre el procesador de pagos por enviar el retiro se descuenta del monto retirado (ver 6.4)
 
-### 6.4. Tarifas Adicionales
+### 6.4. Moneda y Comisiones de Pago
 
-Mientras la Plataforma está en modo de prueba no se aplican tarifas de procesamiento. Si en el futuro un procesador de pagos cobra tarifas que afecten al Creador, se informarán antes de aplicarse.
+6.4.1. **Moneda**: Todos los precios, ingresos, saldos y retiros se expresan y se pagan en dólares estadounidenses (USD).
+
+6.4.2. **Cobro a los fans**: La comisión que cobra el procesador de pagos cuando un fan paga la asume la Plataforma. La parte del Creador (6.1.2) se calcula sobre el precio completo que pagó el fan.
+
+6.4.3. **Envío de retiros**: La comisión que cobre el procesador de pagos o el banco por enviar cada retiro al Creador corre por cuenta del Creador y se descuenta del monto retirado. Cuando los pagos sean reales, el panel mostrará el monto bruto, la comisión y el monto neto antes de confirmar el retiro.
+
+6.4.4. **Modo de prueba**: Mientras la Plataforma está en modo de prueba no se realizan cargos ni envíos reales, y no se descuenta ninguna comisión.
 
 ### 6.5. Impuestos
 
@@ -557,7 +564,7 @@ Oro, Diamante y quienes cumplen una meta mensual aparecen en Creadores destacado
 | Qué | Cuándo |
 |-----|--------|
 | Acreditación | Día 1 de cada mes, por lo pagado antes de esa fecha |
-| Retiro | Cualquier día, saldo completo, desde $50 USD |
+| Retiro | Cualquier día, saldo completo, desde $50 USD; la comisión de envío del retiro se descuenta del monto |
 
 ---
 **AL REGISTRARSE COMO CREADOR, USTED RECONOCE QUE HA LEÍDO, ENTENDIDO Y ACEPTA ESTAR VINCULADO POR ESTE CONTRATO.**
