@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import CreatorPayouts from '../components/CreatorPayouts';
 import CreatorGiftsPanel from '../components/CreatorGiftsPanel';
 import CreatorRewardsPanel from '../components/CreatorRewardsPanel';
+import CreatorLivePanel from '../components/CreatorLivePanel';
 import { usePlatformQuery, platformApi, computeEarnings, iBlocked, blockUser, unblockUser, money, CREATOR_SHARE, creatorCut, transactionLabel } from '../lib/platform';
 import { WEEKDAYS, ALL_HOURS, MAX_BOOKING_MONTHS, DEFAULT_AVAILABILITY } from '../lib/vip';
 import { backend } from '../lib/backend';
@@ -178,6 +179,8 @@ const CreatorDashboard: React.FC = () => {
             {notice.text}
           </div>
         )}
+
+        {user?.creatorProfileId && <CreatorLivePanel user={user} />}
 
         {/* Tabs */}
         <div className="flex space-x-1 bg-white rounded-xl p-1 shadow-sm mb-8 overflow-x-auto">

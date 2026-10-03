@@ -24,6 +24,7 @@ const Profile = lazy(() => import('./pages/Profile'));
 const VIPExperiences = lazy(() => import('./pages/VIPExperiences'));
 const LegalPolicies = lazy(() => import('./pages/LegalPolicies'));
 const LiveRoom = lazy(() => import('./pages/LiveRoom'));
+const LiveBroadcast = lazy(() => import('./pages/LiveBroadcast'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 
@@ -131,6 +132,11 @@ const AppRoutes: React.FC = () => {
       <Route path="/live/:bookingId" element={
         <AppLayout>
           <ProtectedRoute><LiveRoom /></ProtectedRoute>
+        </AppLayout>
+      } />
+      <Route path="/en-vivo/:creatorId" element={
+        <AppLayout>
+          <ProtectedRoute><LiveBroadcast /></ProtectedRoute>
         </AppLayout>
       } />
       <Route path="/profile" element={

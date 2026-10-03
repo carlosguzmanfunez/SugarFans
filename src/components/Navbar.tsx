@@ -5,6 +5,7 @@ import { useLanguage } from '../context/LanguageContext';
 import LanguageSelector from './LanguageSelector';
 import BrandLogo from './BrandLogo';
 import Avatar from './Avatar';
+import NotificationBell from './NotificationBell';
 import { displayEmail } from '../config/demoAccounts';
 
 const Navbar: React.FC = () => {
@@ -64,6 +65,7 @@ const Navbar: React.FC = () => {
           {/* Right side */}
           <div className="flex items-center gap-2 sm:gap-3">
             <LanguageSelector />
+            {isAuthenticated && user && <NotificationBell user={user} />}
 
             {isAuthenticated ? (
               <div className="relative">
