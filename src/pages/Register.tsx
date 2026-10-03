@@ -20,7 +20,7 @@ const CREATOR_BENEFITS = [
   'Publica fotos y videos, gratis o solo para suscriptores',
   'Publica experiencias en Reserve: clases, sesiones, eventos y colaboraciones, con tus reglas',
   'Panel con suscriptores, ingresos y estadísticas',
-  'Retira desde $50 a tu cuenta bancaria; tus ingresos se acreditan el día 1',
+  'Retira desde $50 a tu cuenta PayPal; tus ingresos se acreditan el día 1',
 ];
 
 const Register: React.FC = () => {

@@ -983,7 +983,7 @@ const run = async () => {
         });
         localStorage.setItem('fansreserve_platform', JSON.stringify(data));
       }, [amount, monthsAgo]);
-    await check('Creadora demo: retira siempre el saldo completo y queda pagado al momento', async () => {
+    await check('Creadora demo: retira el saldo completo a su PayPal, con la comisión descontada', async () => {
       const before = (await readAmount(page, 'available-balance'));
       const pendingBefore = (await readAmount(page, 'pending-balance'));
       await addSale(100, 1); // credited on this month's 1st: +80
@@ -994,19 +994,23 @@ const run = async () => {
       expect(Math.abs((await readAmount(page, 'pending-balance')) - (pendingBefore + 40)) < 0.001, 'no quedó por acreditar');
       const label = `Retirar ${money(available)}`;
       await page.getByRole('button', { name: label }).click();
-      await page.getByText('Añade una cuenta bancaria para retiros').waitFor();
-      await page.getByPlaceholder('Titular de la cuenta').fill('Valentina Rose');
-      await page.getByPlaceholder('Banco').fill('Banco Dos');
-      await page.getByPlaceholder('IBAN / CLABE / número de cuenta').fill('002010077777777771');
+      await page.getByText('Añade el email de tu cuenta PayPal para retiros').waitFor();
+      await page.getByPlaceholder('Email de tu cuenta PayPal').fill('no-es-email');
       await page.getByRole('button', { name: 'Guardar cuenta' }).click();
-      await page.getByText('Banco Dos •••• 7771').waitFor();
+      await page.getByText('Escribe el email de tu cuenta PayPal').waitFor();
+      await page.getByPlaceholder('Email de tu cuenta PayPal').fill('Valentina.Rose@Example.com');
+      await page.getByRole('button', { name: 'Guardar cuenta' }).click();
+      await page.getByText('PayPal · va•••@example.com').waitFor();
+      // PayPal's fee (2%, at most $20) comes out of the withdrawal.
+      const fee = Math.min(Math.round(available * 2) / 100, 20);
+      await page.getByText(`Recibirás ${money(available - fee)} (comisión de PayPal ${money(fee)})`).waitFor();
       await page.getByRole('button', { name: label }).click();
-      await page.getByText(`Retiro pagado: ${money(available)} enviados a tu cuenta`).waitFor();
+      await page.getByText(`Retiro pagado: ${money(available - fee)} enviados a tu cuenta PayPal`).waitFor();
       await waitAmount(page, 'available-balance', '$0.00');
       const paid = page.getByTestId('payouts');
       await paid.getByText('Pagado', { exact: true }).waitFor();
-      await paid.getByText(`Retiraste ${money(available)}`).waitFor();
-      await paid.getByText(`Disponías de ${money(available)}`).waitFor();
+      await paid.getByText(`Retiraste ${money(available)} · PayPal · va•••@example.com`).waitFor();
+      await paid.getByText(`Disponías de ${money(available)} · recibes ${money(available - fee)} (comisión de PayPal ${money(fee)})`, { exact: false }).waitFor();
       await paid.locator('i.fa-check-circle.text-green-600').first().waitFor({ state: 'attached' });
       expect(Math.abs((await readAmount(page, 'pending-balance')) - (pendingBefore + 40)) < 0.001, 'se retiró lo que aún no estaba acreditado');
     });

@@ -551,7 +551,7 @@ const Settings: React.FC = () => {
                 {user.role === 'creator' && (
                   <div className="bg-white rounded-2xl shadow-sm p-6">
                     <h2 className="text-lg font-bold text-gray-900 mb-2">Cuenta para retiros</h2>
-                    <p className="text-sm text-gray-600">Tu saldo, la cuenta bancaria y los retiros se gestionan en el panel de creador.</p>
+                    <p className="text-sm text-gray-600">Tu saldo, tu cuenta PayPal y los retiros se gestionan en el panel de creador.</p>
                     <Link to="/creator/dashboard?tab=earnings" className="mt-3 inline-block bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">
                       Gestionar retiros
                     </Link>
