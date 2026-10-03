@@ -37,7 +37,7 @@ const payoutBadge: Record<Payout['status'], { label: string; chip: string; icon:
 // What PayPal says about a withdrawal still on its way.
 const sendingNote = (state?: string) =>
   state === 'UNCLAIMED'
-    ? 'PayPal no encontró una cuenta con ese email: el dinero espera a que se abra una (si no, vuelve a tu saldo en 30 días)'
+    ? 'PayPal no pudo entregarlo: no hay una cuenta con ese email o esa cuenta no puede recibir pagos (cancélalo para que vuelva a tu saldo, o vuelve solo en 30 días)'
     : state === 'ONHOLD'
       ? 'PayPal lo retuvo para revisarlo'
       : state

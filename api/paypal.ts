@@ -246,7 +246,7 @@ const checkPayouts = async (e: Env, token: string, userId: string): Promise<Resp
   return json(200, { items });
 };
 
-// Cancels a withdrawal PayPal holds as UNCLAIMED (no PayPal account has that email):
+// Cancels a withdrawal PayPal holds as UNCLAIMED (no PayPal account has that email, or it can't receive):
 // PayPal takes the money back and it returns to the creator's balance.
 const cancelPayout = async (e: Env, token: string, userId: string, payoutId: string): Promise<Response> => {
   const mine = await supabase(
@@ -260,7 +260,7 @@ const cancelPayout = async (e: Env, token: string, userId: string, payoutId: str
   if (r.status >= 300 || payoutStatus(state) !== 'failed') {
     return json(409, { error: 'PayPal ya no permite cancelar este retiro (solo se cancelan los que nadie ha recibido).' });
   }
-  await markPayout(e, row.id, 'failed', row.paypal_batch_id, row.paypal_item_id, 'Cancelado por el creador: el email no tenía cuenta PayPal');
+  await markPayout(e, row.id, 'failed', row.paypal_batch_id, row.paypal_item_id, 'Cancelado por el creador: PayPal no pudo entregarlo');
   return json(200, { ok: true });
 };
 
