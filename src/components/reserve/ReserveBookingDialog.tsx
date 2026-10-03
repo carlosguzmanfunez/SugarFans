@@ -19,7 +19,7 @@ import {
   type VipExperience,
 } from '../../lib/vip';
 import type { User } from '../../context/AuthContext';
-import { RESERVE_COPY, RESERVE_FLOW } from '../../config/reserve';
+import { RESERVE_COPY, RESERVE_FLOW, isHomeService } from '../../config/reserve';
 
 interface Props {
   exp: VipExperience;
@@ -68,7 +68,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
     if (!user) return onNeedLogin();
     if (!date) return setError('Elige un día en el calendario');
     if (!time) return setError('Elige una hora disponible');
-    const check = moderate(message, 'request');
+    const check = moderate(message, 'request', { homeAllowed: isHomeService(d.locationTypes ?? []) });
     if (!check.ok) return setError(check.error!);
     setSending(true);
     const result = await backend.createBooking(user, { experienceId: exp.id, date, time, message: message.trim(), participants });
@@ -188,7 +188,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
               maxLength={500}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Tema que te gustaría tratar, tu nivel, alguna pregunta…"
+              placeholder={(d.locationTypes ?? []).includes('fan-place') ? 'Qué te gustaría, tu nivel y, si lo quieres en tu lugar, la dirección o la zona (solo la ve el creator)' : 'Tema que te gustaría tratar, tu nivel, alguna pregunta…'}
               className="mt-1 block w-full rounded-xl border border-line px-3 py-2.5"
             />
           </label>

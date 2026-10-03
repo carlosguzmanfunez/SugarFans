@@ -89,7 +89,7 @@ Este Contrato para Creadores y Afiliados ("Contrato") constituye un acuerdo lega
 
 3.3.2. **Comunicación**: No está obligado a responder mensajes ni a aceptar solicitudes; puede rechazar, bloquear o reportar a cualquier usuario.
 
-3.3.3. **Experiencias de Reserve**: Debe cumplir las experiencias confirmadas en la fecha, hora y lugar acordados, ofrecer solo servicios con un propósito definido y respetar el Acuerdo de Creator (Reserve) y la política de Servicios Prohibidos.
+3.3.3. **Experiencias de Reserve**: Debe cumplir las experiencias confirmadas en la fecha, hora y lugar acordados, ofrecer solo servicios con un propósito definido y respetar el Acuerdo de Creator (Reserve) y la política de Servicios Prohibidos. Si no cumple, el fan recibe el reembolso completo previa verificación y ese importe no se le acredita.
 
 ### 3.4. Conducta Profesional
 
@@ -463,7 +463,7 @@ Para cambios menores o administrativos, nos reservamos el derecho de modificar s
 
 ### 14.1. Ley Aplicable
 
-[Pendiente de definir con asesoría legal: país cuya ley rige este Contrato y tribunales competentes.]
+Este Contrato se rige por las leyes del país donde esté constituida la sociedad que opera Fans Reserve [se indicará al constituirla]. Los delitos y las infracciones cometidos a través de la Plataforma quedan sujetos a las leyes y autoridades competentes del lugar donde se cometan o produzcan sus efectos, y usted responde personalmente de cumplir la ley de su jurisdicción, incluidos los permisos que exija su actividad.
 
 ### 14.2. Resolución de Disputas
 
@@ -523,7 +523,7 @@ Nada en este Contrato crea relación de sociedad, agencia, empleo o representaci
 Para preguntas sobre este Contrato:
 - **Email**: support@fansreserve.com
 - **Soporte para Creadores**: Centro de ayuda de la Plataforma
-- **Dirección postal**: [Dirección fiscal]
+- **Domicilio**: el de la sociedad operadora, que se publicará al constituirla
 
 ---
 

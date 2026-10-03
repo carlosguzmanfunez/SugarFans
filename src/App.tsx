@@ -18,7 +18,6 @@ const ReferralLink = lazy(() => import('./pages/ReferralLink'));
 const CreatorDashboard = lazy(() => import('./pages/CreatorDashboard'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const Help = lazy(() => import('./pages/Help'));
-const Policies = lazy(() => import('./pages/Policies'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Profile = lazy(() => import('./pages/Profile'));
 const VIPExperiences = lazy(() => import('./pages/VIPExperiences'));
@@ -138,9 +137,8 @@ const AppRoutes: React.FC = () => {
       <Route path="/help" element={
         <AppLayout><Help /></AppLayout>
       } />
-      <Route path="/policies" element={
-        <AppLayout><Policies /></AppLayout>
-      } />
+      {/* The old summary page: /legal holds the current documents. */}
+      <Route path="/policies" element={<Navigate to="/legal" replace />} />
       <Route path="/legal" element={
         <AppLayout><LegalPolicies /></AppLayout>
       } />

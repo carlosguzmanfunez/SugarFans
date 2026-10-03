@@ -16,6 +16,7 @@ import { vipExperiences } from '../data/mockData';
 import { CALL_MINUTES } from './giftRules';
 import {
   CANCELLATION_POLICIES,
+  HOME_SERVICE_TYPES,
   LOCATION_TYPES,
   MAX_LIST_ITEMS,
   MAX_PARTICIPANTS,
@@ -27,6 +28,7 @@ import {
   SUBSCRIBER_DISCOUNTS,
   categoryFor,
   experienceTypeById,
+  isHomeService,
   locationsFor,
   modalitiesFor,
   purposesFor,
@@ -210,6 +212,10 @@ export const validateExperience = (input: VipExperienceInput, categoryName?: str
     if (d.modality === 'virtual' ? d.locationTypes.some((l) => l !== 'online') : !d.locationTypes.length || d.locationTypes.includes('online'))
       return { ok: false, error: 'Elige una ubicación permitida para esta experiencia' };
     if (d.locationTypes.some((l) => !LOCATION_TYPES[l])) return { ok: false, error: 'Ubicación no permitida' };
+    if (isHomeService(d.locationTypes)) {
+      if (!HOME_SERVICE_TYPES.includes(type.id)) return { ok: false, error: 'Esta experiencia no se puede ofrecer a domicilio' };
+      if (d.approval !== 'manual') return { ok: false, error: 'Las experiencias a domicilio requieren tu aprobación manual' };
+    }
     if (!Number.isInteger(d.maxParticipants) || d.maxParticipants < 1 || d.maxParticipants > Math.min(MAX_PARTICIPANTS, type.maxParticipants))
       return { ok: false, error: `Máximo ${Math.min(MAX_PARTICIPANTS, type.maxParticipants)} participantes para esta experiencia` };
     if (!MIN_NOTICE_OPTIONS.includes(d.minNoticeHours)) return { ok: false, error: 'Elige la anticipación mínima' };
@@ -291,7 +297,7 @@ export const validateCustomRequest = (input: CustomRequestInput, categoryName?: 
   if (input.message.trim().length < 10) return { ok: false, error: 'Cuéntale al creator los detalles (mínimo 10 caracteres)' };
   if (input.message.length > 500 || input.purposeNote.length > 80 || input.venue.length > 80 || input.city.length > 60)
     return { ok: false, error: 'El texto es demasiado largo' };
-  const check = moderate([input.purposeNote, input.city, input.venue, input.message], 'request');
+  const check = moderate([input.purposeNote, input.city, input.venue, input.message], 'request', { homeAllowed: allowed.some((l) => isHomeService([l])) });
   if (!check.ok) return { ok: false, error: check.error };
   return { ok: true, flags: check.flags.filter((f) => f.severity === 'review').map((f) => f.rule) };
 };

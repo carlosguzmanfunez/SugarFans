@@ -145,7 +145,16 @@ const hasPhone = (raw: string) => (raw.match(/\+?\d[\d\s().-]{7,}\d/g) ?? []).so
 
 // Checks one or more texts. `context` lets later layers weigh the same flag
 // differently (an experience description vs. a fan's request).
-export const moderate = (texts: string | Array<string | undefined | null>, context: ModerationContext = 'request'): ModerationResult => {
+// homeAllowed: the creator offers home services (Cocina, Fitness). Free text
+// like "en mi casa" stays blocked everywhere (the server repeats it); the
+// address type is chosen as "Lugar que propone el fan", so the message says that.
+const HOME_HINT = 'Para un servicio a domicilio elige "Lugar que propone el fan" como lugar y escribe la dirección o la zona sin frases como "mi casa"; solo la ve el creator de esta reserva.';
+
+export const moderate = (
+  texts: string | Array<string | undefined | null>,
+  context: ModerationContext = 'request',
+  opts: { homeAllowed?: boolean } = {},
+): ModerationResult => {
   const list = (Array.isArray(texts) ? texts : [texts]).filter((x): x is string => !!x && !!x.trim());
   const raw = list.join(' \n ');
   const text = stripNegations(normalizeText(raw));
@@ -153,7 +162,7 @@ export const moderate = (texts: string | Array<string | undefined | null>, conte
   for (const rule of MODERATION_RULES) {
     if (rule.contexts && !rule.contexts.includes(context)) continue;
     const hit = rule.id === 'contact-details' ? EMAIL.test(raw) || hasPhone(raw) : rule.test(text);
-    if (hit) flags.push({ rule: rule.id, severity: rule.severity, message: rule.message });
+    if (hit) flags.push({ rule: rule.id, severity: rule.severity, message: rule.id === 'private-location' && opts.homeAllowed ? HOME_HINT : rule.message });
   }
   // A blocking rule already explains the problem; drop the softer duplicates.
   const blocked = flags.filter((f) => f.severity === 'block');

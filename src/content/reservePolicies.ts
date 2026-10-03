@@ -90,7 +90,11 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
       },
       {
         heading: 'Experiencias presenciales',
-        paragraphs: ['Solo ocurren en venues, estudios, gimnasios, salones, espacios culinarios o artísticos, eventos y lugares públicos o comerciales. Nunca en:'],
+        paragraphs: [
+          'Ocurren en venues, estudios, gimnasios, salones, espacios culinarios o artísticos, eventos y lugares públicos o comerciales.',
+          'Los servicios profesionales de Cocina y Fitness (clase de cocina, catering, degustación, experiencia gastronómica, entrenamiento 1:1) también pueden darse en el lugar del creator (su restaurante, local, estudio o casa) o en el lugar que proponga el fan. Esas reservas siempre las aprueba el creator a mano, y el creator puede rechazar cualquier lugar.',
+          'Nunca en:',
+        ],
         bullets: PROHIBITED_LOCATIONS.map((l) => l.label),
       },
     ],
@@ -105,8 +109,8 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
       {
         heading: 'Por categoría',
         bullets: [
-          'Cocina: clases de cocina, asesoría culinaria, degustaciones y experiencias gastronómicas en restaurante o cocina profesional, y catering para eventos.',
-          'Fitness: entrenamiento 1:1 online o en gimnasio, coaching, rutinas personalizadas, evaluaciones y clínicas.',
+          'Cocina: clases de cocina, asesoría culinaria, degustaciones y experiencias gastronómicas en restaurante, cocina profesional, el lugar del creator o el del fan, y catering para eventos.',
+          'Fitness: entrenamiento 1:1 online, en gimnasio o a domicilio, coaching, rutinas personalizadas, evaluaciones y clínicas.',
           'Música: clases, escuchas y revisiones de demos, sesiones de estudio, talleres y apariciones en eventos.',
           'Gaming: partidas privadas, coaching, sesiones de juego, torneos, eventos y meet & greet.',
           'Arte & Creatividad: clases, revisiones de portafolio, mentorías, sesiones creativas y talleres.',
@@ -161,16 +165,24 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
         paragraphs: ['El fan puede cancelar una solicitud pendiente, aceptada o con contraoferta sin coste. El creator puede rechazarla.'],
       },
       {
-        heading: 'No-show',
+        heading: 'Reembolsos e incumplimientos',
         bullets: [
-          'Si el creator no se presenta, el fan tiene derecho a reembolso completo.',
-          'Si el fan no se presenta, se aplica la política de cancelación de la experiencia.',
-          'Cualquiera de las partes puede abrir una revisión desde Mis reservas con "Reportar".',
+          'El creator no se presenta, llega más de 15 minutos tarde, cambia por su cuenta la fecha, la hora o el lugar, o la experiencia no corresponde a lo publicado: el fan recibe el reembolso completo, previa verificación.',
+          'Live 1:1 y videollamadas: si el creator no entra a la sala en los primeros 10 minutos, o la sesión no se puede dar por un fallo de su lado, el fan recibe el reembolso completo.',
+          'El fan es responsable de cumplir lo que el creator publicó: fecha, hora, lugar, requisitos y condiciones. Si no se presenta, llega tarde o no cumple los requisitos, se aplica la política de cancelación de la experiencia y el tiempo perdido no se repone.',
+          'Para pedir el reembolso, el fan abre una revisión con "Reportar" en Mis reservas dentro de las 48 horas siguientes a la hora programada. El equipo revisa la reserva y lo que aporten ambas partes y resuelve en un máximo de 7 días.',
+        ],
+      },
+      {
+        heading: 'Créditos, regalos y contracargos',
+        bullets: [
+          'Los Créditos y los regalos no son reembolsables, salvo cobro duplicado, error técnico o cuando la ley lo exija.',
+          'Si un fan abre un contracargo con su banco por una experiencia que sí se dio, la cuenta puede suspenderse mientras se revisa. El reembolso solo se descuenta al creator cuando el incumplimiento fue suyo.',
         ],
       },
       {
         heading: 'Modo de prueba',
-        paragraphs: ['Mientras no haya un procesador de pagos real, no se realizan cargos ni reembolsos reales; los importes son de prueba.'],
+        paragraphs: ['Mientras no haya un procesador de pagos real, no se realizan cargos ni reembolsos reales; los importes son de prueba y las revisiones se resuelven a mano.'],
       },
     ],
   },
@@ -191,7 +203,8 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
       {
         heading: 'Seguridad',
         bullets: [
-          'Las experiencias presenciales se hacen en lugares públicos o profesionales, nunca en domicilios u hoteles.',
+          'Las experiencias presenciales se hacen en lugares públicos o profesionales; a domicilio solo los servicios profesionales de Cocina y Fitness aprobados por el creator. Nunca en hoteles ni lugares discretos.',
+          'Las videollamadas y los Lives no se graban. Está prohibido grabarlos o capturarlos por cualquier medio: el video muestra el nombre de quien lo ve y una copia filtrada identifica a su autor.',
           'Mantén la comunicación y los pagos dentro de Fans Reserve.',
           'Reporta cualquier conducta que te haga sentir inseguro.',
         ],

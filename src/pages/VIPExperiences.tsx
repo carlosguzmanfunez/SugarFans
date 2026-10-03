@@ -132,7 +132,7 @@ const ReservePage: React.FC = () => {
               <span>{PROFESSIONAL_SERVICES_ALLOWED}</span>
             </p>
             <p className="mt-4 text-xs text-ink/60">
-              Las experiencias presenciales solo ocurren en venues, estudios, eventos y lugares públicos o profesionales. Lee la{' '}
+              Las experiencias presenciales ocurren en venues, estudios, eventos y lugares públicos o profesionales; a domicilio solo servicios profesionales de Cocina y Fitness. Lee la{' '}
               <Link to="/legal?doc=reserve-policy" className="font-semibold text-ink underline">Política de Reserve</Link>.
             </p>
           </div>

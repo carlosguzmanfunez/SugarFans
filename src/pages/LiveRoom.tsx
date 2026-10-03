@@ -4,6 +4,7 @@ import GiftDialog from '../components/GiftDialog';
 import GiftCelebration from '../components/GiftCelebration';
 import { giftById, type Gift } from '../lib/gifts';
 import { useAuth } from '../context/AuthContext';
+import ViewerWatermark, { noCaptureVideoProps } from '../components/ViewerWatermark';
 import { backend } from '../lib/backend';
 import { sessionMinutes, formatLongDate, liveState, liveWindow, type VipBooking } from '../lib/vip';
 import type { LiveChannel, LiveMessage, LiveSignal } from '../lib/social';
@@ -317,7 +318,8 @@ const LiveRoom: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2">
             <div className="relative aspect-video bg-black rounded-2xl overflow-hidden">
-              <video ref={remoteVideo} autoPlay playsInline data-testid="remote-video" className="w-full h-full object-cover" />
+              <video ref={remoteVideo} autoPlay playsInline {...noCaptureVideoProps} data-testid="remote-video" className="w-full h-full object-cover" />
+              {connected && user && <ViewerWatermark name={user.name} userId={user.id} />}
               {!connected && (
                 <div className="absolute inset-0 flex items-center justify-center text-center p-6">
                   <div>

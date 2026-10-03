@@ -94,14 +94,14 @@ Los servicios profesionales con propósito definido sí se permiten, también 1:
 - Vender compañía o tiempo personal ("pasar tiempo conmigo") sin un servicio definido.
 - Cita romántica o "date" remunerada.
 - Compensated dating.
-- Hotel o residencia privada como lugar de la experiencia.
+- Hotel, habitación o lugar discreto como lugar de la experiencia.
 - Escort o acompañamiento.
 - Cualquier actividad sexual.
 - Lives sexuales o sexting remunerado.
 
 Tampoco se permiten:
 
-- lugares: domicilios, habitaciones de hotel, cuartos privados ni vehículos;
+- lugares: habitaciones de hotel, cuartos privados ni vehículos; domicilios solo para servicios profesionales de Cocina y Fitness (lugar del creator o lugar que propone el fan, aprobación manual, decisión de Carlos 2026-10-03);
 - contacto o pagos fuera de la plataforma.
 
 **Cómo se aplica.** La moderación está en `src/lib/moderation.ts` (cliente) y en `reserve_text_blocked` (servidor):
@@ -142,7 +142,7 @@ Se reutilizan los estados de `vip_bookings`; los nuevos se añadieron a su `chec
 
 **Ya implementado:**
 
-- Las experiencias presenciales solo se hacen en venues y lugares públicos o profesionales.
+- Las experiencias presenciales se hacen en venues y lugares públicos o profesionales; a domicilio solo los servicios profesionales de Cocina y Fitness.
 - Requisito opcional de fan verificado.
 - Anticipación mínima.
 - Aprobación manual para los tipos sensibles.

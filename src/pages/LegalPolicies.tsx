@@ -95,7 +95,7 @@ const LegalPolicies: React.FC = () => {
                     </ul>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">6. Reserve</h3>
-                    <p>{BRAND.name} permite reservar experiencias, no personas. Los servicios profesionales con un propósito definido están permitidos; vender la compañía o la intimidad de una persona no. Las reservas se rigen por la <a href="/legal?doc=reserve-policy" className="underline">Política de Reserve</a> y la de <a href="/legal?doc=cancellation" className="underline">Cancelación y No-show</a>.</p>
+                    <p>{BRAND.name} permite reservar experiencias, no personas. Los servicios profesionales con un propósito definido están permitidos; vender la compañía o la intimidad de una persona no. Si el creator no cumple lo publicado, el fan recibe el reembolso completo, previa verificación. Las videollamadas y los Lives no se graban y está prohibido grabarlos. Las reservas se rigen por la <a href="/legal?doc=reserve-policy" className="underline">Política de Reserve</a> y la de <a href="/legal?doc=cancellation" className="underline">Cancelación y No-show</a>.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">7. Pagos y Comisiones</h3>
                     <p>Métodos de pago: tarjetas Visa y Mastercard, PayPal y Google Pay. Los Creadores reciben del 80% al 90% de suscripciones y propinas según su nivel y sus recompensas, el 80% de las reservas de Reserve y el 60% de los regalos; la Plataforma conserva siempre al menos el 10%. Los ingresos se acreditan el día 1 de cada mes y se retiran a cuenta bancaria desde $50 USD.</p>
@@ -110,7 +110,7 @@ const LegalPolicies: React.FC = () => {
                     <p>Puede cerrar su cuenta en cualquier momento desde Configuración. Podemos suspender cuentas que violen estos Términos.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">11. Ley Aplicable</h3>
-                    <p>Pendiente de definir con asesoría legal (país y tribunales competentes).</p>
+                    <p>Las leyes del país donde esté constituida la sociedad que opera {BRAND.name}, sin perjuicio de los derechos irrenunciables del consumidor en su país. Los delitos e infracciones cometidos a través de la Plataforma se someten a las leyes y autoridades del lugar donde se cometan, y cooperamos con ellas.</p>
 
                     <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-xl">
                       <p className="text-sm text-blue-800">

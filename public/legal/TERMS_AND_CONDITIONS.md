@@ -2,7 +2,7 @@
 
 **Última actualización:** Octubre 2026 (borrador)  
 **Versión:** 1.1.0  
-**Jurisdicción aplicable:** [Pendiente de definir con asesoría legal]
+**Jurisdicción aplicable:** Ver sección 13
 
 > **Borrador.** Requires legal review before production launch. Requiere revisión legal antes del lanzamiento a producción. La Plataforma está en modo de prueba: los pagos son simulados.
 
@@ -152,13 +152,15 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 - El fan envía una solicitud; el Creador la acepta, la rechaza o hace una contraoferta
 - El pago se realiza solo después de la aceptación
 - Cada experiencia tiene su política de cancelación (ver Cancelación y No-show)
-- Las experiencias presenciales solo ocurren en venues, estudios, eventos y lugares públicos o profesionales, nunca en domicilios, hoteles ni lugares privados
+- Si el creator no cumple (no se presenta, llega más de 15 minutos tarde, cambia por su cuenta fecha, hora o lugar, o la experiencia no corresponde a lo publicado; en Live 1:1, si no entra a la sala en los primeros 10 minutos), el fan recibe el reembolso completo, previa verificación
+- El fan es responsable de cumplir lo publicado por el creator; si no lo hace, se aplica la política de cancelación
+- Las experiencias presenciales ocurren en venues, estudios, eventos y lugares públicos o profesionales. Los servicios profesionales de Cocina y Fitness también pueden darse en el lugar del creator o en el que proponga el fan, siempre con aprobación manual del creator. Nunca en hoteles ni lugares discretos
 
 5.3. **Conducta Esperada**:
 - Los Fans deben tratar a los Creadores con respeto; un Creador puede rechazar cualquier solicitud
 - Los Creadores deben cumplir con las experiencias confirmadas
 - Está prohibido el acoso, amenazas o comportamiento abusivo
-- Las grabaciones no autorizadas de sesiones están prohibidas
+- La Plataforma no graba videollamadas ni Lives, y está prohibido grabarlos o capturarlos por cualquier medio. El video muestra el nombre de quien lo ve para identificar copias; grabar supone el cierre de la cuenta y puede tener consecuencias legales
 - La comunicación y los pagos se mantienen dentro de la Plataforma
 
 5.4. **Suscripciones y regalos no incluyen Reserve**: La suscripción da acceso al contenido; los regalos son apoyo voluntario y no desbloquean nada. Ninguno incluye experiencias de Reserve.
@@ -180,6 +182,7 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 6.3. **Créditos y Regalos**:
 - Los Créditos se compran en paquetes y solo sirven para enviar regalos dentro de la Plataforma
 - Un regalo es apoyo voluntario: no da acceso, contenido, videollamadas ni experiencias, y no garantiza respuesta
+- Los Créditos y los regalos no son reembolsables, salvo cobro duplicado, error técnico o cuando la ley lo exija
 
 6.4. **Propinas**:
 - Pagos voluntarios a Creadores
@@ -293,7 +296,11 @@ Usted acepta indemnizar, defender y eximir de responsabilidad a Fans Reserve, su
 
 ## 13. LEY APLICABLE Y JURISDICCIÓN
 
-13.1. **Ley Aplicable**: [Pendiente de definir con asesoría legal: país cuya ley rige estos Términos y tribunales competentes.]
+13.1. **Ley Aplicable**: Estos Términos se rigen por las leyes del país donde esté constituida la sociedad que opera Fans Reserve [se indicará al constituirla], sin perjuicio de los derechos que la ley de protección al consumidor del país de residencia del Usuario le reconozca y que no puedan renunciarse.
+
+13.1.1. **Delitos e infracciones**: Los delitos y las infracciones cometidos a través de la Plataforma, incluidos los descritos en las secciones de Contenido Prohibido, Reserve, Servicios Prohibidos y Protección de Menores, quedan sujetos a las leyes y a las autoridades competentes del lugar donde se cometan o produzcan sus efectos. Cada Usuario responde personalmente de cumplir la ley de su jurisdicción, y Fans Reserve cooperará con las autoridades que lo requieran.
+
+13.1.2. **Tribunales**: Los tribunales del domicilio de la sociedad operadora, salvo que la ley permita al Usuario consumidor acudir a los de su propio domicilio.
 
 13.2. **Resolución de Disputas**: 
 - Primero intentaremos resolver disputas mediante negociación
@@ -322,8 +329,7 @@ Usted acepta indemnizar, defender y eximir de responsabilidad a Fans Reserve, su
 
 Para preguntas sobre estos Términos:
 - **Email**: legal@fansreserve.com
-- **Dirección postal**: [Dirección fiscal de la empresa]
-- **Teléfono**: [Número de contacto]
+- **Domicilio**: el de la sociedad operadora, que se publicará al constituirla
 
 ---
 

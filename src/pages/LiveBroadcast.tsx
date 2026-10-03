@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Room, RoomEvent, Track, VideoPresets, type RemoteParticipant, type RemoteTrack } from 'livekit-client';
 import { useAuth } from '../context/AuthContext';
+import ViewerWatermark, { noCaptureVideoProps } from '../components/ViewerWatermark';
 import { liveApi, endLive, useCurrentLive } from '../lib/live';
 
 interface ChatLine {
@@ -225,6 +226,7 @@ const LiveBroadcast: React.FC = () => {
                 autoPlay
                 playsInline
                 muted={host}
+                {...(host ? {} : noCaptureVideoProps)}
                 onLoadedMetadata={readRatio}
                 onResize={readRatio}
                 className={`w-full h-full object-contain ${host ? '-scale-x-100' : ''} ${hasVideo ? '' : 'hidden'}`}
@@ -234,6 +236,7 @@ const LiveBroadcast: React.FC = () => {
                   <i aria-hidden="true" className="fas fa-expand"></i>
                 </button>
               )}
+              {hasVideo && !host && user && <ViewerWatermark name={user.name} userId={user.id} />}
               <div ref={audioBox} className="hidden" />
               {!hasVideo && (
                 <div className="absolute inset-0 flex items-center justify-center text-center p-6">

@@ -514,9 +514,9 @@ Cualquier violación de esta Política será tratada con la máxima severidad y 
 
 **Email:** legal@fansreserve.com
 
-### 16.3. Oficial de Protección de Menores
+### 16.3. Responsable de Seguridad Infantil
 
-[Pendiente de designar antes del lanzamiento.]
+El Equipo de Seguridad de Fans Reserve recibe y prioriza los reportes sobre menores, retira el contenido, preserva la evidencia y es el contacto con las autoridades. Escríbale a minors@fansreserve.com.
 
 ---
 

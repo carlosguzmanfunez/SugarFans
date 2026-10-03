@@ -476,18 +476,12 @@ const CreatorProfile: React.FC = () => {
                 <i aria-hidden="true" className="fas fa-map-marker-alt text-pink-500 w-5"></i>
                 <span>Latinoamérica</span>
               </div>
-              <div className="flex items-center space-x-3">
-                <i aria-hidden="true" className="fas fa-calendar text-pink-500 w-5"></i>
-                <span>Miembro desde Enero 2024</span>
-              </div>
-              <div className="flex items-center space-x-3">
-                <i aria-hidden="true" className="fas fa-shield-alt text-pink-500 w-5"></i>
-                <span>Identidad verificada</span>
-              </div>
-              <div className="flex items-center space-x-3">
-                <i aria-hidden="true" className="fas fa-clock text-pink-500 w-5"></i>
-                <span>Publica contenido nuevo cada semana</span>
-              </div>
+              {creator.isVerified && (
+                <div className="flex items-center space-x-3">
+                  <i aria-hidden="true" className="fas fa-shield-alt text-pink-500 w-5"></i>
+                  <span>Identidad verificada</span>
+                </div>
+              )}
             </div>
             <hr className="my-6" />
             <div className="flex space-x-4">

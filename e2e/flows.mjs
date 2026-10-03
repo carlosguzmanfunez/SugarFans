@@ -1770,6 +1770,12 @@ const run = async () => {
       expect(glamour.includes('photo-session') && !fitness.includes('photo-session'), 'sesión de fotos mal asignada');
       expect(R.locationsFor(R.categoryFor('Fitness'), R.experienceTypeById('training-1-1'), 'presencial').includes('gym'), 'fitness sin gimnasio');
       expect(!R.locationsFor(R.categoryFor('Modelos'), null, 'presencial').includes('restaurant'), 'glamour permite restaurantes');
+      expect(R.locationsFor(R.categoryFor('Cocina'), R.experienceTypeById('cooking-class'), 'presencial').includes('fan-place'), 'cocina sin domicilio');
+      expect(!R.locationsFor(R.categoryFor('Modelos'), null, 'presencial').some((l) => R.HOME_SERVICE_LOCATIONS.includes(l)), 'Modelos permite domicilio');
+      const home = { title: 'Clase de cocina en tu casa', description: 'Cocinamos pasta fresca.', type: 'cooking-class', price: 80, durationMinutes: 90, image: '', active: true };
+      const hd = { ...R.defaultDetails(), modality: 'presencial', locationTypes: ['fan-place'], city: 'CDMX', approval: 'manual' };
+      expect(R.validateExperience({ ...home, details: hd }, 'Cocina').ok, 'rechaza cocina a domicilio');
+      expect(!R.validateExperience({ ...home, details: { ...hd, approval: 'automatic' } }, 'Cocina').ok, 'acepta domicilio con aprobación automática');
     });
     await check('Una experiencia necesita estar definida y moderada para publicarse', async () => {
       const base = { title: 'Sesión de fotos', description: 'Sesión profesional en estudio.', type: 'photo-session', price: 120, durationMinutes: 60, image: '', active: true };

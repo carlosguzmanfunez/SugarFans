@@ -18,15 +18,18 @@ export type ReserveModality = 'virtual' | 'presencial' | 'evento' | 'profesional
 
 export const RESERVE_MODALITIES: Record<ReserveModality, { label: string; icon: string; description: string }> = {
   virtual: { label: 'Virtual', icon: 'fa-video', description: 'En la sala privada de Fans Reserve o como contenido entregado en la app.' },
-  presencial: { label: 'Presencial', icon: 'fa-location-dot', description: 'En un venue, estudio o lugar público definido de antemano.' },
+  presencial: { label: 'Presencial', icon: 'fa-location-dot', description: 'En un venue, estudio o lugar público definido de antemano, o a domicilio en servicios de Cocina y Fitness.' },
   evento: { label: 'Evento', icon: 'fa-calendar-check', description: 'Convenciones, apariciones, firmas y eventos con público.' },
   profesional: { label: 'Profesional', icon: 'fa-briefcase', description: 'Colaboraciones, producciones y servicios profesionales.' },
 };
 export const MODALITY_IDS = Object.keys(RESERVE_MODALITIES) as ReserveModality[];
 
 // --- Venue types ----------------------------------------------------------------
-// Only establishments, venues, studios and public places. Private homes, hotel
-// rooms and private or "discreet" places are never offered (PROHIBITED_LOCATIONS).
+// Establishments, venues, studios and public places. Hotel rooms and private or
+// "discreet" places are never offered (PROHIBITED_LOCATIONS). The only private
+// addresses are HOME_SERVICE_LOCATIONS: professional services (Cocina, Fitness)
+// at the creator's own place or at the place the fan proposes, always approved
+// by hand (Carlos, 2026-10-03).
 
 export type LocationType =
   | 'online'
@@ -40,7 +43,9 @@ export type LocationType =
   | 'culinary-space'
   | 'art-space'
   | 'gaming-venue'
-  | 'commercial-space';
+  | 'commercial-space'
+  | 'creator-place'
+  | 'fan-place';
 
 export const LOCATION_TYPES: Record<LocationType, { label: string; icon: string; hint: string }> = {
   online: { label: 'Sala online de Fans Reserve', icon: 'fa-video', hint: 'Videollamada privada dentro de la app' },
@@ -55,15 +60,21 @@ export const LOCATION_TYPES: Record<LocationType, { label: string; icon: string;
   'art-space': { label: 'Taller, galería o espacio creativo', icon: 'fa-palette', hint: 'Espacio artístico abierto' },
   'gaming-venue': { label: 'Gaming center o torneo', icon: 'fa-gamepad', hint: 'Local o evento de gaming' },
   'commercial-space': { label: 'Espacio comercial o tienda', icon: 'fa-store', hint: 'Tienda, showroom o marca' },
+  'creator-place': { label: 'Lugar del creator', icon: 'fa-house-flag', hint: 'Su restaurante, local, estudio o casa, donde presta el servicio' },
+  'fan-place': { label: 'Lugar que propone el fan', icon: 'fa-map-pin', hint: 'Domicilio, oficina o evento del fan; el creator lo acepta o no' },
 };
 export const LOCATION_IDS = Object.keys(LOCATION_TYPES) as LocationType[];
 export const IN_PERSON_LOCATIONS = LOCATION_IDS.filter((l) => l !== 'online');
 
+// Private addresses, only for professional services of these experience types
+// (and the categories that list them). Experiences using them need manual approval.
+export const HOME_SERVICE_LOCATIONS: LocationType[] = ['creator-place', 'fan-place'];
+export const HOME_SERVICE_TYPES = ['cooking-class', 'catering', 'tasting', 'gastronomic-experience', 'training-1-1'];
+export const isHomeService = (locations: readonly string[]) => locations.some((l) => (HOME_SERVICE_LOCATIONS as string[]).includes(l));
+
 // Never offered as an option, rejected by validation and by the server.
-// Some legitimate trades (e.g. catering) may need private addresses in a future
-// phase: that would be a new, reviewed venue type for those experiences only.
 export const PROHIBITED_LOCATIONS = [
-  { id: 'private-residence', label: 'Residencia privada ("mi casa", "tu casa")' },
+  { id: 'private-residence', label: 'Domicilio privado como lugar de una experiencia, salvo servicios profesionales de Cocina y Fitness' },
   { id: 'hotel-room', label: 'Hotel o habitación de hotel como experiencia' },
   { id: 'private-room', label: 'Habitación o "lugar privado/discreto"' },
   { id: 'vehicle', label: 'Vehículo particular' },
@@ -123,14 +134,14 @@ export const RESERVE_EXPERIENCE_TYPES: ReserveExperienceType[] = [
   t({ id: 'photo-session', name: 'Sesión fotográfica profesional', icon: 'fa-camera', description: 'Sesión de fotos en estudio, con fines editoriales o de marca.', modalities: ['profesional'], locations: ['studio'], minutes: [30, 180], defaultMinutes: 60, maxParticipants: 3, alwaysManual: true }),
 
   // Cooking
-  t({ id: 'cooking-class', name: 'Clase de cocina', icon: 'fa-utensils', description: 'Cocinan juntos una receta paso a paso.', modalities: ['virtual', 'presencial'], locations: ['culinary-space', 'restaurant'], minutes: [30, 180], defaultMinutes: 90, maxParticipants: 6 }),
+  t({ id: 'cooking-class', name: 'Clase de cocina', icon: 'fa-utensils', description: 'Cocinan juntos una receta paso a paso.', modalities: ['virtual', 'presencial'], locations: ['culinary-space', 'restaurant', 'creator-place', 'fan-place'], minutes: [30, 180], defaultMinutes: 90, maxParticipants: 6 }),
   t({ id: 'culinary-consulting', name: 'Asesoría culinaria', icon: 'fa-clipboard-list', description: 'Menú, técnica o negocio gastronómico.', modalities: ['virtual'], locations: [], minutes: [20, 90], defaultMinutes: 45, maxParticipants: 2 }),
-  t({ id: 'catering', name: 'Catering', icon: 'fa-bowl-food', description: 'Servicio de cocina para tu evento.', modalities: ['profesional'], locations: ['event-venue', 'commercial-space', 'restaurant'], minutes: [60, 180], defaultMinutes: 180, maxParticipants: 50, alwaysManual: true }),
-  t({ id: 'tasting', name: 'Degustación', icon: 'fa-wine-glass', description: 'Degustación guiada de platos o productos.', modalities: ['presencial', 'evento'], locations: ['restaurant', 'culinary-space', 'event-venue'], minutes: [30, 180], defaultMinutes: 90, maxParticipants: 12 }),
-  t({ id: 'gastronomic-experience', name: 'Experiencia gastronómica', icon: 'fa-kitchen-set', description: 'Menú o experiencia culinaria diseñada por el creator.', modalities: ['presencial'], locations: ['restaurant', 'culinary-space'], minutes: [60, 180], defaultMinutes: 120, maxParticipants: 12 }),
+  t({ id: 'catering', name: 'Catering', icon: 'fa-bowl-food', description: 'Servicio de cocina para tu evento.', modalities: ['profesional'], locations: ['event-venue', 'commercial-space', 'restaurant', 'creator-place', 'fan-place'], minutes: [60, 180], defaultMinutes: 180, maxParticipants: 50, alwaysManual: true }),
+  t({ id: 'tasting', name: 'Degustación', icon: 'fa-wine-glass', description: 'Degustación guiada de platos o productos.', modalities: ['presencial', 'evento'], locations: ['restaurant', 'culinary-space', 'event-venue', 'creator-place', 'fan-place'], minutes: [30, 180], defaultMinutes: 90, maxParticipants: 12 }),
+  t({ id: 'gastronomic-experience', name: 'Experiencia gastronómica', icon: 'fa-kitchen-set', description: 'Menú o experiencia culinaria diseñada por el creator.', modalities: ['presencial'], locations: ['restaurant', 'culinary-space', 'creator-place', 'fan-place'], minutes: [60, 180], defaultMinutes: 120, maxParticipants: 12 }),
 
   // Fitness
-  t({ id: 'training-1-1', name: 'Entrenamiento 1:1', icon: 'fa-dumbbell', description: 'Entrenamiento guiado, online o en gimnasio.', modalities: ['virtual', 'presencial'], locations: ['gym'], minutes: [30, 120], defaultMinutes: 60, maxParticipants: 2 }),
+  t({ id: 'training-1-1', name: 'Entrenamiento 1:1', icon: 'fa-dumbbell', description: 'Entrenamiento guiado, online, en gimnasio o a domicilio.', modalities: ['virtual', 'presencial'], locations: ['gym', 'creator-place', 'fan-place'], minutes: [30, 120], defaultMinutes: 60, maxParticipants: 2 }),
   t({ id: 'custom-routine', name: 'Rutina personalizada', icon: 'fa-clipboard-check', description: 'Plan de entrenamiento hecho para tus objetivos.', modalities: ['virtual'], locations: [], minutes: null, maxParticipants: 1 }),
   t({ id: 'assessment', name: 'Evaluación', icon: 'fa-heart-pulse', description: 'Evaluación de técnica, nivel y objetivos.', modalities: ['virtual'], locations: [], minutes: [20, 60], defaultMinutes: 30, maxParticipants: 1 }),
   t({ id: 'clinic', name: 'Clínica', icon: 'fa-medal', description: 'Clínica técnica en grupo.', modalities: ['presencial', 'evento'], locations: ['gym', 'event-venue'], minutes: [60, 180], defaultMinutes: 120, maxParticipants: 30 }),
@@ -172,7 +183,7 @@ export const PROHIBITED_EXPERIENCES = [
   'Vender compañía o tiempo personal ("pasar tiempo conmigo") sin un servicio definido',
   'Cita romántica o "date" remunerada',
   'Compensated dating',
-  'Hotel o residencia privada como lugar de la experiencia',
+  'Hotel, habitación o lugar "discreto" como lugar de la experiencia (a domicilio solo servicios profesionales de Cocina y Fitness)',
   'Servicios de escort o acompañamiento',
   'Cualquier actividad sexual, virtual o presencial',
   'Lives sexuales o sexting remunerado',
@@ -282,7 +293,7 @@ export const CREATOR_CATEGORIES: CreatorCategory[] = [
     aliases: [],
     experiences: ['coaching', 'custom-routine', 'assessment', 'training-1-1', 'qa-session', 'clinic', 'workshop', 'event', 'meet-greet'],
     modalities: ['virtual', 'presencial', 'evento'],
-    locations: ['gym', 'event-venue', 'public-place'],
+    locations: ['gym', 'event-venue', 'public-place', 'creator-place', 'fan-place'],
     customPurposes: ['coaching', 'class', 'session', 'workshop', 'event', 'other'],
   },
   {
@@ -295,7 +306,7 @@ export const CREATOR_CATEGORIES: CreatorCategory[] = [
     aliases: [],
     experiences: ['cooking-class', 'culinary-consulting', 'qa-session', 'live-1-1', 'catering', 'tasting', 'gastronomic-experience', 'event', 'workshop'],
     modalities: ['virtual', 'presencial', 'evento', 'profesional'],
-    locations: ['culinary-space', 'restaurant', 'event-venue', 'commercial-space'],
+    locations: ['culinary-space', 'restaurant', 'event-venue', 'commercial-space', 'creator-place', 'fan-place'],
     customPurposes: ['class', 'consulting', 'workshop', 'event', 'collaboration', 'other'],
   },
   {

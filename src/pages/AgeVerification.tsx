@@ -87,9 +87,9 @@ const AgeVerification: React.FC = () => {
 
         <p className="text-xs text-gray-500 text-center mt-6">
           {t('age.terms')}{' '}
-          <a href="/policies" className="text-pink-600 hover:underline">{t('age.termsLink')}</a>{' '}
+          <a href="/legal?doc=terms" className="text-pink-600 hover:underline">{t('age.termsLink')}</a>{' '}
           {t('age.and')}{' '}
-          <a href="/policies" className="text-pink-600 hover:underline">{t('age.privacyLink')}</a>
+          <a href="/legal?doc=privacy" className="text-pink-600 hover:underline">{t('age.privacyLink')}</a>
         </p>
       </div>
       </div>

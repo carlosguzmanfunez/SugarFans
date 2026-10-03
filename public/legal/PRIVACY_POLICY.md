@@ -64,7 +64,7 @@ Recopilamos automáticamente información sobre su uso de la Plataforma:
 
 ### 1.4. Video en vivo
 
-Las videollamadas y los Lives se transmiten en tiempo real a través de nuestro proveedor de video. [Pendiente de confirmar en la revisión legal: si se graban y durante cuánto tiempo se conservan; hoy la Plataforma no ofrece grabación.]
+Las videollamadas y los Lives se transmiten en tiempo real a través de nuestro proveedor de video y **no se graban ni se guardan**. Sobre el video se muestra el nombre y un código de la cuenta de quien lo ve, para disuadir grabaciones.
 
 ### 1.5. Almacenamiento en el navegador
 
@@ -263,7 +263,7 @@ Para ejercer cualquier derecho:
 
 **Email:** privacy@fansreserve.com  
 **En la Plataforma:** Configuración > Privacidad (descargar mis datos o eliminar mi cuenta)  
-**Dirección postal:** [Pendiente de definir]
+**Domicilio:** el de la sociedad operadora, que se publicará al constituirla
 
 Respondemos dentro de:
 - 30 días para solicitudes generales
@@ -344,7 +344,7 @@ Su uso continuado después de los cambios constituye aceptación de la nueva pol
 
 Para preguntas sobre privacidad:
 - **Email:** privacy@fansreserve.com
-- **DPO:** [Pendiente de designar]
+- **Responsable de privacidad:** el equipo de privacidad de Fans Reserve, en privacy@fansreserve.com
 
 ### 10.2. Autoridades Supervisoras
 
@@ -367,7 +367,7 @@ Si no está satisfecho con nuestra respuesta, puede contactar:
 
 ### 11.1. Unión Europea (GDPR)
 
-- Responsable del tratamiento: Fans Reserve [Entidad legal]
+- Responsable del tratamiento: la sociedad que opera Fans Reserve [se indicará al constituirla]
 - Base legal: Ejecución de contrato, consentimiento, interés legítimo
 - Transferencias: Cláusulas Contractuales Estándar
 - Período de respuesta: 30 días
@@ -380,7 +380,7 @@ Si no está satisfecho con nuestra respuesta, puede contactar:
 
 ### 11.3. Brasil (LGPD)
 
-- Encarregado de datos: [Nombre]
+- Encarregado de datos: el equipo de privacidad (privacy@fansreserve.com)
 - Base legal: Consentimiento, ejecución de contrato
 - Autoridad supervisora: ANPD
 

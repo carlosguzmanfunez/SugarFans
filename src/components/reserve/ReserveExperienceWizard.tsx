@@ -22,6 +22,7 @@ import {
   SUBSCRIBER_DISCOUNTS,
   experienceTypeById,
   experienceTypesFor,
+  isHomeService,
   locationsFor,
   modalitiesFor,
   noticeLabel,
@@ -317,7 +318,10 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category, availability
               <div className="grid gap-2 sm:grid-cols-2">
                 {locationsFor(category, type, d.modality).map((l) => (
                   <label key={l} className={option(d.locationTypes.includes(l))}>
-                    <input type="checkbox" className="mt-1" checked={d.locationTypes.includes(l)} onChange={() => setD({ locationTypes: toggle(d.locationTypes, l) })} />
+                    <input type="checkbox" className="mt-1" checked={d.locationTypes.includes(l)} onChange={() => {
+                      const locationTypes = toggle(d.locationTypes, l);
+                      setD(isHomeService(locationTypes) ? { locationTypes, approval: 'manual' } : { locationTypes });
+                    }} />
                     <span>
                       <span className="block text-sm font-semibold text-ink">{LOCATION_TYPES[l].label}</span>
                       <span className="block text-xs text-ink/60">{LOCATION_TYPES[l].hint}</span>
@@ -325,7 +329,11 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category, availability
                   </label>
                 ))}
               </div>
-              <p className="mt-2 text-xs text-muted">Fans Reserve no ofrece domicilios, hoteles ni lugares privados o discretos como ubicación.</p>
+              <p className="mt-2 text-xs text-muted">
+                {locationsFor(category, type, d.modality).some((l) => isHomeService([l]))
+                  ? 'A domicilio solo para servicios profesionales: siempre apruebas cada solicitud y el fan te indica la dirección en su solicitud. Nunca hoteles ni lugares discretos.'
+                  : 'Fans Reserve no ofrece domicilios, hoteles ni lugares privados o discretos como ubicación.'}
+              </p>
             </fieldset>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">
@@ -380,14 +388,15 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category, availability
       {step === 10 && type && (
         <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Aprobación">
           {(['manual', 'automatic'] as const).map((a) => {
-            const locked = a === 'automatic' && !!type.alwaysManual;
+            const home = isHomeService(d.locationTypes);
+            const locked = a === 'automatic' && (!!type.alwaysManual || home);
             return (
               <button key={a} type="button" role="radio" aria-checked={d.approval === a} disabled={locked} onClick={() => setD({ approval: a })} className={`${option(d.approval === a)} disabled:opacity-40`}>
                 <i aria-hidden="true" className={`fas ${a === 'manual' ? 'fa-user-check' : 'fa-bolt'} mt-0.5 text-brand-600`}></i>
                 <span>
                   <span className="block text-sm font-semibold text-ink">{a === 'manual' ? 'Apruebo cada solicitud' : 'Confirmación automática'}</span>
                   <span className="block text-xs text-ink/60">
-                    {a === 'manual' ? 'El fan ve “Solicitar”. Tú aceptas, rechazas o envías una contraoferta.' : locked ? `${type.name} siempre requiere tu aprobación.` : 'El fan ve “Reservar” y paga directamente en tus horarios.'}
+                    {a === 'manual' ? 'El fan ve “Solicitar”. Tú aceptas, rechazas o envías una contraoferta.' : locked ? (home && !type.alwaysManual ? 'Las experiencias a domicilio siempre requieren tu aprobación.' : `${type.name} siempre requiere tu aprobación.`) : 'El fan ve “Reservar” y paga directamente en tus horarios.'}
                   </span>
                 </span>
               </button>

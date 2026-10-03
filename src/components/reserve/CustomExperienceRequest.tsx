@@ -9,6 +9,7 @@ import { moderate } from '../../lib/moderation';
 import { DEFAULT_AVAILABILITY, formatLongDate, validateCustomRequest, type Availability, type CustomRequestInput, type TakenSlot } from '../../lib/vip';
 import {
   LOCATION_TYPES,
+  isHomeService,
   PURPOSES,
   RESERVE_MODALITIES,
   categoryFor,
@@ -80,14 +81,14 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
   const stepError = (i: number): string | null => {
     if (i === 1 && form.purpose === 'other' && form.purposeNote.trim().length < 5) return 'Describe brevemente el propósito';
     if (i === 1 && form.purpose === 'other') {
-      const m = moderate(form.purposeNote, 'request');
+      const m = moderate(form.purposeNote, 'request', { homeAllowed });
       if (!m.ok) return m.error!;
     }
     if (i === 2) {
       if (!form.date) return 'Elige un día en el calendario';
       if (!form.time) return 'Elige una hora disponible';
       if (form.modality !== 'virtual' && form.city.trim().length < 2) return 'Indica la ciudad';
-      const m = moderate([form.city, form.venue], 'request');
+      const m = moderate([form.city, form.venue], 'request', { homeAllowed });
       if (!m.ok) return m.error!;
     }
     if (i === 3 && (!Number.isFinite(form.budget) || form.budget < 5 || form.budget > 5000)) return 'El presupuesto debe estar entre $5 y $5000';
@@ -130,6 +131,7 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
   }
 
   const locations = locationsFor(category, null, form.modality);
+  const homeAllowed = isHomeService(locations);
   const purposes = purposesFor(category, form.modality);
   const option = (active: boolean) =>
     `flex items-start gap-3 rounded-2xl border p-3.5 text-left transition ${active ? 'border-ink bg-ink/[0.03] ring-1 ring-ink' : 'border-line hover:border-ink/30'}`;
@@ -237,7 +239,11 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
                 <select name="locationType" value={form.locationType} onChange={(e) => set({ locationType: e.target.value as CustomRequestInput['locationType'] })} className="mt-1 block w-full rounded-xl border border-line px-3 py-2.5">
                   {locations.map((l) => <option key={l} value={l}>{LOCATION_TYPES[l].label}</option>)}
                 </select>
-                <span className="mt-1 block text-xs text-muted">Solo venues, estudios, establecimientos y lugares públicos. Nunca domicilios ni hoteles.</span>
+                <span className="mt-1 block text-xs text-muted">
+                  {homeAllowed
+                    ? 'Venues, establecimientos, el lugar del creator o el que tú propongas. Si es tu lugar, escribe la dirección o la zona en "Venue o dirección"; solo la ve este creator. Nunca hoteles.'
+                    : 'Solo venues, estudios, establecimientos y lugares públicos. Nunca domicilios ni hoteles.'}
+                </span>
               </label>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block text-sm">
@@ -245,7 +251,7 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
                   <input name="city" maxLength={60} value={form.city} onChange={(e) => set({ city: e.target.value })} className="mt-1 block w-full rounded-xl border border-line px-3 py-2.5" />
                 </label>
                 <label className="block text-sm">
-                  <span className="font-semibold text-ink">Venue (opcional)</span>
+                  <span className="font-semibold text-ink">{homeAllowed ? 'Venue o dirección (opcional)' : 'Venue (opcional)'}</span>
                   <input name="venue" maxLength={80} value={form.venue} onChange={(e) => set({ venue: e.target.value })} placeholder="Nombre del evento o establecimiento" className="mt-1 block w-full rounded-xl border border-line px-3 py-2.5" />
                 </label>
               </div>
