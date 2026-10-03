@@ -458,12 +458,22 @@ const run = async () => {
       await page.goto(`${BASE}/admin`);
       await waitPath(page, '/explore');
     });
+    await check('Con sesión de fan la portada no ofrece crear cuenta ni empezar como creador', async () => {
+      await page.goto(`${BASE}/`);
+      await page.locator('#hero-title').waitFor();
+      expect(await page.locator('a[href^="/register"]').count() === 0, 'la portada enlaza al registro con sesión iniciada');
+      expect(!(await page.locator('body').innerText()).includes('Crear cuenta gratis'), 'sigue apareciendo Crear cuenta gratis');
+      await page.locator('#hero-title').locator('..').getByRole('link', { name: /Explorar creadores/ }).waitFor();
+      expect(await page.locator('#creator-cta-title').count() === 0, 'un fan ve la invitación a registrarse como creador');
+    });
     await check('Cerrar sesión funciona y persiste tras recargar', async () => {
       await logoutViaMenu(page);
       await page.reload();
       await page.getByRole('link', { name: 'Iniciar Sesión' }).first().waitFor();
       await page.goto(`${BASE}/profile`);
       await waitPath(page, '/login');
+      await page.goto(`${BASE}/`);
+      await page.getByRole('link', { name: /Crear cuenta gratis/ }).waitFor();
     });
     await check('Tras login desde una página protegida vuelve a esa página', async () => {
       await page.goto(`${BASE}/settings`);
@@ -969,6 +979,15 @@ const run = async () => {
       expect(Math.abs(available + pending - 23.98) < 0.02, `total inesperado: ${available} + ${pending}`);
       expect(pending >= 7.99, 'el pago de este mes debería estar por acreditar');
       await page.getByText('+$7.99').first().waitFor();
+    });
+    await check('Con sesión de creadora la portada lleva a su panel en lugar del registro', async () => {
+      await page.goto(`${BASE}/`);
+      await page.locator('#hero-title').waitFor();
+      expect(await page.locator('a[href^="/register"]').count() === 0, 'la portada enlaza al registro con sesión iniciada');
+      await page.locator('#hero-title').locator('..').getByRole('link', { name: /Ir a mi panel/ }).waitFor();
+      await page.locator('#creator-cta-title').locator('..').getByRole('link', { name: /Ir a mi panel/ }).waitFor();
+      await page.locator('footer').getByRole('link', { name: 'Mi panel de creador' }).waitFor();
+      await page.goto(`${BASE}/creator/dashboard?tab=earnings`);
     });
     const addSale = (amount, monthsAgo) =>
       page.evaluate(([amount, monthsAgo]) => {

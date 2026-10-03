@@ -2,11 +2,14 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import type { Creator } from '../../data/mockData';
 import { HERO } from '../../content/landing';
+import { useAuth } from '../../context/AuthContext';
 import Avatar from '../Avatar';
 import HeroShowcase from './HeroShowcase';
 
 const Hero: React.FC<{ creators: Creator[] }> = ({ creators }) => {
+  const { user } = useAuth();
   const faces = creators.filter((c) => c.avatar).slice(0, 5);
+  const member = user ? HERO.member[user.role] : null;
   return (
     <section aria-labelledby="hero-title" className="relative overflow-hidden">
       {/* Backdrop: warm canvas, two soft brand glows and a faint grid */}
@@ -28,12 +31,25 @@ const Hero: React.FC<{ creators: Creator[] }> = ({ creators }) => {
           <p className="mx-auto mt-5 max-w-lg text-lg leading-relaxed text-muted md:text-xl lg:mx-0">{HERO.subtitle}</p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center lg:justify-start">
-            <Link to="/register" className="btn btn-primary btn-lg">
-              {HERO.primaryCta} <i className="fas fa-arrow-right text-sm" aria-hidden="true"></i>
-            </Link>
-            <Link to="/explore" className="btn btn-outline btn-lg">
-              <i className="fas fa-compass text-sm text-brand-600" aria-hidden="true"></i> {HERO.secondaryCta}
-            </Link>
+            {member ? (
+              <>
+                <Link to={member.primary.to} className="btn btn-primary btn-lg">
+                  {member.primary.label} <i className="fas fa-arrow-right text-sm" aria-hidden="true"></i>
+                </Link>
+                <Link to={member.secondary.to} className="btn btn-outline btn-lg">
+                  <i className={`fas ${member.secondary.icon} text-sm text-brand-600`} aria-hidden="true"></i> {member.secondary.label}
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to="/register" className="btn btn-primary btn-lg">
+                  {HERO.primaryCta} <i className="fas fa-arrow-right text-sm" aria-hidden="true"></i>
+                </Link>
+                <Link to="/explore" className="btn btn-outline btn-lg">
+                  <i className="fas fa-compass text-sm text-brand-600" aria-hidden="true"></i> {HERO.secondaryCta}
+                </Link>
+              </>
+            )}
           </div>
 
           {faces.length > 0 && (
