@@ -554,11 +554,10 @@ const run = async () => {
       await page.reload();
       expect(await page.locator('input[aria-label="Mostrar actividad"]').isChecked(), 'no persistió');
     });
-    await check('Activar 2FA persiste', async () => {
+    await check('Seguridad no ofrece una doble autenticación que no existe', async () => {
       await page.goto(`${BASE}/settings?section=security`);
-      await page.getByRole('button', { name: 'Activar' }).click();
-      await page.reload();
-      await page.getByRole('button', { name: /Activado/ }).waitFor();
+      await page.locator('input[placeholder="Contraseña actual"]').waitFor();
+      expect(!(await page.getByText(/dos factores|2FA/).count()), 'el botón de 2FA sigue visible');
     });
     await check('Cambio de contraseña: rechaza la actual incorrecta', async () => {
       await page.fill('input[placeholder="Contraseña actual"]', 'incorrecta');
