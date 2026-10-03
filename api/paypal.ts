@@ -118,7 +118,7 @@ export async function GET(): Promise<Response> {
 }
 
 // POST /api/paypal {action: 'create', kind, params} → {orderId}
-// POST /api/paypal {action: 'capture', orderId}     → {ok: true}
+// POST /api/paypal {action: 'capture', orderId}     → {ok: true, captureId}
 export async function POST(request: Request): Promise<Response> {
   const e = env();
   if (!e.clientId || !e.secret || !e.serviceKey) return json(503, { error: 'Los pagos con PayPal aún no están configurados.' });
@@ -171,10 +171,10 @@ export async function POST(request: Request): Promise<Response> {
     if (body.action === 'capture') {
       const orderId = typeof body.orderId === 'string' ? body.orderId.slice(0, 64) : '';
       if (!orderId) return json(400, { error: 'Falta el pedido.' });
-      const mine = await supabase(`/rest/v1/paypal_orders?id=eq.${encodeURIComponent(orderId)}&select=status,amount`, asUser(token));
-      const row = Array.isArray(mine.data) ? (mine.data[0] as { status: string; amount: number } | undefined) : undefined;
+      const mine = await supabase(`/rest/v1/paypal_orders?id=eq.${encodeURIComponent(orderId)}&select=status,amount,capture_id`, asUser(token));
+      const row = Array.isArray(mine.data) ? (mine.data[0] as { status: string; amount: number; capture_id: string | null } | undefined) : undefined;
       if (!row) return json(404, { error: 'Pedido no encontrado.' });
-      if (row.status === 'completed') return json(200, { ok: true });
+      if (row.status === 'completed') return json(200, { ok: true, captureId: row.capture_id });
       if (row.status !== 'created') return json(409, { error: 'Este pedido ya no está pendiente.' });
 
       let result = await paypal(e, ppToken, `/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`, {}, `capture-${orderId}`);
@@ -192,7 +192,7 @@ export async function POST(request: Request): Promise<Response> {
         p_capture_id: capture.id,
         p_amount: capture.currency === 'USD' ? capture.value : -1,
       });
-      if (done.ok) return json(200, { ok: true });
+      if (done.ok) return json(200, { ok: true, captureId: capture.id });
 
       // Charged but not fulfilled (e.g. the booking was cancelled meanwhile): give the money back.
       const refund = await paypal(e, ppToken, `/v2/payments/captures/${encodeURIComponent(capture.id)}/refund`, {}, `refund-${capture.id}`);

@@ -135,7 +135,7 @@ await check('Las suscripciones todavía no van por este camino', async () => {
 await check('Capturar confirma la compra una sola vez', async () => {
   const { data } = await post({ action: 'create', kind: 'tip', params: { creatorProfileId: '2', amount: 12.5 } });
   const r = await post({ action: 'capture', orderId: data.orderId });
-  expect(r.status === 200 && r.data.ok, JSON.stringify(r.data));
+  expect(r.status === 200 && r.data.ok && r.data.captureId === `CAP-${data.orderId}`, JSON.stringify(r.data));
   const f = db.fulfilled.at(-1);
   expect(f.p_order_id === data.orderId && f.p_user === 'fan-1' && f.p_amount === 12.5 && f.p_capture_id === `CAP-${data.orderId}`, JSON.stringify(f));
   const n = db.fulfilled.length;

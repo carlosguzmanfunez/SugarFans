@@ -83,6 +83,6 @@ const call = async <T>(body: unknown): Promise<T> => {
 export const createPaypalOrder = async (purchase: PaypalPurchase) =>
   (await call<{ orderId: string }>({ action: 'create', kind: purchase.kind, params: purchase.params })).orderId;
 
-export const capturePaypalOrder = async (orderId: string) => {
-  await call<{ ok: true }>({ action: 'capture', orderId });
-};
+// Returns PayPal's operation number for the receipt.
+export const capturePaypalOrder = async (orderId: string) =>
+  (await call<{ ok: true; captureId?: string | null }>({ action: 'capture', orderId })).captureId || orderId;

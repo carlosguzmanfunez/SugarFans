@@ -20,7 +20,7 @@ interface Props {
 }
 
 // PayPal's buttons for one purchase. The server creates and captures the order.
-const PaypalCheckout: React.FC<{ purchase: PaypalPurchase; config: PaypalConfig; onPaid: () => void }> = ({ purchase, config, onPaid }) => {
+const PaypalCheckout: React.FC<{ purchase: PaypalPurchase; config: PaypalConfig; onPaid: (operation: string) => void }> = ({ purchase, config, onPaid }) => {
   const box = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'paying'>('loading');
   const [error, setError] = useState('');
@@ -48,8 +48,7 @@ const PaypalCheckout: React.FC<{ purchase: PaypalPurchase; config: PaypalConfig;
           onApprove: async ({ orderID }) => {
             setStatus('paying');
             try {
-              await capturePaypalOrder(orderID);
-              latest.current.onPaid();
+              latest.current.onPaid(await capturePaypalOrder(orderID));
             } catch (err) {
               setError(err instanceof Error ? err.message : 'No se pudo completar el pago.');
               setStatus('ready');
@@ -83,6 +82,25 @@ const PaypalCheckout: React.FC<{ purchase: PaypalPurchase; config: PaypalConfig;
   );
 };
 
+// Shown once PayPal confirmed the payment, before the dialog closes.
+const PaymentReceipt: React.FC<{ title: string; amount: number; operation: string; error: string; onDone: () => void }> = ({ title, amount, operation, error, onDone }) => (
+  <div className="text-center" data-testid="payment-receipt">
+    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+      <i aria-hidden="true" className="fas fa-check text-3xl text-green-600"></i>
+    </div>
+    <h3 className="text-xl font-bold text-gray-900">Pago exitoso</h3>
+    <p className="mt-1 text-sm text-gray-500">Tu pago con PayPal se completó.</p>
+    <dl className="mt-5 space-y-2 rounded-xl bg-gray-50 p-4 text-left text-sm">
+      <div className="flex justify-between gap-4"><dt className="text-gray-500">Concepto</dt><dd className="text-right font-medium text-gray-900">{title.replace(/^Pagar:\s*/, '')}</dd></div>
+      <div className="flex justify-between gap-4"><dt className="text-gray-500">Monto</dt><dd className="font-bold text-gray-900">{money(amount)} USD</dd></div>
+      <div className="flex justify-between gap-4"><dt className="text-gray-500">Fecha</dt><dd className="text-gray-900">{new Date().toLocaleString('es', { dateStyle: 'medium', timeStyle: 'short' })}</dd></div>
+      <div className="flex justify-between gap-4"><dt className="text-gray-500">Operación PayPal</dt><dd className="break-all text-right font-mono text-xs text-gray-900">{operation}</dd></div>
+    </dl>
+    {error && <p role="alert" className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+    <button type="button" onClick={onDone} className="mt-5 w-full rounded-xl bg-green-600 py-3 font-bold text-white hover:bg-green-700">Listo</button>
+  </div>
+);
+
 // Pick (or add) a payment method and confirm a charge. Reusable for subscriptions and VIP bookings.
 const CheckoutDialog: React.FC<Props> = ({ user, title, amount, note, confirmLabel = 'Pagar', extra, paypal, onConfirm, onClose }) => {
   // null while checking whether PayPal is set up on the server.
@@ -97,6 +115,14 @@ const CheckoutDialog: React.FC<Props> = ({ user, title, amount, note, confirmLab
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState('');
   const [paying, setPaying] = useState(false);
+  // PayPal's operation number once paid: the receipt shows until the fan closes it.
+  const [receipt, setReceipt] = useState<string | null>(null);
+
+  // The purchase is already done on the server; this refreshes the screen and closes.
+  const finishPaypal = async () => {
+    const result = await onConfirm(PAID_WITH_PAYPAL);
+    if (!result.ok) setError(result.error || 'El pago se hizo, pero no se pudo actualizar la pantalla. Recarga la página.');
+  };
 
   // Preselect the default method; open the form straight away when there is none.
   useEffect(() => {
@@ -112,6 +138,16 @@ const CheckoutDialog: React.FC<Props> = ({ user, title, amount, note, confirmLab
     setPaying(false);
     if (!result.ok) setError(result.error || 'No se pudo completar el pago');
   };
+
+  if (receipt) {
+    return (
+      <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Pago exitoso">
+        <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6">
+          <PaymentReceipt title={title} amount={amount} operation={receipt} error={error} onDone={finishPaypal} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={title}>
@@ -136,10 +172,7 @@ const CheckoutDialog: React.FC<Props> = ({ user, title, amount, note, confirmLab
           <PaypalCheckout
             purchase={paypal!}
             config={pp!}
-            onPaid={async () => {
-              const result = await onConfirm(PAID_WITH_PAYPAL);
-              if (!result.ok) setError(result.error || 'El pago se hizo, pero no se pudo actualizar la pantalla. Recarga la página.');
-            }}
+            onPaid={setReceipt}
           />
         ) : !pp ? (
           <p className="text-sm text-gray-500 py-3"><i aria-hidden="true" className="fas fa-spinner fa-spin mr-2"></i>Preparando el pago…</p>
