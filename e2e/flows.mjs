@@ -554,11 +554,10 @@ const run = async () => {
       await page.reload();
       expect(await page.locator('input[aria-label="Mostrar actividad"]').isChecked(), 'no persistió');
     });
-    await check('Activar 2FA persiste', async () => {
+    await check('Seguridad no ofrece una doble autenticación que no existe', async () => {
       await page.goto(`${BASE}/settings?section=security`);
-      await page.getByRole('button', { name: 'Activar' }).click();
-      await page.reload();
-      await page.getByRole('button', { name: /Activado/ }).waitFor();
+      await page.locator('input[placeholder="Contraseña actual"]').waitFor();
+      expect(!(await page.getByText(/dos factores|2FA/).count()), 'el botón de 2FA sigue visible');
     });
     await check('Cambio de contraseña: rechaza la actual incorrecta', async () => {
       await page.fill('input[placeholder="Contraseña actual"]', 'incorrecta');
@@ -1471,7 +1470,7 @@ const run = async () => {
     await check('El fan envía una Corona: es apoyo y no promete nada', async () => {
       const dialog = await openGift(gf);
       await dialog.getByRole('button', { name: /Corona/ }).click();
-      await dialog.getByTestId('notice-gift').getByText(/No garantizan respuesta, conversación, encuentro, acceso ni Reserve/).waitFor();
+      await dialog.getByTestId('notice-gift').getByText(/No garantizan respuesta, conversación, acceso ni experiencias de Reserve/).waitFor();
       expect((await dialog.getByTestId('gift-perks').count()) === 0, 'el regalo promete beneficios');
       expect((await dialog.getByLabel('Qué quieres en tu video').count()) === 0, 'el regalo pide un video personalizado');
       await dialog.getByLabel('Mensaje del regalo').fill('¡Para mi reina!');
@@ -1745,7 +1744,7 @@ const run = async () => {
       expect(R.categoryFor('Modelaje').id === 'modelaje-glamour', 'el nombre antiguo "Modelaje" no se reconoce');
       expect(R.categoryFor('Modelaje & Glamour').id === 'modelaje-glamour', 'el nombre antiguo "Modelaje & Glamour" no se reconoce');
     });
-    await check('Modelos no ofrece encuentro privado, citas, hotel ni escort', async () => {
+    await check('Modelos no ofrece citas, compañía, hotel ni escort', async () => {
       const types = R.experienceTypesFor(R.categoryFor('Modelos'));
       const bad = types.filter((t) => notOffered.test(`${t.name} ${t.description}`));
       expect(bad.length === 0, `tipos prohibidos: ${bad.map((t) => t.name).join(', ')}`);
@@ -1770,6 +1769,17 @@ const run = async () => {
       expect(glamour.includes('photo-session') && !fitness.includes('photo-session'), 'sesión de fotos mal asignada');
       expect(R.locationsFor(R.categoryFor('Fitness'), R.experienceTypeById('training-1-1'), 'presencial').includes('gym'), 'fitness sin gimnasio');
       expect(!R.locationsFor(R.categoryFor('Modelos'), null, 'presencial').includes('restaurant'), 'glamour permite restaurantes');
+      expect(R.locationsFor(R.categoryFor('Cocina'), R.experienceTypeById('cooking-class'), 'presencial').includes('fan-place'), 'cocina sin domicilio');
+      expect(!R.locationsFor(R.categoryFor('Modelos'), null, 'presencial').some((l) => R.HOME_SERVICE_LOCATIONS.includes(l)), 'Modelos permite domicilio');
+      expect(R.locationsFor(R.categoryFor('Arte & Creatividad'), R.experienceTypeById('art-class'), 'presencial').includes('creator-place'), 'arte sin lugar del creator');
+      expect(R.locationsFor(R.categoryFor('Educación'), null, 'presencial').includes('fan-place'), 'educación sin lugar del fan en la propuesta');
+      expect(!R.locationsFor(R.categoryFor('Modelos'), R.experienceTypeById('photo-session'), 'profesional').some((l) => R.HOME_SERVICE_LOCATIONS.includes(l)), 'sesión de fotos de Modelos a domicilio');
+      const home = { title: 'Clase de cocina en tu casa', description: 'Cocinamos pasta fresca.', type: 'cooking-class', price: 80, durationMinutes: 90, image: '', active: true };
+      const hd = { ...R.defaultDetails(), modality: 'presencial', locationTypes: ['fan-place'], city: 'CDMX', approval: 'manual' };
+      expect(R.validateExperience({ ...home, details: hd }, 'Cocina').ok, 'rechaza cocina a domicilio');
+      expect(!R.validateExperience({ ...home, details: { ...hd, approval: 'automatic' } }, 'Cocina').ok, 'acepta domicilio con aprobación automática');
+      const shoot = { title: 'Sesión de fotos', description: 'Sesión profesional.', type: 'photo-session', price: 120, durationMinutes: 60, image: '', active: true };
+      expect(!R.validateExperience({ ...shoot, details: { ...hd, modality: 'profesional' } }, 'Modelos').ok, 'Modelos acepta domicilio');
     });
     await check('Una experiencia necesita estar definida y moderada para publicarse', async () => {
       const base = { title: 'Sesión de fotos', description: 'Sesión profesional en estudio.', type: 'photo-session', price: 120, durationMinutes: 60, image: '', active: true };
@@ -1856,10 +1866,10 @@ const run = async () => {
       await resF.getByText('Este creator no está en Live ahora').waitFor();
       await resF.goto(`${BASE}/creator/1`);
     });
-    await check('La suscripción y los regalos dicen que no incluyen Reserve ni encuentros', async () => {
+    await check('La suscripción y los regalos dicen que no incluyen Reserve', async () => {
       const section = resF.getByTestId('creator-reserve');
-      await section.getByTestId('notice-subscription').getByText(/No incluye videollamadas, encuentros ni Reserve/).waitFor();
-      await section.getByTestId('notice-gift').getByText(/No garantizan respuesta, conversación, encuentro, acceso ni Reserve/).waitFor();
+      await section.getByTestId('notice-subscription').getByText(/No incluye videollamadas ni experiencias de Reserve/).waitFor();
+      await section.getByTestId('notice-gift').getByText(/No garantizan respuesta, conversación, acceso ni experiencias de Reserve/).waitFor();
       await resF.getByRole('button', { name: 'Enviar regalo' }).click();
       const dialog = resF.getByRole('dialog', { name: /Regalo para Valentina Rose/ });
       await dialog.getByRole('button', { name: /Corona/ }).first().click();
@@ -1946,7 +1956,7 @@ const run = async () => {
       await next(); // → precio
       await next(); // → disponibilidad
       await next(); // → ubicación
-      await form.getByText('Fans Reserve no ofrece domicilios, hoteles ni “encuentros privados” como ubicación.').waitFor();
+      await form.getByText('Fans Reserve no ofrece domicilios, hoteles ni lugares privados o discretos como ubicación.').waitFor();
       expect((await form.getByText(/Habitación|Hotel/).count()) === 0, 'se ofrece hotel como lugar');
       await next();
       await form.getByText('Elige el tipo de lugar e indica la ciudad').waitFor();

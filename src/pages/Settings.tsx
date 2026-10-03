@@ -300,39 +300,6 @@ const Settings: React.FC = () => {
                     </div>
                   </div>
                   )}
-                  <div>
-                    <h3 className="font-medium text-gray-900 mb-2">Autenticación de dos factores</h3>
-                    <div className="flex items-center justify-between bg-gray-50 rounded-xl p-4">
-                      <div>
-                        <p className="text-sm text-gray-700">2FA con aplicación autenticadora</p>
-                        <p className="text-xs text-gray-500">Añade una capa extra de seguridad</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => updateSettings({ twoFactor: !settings.twoFactor })}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                          settings.twoFactor ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-pink-100 text-pink-700 hover:bg-pink-200'
-                        }`}
-                      >
-                        {settings.twoFactor ? 'Activado · Desactivar' : 'Activar'}
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-gray-900 mb-2">Sesiones activas</h3>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between bg-gray-50 rounded-xl p-4">
-                        <div className="flex items-center space-x-3">
-                          <i aria-hidden="true" className="fas fa-laptop text-gray-400"></i>
-                          <div>
-                            <p className="text-sm text-gray-700">Chrome - Windows</p>
-                            <p className="text-xs text-gray-500">Sesión actual</p>
-                          </div>
-                        </div>
-                        <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">Activa</span>
-                      </div>
-                    </div>
-                  </div>
                   {!socialProvider && (
                   <button onClick={handleSaveSecurity} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition">
                     Actualizar contraseña

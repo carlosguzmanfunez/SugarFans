@@ -1,8 +1,10 @@
 # POLÍTICA DE PRIVACIDAD - FANS RESERVE
 
-**Última actualización:** Enero 2024  
-**Versión:** 1.0.0  
-**Cumplimiento:** GDPR, CCPA, LGPD y regulaciones internacionales
+**Última actualización:** Octubre 2026 (borrador)  
+**Versión:** 1.1.0  
+**Marco de referencia:** GDPR, CCPA y LGPD (el cumplimiento debe validarse en la revisión legal)
+
+> **Borrador.** Requires legal review before production launch. Requiere revisión legal antes del lanzamiento a producción.
 
 ---
 
@@ -23,20 +25,18 @@ Recopilamos la siguiente información personal:
 **a) Información de Registro:**
 - Nombre completo o nombre artístico
 - Dirección de correo electrónico
-- Fecha de nacimiento
-- Número de teléfono (opcional)
+- Confirmación de mayoría de edad
 - Fotografía de perfil
+- Si inicia sesión con Google: nombre, email y foto que Google comparte
 
 **b) Información de Verificación (Creadores):**
-- Documento de identidad oficial
-- Selfie de verificación
-- Prueba de domicilio
-- Información fiscal para pagos
+- Nombre legal, fecha de nacimiento, país, tipo y número de documento
+- Foto del frente del documento y selfie de frente (se eliminan al aprobarse la verificación)
 
 **c) Información de Pago:**
-- Datos de tarjeta de crédito/débito (procesados por terceros seguros)
+- De cada método de pago, solo la marca y los últimos 4 dígitos (nunca el número completo)
 - Historial de transacciones
-- Información bancaria (para Creadores que reciben pagos)
+- Cuenta bancaria de destino (para Creadores que retiran ingresos)
 
 **d) Información de Perfil:**
 - Biografía y descripción
@@ -60,11 +60,15 @@ Recopilamos automáticamente información sobre su uso de la Plataforma:
 - Mensajes enviados a través de la Plataforma
 - Correos electrónicos intercambiados
 - Registros de soporte al cliente
-- Historial de reservas de Experiencias VIP
+- Historial de reservas de Reserve (solicitudes, contraofertas, confirmaciones y reportes)
 
-### 1.4. Cookies y Tecnologías Similares
+### 1.4. Video en vivo
 
-Utilizamos cookies y tecnologías similares para recopilar información. Ver nuestra Política de Cookies para más detalles.
+Las videollamadas y los Lives se transmiten en tiempo real a través de nuestro proveedor de video y **no se graban ni se guardan**. Sobre el video se muestra el nombre y un código de la cuenta de quien lo ve, para disuadir grabaciones.
+
+### 1.5. Almacenamiento en el navegador
+
+Guardamos su sesión y sus preferencias en el almacenamiento local de su navegador. Ver nuestra Política de Cookies para más detalles.
 
 ---
 
@@ -117,15 +121,14 @@ Para Usuarios en la UE, procesamos datos bajo las siguientes bases legales:
 Compartimos información con terceros que nos ayudan a operar:
 
 **a) Procesadores de Pago:**
-- Stripe, PayPal u otros procesadores certificados
-- Solo información necesaria para procesar transacciones
-- Cumplen con estándares PCI DSS
+- Mientras la Plataforma está en modo de prueba los pagos son simulados y no se comparten datos con procesadores
+- Cuando se integren (previsto: Stripe y PayPal), solo recibirán la información necesaria para procesar transacciones
 
 **b) Proveedores de Servicios:**
-- Hosting y almacenamiento en la nube (AWS, Google Cloud)
-- Servicios de email y comunicaciones
-- Análisis y métricas
-- Soporte al cliente
+- Supabase: base de datos, cuentas y almacenamiento de archivos
+- Vercel: alojamiento del sitio web
+- LiveKit: transmisión de video en vivo
+- Google: inicio de sesión, solo si usted elige "Continuar con Google"
 
 **c) Asesores Legales y Fiscales:**
 - Cuando sea requerido por ley
@@ -164,7 +167,7 @@ Su información puede ser transferida y procesada en países diferentes al suyo.
 Utilizamos los siguientes mecanismos para transferencias internacionales:
 - Decisiones de adecuación de la Comisión Europea
 - Cláusulas Contractuales Estándar (SCC)
-- Marcos de privacidad certificados (Privacy Shield, si aplica)
+- Marcos de privacidad certificados vigentes (por ejemplo, EU-U.S. Data Privacy Framework), si aplica
 
 ---
 
@@ -184,8 +187,9 @@ Conservamos su información solo el tiempo necesario:
 - Según requisitos legales de su jurisdicción
 
 **c) Datos de Verificación:**
-- Durante la vigencia de la cuenta
-- 5 años después del cierre (para cumplimiento legal)
+- Las imágenes del documento y el selfie se eliminan al aprobarse la verificación
+- Los datos del formulario y el resultado se conservan mientras la cuenta esté activa
+- Al eliminar la cuenta se borran sus documentos de verificación
 
 **d) Registros de Actividad:**
 - 2 años para análisis y seguridad
@@ -258,8 +262,8 @@ Si es residente de California:
 Para ejercer cualquier derecho:
 
 **Email:** privacy@fansreserve.com  
-**Formulario web:** [Enlace a formulario de privacidad]  
-**Dirección postal:** [Dirección de privacidad]
+**En la Plataforma:** Configuración > Privacidad (descargar mis datos o eliminar mi cuenta)  
+**Domicilio:** el de la sociedad operadora, que se publicará al constituirla
 
 Respondemos dentro de:
 - 30 días para solicitudes generales
@@ -271,31 +275,23 @@ Respondemos dentro de:
 
 ### 7.1. Medidas Técnicas
 
-Implementamos medidas de seguridad de nivel bancario:
-
-**a) Encriptación:**
-- TLS/SSL para todas las comunicaciones
-- Encriptación AES-256 para datos en reposo
-- Encriptación de extremo a extremo para mensajes privados
+**a) Cifrado:**
+- TLS para todas las comunicaciones
+- Contraseñas guardadas con hash y sal, nunca en texto plano
+- Los mensajes privados no tienen cifrado de extremo a extremo
 
 **b) Infraestructura:**
-- Servidores en centros de datos certificados (ISO 27001)
-- Firewalls y sistemas de detección de intrusos
-- Copias de seguridad automáticas y encriptadas
-- Monitoreo 24/7 de seguridad
+- Servicios en la nube de nuestros proveedores (ver sección 3.1)
+- Reglas de acceso por cuenta en la base de datos: cada usuario solo puede leer y modificar lo suyo
 
 **c) Acceso:**
-- Autenticación de dos factores (2FA)
-- Control de acceso basado en roles
-- Registros de auditoría de acceso
+- Control de acceso basado en roles (fan, creador, administrador)
 - Revisiones periódicas de permisos
 
 ### 7.2. Medidas Organizacionales
 
-- Capacitación regular en seguridad para empleados
-- Políticas de confidencialidad estrictas
-- Evaluaciones de impacto de privacidad
-- Plan de respuesta a incidentes
+- Políticas de confidencialidad
+- Plan de respuesta a incidentes [pendiente de documentar antes del lanzamiento]
 
 ### 7.3. Incidentes de Seguridad
 
@@ -314,7 +310,7 @@ En caso de violación de datos:
 **NO recopilamos conscientemente información de menores de 18 años.**
 
 - La Plataforma es exclusivamente para adultos (18+)
-- Requerimos verificación de edad para todos los Usuarios
+- Todos los Usuarios confirman que son mayores de 18 años al entrar y al registrarse; los Creadores verifican su edad con documento y selfie
 - Eliminamos inmediatamente cualquier cuenta de menor identificada
 - Reportamos a autoridades cualquier sospecha de contenido con menores
 
@@ -348,8 +344,7 @@ Su uso continuado después de los cambios constituye aceptación de la nueva pol
 
 Para preguntas sobre privacidad:
 - **Email:** privacy@fansreserve.com
-- **DPO:** [Nombre del DPO]
-- **Teléfono:** [Número de contacto]
+- **Responsable de privacidad:** el equipo de privacidad de Fans Reserve, en privacy@fansreserve.com
 
 ### 10.2. Autoridades Supervisoras
 
@@ -372,7 +367,7 @@ Si no está satisfecho con nuestra respuesta, puede contactar:
 
 ### 11.1. Unión Europea (GDPR)
 
-- Responsable del tratamiento: Fans Reserve [Entidad legal]
+- Responsable del tratamiento: la sociedad que opera Fans Reserve [se indicará al constituirla]
 - Base legal: Ejecución de contrato, consentimiento, interés legítimo
 - Transferencias: Cláusulas Contractuales Estándar
 - Período de respuesta: 30 días
@@ -385,7 +380,7 @@ Si no está satisfecho con nuestra respuesta, puede contactar:
 
 ### 11.3. Brasil (LGPD)
 
-- Encarregado de datos: [Nombre]
+- Encarregado de datos: el equipo de privacidad (privacy@fansreserve.com)
 - Base legal: Consentimiento, ejecución de contrato
 - Autoridad supervisora: ANPD
 
@@ -413,10 +408,10 @@ Ver nuestra Política de Cookies completa para detalles sobre:
 | Financiera | Tarjeta, historial | Pagos, facturación | 7 años |
 | Uso | IP, navegador, actividad | Análisis, seguridad | 2 años |
 | Contenido | Posts, mensajes | Servicio | Duración cuenta |
-| Verificación | ID, selfie | Cumplimiento legal | 5 años post-cierre |
+| Verificación | ID, selfie | Verificar identidad y edad | Imágenes: hasta la aprobación. Datos del formulario: duración cuenta |
 
 ---
 
-**Esta Política de Privacidad está diseñada para cumplir con GDPR, CCPA, LGPD y otras regulaciones internacionales de protección de datos.**
+**Esta Política de Privacidad toma como referencia GDPR, CCPA y LGPD; su cumplimiento debe validarse en la revisión legal.**
 
-© 2024 Fans Reserve. Todos los derechos reservados.
+© 2026 Fans Reserve. Todos los derechos reservados.

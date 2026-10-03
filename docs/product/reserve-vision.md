@@ -15,7 +15,7 @@ Una Reserve es siempre una experiencia concreta, descrita de antemano por el cre
 | Pilar | Qué da | Qué no da |
 |---|---|---|
 | **Discover / Seguir** | Gratis: contenido público y novedades. | Acceso exclusivo. |
-| **Subscribe / Suscribirse** | Contenido exclusivo del creator. Puede haber un descuento explícito en Reserve. | Videollamadas, encuentros ni Reserve. |
+| **Subscribe / Suscribirse** | Contenido exclusivo del creator. Puede haber un descuento explícito en Reserve. | Videollamadas ni experiencias de Reserve. |
 | **Live** | Sesiones en vivo en la sala privada de Fans Reserve (hoy: las sesiones virtuales reservadas en Reserve). | — |
 | **Reserve** | Una experiencia definida, aprobada por el creator, con fecha, precio y reglas. | Compañía, citas ni nada fuera de lo descrito. |
 
@@ -23,7 +23,7 @@ El perfil del creator muestra los cuatro en ese orden (`AccessLadder`) y una sec
 
 ## 3. Gift vs Reserve
 
-- **Gift**: apoyo voluntario. No garantiza respuesta, conversación, encuentro, acceso ni Reserve. No desbloquea nada: desde el 2 de octubre de 2026 ningún regalo da video personalizado ni videollamada; los videos y videollamadas ganados antes se siguen entregando. El Círculo y la Bóveda se eliminaron (decisión de Carlos: comprometían demasiado al creator).
+- **Gift**: apoyo voluntario. No garantiza respuesta, conversación, acceso ni experiencias de Reserve. No desbloquea nada: desde el 2 de octubre de 2026 ningún regalo da video personalizado ni videollamada; los videos y videollamadas ganados antes se siguen entregando. El Círculo y la Bóveda se eliminaron (decisión de Carlos: comprometían demasiado al creator).
 - **Reserve**: compra o solicitud de una experiencia concreta.
 - Los regalos **ya no** dan videollamadas privadas: las videollamadas son experiencias de Reserve. Las videollamadas ganadas con regalos antes del cambio siguen funcionando.
 - El copy aparece en el diálogo de regalo, en el perfil y en la página Reserve (`RESERVE_COPY` en `src/config/reserve.ts`).
@@ -83,22 +83,25 @@ La base de datos acepta exactamente la misma lista de tipos que la configuració
 
 **Lugares:** online, lugar público, venue de evento, convención, estudio y espacio comercial.
 
-**No se ofrece:** encuentro privado, citas, hotel, residencia, "pasar tiempo conmigo", escort ni actividad sexual.
+**Sí se ofrece:** servicios profesionales con propósito definido, también 1:1 (clase de cocina, coaching, entrenamiento, asesoría, sesión de fotos en estudio).
+
+**No se ofrece:** compañía o "pasar tiempo conmigo" sin servicio definido, citas, hotel, residencia, escort ni actividad sexual.
 
 ## 7. Experiencias prohibidas (todas las categorías)
 
-- Encuentro privado.
+Los servicios profesionales con propósito definido sí se permiten, también 1:1. Lo prohibido es vender la compañía o la intimidad de una persona:
+
+- Vender compañía o tiempo personal ("pasar tiempo conmigo") sin un servicio definido.
 - Cita romántica o "date" remunerada.
 - Compensated dating.
-- "Pasar tiempo conmigo" sin propósito.
-- Hotel o residencia como experiencia.
+- Hotel, habitación o lugar discreto como lugar de la experiencia.
 - Escort o acompañamiento.
 - Cualquier actividad sexual.
 - Lives sexuales o sexting remunerado.
 
 Tampoco se permiten:
 
-- lugares: domicilios, habitaciones de hotel, cuartos privados ni vehículos;
+- lugares: habitaciones de hotel, cuartos privados ni vehículos; domicilios solo para servicios profesionales, en todas las categorías menos Modelos (lugar del creator o lugar que propone el fan, aprobación manual, decisiones de Carlos 2026-10-03);
 - contacto o pagos fuera de la plataforma.
 
 **Cómo se aplica.** La moderación está en `src/lib/moderation.ts` (cliente) y en `reserve_text_blocked` (servidor):
@@ -139,7 +142,7 @@ Se reutilizan los estados de `vip_bookings`; los nuevos se añadieron a su `chec
 
 **Ya implementado:**
 
-- Las experiencias presenciales solo se hacen en venues y lugares públicos o profesionales.
+- Las experiencias presenciales se hacen en venues y lugares públicos o profesionales; en el lugar del creator o del fan solo servicios profesionales, nunca en Modelos.
 - Requisito opcional de fan verificado.
 - Anticipación mínima.
 - Aprobación manual para los tipos sensibles.

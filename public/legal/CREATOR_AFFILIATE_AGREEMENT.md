@@ -1,8 +1,10 @@
 # CONTRATO PARA CREADORES Y AFILIADOS - FANS RESERVE
 
-**Última actualización:** Enero 2024  
-**Versión:** 1.0.0  
+**Última actualización:** Octubre 2026 (borrador)  
+**Versión:** 1.1.0  
 **Tipo:** Acuerdo Legal Vinculante
+
+> **Borrador.** Requires legal review before production launch. Requiere revisión legal antes del lanzamiento a producción. La Plataforma está en modo de prueba: los pagos son simulados.
 
 ---
 
@@ -18,15 +20,15 @@ Este Contrato para Creadores y Afiliados ("Contrato") constituye un acuerdo lega
 
 1.1. **"Creador"** se refiere a cualquier Usuario que produce, publica y monetiza contenido en la Plataforma.
 
-1.2. **"Afiliado"** se refiere a cualquier Usuario que promociona la Plataforma o a otros Creadores y recibe comisiones por referidos.
+1.2. **"Afiliado"** se refiere a un Creador que invita a fans o a otros Creadores con sus enlaces de invitación y recibe los beneficios del programa de Recompensas.
 
-1.3. **"Contenido"** se refiere a cualquier material creado y publicado por el Creador, incluyendo pero no limitado a imágenes, videos, textos, audio, Experiencias VIP, y cualquier otro formato digital.
+1.3. **"Contenido"** se refiere a cualquier material creado y publicado por el Creador, incluyendo pero no limitado a imágenes, videos, textos, audio, experiencias de Reserve, y cualquier otro formato digital.
 
-1.4. **"Ingresos"** se refiere a todos los pagos recibidos por el Creador a través de la Plataforma, incluyendo suscripciones, contenido PPV, propinas, Experiencias VIP y comisiones de afiliados.
+1.4. **"Ingresos"** se refiere a todos los pagos recibidos por el Creador a través de la Plataforma, incluyendo suscripciones, propinas, regalos, reservas de Reserve y bonos de Recompensas.
 
 1.5. **"Comisión"** se refiere al porcentaje que la Plataforma retiene de los Ingresos generados.
 
-1.6. **"Período de Retención"** se refiere al tiempo durante el cual la Plataforma retiene fondos antes de liberarlos al Creador.
+1.6. **"Saldo acreditado"** se refiere a la parte de los Ingresos pagados antes del día 1 del mes en curso, disponible para retirar.
 
 ---
 
@@ -61,38 +63,33 @@ Este Contrato para Creadores y Afiliados ("Contrato") constituye un acuerdo lega
 ### 3.1. Verificación y Cumplimiento
 
 3.1.1. **Verificación de Identidad**: Debe completar el proceso de verificación proporcionando:
-- Documento de identidad oficial válido
-- Selfie de verificación
-- Prueba de domicilio
-- Información fiscal completa
+- Foto del frente de un documento de identidad oficial válido
+- Selfie de frente, que se compara con la foto del documento
+- Al aprobarse, las imágenes se eliminan y su perfil muestra la insignia "Verificado"
 
 3.1.2. **Mayoría de Edad**: Declara y garantiza que tiene 18 años o más.
 
 3.1.3. **Cumplimiento Legal**: Debe cumplir con todas las leyes aplicables en su jurisdicción, incluyendo:
 - Leyes fiscales y tributarias
-- Regulaciones de contenido para adultos
+- Permisos y licencias que exija su actividad profesional
 - Leyes de protección de datos
 - Regulaciones de propiedad intelectual
 
 ### 3.2. Calidad del Contenido
 
-3.2.1. **Estándares de Calidad**: Debe mantener estándares razonables de calidad en:
-- Resolución de imágenes y videos
-- Audio claro y comprensible
-- Edición profesional
-- Descripciones precisas
+3.2.1. **Descripciones precisas**: Lo que publica (suscripción, contenido y experiencias) debe describir con precisión lo que el fan recibe.
 
 3.2.2. **Originalidad**: Todo el Contenido debe ser original o tener licencias adecuadas.
 
 3.2.3. **Consentimiento de Terceros**: Debe obtener consentimiento POR ESCRITO de todas las personas que aparecen en su Contenido.
 
-### 3.3. Publicación Regular
+### 3.3. Publicación y Experiencias
 
-3.3.1. **Frecuencia Mínima**: Debe publicar Contenido al menos una vez cada 30 días para mantener su cuenta activa.
+3.3.1. **Libertad de publicación**: Usted decide cuándo y cuánto publica. No hay una frecuencia mínima.
 
-3.3.2. **Comunicación**: Debe responder a mensajes de suscriptores dentro de 48 horas hábiles.
+3.3.2. **Comunicación**: No está obligado a responder mensajes ni a aceptar solicitudes; puede rechazar, bloquear o reportar a cualquier usuario.
 
-3.3.3. **Experiencias VIP**: Debe cumplir con las fechas y horarios acordados para Experiencias VIP reservadas.
+3.3.3. **Experiencias de Reserve**: Debe cumplir las experiencias confirmadas en la fecha, hora y lugar acordados, ofrecer solo servicios con un propósito definido y respetar el Acuerdo de Creator (Reserve) y la política de Servicios Prohibidos. Si no cumple, el fan recibe el reembolso completo previa verificación y ese importe no se le acredita.
 
 ### 3.4. Conducta Profesional
 
@@ -179,62 +176,45 @@ Este Contrato para Creadores y Afiliados ("Contrato") constituye un acuerdo lega
 ### 6.1. Estructura de Ingresos
 
 6.1.1. **Fuentes de Ingresos**:
-- Suscripciones mensuales de Fans
-- Contenido PPV (Pay-Per-View)
-- Propinas de Usuarios
-- Experiencias VIP
-- Comisiones de afiliados (si aplica)
+- Suscripciones mensuales y sus renovaciones
+- Propinas
+- Regalos enviados con Créditos
+- Reservas de experiencias en Reserve
+- Bonos del programa de Recompensas
 
-6.1.2. **Comisión de la Plataforma**:
-- **Estándar**: 20% de comisión sobre todos los Ingresos
-- **Creador Premium** (500+ suscriptores): 15% de comisión
-- **Creador Élite** (2000+ suscriptores): 10% de comisión
-- **Afiliados**: 10% de comisión sobre referidos (primeros 12 meses)
+6.1.2. **Su parte de cada venta**:
+- **Suscripciones, renovaciones y propinas**: según su nivel por fans activos: Bronce 80%, Plata (10+) 82%, Oro (50+) 84%, Diamante (200+) 85%
+- **Metas mensuales**: si atrae con su enlace 10, 25 o 50 fans que le paguen en un mes, su parte sube 2, 5 o 10 puntos todo el mes siguiente
+- **Fans de su enlace de invitación**: recibe el 90% de lo que le paguen durante 90 días
+- **Invitar Creadores**: cuando al menos 2 Creadores se registran con su enlace de creadores, recibe un 5% extra de sus ventas durante un mes, sin que a ellos se les descuente nada
+- **Reservas de Reserve**: 80%
+- **Regalos**: 60%
+- **Tope**: sumando todos los beneficios, nunca recibe más del 90% de una venta; la Plataforma conserva siempre al menos el 10%
 
 ### 6.2. Cálculo de Pagos
 
 6.2.1. **Fórmula**:
 ```
-Pago al Creador = Ingresos Brutos - Comisión Plataforma - Tarifas de Procesamiento - Reembolsos/Chargebacks
+Pago al Creador = Precio pagado por el fan × su parte (según 6.1.2)
 ```
 
-6.2.2. **Ejemplo**:
-- Ingresos Brutos: $1,000 USD
-- Comisión (20%): -$200 USD
-- Tarifas de procesamiento (2.9% + $0.30): -$32 USD
-- Reembolsos: -$50 USD
-- **Pago Neto: $718 USD**
+6.2.2. **Ejemplo**: una suscripción de $10 USD de un Creador Bronce le deja $8 USD.
+
+6.2.3. **Reembolsos y contracargos**: Cuando exista un procesador de pagos real, los reembolsos y contracargos de una venta podrán descontarse de la parte del Creador. Las reglas concretas se definirán antes del lanzamiento.
 
 ### 6.3. Cronograma de Pagos
 
-6.3.1. **Período de Retención**: 
-- Nuevos Creadores: 14 días de retención
-- Creadores establecidos: 7 días de retención
-- Creadores Premium: 3 días de retención
+6.3.1. **Acreditación mensual**: El día 1 de cada mes se acredita todo lo que los fans pagaron antes de esa fecha. Lo cobrado a mitad de mes aparece como pendiente hasta el día 1 siguiente.
 
-6.3.2. **Frecuencia de Pagos**:
-- Pagos semanales (cada lunes)
-- Pago mínimo: $50 USD
-- Si no alcanza el mínimo, se acumula al siguiente período
-
-6.3.3. **Métodos de Pago**:
-- Transferencia bancaria (SWIFT/ACH)
-- PayPal
-- Criptomonedas (Bitcoin, Ethereum)
-- Otros métodos según disponibilidad regional
+6.3.2. **Retiros**:
+- Un solo botón: se retira siempre el saldo acreditado completo
+- Mínimo: $50 USD; si no lo alcanza, el saldo se acumula
+- Cualquier día del mes, sin aprobación previa
+- A cuenta bancaria
 
 ### 6.4. Tarifas Adicionales
 
-6.4.1. **Tarifas de Procesamiento**:
-- Tarjetas de crédito: 2.9% + $0.30 USD
-- PayPal: 3.49% + $0.49 USD
-- Transferencias internacionales: $15-25 USD
-- Criptomonedas: Variables según red
-
-6.4.2. **Chargebacks y Disputas**:
-- Si un Usuario inicia un chargeback, el monto se deduce de sus Ingresos
-- Tarifa de chargeback: $15 USD adicional
-- Si ganamos la disputa, se reembolsa el monto (menos tarifa)
+Mientras la Plataforma está en modo de prueba no se aplican tarifas de procesamiento. Si en el futuro un procesador de pagos cobra tarifas que afecten al Creador, se informarán antes de aplicarse.
 
 ### 6.5. Impuestos
 
@@ -245,8 +225,7 @@ Pago al Creador = Ingresos Brutos - Comisión Plataforma - Tarifas de Procesamie
 - Cumplir con obligaciones fiscales locales
 
 6.5.2. **Documentación Fiscal**:
-- Emitimos reportes anuales (Formulario 1099 para EE.UU.)
-- Proporcionamos reportes mensuales detallados
+- Su historial de ingresos y retiros está disponible en su panel
 - No retenemos impuestos (excepto cuando sea requerido por ley)
 
 6.5.3. **IVA/Impuestos sobre Ventas**:
@@ -413,8 +392,8 @@ EN LA MÁXIMA EXTENSIÓN PERMITIDA POR LA LEY, NINGUNA PARTE SERÁ RESPONSABLE P
 
 12.1.2. **Efectos**:
 - Pierde acceso a la cuenta
-- Contenido permanece en la Plataforma por 30 días (puede solicitar eliminación)
-- Pagos pendientes se procesan según cronograma normal
+- Se eliminan su cuenta, sus métodos de pago y sus documentos de verificación
+- Retire su saldo acreditado antes de cerrar la cuenta
 - Obligaciones de confidencialidad continúan
 
 ### 12.2. Terminación por la Plataforma
@@ -484,7 +463,7 @@ Para cambios menores o administrativos, nos reservamos el derecho de modificar s
 
 ### 14.1. Ley Aplicable
 
-Este Contrato se regirá e interpretará de acuerdo con las leyes de su jurisdicción de residencia, sin conflicto con principios de ley.
+Este Contrato se rige por las leyes del país donde esté constituida la sociedad que opera Fans Reserve [se indicará al constituirla]. Los delitos y las infracciones cometidos a través de la Plataforma quedan sujetos a las leyes y autoridades competentes del lugar donde se cometan o produzcan sus efectos, y usted responde personalmente de cumplir la ley de su jurisdicción, incluidos los permisos que exija su actividad.
 
 ### 14.2. Resolución de Disputas
 
@@ -542,9 +521,9 @@ Nada en este Contrato crea relación de sociedad, agencia, empleo o representaci
 ## 16. CONTACTO
 
 Para preguntas sobre este Contrato:
-- **Email**: creators@fansreserve.com
-- **Soporte para Creadores**: [Enlace a soporte]
-- **Dirección postal**: [Dirección fiscal]
+- **Email**: support@fansreserve.com
+- **Soporte para Creadores**: Centro de ayuda de la Plataforma
+- **Domicilio**: el de la sociedad operadora, que se publicará al constituirla
 
 ---
 
@@ -553,33 +532,34 @@ Para preguntas sobre este Contrato:
 Este Contrato está sujeto a las siguientes políticas adicionales:
 - Términos y Condiciones de Servicio
 - Política de Privacidad
-- Política de Uso Aceptable
-- Política de Pagos y Reembolsos
 - Política de Protección de Menores
 - Política DMCA
+- Acuerdo de Creator (Reserve), Política de Reserve, Experiencias Aceptables, Servicios Prohibidos, Cancelación y No-show
+- Normas de la Comunidad
 
 ---
 
-## ANEXO B: ESTRUCTURA DE COMISIONES
+## ANEXO B: NIVELES
 
-| Nivel de Creador | Suscriptores | Comisión | Beneficios Adicionales |
-|------------------|--------------|----------|------------------------|
-| Estándar | 0-499 | 20% | Soporte básico |
-| Premium | 500-1999 | 15% | Soporte prioritario, badge |
-| Élite | 2000+ | 10% | Soporte VIP, manager dedicado |
+| Nivel | Fans activos | Su parte (suscripciones, renovaciones y propinas) |
+|-------|--------------|---------------------------------------------------|
+| Bronce | 0+ | 80% |
+| Plata | 10+ | 82% |
+| Oro | 50+ | 84% |
+| Diamante | 200+ | 85% |
+
+Oro, Diamante y quienes cumplen una meta mensual aparecen en Creadores destacados. Tope de cualquier combinación de beneficios: 90%.
 
 ---
 
 ## ANEXO C: CRONOGRAMA DE PAGOS
 
-| Período de Retención | Nivel | Fecha de Pago |
-|----------------------|-------|---------------|
-| 14 días | Nuevo Creador | Cada lunes |
-| 7 días | Establecido | Cada lunes |
-| 3 días | Premium/Élite | Cada lunes |
+| Qué | Cuándo |
+|-----|--------|
+| Acreditación | Día 1 de cada mes, por lo pagado antes de esa fecha |
+| Retiro | Cualquier día, saldo completo, desde $50 USD |
 
 ---
-
 **AL REGISTRARSE COMO CREADOR, USTED RECONOCE QUE HA LEÍDO, ENTENDIDO Y ACEPTA ESTAR VINCULADO POR ESTE CONTRATO.**
 
-© 2024 Fans Reserve. Todos los derechos reservados.
+© 2026 Fans Reserve. Todos los derechos reservados.

@@ -18,15 +18,18 @@ export type ReserveModality = 'virtual' | 'presencial' | 'evento' | 'profesional
 
 export const RESERVE_MODALITIES: Record<ReserveModality, { label: string; icon: string; description: string }> = {
   virtual: { label: 'Virtual', icon: 'fa-video', description: 'En la sala privada de Fans Reserve o como contenido entregado en la app.' },
-  presencial: { label: 'Presencial', icon: 'fa-location-dot', description: 'En un venue, estudio o lugar público definido de antemano.' },
+  presencial: { label: 'Presencial', icon: 'fa-location-dot', description: 'En un venue, estudio o lugar público definido de antemano, o en el lugar del creator o del fan con aprobación manual (todas las categorías menos Modelos).' },
   evento: { label: 'Evento', icon: 'fa-calendar-check', description: 'Convenciones, apariciones, firmas y eventos con público.' },
   profesional: { label: 'Profesional', icon: 'fa-briefcase', description: 'Colaboraciones, producciones y servicios profesionales.' },
 };
 export const MODALITY_IDS = Object.keys(RESERVE_MODALITIES) as ReserveModality[];
 
 // --- Venue types ----------------------------------------------------------------
-// Only establishments, venues, studios and public places. Private homes, hotel
-// rooms and "private meetings" are never offered (PROHIBITED_LOCATIONS).
+// Establishments, venues, studios and public places. Hotel rooms and private or
+// "discreet" places are never offered (PROHIBITED_LOCATIONS). The only private
+// addresses are HOME_SERVICE_LOCATIONS: a professional service at the creator's
+// own place or at the place the fan proposes, in every category but Modelos,
+// always approved by hand (Carlos, 2026-10-03).
 
 export type LocationType =
   | 'online'
@@ -40,7 +43,9 @@ export type LocationType =
   | 'culinary-space'
   | 'art-space'
   | 'gaming-venue'
-  | 'commercial-space';
+  | 'commercial-space'
+  | 'creator-place'
+  | 'fan-place';
 
 export const LOCATION_TYPES: Record<LocationType, { label: string; icon: string; hint: string }> = {
   online: { label: 'Sala online de Fans Reserve', icon: 'fa-video', hint: 'Videollamada privada dentro de la app' },
@@ -55,15 +60,22 @@ export const LOCATION_TYPES: Record<LocationType, { label: string; icon: string;
   'art-space': { label: 'Taller, galería o espacio creativo', icon: 'fa-palette', hint: 'Espacio artístico abierto' },
   'gaming-venue': { label: 'Gaming center o torneo', icon: 'fa-gamepad', hint: 'Local o evento de gaming' },
   'commercial-space': { label: 'Espacio comercial o tienda', icon: 'fa-store', hint: 'Tienda, showroom o marca' },
+  'creator-place': { label: 'Lugar del creator', icon: 'fa-house-flag', hint: 'Su restaurante, local, estudio o casa, donde presta el servicio' },
+  'fan-place': { label: 'Lugar que propone el fan', icon: 'fa-map-pin', hint: 'Domicilio, oficina o evento del fan; el creator lo acepta o no' },
 };
 export const LOCATION_IDS = Object.keys(LOCATION_TYPES) as LocationType[];
 export const IN_PERSON_LOCATIONS = LOCATION_IDS.filter((l) => l !== 'online');
 
+// Private addresses. Every category but these offers them for its in-person
+// experiences and custom requests (locationsFor adds them); experiences using
+// them need manual approval.
+export const HOME_SERVICE_LOCATIONS: LocationType[] = ['creator-place', 'fan-place'];
+export const NO_HOME_SERVICE_CATEGORIES = ['modelaje-glamour'];
+export const isHomeService = (locations: readonly string[]) => locations.some((l) => (HOME_SERVICE_LOCATIONS as string[]).includes(l));
+
 // Never offered as an option, rejected by validation and by the server.
-// Some legitimate trades (e.g. catering) may need private addresses in a future
-// phase: that would be a new, reviewed venue type for those experiences only.
 export const PROHIBITED_LOCATIONS = [
-  { id: 'private-residence', label: 'Residencia privada ("mi casa", "tu casa")' },
+  { id: 'private-residence', label: 'Domicilio privado como lugar de una experiencia, salvo servicios profesionales en el lugar del creator o del fan (no en Modelos)' },
   { id: 'hotel-room', label: 'Hotel o habitación de hotel como experiencia' },
   { id: 'private-room', label: 'Habitación o "lugar privado/discreto"' },
   { id: 'vehicle', label: 'Vehículo particular' },
@@ -130,7 +142,7 @@ export const RESERVE_EXPERIENCE_TYPES: ReserveExperienceType[] = [
   t({ id: 'gastronomic-experience', name: 'Experiencia gastronómica', icon: 'fa-kitchen-set', description: 'Menú o experiencia culinaria diseñada por el creator.', modalities: ['presencial'], locations: ['restaurant', 'culinary-space'], minutes: [60, 180], defaultMinutes: 120, maxParticipants: 12 }),
 
   // Fitness
-  t({ id: 'training-1-1', name: 'Entrenamiento 1:1', icon: 'fa-dumbbell', description: 'Entrenamiento guiado, online o en gimnasio.', modalities: ['virtual', 'presencial'], locations: ['gym'], minutes: [30, 120], defaultMinutes: 60, maxParticipants: 2 }),
+  t({ id: 'training-1-1', name: 'Entrenamiento 1:1', icon: 'fa-dumbbell', description: 'Entrenamiento guiado, online, en gimnasio o a domicilio.', modalities: ['virtual', 'presencial'], locations: ['gym'], minutes: [30, 120], defaultMinutes: 60, maxParticipants: 2 }),
   t({ id: 'custom-routine', name: 'Rutina personalizada', icon: 'fa-clipboard-check', description: 'Plan de entrenamiento hecho para tus objetivos.', modalities: ['virtual'], locations: [], minutes: null, maxParticipants: 1 }),
   t({ id: 'assessment', name: 'Evaluación', icon: 'fa-heart-pulse', description: 'Evaluación de técnica, nivel y objetivos.', modalities: ['virtual'], locations: [], minutes: [20, 60], defaultMinutes: 30, maxParticipants: 1 }),
   t({ id: 'clinic', name: 'Clínica', icon: 'fa-medal', description: 'Clínica técnica en grupo.', modalities: ['presencial', 'evento'], locations: ['gym', 'event-venue'], minutes: [60, 180], defaultMinutes: 120, maxParticipants: 30 }),
@@ -165,16 +177,22 @@ export const LEGACY_EXPERIENCE_TYPES = ['meet-greet', 'qa-session', 'custom-cont
 export const experienceTypeById = (id: string) => RESERVE_EXPERIENCE_TYPES.find((x) => x.id === id);
 
 // Not offered by any category, in any form. Tests assert none of these appear.
+// Professional services with a defined purpose (a cooking class, a coaching or
+// training session, a studio photo shoot) are allowed, 1:1 included: what is
+// prohibited is selling a person's company or intimacy (PROFESSIONAL_SERVICES_ALLOWED).
 export const PROHIBITED_EXPERIENCES = [
-  'Encuentro privado',
+  'Vender compañía o tiempo personal ("pasar tiempo conmigo") sin un servicio definido',
   'Cita romántica o "date" remunerada',
   'Compensated dating',
-  '"Pasar tiempo conmigo" sin propósito definido',
-  'Hotel o residencia privada como experiencia',
+  'Hotel, habitación o lugar "discreto" como lugar de la experiencia (en el lugar del creator o del fan solo servicios profesionales, nunca en Modelos)',
   'Servicios de escort o acompañamiento',
   'Cualquier actividad sexual, virtual o presencial',
   'Lives sexuales o sexting remunerado',
 ] as const;
+
+// The other half of the rule, shown next to the prohibited list.
+export const PROFESSIONAL_SERVICES_ALLOWED =
+  'Los servicios profesionales con un propósito definido sí están permitidos, también en formato 1:1: una clase de cocina, una sesión de coaching o entrenamiento, una asesoría o una sesión de fotos en estudio. La experiencia debe decir qué se hace, dónde, cuánto dura y cuánto cuesta. Lo que no se permite es vender la compañía o la intimidad de una persona.';
 
 // --- Custom experience purposes (step 2 of "Solicitar experiencia personalizada")
 
@@ -262,7 +280,7 @@ export const CREATOR_CATEGORIES: CreatorCategory[] = [
     contentLine: 'Glamour permitido. Contenido sexual explícito no permitido.',
     restrictions: [
       'Presencial solo en lugares públicos, eventos, convenciones o estudios profesionales.',
-      'No se ofrecen encuentros privados, citas ni "pasar tiempo" sin un propósito definido.',
+      'No se ofrecen citas, compañía ni "pasar tiempo" sin un servicio profesional definido.',
       'Sesiones fotográficas solo en estudio y con fines editoriales o de marca.',
     ],
   },
@@ -401,11 +419,15 @@ export const experienceTypesFor = (category: CreatorCategory, modality?: Reserve
 export const modalitiesFor = (category: CreatorCategory, type: ReserveExperienceType) =>
   type.modalities.filter((m) => category.modalities.includes(m));
 
-// Venue types allowed for a type in a category (online for virtual).
+export const offersHomeServices = (category: CreatorCategory) => !NO_HOME_SERVICE_CATEGORIES.includes(category.id);
+
+// Venue types allowed for a type in a category (online for virtual). Wherever an
+// in-person option exists, the creator's place and the fan's place are added,
+// except in the categories that never offer private addresses.
 export const locationsFor = (category: CreatorCategory, type: ReserveExperienceType | null, modality: ReserveModality): LocationType[] => {
   if (modality === 'virtual') return ['online'];
-  const base = type ? type.locations : IN_PERSON_LOCATIONS;
-  return base.filter((l) => category.locations.includes(l));
+  const base = (type ? type.locations : IN_PERSON_LOCATIONS).filter((l) => category.locations.includes(l) && !HOME_SERVICE_LOCATIONS.includes(l));
+  return base.length && offersHomeServices(category) ? [...base, ...HOME_SERVICE_LOCATIONS] : base;
 };
 
 export const purposesFor = (category: CreatorCategory, modality: ReserveModality) =>
@@ -465,8 +487,8 @@ export const RESERVE_FLOW = ['Solicitud', 'Aceptación', 'Pago', 'Confirmación'
 
 export const RESERVE_COPY = {
   principle: 'Reservas experiencias, no personas.',
-  gift: 'Los regalos son apoyo voluntario. No garantizan respuesta, conversación, encuentro, acceso ni Reserve.',
-  subscription: 'La suscripción da acceso al contenido y a los beneficios que el creator define. No incluye videollamadas, encuentros ni Reserve.',
+  gift: 'Los regalos son apoyo voluntario. No garantizan respuesta, conversación, acceso ni experiencias de Reserve.',
+  subscription: 'La suscripción da acceso al contenido y a los beneficios que el creator define. No incluye videollamadas ni experiencias de Reserve.',
   reserve: 'Una Reserve es una experiencia concreta, con fecha, duración, precio y condiciones definidas por el creator, que el creator acepta o rechaza.',
   testPayments: 'Pagos en modo de prueba: no se realiza ningún cargo real.',
   legalDraft: 'Borrador. Requiere revisión legal antes del lanzamiento a producción.',
