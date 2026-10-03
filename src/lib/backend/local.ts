@@ -37,6 +37,7 @@ import { createLocalPlatform } from './localPlatform';
 import { createLocalSocial } from './localSocial';
 import { createLocalGifts } from './localGifts';
 import { createLocalRewards } from './localRewards';
+import { createLocalLive } from './localLive';
 import { creators as demoCreators } from '../../data/mockData';
 import { moderate } from '../moderation';
 import { demoAccount } from '../../config/demoAccounts';
@@ -243,6 +244,13 @@ const gifts = createLocalGifts({
   notify,
 });
 
+const live = createLocalLive({
+  followers: (creatorProfileId) => readJSON<{ follows?: Record<string, string[]> }>('social', {}).follows?.[creatorProfileId] ?? [],
+  currentUserId: () => readSession(),
+  onChange: (cb) => localBackend.onChange(cb),
+  notify,
+});
+
 const ok = { ok: true } as const;
 const fail = (error: string) => ({ ok: false, error });
 
@@ -252,6 +260,7 @@ export const localBackend: Backend = {
   social,
   gifts,
   rewards,
+  live,
 
   async getCurrentUser() {
     const id = readSession();

@@ -5,6 +5,8 @@ import { useLanguage } from '../context/LanguageContext';
 import LanguageSelector from './LanguageSelector';
 import BrandLogo from './BrandLogo';
 import Avatar from './Avatar';
+import NotificationBell from './NotificationBell';
+import { useDismiss } from '../hooks/useDismiss';
 import { displayEmail } from '../config/demoAccounts';
 
 const Navbar: React.FC = () => {
@@ -14,6 +16,8 @@ const Navbar: React.FC = () => {
   const location = useLocation();
   const [showMenu, setShowMenu] = useState(false);
   const [showMobile, setShowMobile] = useState(false);
+  const menuRef = useDismiss<HTMLDivElement>(showMenu, () => setShowMenu(false));
+  const navRef = useDismiss<HTMLElement>(showMobile, () => setShowMobile(false));
 
   // Close menus whenever the route changes.
   useEffect(() => {
@@ -35,7 +39,7 @@ const Navbar: React.FC = () => {
     `flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] font-medium ${location.pathname === path ? 'bg-brand-50 text-brand-700' : 'text-ink/80 hover:bg-ink/5'}`;
 
   return (
-    <nav aria-label="Principal" className="sticky top-0 z-50 border-b border-line/80 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/70">
+    <nav ref={navRef} aria-label="Principal" className="sticky top-0 z-50 border-b border-line/80 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/70">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between gap-4 md:h-[72px]">
           {/* Logo */}
@@ -64,9 +68,10 @@ const Navbar: React.FC = () => {
           {/* Right side */}
           <div className="flex items-center gap-2 sm:gap-3">
             <LanguageSelector />
+            {isAuthenticated && user && <NotificationBell user={user} />}
 
             {isAuthenticated ? (
-              <div className="relative">
+              <div ref={menuRef} className="relative">
                 <button
                   onClick={() => setShowMenu(!showMenu)}
                   aria-label="Menú de cuenta"
@@ -76,7 +81,6 @@ const Navbar: React.FC = () => {
                   <Avatar src={user?.avatar} name={user?.name ?? 'Cuenta'} size={34} decorative />
                   <i className="fas fa-chevron-down text-[10px] text-ink/50 max-sm:hidden!" aria-hidden="true"></i>
                 </button>
-                {showMenu && <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)}></div>}
                 {showMenu && (
                   <div className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-line bg-white py-2 shadow-[var(--shadow-lift)]">
                     <div className="border-b border-line px-4 pb-3 pt-1">

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useDismiss } from '../hooks/useDismiss';
 import { useLanguage, Language, languageNames, ENABLED_LANGUAGES } from '../context/LanguageContext';
 
 const LanguageSelector: React.FC = () => {
   const { language, setLanguage } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
+  const ref = useDismiss<HTMLDivElement>(isOpen, () => setIsOpen(false));
 
   const languages: { code: Language; flag: string }[] = (
     [
@@ -20,7 +22,7 @@ const LanguageSelector: React.FC = () => {
   if (ENABLED_LANGUAGES.length < 2) return null;
 
   return (
-    <div className="relative">
+    <div ref={ref} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition text-sm font-medium text-gray-700"
@@ -33,7 +35,6 @@ const LanguageSelector: React.FC = () => {
 
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
           <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 animate-fade-in">
             {languages.map((lang) => (
               <button

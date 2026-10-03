@@ -8,6 +8,7 @@ import type { Backend, BookingDetails, BookingStatus, ExperienceType, ReserveDet
 import { creators as demoCreators } from '../../data/mockData';
 import { createSupabasePlatform } from './supabasePlatform';
 import { createSupabaseSocial } from './supabaseSocial';
+import { createSupabaseLive } from './supabaseLive';
 import { createSupabaseGifts } from './supabaseGifts';
 import { createSupabaseRewards } from './supabaseRewards';
 import { BRAND } from '../../config/brand';
@@ -199,6 +200,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
     social: createSupabaseSocial(sb),
     gifts: createSupabaseGifts(sb),
     rewards: createSupabaseRewards(sb),
+    live: createSupabaseLive(sb),
 
     async getCurrentUser() {
       const { data: sessionData } = await sb.auth.getSession();

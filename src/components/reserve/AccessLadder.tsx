@@ -2,6 +2,8 @@ import React from 'react';
 import type { User } from '../../context/AuthContext';
 import { socialApi, setFollow, compactCount } from '../../lib/social';
 import { usePlatformQuery } from '../../lib/platform';
+import { Link } from 'react-router-dom';
+import { useCurrentLive, useLiveAlerts, setLiveAlerts } from '../../lib/live';
 
 export const useFollow = (creatorProfileId: string | undefined, user: User | null) =>
   usePlatformQuery(
@@ -25,6 +27,8 @@ interface Props {
 // Seguir → Suscribirse → Live → Reserve. Each one says what it gives and what it doesn't.
 const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, following, experiences, onSubscribe, onNeedLogin }) => {
   const toggleFollow = () => (user ? setFollow(user, creator.id, !following) : onNeedLogin());
+  const live = useCurrentLive(creator.id);
+  const alerts = useLiveAlerts(following ? creator.id : undefined, user);
   const step = 'flex flex-col rounded-2xl border border-line bg-white p-4';
   const action = 'mt-3 inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition';
 
@@ -63,10 +67,38 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
             </button>
           ))}
         </li>
-        <li className={step}>
+        <li className={`${step} ${live ? 'border-red-200 bg-red-50/40' : ''}`} data-testid="ladder-live">
           <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">3 · Live</span>
-          <span className="mt-1 text-sm font-semibold text-ink">En vivo</span>
-          <span className="text-xs text-ink/60">Sesiones en vivo en la sala privada de Fans Reserve, reservadas desde Reserve.</span>
+          {live ? (
+            <>
+              <span className="mt-1 flex items-center text-sm font-semibold text-red-600" data-testid="live-now">
+                <span className="mr-1.5 h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>En Live ahora · Gratis
+              </span>
+              <span className="truncate text-xs text-ink/60">{live.title}</span>
+              {!isOwner && (
+                <Link to={`/en-vivo/${creator.id}`} className={`${action} bg-red-600 text-white hover:bg-red-700`}>
+                  Ver Live
+                </Link>
+              )}
+            </>
+          ) : (
+            <>
+              <span className="mt-1 text-sm font-semibold text-ink">En vivo</span>
+              <span className="text-xs text-ink/60">Lives gratis para todos y sesiones privadas reservadas desde Reserve.</span>
+            </>
+          )}
+          {!isOwner && following && user && (
+            <button
+              type="button"
+              onClick={() => setLiveAlerts(user, creator.id, !alerts)}
+              aria-pressed={alerts}
+              data-testid="live-alerts"
+              className="mt-2 inline-flex items-center gap-1.5 self-start text-xs font-medium text-ink/70 hover:text-ink"
+            >
+              <i aria-hidden="true" className={`fas ${alerts ? 'fa-bell text-brand-600' : 'fa-bell-slash'}`}></i>
+              {alerts ? 'Te avisaremos cuando esté en Live' : 'Avisos de Live desactivados'}
+            </button>
+          )}
         </li>
         <li className={`${step} border-gold-300 bg-gradient-to-br from-white to-gold-50`}>
           <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gold-700">4 · Reserve</span>

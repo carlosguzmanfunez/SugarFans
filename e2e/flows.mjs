@@ -421,6 +421,37 @@ const run = async () => {
       await waitPath(page, '/profile');
       expect((await page.getByRole('button', { name: /Cerrar Sesión/ }).count()) === 0, 'el menú siguió abierto');
     });
+    await check('El menú de cuenta se cierra al tocar fuera o con Escape', async () => {
+      const menuOpen = async () => (await page.getByRole('button', { name: /Cerrar Sesión/ }).count()) > 0;
+      await page.click('button[aria-label="Menú de cuenta"]');
+      expect(await menuOpen(), 'el menú no se abrió');
+      await page.mouse.click(40, 500);
+      await page.waitForTimeout(100);
+      expect(!(await menuOpen()), 'el menú siguió abierto tras hacer clic fuera');
+      await page.click('button[aria-label="Menú de cuenta"]');
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(100);
+      expect(!(await menuOpen()), 'el menú siguió abierto tras pulsar Escape');
+      await page.click('button[aria-label="Menú de cuenta"]');
+      await page.click('button[aria-label="Menú de cuenta"]');
+      expect(!(await menuOpen()), 'el botón ya no cierra el menú');
+    });
+    await check('La campanita se cierra al tocar fuera o con Escape', async () => {
+      const panel = page.getByTestId('notification-panel');
+      await page.getByTestId('notification-bell').click();
+      await panel.waitFor();
+      await page.mouse.click(40, 500);
+      await panel.waitFor({ state: 'detached' });
+      await page.getByTestId('notification-bell').click();
+      await panel.waitFor();
+      await page.keyboard.press('Escape');
+      await panel.waitFor({ state: 'detached' });
+      await page.getByTestId('notification-bell').click();
+      await page.click('button[aria-label="Menú de cuenta"]');
+      await panel.waitFor({ state: 'detached' });
+      await page.getByRole('button', { name: /Cerrar Sesión/ }).waitFor();
+      await page.mouse.click(40, 500);
+    });
     await check('Un fan no puede entrar al panel de creador ni al de admin', async () => {
       await page.goto(`${BASE}/creator/dashboard`);
       await waitPath(page, '/explore');
@@ -1707,14 +1738,15 @@ const run = async () => {
       const names = R.CREATOR_CATEGORIES.flatMap((c) => [c.name, ...c.aliases]);
       expect(!names.some((n) => forbidden.test(n)), `categorías: ${names.join(', ')}`);
     });
-    await check('Modelaje & Glamour existe y marca la línea de contenido', async () => {
-      const mg = R.CREATOR_CATEGORIES.find((c) => c.name === 'Modelaje & Glamour');
-      expect(!!mg, 'falta Modelaje & Glamour');
+    await check('Modelos existe y marca la línea de contenido', async () => {
+      const mg = R.CREATOR_CATEGORIES.find((c) => c.name === 'Modelos');
+      expect(!!mg, 'falta Modelos');
       expect(mg.contentLine === 'Glamour permitido. Contenido sexual explícito no permitido.', `línea: ${mg.contentLine}`);
       expect(R.categoryFor('Modelaje').id === 'modelaje-glamour', 'el nombre antiguo "Modelaje" no se reconoce');
+      expect(R.categoryFor('Modelaje & Glamour').id === 'modelaje-glamour', 'el nombre antiguo "Modelaje & Glamour" no se reconoce');
     });
-    await check('Modelaje & Glamour no ofrece encuentro privado, citas, hotel ni escort', async () => {
-      const types = R.experienceTypesFor(R.categoryFor('Modelaje & Glamour'));
+    await check('Modelos no ofrece encuentro privado, citas, hotel ni escort', async () => {
+      const types = R.experienceTypesFor(R.categoryFor('Modelos'));
       const bad = types.filter((t) => notOffered.test(`${t.name} ${t.description}`));
       expect(bad.length === 0, `tipos prohibidos: ${bad.map((t) => t.name).join(', ')}`);
       const locs = R.CREATOR_CATEGORIES.find((c) => c.id === 'modelaje-glamour').locations;
@@ -1732,22 +1764,22 @@ const run = async () => {
     });
     await check('Las opciones dependen de la categoría', async () => {
       const cocina = R.experienceTypesFor(R.categoryFor('Cocina')).map((t) => t.id);
-      const glamour = R.experienceTypesFor(R.categoryFor('Modelaje & Glamour')).map((t) => t.id);
+      const glamour = R.experienceTypesFor(R.categoryFor('Modelos')).map((t) => t.id);
       const fitness = R.experienceTypesFor(R.categoryFor('Fitness')).map((t) => t.id);
       expect(cocina.includes('cooking-class') && !glamour.includes('cooking-class'), 'clase de cocina mal asignada');
       expect(glamour.includes('photo-session') && !fitness.includes('photo-session'), 'sesión de fotos mal asignada');
       expect(R.locationsFor(R.categoryFor('Fitness'), R.experienceTypeById('training-1-1'), 'presencial').includes('gym'), 'fitness sin gimnasio');
-      expect(!R.locationsFor(R.categoryFor('Modelaje & Glamour'), null, 'presencial').includes('restaurant'), 'glamour permite restaurantes');
+      expect(!R.locationsFor(R.categoryFor('Modelos'), null, 'presencial').includes('restaurant'), 'glamour permite restaurantes');
     });
     await check('Una experiencia necesita estar definida y moderada para publicarse', async () => {
       const base = { title: 'Sesión de fotos', description: 'Sesión profesional en estudio.', type: 'photo-session', price: 120, durationMinutes: 60, image: '', active: true };
       const d = { ...R.defaultDetails(), modality: 'profesional', locationTypes: ['studio'], city: 'Miami' };
-      expect(R.validateExperience({ ...base, details: d }, 'Modelaje & Glamour').ok, 'rechaza una experiencia válida');
-      expect(!R.validateExperience({ ...base, type: 'cita' }, 'Modelaje & Glamour').ok, 'acepta un tipo inexistente');
-      expect(!R.validateExperience({ ...base, details: { ...d, locationTypes: ['hotel-room'] } }, 'Modelaje & Glamour').ok, 'acepta hotel');
-      expect(!R.validateExperience({ ...base, details: d, title: 'Encuentro privado conmigo' }, 'Modelaje & Glamour').ok, 'acepta "encuentro privado"');
-      expect(!R.validateExperience({ ...base, details: d, type: 'cooking-class' }, 'Modelaje & Glamour').ok, 'acepta un tipo de otra categoría');
-      expect(R.validateExperience({ ...base, details: { ...d, excludes: ['Sin contacto fuera de la app'] }, description: 'Sin contenido sexual: solo moda.' }, 'Modelaje & Glamour').ok, 'las negaciones se bloquean');
+      expect(R.validateExperience({ ...base, details: d }, 'Modelos').ok, 'rechaza una experiencia válida');
+      expect(!R.validateExperience({ ...base, type: 'cita' }, 'Modelos').ok, 'acepta un tipo inexistente');
+      expect(!R.validateExperience({ ...base, details: { ...d, locationTypes: ['hotel-room'] } }, 'Modelos').ok, 'acepta hotel');
+      expect(!R.validateExperience({ ...base, details: d, title: 'Encuentro privado conmigo' }, 'Modelos').ok, 'acepta "encuentro privado"');
+      expect(!R.validateExperience({ ...base, details: d, type: 'cooking-class' }, 'Modelos').ok, 'acepta un tipo de otra categoría');
+      expect(R.validateExperience({ ...base, details: { ...d, excludes: ['Sin contacto fuera de la app'] }, description: 'Sin contenido sexual: solo moda.' }, 'Modelos').ok, 'las negaciones se bloquean');
       expect(!R.moderate('¿Nos vemos en tu casa? Escríbeme al whatsapp', 'request').ok, 'la solicitud con casa/whatsapp pasa');
     });
 
@@ -1763,12 +1795,12 @@ const run = async () => {
     await login(resF, 'fan@sugarfans.com', 'demo1234', { remember: false });
     await waitPath(resF, '/explore');
 
-    await check('Explorar y la portada muestran Modelaje & Glamour y ninguna categoría +18', async () => {
+    await check('Explorar y la portada muestran Modelos y ninguna categoría +18', async () => {
       await resF.goto(`${BASE}/explore`);
-      await resF.getByRole('button', { name: /Modelaje & Glamour/ }).waitFor();
+      await resF.getByRole('button', { name: /Modelos/ }).waitFor();
       const chips = (await resF.locator('button[aria-pressed]').allTextContents()).join(' | ');
       expect(!forbidden.test(chips), `categorías visibles: ${chips}`);
-      await resF.getByRole('button', { name: /Modelaje & Glamour/ }).click();
+      await resF.getByRole('button', { name: /Modelos/ }).click();
       await resF.getByTestId('creator-card').filter({ hasText: 'Valentina Rose' }).waitFor();
       await resF.goto(`${BASE}/`);
       await resF.getByText('Sigue a tus creators favoritos, accede a contenido exclusivo y reserva experiencias directamente con ellos.').waitFor();
@@ -1784,6 +1816,45 @@ const run = async () => {
       await resF.reload();
       // The follow state loads after the first render: wait for it instead of reading it once.
       await resF.getByTestId('follow-button').and(resF.locator('[aria-pressed="true"]')).waitFor();
+    });
+    await check('Campanita: seguir activa los avisos de Live y se pueden apagar', async () => {
+      const toggle = resF.getByTestId('live-alerts');
+      await toggle.and(resF.locator('[aria-pressed="true"]')).getByText('Te avisaremos cuando esté en Live').waitFor();
+      await toggle.click();
+      await toggle.getByText('Avisos de Live desactivados').waitFor();
+      await toggle.click();
+      await toggle.getByText('Te avisaremos cuando esté en Live').waitFor();
+    });
+    await check('Live gratis: el creator lo inicia y el fan recibe el aviso en la campanita', async () => {
+      await resC.goto(`${BASE}/creator/dashboard`);
+      const panel = resC.getByTestId('creator-live-panel');
+      await panel.getByLabel('Título del Live').fill('Preguntas y respuestas de estilo');
+      await panel.getByRole('button', { name: 'Iniciar Live' }).click();
+      await waitPath(resC, '/en-vivo/1');
+      await resC.getByRole('button', { name: 'Encender cámara y empezar' }).waitFor();
+      await resF.goto(`${BASE}/explore`);
+      await resF.getByTestId('notification-count').getByText('1').waitFor();
+      await resF.getByTestId('notification-bell').click();
+      const item = resF.getByTestId('notification-panel').getByRole('link', { name: /está en Live/ });
+      await item.getByText('Preguntas y respuestas de estilo').waitFor();
+      expect((await resF.getByTestId('notification-count').count()) === 0, 'el aviso sigue sin leer al abrir la campanita');
+      await item.click();
+      await waitPath(resF, '/en-vivo/1');
+      await resF.getByRole('button', { name: 'Entrar al Live' }).click();
+      await resF.getByTestId('live-problem').getByText(/solo funciona en la web publicada/).waitFor();
+      await resF.goto(`${BASE}/creator/1`);
+      await resF.getByTestId('live-now').waitFor();
+    });
+    await check('Live gratis: al terminarlo el perfil deja de mostrar "En Live ahora"', async () => {
+      await resC.goto(`${BASE}/creator/dashboard`);
+      await resC.getByTestId('creator-live-panel').getByRole('button', { name: 'Terminar Live' }).click();
+      await resC.getByTestId('creator-live-panel').getByRole('button', { name: 'Iniciar Live' }).waitFor();
+      await resF.goto(`${BASE}/creator/1`);
+      await resF.getByTestId('ladder-live').getByText('En vivo', { exact: true }).waitFor();
+      expect((await resF.getByTestId('live-now').count()) === 0, 'sigue en Live');
+      await resF.goto(`${BASE}/en-vivo/1`);
+      await resF.getByText('Este creator no está en Live ahora').waitFor();
+      await resF.goto(`${BASE}/creator/1`);
     });
     await check('La suscripción y los regalos dicen que no incluyen Reserve ni encuentros', async () => {
       const section = resF.getByTestId('creator-reserve');
@@ -1856,7 +1927,7 @@ const run = async () => {
       const form = resC.getByTestId('experience-form');
       const types = form.getByTestId('allowed-types');
       await types.locator('[data-type=photo-session]').waitFor();
-      expect((await types.locator('[data-type=cooking-class]').count()) === 0, 'Modelaje & Glamour ofrece clase de cocina');
+      expect((await types.locator('[data-type=cooking-class]').count()) === 0, 'Modelos ofrece clase de cocina');
       const text = await types.innerText();
       expect(!notOffered.test(text), `tipos visibles: ${text}`);
       await form.getByText('Glamour permitido. Contenido sexual explícito no permitido.').waitFor();
@@ -1934,13 +2005,22 @@ const run = async () => {
     });
     await narrow.close();
 
-    const mobile = await newContext(browser, { viewport: { width: 390, height: 844 }, locale: 'es-ES' });
+    const mobile = await newContext(browser, { viewport: { width: 390, height: 844 }, locale: 'es-ES', hasTouch: true });
     const m = await newPage(mobile);
     await check('Móvil: login, perfil y cerrar sesión desde el menú móvil', async () => {
       await m.goto(`${BASE}/age-verification`);
       await m.getByRole('button', { name: /Soy mayor|18/ }).first().click();
       await login(m, 'creator@sugarfans.com', 'demo1234');
       await waitPath(m, '/explore');
+      await m.locator('button[aria-label="Menú de cuenta"]').tap();
+      await m.getByRole('button', { name: /Cerrar Sesión/ }).first().waitFor();
+      await m.touchscreen.tap(195, 600);
+      await m.waitForTimeout(100);
+      expect((await m.getByRole('button', { name: /Cerrar Sesión/ }).count()) === 0, 'el menú de cuenta siguió abierto al tocar fuera');
+      await m.locator('button[aria-label="Menú"]').tap();
+      await m.getByRole('link', { name: /Panel/ }).waitFor();
+      await m.touchscreen.tap(195, 780);
+      await m.getByRole('link', { name: /Panel/ }).waitFor({ state: 'detached' });
       await m.locator('button[aria-label="Menú"]').click();
       await m.getByRole('link', { name: /Panel/ }).click();
       await waitPath(m, '/creator/dashboard');

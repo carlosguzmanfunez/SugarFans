@@ -3,6 +3,7 @@ import type { PlatformBackend } from './platformTypes';
 import type { MediaUpload, SocialBackend } from './socialTypes';
 import type { GiftsBackend } from './giftTypes';
 import type { RewardsBackend } from './rewardTypes';
+import type { LiveBackend } from './liveTypes';
 import type { ApprovalMode, CancellationPolicyId, LocationType, PurposeId, ReserveModality } from '../../config/reserve';
 export type * from './platformTypes';
 export type * from './socialTypes';
@@ -295,4 +296,6 @@ export interface Backend {
   gifts: GiftsBackend;
   // Creator rewards: referral link, levels, monthly goals, featured (see rewardTypes.ts).
   rewards: RewardsBackend;
+  // Free Live state, the fans' bell and their notifications (see liveTypes.ts).
+  live: LiveBackend;
 }
