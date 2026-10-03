@@ -61,10 +61,9 @@ export interface Transaction {
   createdAt: string;
 }
 
+// Withdrawals go to the creator's PayPal account (PayPal Payouts).
 export interface PayoutAccount {
-  holder: string;
-  bank: string;
-  accountLast4: string;
+  email: string;
 }
 
 export interface Payout {
@@ -73,11 +72,15 @@ export interface Payout {
   creatorName: string;
   amount: number;
   accountLabel: string;
-  // Paid at once when the creator withdraws (always the whole credited balance).
-  status: 'paid';
+  // Always the whole credited balance. 'sending' while PayPal delivers it;
+  // 'failed' when PayPal couldn't (the amount is back in the balance).
+  status: 'sending' | 'paid' | 'failed';
+  fee: number; // PayPal's fee for sending it, paid by the creator
+  net: number; // what reaches the creator's PayPal account (amount - fee)
   availableBefore: number; // balance the creator had when withdrawing
   requestedAt: string;
-  paidAt: string;
+  paidAt: string | null;
+  paypalState?: string; // PayPal's own state of a withdrawal still on its way (e.g. PENDING, UNCLAIMED)
 }
 
 export type ReportKind = 'post' | 'creator' | 'support' | 'other';
@@ -164,7 +167,10 @@ export interface PlatformBackend {
   setPayoutAccount(user: User, account: PayoutAccount): Promise<AuthResult>;
   myPayouts(userId: string): Promise<Payout[]>;
   // Withdraws the whole credited balance (minimum $50); returns the amount paid.
-  requestPayout(user: User): Promise<AuthResult & { amount?: number }>;
+  // amount = what reaches the creator's PayPal (after PayPal's fee).
+  requestPayout(user: User): Promise<AuthResult & { amount?: number; status?: 'sending' | 'paid' }>;
+  // Cancels a withdrawal nobody received (PayPal: UNCLAIMED); the amount goes back to the balance.
+  cancelPayout(user: User, payoutId: string): Promise<AuthResult>;
   listPayouts(): Promise<Payout[]>; // admin
 
   submitReport(reporter: User | null, input: ReportInput): Promise<AuthResult>;

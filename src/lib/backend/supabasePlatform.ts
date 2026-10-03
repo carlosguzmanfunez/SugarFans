@@ -24,7 +24,7 @@ const fail = (error: string): AuthResult => ({ ok: false, error });
 // Our functions raise Spanish messages meant for the user; hide anything else.
 const dbError = (error: { message?: string } | null, fallback: string) => {
   const msg = error?.message ?? '';
-  return fail(/[áéíóúñ¿$]|Debes|Esta acción|Elige|Indica|Faltan|Deja|Solo|Tu |Ya |No puedes|Añade|Verifica|La solicitud|Reporte|Este perfil|Ese nombre/.test(msg) ? msg : fallback);
+  return fail(/[áéíóúñ¿$]|Debes|Esta acción|Elige|Indica|Faltan|Deja|Solo|Tu |Tienes|Ya |No puedes|Añade|Verifica|La solicitud|Reporte|Este perfil|Ese nombre/.test(msg) ? msg : fallback);
 };
 const done = (error: { message?: string } | null, fallback: string) => (error ? dbError(error, fallback) : ok);
 
@@ -96,9 +96,11 @@ const toPayout = (r: Row): Payout => ({
   amount: Number(r.amount),
   accountLabel: r.account_label,
   status: r.status,
+  fee: Number(r.fee ?? 0),
+  net: Number(r.net ?? r.amount),
   availableBefore: Number(r.available_before ?? 0),
   requestedAt: r.requested_at,
-  paidAt: r.paid_at,
+  paidAt: r.paid_at ?? null,
 });
 
 const toReport = (r: Row): Report => ({
@@ -244,28 +246,66 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
 
   async payoutAccount(userId) {
     const { data } = await sb.from('payout_accounts').select('*').eq('user_id', userId).maybeSingle();
-    return data ? { holder: data.holder, bank: data.bank, accountLast4: data.account_last4 } : null;
+    // An older bank account counts as none: withdrawals now go to PayPal.
+    return data?.paypal_email ? { email: data.paypal_email } : null;
   },
 
   async setPayoutAccount(user, account) {
     const { error } = await sb.from('payout_accounts').upsert({
       user_id: user.id,
-      holder: account.holder,
-      bank: account.bank,
-      account_last4: account.accountLast4,
+      paypal_email: account.email,
+      holder: null,
+      bank: null,
+      account_last4: null,
       updated_at: new Date().toISOString(),
     });
     return done(error, 'No se pudo guardar la cuenta');
   },
 
   async myPayouts(userId) {
-    const { data } = await sb.from('payouts').select('*').eq('user_id', userId).order('requested_at', { ascending: false });
-    return (data ?? []).map(toPayout);
+    const read = async () => {
+      const { data } = await sb.from('payouts').select('*').eq('user_id', userId).order('requested_at', { ascending: false });
+      return (data ?? []).map(toPayout);
+    };
+    const payouts = await read();
+    if (!payouts.some((p) => p.status === 'sending')) return payouts;
+    // A withdrawal on its way: ask PayPal again, in case its notification didn't arrive.
+    const token = (await sb.auth.getSession()).data.session?.access_token;
+    const r = await fetch('/api/paypal', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token ?? ''}` },
+      body: JSON.stringify({ action: 'payout-check' }),
+    }).catch(() => null);
+    const body = (await r?.json().catch(() => null)) as { items?: { id: string; paypalStatus: string }[] } | null;
+    if (!r?.ok || !body?.items?.length) return payouts;
+    const states = new Map(body.items.map((i) => [i.id, i.paypalStatus]));
+    return (await read()).map((p) => (p.status === 'sending' && states.has(p.id) ? { ...p, paypalState: states.get(p.id) } : p));
   },
 
   async requestPayout() {
+    // With PayPal set up the server sends it with PayPal Payouts; otherwise it's recorded as paid.
+    const token = (await sb.auth.getSession()).data.session?.access_token;
+    const r = await fetch('/api/paypal', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token ?? ''}` },
+      body: JSON.stringify({ action: 'payout' }),
+    }).catch(() => null);
+    const body = (await r?.json().catch(() => null)) as { status?: 'sending' | 'paid'; net?: number; error?: string } | null;
+    if (r?.ok) return { ok: true, amount: Number(body?.net ?? 0), status: body?.status ?? 'paid' };
+    if (r && r.status !== 503 && r.status !== 404 && body?.error) return fail(body.error);
     const { data, error } = await sb.rpc('request_payout');
-    return error ? dbError(error, 'No se pudo hacer el retiro') : { ok: true, amount: Number(data) };
+    return error ? dbError(error, 'No se pudo hacer el retiro') : { ok: true, amount: Number(data), status: 'paid' as const };
+  },
+
+  async cancelPayout(_user, payoutId) {
+    const token = (await sb.auth.getSession()).data.session?.access_token;
+    const r = await fetch('/api/paypal', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token ?? ''}` },
+      body: JSON.stringify({ action: 'payout-cancel', payoutId }),
+    }).catch(() => null);
+    const body = (await r?.json().catch(() => null)) as { error?: string } | null;
+    return r?.ok ? { ok: true } : fail(body?.error ?? 'No se pudo conectar con PayPal. Intenta de nuevo.');
   },
 
   async listPayouts() {

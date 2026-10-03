@@ -45,12 +45,13 @@ export const addPaymentMethod = async (user: User, input: PaymentMethodInput): P
 export const removePaymentMethod = (user: User, id: string) => after(p.removePaymentMethod(user, id));
 export const setDefaultPaymentMethod = (user: User, id: string) => after(p.setDefaultPaymentMethod(user, id));
 
-export const setPayoutAccount = async (user: User, holder: string, bank: string, account: string): Promise<AuthResult> => {
-  const built = buildPayoutAccount(holder, bank, account);
+export const setPayoutAccount = async (user: User, paypalEmail: string): Promise<AuthResult> => {
+  const built = buildPayoutAccount(paypalEmail);
   if (!built.account) return { ok: false, error: built.error };
   return after(p.setPayoutAccount(user, built.account as PayoutAccount));
 };
 export const requestPayout = (user: User) => after(p.requestPayout(user));
+export const cancelPayout = (user: User, payoutId: string) => after(p.cancelPayout(user, payoutId));
 
 export const submitReport = (reporter: User | null, input: ReportInput) => after(p.submitReport(reporter, input));
 export const resolveReport = (id: string, action: 'remove' | 'resolve' | 'dismiss') => after(p.resolveReport(id, action));

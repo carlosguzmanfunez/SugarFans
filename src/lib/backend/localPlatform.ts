@@ -2,7 +2,7 @@
 // Everything lives in one localStorage key; accounts are touched through the
 // callbacks local.ts passes in.
 import { readJSON, writeJSONChecked, newId } from '../storage';
-import { addMonths, round2, validateReport, validateTip, validateVerification, computeEarnings, MIN_PAYOUT, money, buildManagedProfile } from '../platformRules';
+import { addMonths, round2, validateReport, validateTip, validateVerification, computeEarnings, MIN_PAYOUT, payoutFee, payoutAccountLabel, money, buildManagedProfile } from '../platformRules';
 import { creators as catalogue } from '../../data/mockData';
 import type { AuthResult, User } from './types';
 import type { Block, ManagedProfile, PaymentMethod, Payout, PayoutAccount, PlatformBackend, Report, Transaction, VerificationRequest } from './platformTypes';
@@ -375,13 +375,12 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
     },
 
     // Pays the whole credited balance at once; no admin step.
-    // INTEGRATION: Stripe Connect / PayPal Payouts would send the money here.
     async requestPayout(user) {
       const s = load();
       if (user.role !== 'creator') return fail('Solo los creadores pueden retirar');
       if (!user.isVerified) return fail('Verifica tu identidad antes de solicitar un retiro');
       const account = s.payoutAccounts[user.id];
-      if (!account) return fail('Añade una cuenta bancaria para retiros');
+      if (!account) return fail('Añade el email de tu cuenta PayPal para retiros');
       const { available } = earningsOf(s, user);
       if (available < MIN_PAYOUT)
         return fail(`Necesitas al menos ${money(MIN_PAYOUT)} USD acreditados para retirar; tu saldo disponible es ${money(available)}`);
@@ -394,7 +393,9 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
             userId: user.id,
             creatorName: user.name,
             amount: available,
-            accountLabel: `${account.bank} •••• ${account.accountLast4}`,
+            fee: payoutFee(available),
+            net: round2(available - payoutFee(available)),
+            accountLabel: payoutAccountLabel(account),
             status: 'paid',
             availableBefore: available,
             requestedAt: now(),
@@ -402,7 +403,12 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
           },
         ],
       }));
-      return result.ok ? { ...result, amount: available } : result;
+      return result.ok ? { ...result, amount: round2(available - payoutFee(available)), status: 'paid' as const } : result;
+    },
+
+    // Local withdrawals are paid at once, so there's never one to cancel.
+    async cancelPayout() {
+      return fail('Este retiro ya no se puede cancelar.');
     },
 
     async listPayouts() {
