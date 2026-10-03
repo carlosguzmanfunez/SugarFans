@@ -18,7 +18,7 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const MicrosoftIcon = () => (
+export const MicrosoftIcon = () => (
   <svg aria-hidden="true" viewBox="0 0 21 21" className="h-[18px] w-[18px]">
     <rect x="1" y="1" width="9" height="9" fill="#F25022" />
     <rect x="11" y="1" width="9" height="9" fill="#7FBA00" />
@@ -29,10 +29,12 @@ const MicrosoftIcon = () => (
 
 const PROVIDERS: { id: SocialProvider; label: string; Icon: React.FC }[] = [
   { id: 'google', label: 'Google', Icon: GoogleIcon },
-  { id: 'azure', label: 'Microsoft', Icon: MicrosoftIcon },
+  // Microsoft (Outlook/Hotmail) is supported but hidden for now (Carlos, 2026-10-03).
+  // To bring it back, enable Azure in Supabase and uncomment:
+  // { id: 'azure', label: 'Microsoft', Icon: MicrosoftIcon },
 ];
 
-// "Continuar con Google / Microsoft". Works for both sign-in and sign-up: a new
+// "Continuar con Google". Works for both sign-in and sign-up: a new
 // account picks fan or creator and accepts the terms on /auth/callback.
 const SocialLoginButtons: React.FC<{ role?: UserRole; from?: string; onError: (message: string) => void }> = ({ role, from, onError }) => {
   const { signInWithProvider } = useAuth();

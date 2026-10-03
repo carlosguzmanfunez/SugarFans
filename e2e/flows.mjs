@@ -356,11 +356,11 @@ const run = async () => {
     });
 
     console.log('\nInicio de sesión, persistencia y cierre de sesión');
-    await check('Login y registro ofrecen Google y Microsoft; sin servidor avisan sin salir de la página', async () => {
+    await check('Login y registro ofrecen Google (Microsoft oculto por ahora); sin servidor avisan sin salir de la página', async () => {
       await page.goto(`${BASE}/login`);
-      await page.getByRole('button', { name: 'Continuar con Google' }).waitFor();
-      await page.getByRole('button', { name: 'Continuar con Microsoft' }).click();
-      expect((await errorText(page))?.includes('Microsoft'), 'no avisó');
+      await page.getByRole('button', { name: 'Continuar con Google' }).click();
+      expect((await errorText(page))?.includes('Google'), 'no avisó');
+      expect((await page.getByText('Continuar con Microsoft').count()) === 0, 'sigue el botón de Microsoft');
       await waitPath(page, '/login');
       await page.goto(`${BASE}/register`);
       await page.getByRole('button', { name: 'Continuar con Google' }).click();
