@@ -171,7 +171,7 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 
 ## 6. PAGOS Y SUSCRIPCIONES
 
-6.1. **Métodos de Pago**: Tarjetas de crédito o débito Visa y Mastercard, PayPal y Google Pay. Mientras la Plataforma está en modo de prueba no se realizan cargos reales.
+6.1. **Métodos de Pago y Moneda**: Tarjetas de crédito o débito Visa y Mastercard, PayPal y Google Pay. Todos los precios y pagos se expresan y se cobran en dólares estadounidenses (USD); si su tarjeta o cuenta usa otra moneda, la conversión la hace su banco o proveedor. Mientras la Plataforma está en modo de prueba no se realizan cargos reales.
 
 6.2. **Suscripciones**:
 - Se renuevan cada mes en la misma fecha en que se suscribió
@@ -196,6 +196,7 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 - La Plataforma conserva siempre al menos el 10% de cada venta
 - Los ingresos se acreditan el día 1 de cada mes; lo cobrado a mitad de mes aparece como pendiente
 - Retiro del saldo completo a cuenta bancaria, cualquier día, desde $50 USD
+- La comisión que cobre el procesador de pagos por enviar el retiro se descuenta del monto retirado
 - Los Creadores son responsables de sus obligaciones fiscales
 
 6.6. **Impuestos**:

@@ -97,7 +97,7 @@ const CreatorPayouts: React.FC = () => {
         <h3 className="font-bold text-gray-900 mb-1">Retirar saldo</h3>
         <p className="text-sm text-gray-500 mb-4">
           Tus ingresos se acreditan el día 1 de cada mes y se acumulan si no los retiras. Puedes retirar en cualquier momento del mes, siempre el
-          saldo completo, a partir de {money(MIN_PAYOUT)} USD.
+          saldo completo, a partir de {money(MIN_PAYOUT)} USD. Todo se paga en dólares (USD), y la comisión por enviar el retiro se descuenta del monto retirado.
         </p>
         {!verified && (
           <p className="text-sm bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl p-3 mb-4">
