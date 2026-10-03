@@ -26,14 +26,15 @@ const livekitEnv = () => ({
 });
 
 // GET /api/live-token: checks the LiveKit settings without revealing them
-// (only the server host, the key's first letters and the lengths) and asks
+// (only the server host, the key's first and last letters and the lengths) and asks
 // LiveKit whether it accepts the key and secret.
 export async function GET(): Promise<Response> {
   const { LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET } = livekitEnv();
   const checks = {
     url: LIVEKIT_URL ? LIVEKIT_URL.replace(/^(\w+:\/\/[^/]+).*$/, '$1') : 'FALTA',
     urlOk: !!LIVEKIT_URL && /^wss?:\/\/|^https?:\/\//.test(LIVEKIT_URL),
-    key: LIVEKIT_API_KEY ? `${LIVEKIT_API_KEY.slice(0, 3)}… (${LIVEKIT_API_KEY.length} caracteres)` : 'FALTA',
+    // The key id isn't secret on its own; its ending lets you match it in LiveKit's key list.
+    key: LIVEKIT_API_KEY ? `${LIVEKIT_API_KEY.slice(0, 3)}…${LIVEKIT_API_KEY.slice(-4)} (${LIVEKIT_API_KEY.length} caracteres)` : 'FALTA',
     keyOk: !!LIVEKIT_API_KEY && LIVEKIT_API_KEY.startsWith('API'),
     secret: LIVEKIT_API_SECRET ? `${LIVEKIT_API_SECRET.length} caracteres` : 'FALTA',
     secretOk: !!LIVEKIT_API_SECRET && LIVEKIT_API_SECRET.length >= 30 && LIVEKIT_API_SECRET !== LIVEKIT_API_KEY,
