@@ -116,10 +116,11 @@ globalThis.fetch = async (url, init = {}) => {
     db.payouts.set(id, { user: body.p_user, status: 'sending', amount: 160, fee: 3.2, net: 156.8 });
     return res(200, { id, amount: 160, fee: 3.2, net: 156.8, email: 'vale@example.com' });
   }
-  if (u.includes('/rest/v1/payouts?user_id=eq.')) {
+  if (u.includes('/rest/v1/payouts?') && u.includes('user_id=eq.')) {
     if (h.apikey !== 'sb_secret_test') return res(401, {});
     const user = decodeURIComponent(u.split('user_id=eq.')[1].split('&')[0]);
-    return res(200, [...db.payouts].filter(([, x]) => x.user === user && x.status === 'sending').map(([id]) => ({ id, paypal_batch_id: `BATCH-${id}` })));
+    const only = u.includes('id=eq.') ? decodeURIComponent(u.split('?id=eq.')[1]?.split('&')[0] ?? '') : '';
+    return res(200, [...db.payouts].filter(([id, x]) => x.user === user && x.status === 'sending' && (!only || id === only)).map(([id]) => ({ id, paypal_batch_id: `BATCH-${id}`, paypal_item_id: `ITEM-${id}` })));
   }
   if (u.endsWith('/rest/v1/rpc/paypal_payout_mark')) {
     if (h.apikey !== 'sb_secret_test') return res(401, {});
@@ -133,6 +134,8 @@ globalThis.fetch = async (url, init = {}) => {
     pp.payoutBatches.set(batchId, body);
     return res(201, { batch_header: { payout_batch_id: batchId, batch_status: 'PENDING' } });
   }
+  const itemCancel = u.match(/\/v1\/payments\/payouts-item\/([\w-]+)\/cancel$/);
+  if (itemCancel) return pp.payoutStatus === 'UNCLAIMED' ? res(200, { payout_item_id: itemCancel[1], transaction_status: 'RETURNED' }) : res(400, { name: 'ITEM_CANCELLATION_FAILED' });
   const batchGet = u.match(/\/v1\/payments\/payouts\/([\w-]+)$/);
   if (batchGet) return res(200, { items: [{ payout_item_id: `ITEM-${batchGet[1]}`, transaction_status: pp.payoutStatus }] });
   // Subscriptions: PayPal side.
@@ -420,6 +423,17 @@ await check('Si el aviso de PayPal no llega, al abrir Ingresos se le vuelve a pr
   pp.payoutStatus = 'SUCCESS';
   const done = await post({ action: 'payout-check' });
   expect(done.data.items[0]?.status === 'paid' && db.payouts.get('po-4').status === 'paid', JSON.stringify(done.data));
+});
+
+await check('Un retiro a un email sin cuenta PayPal se puede cancelar y vuelve al saldo', async () => {
+  pp.payoutStatus = 'UNCLAIMED';
+  const r = await post({ action: 'payout' });
+  expect(r.status === 200 && db.payouts.get('po-5').status === 'sending', JSON.stringify(r.data));
+  const other = await post({ action: 'payout-cancel', payoutId: 'po-4' });
+  expect(other.status === 404 && db.payouts.get('po-4').status === 'paid', JSON.stringify(other.data));
+  const c = await post({ action: 'payout-cancel', payoutId: 'po-5' });
+  pp.payoutStatus = 'SUCCESS';
+  expect(c.status === 200 && db.payouts.get('po-5').status === 'failed', JSON.stringify(c.data));
 });
 
 await check('La service role solo se usa en llamadas del servidor', async () => {

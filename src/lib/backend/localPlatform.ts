@@ -406,6 +406,11 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
       return result.ok ? { ...result, amount: round2(available - payoutFee(available)), status: 'paid' as const } : result;
     },
 
+    // Local withdrawals are paid at once, so there's never one to cancel.
+    async cancelPayout() {
+      return fail('Este retiro ya no se puede cancelar.');
+    },
+
     async listPayouts() {
       return [...load().payouts].sort(byNewest('requestedAt'));
     },

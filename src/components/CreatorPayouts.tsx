@@ -7,6 +7,7 @@ import {
   computeEarnings,
   setPayoutAccount,
   requestPayout,
+  cancelPayout,
   money,
   CREATOR_SHARE,
   creatorCut,
@@ -92,6 +93,11 @@ const CreatorPayouts: React.FC = () => {
           ? `Retiro en camino: PayPal está enviando ${money(r.amount ?? 0)} a tu cuenta`
           : `Retiro pagado: ${money(r.amount ?? 0)} enviados a tu cuenta PayPal`,
     });
+  };
+
+  const cancel = async (id: string) => {
+    const r = await cancelPayout(user, id);
+    setNotice(r.ok ? { ok: true, text: 'Retiro cancelado: el monto volvió a tu saldo. Revisa el email de PayPal y vuelve a retirar.' } : { ok: false, text: r.error! });
   };
 
   return (
@@ -191,6 +197,11 @@ const CreatorPayouts: React.FC = () => {
                       {p.status === 'failed' && ' · el monto volvió a tu saldo'}
                     </p>
                   </div>
+                  {p.status === 'sending' && p.paypalState === 'UNCLAIMED' && (
+                    <button type="button" onClick={() => cancel(p.id)} className="text-xs font-semibold text-pink-600 hover:text-pink-700">
+                      Cancelar y devolver a mi saldo
+                    </button>
+                  )}
                   <span className={`text-xs px-2 py-1 rounded-full ${payoutBadge[p.status].chip}`}>{payoutBadge[p.status].label}</span>
                 </div>
               ))}

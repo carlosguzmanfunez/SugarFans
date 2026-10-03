@@ -246,6 +246,24 @@ const checkPayouts = async (e: Env, token: string, userId: string): Promise<Resp
   return json(200, { items });
 };
 
+// Cancels a withdrawal PayPal holds as UNCLAIMED (no PayPal account has that email):
+// PayPal takes the money back and it returns to the creator's balance.
+const cancelPayout = async (e: Env, token: string, userId: string, payoutId: string): Promise<Response> => {
+  const mine = await supabase(
+    `/rest/v1/payouts?id=eq.${encodeURIComponent(payoutId)}&user_id=eq.${encodeURIComponent(userId)}&status=eq.sending&select=id,paypal_batch_id,paypal_item_id`,
+    asServer(e.serviceKey)
+  );
+  const row = Array.isArray(mine.data) ? (mine.data[0] as { id: string; paypal_batch_id: string | null; paypal_item_id: string | null } | undefined) : undefined;
+  if (!row?.paypal_item_id) return json(404, { error: 'Este retiro ya no se puede cancelar.' });
+  const r = await paypal(e, token, `/v1/payments/payouts-item/${encodeURIComponent(row.paypal_item_id)}/cancel`, {});
+  const state = String(r.data?.transaction_status ?? '');
+  if (r.status >= 300 || payoutStatus(state) !== 'failed') {
+    return json(409, { error: 'PayPal ya no permite cancelar este retiro (solo se cancelan los que nadie ha recibido).' });
+  }
+  await markPayout(e, row.id, 'failed', row.paypal_batch_id, row.paypal_item_id, 'Cancelado por el creador: el email no tenía cuenta PayPal');
+  return json(200, { ok: true });
+};
+
 // POST /api/paypal?webhook: PayPal's notifications, checked with PayPal itself.
 const webhook = async (request: Request, e: Env): Promise<Response> => {
   if (!e.webhookId) return json(503, { error: 'Falta PAYPAL_WEBHOOK_ID' });
@@ -338,6 +356,7 @@ export async function GET(): Promise<Response> {
 // POST /api/paypal {action: 'cancel-subscription', creatorProfileId} → {ok: true, until}
 // POST /api/paypal {action: 'payout'} → {ok: true, status, net, fee} (creator withdrawal)
 // POST /api/paypal {action: 'payout-check'} → {items: [{id, status, paypalStatus}]}
+// POST /api/paypal {action: 'payout-cancel', payoutId} → {ok: true} (only UNCLAIMED withdrawals)
 // POST /api/paypal?webhook (from PayPal)
 export async function POST(request: Request): Promise<Response> {
   const base = env();
@@ -365,6 +384,7 @@ export async function POST(request: Request): Promise<Response> {
     orderId?: unknown;
     subscriptionId?: unknown;
     creatorProfileId?: unknown;
+    payoutId?: unknown;
   };
   try {
     const ppToken = await paypalToken(e);
@@ -516,6 +536,10 @@ export async function POST(request: Request): Promise<Response> {
 
     if (body.action === 'payout') return await sendPayout(e, ppToken, userId);
     if (body.action === 'payout-check') return await checkPayouts(e, ppToken, userId);
+    if (body.action === 'payout-cancel') {
+      const payoutId = typeof body.payoutId === 'string' ? body.payoutId.slice(0, 64) : '';
+      return await cancelPayout(e, ppToken, userId, payoutId);
+    }
 
     return json(400, { error: 'Acción no válida.' });
   } catch (err) {

@@ -297,6 +297,17 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
     return error ? dbError(error, 'No se pudo hacer el retiro') : { ok: true, amount: Number(data), status: 'paid' as const };
   },
 
+  async cancelPayout(_user, payoutId) {
+    const token = (await sb.auth.getSession()).data.session?.access_token;
+    const r = await fetch('/api/paypal', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token ?? ''}` },
+      body: JSON.stringify({ action: 'payout-cancel', payoutId }),
+    }).catch(() => null);
+    const body = (await r?.json().catch(() => null)) as { error?: string } | null;
+    return r?.ok ? { ok: true } : fail(body?.error ?? 'No se pudo conectar con PayPal. Intenta de nuevo.');
+  },
+
   async listPayouts() {
     const { data } = await sb.from('payouts').select('*').order('requested_at', { ascending: false });
     return (data ?? []).map(toPayout);

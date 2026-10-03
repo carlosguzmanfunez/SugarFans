@@ -169,6 +169,8 @@ export interface PlatformBackend {
   // Withdraws the whole credited balance (minimum $50); returns the amount paid.
   // amount = what reaches the creator's PayPal (after PayPal's fee).
   requestPayout(user: User): Promise<AuthResult & { amount?: number; status?: 'sending' | 'paid' }>;
+  // Cancels a withdrawal nobody received (PayPal: UNCLAIMED); the amount goes back to the balance.
+  cancelPayout(user: User, payoutId: string): Promise<AuthResult>;
   listPayouts(): Promise<Payout[]>; // admin
 
   submitReport(reporter: User | null, input: ReportInput): Promise<AuthResult>;
