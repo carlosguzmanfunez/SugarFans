@@ -57,16 +57,16 @@ Panel del creator → pestaña **Reserve**:
 
 Todo es declarativo en `src/config/reserve.ts`:
 
-- `CREATOR_CATEGORIES`: cada categoría declara sus experiencias permitidas, sus modalidades, sus tipos de lugar, los propósitos de la experiencia personalizada y, cuando aplica, su línea de contenido y sus restricciones. Los nombres antiguos (por ejemplo "Modelaje" o "Arte") siguen funcionando como alias.
+- `CREATOR_CATEGORIES`: cada categoría declara sus experiencias permitidas, sus modalidades, sus tipos de lugar, los propósitos de la experiencia personalizada y, cuando aplica, su línea de contenido y sus restricciones. Los nombres antiguos (por ejemplo "Modelaje & Glamour", "Modelaje" o "Arte") siguen funcionando como alias.
 - `RESERVE_EXPERIENCE_TYPES`: 44 tipos. Cada uno define sus modalidades, lugares, rango de duración, máximo de participantes y si requiere siempre aprobación manual.
 - `LOCATION_TYPES` y `PROHIBITED_LOCATIONS`.
 - `PURPOSES`, `RESERVE_STATUSES`, `CANCELLATION_POLICIES` y `RESERVE_COPY`.
 
-Categorías: Modelaje & Glamour, Fitness, Cocina, Música, Gaming, Arte & Creatividad, Belleza, Lifestyle y Educación. No existen "+18", "Adultos", "Adult Content" ni "Sexy Creators".
+Categorías: Modelos, Fitness, Cocina, Música, Gaming, Arte & Creatividad, Belleza, Lifestyle y Educación. No existen "+18", "Adultos", "Adult Content" ni "Sexy Creators".
 
 La base de datos acepta exactamente la misma lista de tipos que la configuración. Un test e2e lo comprueba.
 
-## 6. Modelaje & Glamour
+## 6. Modelos
 
 *Glamour permitido. Contenido sexual explícito no permitido.*
 

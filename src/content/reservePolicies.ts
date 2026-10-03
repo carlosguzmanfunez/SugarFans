@@ -110,11 +110,11 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
           'Arte & Creatividad: clases, revisiones de portafolio, encargos y talleres.',
           'Belleza: asesorías de imagen, tutoriales y sesiones en salón.',
           'Lifestyle: Q&A, meet & greet en eventos, acceso anticipado, behind the scenes.',
-          'Modelaje & Glamour: sesiones de fotos profesionales en estudio, asesoría de posado y portafolio, charlas de moda y belleza, apariciones en eventos, colaboraciones de marca.',
+          'Modelos: sesiones de fotos profesionales en estudio, asesoría de posado y portafolio, charlas de moda y belleza, apariciones en eventos, colaboraciones de marca.',
         ],
       },
       {
-        heading: 'Modelaje & Glamour',
+        heading: 'Modelos',
         paragraphs: ['Glamour permitido. Contenido sexual explícito no permitido. Las experiencias de esta categoría son profesionales y se realizan online, en estudios, eventos o lugares públicos o comerciales.'],
       },
     ],
