@@ -27,6 +27,7 @@ const BuyCoinsDialog: React.FC<Props> = ({ user, needed = 0, onDone, onClose }) 
         amount={pack.price}
         note={`Recibes ${formatCoins(pack.coins)} ${currencyWord} para regalar (${money(pack.coins / 100)} en regalos).`}
         confirmLabel={`Comprar ${currencyWord}`}
+        paypal={{ kind: 'coins', params: { packId: pack.id } }}
         onConfirm={async (methodId) => {
           const r = await buyCoins(user, pack.id, methodId);
           if (r.ok) onDone(pack.coins);

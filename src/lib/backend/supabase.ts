@@ -2,7 +2,7 @@
 // Security. Rules that span users (booking lifecycle, account deletion) run in
 // SECURITY DEFINER functions, see supabase/migrations.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { WRONG_CREDENTIALS, cleanPatch, mergeSettings, normalizeEmail, validateRegistration } from './shared';
+import { PAID_WITH_PAYPAL, WRONG_CREDENTIALS, cleanPatch, mergeSettings, normalizeEmail, validateRegistration } from './shared';
 import { DEFAULT_AVAILABILITY, cleanDetails, customTitle, normalizeAvailability, validateCounter, validateCustomRequest, validateExperience } from '../vip';
 import type { Backend, BookingDetails, BookingStatus, ExperienceType, ReserveDetails, SocialProvider, User, UserRole, VipBooking, VipExperience } from './types';
 import { creators as demoCreators } from '../../data/mockData';
@@ -196,6 +196,10 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
 
   return {
     mode: 'supabase',
+    async accessToken() {
+      const { data } = await sb.auth.getSession();
+      return data.session?.access_token ?? null;
+    },
     platform: createSupabasePlatform(sb),
     social: createSupabaseSocial(sb),
     gifts: createSupabaseGifts(sb),
@@ -488,6 +492,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
     },
 
     async payBooking(_user, bookingId, methodId) {
+      if (methodId === PAID_WITH_PAYPAL) return ok; // the server already charged and confirmed it
       const { error } = await sb.rpc('vip_pay_booking', { p_booking_id: bookingId, p_method_id: methodId });
       return error ? dbError(error, 'No se pudo completar el pago') : ok;
     },

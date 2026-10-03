@@ -59,3 +59,7 @@ export const cleanPatch = (patch: ProfilePatch): { patch?: ProfilePatch; error?:
 };
 
 export const WRONG_CREDENTIALS = 'Email o contraseña incorrectos';
+
+// Passed as the payment method once api/paypal.ts has charged and fulfilled a
+// purchase: the client only refreshes, it doesn't call the purchase RPC again.
+export const PAID_WITH_PAYPAL = 'paid-with-paypal';

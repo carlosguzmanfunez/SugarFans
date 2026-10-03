@@ -241,6 +241,8 @@ export type ProfilePatch = Partial<Pick<User, 'name' | 'email' | 'avatar' | 'bio
 
 export interface Backend {
   mode: 'supabase' | 'local';
+  // The signed-in session's token for the app's own server functions (null in the local store).
+  accessToken(): Promise<string | null>;
   getCurrentUser(): Promise<User | null>;
   // Fires when the session or the signed-in user's data may have changed elsewhere.
   onChange(cb: () => void): () => void;

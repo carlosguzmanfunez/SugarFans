@@ -3,7 +3,7 @@ import { createSupabaseBackend } from './supabase';
 import type { Backend } from './types';
 
 export * from './types';
-export { defaultSettings, DEMO_PASSWORD } from './shared';
+export { defaultSettings, DEMO_PASSWORD, PAID_WITH_PAYPAL } from './shared';
 
 // Read before the Supabase client consumes the URL: the emailed "new password"
 // link lands with #...type=recovery, possibly on the home page.

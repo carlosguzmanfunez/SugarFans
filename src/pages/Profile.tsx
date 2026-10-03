@@ -199,6 +199,7 @@ const Profile: React.FC = () => {
           amount={paying.price}
           note={`Con ${paying.creatorName} · ${formatLongDate(paying.date)} · ${paying.time}`}
           confirmLabel="Confirmar pago"
+          paypal={{ kind: 'booking', params: { bookingId: paying.id } }}
           onConfirm={payBooking}
           onClose={() => setPaying(null)}
         />
