@@ -1,6 +1,6 @@
 // Reserve policy drafts shown in /legal. Every one is a DRAFT: it requires legal
 // review before production launch, and the page says so on each document.
-import { PROHIBITED_EXPERIENCES, CANCELLATION_POLICIES, PROHIBITED_LOCATIONS } from '../config/reserve';
+import { PROHIBITED_EXPERIENCES, PROFESSIONAL_SERVICES_ALLOWED, CANCELLATION_POLICIES, PROHIBITED_LOCATIONS } from '../config/reserve';
 
 export interface PolicySection {
   heading: string;
@@ -17,6 +17,7 @@ export interface PolicyDoc {
 }
 
 export const LEGAL_REVIEW_NOTICE = 'Requires legal review before production launch.';
+export const LEGAL_UPDATED = 'Octubre 2026 (borrador)';
 
 export const RESERVE_POLICIES: PolicyDoc[] = [
   {
@@ -80,10 +81,10 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
         ],
       },
       {
-        heading: 'Gift, suscripción y Reserve son distintos',
+        heading: 'Regalos, suscripción y Reserve son distintos',
         bullets: [
-          'Los regalos son apoyo voluntario. No garantizan respuesta, conversación, encuentro, acceso ni Reserve.',
-          'La suscripción da acceso al contenido y a los beneficios que el creator define. No incluye videollamadas, encuentros ni Reserve. Un creator puede ofrecer un descuento explícito a suscriptores en sus experiencias.',
+          'Los regalos son apoyo voluntario. No garantizan respuesta, conversación, acceso ni experiencias de Reserve.',
+          'La suscripción da acceso al contenido y a los beneficios que el creator define. No incluye videollamadas ni experiencias de Reserve. Un creator puede ofrecer un descuento explícito a suscriptores en sus experiencias.',
           'Reserve es la única vía para reservar una experiencia.',
         ],
       },
@@ -100,16 +101,18 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
     icon: 'fa-circle-check',
     intro: 'Ejemplos de lo que sí se puede ofrecer en Reserve. La lista exacta depende de la categoría del creator.',
     sections: [
+      { heading: 'Servicios profesionales con propósito', paragraphs: [PROFESSIONAL_SERVICES_ALLOWED] },
       {
         heading: 'Por categoría',
         bullets: [
-          'Cocina: clases de cocina, recetas en vivo, catering para eventos.',
-          'Fitness: entrenamiento 1:1 o grupal, coaching, planes personalizados.',
-          'Música: clases, revisiones de demo, sesiones de estudio, colaboraciones.',
-          'Gaming: partidas en vivo, coaching, torneos y apariciones en eventos.',
-          'Arte & Creatividad: clases, revisiones de portafolio, encargos y talleres.',
-          'Belleza: asesorías de imagen, tutoriales y sesiones en salón.',
-          'Lifestyle: Q&A, meet & greet en eventos, acceso anticipado, behind the scenes.',
+          'Cocina: clases de cocina, asesoría culinaria, degustaciones y experiencias gastronómicas en restaurante o cocina profesional, y catering para eventos.',
+          'Fitness: entrenamiento 1:1 online o en gimnasio, coaching, rutinas personalizadas, evaluaciones y clínicas.',
+          'Música: clases, escuchas y revisiones de demos, sesiones de estudio, talleres y apariciones en eventos.',
+          'Gaming: partidas privadas, coaching, sesiones de juego, torneos, eventos y meet & greet.',
+          'Arte & Creatividad: clases, revisiones de portafolio, mentorías, sesiones creativas y talleres.',
+          'Belleza: asesorías de belleza, styling, sesiones de maquillaje en salón o estudio y talleres.',
+          'Lifestyle: Q&A, coaching, charlas temáticas, behind the scenes, acceso anticipado, meet & greet y eventos.',
+          'Educación: mentorías, coaching, Q&A, revisiones con feedback y talleres.',
           'Modelos: sesiones de fotos profesionales en estudio, asesoría de posado y portafolio, charlas de moda y belleza, apariciones en eventos, colaboraciones de marca.',
         ],
       },
@@ -125,6 +128,7 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
     icon: 'fa-ban',
     intro: 'Lo que nunca se puede ofrecer, solicitar ni acordar a través de Fans Reserve, en ninguna categoría.',
     sections: [
+      { heading: 'Qué sí está permitido', paragraphs: [PROFESSIONAL_SERVICES_ALLOWED] },
       { heading: 'Prohibido', bullets: [...PROHIBITED_EXPERIENCES] },
       {
         heading: 'También prohibido',

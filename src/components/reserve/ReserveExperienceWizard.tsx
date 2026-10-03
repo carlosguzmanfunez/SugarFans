@@ -325,7 +325,7 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category, availability
                   </label>
                 ))}
               </div>
-              <p className="mt-2 text-xs text-muted">Fans Reserve no ofrece domicilios, hoteles ni “encuentros privados” como ubicación.</p>
+              <p className="mt-2 text-xs text-muted">Fans Reserve no ofrece domicilios, hoteles ni lugares privados o discretos como ubicación.</p>
             </fieldset>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">

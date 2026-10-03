@@ -26,7 +26,7 @@ export const MODALITY_IDS = Object.keys(RESERVE_MODALITIES) as ReserveModality[]
 
 // --- Venue types ----------------------------------------------------------------
 // Only establishments, venues, studios and public places. Private homes, hotel
-// rooms and "private meetings" are never offered (PROHIBITED_LOCATIONS).
+// rooms and private or "discreet" places are never offered (PROHIBITED_LOCATIONS).
 
 export type LocationType =
   | 'online'
@@ -165,16 +165,22 @@ export const LEGACY_EXPERIENCE_TYPES = ['meet-greet', 'qa-session', 'custom-cont
 export const experienceTypeById = (id: string) => RESERVE_EXPERIENCE_TYPES.find((x) => x.id === id);
 
 // Not offered by any category, in any form. Tests assert none of these appear.
+// Professional services with a defined purpose (a cooking class, a coaching or
+// training session, a studio photo shoot) are allowed, 1:1 included: what is
+// prohibited is selling a person's company or intimacy (PROFESSIONAL_SERVICES_ALLOWED).
 export const PROHIBITED_EXPERIENCES = [
-  'Encuentro privado',
+  'Vender compañía o tiempo personal ("pasar tiempo conmigo") sin un servicio definido',
   'Cita romántica o "date" remunerada',
   'Compensated dating',
-  '"Pasar tiempo conmigo" sin propósito definido',
-  'Hotel o residencia privada como experiencia',
+  'Hotel o residencia privada como lugar de la experiencia',
   'Servicios de escort o acompañamiento',
   'Cualquier actividad sexual, virtual o presencial',
   'Lives sexuales o sexting remunerado',
 ] as const;
+
+// The other half of the rule, shown next to the prohibited list.
+export const PROFESSIONAL_SERVICES_ALLOWED =
+  'Los servicios profesionales con un propósito definido sí están permitidos, también en formato 1:1: una clase de cocina, una sesión de coaching o entrenamiento, una asesoría o una sesión de fotos en estudio. La experiencia debe decir qué se hace, dónde, cuánto dura y cuánto cuesta. Lo que no se permite es vender la compañía o la intimidad de una persona.';
 
 // --- Custom experience purposes (step 2 of "Solicitar experiencia personalizada")
 
@@ -262,7 +268,7 @@ export const CREATOR_CATEGORIES: CreatorCategory[] = [
     contentLine: 'Glamour permitido. Contenido sexual explícito no permitido.',
     restrictions: [
       'Presencial solo en lugares públicos, eventos, convenciones o estudios profesionales.',
-      'No se ofrecen encuentros privados, citas ni "pasar tiempo" sin un propósito definido.',
+      'No se ofrecen citas, compañía ni "pasar tiempo" sin un servicio profesional definido.',
       'Sesiones fotográficas solo en estudio y con fines editoriales o de marca.',
     ],
   },
@@ -465,8 +471,8 @@ export const RESERVE_FLOW = ['Solicitud', 'Aceptación', 'Pago', 'Confirmación'
 
 export const RESERVE_COPY = {
   principle: 'Reservas experiencias, no personas.',
-  gift: 'Los regalos son apoyo voluntario. No garantizan respuesta, conversación, encuentro, acceso ni Reserve.',
-  subscription: 'La suscripción da acceso al contenido y a los beneficios que el creator define. No incluye videollamadas, encuentros ni Reserve.',
+  gift: 'Los regalos son apoyo voluntario. No garantizan respuesta, conversación, acceso ni experiencias de Reserve.',
+  subscription: 'La suscripción da acceso al contenido y a los beneficios que el creator define. No incluye videollamadas ni experiencias de Reserve.',
   reserve: 'Una Reserve es una experiencia concreta, con fecha, duración, precio y condiciones definidas por el creator, que el creator acepta o rechaza.',
   testPayments: 'Pagos en modo de prueba: no se realiza ningún cargo real.',
   legalDraft: 'Borrador. Requiere revisión legal antes del lanzamiento a producción.',

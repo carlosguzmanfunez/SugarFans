@@ -6,7 +6,7 @@ import { usePlatformQuery } from '../lib/platform';
 import { useCreatorCatalog } from '../lib/catalog';
 import type { VipExperience } from '../lib/vip';
 import { detailsOf } from '../lib/vip';
-import { CREATOR_CATEGORIES, MODALITY_IDS, PROHIBITED_EXPERIENCES, RESERVE_COPY, RESERVE_FLOW, RESERVE_MODALITIES, categoryFor, type ReserveModality } from '../config/reserve';
+import { CREATOR_CATEGORIES, MODALITY_IDS, PROFESSIONAL_SERVICES_ALLOWED, PROHIBITED_EXPERIENCES, RESERVE_COPY, RESERVE_FLOW, RESERVE_MODALITIES, categoryFor, type ReserveModality } from '../config/reserve';
 import ReserveExperienceCard from '../components/reserve/ReserveExperienceCard';
 import ReserveBookingDialog from '../components/reserve/ReserveBookingDialog';
 import { ReserveNotice } from '../components/reserve/ReserveBits';
@@ -127,6 +127,10 @@ const ReservePage: React.FC = () => {
                 </li>
               ))}
             </ul>
+            <p className="mt-4 flex gap-2 text-sm text-ink/80" data-testid="professional-allowed">
+              <i aria-hidden="true" className="fas fa-check mt-1 text-xs text-emerald-600"></i>
+              <span>{PROFESSIONAL_SERVICES_ALLOWED}</span>
+            </p>
             <p className="mt-4 text-xs text-ink/60">
               Las experiencias presenciales solo ocurren en venues, estudios, eventos y lugares públicos o profesionales. Lee la{' '}
               <Link to="/legal?doc=reserve-policy" className="font-semibold text-ink underline">Política de Reserve</Link>.

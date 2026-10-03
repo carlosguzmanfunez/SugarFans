@@ -1471,7 +1471,7 @@ const run = async () => {
     await check('El fan envía una Corona: es apoyo y no promete nada', async () => {
       const dialog = await openGift(gf);
       await dialog.getByRole('button', { name: /Corona/ }).click();
-      await dialog.getByTestId('notice-gift').getByText(/No garantizan respuesta, conversación, encuentro, acceso ni Reserve/).waitFor();
+      await dialog.getByTestId('notice-gift').getByText(/No garantizan respuesta, conversación, acceso ni experiencias de Reserve/).waitFor();
       expect((await dialog.getByTestId('gift-perks').count()) === 0, 'el regalo promete beneficios');
       expect((await dialog.getByLabel('Qué quieres en tu video').count()) === 0, 'el regalo pide un video personalizado');
       await dialog.getByLabel('Mensaje del regalo').fill('¡Para mi reina!');
@@ -1745,7 +1745,7 @@ const run = async () => {
       expect(R.categoryFor('Modelaje').id === 'modelaje-glamour', 'el nombre antiguo "Modelaje" no se reconoce');
       expect(R.categoryFor('Modelaje & Glamour').id === 'modelaje-glamour', 'el nombre antiguo "Modelaje & Glamour" no se reconoce');
     });
-    await check('Modelos no ofrece encuentro privado, citas, hotel ni escort', async () => {
+    await check('Modelos no ofrece citas, compañía, hotel ni escort', async () => {
       const types = R.experienceTypesFor(R.categoryFor('Modelos'));
       const bad = types.filter((t) => notOffered.test(`${t.name} ${t.description}`));
       expect(bad.length === 0, `tipos prohibidos: ${bad.map((t) => t.name).join(', ')}`);
@@ -1856,10 +1856,10 @@ const run = async () => {
       await resF.getByText('Este creator no está en Live ahora').waitFor();
       await resF.goto(`${BASE}/creator/1`);
     });
-    await check('La suscripción y los regalos dicen que no incluyen Reserve ni encuentros', async () => {
+    await check('La suscripción y los regalos dicen que no incluyen Reserve', async () => {
       const section = resF.getByTestId('creator-reserve');
-      await section.getByTestId('notice-subscription').getByText(/No incluye videollamadas, encuentros ni Reserve/).waitFor();
-      await section.getByTestId('notice-gift').getByText(/No garantizan respuesta, conversación, encuentro, acceso ni Reserve/).waitFor();
+      await section.getByTestId('notice-subscription').getByText(/No incluye videollamadas ni experiencias de Reserve/).waitFor();
+      await section.getByTestId('notice-gift').getByText(/No garantizan respuesta, conversación, acceso ni experiencias de Reserve/).waitFor();
       await resF.getByRole('button', { name: 'Enviar regalo' }).click();
       const dialog = resF.getByRole('dialog', { name: /Regalo para Valentina Rose/ });
       await dialog.getByRole('button', { name: /Corona/ }).first().click();
@@ -1946,7 +1946,7 @@ const run = async () => {
       await next(); // → precio
       await next(); // → disponibilidad
       await next(); // → ubicación
-      await form.getByText('Fans Reserve no ofrece domicilios, hoteles ni “encuentros privados” como ubicación.').waitFor();
+      await form.getByText('Fans Reserve no ofrece domicilios, hoteles ni lugares privados o discretos como ubicación.').waitFor();
       expect((await form.getByText(/Habitación|Hotel/).count()) === 0, 'se ofrece hotel como lugar');
       await next();
       await form.getByText('Elige el tipo de lugar e indica la ciudad').waitFor();

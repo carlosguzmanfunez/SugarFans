@@ -1,8 +1,10 @@
 # POLÍTICA DE PROTECCIÓN DE MENORES - FANS RESERVE
 
-**Última actualización:** Enero 2024  
-**Versión:** 1.0.0  
+**Última actualización:** Octubre 2026 (borrador)  
+**Versión:** 1.1.0  
 **Prioridad:** CRÍTICA - Tolerancia Cero
+
+> **Borrador.** Requires legal review before production launch. Requiere revisión legal antes del lanzamiento a producción. Donde esta política dice "previsto", la medida aún no está implementada y debe estarlo antes del lanzamiento.
 
 ---
 
@@ -70,15 +72,15 @@ Cualquier forma de abuso, uso inapropiado, o comercialización de menores, inclu
 
 ### 3.1. Requisitos para Todos los Usuarios
 
-3.1.1. **Declaración de Edad**: Todos los Usuarios deben declarar su fecha de nacimiento al registrarse.
+3.1.1. **Declaración de Edad**: Todos los Usuarios confirman que son mayores de 18 años al entrar en la Plataforma y al registrarse.
 
-3.1.2. **Verificación Automática**: El sistema rechaza automáticamente registros de personas menores de 18 años.
+3.1.2. **Verificación Automática**: El sistema rechaza la verificación de Creadores cuya fecha de nacimiento indica menos de 18 años. Previsto: verificación de edad de fans cuando la ley del país lo exija.
 
 3.1.3. **Verificación Documental**: Para Creadores y en casos sospechosos, requerimos:
-- Documento de identidad oficial con fotografía
-- Selfie de verificación en tiempo real
-- Prueba de domicilio
-- Video de verificación (cuando sea necesario)
+- Foto del frente de un documento de identidad oficial
+- Selfie de frente, que se compara con la foto del documento
+
+3.1.4. **Reserve**: Ninguna experiencia puede involucrar a menores ni realizarse con ellos presentes como participantes. Las menciones a menores en solicitudes y experiencias se marcan automáticamente para revisión.
 
 ### 3.2. Validación de Documentos
 
@@ -88,17 +90,13 @@ Cualquier forma de abuso, uso inapropiado, o comercialización de menores, inclu
 - No alterados o manipulados
 - Correspondientes a la persona
 
-3.2.2. **Tecnología de Verificación**: Utilizamos:
-- Sistemas de detección de documentos falsos
-- Verificación biométrica facial
-- Análisis de metadatos
-- Bases de datos de documentos robados/perdidos
+3.2.2. **Revisión**: Hoy la verificación la revisa una persona del equipo, que comprueba la mayoría de edad y que el rostro coincide con el documento. Sistemas automáticos de detección de documentos falsos y verificación biométrica están previstos (por ejemplo, Stripe Identity).
 
 ### 3.3. Verificación Continua
 
 3.3.1. **Monitoreo Periódico**: Podemos solicitar re-verificación en cualquier momento.
 
-3.3.2. **Análisis de Contenido**: Sistemas de IA analizan Contenido para detectar posibles menores.
+3.3.2. **Análisis de Contenido**: Previsto: sistemas automáticos que analicen imágenes para detectar posibles menores.
 
 3.3.3. **Reportes de Usuarios**: Investigamos inmediatamente cualquier reporte sobre menores.
 
@@ -152,29 +150,15 @@ Cuando un Creador publica Contenido que incluye a otras personas:
 
 ### 5.1. Sistemas Automatizados
 
-5.1.1. **Análisis de Imágenes**: IA especializada detecta:
-- Rasgos faciales de menores
-- Características físicas asociadas con menores
-- Contextos que sugieren menores de edad
-- Manipulaciones digitales
+5.1.1. **Hoy**: Una revisión automática básica de textos (experiencias, solicitudes y títulos de Lives) bloquea los casos claros; en experiencias y solicitudes, además, marca para revisión las menciones a menores.
 
-5.1.2. **Análisis de Texto**: Detecta:
-- Referencias a edades menores
-- Lenguaje sugestivo con menores
-- Búsquedas relacionadas con menores
-- Patrones de comportamiento sospechoso
-
-5.1.3. **Análisis de Metadatos**: Examina:
-- Fechas de creación
-- Ubicación GPS
-- Dispositivos utilizados
-- Patrones de acceso
+5.1.2. **Previsto antes del lanzamiento**: Análisis automático de imágenes y videos, comparación con bases de hashes de contenido ilegal conocido (como PhotoDNA) y detección de patrones de comportamiento sospechoso.
 
 ### 5.2. Revisión Humana
 
 5.2.1. **Equipo de Moderación**: Equipo especializado revisa:
 - Contenido reportado
-- Contenido flagged por IA
+- Contenido marcado por la revisión automática
 - Cuentas sospechosas
 - Patrones de comportamiento
 
@@ -292,13 +276,9 @@ Cuando recibimos una solicitud de autoridades:
 
 ### 8.1. Sistemas de Detección
 
-8.1.1. **PhotoDNA**: Tecnología de Microsoft para detectar CSAM conocido.
+8.1.1. **Hoy**: Revisión automática básica de textos, reportes de usuarios y revisión humana.
 
-8.1.2. **Hash Matching**: Comparación con bases de datos de contenido ilegal.
-
-8.1.3. **Análisis Predictivo**: IA para identificar patrones sospechosos.
-
-8.1.4. **Verificación Biométrica**: Sistemas de reconocimiento facial para verificar edad.
+8.1.2. **Previsto**: PhotoDNA o una tecnología equivalente para detectar CSAM conocido, comparación de hashes y verificación biométrica de edad.
 
 ### 8.2. Herramientas de Moderación
 
@@ -428,9 +408,7 @@ Si usted o alguien que conoce es víctima de explotación:
 
 12.1.2. **Email Directo**: minors@fansreserve.com (prioridad máxima)
 
-12.1.3. **Formulario Web**: Formulario específico para reportes de menores.
-
-12.1.4. **Línea Telefónica**: [Número de emergencia]
+12.1.3. **Formulario Web**: El formulario de reportes del Centro de ayuda.
 
 ### 12.2. Información Requerida
 
@@ -473,12 +451,9 @@ Al reportar, proporcione:
 
 13.2.3. **Transparencia**: Publicamos reportes anuales de cumplimiento.
 
-### 13.3. Métricas de Éxito
+### 13.3. Objetivos
 
-13.3.1. **Tiempo de Respuesta**: <1 hora para contenido crítico
-13.3.2. **Tasa de Detección**: >99% de contenido conocido
-13.3.3. **Falsos Positivos**: <1% de Contenido legítimo flagged
-13.3.4. **Satisfacción de Reportantes**: >95% de reportantes satisfechos
+13.3.1. **Tiempo de Respuesta**: Objetivo: menos de 1 hora para contenido crítico (se medirá desde el lanzamiento).
 
 ---
 
@@ -533,23 +508,18 @@ Cualquier violación de esta Política será tratada con la máxima severidad y 
 ### 16.1. Para Reportar Contenido con Menores
 
 **Email de Prioridad Máxima:** minors@fansreserve.com  
-**Teléfono 24/7:** [Número de emergencia]  
-**Chat en Vivo:** Disponible 24/7 para reportes urgentes
+**En la Plataforma:** botón "Reportar" en cada publicación y perfil
 
 ### 16.2. Para Autoridades
 
-**Línea Directa para Policía:** [Número dedicado]  
-**Email para Autoridades:** lawenforcement@fansreserve.com  
-**Portal de Solicitudes Legales:** [URL segura]
+**Email:** legal@fansreserve.com
 
 ### 16.3. Oficial de Protección de Menores
 
-**Nombre:** [Nombre del Oficial]  
-**Email:** childprotection@fansreserve.com  
-**Responsabilidades:** Supervisión de cumplimiento, capacitación, relaciones con autoridades
+[Pendiente de designar antes del lanzamiento.]
 
 ---
 
 **ESTA POLÍTICA ES DE CUMPLIMIENTO OBLIGATORIO. SU VIOLACIÓN RESULTARÁ EN ACCIONES INMEDIATAS Y SEVERAS.**
 
-© 2024 Fans Reserve. Todos los derechos reservados.
+© 2026 Fans Reserve. Todos los derechos reservados.

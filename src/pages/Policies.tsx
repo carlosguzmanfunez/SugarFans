@@ -1,5 +1,6 @@
 import React from 'react';
 import { BRAND } from '../config/brand';
+import { LEGAL_UPDATED } from '../content/reservePolicies';
 
 const Policies: React.FC = () => {
   return (
@@ -14,18 +15,19 @@ const Policies: React.FC = () => {
               <i aria-hidden="true" className="fas fa-file-contract text-pink-500 mr-3"></i> Términos de Servicio
             </h2>
             <div className="prose prose-sm text-gray-600 space-y-4">
-              <p><strong>Última actualización:</strong> Enero 2024</p>
+              <p><strong>Última actualización:</strong> {LEGAL_UPDATED}. Borrador: requiere revisión legal antes del lanzamiento.</p>
               <p>Bienvenido a {BRAND.name}. Al utilizar nuestra plataforma, aceptas estos términos de servicio. Lee cuidadosamente antes de usar el servicio.</p>
               
               <h3 className="text-lg font-semibold text-gray-900 mt-6">1. Elegibilidad</h3>
               <p>Debes tener al menos 18 años de edad para usar {BRAND.name}. Al registrarte, declaras y garantizas que cumples con este requisito. Los menores de edad tienen estrictamente prohibido el uso de la plataforma.</p>
               
               <h3 className="text-lg font-semibold text-gray-900 mt-6">2. Cuentas de Creadores</h3>
-              <p>Los creadores deben verificar su identidad con un documento oficial válido. Todo contenido publicado debe contar con el consentimiento expreso de todas las personas que aparezcan en él. La plataforma se reserva el derecho de rechazar o eliminar cuentas que no cumplan con estos requisitos.</p>
+              <p>Los creadores deben verificar su identidad con el frente de un documento oficial válido y un selfie. Todo contenido publicado debe contar con el consentimiento expreso de todas las personas que aparezcan en él. La plataforma se reserva el derecho de rechazar o eliminar cuentas que no cumplan con estos requisitos.</p>
               
               <h3 className="text-lg font-semibold text-gray-900 mt-6">3. Contenido Prohibido</h3>
               <ul className="list-disc pl-5 space-y-1">
                 <li>Contenido que involucre menores de edad</li>
+                <li>Contenido sexual explícito y cualquier servicio o actividad sexual</li>
                 <li>Contenido sin consentimiento de las personas involucradas</li>
                 <li>Contenido violento extremo o ilegal</li>
                 <li>Contenido que viole derechos de propiedad intelectual de terceros</li>
@@ -33,7 +35,7 @@ const Policies: React.FC = () => {
               </ul>
 
               <h3 className="text-lg font-semibold text-gray-900 mt-6">4. Pagos y Reembolsos</h3>
-              <p>Las suscripciones se renuevan automáticamente. Los reembolsos se evalúan caso por caso. Los creadores reciben el 80% de los ingresos generados, con pagos mensuales.</p>
+              <p>Las suscripciones se renuevan cada mes y, si cancelas, mantienes el acceso hasta el final del mes pagado. Las reservas siguen la política de cancelación de cada experiencia. Los creadores reciben del 80% al 90% de suscripciones y propinas, el 80% de las reservas y el 60% de los regalos; los ingresos se acreditan el día 1 de cada mes. Mientras la plataforma está en modo de prueba, los pagos son simulados.</p>
 
               <h3 className="text-lg font-semibold text-gray-900 mt-6">5. Propiedad Intelectual</h3>
               <p>Los creadores mantienen los derechos de su contenido. Al publicar en {BRAND.name}, otorgan una licencia limitada para la distribución a través de la plataforma. Reporta cualquier violación de derechos de autor mediante nuestro sistema DMCA.</p>
@@ -46,12 +48,12 @@ const Policies: React.FC = () => {
               <i aria-hidden="true" className="fas fa-lock text-pink-500 mr-3"></i> Política de Privacidad
             </h2>
             <div className="prose prose-sm text-gray-600 space-y-4">
-              <p><strong>Última actualización:</strong> Enero 2024</p>
+              <p><strong>Última actualización:</strong> {LEGAL_UPDATED}. Borrador: requiere revisión legal antes del lanzamiento.</p>
               <p>En {BRAND.name} nos tomamos tu privacidad muy seriamente. Esta política describe cómo recopilamos, usamos y protegemos tu información.</p>
 
               <h3 className="text-lg font-semibold text-gray-900 mt-6">Datos que recopilamos</h3>
               <ul className="list-disc pl-5 space-y-1">
-                <li>Información de cuenta (nombre, email, fecha de nacimiento)</li>
+                <li>Información de cuenta (nombre o alias, email, foto de perfil)</li>
                 <li>Datos de verificación de identidad (solo para creadores)</li>
                 <li>Información de pago (procesada por terceros seguros)</li>
                 <li>Datos de uso y navegación</li>
@@ -71,7 +73,7 @@ const Policies: React.FC = () => {
               <p>Tienes derecho a acceder, rectificar, eliminar y portar tus datos. También puedes oponerte al procesamiento y solicitar la limitación del mismo. Para ejercer estos derechos, contacta a {BRAND.emails.privacy}</p>
 
               <h3 className="text-lg font-semibold text-gray-900 mt-6">Seguridad</h3>
-              <p>Implementamos medidas de seguridad de nivel bancario incluyendo encriptación TLS/SSL, almacenamiento seguro de datos y auditorías regulares de seguridad.</p>
+              <p>Las comunicaciones van cifradas (TLS), las contraseñas se guardan con hash, de tu tarjeta solo guardamos la marca y los últimos 4 dígitos, y las imágenes de verificación se eliminan al aprobarse.</p>
             </div>
           </section>
 
@@ -81,14 +83,12 @@ const Policies: React.FC = () => {
               <i aria-hidden="true" className="fas fa-cookie-bite text-pink-500 mr-3"></i> Política de Cookies
             </h2>
             <div className="prose prose-sm text-gray-600 space-y-4">
-              <p>Utilizamos cookies para mejorar tu experiencia en {BRAND.name}.</p>
-              <h3 className="text-lg font-semibold text-gray-900 mt-6">Tipos de cookies</h3>
+              <p>{BRAND.name} no usa cookies de publicidad ni de analítica de terceros. Guarda en el almacenamiento local de tu navegador tu sesión y tus preferencias.</p>
               <ul className="list-disc pl-5 space-y-1">
-                <li><strong>Esenciales:</strong> Necesarias para el funcionamiento de la plataforma</li>
-                <li><strong>Analíticas:</strong> Nos ayudan a entender cómo usas el servicio</li>
-                <li><strong>Funcionales:</strong> Recuerdan tus preferencias</li>
+                <li><strong>Esencial:</strong> mantener tu sesión iniciada y la seguridad de la cuenta</li>
+                <li><strong>Funcional:</strong> recordar preferencias como el idioma</li>
               </ul>
-              <p>Puedes gestionar tus preferencias de cookies desde la configuración de tu navegador.</p>
+              <p>Puedes borrar estos datos desde la configuración de tu navegador.</p>
             </div>
           </section>
 
@@ -121,7 +121,7 @@ const Policies: React.FC = () => {
               <ul className="list-disc pl-5 space-y-1">
                 <li>Todos los creadores deben verificar su mayoría de edad con documento oficial</li>
                 <li>Se requiere verificación de consentimiento de todas las personas en el contenido</li>
-                <li>Utilizamos sistemas automatizados y revisión humana para detectar contenido inapropiado</li>
+                <li>Combinamos revisión automática básica, reportes de usuarios y revisión humana para detectar contenido inapropiado</li>
                 <li>Reportamos activamente a las autoridades cualquier sospecha de contenido con menores</li>
                 <li>Las cuentas vinculadas a menores son eliminadas inmediatamente y reportadas</li>
               </ul>

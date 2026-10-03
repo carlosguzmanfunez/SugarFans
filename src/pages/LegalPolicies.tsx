@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { BRAND } from '../config/brand';
-import { RESERVE_POLICIES, LEGAL_REVIEW_NOTICE } from '../content/reservePolicies';
+import { RESERVE_POLICIES, LEGAL_REVIEW_NOTICE, LEGAL_UPDATED } from '../content/reservePolicies';
+import { CREATOR_SHARE, MIN_PAYOUT } from '../lib/platformRules';
+import { LEVELS as CREATOR_LEVELS, MAX_SHARE, REFERRAL_DAYS, REFERRAL_SHARE, pct } from '../lib/rewardRules';
+import { GIFT_SHARE } from '../lib/giftRules';
 
 const LegalPolicies: React.FC = () => {
   const { t } = useLanguage();
@@ -56,46 +59,58 @@ const LegalPolicies: React.FC = () => {
           {/* Content */}
           <div className="lg:col-span-3">
             <div className="bg-white rounded-2xl shadow-sm p-8">
+              {!reserveDoc(activePolicy) && (
+                <p role="note" className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  <i aria-hidden="true" className="fas fa-scale-balanced mr-2"></i>
+                  <strong>Borrador.</strong> {LEGAL_REVIEW_NOTICE} Requiere revisión legal antes del lanzamiento a producción. La plataforma está en modo de prueba: los pagos son simulados.
+                </p>
+              )}
+
               {activePolicy === 'terms' && (
                 <div>
                   <h2 className="text-3xl font-bold text-gray-900 mb-6">Términos y Condiciones de Servicio</h2>
                   <div className="prose prose-sm max-w-none text-gray-600 space-y-4">
-                    <p className="text-sm text-gray-500"><strong>Última actualización:</strong> Enero 2024</p>
-                    
+                    <p className="text-sm text-gray-500"><strong>Última actualización:</strong> {LEGAL_UPDATED}</p>
+
                     <h3 className="text-xl font-bold text-gray-900 mt-6">1. Aceptación de los Términos</h3>
                     <p>Al acceder o utilizar {BRAND.name}, usted acepta estar legalmente vinculado por estos Términos y Condiciones. Si no está de acuerdo con alguna parte, no debe utilizar la Plataforma.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">2. Elegibilidad y Edad</h3>
-                    <p><strong>RESTRICCIÓN DE EDAD:</strong> Debe tener al menos DIECIOCHO (18) AÑOS de edad. Al registrarse, declara bajo juramento que tiene 18 años o más.</p>
+                    <p><strong>RESTRICCIÓN DE EDAD:</strong> Debe tener al menos DIECIOCHO (18) AÑOS de edad. Al entrar y al registrarse confirma que tiene 18 años o más.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">3. Cuentas de Usuario</h3>
-                    <p>Para crear una cuenta debe proporcionar información veraz y completa. Los Creadores deben completar verificación de identidad con documentación oficial.</p>
+                    <p>Para crear una cuenta debe proporcionar información veraz. Los Creadores verifican su identidad con una foto del frente de su documento oficial y un selfie de frente; las imágenes se eliminan al aprobarse la verificación.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">4. Contenido del Usuario</h3>
                     <p>Usted conserva los derechos de su Contenido original. Al publicar, nos otorga licencia para distribuirlo en la Plataforma. Todo el Contenido debe cumplir con nuestras políticas.</p>
 
-                    <h3 className="text-xl font-bold text-gray-900 mt-6">5. Contenido Prohibido</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mt-6">5. Contenido y Servicios Prohibidos</h3>
                     <ul className="list-disc pl-5 space-y-2">
                       <li>Contenido que involucre menores de 18 años</li>
+                      <li>Contenido sexual explícito y cualquier servicio o actividad sexual (glamour permitido)</li>
                       <li>Contenido sin consentimiento verificable</li>
                       <li>Contenido ilegal, violento o que infrinja derechos de terceros</li>
                       <li>Spam, fraude o actividades engañosas</li>
+                      <li>Los servicios descritos en <a href="/legal?doc=prohibited-services" className="underline">Servicios Prohibidos</a></li>
                     </ul>
 
-                    <h3 className="text-xl font-bold text-gray-900 mt-6">6. Pagos y Comisiones</h3>
-                    <p>La Plataforma retiene 20% de comisión. Los Creadores reciben 80%. Pagos mensuales con mínimo de retiro de $50 USD.</p>
+                    <h3 className="text-xl font-bold text-gray-900 mt-6">6. Reserve</h3>
+                    <p>{BRAND.name} permite reservar experiencias, no personas. Los servicios profesionales con un propósito definido están permitidos; vender la compañía o la intimidad de una persona no. Las reservas se rigen por la <a href="/legal?doc=reserve-policy" className="underline">Política de Reserve</a> y la de <a href="/legal?doc=cancellation" className="underline">Cancelación y No-show</a>.</p>
 
-                    <h3 className="text-xl font-bold text-gray-900 mt-6">7. Propiedad Intelectual</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mt-6">7. Pagos y Comisiones</h3>
+                    <p>Métodos de pago: tarjetas Visa y Mastercard, PayPal y Google Pay. Los Creadores reciben del 80% al 90% de suscripciones y propinas según su nivel y sus recompensas, el 80% de las reservas de Reserve y el 60% de los regalos; la Plataforma conserva siempre al menos el 10%. Los ingresos se acreditan el día 1 de cada mes y se retiran a cuenta bancaria desde $50 USD.</p>
+
+                    <h3 className="text-xl font-bold text-gray-900 mt-6">8. Propiedad Intelectual</h3>
                     <p>Los Creadores conservan derechos de autor de su Contenido. La Plataforma posee derechos sobre el software, diseño y marcas.</p>
 
-                    <h3 className="text-xl font-bold text-gray-900 mt-6">8. Limitación de Responsabilidad</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mt-6">9. Limitación de Responsabilidad</h3>
                     <p>La Plataforma se proporciona "TAL CUAL". No garantizamos resultados específicos. Nuestra responsabilidad máxima está limitada a los pagos recibidos en los últimos 12 meses.</p>
 
-                    <h3 className="text-xl font-bold text-gray-900 mt-6">9. Terminación</h3>
-                    <p>Puede cerrar su cuenta en cualquier momento. Podemos suspender cuentas que violen estos Términos.</p>
+                    <h3 className="text-xl font-bold text-gray-900 mt-6">10. Terminación</h3>
+                    <p>Puede cerrar su cuenta en cualquier momento desde Configuración. Podemos suspender cuentas que violen estos Términos.</p>
 
-                    <h3 className="text-xl font-bold text-gray-900 mt-6">10. Ley Aplicable</h3>
-                    <p>Estos Términos se rigen por las leyes de su jurisdicción de residencia.</p>
+                    <h3 className="text-xl font-bold text-gray-900 mt-6">11. Ley Aplicable</h3>
+                    <p>Pendiente de definir con asesoría legal (país y tribunales competentes).</p>
 
                     <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-xl">
                       <p className="text-sm text-blue-800">
@@ -111,29 +126,31 @@ const LegalPolicies: React.FC = () => {
                 <div>
                   <h2 className="text-3xl font-bold text-gray-900 mb-6">Política de Privacidad</h2>
                   <div className="prose prose-sm max-w-none text-gray-600 space-y-4">
-                    <p className="text-sm text-gray-500"><strong>Última actualización:</strong> Enero 2024</p>
-                    <p className="text-sm text-gray-500"><strong>Cumplimiento:</strong> GDPR, CCPA, LGPD</p>
+                    <p className="text-sm text-gray-500"><strong>Última actualización:</strong> {LEGAL_UPDATED}</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">1. Información que Recopilamos</h3>
-                    <p>Recopilamos información personal (nombre, email, fecha de nacimiento), información de uso (IP, dispositivo, actividad) e información de pago (procesada por terceros seguros).</p>
+                    <p>Datos de cuenta (nombre o alias, email, foto de perfil), actividad en la Plataforma (publicaciones, mensajes, suscripciones, reservas), datos de verificación de los Creadores y, de los métodos de pago, solo la marca y los últimos 4 dígitos.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">2. Cómo Usamos su Información</h3>
                     <ul className="list-disc pl-5 space-y-2">
                       <li>Proporcionar y mejorar el servicio</li>
-                      <li>Procesar pagos y suscripciones</li>
-                      <li>Verificar identidad y edad</li>
-                      <li>Prevenir fraude y actividades ilegales</li>
+                      <li>Procesar pagos, suscripciones y reservas</li>
+                      <li>Verificar la identidad y la edad de los Creadores</li>
+                      <li>Prevenir fraude, revisar reportes y aplicar nuestras políticas</li>
                       <li>Cumplir con obligaciones legales</li>
                     </ul>
 
-                    <h3 className="text-xl font-bold text-gray-900 mt-6">3. Sus Derechos</h3>
-                    <p>Tiene derecho a acceder, rectificar, eliminar y portar sus datos. Puede oponerse al procesamiento y solicitar limitación.</p>
+                    <h3 className="text-xl font-bold text-gray-900 mt-6">3. Con quién la compartimos</h3>
+                    <p>Solo con los proveedores que hacen funcionar el servicio: Supabase (base de datos, cuentas y archivos), Vercel (alojamiento web), LiveKit (video en vivo) y Google si inicia sesión con su cuenta de Google. No vendemos datos personales.</p>
 
-                    <h3 className="text-xl font-bold text-gray-900 mt-6">4. Seguridad</h3>
-                    <p>Implementamos encriptación TLS/SSL, AES-256, autenticación de dos factores y monitoreo 24/7.</p>
+                    <h3 className="text-xl font-bold text-gray-900 mt-6">4. Sus Derechos</h3>
+                    <p>Tiene derecho a acceder, rectificar, eliminar y portar sus datos. Desde Configuración &gt; Privacidad puede descargar sus datos o eliminar su cuenta.</p>
 
-                    <h3 className="text-xl font-bold text-gray-900 mt-6">5. Retención de Datos</h3>
-                    <p>Conservamos datos mientras su cuenta esté activa + 30 días. Datos financieros: 7 años. Datos de verificación: 5 años post-cierre.</p>
+                    <h3 className="text-xl font-bold text-gray-900 mt-6">5. Seguridad</h3>
+                    <p>Las comunicaciones van cifradas (TLS), las contraseñas se guardan con hash y el acceso a los datos está limitado por cuenta en la base de datos.</p>
+
+                    <h3 className="text-xl font-bold text-gray-900 mt-6">6. Retención de Datos</h3>
+                    <p>Conservamos los datos mientras su cuenta esté activa; al eliminarla se borran su cuenta, sus métodos de pago y sus documentos. Las imágenes de verificación se eliminan al aprobarse. Los registros de pagos pueden conservarse el tiempo que exija la ley fiscal.</p>
 
                     <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-xl">
                       <p className="text-sm text-blue-800">
@@ -147,62 +164,56 @@ const LegalPolicies: React.FC = () => {
 
               {activePolicy === 'creator' && (
                 <div>
-                  <h2 className="text-3xl font-bold text-gray-900 mb-6">Contrato para Creadores y Afiliados</h2>
+                  <h2 className="text-3xl font-bold text-gray-900 mb-6">Contrato de Creadores</h2>
                   <div className="prose prose-sm max-w-none text-gray-600 space-y-4">
-                    <p className="text-sm text-gray-500"><strong>Última actualización:</strong> Enero 2024</p>
+                    <p className="text-sm text-gray-500"><strong>Última actualización:</strong> {LEGAL_UPDATED}</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">1. Relación entre las Partes</h3>
-                    <p>Usted es contratista independiente, no empleado. Este contrato no es exclusivo.</p>
+                    <p>Usted es contratista independiente, no empleado. Este contrato no es exclusivo y usted decide cuándo y cuánto publica.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">2. Obligaciones del Creador</h3>
                     <ul className="list-disc pl-5 space-y-2">
-                      <li>Completar verificación de identidad</li>
-                      <li>Mantener estándares de calidad</li>
+                      <li>Completar la verificación de identidad (frente del documento y selfie)</li>
                       <li>Obtener consentimiento de todas las personas en su Contenido</li>
-                      <li>Publicar regularmente (mínimo 1 vez cada 30 días)</li>
-                      <li>Cumplir con todas las leyes aplicables</li>
+                      <li>Cumplir lo publicado en sus suscripciones y experiencias de Reserve</li>
+                      <li>Mantener la comunicación y los pagos dentro de la Plataforma</li>
+                      <li>Cumplir con todas las leyes, permisos e impuestos aplicables</li>
                     </ul>
 
-                    <h3 className="text-xl font-bold text-gray-900 mt-6">3. Estructura de Pagos</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mt-6">3. Estructura de Ingresos</h3>
                     <div className="bg-gray-50 p-4 rounded-xl">
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b">
                             <th className="text-left py-2">Nivel</th>
-                            <th className="text-left py-2">Suscriptores</th>
-                            <th className="text-left py-2">Comisión</th>
+                            <th className="text-left py-2">Fans activos</th>
+                            <th className="text-left py-2">Usted recibe</th>
                           </tr>
                         </thead>
                         <tbody>
-                          <tr className="border-b">
-                            <td className="py-2">Estándar</td>
-                            <td className="py-2">0-499</td>
-                            <td className="py-2">20%</td>
-                          </tr>
-                          <tr className="border-b">
-                            <td className="py-2">Premium</td>
-                            <td className="py-2">500-1999</td>
-                            <td className="py-2">15%</td>
-                          </tr>
-                          <tr>
-                            <td className="py-2">Élite</td>
-                            <td className="py-2">2000+</td>
-                            <td className="py-2">10%</td>
-                          </tr>
+                          {CREATOR_LEVELS.map((l) => (
+                            <tr key={l.id} className="border-b last:border-0">
+                              <td className="py-2">{l.name}</td>
+                              <td className="py-2">{l.minFans}+</td>
+                              <td className="py-2">{pct(l.share)}</td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     </div>
+                    <p>Aplica a suscripciones, renovaciones y propinas. Las metas mensuales, los fans de su enlace de invitación ({pct(REFERRAL_SHARE)} durante {REFERRAL_DAYS} días) y el bono por invitar creadores pueden subirlo, sin superar nunca el {pct(MAX_SHARE)}. Las reservas de Reserve le dejan el {pct(CREATOR_SHARE)} y los regalos el {pct(GIFT_SHARE)}. Los ingresos se acreditan el día 1 de cada mes y se retiran completos, a cuenta bancaria, desde ${MIN_PAYOUT} USD.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">4. Propiedad Intelectual</h3>
                     <p>Usted conserva derechos de autor. Nos otorga licencia para distribuir su Contenido en la Plataforma.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">5. Impuestos</h3>
-                    <p>Usted es responsable de declarar y pagar impuestos sobre sus ingresos. Proporcionamos reportes fiscales anuales.</p>
+                    <p>Usted es responsable de declarar y pagar impuestos sobre sus ingresos. Su historial de ingresos y retiros está en su panel.</p>
 
                     <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-xl">
                       <p className="text-sm text-blue-800">
                         <strong>Documento Completo:</strong> Consulte{' '}
                         <a href="/legal/CREATOR_AFFILIATE_AGREEMENT.md" className="underline" target="_blank">Contrato Completo</a>
+                        {' '}y el <a href="/legal?doc=reserve-agreement" className="underline">Acuerdo de Creator (Reserve)</a>.
                       </p>
                     </div>
                   </div>
@@ -235,10 +246,10 @@ const LegalPolicies: React.FC = () => {
                     </ul>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">2. Verificación de Edad</h3>
-                    <p>Todos los Usuarios deben verificar su edad con documentación oficial. Los Creadores deben verificar la edad de todas las personas que aparecen en su Contenido.</p>
+                    <p>Todos los Usuarios confirman que son mayores de 18 años al entrar y al registrarse. Los Creadores verifican su edad con documento oficial y selfie, y deben verificar la edad de todas las personas que aparecen en su Contenido. Ninguna experiencia de Reserve puede involucrar a menores.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">3. Monitoreo y Detección</h3>
-                    <p>Utilizamos IA especializada, PhotoDNA, análisis de contenido y revisión humana para detectar y eliminar contenido con menores.</p>
+                    <p>Combinamos una revisión automática básica de textos, los reportes de los usuarios y la revisión humana del equipo. Herramientas especializadas de detección (como PhotoDNA) están previstas antes del lanzamiento a producción.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">4. Cooperación con Autoridades</h3>
                     <p>Reportamos inmediatamente a NCMEC, Europol, Interpol y autoridades locales. Cooperamos totalmente con investigaciones.</p>
@@ -252,7 +263,6 @@ const LegalPolicies: React.FC = () => {
                       </p>
                       <p className="text-sm text-yellow-700">
                         <strong>Email urgente:</strong> {BRAND.emails.minors}<br/>
-                        <strong>Teléfono 24/7:</strong> [Número de emergencia]<br/>
                         <strong>NCMEC:</strong> 1-800-843-5678
                       </p>
                     </div>
@@ -264,19 +274,18 @@ const LegalPolicies: React.FC = () => {
                 <div>
                   <h2 className="text-3xl font-bold text-gray-900 mb-6">Política de Cookies</h2>
                   <div className="prose prose-sm max-w-none text-gray-600 space-y-4">
-                    <h3 className="text-xl font-bold text-gray-900 mt-6">¿Qué son las Cookies?</h3>
-                    <p>Las cookies son pequeños archivos de texto que se almacenan en su dispositivo para hacer que el sitio web funcione mejor.</p>
+                    <p className="text-sm text-gray-500"><strong>Última actualización:</strong> {LEGAL_UPDATED}</p>
+                    <h3 className="text-xl font-bold text-gray-900 mt-6">¿Qué usamos?</h3>
+                    <p>{BRAND.name} no usa cookies de publicidad ni de analítica de terceros. Para funcionar guarda en el almacenamiento local de su navegador su sesión y sus preferencias.</p>
 
-                    <h3 className="text-xl font-bold text-gray-900 mt-6">Tipos de Cookies</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mt-6">Tipos de almacenamiento</h3>
                     <ul className="list-disc pl-5 space-y-2">
-                      <li><strong>Esenciales:</strong> Necesarias para el funcionamiento (sesión, seguridad)</li>
-                      <li><strong>Funcionales:</strong> Mejoran la experiencia (preferencias, idioma)</li>
-                      <li><strong>Analíticas:</strong> Nos ayudan a entender el uso (Google Analytics)</li>
-                      <li><strong>Marketing:</strong> Para anuncios relevantes (Facebook Pixel)</li>
+                      <li><strong>Esencial:</strong> mantener su sesión iniciada y la seguridad de la cuenta</li>
+                      <li><strong>Funcional:</strong> recordar preferencias como el idioma o avisos ya vistos</li>
                     </ul>
 
-                    <h3 className="text-xl font-bold text-gray-900 mt-6">Gestión de Cookies</h3>
-                    <p>Puede controlar cookies desde la configuración de su navegador o desde su panel de preferencias en {BRAND.name}.</p>
+                    <h3 className="text-xl font-bold text-gray-900 mt-6">Gestión</h3>
+                    <p>Puede borrar estos datos desde la configuración de su navegador; al hacerlo se cerrará su sesión. Si en el futuro añadimos analítica o publicidad, actualizaremos esta política y pediremos su consentimiento.</p>
                   </div>
                 </div>
               )}

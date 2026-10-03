@@ -1,8 +1,10 @@
 # TÉRMINOS Y CONDICIONES DE SERVICIO - FANS RESERVE
 
-**Última actualización:** Enero 2024  
-**Versión:** 1.0.0  
-**Jurisdicción aplicable:** Internacional (con adaptaciones locales)
+**Última actualización:** Octubre 2026 (borrador)  
+**Versión:** 1.1.0  
+**Jurisdicción aplicable:** [Pendiente de definir con asesoría legal]
+
+> **Borrador.** Requires legal review before production launch. Requiere revisión legal antes del lanzamiento a producción. La Plataforma está en modo de prueba: los pagos son simulados.
 
 ---
 
@@ -28,7 +30,9 @@ Bienvenido a Fans Reserve ("la Plataforma", "nosotros", "nuestro"). Estos Térmi
 
 1.6. **"Suscripción"** se refiere al acceso pago al Contenido exclusivo de un Creador.
 
-1.7. **"Experiencia VIP"** se refiere a servicios premium ofrecidos por Creadores, incluyendo pero no limitado a sesiones privadas, contenido personalizado, y colaboraciones.
+1.7. **"Experiencia" o "Reserve"** se refiere a un servicio definido que un Creador publica para ser reservado (por ejemplo una clase, una sesión de coaching, una videollamada en la sala de la Plataforma, una aparición en un evento o una sesión de fotos en estudio), con tipo, modalidad, duración, precio, lugar y reglas propias. Fans Reserve permite reservar experiencias, no personas.
+
+1.8. **"Créditos"** se refiere a la moneda virtual de la Plataforma, que solo sirve para enviar regalos a Creadores.
 
 ---
 
@@ -40,7 +44,7 @@ Bienvenido a Fans Reserve ("la Plataforma", "nosotros", "nuestro"). Estos Térmi
 
 2.3. **Capacidad Legal**: Debe tener la capacidad legal para celebrar contratos vinculantes en su jurisdicción.
 
-2.4. **Cumplimiento Legal**: Usted es responsable de cumplir con todas las leyes aplicables en su jurisdicción, incluyendo pero no limitado a leyes sobre contenido para adultos.
+2.4. **Cumplimiento Legal**: Usted es responsable de cumplir con todas las leyes aplicables en su jurisdicción.
 
 2.5. **Prohibición para Menores**: El acceso a menores de 18 años está ESTRICTAMENTE PROHIBIDO. Cualquier cuenta identificada como perteneciente a un menor será eliminada inmediatamente y reportada a las autoridades correspondientes.
 
@@ -53,7 +57,7 @@ Bienvenido a Fans Reserve ("la Plataforma", "nosotros", "nuestro"). Estos Térmi
 3.2. **Información Requerida**:
 - Nombre completo o nombre artístico
 - Dirección de correo electrónico válida
-- Fecha de nacimiento (debe demostrar ser mayor de 18 años)
+- Confirmación de que es mayor de 18 años
 - Contraseña segura
 - Para Creadores: Documentación de identidad oficial
 
@@ -61,13 +65,12 @@ Bienvenido a Fans Reserve ("la Plataforma", "nosotros", "nuestro"). Estos Térmi
 - Usted es responsable de mantener la confidencialidad de sus credenciales
 - Debe notificar inmediatamente cualquier uso no autorizado de su cuenta
 - No debe compartir su cuenta con terceros
-- Recomendamos habilitar la autenticación de dos factores (2FA)
 
 3.4. **Verificación de Identidad para Creadores**:
-- Documento de identidad oficial con fotografía (pasaporte, DNI, licencia de conducir)
-- Selfie de verificación
-- Prueba de domicilio (factura de servicios reciente)
-- Consentimiento firmado para publicación de contenido
+- Foto del frente de un documento de identidad oficial (pasaporte, DNI o licencia de conducir)
+- Selfie de frente, que se compara con la foto del documento
+- Comprobamos la mayoría de edad y la coincidencia del rostro; al aprobarse, las imágenes se eliminan
+- Los perfiles creados y gestionados por la Plataforma no pasan por esta verificación y se identifican con su propia etiqueta
 
 3.5. **Suspensión y Terminación**:
 Nos reservamos el derecho de suspender o terminar cuentas que:
@@ -125,6 +128,10 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 - Contenido falso o manipulado sin declaración
 - Marketing engañoso
 
+4.2.6. **Contenido Sexual**: Contenido sexual explícito y cualquier servicio o actividad sexual, virtual o presencial. El glamour está permitido.
+
+4.2.7. **Servicios Prohibidos**: Los descritos en la política de Servicios Prohibidos (citas remuneradas, escort, vender compañía o tiempo personal sin un servicio definido, hoteles o domicilios como lugar de una experiencia, entre otros).
+
 ### 4.3. Monitoreo y Moderación
 
 4.3.1. Nos reservamos el derecho, pero no la obligación, de:
@@ -137,60 +144,61 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 
 ---
 
-## 5. EXPERIENCIAS VIP
+## 5. RESERVE (EXPERIENCIAS)
 
-5.1. **Naturaleza del Servicio**: Las Experiencias VIP son servicios premium ofrecidos por Creadores, sujetos a términos adicionales específicos de cada experiencia.
+5.1. **Naturaleza del Servicio**: Fans Reserve permite reservar experiencias, no personas. Una reserva da derecho únicamente a la experiencia descrita, en las condiciones publicadas. Los servicios profesionales con un propósito definido están permitidos, también en formato 1:1; vender la compañía o la intimidad de una persona no lo está.
 
 5.2. **Reservas y Pagos**:
-- Las reservas están sujetas a disponibilidad
-- Los pagos se procesan por adelantado
-- Las políticas de cancelación varían según el Creador
-- Los reembolsos están sujetos a nuestra Política de Reembolsos
+- El fan envía una solicitud; el Creador la acepta, la rechaza o hace una contraoferta
+- El pago se realiza solo después de la aceptación
+- Cada experiencia tiene su política de cancelación (ver Cancelación y No-show)
+- Las experiencias presenciales solo ocurren en venues, estudios, eventos y lugares públicos o profesionales, nunca en domicilios, hoteles ni lugares privados
 
 5.3. **Conducta Esperada**:
-- Los Fans deben tratar a los Creadores con respeto
-- Los Creadores deben cumplir con los servicios prometidos
+- Los Fans deben tratar a los Creadores con respeto; un Creador puede rechazar cualquier solicitud
+- Los Creadores deben cumplir con las experiencias confirmadas
 - Está prohibido el acoso, amenazas o comportamiento abusivo
 - Las grabaciones no autorizadas de sesiones están prohibidas
+- La comunicación y los pagos se mantienen dentro de la Plataforma
 
-5.4. **Limitaciones**:
-- Las Experiencias VIP son para uso personal únicamente
-- No se permite la redistribución o reventa
-- Nos reservamos el derecho de cancelar experiencias por violaciones de estos Términos
+5.4. **Suscripciones y regalos no incluyen Reserve**: La suscripción da acceso al contenido; los regalos son apoyo voluntario y no desbloquean nada. Ninguno incluye experiencias de Reserve.
+
+5.5. **Políticas aplicables**: Política de Reserve, Experiencias Aceptables, Servicios Prohibidos, Cancelación y No-show, Normas de la Comunidad y Acuerdo de Creator (Reserve).
 
 ---
 
 ## 6. PAGOS Y SUSCRIPCIONES
 
-6.1. **Métodos de Pago**: Aceptamos tarjetas de crédito/débito, transferencias bancarias y otros métodos según disponibilidad regional.
+6.1. **Métodos de Pago**: Tarjetas de crédito o débito Visa y Mastercard, PayPal y Google Pay. Mientras la Plataforma está en modo de prueba no se realizan cargos reales.
 
 6.2. **Suscripciones**:
-- Se renuevan automáticamente al final de cada período
-- Puede cancelar en cualquier momento desde su configuración de cuenta
-- La cancelación entra en vigor al final del período actual
+- Se renuevan cada mes en la misma fecha en que se suscribió
+- Puede cancelar en cualquier momento, sin permanencia
+- Al cancelar mantiene el acceso hasta el final del mes pagado y no se le vuelve a cobrar
 - No hay reembolsos por períodos parciales
 
-6.3. **Contenido PPV (Pay-Per-View)**:
-- Pago único por acceso a Contenido específico
-- Acceso permanente una vez comprado
-- No reembolsable excepto en casos de Contenido defectuoso
+6.3. **Créditos y Regalos**:
+- Los Créditos se compran en paquetes y solo sirven para enviar regalos dentro de la Plataforma
+- Un regalo es apoyo voluntario: no da acceso, contenido, videollamadas ni experiencias, y no garantiza respuesta
 
 6.4. **Propinas**:
 - Pagos voluntarios a Creadores
 - No reembolsables
 - Sujetas a las mismas comisiones que otros pagos
 
-6.5. **Comisiones y Pagos a Creadores**:
-- La Plataforma retiene el 20% de comisión sobre todos los ingresos
-- Los Creadores reciben el 80% restante
-- Los pagos se procesan mensualmente
-- Mínimo de retiro: $50 USD
+6.5. **Ingresos de los Creadores**:
+- Suscripciones, renovaciones y propinas: el Creador recibe del 80% al 90% según su nivel y sus recompensas
+- Reservas de Reserve: el Creador recibe el 80%
+- Regalos: el Creador recibe el 60%
+- La Plataforma conserva siempre al menos el 10% de cada venta
+- Los ingresos se acreditan el día 1 de cada mes; lo cobrado a mitad de mes aparece como pendiente
+- Retiro del saldo completo a cuenta bancaria, cualquier día, desde $50 USD
 - Los Creadores son responsables de sus obligaciones fiscales
 
 6.6. **Impuestos**:
 - Los precios pueden incluir impuestos aplicables según su jurisdicción
 - Usted es responsable de declarar y pagar impuestos sobre sus ingresos (para Creadores)
-- Emitimos reportes fiscales anuales según requerimientos legales
+- Los Creadores tienen su historial de ingresos y retiros en su panel
 
 ---
 
@@ -253,7 +261,7 @@ f) Su firma física o electrónica
 - La calidad de productos o servicios cumplirá sus expectativas
 - La Plataforma será segura o libre de virus
 
-11.3. **LIMITACIÓN DE DAÑOS**: En la máxima extensión permitida por la ley, Fans Reserve no será responsable por:
+10.3. **LIMITACIÓN DE DAÑOS**: En la máxima extensión permitida por la ley, Fans Reserve no será responsable por:
 - Daños indirectos, incidentales, especiales o consecuentes
 - Pérdida de ganancias, datos o oportunidades
 - Contenido de Usuarios o conducta de terceros
@@ -285,7 +293,7 @@ Usted acepta indemnizar, defender y eximir de responsabilidad a Fans Reserve, su
 
 ## 13. LEY APLICABLE Y JURISDICCIÓN
 
-13.1. **Ley Aplicable**: Estos Términos se regirán e interpretarán de acuerdo con las leyes aplicables en su jurisdicción, sin conflicto con principios de ley.
+13.1. **Ley Aplicable**: [Pendiente de definir con asesoría legal: país cuya ley rige estos Términos y tribunales competentes.]
 
 13.2. **Resolución de Disputas**: 
 - Primero intentaremos resolver disputas mediante negociación
@@ -321,4 +329,4 @@ Para preguntas sobre estos Términos:
 
 **AL UTILIZAR FANS RESERVE, USTED RECONOCE QUE HA LEÍDO, ENTENDIDO Y ACEPTA ESTAR VINCULADO POR ESTOS TÉRMINOS Y CONDICIONES.**
 
-© 2024 Fans Reserve. Todos los derechos reservados.
+© 2026 Fans Reserve. Todos los derechos reservados.
