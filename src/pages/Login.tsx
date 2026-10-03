@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import LanguageSelector from '../components/LanguageSelector';
 import BrandLogo from '../components/BrandLogo';
+import SocialLoginButtons from '../components/SocialLoginButtons';
 import { DEMO_ACCOUNTS, type DemoAccount } from '../config/demoAccounts';
 
 const Login: React.FC = () => {
@@ -113,15 +114,10 @@ const Login: React.FC = () => {
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200"></div></div>
-              <div className="relative flex justify-center text-sm"><span className="px-4 bg-white text-gray-500">{t('login.or')}</span></div>
+              <div className="relative flex justify-center text-sm"><span className="px-4 bg-white text-gray-500">o</span></div>
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <button type="button" disabled title="Próximamente" className="flex items-center justify-center py-2.5 border border-gray-200 rounded-xl opacity-50 cursor-not-allowed">
-                <i aria-hidden="true" className="fab fa-google text-red-500 mr-2"></i> Google
-              </button>
-              <button type="button" disabled title="Próximamente" className="flex items-center justify-center py-2.5 border border-gray-200 rounded-xl opacity-50 cursor-not-allowed">
-                <i aria-hidden="true" className="fab fa-apple text-gray-800 mr-2"></i> Apple
-              </button>
+            <div className="mt-4">
+              <SocialLoginButtons from={(location.state as { from?: string } | null)?.from} onError={setError} />
             </div>
           </div>
 

@@ -26,6 +26,7 @@ const LegalPolicies = lazy(() => import('./pages/LegalPolicies'));
 const LiveRoom = lazy(() => import('./pages/LiveRoom'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const AuthCallback = lazy(() => import('./pages/AuthCallback'));
 
 const LoadingScreen: React.FC = () => (
   <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-label="Cargando">
@@ -74,10 +75,22 @@ const RecoveryRedirect: React.FC = () => {
   return null;
 };
 
+// A Google/Microsoft sign-up isn't usable until it picks fan or creator and
+// accepts the terms: keep it on that step wherever it lands.
+const PendingSignupRedirect: React.FC = () => {
+  const { user } = useAuth();
+  const location = useLocation();
+  if (user?.signupCompleted === false && !['/auth/callback', '/legal', '/policies'].includes(location.pathname)) {
+    return <Navigate to="/auth/callback" replace />;
+  }
+  return null;
+};
+
 const AppRoutes: React.FC = () => {
   return (
     <Suspense fallback={<LoadingScreen />}>
     <RecoveryRedirect />
+    <PendingSignupRedirect />
     <Routes>
       {/* Age Verification */}
       <Route path="/age-verification" element={
@@ -93,6 +106,10 @@ const AppRoutes: React.FC = () => {
       } />
       <Route path="/forgot-password" element={
         <AppLayout hideNav={true}><GuestOnlyRoute><ForgotPassword /></GuestOnlyRoute></AppLayout>
+      } />
+      {/* Return from Google/Microsoft (signs in, or finishes a new account). */}
+      <Route path="/auth/callback" element={
+        <AppLayout hideNav={true}><AuthCallback /></AppLayout>
       } />
       {/* Not guest-only: the emailed link signs the user in to change the password. */}
       <Route path="/reset-password" element={

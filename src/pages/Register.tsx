@@ -6,6 +6,7 @@ import { clearRefCode, readRefCode } from '../lib/rewardRules';
 import { useLanguage } from '../context/LanguageContext';
 import LanguageSelector from '../components/LanguageSelector';
 import BrandLogo from '../components/BrandLogo';
+import SocialLoginButtons from '../components/SocialLoginButtons';
 
 // What a creator account includes (all of it works in the app today).
 const CREATOR_BENEFITS = [
@@ -144,6 +145,11 @@ const Register: React.FC = () => {
 
           {step === 1 && (
             <div className="space-y-4">
+              <SocialLoginButtons role={role} onError={setError} />
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200"></div></div>
+                <div className="relative flex justify-center text-sm"><span className="px-4 bg-white text-gray-500">o con tu email</span></div>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('register.fullName')}</label>
                 <input

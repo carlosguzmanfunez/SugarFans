@@ -105,12 +105,12 @@ const register = async (page, { name, email, password, confirm = password, role 
   await page.goto(`${BASE}/register`);
   await page.fill('input[type=text]', name);
   await page.fill('input[type=email]', email);
-  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
   if (await page.locator('[class*="bg-red-50"]').count()) return;
   const pw = page.locator('input[type=password]');
   await pw.nth(0).fill(password);
   await pw.nth(1).fill(confirm);
-  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
   if (await page.locator('[class*="bg-red-50"]').count()) return;
   if (role === 'creator') await page.getByRole('button', { name: /Creador/ }).click();
   if (terms) await page.check('input[type=checkbox]');
@@ -356,6 +356,23 @@ const run = async () => {
     });
 
     console.log('\nInicio de sesión, persistencia y cierre de sesión');
+    await check('Login y registro ofrecen Google y Microsoft; sin servidor avisan sin salir de la página', async () => {
+      await page.goto(`${BASE}/login`);
+      await page.getByRole('button', { name: 'Continuar con Google' }).waitFor();
+      await page.getByRole('button', { name: 'Continuar con Microsoft' }).click();
+      expect((await errorText(page))?.includes('Microsoft'), 'no avisó');
+      await waitPath(page, '/login');
+      await page.goto(`${BASE}/register`);
+      await page.getByRole('button', { name: 'Continuar con Google' }).click();
+      expect((await errorText(page))?.includes('Google'), 'no avisó en registro');
+      expect((await page.getByText('Apple').count()) === 0, 'sigue el botón de Apple');
+    });
+    await check('Si el usuario cancela en Google/Microsoft, la vuelta lo explica y lleva al login', async () => {
+      await page.goto(`${BASE}/auth/callback?error=access_denied&error_description=cancelled`);
+      await page.getByText('Cancelaste el acceso').waitFor();
+      await page.getByRole('link', { name: 'Volver a iniciar sesión' }).click();
+      await waitPath(page, '/login');
+    });
     await check('Login ofrece Demo Fan, Demo Creator y Demo Admin sin mostrar correos antiguos', async () => {
       await page.goto(`${BASE}/login`);
       for (const label of ['Demo Fan', 'Demo Creator', 'Demo Admin']) await page.getByRole('button', { name: label }).waitFor();
@@ -1670,11 +1687,11 @@ const run = async () => {
       await waitPath(vp, '/register');
       await vp.fill('input[type=text]', 'Nueva Creadora');
       await vp.fill('input[type=email]', 'nueva.creadora@test.com');
-      await vp.getByRole('button', { name: 'Continuar' }).click();
+      await vp.getByRole('button', { name: 'Continuar', exact: true }).click();
       const pw = vp.locator('input[type=password]');
       await pw.nth(0).fill('password123');
       await pw.nth(1).fill('password123');
-      await vp.getByRole('button', { name: 'Continuar' }).click();
+      await vp.getByRole('button', { name: 'Continuar', exact: true }).click();
       await vp.getByTestId('creator-benefits').getByText(/60% de los regalos/).waitFor();
       await vp.getByTestId('creator-benefits').getByText(/Tu enlace de invitación/).waitFor();
     });

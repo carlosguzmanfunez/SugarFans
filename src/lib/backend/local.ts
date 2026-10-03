@@ -326,6 +326,15 @@ export const localBackend: Backend = {
     return mutate(user.id, (a) => ({ ...a, ...next })) ? ok : fail('Cuenta no encontrada');
   },
 
+  // Google/Microsoft sign-in needs the real server (Supabase).
+  async signInWithProvider(provider) {
+    return fail(`El acceso con ${provider === 'google' ? 'Google' : 'Microsoft'} no está disponible en el modo sin conexión.`);
+  },
+
+  async completeSocialSignup() {
+    return fail('No hay ningún registro pendiente');
+  },
+
   async changePassword(user, current, next) {
     if (!(await checkPassword(user.id, current))) return fail('La contraseña actual no es correcta');
     if (next.length < 8) return fail('La nueva contraseña debe tener al menos 8 caracteres');

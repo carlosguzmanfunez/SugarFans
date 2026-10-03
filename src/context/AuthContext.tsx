@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { readJSON, writeJSON } from '../lib/storage';
-import { backend, type AuthResult, type MediaUpload, type ProfilePatch, type Subscription, type User, type UserRole } from '../lib/backend';
+import { backend, type AuthResult, type MediaUpload, type ProfilePatch, type SocialProvider, type Subscription, type User, type UserRole } from '../lib/backend';
 
-export type { User, UserRole, UserSettings, Subscription, CreatorPost, AuthResult } from '../lib/backend';
+export type { SocialProvider, User, UserRole, UserSettings, Subscription, CreatorPost, AuthResult } from '../lib/backend';
 export { defaultSettings } from '../lib/backend';
 
 const AGE_KEY = 'age_verified';
@@ -16,6 +16,9 @@ interface AuthContextType {
   backendMode: 'supabase' | 'local';
   login: (email: string, password: string, remember?: boolean) => Promise<AuthResult>;
   register: (name: string, email: string, password: string, role: UserRole, ref?: string) => Promise<AuthResult & { needsConfirmation?: boolean }>;
+  // Leaves for Google/Microsoft; the user comes back to /auth/callback.
+  signInWithProvider: (provider: SocialProvider) => Promise<AuthResult>;
+  completeSocialSignup: (role: UserRole, ref?: string) => Promise<AuthResult>;
   logout: () => Promise<void>;
   verifyAge: () => void;
   updateUser: (data: ProfilePatch) => Promise<AuthResult>;
@@ -85,6 +88,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return result;
   };
 
+  const signInWithProvider = (provider: SocialProvider) =>
+    backend.signInWithProvider(provider, `${window.location.origin}/auth/callback`);
+
+  const completeSocialSignup = async (role: UserRole, ref?: string) => {
+    const result = await run(() => backend.completeSocialSignup(role, ref));
+    if (result.ok) {
+      // The completion form includes the 18+ confirmation.
+      writeJSON(AGE_KEY, true);
+      setDeviceAgeVerified(true);
+    }
+    return result;
+  };
+
   const logout = async () => {
     await backend.logout();
     setUser(null);
@@ -139,6 +155,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         backendMode: backend.mode,
         login,
         register,
+        signInWithProvider,
+        completeSocialSignup,
         logout,
         verifyAge,
         updateUser,

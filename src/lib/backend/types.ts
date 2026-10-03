@@ -13,6 +13,9 @@ export type * from './giftTypes';
 
 export type UserRole = 'fan' | 'creator' | 'admin';
 
+// Sign-in buttons: Google, and Microsoft (Supabase calls it "azure").
+export type SocialProvider = 'google' | 'azure';
+
 export interface UserSettings {
   notifications: Record<string, boolean>;
   privacy: {
@@ -63,6 +66,11 @@ export interface User {
   // Links a creator account to its public creator profile / VIP experiences.
   creatorProfileId?: string;
   createdPosts: CreatorPost[];
+  // How the user signs in: 'email' (password), 'google' or 'azure' (Microsoft).
+  authProvider?: string;
+  // False right after a Google/Microsoft sign-up, until the user picks fan or
+  // creator and accepts the terms (18+).
+  signupCompleted?: boolean;
 }
 
 export interface AuthResult {
@@ -237,9 +245,14 @@ export interface Backend {
   onChange(cb: () => void): () => void;
   login(email: string, password: string, remember: boolean): Promise<AuthResult>;
   register(name: string, email: string, password: string, role: UserRole, ref?: string): Promise<AuthResult & { needsConfirmation?: boolean }>;
+  // Leaves the site for the provider's sign-in page; comes back to `redirectTo`.
+  signInWithProvider(provider: SocialProvider, redirectTo: string): Promise<AuthResult>;
+  // Finishes a Google/Microsoft sign-up: account type, 18+ and terms.
+  completeSocialSignup(role: UserRole, ref?: string): Promise<AuthResult>;
   logout(): Promise<void>;
   updateProfile(user: User, patch: ProfilePatch): Promise<AuthResult>;
   changePassword(user: User, current: string, next: string): Promise<AuthResult>;
+  // `password` is ignored for Google/Microsoft accounts, which have none.
   deleteAccount(user: User, password: string): Promise<AuthResult>;
   // Removes a subscription at once (used when blocking a creator).
   setSubscription(user: User, creatorId: string, price: number, subscribed: boolean): Promise<AuthResult>;

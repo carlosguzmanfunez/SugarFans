@@ -4,7 +4,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { WRONG_CREDENTIALS, cleanPatch, mergeSettings, normalizeEmail, validateRegistration } from './shared';
 import { DEFAULT_AVAILABILITY, cleanDetails, customTitle, normalizeAvailability, validateCounter, validateCustomRequest, validateExperience } from '../vip';
-import type { Backend, BookingDetails, BookingStatus, ExperienceType, ReserveDetails, User, UserRole, VipBooking, VipExperience } from './types';
+import type { Backend, BookingDetails, BookingStatus, ExperienceType, ReserveDetails, SocialProvider, User, UserRole, VipBooking, VipExperience } from './types';
 import { creators as demoCreators } from '../../data/mockData';
 import { createSupabasePlatform } from './supabasePlatform';
 import { createSupabaseSocial } from './supabaseSocial';
@@ -58,6 +58,8 @@ interface ProfileRow {
   settings: Partial<User['settings']> | null;
   creator_profile_id: string | null;
   created_at: string;
+  // Missing until the social-login migration is applied.
+  signup_completed?: boolean;
 }
 
 interface BookingRow {
@@ -115,7 +117,7 @@ const toExperience = (e: ExperienceRow): VipExperience => ({
   ...(hasDetails(e.details) ? { details: e.details as ReserveDetails } : {}),
 });
 
-const toUser = (p: ProfileRow, extra?: Pick<User, 'subscriptions' | 'createdPosts'>): User => ({
+const toUser = (p: ProfileRow, extra?: Pick<User, 'subscriptions' | 'createdPosts' | 'authProvider'>): User => ({
   id: p.id,
   name: p.name,
   email: p.email,
@@ -133,6 +135,8 @@ const toUser = (p: ProfileRow, extra?: Pick<User, 'subscriptions' | 'createdPost
   creatorProfileId: p.creator_profile_id ?? undefined,
   subscriptions: extra?.subscriptions ?? [],
   createdPosts: extra?.createdPosts ?? [],
+  authProvider: extra?.authProvider,
+  signupCompleted: p.signup_completed !== false,
 });
 
 const toBooking = (b: BookingRow): VipBooking => ({
@@ -177,6 +181,8 @@ const translateAuthError = (message: string): string => {
   return 'No se pudo completar la operación. Inténtalo de nuevo.';
 };
 
+const PROVIDER_NAMES: Record<SocialProvider, string> = { google: 'Google', azure: 'Microsoft' };
+
 export const createSupabaseBackend = (url: string, anonKey: string): Backend => {
   const sb: SupabaseClient = createClient(url, anonKey, {
     auth: { storage: sessionAwareStorage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
@@ -198,6 +204,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       const { data: sessionData } = await sb.auth.getSession();
       const uid = sessionData.session?.user.id;
       if (!uid) return null;
+      const authProvider = (sessionData.session?.user.app_metadata?.provider as string | undefined) ?? 'email';
       const [profile, subs, posts] = await Promise.all([
         sb.from('profiles').select('*').eq('id', uid).maybeSingle(),
         sb.from('subscriptions').select('creator_id, price, since, cancel_at').eq('fan_id', uid),
@@ -205,6 +212,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       ]);
       if (!profile.data) return null;
       return toUser(profile.data as ProfileRow, {
+        authProvider,
         // A cancelled subscription counts until its end date.
         subscriptions: (subs.data ?? [])
           .filter((s) => !s.cancel_at || new Date(s.cancel_at) > new Date())
@@ -262,6 +270,35 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       return ok;
     },
 
+    async signInWithProvider(provider, redirectTo) {
+      const name = PROVIDER_NAMES[provider];
+      // A provider that isn't switched on in Supabase would land on a raw JSON error.
+      try {
+        const res = await fetch(`${url}/auth/v1/settings`, { headers: { apikey: anonKey } });
+        const settings = (await res.json()) as { external?: Record<string, boolean> };
+        if (!settings.external?.[provider]) return fail(`El acceso con ${name} todavía no está activado. Usa tu email y contraseña.`);
+      } catch {
+        return fail(translateAuthError('fetch failed'));
+      }
+      try {
+        localStorage.setItem(REMEMBER_KEY, 'true');
+      } catch {
+        // ignore
+      }
+      const { error } = await sb.auth.signInWithOAuth({
+        provider,
+        // Microsoft only shares the email address when asked for it.
+        options: { redirectTo, ...(provider === 'azure' ? { scopes: 'email' } : {}) },
+      });
+      return error ? fail(translateAuthError(error.message)) : ok;
+    },
+
+    async completeSocialSignup(role, ref) {
+      if (role !== 'fan' && role !== 'creator') return fail('Elige un tipo de cuenta');
+      const { error } = await sb.rpc('complete_social_signup', { p_role: role, p_ref: ref ?? null });
+      return error ? dbError(error, 'No se pudo completar el registro') : ok;
+    },
+
     async logout() {
       await sb.auth.signOut();
     },
@@ -299,7 +336,8 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
     },
 
     async deleteAccount(user, password) {
-      if (!(await reauthenticate(user.email, password))) return fail('La contraseña no es correcta');
+      // Google/Microsoft accounts have no password; the typed confirmation is the check.
+      if ((user.authProvider ?? 'email') === 'email' && !(await reauthenticate(user.email, password))) return fail('La contraseña no es correcta');
       const { error } = await sb.rpc('delete_my_account');
       if (error) return dbError(error, 'No se pudo eliminar la cuenta');
       await sb.auth.signOut({ scope: 'local' });
