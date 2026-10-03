@@ -404,6 +404,37 @@ const run = async () => {
       await waitPath(page, '/profile');
       expect((await page.getByRole('button', { name: /Cerrar Sesión/ }).count()) === 0, 'el menú siguió abierto');
     });
+    await check('El menú de cuenta se cierra al tocar fuera o con Escape', async () => {
+      const menuOpen = async () => (await page.getByRole('button', { name: /Cerrar Sesión/ }).count()) > 0;
+      await page.click('button[aria-label="Menú de cuenta"]');
+      expect(await menuOpen(), 'el menú no se abrió');
+      await page.mouse.click(40, 500);
+      await page.waitForTimeout(100);
+      expect(!(await menuOpen()), 'el menú siguió abierto tras hacer clic fuera');
+      await page.click('button[aria-label="Menú de cuenta"]');
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(100);
+      expect(!(await menuOpen()), 'el menú siguió abierto tras pulsar Escape');
+      await page.click('button[aria-label="Menú de cuenta"]');
+      await page.click('button[aria-label="Menú de cuenta"]');
+      expect(!(await menuOpen()), 'el botón ya no cierra el menú');
+    });
+    await check('La campanita se cierra al tocar fuera o con Escape', async () => {
+      const panel = page.getByTestId('notification-panel');
+      await page.getByTestId('notification-bell').click();
+      await panel.waitFor();
+      await page.mouse.click(40, 500);
+      await panel.waitFor({ state: 'detached' });
+      await page.getByTestId('notification-bell').click();
+      await panel.waitFor();
+      await page.keyboard.press('Escape');
+      await panel.waitFor({ state: 'detached' });
+      await page.getByTestId('notification-bell').click();
+      await page.click('button[aria-label="Menú de cuenta"]');
+      await panel.waitFor({ state: 'detached' });
+      await page.getByRole('button', { name: /Cerrar Sesión/ }).waitFor();
+      await page.mouse.click(40, 500);
+    });
     await check('Un fan no puede entrar al panel de creador ni al de admin', async () => {
       await page.goto(`${BASE}/creator/dashboard`);
       await waitPath(page, '/explore');
@@ -1957,13 +1988,22 @@ const run = async () => {
     });
     await narrow.close();
 
-    const mobile = await newContext(browser, { viewport: { width: 390, height: 844 }, locale: 'es-ES' });
+    const mobile = await newContext(browser, { viewport: { width: 390, height: 844 }, locale: 'es-ES', hasTouch: true });
     const m = await newPage(mobile);
     await check('Móvil: login, perfil y cerrar sesión desde el menú móvil', async () => {
       await m.goto(`${BASE}/age-verification`);
       await m.getByRole('button', { name: /Soy mayor|18/ }).first().click();
       await login(m, 'creator@sugarfans.com', 'demo1234');
       await waitPath(m, '/explore');
+      await m.locator('button[aria-label="Menú de cuenta"]').tap();
+      await m.getByRole('button', { name: /Cerrar Sesión/ }).first().waitFor();
+      await m.touchscreen.tap(195, 600);
+      await m.waitForTimeout(100);
+      expect((await m.getByRole('button', { name: /Cerrar Sesión/ }).count()) === 0, 'el menú de cuenta siguió abierto al tocar fuera');
+      await m.locator('button[aria-label="Menú"]').tap();
+      await m.getByRole('link', { name: /Panel/ }).waitFor();
+      await m.touchscreen.tap(195, 780);
+      await m.getByRole('link', { name: /Panel/ }).waitFor({ state: 'detached' });
       await m.locator('button[aria-label="Menú"]').click();
       await m.getByRole('link', { name: /Panel/ }).click();
       await waitPath(m, '/creator/dashboard');
