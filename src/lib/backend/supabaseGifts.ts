@@ -2,6 +2,7 @@
 // gifts and the gift perks. Tables and the
 // functions that enforce the rules live in
 // supabase/migrations/20260930000007_gifts_terrones.sql.
+import { PAID_WITH_PAYPAL } from './shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { DEFAULT_GIFT_SETTINGS, validateCircleMin } from '../giftRules';
 import type { AuthResult } from './types';
@@ -76,6 +77,7 @@ export const createSupabaseGifts = (sb: SupabaseClient): GiftsBackend => {
     },
 
     async buyCoins(_user, packId, methodId) {
+      if (methodId === PAID_WITH_PAYPAL) return { ok: true }; // the server already charged and credited it
       const { error } = await sb.rpc('buy_coins', { p_pack_id: packId, p_method_id: methodId });
       return done(error, 'No se pudo completar la compra');
     },

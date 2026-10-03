@@ -1430,6 +1430,17 @@ const run = async () => {
       expect((await balanceText(gf)).includes('1,000'), 'no se acreditaron 1,000 créditos');
       await gf.getByTestId('coin-purchase').filter({ hasText: '$9.99' }).waitFor();
     });
+    await check('El fan encuentra sus Créditos en Mi perfil y en el menú de su cuenta', async () => {
+      await gf.goto(`${BASE}/profile`);
+      const link = gf.getByTestId('profile-wallet');
+      await link.getByText('Créditos: 1,000').waitFor();
+      await link.click();
+      await gf.getByTestId('wallet-balance').waitFor();
+      await gf.goto(`${BASE}/`);
+      await gf.getByRole('button', { name: 'Menú de cuenta' }).click();
+      await gf.getByRole('link', { name: 'Créditos', exact: true }).click();
+      await gf.getByTestId('wallet-balance').waitFor();
+    });
     await check('Regalos: nombres y categorías Identity V1, completos y en créditos', async () => {
       const dialog = await openGift(gf);
       for (const cat of ['Reacciones', 'Celebración', 'Especiales', 'Prestige', 'Leyenda']) await dialog.getByText(cat, { exact: true }).waitFor();

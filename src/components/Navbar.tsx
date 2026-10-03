@@ -8,6 +8,7 @@ import Avatar from './Avatar';
 import NotificationBell from './NotificationBell';
 import { useDismiss } from '../hooks/useDismiss';
 import { displayEmail } from '../config/demoAccounts';
+import { VIRTUAL_CURRENCY } from '../config/currency';
 
 const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -90,6 +91,9 @@ const Navbar: React.FC = () => {
                     <Link to="/profile" className="flex items-center gap-3 px-4 py-2.5 text-sm text-ink/80 hover:bg-canvas">
                       <i aria-hidden="true" className="fas fa-user w-4 text-ink/40"></i> {t('nav.profile')}
                     </Link>
+                    <Link to="/settings?section=wallet" className="flex items-center gap-3 px-4 py-2.5 text-sm text-ink/80 hover:bg-canvas">
+                      <i aria-hidden="true" className="fas fa-coins w-4 text-ink/40"></i> {VIRTUAL_CURRENCY.displayName}
+                    </Link>
                     <Link to="/settings" className="flex items-center gap-3 px-4 py-2.5 text-sm text-ink/80 hover:bg-canvas">
                       <i aria-hidden="true" className="fas fa-gear w-4 text-ink/40"></i> {t('nav.settings')}
                     </Link>
@@ -150,6 +154,9 @@ const Navbar: React.FC = () => {
                 <>
                   <Link to="/profile" className={mobileLinkCls('/profile')}>
                     <i aria-hidden="true" className="fas fa-user w-5 text-ink/40"></i> {t('nav.profile')}
+                  </Link>
+                  <Link to="/settings?section=wallet" className={mobileLinkCls('/settings?section=wallet')}>
+                    <i aria-hidden="true" className="fas fa-coins w-5 text-ink/40"></i> {VIRTUAL_CURRENCY.displayName}
                   </Link>
                   <Link to="/settings" className={mobileLinkCls('/settings')}>
                     <i aria-hidden="true" className="fas fa-gear w-5 text-ink/40"></i> {t('nav.settings')}

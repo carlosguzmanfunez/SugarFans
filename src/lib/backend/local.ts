@@ -256,6 +256,9 @@ const fail = (error: string) => ({ ok: false, error });
 
 export const localBackend: Backend = {
   mode: 'local',
+  async accessToken() {
+    return null;
+  },
   platform,
   social,
   gifts,

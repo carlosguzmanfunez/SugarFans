@@ -1,5 +1,6 @@
 // Supabase implementation of the platform features. Tables and the functions
 // that enforce the rules live in supabase/migrations/20260930000001_platform.sql.
+import { PAID_WITH_PAYPAL } from './shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { buildManagedProfile, validateReport, validateTip, validateVerification } from '../platformRules';
 import { creators as catalogue } from '../../data/mockData';
@@ -188,6 +189,7 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
   },
 
   async subscribeAndPay(_user, creatorProfileId, creatorName, price, methodId) {
+    if (methodId === PAID_WITH_PAYPAL) return { ok: true }; // PayPal Subscriptions already activated it
     const { error } = await sb.rpc('subscribe_and_pay', {
       p_creator_profile_id: creatorProfileId,
       p_creator_name: creatorName,
@@ -198,6 +200,7 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
   },
 
   async sendTip(_user, creatorProfileId, creatorName, amount, methodId, postId, message) {
+    if (methodId === PAID_WITH_PAYPAL) return { ok: true }; // the server already charged and sent it
     const check = validateTip(amount);
     if (!check.ok) return check;
     const { error } = await sb.rpc('send_tip', {

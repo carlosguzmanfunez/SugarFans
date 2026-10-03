@@ -506,6 +506,7 @@ const CreatorProfile: React.FC = () => {
           note={`Mensual. Se renueva el día ${addMonths(new Date().toISOString(), 1).getDate()} de cada mes; cancela cuando quieras.`}
           confirmLabel="Suscribirme y pagar"
           extra={<ReserveNotice kind="subscription" />}
+          paypal={{ kind: 'subscription', params: { creatorProfileId: creator.id } }}
           onConfirm={confirmPayment}
           onClose={() => setCheckout(false)}
         />

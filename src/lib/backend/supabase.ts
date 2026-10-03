@@ -2,7 +2,7 @@
 // Security. Rules that span users (booking lifecycle, account deletion) run in
 // SECURITY DEFINER functions, see supabase/migrations.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { WRONG_CREDENTIALS, cleanPatch, mergeSettings, normalizeEmail, validateRegistration } from './shared';
+import { PAID_WITH_PAYPAL, WRONG_CREDENTIALS, cleanPatch, mergeSettings, normalizeEmail, validateRegistration } from './shared';
 import { DEFAULT_AVAILABILITY, cleanDetails, customTitle, normalizeAvailability, validateCounter, validateCustomRequest, validateExperience } from '../vip';
 import type { Backend, BookingDetails, BookingStatus, ExperienceType, ReserveDetails, SocialProvider, User, UserRole, VipBooking, VipExperience } from './types';
 import { creators as demoCreators } from '../../data/mockData';
@@ -196,6 +196,10 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
 
   return {
     mode: 'supabase',
+    async accessToken() {
+      const { data } = await sb.auth.getSession();
+      return data.session?.access_token ?? null;
+    },
     platform: createSupabasePlatform(sb),
     social: createSupabaseSocial(sb),
     gifts: createSupabaseGifts(sb),
@@ -355,7 +359,17 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
 
     async cancelSubscription(_user, creatorId) {
       const { data, error } = await sb.rpc('cancel_subscription', { p_creator_profile_id: creatorId });
-      return error ? dbError(error, 'No se pudo cancelar la suscripción') : { ok: true, until: data as string };
+      if (!error) return { ok: true, until: data as string };
+      if (!/se paga con PayPal/.test(error.message)) return dbError(error, 'No se pudo cancelar la suscripción');
+      // Paid with PayPal: the server cancels it at PayPal first, then here.
+      const token = (await sb.auth.getSession()).data.session?.access_token;
+      const r = await fetch('/api/paypal', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token ?? ''}` },
+        body: JSON.stringify({ action: 'cancel-subscription', creatorProfileId: creatorId }),
+      }).catch(() => null);
+      const body = (await r?.json().catch(() => null)) as { until?: string; error?: string } | null;
+      return r?.ok ? { ok: true, until: body?.until } : fail(body?.error || 'No se pudo cancelar la suscripción en PayPal. Intenta de nuevo.');
     },
 
     async requestPasswordReset(email) {
@@ -488,6 +502,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
     },
 
     async payBooking(_user, bookingId, methodId) {
+      if (methodId === PAID_WITH_PAYPAL) return ok; // the server already charged and confirmed it
       const { error } = await sb.rpc('vip_pay_booking', { p_booking_id: bookingId, p_method_id: methodId });
       return error ? dbError(error, 'No se pudo completar el pago') : ok;
     },

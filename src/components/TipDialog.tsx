@@ -38,6 +38,7 @@ const TipDialog: React.FC<Props> = ({ user, creatorProfileId, creatorName, postI
         amount={value}
         note={message.trim() ? `Mensaje: “${message.trim()}”` : 'El 80% va directo al saldo del creador.'}
         confirmLabel="Enviar propina"
+        paypal={{ kind: 'tip', params: { creatorProfileId, amount: value, postId, message } }}
         onConfirm={async (methodId) => {
           const result = await sendTip(user, creatorProfileId, creatorName, value, methodId, postId, message);
           if (result.ok) onDone(value);
