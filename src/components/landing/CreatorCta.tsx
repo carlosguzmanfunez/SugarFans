@@ -2,10 +2,17 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { CREATOR_CTA } from '../../content/landing';
 import { BrandMark } from '../BrandLogo';
+import { useAuth } from '../../context/AuthContext';
 
 // Call to creators: one bold panel with what they can offer their community.
 // Earnings terms live in the creator signup and panel, not on the landing.
-const CreatorCta: React.FC = () => (
+// Signed-in fans and admins can't sign up again, so they don't see it; creators
+// get a shortcut to their panel instead of the signup.
+const CreatorCta: React.FC = () => {
+  const { user } = useAuth();
+  if (user && user.role !== 'creator') return null;
+  const isCreator = user?.role === 'creator';
+  return (
   <section aria-labelledby="creator-cta-title" className="reveal py-16 md:py-24">
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div className="relative overflow-hidden rounded-[2rem] bg-reserve px-6 py-12 text-white sm:px-10 md:px-14 md:py-16">
@@ -19,8 +26,8 @@ const CreatorCta: React.FC = () => (
             <p className="eyebrow text-white/80">{CREATOR_CTA.eyebrow}</p>
             <h2 id="creator-cta-title" className="text-display-lg mt-3">{CREATOR_CTA.title}</h2>
             <p className="mt-4 max-w-xl text-lg text-white/85">{CREATOR_CTA.subtitle}</p>
-            <Link to="/register?role=creator" className="btn btn-lg btn-light mt-8 shadow-xl">
-              {CREATOR_CTA.cta} <i className="fas fa-arrow-right text-sm text-brand-600" aria-hidden="true"></i>
+            <Link to={isCreator ? '/creator/dashboard' : '/register?role=creator'} className="btn btn-lg btn-light mt-8 shadow-xl">
+              {isCreator ? CREATOR_CTA.memberCta : CREATOR_CTA.cta} <i className="fas fa-arrow-right text-sm text-brand-600" aria-hidden="true"></i>
             </Link>
           </div>
           <ul className="grid grid-cols-2 gap-3">
@@ -37,6 +44,7 @@ const CreatorCta: React.FC = () => (
       </div>
     </div>
   </section>
-);
+  );
+};
 
 export default CreatorCta;
