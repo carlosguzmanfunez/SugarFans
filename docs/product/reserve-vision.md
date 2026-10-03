@@ -101,7 +101,7 @@ Los servicios profesionales con propósito definido sí se permiten, también 1:
 
 Tampoco se permiten:
 
-- lugares: habitaciones de hotel, cuartos privados ni vehículos; domicilios solo para servicios profesionales de Cocina y Fitness (lugar del creator o lugar que propone el fan, aprobación manual, decisión de Carlos 2026-10-03);
+- lugares: habitaciones de hotel, cuartos privados ni vehículos; domicilios solo para servicios profesionales, en todas las categorías menos Modelos (lugar del creator o lugar que propone el fan, aprobación manual, decisiones de Carlos 2026-10-03);
 - contacto o pagos fuera de la plataforma.
 
 **Cómo se aplica.** La moderación está en `src/lib/moderation.ts` (cliente) y en `reserve_text_blocked` (servidor):
@@ -142,7 +142,7 @@ Se reutilizan los estados de `vip_bookings`; los nuevos se añadieron a su `chec
 
 **Ya implementado:**
 
-- Las experiencias presenciales se hacen en venues y lugares públicos o profesionales; a domicilio solo los servicios profesionales de Cocina y Fitness.
+- Las experiencias presenciales se hacen en venues y lugares públicos o profesionales; en el lugar del creator o del fan solo servicios profesionales, nunca en Modelos.
 - Requisito opcional de fan verificado.
 - Anticipación mínima.
 - Aprobación manual para los tipos sensibles.

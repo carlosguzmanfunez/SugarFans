@@ -1771,10 +1771,15 @@ const run = async () => {
       expect(!R.locationsFor(R.categoryFor('Modelos'), null, 'presencial').includes('restaurant'), 'glamour permite restaurantes');
       expect(R.locationsFor(R.categoryFor('Cocina'), R.experienceTypeById('cooking-class'), 'presencial').includes('fan-place'), 'cocina sin domicilio');
       expect(!R.locationsFor(R.categoryFor('Modelos'), null, 'presencial').some((l) => R.HOME_SERVICE_LOCATIONS.includes(l)), 'Modelos permite domicilio');
+      expect(R.locationsFor(R.categoryFor('Arte & Creatividad'), R.experienceTypeById('art-class'), 'presencial').includes('creator-place'), 'arte sin lugar del creator');
+      expect(R.locationsFor(R.categoryFor('Educación'), null, 'presencial').includes('fan-place'), 'educación sin lugar del fan en la propuesta');
+      expect(!R.locationsFor(R.categoryFor('Modelos'), R.experienceTypeById('photo-session'), 'profesional').some((l) => R.HOME_SERVICE_LOCATIONS.includes(l)), 'sesión de fotos de Modelos a domicilio');
       const home = { title: 'Clase de cocina en tu casa', description: 'Cocinamos pasta fresca.', type: 'cooking-class', price: 80, durationMinutes: 90, image: '', active: true };
       const hd = { ...R.defaultDetails(), modality: 'presencial', locationTypes: ['fan-place'], city: 'CDMX', approval: 'manual' };
       expect(R.validateExperience({ ...home, details: hd }, 'Cocina').ok, 'rechaza cocina a domicilio');
       expect(!R.validateExperience({ ...home, details: { ...hd, approval: 'automatic' } }, 'Cocina').ok, 'acepta domicilio con aprobación automática');
+      const shoot = { title: 'Sesión de fotos', description: 'Sesión profesional.', type: 'photo-session', price: 120, durationMinutes: 60, image: '', active: true };
+      expect(!R.validateExperience({ ...shoot, details: { ...hd, modality: 'profesional' } }, 'Modelos').ok, 'Modelos acepta domicilio');
     });
     await check('Una experiencia necesita estar definida y moderada para publicarse', async () => {
       const base = { title: 'Sesión de fotos', description: 'Sesión profesional en estudio.', type: 'photo-session', price: 120, durationMinutes: 60, image: '', active: true };

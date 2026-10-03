@@ -92,7 +92,7 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
         heading: 'Experiencias presenciales',
         paragraphs: [
           'Ocurren en venues, estudios, gimnasios, salones, espacios culinarios o artísticos, eventos y lugares públicos o comerciales.',
-          'Los servicios profesionales de Cocina y Fitness (clase de cocina, catering, degustación, experiencia gastronómica, entrenamiento 1:1) también pueden darse en el lugar del creator (su restaurante, local, estudio o casa) o en el lugar que proponga el fan. Esas reservas siempre las aprueba el creator a mano, y el creator puede rechazar cualquier lugar.',
+          'En todas las categorías menos Modelos, una experiencia presencial o una propuesta de reserva también puede darse en el lugar del creator (su restaurante, local, estudio, taller o casa) o en el lugar que proponga el fan (por ejemplo, un chef, un entrenador, un profesor o un músico que va a tu casa u oficina). Esas reservas siempre las aprueba el creator a mano, y el creator puede rechazar cualquier lugar. En Modelos, solo lugares públicos, eventos y estudios profesionales.',
           'Nunca en:',
         ],
         bullets: PROHIBITED_LOCATIONS.map((l) => l.label),
@@ -203,7 +203,7 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
       {
         heading: 'Seguridad',
         bullets: [
-          'Las experiencias presenciales se hacen en lugares públicos o profesionales; a domicilio solo los servicios profesionales de Cocina y Fitness aprobados por el creator. Nunca en hoteles ni lugares discretos.',
+          'Las experiencias presenciales se hacen en lugares públicos o profesionales; en el lugar del creator o del fan solo servicios profesionales aprobados por el creator, y nunca en Modelos. Nunca en hoteles ni lugares discretos.',
           'Las videollamadas y los Lives no se graban. Está prohibido grabarlos o capturarlos por cualquier medio: el video muestra el nombre de quien lo ve y una copia filtrada identifica a su autor.',
           'Mantén la comunicación y los pagos dentro de Fans Reserve.',
           'Reporta cualquier conducta que te haga sentir inseguro.',

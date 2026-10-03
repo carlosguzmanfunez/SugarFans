@@ -145,7 +145,7 @@ const hasPhone = (raw: string) => (raw.match(/\+?\d[\d\s().-]{7,}\d/g) ?? []).so
 
 // Checks one or more texts. `context` lets later layers weigh the same flag
 // differently (an experience description vs. a fan's request).
-// homeAllowed: the creator offers home services (Cocina, Fitness). Free text
+// homeAllowed: the creator offers home services (every category but Modelos). Free text
 // like "en mi casa" stays blocked everywhere (the server repeats it); the
 // address type is chosen as "Lugar que propone el fan", so the message says that.
 const HOME_HINT = 'Para un servicio a domicilio elige "Lugar que propone el fan" como lugar y escribe la dirección o la zona sin frases como "mi casa"; solo la ve el creator de esta reserva.';

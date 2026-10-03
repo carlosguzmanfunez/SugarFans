@@ -130,7 +130,7 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 
 4.2.6. **Contenido Sexual**: Contenido sexual explícito y cualquier servicio o actividad sexual, virtual o presencial. El glamour está permitido.
 
-4.2.7. **Servicios Prohibidos**: Los descritos en la política de Servicios Prohibidos (citas remuneradas, escort, vender compañía o tiempo personal sin un servicio definido, hoteles o domicilios como lugar de una experiencia, entre otros).
+4.2.7. **Servicios Prohibidos**: Los descritos en la política de Servicios Prohibidos (citas remuneradas, escort, vender compañía o tiempo personal sin un servicio definido, hoteles o lugares discretos como lugar de una experiencia, entre otros).
 
 ### 4.3. Monitoreo y Moderación
 
@@ -154,7 +154,7 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 - Cada experiencia tiene su política de cancelación (ver Cancelación y No-show)
 - Si el creator no cumple (no se presenta, llega más de 15 minutos tarde, cambia por su cuenta fecha, hora o lugar, o la experiencia no corresponde a lo publicado; en Live 1:1, si no entra a la sala en los primeros 10 minutos), el fan recibe el reembolso completo, previa verificación
 - El fan es responsable de cumplir lo publicado por el creator; si no lo hace, se aplica la política de cancelación
-- Las experiencias presenciales ocurren en venues, estudios, eventos y lugares públicos o profesionales. Los servicios profesionales de Cocina y Fitness también pueden darse en el lugar del creator o en el que proponga el fan, siempre con aprobación manual del creator. Nunca en hoteles ni lugares discretos
+- Las experiencias presenciales ocurren en venues, estudios, eventos y lugares públicos o profesionales. En todas las categorías menos Modelos, los servicios profesionales también pueden darse en el lugar del creator o en el que proponga el fan, siempre con aprobación manual del creator. Nunca en hoteles ni lugares discretos
 
 5.3. **Conducta Esperada**:
 - Los Fans deben tratar a los Creadores con respeto; un Creador puede rechazar cualquier solicitud

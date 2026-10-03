@@ -16,7 +16,6 @@ import { vipExperiences } from '../data/mockData';
 import { CALL_MINUTES } from './giftRules';
 import {
   CANCELLATION_POLICIES,
-  HOME_SERVICE_TYPES,
   LOCATION_TYPES,
   MAX_LIST_ITEMS,
   MAX_PARTICIPANTS,
@@ -29,6 +28,7 @@ import {
   categoryFor,
   experienceTypeById,
   isHomeService,
+  offersHomeServices,
   locationsFor,
   modalitiesFor,
   purposesFor,
@@ -213,7 +213,7 @@ export const validateExperience = (input: VipExperienceInput, categoryName?: str
       return { ok: false, error: 'Elige una ubicación permitida para esta experiencia' };
     if (d.locationTypes.some((l) => !LOCATION_TYPES[l])) return { ok: false, error: 'Ubicación no permitida' };
     if (isHomeService(d.locationTypes)) {
-      if (!HOME_SERVICE_TYPES.includes(type.id)) return { ok: false, error: 'Esta experiencia no se puede ofrecer a domicilio' };
+      if (categoryName !== undefined && !offersHomeServices(categoryFor(categoryName))) return { ok: false, error: 'Esta experiencia no se puede ofrecer a domicilio' };
       if (d.approval !== 'manual') return { ok: false, error: 'Las experiencias a domicilio requieren tu aprobación manual' };
     }
     if (!Number.isInteger(d.maxParticipants) || d.maxParticipants < 1 || d.maxParticipants > Math.min(MAX_PARTICIPANTS, type.maxParticipants))
