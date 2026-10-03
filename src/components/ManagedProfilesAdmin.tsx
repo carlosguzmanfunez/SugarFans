@@ -15,6 +15,7 @@ import {
   type Transaction,
 } from '../lib/platform';
 import { BRAND } from '../config/brand';
+import { categoryFor } from '../config/reserve';
 
 const field = 'w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-sm';
 
@@ -186,7 +187,7 @@ const ManagedProfilesAdmin: React.FC<{ transactions: Transaction[] }> = ({ trans
                     {m.isAi && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">P-IA</span>}
                     {m.hidden && <span className="ml-1 text-[10px] px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">Oculto</span>}
                   </p>
-                  <p className="text-xs text-gray-500">@{m.username} • {m.category} • {money(m.subscriptionPrice)}/mes</p>
+                  <p className="text-xs text-gray-500">@{m.username} • {categoryFor(m.category).name} • {money(m.subscriptionPrice)}/mes</p>
                   <p className="text-xs text-gray-500">{stats.fans} fans han pagado • {money(stats.revenue)} cobrados</p>
                 </div>
               </div>
@@ -196,7 +197,7 @@ const ManagedProfilesAdmin: React.FC<{ transactions: Transaction[] }> = ({ trans
                   type="button"
                   onClick={() => {
                     const { id, hidden: _h, createdAt: _c, createdBy: _b, updatedAt: _u, ...input } = m;
-                    setEditing({ id, input });
+                    setEditing({ id, input: { ...input, category: categoryFor(input.category).name } });
                     setNotice(null);
                   }}
                   className="px-3 py-1.5 bg-gray-100 rounded-lg hover:bg-gray-200"

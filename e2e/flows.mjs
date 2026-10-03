@@ -1690,14 +1690,15 @@ const run = async () => {
       const names = R.CREATOR_CATEGORIES.flatMap((c) => [c.name, ...c.aliases]);
       expect(!names.some((n) => forbidden.test(n)), `categorías: ${names.join(', ')}`);
     });
-    await check('Modelaje & Glamour existe y marca la línea de contenido', async () => {
-      const mg = R.CREATOR_CATEGORIES.find((c) => c.name === 'Modelaje & Glamour');
-      expect(!!mg, 'falta Modelaje & Glamour');
+    await check('Modelos existe y marca la línea de contenido', async () => {
+      const mg = R.CREATOR_CATEGORIES.find((c) => c.name === 'Modelos');
+      expect(!!mg, 'falta Modelos');
       expect(mg.contentLine === 'Glamour permitido. Contenido sexual explícito no permitido.', `línea: ${mg.contentLine}`);
       expect(R.categoryFor('Modelaje').id === 'modelaje-glamour', 'el nombre antiguo "Modelaje" no se reconoce');
+      expect(R.categoryFor('Modelaje & Glamour').id === 'modelaje-glamour', 'el nombre antiguo "Modelaje & Glamour" no se reconoce');
     });
-    await check('Modelaje & Glamour no ofrece encuentro privado, citas, hotel ni escort', async () => {
-      const types = R.experienceTypesFor(R.categoryFor('Modelaje & Glamour'));
+    await check('Modelos no ofrece encuentro privado, citas, hotel ni escort', async () => {
+      const types = R.experienceTypesFor(R.categoryFor('Modelos'));
       const bad = types.filter((t) => notOffered.test(`${t.name} ${t.description}`));
       expect(bad.length === 0, `tipos prohibidos: ${bad.map((t) => t.name).join(', ')}`);
       const locs = R.CREATOR_CATEGORIES.find((c) => c.id === 'modelaje-glamour').locations;
@@ -1715,22 +1716,22 @@ const run = async () => {
     });
     await check('Las opciones dependen de la categoría', async () => {
       const cocina = R.experienceTypesFor(R.categoryFor('Cocina')).map((t) => t.id);
-      const glamour = R.experienceTypesFor(R.categoryFor('Modelaje & Glamour')).map((t) => t.id);
+      const glamour = R.experienceTypesFor(R.categoryFor('Modelos')).map((t) => t.id);
       const fitness = R.experienceTypesFor(R.categoryFor('Fitness')).map((t) => t.id);
       expect(cocina.includes('cooking-class') && !glamour.includes('cooking-class'), 'clase de cocina mal asignada');
       expect(glamour.includes('photo-session') && !fitness.includes('photo-session'), 'sesión de fotos mal asignada');
       expect(R.locationsFor(R.categoryFor('Fitness'), R.experienceTypeById('training-1-1'), 'presencial').includes('gym'), 'fitness sin gimnasio');
-      expect(!R.locationsFor(R.categoryFor('Modelaje & Glamour'), null, 'presencial').includes('restaurant'), 'glamour permite restaurantes');
+      expect(!R.locationsFor(R.categoryFor('Modelos'), null, 'presencial').includes('restaurant'), 'glamour permite restaurantes');
     });
     await check('Una experiencia necesita estar definida y moderada para publicarse', async () => {
       const base = { title: 'Sesión de fotos', description: 'Sesión profesional en estudio.', type: 'photo-session', price: 120, durationMinutes: 60, image: '', active: true };
       const d = { ...R.defaultDetails(), modality: 'profesional', locationTypes: ['studio'], city: 'Miami' };
-      expect(R.validateExperience({ ...base, details: d }, 'Modelaje & Glamour').ok, 'rechaza una experiencia válida');
-      expect(!R.validateExperience({ ...base, type: 'cita' }, 'Modelaje & Glamour').ok, 'acepta un tipo inexistente');
-      expect(!R.validateExperience({ ...base, details: { ...d, locationTypes: ['hotel-room'] } }, 'Modelaje & Glamour').ok, 'acepta hotel');
-      expect(!R.validateExperience({ ...base, details: d, title: 'Encuentro privado conmigo' }, 'Modelaje & Glamour').ok, 'acepta "encuentro privado"');
-      expect(!R.validateExperience({ ...base, details: d, type: 'cooking-class' }, 'Modelaje & Glamour').ok, 'acepta un tipo de otra categoría');
-      expect(R.validateExperience({ ...base, details: { ...d, excludes: ['Sin contacto fuera de la app'] }, description: 'Sin contenido sexual: solo moda.' }, 'Modelaje & Glamour').ok, 'las negaciones se bloquean');
+      expect(R.validateExperience({ ...base, details: d }, 'Modelos').ok, 'rechaza una experiencia válida');
+      expect(!R.validateExperience({ ...base, type: 'cita' }, 'Modelos').ok, 'acepta un tipo inexistente');
+      expect(!R.validateExperience({ ...base, details: { ...d, locationTypes: ['hotel-room'] } }, 'Modelos').ok, 'acepta hotel');
+      expect(!R.validateExperience({ ...base, details: d, title: 'Encuentro privado conmigo' }, 'Modelos').ok, 'acepta "encuentro privado"');
+      expect(!R.validateExperience({ ...base, details: d, type: 'cooking-class' }, 'Modelos').ok, 'acepta un tipo de otra categoría');
+      expect(R.validateExperience({ ...base, details: { ...d, excludes: ['Sin contacto fuera de la app'] }, description: 'Sin contenido sexual: solo moda.' }, 'Modelos').ok, 'las negaciones se bloquean');
       expect(!R.moderate('¿Nos vemos en tu casa? Escríbeme al whatsapp', 'request').ok, 'la solicitud con casa/whatsapp pasa');
     });
 
@@ -1746,12 +1747,12 @@ const run = async () => {
     await login(resF, 'fan@sugarfans.com', 'demo1234', { remember: false });
     await waitPath(resF, '/explore');
 
-    await check('Explorar y la portada muestran Modelaje & Glamour y ninguna categoría +18', async () => {
+    await check('Explorar y la portada muestran Modelos y ninguna categoría +18', async () => {
       await resF.goto(`${BASE}/explore`);
-      await resF.getByRole('button', { name: /Modelaje & Glamour/ }).waitFor();
+      await resF.getByRole('button', { name: /Modelos/ }).waitFor();
       const chips = (await resF.locator('button[aria-pressed]').allTextContents()).join(' | ');
       expect(!forbidden.test(chips), `categorías visibles: ${chips}`);
-      await resF.getByRole('button', { name: /Modelaje & Glamour/ }).click();
+      await resF.getByRole('button', { name: /Modelos/ }).click();
       await resF.getByTestId('creator-card').filter({ hasText: 'Valentina Rose' }).waitFor();
       await resF.goto(`${BASE}/`);
       await resF.getByText('Sigue a tus creators favoritos, accede a contenido exclusivo y reserva experiencias directamente con ellos.').waitFor();
@@ -1878,7 +1879,7 @@ const run = async () => {
       const form = resC.getByTestId('experience-form');
       const types = form.getByTestId('allowed-types');
       await types.locator('[data-type=photo-session]').waitFor();
-      expect((await types.locator('[data-type=cooking-class]').count()) === 0, 'Modelaje & Glamour ofrece clase de cocina');
+      expect((await types.locator('[data-type=cooking-class]').count()) === 0, 'Modelos ofrece clase de cocina');
       const text = await types.innerText();
       expect(!notOffered.test(text), `tipos visibles: ${text}`);
       await form.getByText('Glamour permitido. Contenido sexual explícito no permitido.').waitFor();

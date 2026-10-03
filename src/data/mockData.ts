@@ -60,7 +60,7 @@ export const creators: Creator[] = [
     followers: 12500,
     likes: 89000,
     postsCount: 256,
-    category: 'Modelaje & Glamour',
+    category: 'Modelos',
     tags: ['fitness', 'moda', 'lifestyle'],
   },
   {
