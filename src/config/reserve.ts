@@ -245,12 +245,12 @@ export interface CreatorCategory {
 export const CREATOR_CATEGORIES: CreatorCategory[] = [
   {
     id: 'modelaje-glamour',
-    name: 'Modelaje & Glamour',
+    name: 'Modelos',
     icon: 'fa-camera-retro',
     blurb: 'Moda, editorial, cosplay y glamour',
     tint: '#fff1f6',
     ink: '#c81b63',
-    aliases: ['Modelaje', 'Modelaje y Glamour'],
+    aliases: ['Modelaje & Glamour', 'Modelaje', 'Modelaje y Glamour'],
     experiences: [
       'live-1-1', 'video-call', 'qa-session', 'personal-greeting', 'themed-talk', 'fashion-beauty-talk', 'behind-the-scenes', 'custom-content',
       'meet-greet', 'appearance', 'event', 'fan-event', 'photo-session', 'collaboration', 'production',
