@@ -51,6 +51,15 @@ export interface PublicCreator {
   subscriptionPrice: number;
   posts: number;
   createdAt: string;
+  // The creator's category (settings.category); empty when not set.
+  category?: string;
+}
+
+// Follow: free, public. Following a creator never grants paid content or Reserve.
+export interface FollowState {
+  following: boolean;
+  // People who follow through the app (demo profiles add their catalogue count).
+  count: number;
 }
 
 // Messages exchanged in a live room: WebRTC handshake plus chat.
@@ -80,6 +89,8 @@ export interface SocialBackend {
   publicCreator(creatorProfileId: string): Promise<PublicCreator | null>;
   // Every creator who signed up (the demo catalogue is listed by the app itself).
   publicCreators(): Promise<PublicCreator[]>;
+  followState(creatorProfileId: string, viewer: User | null): Promise<FollowState>;
+  setFollow(user: User, creatorProfileId: string, follow: boolean): Promise<AuthResult>;
   // Joins the private room of a confirmed VIP booking (fan or creator only).
   joinLive(user: User, bookingId: string, onMessage: (m: LiveMessage) => void): Promise<AuthResult & { channel?: LiveChannel }>;
 }

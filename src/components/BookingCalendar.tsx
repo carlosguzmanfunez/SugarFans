@@ -19,11 +19,13 @@ interface Props {
   date: string;
   time: string;
   onChange: (date: string, time: string) => void;
+  // Hours closer than this to now are not offered (the experience's minimum notice).
+  minNoticeHours?: number;
 }
 
 // Month calendar limited to the bookable window; only the creator's working
 // days are selectable, and only their free hours are offered.
-const BookingCalendar: React.FC<Props> = ({ availability, taken: takenSlots, creatorName, date, time, onChange }) => {
+const BookingCalendar: React.FC<Props> = ({ availability, taken: takenSlots, creatorName, date, time, onChange, minNoticeHours = 0 }) => {
   const { min, max } = bookingWindow();
   const minDate = fromISODate(min);
   const maxDate = fromISODate(max);
@@ -41,14 +43,14 @@ const BookingCalendar: React.FC<Props> = ({ availability, taken: takenSlots, cre
     const blanks = Array.from({ length: first.getDay() }, () => null);
     const days = Array.from({ length: daysInMonth }, (_, i) => {
       const iso = toISODate(new Date(month.getFullYear(), month.getMonth(), i + 1));
-      return { iso, day: i + 1, free: freeHoursOn(availability, takenSlots, iso).length > 0 };
+      return { iso, day: i + 1, free: freeHoursOn(availability, takenSlots, iso, minNoticeHours).length > 0 };
     });
     return [...blanks, ...days];
-  }, [month, availability, takenSlots]);
+  }, [month, availability, takenSlots, minNoticeHours]);
 
   const monthLabel = month.toLocaleDateString('es', { month: 'long', year: 'numeric' });
   const taken = date ? takenHoursOn(takenSlots, date) : [];
-  const free = date ? freeHoursOn(availability, takenSlots, date) : [];
+  const free = date ? freeHoursOn(availability, takenSlots, date, minNoticeHours) : [];
 
   if (availability.days.length === 0 || availability.hours.length === 0) {
     return (

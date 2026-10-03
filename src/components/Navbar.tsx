@@ -46,8 +46,8 @@ const Navbar: React.FC = () => {
             <Link to="/explore" className={linkCls('/explore')}>
               {t('nav.explore')}
             </Link>
-            <Link to="/vip-experiences" className={linkCls('/vip-experiences')}>
-              Experiencias VIP
+            <Link to="/reserve" className={linkCls('/reserve')}>
+              Reserve
             </Link>
             {isAuthenticated && user?.role === 'creator' && (
               <Link to="/creator/dashboard" className={linkCls('/creator/dashboard')}>
@@ -129,8 +129,8 @@ const Navbar: React.FC = () => {
               <Link to="/explore" className={mobileLinkCls('/explore')} onClick={() => setShowMobile(false)}>
                 <i aria-hidden="true" className="fas fa-compass w-5 text-brand-600"></i> {t('nav.explore')}
               </Link>
-              <Link to="/vip-experiences" className={mobileLinkCls('/vip-experiences')} onClick={() => setShowMobile(false)}>
-                <i aria-hidden="true" className="fas fa-ticket w-5 text-gold-600"></i> Experiencias VIP
+              <Link to="/reserve" className={mobileLinkCls('/reserve')} onClick={() => setShowMobile(false)}>
+                <i aria-hidden="true" className="fas fa-ticket w-5 text-gold-600"></i> Reserve
               </Link>
               {isAuthenticated && user?.role === 'creator' && (
                 <Link to="/creator/dashboard" className={mobileLinkCls('/creator/dashboard')} onClick={() => setShowMobile(false)}>

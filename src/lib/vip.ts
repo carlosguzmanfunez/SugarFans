@@ -1,10 +1,52 @@
 // VIP experience scheduling helpers: booking window, availability math and labels.
 // Data access lives in the backend (src/lib/backend).
-import type { Availability, BookingStatus, ExperienceType, TakenSlot, VipBooking, VipExperience, VipExperienceInput } from './backend/types';
+import type {
+  Availability,
+  BookingStatus,
+  CustomRequestInput,
+  CounterInput,
+  ExperienceType,
+  ReserveDetails,
+  TakenSlot,
+  VipBooking,
+  VipExperience,
+  VipExperienceInput,
+} from './backend/types';
 import { vipExperiences } from '../data/mockData';
 import { CALL_MINUTES } from './giftRules';
+import {
+  CANCELLATION_POLICIES,
+  LOCATION_TYPES,
+  MAX_LIST_ITEMS,
+  MAX_PARTICIPANTS,
+  MIN_NOTICE_OPTIONS,
+  PURPOSES,
+  RESERVE_EXPERIENCE_TYPES,
+  RESERVE_MODALITIES,
+  RESERVE_STATUSES,
+  SUBSCRIBER_DISCOUNTS,
+  categoryFor,
+  experienceTypeById,
+  locationsFor,
+  modalitiesFor,
+  purposesFor,
+  type ReserveStatus,
+} from '../config/reserve';
+import { moderate } from './moderation';
 
-export type { Availability, BookingStatus, VipBooking, TakenSlot, VipExperience, VipExperienceInput, ExperienceType } from './backend/types';
+export type {
+  Availability,
+  BookingStatus,
+  VipBooking,
+  TakenSlot,
+  VipExperience,
+  VipExperienceInput,
+  ExperienceType,
+  ReserveDetails,
+  BookingDetails,
+  CustomRequestInput,
+  CounterInput,
+} from './backend/types';
 
 export const MAX_BOOKING_MONTHS = 3;
 
@@ -39,11 +81,11 @@ export const formatLongDate = (iso: string): string =>
 export const takenHoursOn = (taken: TakenSlot[], date: string): string[] =>
   taken.filter((s) => s.date === date).map((s) => s.time);
 
-export const freeHoursOn = (availability: Availability, taken: TakenSlot[], date: string): string[] => {
+export const freeHoursOn = (availability: Availability, taken: TakenSlot[], date: string, minNoticeHours = 0): string[] => {
   const { min, max } = bookingWindow();
   if (date < min || date > max || !availability.days.includes(fromISODate(date).getDay())) return [];
   const busy = takenHoursOn(taken, date);
-  return availability.hours.filter((h) => !busy.includes(h));
+  return availability.hours.filter((h) => !busy.includes(h) && (!minNoticeHours || meetsNotice(date, h, minNoticeHours)));
 };
 
 export const normalizeAvailability = (a: Availability): Availability => ({
@@ -51,13 +93,18 @@ export const normalizeAvailability = (a: Availability): Availability => ({
   hours: [...new Set(a.hours)].sort(),
 });
 
-export const statusLabel: Record<BookingStatus, { text: string; className: string }> = {
-  pending: { text: 'Esperando al creador', className: 'bg-yellow-100 text-yellow-700' },
-  accepted: { text: 'Aceptada · pendiente de pago', className: 'bg-blue-100 text-blue-700' },
-  confirmed: { text: 'Confirmada', className: 'bg-green-100 text-green-700' },
-  rejected: { text: 'Rechazada por el creador', className: 'bg-red-100 text-red-700' },
-  cancelled: { text: 'Cancelada', className: 'bg-gray-100 text-gray-500' },
+// Status as Reserve names it: a confirmed experience whose time has passed reads "Realizada".
+export const reserveStatusOf = (b: Pick<VipBooking, 'status' | 'date' | 'time' | 'durationMinutes'>, now = new Date()): ReserveStatus => {
+  if (b.status === 'confirmed') {
+    const end = liveWindow(b.date, b.time, b.durationMinutes ?? 60).closes;
+    if (now > end) return 'completed';
+  }
+  return b.status;
 };
+
+export const statusLabel: Record<BookingStatus, { text: string; className: string; icon: string }> = Object.fromEntries(
+  (Object.keys(RESERVE_STATUSES) as BookingStatus[]).map((k) => [k, { text: RESERVE_STATUSES[k].label, className: RESERVE_STATUSES[k].className, icon: RESERVE_STATUSES[k].icon }])
+) as Record<BookingStatus, { text: string; className: string; icon: string }>;
 
 // Live video sessions: experiences with a duration happen live in the app's
 // room (/live/:bookingId). It opens 15 minutes before the booked time and
@@ -82,28 +129,187 @@ export const sessionMinutes = (booking?: Pick<VipBooking, 'experienceId' | 'dura
 };
 
 // --- Experiences ------------------------------------------------------------
-// icon: Font Awesome solid icon.
-export const EXPERIENCE_TYPES: { id: ExperienceType; name: string; icon: string }[] = [
-  { id: 'meet-greet', name: 'Meet & Greet', icon: 'fa-handshake' },
-  { id: 'qa-session', name: 'Sesión Q&A', icon: 'fa-comments' },
-  { id: 'custom-content', name: 'Contenido Personalizado', icon: 'fa-wand-magic-sparkles' },
-  { id: 'early-access', name: 'Acceso Anticipado', icon: 'fa-bolt' },
-  { id: 'collaboration', name: 'Colaboración', icon: 'fa-people-arrows' },
-];
+// The Reserve catalogue (src/config/reserve.ts); the five original ids stay valid.
+export const EXPERIENCE_TYPES: { id: ExperienceType; name: string; icon: string }[] = RESERVE_EXPERIENCE_TYPES.map(({ id, name, icon }) => ({ id, name, icon }));
 export const MIN_EXPERIENCE_PRICE = 5;
 export const MAX_EXPERIENCE_PRICE = 5000;
+export const MIN_SESSION_MINUTES = 10;
+export const MAX_SESSION_MINUTES = 180;
 // No image: the experience shows generated art (components/CoverArt).
 export const DEFAULT_EXPERIENCE_IMAGE = '';
+// Pseudo experience of a custom request (vip_bookings.experience_id).
+export const CUSTOM_EXPERIENCE = 'custom';
 
-export const validateExperience = (input: VipExperienceInput): { ok: boolean; error?: string } => {
+export const typeOf = (id: string) => {
+  const x = experienceTypeById(id);
+  return x ?? { id, name: 'Experiencia', icon: 'fa-star', description: '', modalities: ['virtual'] as const, locations: [], minutes: null, maxParticipants: 1 };
+};
+
+// What an experience made before Reserve means: virtual, online, one person, manual approval.
+export const defaultDetails = (): ReserveDetails => {
+  return {
+    modality: 'virtual',
+    locationTypes: ['online'],
+    includes: [],
+    excludes: [],
+    requirements: { verifiedFans: false, subscribersOnly: false },
+    minNoticeHours: 24,
+    maxParticipants: 1,
+    approval: 'manual',
+    cancellationPolicy: 'moderate',
+  };
+};
+export const detailsOf = (exp: Pick<VipExperience, 'type' | 'details'>): ReserveDetails => ({ ...defaultDetails(), ...(exp.details ?? {}) });
+
+// Manual approval = "Solicitar"; automatic = "Reservar" (some types are always reviewed).
+export const needsApproval = (exp: Pick<VipExperience, 'type' | 'details'>) =>
+  detailsOf(exp).approval !== 'automatic' || !!experienceTypeById(exp.type)?.alwaysManual;
+
+// Virtual experiences with a session happen in the app's private room.
+export const isLiveExperience = (exp: Pick<VipExperience, 'durationMinutes' | 'details'>) =>
+  !!exp.durationMinutes && (exp.details?.modality ?? 'virtual') === 'virtual';
+export const isLiveBooking = (b: Pick<VipBooking, 'details' | 'experienceId' | 'durationMinutes'>) =>
+  (b.details?.modality ?? 'virtual') === 'virtual';
+
+// Price a fan pays: the experience's, minus the explicit subscriber discount.
+export const priceFor = (exp: Pick<VipExperience, 'price' | 'details'>, isSubscriber: boolean) => {
+  const pct = isSubscriber ? exp.details?.subscriberDiscount ?? 0 : 0;
+  return Math.round(exp.price * (100 - pct)) / 100;
+};
+
+export const locationSummary = (d: Pick<ReserveDetails, 'modality' | 'locationTypes' | 'city' | 'venue'>) => {
+  if (d.modality === 'virtual') return 'Online · sala privada de Fans Reserve';
+  const kinds = d.locationTypes.map((l) => LOCATION_TYPES[l]?.label).filter(Boolean).join(' o ');
+  return [d.venue, kinds, d.city].filter(Boolean).join(' · ');
+};
+
+const cleanList = (items: string[] | undefined) => (items ?? []).map((x) => x.trim()).filter(Boolean).slice(0, MAX_LIST_ITEMS);
+
+// Validates an experience against the creator's category and the Reserve rules.
+export const validateExperience = (input: VipExperienceInput, categoryName?: string): { ok: boolean; error?: string } => {
   const title = input.title.trim();
   if (title.length < 3 || title.length > 80) return { ok: false, error: 'El título debe tener entre 3 y 80 caracteres' };
   if (input.description.trim().length > 600) return { ok: false, error: 'La descripción admite hasta 600 caracteres' };
-  if (!EXPERIENCE_TYPES.some((t) => t.id === input.type)) return { ok: false, error: 'Elige el tipo de experiencia' };
+  const type = experienceTypeById(input.type);
+  if (!type) return { ok: false, error: 'Elige el tipo de experiencia' };
   if (!Number.isFinite(input.price) || input.price < MIN_EXPERIENCE_PRICE || input.price > MAX_EXPERIENCE_PRICE)
     return { ok: false, error: `El precio debe estar entre $${MIN_EXPERIENCE_PRICE} y $${MAX_EXPERIENCE_PRICE}` };
-  if (input.durationMinutes !== undefined && (!Number.isInteger(input.durationMinutes) || input.durationMinutes < 10 || input.durationMinutes > 180))
-    return { ok: false, error: 'La sesión en vivo debe durar entre 10 y 180 minutos' };
+  if (input.durationMinutes !== undefined && (!Number.isInteger(input.durationMinutes) || input.durationMinutes < MIN_SESSION_MINUTES || input.durationMinutes > MAX_SESSION_MINUTES))
+    return { ok: false, error: `La duración debe estar entre ${MIN_SESSION_MINUTES} y ${MAX_SESSION_MINUTES} minutos` };
+  const d = input.details;
+  if (d) {
+    // New Reserve experiences: the category decides what can be offered.
+    if (categoryName !== undefined) {
+      const category = categoryFor(categoryName);
+      if (!category.experiences.includes(type.id)) return { ok: false, error: `${category.name} no ofrece "${type.name}"` };
+      if (!modalitiesFor(category, type).includes(d.modality)) return { ok: false, error: 'Esa modalidad no está disponible para esta experiencia' };
+      const allowed = locationsFor(category, type, d.modality);
+      if (!d.locationTypes.length || d.locationTypes.some((l) => !allowed.includes(l))) return { ok: false, error: 'Elige una ubicación permitida para esta experiencia' };
+    }
+    if (!RESERVE_MODALITIES[d.modality]) return { ok: false, error: 'Elige la modalidad' };
+    if (d.modality === 'virtual' ? d.locationTypes.some((l) => l !== 'online') : !d.locationTypes.length || d.locationTypes.includes('online'))
+      return { ok: false, error: 'Elige una ubicación permitida para esta experiencia' };
+    if (d.locationTypes.some((l) => !LOCATION_TYPES[l])) return { ok: false, error: 'Ubicación no permitida' };
+    if (!Number.isInteger(d.maxParticipants) || d.maxParticipants < 1 || d.maxParticipants > Math.min(MAX_PARTICIPANTS, type.maxParticipants))
+      return { ok: false, error: `Máximo ${Math.min(MAX_PARTICIPANTS, type.maxParticipants)} participantes para esta experiencia` };
+    if (!MIN_NOTICE_OPTIONS.includes(d.minNoticeHours)) return { ok: false, error: 'Elige la anticipación mínima' };
+    if (!CANCELLATION_POLICIES[d.cancellationPolicy]) return { ok: false, error: 'Elige la política de cancelación' };
+    if (d.approval !== 'manual' && d.approval !== 'automatic') return { ok: false, error: 'Elige cómo apruebas las reservas' };
+    if (d.subscriberDiscount !== undefined && !SUBSCRIBER_DISCOUNTS.includes(d.subscriberDiscount)) return { ok: false, error: 'Descuento no válido' };
+    if (type.minutes && input.durationMinutes === undefined) return { ok: false, error: 'Indica la duración' };
+    if (d.days && d.days.some((x) => x < 0 || x > 6)) return { ok: false, error: 'Días no válidos' };
+    if ((d.city ?? '').length > 60 || (d.venue ?? '').length > 80) return { ok: false, error: 'La ciudad o el venue son demasiado largos' };
+    if ((d.conditions ?? '').length > 400 || (d.requirements.notes ?? '').length > 300) return { ok: false, error: 'Las condiciones son demasiado largas' };
+    if ([...d.includes, ...d.excludes].some((x) => x.length > 80)) return { ok: false, error: 'Cada punto de "incluye" admite hasta 80 caracteres' };
+    // What is offered (excludes and conditions state what is NOT offered; they are shown as such).
+    const check = moderate([title, input.description, d.venue, d.city, d.requirements.notes, ...d.includes], 'experience');
+    if (!check.ok) return { ok: false, error: check.error };
+  } else {
+    const check = moderate([title, input.description], 'experience');
+    if (!check.ok) return { ok: false, error: check.error };
+  }
+  return { ok: true };
+};
+
+// Trims an experience's details before saving.
+export const cleanDetails = (d: ReserveDetails): ReserveDetails => ({
+  modality: d.modality,
+  locationTypes: [...new Set(d.locationTypes)],
+  ...(d.city?.trim() ? { city: d.city.trim() } : {}),
+  ...(d.venue?.trim() ? { venue: d.venue.trim() } : {}),
+  includes: cleanList(d.includes),
+  excludes: cleanList(d.excludes),
+  requirements: {
+    verifiedFans: !!d.requirements.verifiedFans,
+    subscribersOnly: !!d.requirements.subscribersOnly,
+    ...(d.requirements.notes?.trim() ? { notes: d.requirements.notes.trim() } : {}),
+  },
+  minNoticeHours: d.minNoticeHours,
+  maxParticipants: d.maxParticipants,
+  approval: d.approval,
+  cancellationPolicy: d.cancellationPolicy,
+  ...(d.conditions?.trim() ? { conditions: d.conditions.trim() } : {}),
+  ...(d.subscriberDiscount ? { subscriberDiscount: d.subscriberDiscount } : {}),
+  ...(d.days?.length ? { days: [...new Set(d.days)].sort() } : {}),
+  ...(d.hours?.length ? { hours: [...new Set(d.hours)].sort() } : {}),
+});
+
+// The experience's own days/hours narrow the creator's availability.
+export const experienceAvailability = (availability: Availability, exp?: Pick<VipExperience, 'details'> | null): Availability => {
+  const d = exp?.details;
+  return {
+    days: d?.days?.length ? availability.days.filter((x) => d.days!.includes(x)) : availability.days,
+    hours: d?.hours?.length ? availability.hours.filter((x) => d.hours!.includes(x)) : availability.hours,
+  };
+};
+
+// Earliest start allowed by the minimum notice.
+export const meetsNotice = (date: string, time: string, hours: number, now = new Date()) => {
+  const start = fromISODate(date);
+  const [h, m] = time.split(':').map(Number);
+  start.setHours(h, m || 0, 0, 0);
+  return start.getTime() - now.getTime() >= hours * 3_600_000;
+};
+
+// Checks a custom request before it is sent (the server repeats the essentials).
+export const validateCustomRequest = (input: CustomRequestInput, categoryName?: string): { ok: boolean; error?: string; flags?: string[] } => {
+  const category = categoryFor(categoryName);
+  if (!RESERVE_MODALITIES[input.modality] || !category.modalities.includes(input.modality)) return { ok: false, error: 'Elige una modalidad disponible' };
+  if (!PURPOSES[input.purpose] || !purposesFor(category, input.modality).includes(input.purpose)) return { ok: false, error: 'Elige el propósito de la experiencia' };
+  if (input.purpose === 'other' && input.purposeNote.trim().length < 5) return { ok: false, error: 'Describe brevemente el propósito' };
+  if (!input.date) return { ok: false, error: 'Elige un día en el calendario' };
+  if (!input.time) return { ok: false, error: 'Elige una hora disponible' };
+  if (!Number.isInteger(input.durationMinutes) || input.durationMinutes < MIN_SESSION_MINUTES || input.durationMinutes > MAX_SESSION_MINUTES)
+    return { ok: false, error: `La duración debe estar entre ${MIN_SESSION_MINUTES} y ${MAX_SESSION_MINUTES} minutos` };
+  if (!Number.isInteger(input.participants) || input.participants < 1 || input.participants > MAX_PARTICIPANTS)
+    return { ok: false, error: `Entre 1 y ${MAX_PARTICIPANTS} participantes` };
+  const allowed = locationsFor(category, null, input.modality);
+  if (!allowed.includes(input.locationType)) return { ok: false, error: 'Elige un tipo de lugar permitido' };
+  if (input.modality !== 'virtual' && input.city.trim().length < 2) return { ok: false, error: 'Indica la ciudad' };
+  if (!Number.isFinite(input.budget) || input.budget < MIN_EXPERIENCE_PRICE || input.budget > MAX_EXPERIENCE_PRICE)
+    return { ok: false, error: `El presupuesto debe estar entre $${MIN_EXPERIENCE_PRICE} y $${MAX_EXPERIENCE_PRICE}` };
+  if (input.message.trim().length < 10) return { ok: false, error: 'Cuéntale al creator los detalles (mínimo 10 caracteres)' };
+  if (input.message.length > 500 || input.purposeNote.length > 80 || input.venue.length > 80 || input.city.length > 60)
+    return { ok: false, error: 'El texto es demasiado largo' };
+  const check = moderate([input.purposeNote, input.city, input.venue, input.message], 'request');
+  if (!check.ok) return { ok: false, error: check.error };
+  return { ok: true, flags: check.flags.filter((f) => f.severity === 'review').map((f) => f.rule) };
+};
+
+export const customTitle = (purpose: CustomRequestInput['purpose'], note: string) =>
+  `Experiencia personalizada · ${purpose === 'other' ? note.trim().slice(0, 40) : PURPOSES[purpose].label}`;
+
+export const validateCounter = (input: CounterInput): { ok: boolean; error?: string } => {
+  if (!Number.isFinite(input.price) || input.price < MIN_EXPERIENCE_PRICE || input.price > MAX_EXPERIENCE_PRICE)
+    return { ok: false, error: `El precio debe estar entre $${MIN_EXPERIENCE_PRICE} y $${MAX_EXPERIENCE_PRICE}` };
+  if (!input.date || !input.time) return { ok: false, error: 'Elige la fecha y la hora' };
+  const { min, max } = bookingWindow();
+  if (input.date < min || input.date > max) return { ok: false, error: 'La fecha debe estar dentro de los próximos 3 meses' };
+  if (input.durationMinutes !== undefined && (input.durationMinutes < MIN_SESSION_MINUTES || input.durationMinutes > MAX_SESSION_MINUTES))
+    return { ok: false, error: `La duración debe estar entre ${MIN_SESSION_MINUTES} y ${MAX_SESSION_MINUTES} minutos` };
+  if (input.note.length > 300) return { ok: false, error: 'El mensaje admite hasta 300 caracteres' };
+  const check = moderate(input.note, 'request');
+  if (!check.ok) return { ok: false, error: check.error };
   return { ok: true };
 };
 
@@ -120,6 +326,7 @@ export const demoExperiences = (): VipExperience[] =>
     durationMinutes: durationMinutes(e.duration) ?? undefined,
     image: e.image,
     active: true,
+    ...(e.details ? { details: e.details } : {}),
     createdAt: '2024-01-01T00:00:00.000Z',
   }));
 

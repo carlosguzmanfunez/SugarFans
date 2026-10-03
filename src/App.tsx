@@ -109,6 +109,9 @@ const AppRoutes: React.FC = () => {
       <Route path="/creator/:id" element={
         <AppLayout><CreatorProfile /></AppLayout>
       } />
+      <Route path="/reserve" element={
+        <AppLayout><VIPExperiences /></AppLayout>
+      } />
       <Route path="/vip-experiences" element={
         <AppLayout><VIPExperiences /></AppLayout>
       } />

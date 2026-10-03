@@ -1,3 +1,4 @@
+import { categoryFor } from './reserve';
 // JS-side design tokens. Colours used from CSS live in src/index.css (@theme);
 // this file holds the values components compute with: creator cover styles and
 // category accents.
@@ -42,18 +43,9 @@ export interface CategoryVisual {
   ink: string; // icon colour
 }
 
-// Presentation of the explore categories (names stay the data ids).
-export const CATEGORY_VISUALS: Record<string, CategoryVisual> = {
-  Fitness: { icon: 'fa-dumbbell', blurb: 'Rutinas, planes y coaching', tint: '#e8f8f1', ink: '#0f8a5f' },
-  Modelaje: { icon: 'fa-camera-retro', blurb: 'Moda, editorial y backstage', tint: '#fff1f6', ink: '#c81b63' },
-  Arte: { icon: 'fa-palette', blurb: 'Procesos, tutoriales y obra', tint: '#fff4e5', ink: '#c2610c' },
-  Música: { icon: 'fa-music', blurb: 'Estrenos, sesiones y beats', tint: '#f5f3ff', ink: '#6d3ce6' },
-  Cocina: { icon: 'fa-utensils', blurb: 'Recetas y clases privadas', tint: '#fff7ed', ink: '#c2410c' },
-  Lifestyle: { icon: 'fa-wand-magic-sparkles', blurb: 'Día a día, viajes y estilo', tint: '#fdf2f8', ink: '#a5124f' },
-  Gaming: { icon: 'fa-gamepad', blurb: 'Streams, torneos y comunidad', tint: '#eef2ff', ink: '#4f46e5' },
-  Educación: { icon: 'fa-graduation-cap', blurb: 'Cursos, mentorías y Q&A', tint: '#ecfeff', ink: '#0e7490' },
-  'Experiencias VIP': { icon: 'fa-ticket', blurb: 'Reservas 1:1 y eventos', tint: '#fdf8ec', ink: '#8f5318' },
+// Presentation of the creator categories comes from the category config; older
+// stored names ("Modelaje", "Arte") resolve to their current category.
+export const categoryVisual = (name: string): CategoryVisual => {
+  const { icon, blurb, tint, ink } = categoryFor(name);
+  return { icon, blurb, tint, ink };
 };
-
-export const categoryVisual = (name: string): CategoryVisual =>
-  CATEGORY_VISUALS[name] ?? { icon: 'fa-star', blurb: '', tint: '#f5f3ff', ink: '#6d3ce6' };

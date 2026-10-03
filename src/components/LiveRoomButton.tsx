@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { sessionMinutes, liveState, liveWindow, type VipBooking } from '../lib/vip';
+import { sessionMinutes, liveState, liveWindow, isLiveBooking, type VipBooking } from '../lib/vip';
 
-// "Join live session" for a confirmed booking of a live experience (one with a duration).
+// "Join live session" for a confirmed booking of a live experience (virtual, with a duration).
+// In-person Reserves happen at their venue: no room.
 const LiveRoomButton: React.FC<{ booking: VipBooking }> = ({ booking }) => {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -11,7 +12,7 @@ const LiveRoomButton: React.FC<{ booking: VipBooking }> = ({ booking }) => {
   }, []);
 
   const minutes = sessionMinutes(booking);
-  if (!minutes || booking.status !== 'confirmed') return null;
+  if (!minutes || booking.status !== 'confirmed' || !isLiveBooking(booking)) return null;
 
   const state = liveState(booking.date, booking.time, minutes, now);
   if (state === 'open') {

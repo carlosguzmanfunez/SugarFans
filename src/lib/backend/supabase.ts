@@ -3,8 +3,9 @@
 // SECURITY DEFINER functions, see supabase/migrations.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { WRONG_CREDENTIALS, cleanPatch, mergeSettings, normalizeEmail, validateRegistration } from './shared';
-import { DEFAULT_AVAILABILITY, normalizeAvailability, validateExperience } from '../vip';
-import type { Backend, BookingStatus, ExperienceType, User, UserRole, VipBooking, VipExperience } from './types';
+import { DEFAULT_AVAILABILITY, cleanDetails, customTitle, normalizeAvailability, validateCounter, validateCustomRequest, validateExperience } from '../vip';
+import type { Backend, BookingDetails, BookingStatus, ExperienceType, ReserveDetails, User, UserRole, VipBooking, VipExperience } from './types';
+import { creators as demoCreators } from '../../data/mockData';
 import { createSupabasePlatform } from './supabasePlatform';
 import { createSupabaseSocial } from './supabaseSocial';
 import { createSupabaseGifts } from './supabaseGifts';
@@ -78,6 +79,8 @@ interface BookingRow {
   paid_at: string | null;
   email_sent_at: string | null;
   duration_minutes: number | null;
+  // Missing until migration 20261002000001_reserve is applied.
+  details?: BookingDetails | null;
 }
 
 interface ExperienceRow {
@@ -92,7 +95,10 @@ interface ExperienceRow {
   image: string;
   active: boolean;
   created_at: string;
+  details?: Partial<ReserveDetails> | null;
 }
+
+const hasDetails = (d: object | null | undefined): d is object => !!d && Object.keys(d).length > 0;
 
 const toExperience = (e: ExperienceRow): VipExperience => ({
   id: e.id,
@@ -106,6 +112,7 @@ const toExperience = (e: ExperienceRow): VipExperience => ({
   image: e.image,
   active: e.active,
   createdAt: e.created_at,
+  ...(hasDetails(e.details) ? { details: e.details as ReserveDetails } : {}),
 });
 
 const toUser = (p: ProfileRow, extra?: Pick<User, 'subscriptions' | 'createdPosts'>): User => ({
@@ -147,6 +154,7 @@ const toBooking = (b: BookingRow): VipBooking => ({
   paidAt: b.paid_at ?? undefined,
   emailSentAt: b.email_sent_at ?? undefined,
   durationMinutes: b.duration_minutes ?? undefined,
+  ...(hasDetails(b.details) ? { details: b.details as BookingDetails } : {}),
 });
 
 const ok = { ok: true } as const;
@@ -155,7 +163,7 @@ const fail = (error: string) => ({ ok: false, error });
 // Postgres raises our own Spanish messages; pass those through, hide the rest.
 const dbError = (error: { message?: string } | null, fallback: string) => {
   const msg = error?.message ?? '';
-  return fail(/[áéíóúñ¿]|Debes|Esta acción|Ese horario|La fecha|No puedes|No tienes|Reserva|Solo|Elige|Experiencia|Este perfil/.test(msg) ? msg : fallback);
+  return fail(/[áéíóúñ¿]|Debes|Esta acción|Ese horario|La fecha|No puedes|No tienes|Reserva|Solo|Elige|Experiencia|Este perfil|Esta experiencia|Fans Reserve|Las experiencias|Mantén|El presupuesto|La duración|Entre/.test(msg) ? msg : fallback);
 };
 
 const translateAuthError = (message: string): string => {
@@ -379,18 +387,59 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
     async createBooking(_user, input) {
       if (!input.date) return fail('Elige un día en el calendario');
       if (!input.time) return fail('Elige una hora disponible');
-      // Creator, title and price are taken from the experience by the server.
-      const { error } = await sb.rpc('vip_create_booking', {
+      // Creator, title, price, discount and approval come from the experience (server side).
+      const { error } = await sb.rpc('reserve_create_booking', {
         p_experience_id: input.experienceId,
-        p_creator_profile_id: null,
-        p_title: null,
-        p_creator_name: null,
-        p_price: null,
         p_date: input.date,
         p_time: input.time,
         p_message: input.message,
+        p_participants: input.participants ?? 1,
       });
       return error ? dbError(error, 'No se pudo enviar la reserva') : ok;
+    },
+
+    async requestCustomExperience(_user, input) {
+      const demo = demoCreators.find((c) => c.id === input.creatorProfileId);
+      const category = demo?.category ?? (await sb.rpc('creator_category', { p_creator_profile_id: input.creatorProfileId })).data;
+      const check = validateCustomRequest(input, typeof category === 'string' ? category : undefined);
+      if (!check.ok) return fail(check.error!);
+      const { error } = await sb.rpc('reserve_request_custom', {
+        p_creator_profile_id: input.creatorProfileId,
+        p_date: input.date,
+        p_time: input.time,
+        p_duration: input.durationMinutes,
+        p_budget: input.budget,
+        p_participants: input.participants,
+        p_message: input.message,
+        p_title: customTitle(input.purpose, input.purposeNote),
+        p_details: {
+          modality: input.modality,
+          purpose: input.purpose,
+          locationType: input.locationType,
+          ...(input.modality !== 'virtual' ? { city: input.city.trim(), venue: input.venue.trim() } : {}),
+          ...(check.flags?.length ? { flags: check.flags } : {}),
+        },
+      });
+      return error ? dbError(error, 'No se pudo enviar la solicitud') : ok;
+    },
+
+    async counterOffer(_user, bookingId, input) {
+      const check = validateCounter(input);
+      if (!check.ok) return fail(check.error!);
+      const { error } = await sb.rpc('reserve_counter_offer', {
+        p_booking_id: bookingId,
+        p_price: input.price,
+        p_date: input.date,
+        p_time: input.time,
+        p_duration: input.durationMinutes ?? null,
+        p_note: input.note,
+      });
+      return error ? dbError(error, 'No se pudo enviar la contraoferta') : ok;
+    },
+
+    async respondCounter(_user, bookingId, accept) {
+      const { error } = await sb.rpc('reserve_respond_counter', { p_booking_id: bookingId, p_accept: accept });
+      return error ? dbError(error, 'No se pudo responder a la contraoferta') : ok;
     },
 
     async updateBooking(_user, bookingId, next) {
@@ -409,7 +458,8 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
     },
 
     async saveExperience(user, input, id) {
-      const check = validateExperience(input);
+      const demoCategory = demoCreators.find((c) => c.id === user.creatorProfileId)?.category;
+      const check = validateExperience(input, input.details ? user.settings.category || demoCategory || '' : undefined);
       if (!check.ok) return fail(check.error!);
       // The server fills in the creator's profile id and name.
       const row = {
@@ -420,6 +470,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
         duration_minutes: input.durationMinutes ?? null,
         image: input.image,
         active: input.active,
+        ...(input.details ? { details: cleanDetails(input.details) } : {}),
         creator_profile_id: user.creatorProfileId,
         creator_name: user.name,
       };

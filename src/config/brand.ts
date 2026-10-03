@@ -12,7 +12,7 @@ export const BRAND = {
   // Public title: "Fans Reserve — <tagline>".
   tagline: 'Conecta con tus creadores más allá del feed',
   description:
-    'Fans Reserve es el espacio donde creadores y sus verdaderos fans se conectan más allá del feed: membresías, contenido exclusivo, experiencias VIP y sesiones en vivo.',
+    'Fans Reserve es el espacio donde creadores y sus verdaderos fans se conectan más allá del feed: membresías, contenido exclusivo, sesiones en vivo y experiencias reservables con Reserve.',
   themeColor: '#160d1f',
   backgroundColor: '#faf7f5',
   // Social preview (1200x630) and app icons, rendered from design/brand/ by

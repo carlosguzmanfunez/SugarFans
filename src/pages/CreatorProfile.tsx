@@ -15,8 +15,12 @@ import ReportDialog from '../components/ReportDialog';
 import PostCard, { type DisplayPost } from '../components/PostCard';
 import TipDialog from '../components/TipDialog';
 import GiftDialog from '../components/GiftDialog';
-import CircleSection from '../components/CircleSection';
 import NewPostForm from '../components/NewPostForm';
+import AccessLadder, { useFollow } from '../components/reserve/AccessLadder';
+import CreatorReserveSection from '../components/reserve/CreatorReserveSection';
+import { ReserveNotice } from '../components/reserve/ReserveBits';
+import { backend } from '../lib/backend';
+import type { VipExperience } from '../lib/vip';
 import { socialApi, compactCount, type PublicCreator } from '../lib/social';
 import {
   usePlatformQuery,
@@ -36,7 +40,7 @@ const CreatorProfile: React.FC = () => {
   const { isAuthenticated, user, isSubscribed: hasSubscription, toggleSubscription, cancelSubscription, subscriptionOf, refreshUser, deletePost } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<'posts' | 'media' | 'circle' | 'about'>(new URLSearchParams(location.search).get('tab') === 'circle' ? 'circle' : 'posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'media' | 'about'>('posts');
   const { data: platform } = usePlatformQuery(
     async () => {
       const [removedPosts, blocks] = await Promise.all([platformApi.removedPosts(), user ? platformApi.blocks(user) : Promise.resolve([])]);
@@ -64,6 +68,12 @@ const CreatorProfile: React.FC = () => {
   );
   const creator: Creator | undefined = catalogCreator ?? (signedUp ? fromPublic(signedUp) : undefined);
   const levels = useLevels(id ? [id] : []);
+  const follow = useFollow(id, user);
+  const { data: experiences } = usePlatformQuery(
+    async () => (await backend.listExperiences()).filter((e) => e.creatorProfileId === id && e.active),
+    [id],
+    [] as VipExperience[]
+  );
 
   // Posts published from the creator panel, then like/comment totals for every post.
   const { data: feed } = usePlatformQuery(
@@ -315,7 +325,7 @@ const CreatorProfile: React.FC = () => {
           {/* Stats */}
           <div className="flex space-x-6 mt-6 text-sm">
             <div className="text-center">
-              <p className="font-bold text-gray-900">{compactCount(creator.followers)}</p>
+              <p className="font-bold text-gray-900">{compactCount(creator.followers + follow.count)}</p>
               <p className="text-gray-500">Seguidores</p>
             </div>
             <div className="text-center">
@@ -341,6 +351,22 @@ const CreatorProfile: React.FC = () => {
           </div>
         </div>
 
+        {!iBlocked && !blockedMe && (
+          <>
+            <AccessLadder
+              creator={{ ...creator, followers: creator.followers + follow.count }}
+              user={user}
+              isOwner={isOwner}
+              isSubscribed={isSubscribed}
+              following={follow.following}
+              experiences={experiences.length}
+              onSubscribe={handleSubscribe}
+              onNeedLogin={goLogin}
+            />
+            <CreatorReserveSection creator={creator} experiences={experiences} user={user} isOwner={isOwner} onNeedLogin={goLogin} />
+          </>
+        )}
+
         {/* Tabs */}
         <div className="flex space-x-1 bg-white rounded-xl p-1 shadow-sm mb-6">
           <button
@@ -354,12 +380,6 @@ const CreatorProfile: React.FC = () => {
             className={`flex-auto sm:flex-1 whitespace-nowrap px-2 py-2.5 rounded-lg text-[13px] sm:text-sm font-medium transition ${activeTab === 'media' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'}`}
           >
             <i aria-hidden="true" className="fas fa-images mr-1 max-sm:hidden!"></i> Media
-          </button>
-          <button
-            onClick={() => setActiveTab('circle')}
-            className={`flex-auto sm:flex-1 whitespace-nowrap px-2 py-2.5 rounded-lg text-[13px] sm:text-sm font-medium transition ${activeTab === 'circle' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'}`}
-          >
-            <i aria-hidden="true" className="fas fa-users mr-1 max-sm:hidden!"></i> Círculo
           </button>
           <button
             onClick={() => setActiveTab('about')}
@@ -448,15 +468,6 @@ const CreatorProfile: React.FC = () => {
           </div>
         )}
 
-        {!iBlocked && activeTab === 'circle' && (
-          <>
-            {tipSent && (
-              <div role="status" className="px-4 py-3 mb-6 rounded-xl border bg-green-50 border-green-200 text-green-700">{tipSent}</div>
-            )}
-            <CircleSection user={user} creatorProfileId={creator.id} creatorName={creator.name} onGift={() => (isAuthenticated ? setGifting({}) : goLogin())} />
-          </>
-        )}
-
         {!iBlocked && activeTab === 'about' && (
           <div className="bg-white rounded-2xl p-6 shadow-sm">
             <h3 className="font-bold text-lg text-gray-900 mb-4">Acerca de {creator.name}</h3>
@@ -500,6 +511,7 @@ const CreatorProfile: React.FC = () => {
           amount={creator.subscriptionPrice}
           note={`Mensual. Se renueva el día ${addMonths(new Date().toISOString(), 1).getDate()} de cada mes; cancela cuando quieras.`}
           confirmLabel="Suscribirme y pagar"
+          extra={<ReserveNotice kind="subscription" />}
           onConfirm={confirmPayment}
           onClose={() => setCheckout(false)}
         />

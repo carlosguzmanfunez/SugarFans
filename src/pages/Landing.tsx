@@ -15,8 +15,8 @@ const Landing: React.FC = () => {
   return (
     <div className="min-h-screen bg-canvas">
       <Hero creators={creators} />
-      <FeaturedCreators creators={creators} featured={featured} />
       <CategoryGrid />
+      <FeaturedCreators creators={creators} featured={featured} />
       <HowItWorks />
       <VipShowcase />
       <CreatorCta />

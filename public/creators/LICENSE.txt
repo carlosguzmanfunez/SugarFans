@@ -1,3 +1,5 @@
 Demo creator avatars: "Notionists" by Zoish, generated with DiceBear.
 License: CC0 1.0 (public domain) — https://creativecommons.org/publicdomain/zero/1.0/
 Placeholders for the demo profiles; real creators upload their own photo.
+
+cutout/: the same illustrations with the background removed and cropped to the figure (used in the landing hero video call).

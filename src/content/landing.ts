@@ -3,11 +3,11 @@
 import { BRAND } from '../config/brand';
 
 export const HERO = {
-  eyebrow: 'Membresías · Lives · Experiencias VIP',
+  eyebrow: 'Sigue · Suscríbete · Live · Reserve',
   titleLead: 'Tu acceso reservado a quienes',
   titleAccent: 'te inspiran.',
   subtitle:
-    'Contenido exclusivo, sesiones en vivo y experiencias VIP con creadores que conectan contigo más allá del feed.',
+    'Sigue a tus creators favoritos, accede a contenido exclusivo y reserva experiencias directamente con ellos.',
   primaryCta: 'Crear cuenta gratis',
   secondaryCta: 'Explorar creadores',
   socialProof: 'Creadores verificados en música, fitness, arte, gaming y más',
@@ -33,27 +33,28 @@ export const CATEGORIES = {
 
 export const HOW = {
   eyebrow: 'Cómo funciona',
-  title: `Empieza en ${BRAND.name} en tres pasos`,
+  title: `Cuatro formas de acercarte en ${BRAND.name}`,
   steps: [
-    { icon: 'fa-user-plus', title: 'Crea tu cuenta', text: 'Regístrate gratis y confirma tu edad en un minuto.' },
-    { icon: 'fa-compass', title: 'Descubre creadores', text: 'Explora perfiles por categoría y únete a la membresía de quienes te inspiran.' },
-    { icon: 'fa-heart', title: 'Conecta y apoya', text: 'Accede a contenido exclusivo, escríbeles, envía regalos y reserva experiencias.' },
+    { icon: 'fa-compass', label: 'Discover', title: 'Descubre', text: 'Explora creators por categoría y síguelos gratis.' },
+    { icon: 'fa-star', label: 'Subscribe', title: 'Suscríbete', text: 'Contenido exclusivo y los beneficios que cada creator define.' },
+    { icon: 'fa-video', label: 'Live', title: 'En vivo', text: 'Sesiones en directo en la sala privada de Fans Reserve.' },
+    { icon: 'fa-ticket', label: 'Reserve', title: 'Reserva experiencias', text: 'Clases, sesiones, meet & greets y eventos con fecha, precio y reglas claras.' },
   ],
 };
 
 export const VIP = {
-  eyebrow: 'Experiencias VIP',
-  title: 'Momentos que no se publican en ningún feed',
+  eyebrow: 'Reserve',
+  title: 'Reserva experiencias, no personas',
   subtitle:
-    'Reserva tiempo real con tus creadores: videollamadas privadas, sesiones de preguntas, contenido hecho para ti y acceso antes que nadie.',
-  cta: 'Explorar experiencias',
+    'Cada creator define qué ofrece: modalidad, duración, precio, lugar y reglas. Tú eliges, el creator aprueba y la experiencia queda confirmada.',
+  cta: 'Explorar Reserve',
   perks: [
-    { icon: 'fa-handshake', title: 'Meet & Greet', text: 'Un encuentro 1:1 por videollamada.' },
-    { icon: 'fa-comments', title: 'Sesiones Q&A', text: 'Pregunta lo que siempre quisiste saber.' },
-    { icon: 'fa-wand-magic-sparkles', title: 'Contenido personalizado', text: 'Creado solo para ti.' },
-    { icon: 'fa-bolt', title: 'Acceso anticipado', text: 'Estrenos y lanzamientos antes que nadie.' },
+    { icon: 'fa-chalkboard-user', title: 'Clases y coaching', text: 'Cocina, fitness, música, arte y más.' },
+    { icon: 'fa-video', title: 'Sesiones 1:1 online', text: 'En la sala privada de Fans Reserve.' },
+    { icon: 'fa-calendar-check', title: 'Eventos y meet & greets', text: 'En venues, convenciones y lugares públicos.' },
+    { icon: 'fa-wand-magic-sparkles', title: 'A medida', text: 'Propón tu experiencia; el creator decide.' },
   ],
-  steps: ['Eliges día y hora', 'El creador confirma', 'Pagas y recibes tu acceso'],
+  steps: ['Eliges la experiencia', 'El creator la aprueba', 'Pagas y queda confirmada'],
 };
 
 export const CREATOR_CTA = {
@@ -66,11 +67,7 @@ export const CREATOR_CTA = {
     { icon: 'fa-lock', label: 'Contenido exclusivo' },
     { icon: 'fa-gift', label: 'Regalos de tus fans' },
     { icon: 'fa-video', label: 'Sesiones en vivo' },
-    { icon: 'fa-ticket', label: 'Experiencias VIP' },
+    { icon: 'fa-ticket', label: 'Reserve: experiencias' },
     { icon: 'fa-comment-dots', label: 'Mensajes directos' },
-  ],
-  stats: [
-    { value: '80%', label: 'de cada pago es tuyo' },
-    { value: '$50', label: 'retiro mínimo, cuando quieras' },
   ],
 };

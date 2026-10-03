@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { CREATOR_CTA } from '../../content/landing';
 import { BrandMark } from '../BrandLogo';
 
-// Call to creators: one bold panel with what they can monetise and the two
-// numbers that matter (their share and the payout minimum).
+// Call to creators: one bold panel with what they can offer their community.
+// Earnings terms live in the creator signup and panel, not on the landing.
 const CreatorCta: React.FC = () => (
   <section aria-labelledby="creator-cta-title" className="reveal py-16 md:py-24">
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -22,14 +22,6 @@ const CreatorCta: React.FC = () => (
             <Link to="/register?role=creator" className="btn btn-lg btn-light mt-8 shadow-xl">
               {CREATOR_CTA.cta} <i className="fas fa-arrow-right text-sm text-brand-600" aria-hidden="true"></i>
             </Link>
-            <div className="mt-10 flex gap-10">
-              {CREATOR_CTA.stats.map((s) => (
-                <p key={s.label}>
-                  <span className="block font-display text-4xl font-bold">{s.value}</span>
-                  <span className="mt-1 block text-sm text-white/75">{s.label}</span>
-                </p>
-              ))}
-            </div>
           </div>
           <ul className="grid grid-cols-2 gap-3">
             {CREATOR_CTA.features.map((f) => (

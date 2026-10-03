@@ -120,9 +120,30 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
   },
 
   async publicCreator(creatorProfileId) {
-    const { data } = await sb.rpc('public_creator', { p_creator_profile_id: creatorProfileId });
+    const [{ data }, category] = await Promise.all([
+      sb.rpc('public_creator', { p_creator_profile_id: creatorProfileId }),
+      sb.rpc('creator_category', { p_creator_profile_id: creatorProfileId }),
+    ]);
     const r = (data as Row[] | null)?.[0];
-    return r ? toPublicCreator(r) : null;
+    return r ? { ...toPublicCreator(r), category: typeof category.data === 'string' ? category.data : '' } : null;
+  },
+
+  async followState(creatorProfileId, viewer) {
+    const [count, mine] = await Promise.all([
+      sb.rpc('follower_count', { p_creator_profile_id: creatorProfileId }),
+      viewer
+        ? sb.from('follows').select('creator_profile_id').eq('user_id', viewer.id).eq('creator_profile_id', creatorProfileId).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
+    return { following: !!mine.data, count: Number(count.data ?? 0) };
+  },
+
+  async setFollow(user, creatorProfileId, follow) {
+    if (user.creatorProfileId === creatorProfileId) return fail('No puedes seguir tu propio perfil');
+    const { error } = follow
+      ? await sb.from('follows').upsert({ user_id: user.id, creator_profile_id: creatorProfileId }, { onConflict: 'user_id,creator_profile_id', ignoreDuplicates: true })
+      : await sb.from('follows').delete().eq('user_id', user.id).eq('creator_profile_id', creatorProfileId);
+    return error ? fail('No se pudo actualizar. Inténtalo de nuevo.') : ok;
   },
 
   async publicCreators() {

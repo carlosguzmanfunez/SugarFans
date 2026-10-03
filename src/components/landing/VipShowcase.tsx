@@ -23,7 +23,7 @@ const BookingMock: React.FC = () => {
         <div className="relative h-32">
           <CoverArt seed="vip-showcase" style="noir" />
           <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-night-950/60 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-gold-200 ring-1 ring-gold-300/30">
-            <i className="fas fa-ticket text-[10px]" aria-hidden="true"></i> Experiencia VIP
+            <i className="fas fa-ticket text-[10px]" aria-hidden="true"></i> Reserve
           </span>
         </div>
         <div className="relative p-5">
@@ -98,7 +98,7 @@ const VipShowcase: React.FC = () => (
             </li>
           ))}
         </ol>
-        <Link to="/vip-experiences" className="btn btn-lg mt-9 bg-gradient-to-r from-gold-200 to-gold-400 text-night-900 shadow-[0_18px_40px_-16px_rgba(227,169,58,0.6)]">
+        <Link to="/reserve" className="btn btn-lg mt-9 bg-gradient-to-r from-gold-200 to-gold-400 text-night-900 shadow-[0_18px_40px_-16px_rgba(227,169,58,0.6)]">
           {VIP.cta} <i className="fas fa-arrow-right text-sm" aria-hidden="true"></i>
         </Link>
       </div>

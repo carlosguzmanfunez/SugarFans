@@ -1,4 +1,5 @@
 // Pure rules shared by the UI and both backends: validation, dates and money.
+import { CREATOR_CATEGORIES } from '../config/reserve';
 import type {
   DocType,
   ManagedProfileInput,
@@ -63,7 +64,7 @@ export const validateVerification = (input: VerificationInput): Check => {
   return good;
 };
 
-export const MANAGED_CATEGORIES = ['Modelaje', 'Fitness', 'Lifestyle', 'Arte', 'Música', 'Cocina', 'Gaming', 'Educación', 'Experiencias VIP'];
+export const MANAGED_CATEGORIES = CREATOR_CATEGORIES.map((c) => c.name);
 
 export const managedAvatar = (username: string) => `https://api.dicebear.com/7.0/adventurer/svg?seed=${encodeURIComponent(username)}`;
 // No cover: profiles show their generated cover art (components/CoverArt).
@@ -239,5 +240,5 @@ export const transactionLabel: Record<Transaction['kind'], string> = {
   tip: 'Propina',
   gift: 'Regalo',
   referral: 'Bono por creador invitado',
-  vip: 'Experiencia VIP',
+  vip: 'Reserve',
 };

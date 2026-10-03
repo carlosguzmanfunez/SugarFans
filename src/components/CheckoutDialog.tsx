@@ -9,12 +9,14 @@ interface Props {
   amount: number;
   note?: string; // e.g. "Se renueva el 29 de cada mes"
   confirmLabel?: string;
+  // Extra context under the total (e.g. what a subscription does and doesn't include).
+  extra?: React.ReactNode;
   onConfirm: (methodId: string) => Promise<{ ok: boolean; error?: string }>;
   onClose: () => void;
 }
 
 // Pick (or add) a payment method and confirm a charge. Reusable for subscriptions and VIP bookings.
-const CheckoutDialog: React.FC<Props> = ({ user, title, amount, note, confirmLabel = 'Pagar', onConfirm, onClose }) => {
+const CheckoutDialog: React.FC<Props> = ({ user, title, amount, note, confirmLabel = 'Pagar', extra, onConfirm, onClose }) => {
   const { data: methods, loading } = usePlatformQuery(() => platformApi.paymentMethods(user.id), [user.id], []);
   const [selected, setSelected] = useState('');
   const [adding, setAdding] = useState(false);
@@ -53,6 +55,7 @@ const CheckoutDialog: React.FC<Props> = ({ user, title, amount, note, confirmLab
           <span className="text-gray-600 text-sm">Total</span>
           <span className="text-2xl font-bold text-gray-900">{money(amount)}</span>
         </div>
+        {extra && <div className="mb-4">{extra}</div>}
 
         <h4 className="text-sm font-medium text-gray-700 mb-2">Método de pago</h4>
         <div className="space-y-2 mb-3">
