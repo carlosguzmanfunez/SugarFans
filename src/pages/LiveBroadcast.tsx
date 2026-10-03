@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Room, RoomEvent, Track, type RemoteParticipant, type RemoteTrack } from 'livekit-client';
+import { Room, RoomEvent, Track, VideoPresets, type RemoteParticipant, type RemoteTrack } from 'livekit-client';
 import { useAuth } from '../context/AuthContext';
 import { liveApi, endLive, useCurrentLive } from '../lib/live';
 
@@ -28,6 +28,8 @@ const LiveBroadcast: React.FC = () => {
   const [host, setHost] = useState(false);
   const [hostName, setHostName] = useState('');
   const [hasVideo, setHasVideo] = useState(false);
+  // Shape of the incoming picture: 16:9 from a webcam, 9:16 from a phone held upright.
+  const [ratio, setRatio] = useState(16 / 9);
   const [viewers, setViewers] = useState(0);
   const [needsAudio, setNeedsAudio] = useState(false);
   const [micOn, setMicOn] = useState(true);
@@ -37,6 +39,19 @@ const LiveBroadcast: React.FC = () => {
   const roomRef = useRef<Room | null>(null);
   const video = useRef<HTMLVideoElement>(null);
   const audioBox = useRef<HTMLDivElement>(null);
+  const stage = useRef<HTMLDivElement>(null);
+
+  const readRatio = () => {
+    const v = video.current;
+    if (v && v.videoWidth && v.videoHeight) setRatio(v.videoWidth / v.videoHeight);
+  };
+
+  const fullscreen = () => {
+    const v = video.current as (HTMLVideoElement & { webkitEnterFullscreen?: () => void }) | null;
+    if (document.fullscreenElement) document.exitFullscreen();
+    else if (stage.current?.requestFullscreen) stage.current.requestFullscreen();
+    else v?.webkitEnterFullscreen?.(); // iPhone Safari only lets the video itself go full screen
+  };
 
   // The live state loads after the first render; give it a moment before saying "not live".
   useEffect(() => {
@@ -59,7 +74,13 @@ const LiveBroadcast: React.FC = () => {
       return;
     }
     const { url, token, host: isHost } = r.access;
-    const room = new Room({ adaptiveStream: true, dynacast: true });
+    // Full HD from the creator, with lighter copies so each fan gets the size their screen needs.
+    const room = new Room({
+      adaptiveStream: true,
+      dynacast: true,
+      videoCaptureDefaults: { resolution: VideoPresets.h1080.resolution },
+      publishDefaults: { simulcast: true, videoSimulcastLayers: [VideoPresets.h360, VideoPresets.h720] },
+    });
     roomRef.current = room;
     setHost(isHost);
 
@@ -177,7 +198,7 @@ const LiveBroadcast: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white" data-testid="live-broadcast">
-      <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-4 gap-3">
           <div className="min-w-0">
             <p className="text-xs uppercase tracking-wide text-red-400 font-bold flex items-center">
@@ -192,10 +213,27 @@ const LiveBroadcast: React.FC = () => {
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2">
-            <div className="relative aspect-video bg-black rounded-2xl overflow-hidden">
-              <video ref={video} autoPlay playsInline muted={host} className={`w-full h-full object-cover ${host ? '-scale-x-100' : ''} ${hasVideo ? '' : 'hidden'}`} />
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_20rem] gap-4">
+          <div className="min-w-0">
+            <div
+              ref={stage}
+              style={{ aspectRatio: ratio, '--r': ratio } as React.CSSProperties}
+              className="relative -mx-4 w-[calc(100%+2rem)] max-h-[78dvh] sm:mx-auto sm:w-full sm:max-w-[calc(78dvh*var(--r))] bg-black sm:rounded-2xl overflow-hidden"
+            >
+              <video
+                ref={video}
+                autoPlay
+                playsInline
+                muted={host}
+                onLoadedMetadata={readRatio}
+                onResize={readRatio}
+                className={`w-full h-full object-contain ${host ? '-scale-x-100' : ''} ${hasVideo ? '' : 'hidden'}`}
+              />
+              {hasVideo && (
+                <button onClick={fullscreen} aria-label="Pantalla completa" data-testid="live-fullscreen" className="absolute top-3 right-3 w-10 h-10 rounded-full bg-black/50 hover:bg-black/70">
+                  <i aria-hidden="true" className="fas fa-expand"></i>
+                </button>
+              )}
               <div ref={audioBox} className="hidden" />
               {!hasVideo && (
                 <div className="absolute inset-0 flex items-center justify-center text-center p-6">
