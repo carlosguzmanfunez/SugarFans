@@ -1,10 +1,11 @@
 // Vercel function: real payments with PayPal (Créditos, tips, Reserve bookings
-// and monthly subscriptions). The browser shows PayPal's buttons; this function
+// and monthly subscriptions) and creator withdrawals with PayPal Payouts. The browser shows PayPal's buttons; this function
 // creates the order or subscription for the amount the database quotes and,
 // after the fan approves it, confirms it with PayPal and fulfills it. PayPal's
 // webhook (POST /api/paypal?webhook) reports each subscription renewal,
 // cancellation and failed payment. See the migrations
-// 20261003000005_paypal_payments.sql and 20261003000006_paypal_subscriptions.sql.
+// 20261003000005_paypal_payments.sql, 20261003000006_paypal_subscriptions.sql
+// and 20261003000007_paypal_payouts.sql.
 //
 // Needs in the Vercel project settings: PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET,
 // PAYPAL_ENV ('sandbox' or 'live'), SUPABASE_SERVICE_ROLE_KEY and, for the
@@ -161,6 +162,69 @@ const cancelAtPaypal = async (e: Env, token: string, subscriptionId: string, rea
   return ['CANCELLED', 'EXPIRED'].includes(now.data?.status);
 };
 
+// --- Withdrawals (PayPal Payouts) -------------------------------------------------
+
+// PayPal's state of one payout item → ours ('sending' while PayPal still works on it).
+const PAYOUT_DONE = ['SUCCESS'];
+const PAYOUT_FAILED = ['FAILED', 'RETURNED', 'BLOCKED', 'DENIED', 'REFUNDED', 'REVERSED', 'CANCELED'];
+const payoutStatus = (paypalStatus: string) =>
+  PAYOUT_DONE.includes(paypalStatus) ? 'paid' : PAYOUT_FAILED.includes(paypalStatus) ? 'failed' : 'sending';
+
+const markPayout = (e: Env, id: string, status: string, batchId: string | null, itemId: string | null, error: string | null) =>
+  rpc(e, 'paypal_payout_mark', { p_id: id, p_status: status, p_batch_id: batchId, p_item_id: itemId, p_error: error });
+
+// Withdraws the creator's whole credited balance to their PayPal account.
+const sendPayout = async (e: Env, token: string, userId: string): Promise<Response> => {
+  const started = await rpc(e, 'paypal_payout_start', { p_user: userId });
+  if (!started.ok) return json(400, { error: started.error });
+  const { id, net, fee, email } = started.data as { id: string; net: number; fee: number; email: string };
+
+  const sent = await paypal(e, token, '/v1/payments/payouts', {
+    // The withdrawal id as PayPal's batch id: a repeated call can't pay twice.
+    sender_batch_header: { sender_batch_id: id, email_subject: 'Recibiste tu retiro de Fans Reserve', email_message: 'Tus ganancias en Fans Reserve ya están en tu cuenta PayPal.' },
+    items: [
+      {
+        recipient_type: 'EMAIL',
+        receiver: email,
+        amount: { value: Number(net).toFixed(2), currency: 'USD' },
+        sender_item_id: id,
+        note: 'Retiro de tus ganancias en Fans Reserve',
+      },
+    ],
+  });
+  const batchId = sent.data?.batch_header?.payout_batch_id ? String(sent.data.batch_header.payout_batch_id) : null;
+  if (sent.status >= 300 || !batchId) {
+    const reason = String(sent.data?.name ?? sent.data?.message ?? `Error ${sent.status}`);
+    await markPayout(e, id, 'failed', null, null, reason);
+    const noFunds = /INSUFFICIENT_FUNDS/.test(reason);
+    return json(502, {
+      error: noFunds
+        ? 'PayPal no pudo enviar el retiro en este momento. Tu saldo sigue disponible; intenta más tarde.'
+        : 'PayPal no pudo enviar el retiro. Tu saldo sigue disponible; revisa el email de tu cuenta PayPal e intenta de nuevo.',
+    });
+  }
+
+  // PayPal usually settles it within seconds; the webhook reports it otherwise.
+  let status = 'sending';
+  let itemId: string | null = null;
+  let error: string | null = null;
+  for (let i = 0; i < 3 && status === 'sending'; i++) {
+    await pause(1500);
+    const batch = await paypal(e, token, `/v1/payments/payouts/${encodeURIComponent(batchId)}`);
+    const item = batch.data?.items?.[0];
+    if (!item) continue;
+    itemId = item.payout_item_id ? String(item.payout_item_id) : null;
+    status = payoutStatus(String(item.transaction_status ?? ''));
+    error = item.errors?.name ? String(item.errors.name) : null;
+    if (String(item.transaction_status) === 'UNCLAIMED') break; // waits for the creator to open a PayPal account
+  }
+  await markPayout(e, id, status, batchId, itemId, error);
+  if (status === 'failed') {
+    return json(502, { error: 'PayPal no pudo entregar el retiro. Tu saldo sigue disponible; revisa el email de tu cuenta PayPal.' });
+  }
+  return json(200, { ok: true, status, net, fee });
+};
+
 // POST /api/paypal?webhook: PayPal's notifications, checked with PayPal itself.
 const webhook = async (request: Request, e: Env): Promise<Response> => {
   if (!e.webhookId) return json(503, { error: 'Falta PAYPAL_WEBHOOK_ID' });
@@ -207,6 +271,12 @@ const webhook = async (request: Request, e: Env): Promise<Response> => {
     must(await rpc(e, 'paypal_subscription_ended', { p_id: String(res.id), p_now: false }));
   } else if (type === 'BILLING.SUBSCRIPTION.SUSPENDED' && res.id) {
     must(await rpc(e, 'paypal_subscription_ended', { p_id: String(res.id), p_now: true }));
+  } else if (type.startsWith('PAYMENT.PAYOUTS-ITEM.') && res.payout_item?.sender_item_id) {
+    const status = payoutStatus(String(res.transaction_status ?? ''));
+    if (status !== 'sending') {
+      must(await markPayout(e, String(res.payout_item.sender_item_id), status, res.payout_batch_id ? String(res.payout_batch_id) : null,
+        res.payout_item_id ? String(res.payout_item_id) : null, res.errors?.name ? String(res.errors.name) : status === 'failed' ? type : null));
+    }
   }
   return json(200, { ok: true });
 };
@@ -245,6 +315,7 @@ export async function GET(): Promise<Response> {
 // POST /api/paypal {action: 'subscribe', creatorProfileId}  → {subscriptionId}
 // POST /api/paypal {action: 'activate', subscriptionId}     → {ok: true}
 // POST /api/paypal {action: 'cancel-subscription', creatorProfileId} → {ok: true, until}
+// POST /api/paypal {action: 'payout'} → {ok: true, status, net, fee} (creator withdrawal)
 // POST /api/paypal?webhook (from PayPal)
 export async function POST(request: Request): Promise<Response> {
   const base = env();
@@ -420,6 +491,8 @@ export async function POST(request: Request): Promise<Response> {
       if (!ended.ok) return json(500, { error: 'Se canceló en PayPal, pero no pudimos actualizarla aquí. Recarga la página.' });
       return json(200, { ok: true, until: ended.data });
     }
+
+    if (body.action === 'payout') return await sendPayout(e, ppToken, userId);
 
     return json(400, { error: 'Acción no válida.' });
   } catch (err) {

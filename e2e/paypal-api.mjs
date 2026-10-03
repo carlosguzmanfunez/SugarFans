@@ -3,7 +3,8 @@
 // after PayPal reports a completed capture for that amount, and a capture that
 // can't be fulfilled is refunded. Subscriptions: one PayPal plan per price,
 // access only once PayPal says ACTIVE, cancelling stops PayPal first, and the
-// webhook is believed only after PayPal verifies its signature.
+// webhook is believed only after PayPal verifies its signature. Withdrawals:
+// PayPal Payouts sends the net amount once, and a failure returns the balance.
 // Run: node e2e/paypal-api.mjs
 import { build } from 'esbuild';
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -18,8 +19,8 @@ Object.assign(process.env, { PAYPAL_CLIENT_ID: 'AXclient', PAYPAL_CLIENT_SECRET:
 const api = await import(pathToFileURL(join(dir, 'paypal.mjs')).href);
 
 // --- fakes ------------------------------------------------------------------
-const db = { orders: new Map(), fulfilled: [], marks: [], fulfillError: '', catalog: new Map(), subs: new Map(), payments: new Map(), ended: [], access: new Map() };
-const pp = { orders: new Map(), refunds: [], captureStatus: 'COMPLETED', products: 0, plans: [], subs: new Map(), cancels: [], saleRefunds: [] };
+const db = { orders: new Map(), fulfilled: [], marks: [], fulfillError: '', catalog: new Map(), subs: new Map(), payments: new Map(), ended: [], access: new Map(), payouts: new Map(), payoutError: '' };
+const pp = { orders: new Map(), refunds: [], captureStatus: 'COMPLETED', products: 0, plans: [], subs: new Map(), cancels: [], saleRefunds: [], payoutBatches: new Map(), payoutStatus: 'SUCCESS', payoutFail: '' };
 const calls = [];
 const res = (status, body) =>
   status === 204 ? new Response(null, { status }) : new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
@@ -106,6 +107,29 @@ globalThis.fetch = async (url, init = {}) => {
     const id = db.access.get(`fan-1:${creator}`);
     return res(200, id ? [{ paypal_subscription_id: id }] : []);
   }
+  // Withdrawals.
+  if (u.endsWith('/rest/v1/rpc/paypal_payout_start')) {
+    if (h.apikey !== 'sb_secret_test') return res(401, {});
+    if (db.payoutError) return res(400, { message: db.payoutError });
+    if ([...db.payouts.values()].some((x) => x.status === 'sending')) return res(400, { message: 'Tienes un retiro en camino; espera a que PayPal lo confirme' });
+    const id = `po-${db.payouts.size + 1}`;
+    db.payouts.set(id, { user: body.p_user, status: 'sending', amount: 160, fee: 3.2, net: 156.8 });
+    return res(200, { id, amount: 160, fee: 3.2, net: 156.8, email: 'vale@example.com' });
+  }
+  if (u.endsWith('/rest/v1/rpc/paypal_payout_mark')) {
+    if (h.apikey !== 'sb_secret_test') return res(401, {});
+    const x = db.payouts.get(body.p_id);
+    if (x && (x.status === 'sending' || (body.p_status === 'failed' && x.status === 'paid'))) Object.assign(x, { status: body.p_status, error: body.p_error, batch: body.p_batch_id });
+    return res(204, null);
+  }
+  if (u.endsWith('/v1/payments/payouts') && init.method === 'POST') {
+    if (pp.payoutFail) return res(422, { name: pp.payoutFail });
+    const batchId = `BATCH-${body.sender_batch_header.sender_batch_id}`;
+    pp.payoutBatches.set(batchId, body);
+    return res(201, { batch_header: { payout_batch_id: batchId, batch_status: 'PENDING' } });
+  }
+  const batchGet = u.match(/\/v1\/payments\/payouts\/([\w-]+)$/);
+  if (batchGet) return res(200, { items: [{ payout_item_id: `ITEM-${batchGet[1]}`, transaction_status: pp.payoutStatus }] });
   // Subscriptions: PayPal side.
   if (u.endsWith('/v1/catalogs/products')) return res(201, { id: `PROD-${++pp.products}` });
   if (u.endsWith('/v1/billing/plans')) {
@@ -343,8 +367,47 @@ await check('Sin PAYPAL_WEBHOOK_ID el webhook no acepta nada', async () => {
   expect(r.status === 503, `status ${r.status}`);
 });
 
+await check('Retirar envía a PayPal el neto (sin la comisión) una sola vez y queda pagado', async () => {
+  const r = await post({ action: 'payout' });
+  expect(r.status === 200 && r.data.status === 'paid' && r.data.net === 156.8 && r.data.fee === 3.2, JSON.stringify(r.data));
+  const batch = pp.payoutBatches.get('BATCH-po-1');
+  expect(batch.items[0].amount.value === '156.80' && batch.items[0].amount.currency === 'USD' && batch.items[0].receiver === 'vale@example.com', JSON.stringify(batch));
+  expect(batch.sender_batch_header.sender_batch_id === 'po-1', 'sin id idempotente');
+  expect(db.payouts.get('po-1').status === 'paid', 'no quedó pagado');
+});
+
+await check('Si PayPal rechaza el envío, el retiro falla y el saldo vuelve', async () => {
+  pp.payoutFail = 'INSUFFICIENT_FUNDS';
+  const r = await post({ action: 'payout' });
+  pp.payoutFail = '';
+  expect(r.status === 502 && /saldo sigue disponible/.test(r.data.error), JSON.stringify(r.data));
+  expect(db.payouts.get('po-2').status === 'failed', 'no quedó fallido');
+});
+
+await check('Sin email de PayPal o sin saldo no se envía nada', async () => {
+  db.payoutError = 'Añade el email de tu cuenta PayPal para retiros';
+  const before = pp.payoutBatches.size;
+  const r = await post({ action: 'payout' });
+  db.payoutError = '';
+  expect(r.status === 400 && /email de tu cuenta PayPal/.test(r.data.error) && pp.payoutBatches.size === before, JSON.stringify(r.data));
+});
+
+await check('Un retiro que PayPal aún procesa queda en camino y el webhook lo confirma', async () => {
+  pp.payoutStatus = 'PENDING';
+  const r = await post({ action: 'payout' });
+  pp.payoutStatus = 'SUCCESS';
+  expect(r.status === 200 && r.data.status === 'sending' && db.payouts.get('po-3').status === 'sending', JSON.stringify(r.data));
+  const h = await hook({ event_type: 'PAYMENT.PAYOUTS-ITEM.SUCCEEDED', resource: { payout_item_id: 'ITEM-3', transaction_status: 'SUCCESS', payout_batch_id: 'BATCH-po-3', payout_item: { sender_item_id: 'po-3' } } });
+  expect(h.status === 200 && db.payouts.get('po-3').status === 'paid', JSON.stringify(db.payouts.get('po-3')));
+});
+
+await check('Un retiro devuelto por PayPal (no reclamado) regresa al saldo', async () => {
+  const h = await hook({ event_type: 'PAYMENT.PAYOUTS-ITEM.RETURNED', resource: { payout_item_id: 'ITEM-1', transaction_status: 'RETURNED', payout_item: { sender_item_id: 'po-1' } } });
+  expect(h.status === 200 && db.payouts.get('po-1').status === 'failed', JSON.stringify(db.payouts.get('po-1')));
+});
+
 await check('La service role solo se usa en llamadas del servidor', async () => {
-  const leaked = calls.filter((c) => c.h.apikey === 'sb_secret_test' && !/paypal_(register|fulfill|mark|catalog|subscription_(register|activate|payment|ended))/.test(c.u));
+  const leaked = calls.filter((c) => c.h.apikey === 'sb_secret_test' && !/paypal_(register|fulfill|mark|catalog|subscription_(register|activate|payment|ended)|payout_(start|mark))/.test(c.u));
   expect(leaked.length === 0, leaked.map((c) => c.u).join(', '));
 });
 

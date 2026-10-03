@@ -13,6 +13,11 @@ import {
   MIN_PAYOUT,
   nextCreditDate,
   transactionLabel,
+  payoutAccountLabel,
+  payoutFee,
+  PAYOUT_FEE_RATE,
+  PAYOUT_FEE_MAX,
+  type Payout,
 } from '../lib/platform';
 import { GIFT_SHARE } from '../lib/giftRules';
 import { BRAND, displayPayer } from '../config/brand';
@@ -21,7 +26,14 @@ import { displayGiftNote } from '../config/gifts';
 const field = 'w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-sm';
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 
-// Creator dashboard > Ingresos: real balance (80% of fan payments), payout account and withdrawals.
+// How each withdrawal looks in the list.
+const payoutBadge: Record<Payout['status'], { label: string; chip: string; icon: string }> = {
+  paid: { label: 'Pagado', chip: 'bg-green-100 text-green-700', icon: 'fa-check-circle text-green-600' },
+  sending: { label: 'En camino', chip: 'bg-blue-100 text-blue-700', icon: 'fa-clock text-blue-600' },
+  failed: { label: 'No se pudo enviar', chip: 'bg-red-100 text-red-700', icon: 'fa-times-circle text-red-600' },
+};
+
+// Creator dashboard > Ingresos: real balance (80% of fan payments), PayPal account and withdrawals.
 const CreatorPayouts: React.FC = () => {
   const { user } = useAuth();
   const userId = user?.id ?? '';
@@ -42,9 +54,7 @@ const CreatorPayouts: React.FC = () => {
       payoutAccount: Awaited<ReturnType<typeof platformApi.payoutAccount>>;
     }
   );
-  const [holder, setHolder] = useState('');
-  const [bank, setBank] = useState('');
-  const [account, setAccount] = useState('');
+  const [paypalEmail, setPaypalEmail] = useState('');
   const [editingAccount, setEditingAccount] = useState(false);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -57,14 +67,21 @@ const CreatorPayouts: React.FC = () => {
   const verified = !!user.isVerified;
 
   const saveAccount = async () => {
-    const r = await setPayoutAccount(user, holder, bank, account);
-    setNotice(r.ok ? { ok: true, text: 'Cuenta de retiro guardada' } : { ok: false, text: r.error! });
+    const r = await setPayoutAccount(user, paypalEmail);
+    setNotice(r.ok ? { ok: true, text: 'Cuenta PayPal guardada' } : { ok: false, text: r.error! });
     if (r.ok) setEditingAccount(false);
   };
 
   const withdraw = async () => {
     const r = await requestPayout(user);
-    setNotice(r.ok ? { ok: true, text: `Retiro pagado: ${money(r.amount ?? 0)} enviados a tu cuenta` } : { ok: false, text: r.error! });
+    if (!r.ok) return setNotice({ ok: false, text: r.error! });
+    setNotice({
+      ok: true,
+      text:
+        r.status === 'sending'
+          ? `Retiro en camino: PayPal está enviando ${money(r.amount ?? 0)} a tu cuenta`
+          : `Retiro pagado: ${money(r.amount ?? 0)} enviados a tu cuenta PayPal`,
+    });
   };
 
   return (
@@ -97,7 +114,8 @@ const CreatorPayouts: React.FC = () => {
         <h3 className="font-bold text-gray-900 mb-1">Retirar saldo</h3>
         <p className="text-sm text-gray-500 mb-4">
           Tus ingresos se acreditan el día 1 de cada mes y se acumulan si no los retiras. Puedes retirar en cualquier momento del mes, siempre el
-          saldo completo, a partir de {money(MIN_PAYOUT)} USD. Todo se paga en dólares (USD), y la comisión por enviar el retiro se descuenta del monto retirado.
+          saldo completo, a partir de {money(MIN_PAYOUT)} USD, a tu cuenta PayPal (desde ahí puedes pasarlo a tu banco). Todo se paga en dólares (USD).
+          PayPal cobra {PAYOUT_FEE_RATE * 100}% (máximo {money(PAYOUT_FEE_MAX)}) por enviar el retiro, y esa comisión se descuenta del monto retirado.
         </p>
         {!verified && (
           <p className="text-sm bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl p-3 mb-4">
@@ -108,17 +126,23 @@ const CreatorPayouts: React.FC = () => {
         {payoutAccount && !editingAccount ? (
           <div className="flex items-center justify-between bg-gray-50 rounded-xl p-4 mb-4">
             <div>
-              <p className="text-sm font-medium text-gray-900">{payoutAccount.bank} •••• {payoutAccount.accountLast4}</p>
-              <p className="text-xs text-gray-500">Titular: {payoutAccount.holder}</p>
+              <p className="text-sm font-medium text-gray-900">{payoutAccountLabel(payoutAccount)}</p>
+              <p className="text-xs text-gray-500">Aquí recibes tus retiros</p>
             </div>
             <button type="button" onClick={() => setEditingAccount(true)} className="text-sm text-pink-600">Cambiar</button>
           </div>
         ) : (
           <div className="space-y-3 mb-4 max-w-lg">
-            <p className="text-sm font-medium text-gray-700">Cuenta bancaria para retiros</p>
-            <input className={field} placeholder="Titular de la cuenta" value={holder} onChange={(e) => setHolder(e.target.value)} />
-            <input className={field} placeholder="Banco" value={bank} onChange={(e) => setBank(e.target.value)} />
-            <input className={field} placeholder="IBAN / CLABE / número de cuenta" value={account} onChange={(e) => setAccount(e.target.value)} />
+            <p className="text-sm font-medium text-gray-700">Cuenta PayPal para retiros</p>
+            <input
+              className={field}
+              type="email"
+              autoComplete="email"
+              placeholder="Email de tu cuenta PayPal"
+              value={paypalEmail}
+              onChange={(e) => setPaypalEmail(e.target.value)}
+            />
+            <p className="text-xs text-gray-500">Usa el email con el que entras a PayPal; si aún no tienes cuenta, puedes crearla gratis en paypal.com.</p>
             <button type="button" onClick={saveAccount} className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium">Guardar cuenta</button>
           </div>
         )}
@@ -131,22 +155,33 @@ const CreatorPayouts: React.FC = () => {
           >
             Retirar {money(earnings.available)}
           </button>
+          {canWithdraw && (
+            <p className="text-xs text-gray-500">
+              Recibirás {money(earnings.available - payoutFee(earnings.available))} (comisión de PayPal {money(payoutFee(earnings.available))}).
+            </p>
+          )}
           {!canWithdraw && (
             <p className="text-xs text-gray-500">Podrás retirar cuando tu saldo disponible llegue a {money(MIN_PAYOUT)}.</p>
           )}
         </div>
         {paid.length > 0 && (
           <div className="mt-6" data-testid="payouts">
-            <p className="text-sm font-semibold text-gray-900">Retiros pagados</p>
+            <p className="text-sm font-semibold text-gray-900">Tus retiros</p>
             <div className="divide-y divide-gray-100">
               {paid.map((p) => (
                 <div key={p.id} className="py-3 flex items-center gap-3 text-sm">
-                  <i className="fas fa-check-circle text-green-600 text-lg" aria-hidden="true"></i>
+                  <i className={`fas ${payoutBadge[p.status].icon} text-lg`} aria-hidden="true"></i>
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">Retiraste {money(p.amount)} · {p.accountLabel}</p>
-                    <p className="text-xs text-gray-500">Disponías de {money(p.availableBefore)} · pagado el {fmtDate(p.paidAt)}</p>
+                    <p className="text-xs text-gray-500">
+                      Disponías de {money(p.availableBefore)}
+                      {p.fee > 0 && ` · recibes ${money(p.net)} (comisión de PayPal ${money(p.fee)})`}
+                      {p.status === 'paid' && p.paidAt && ` · pagado el ${fmtDate(p.paidAt)}`}
+                      {p.status === 'sending' && ' · PayPal lo está enviando'}
+                      {p.status === 'failed' && ' · el monto volvió a tu saldo'}
+                    </p>
                   </div>
-                  <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">Pagado</span>
+                  <span className={`text-xs px-2 py-1 rounded-full ${payoutBadge[p.status].chip}`}>{payoutBadge[p.status].label}</span>
                 </div>
               ))}
             </div>

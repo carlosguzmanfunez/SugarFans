@@ -14,6 +14,10 @@ import type {
 
 export const CREATOR_SHARE = 0.8;
 export const MIN_PAYOUT = 50;
+// PayPal's fee for sending a withdrawal, paid by the creator (same rule as public.payout_fee).
+export const PAYOUT_FEE_RATE = 0.02;
+export const PAYOUT_FEE_MAX = 20;
+export const payoutFee = (amount: number) => Math.min(Math.round(amount * PAYOUT_FEE_RATE * 100) / 100, PAYOUT_FEE_MAX);
 
 export const docTypeLabel: Record<DocType, string> = {
   dni: 'Documento nacional de identidad',
@@ -129,7 +133,6 @@ const maskEmail = (email: string) => {
   return `${name.slice(0, 2)}•••@${domain}`;
 };
 
-const accountOk = (account: string) => /^[A-Za-z0-9]{8,34}$/.test(account);
 
 // Validates what the user typed and returns only the masked data we keep.
 // INTEGRATION: with a real gateway the card is tokenised in the browser (Stripe
@@ -155,13 +158,12 @@ export const buildPaymentMethod = (input: PaymentMethodInput): { method?: NewPay
   return { method: { kind: input.kind, label: `${name} · ${maskEmail(email)}`, detail: input.kind === 'paypal' ? 'Cuenta PayPal' : 'Cuenta de Google' } };
 };
 
-export const buildPayoutAccount = (holder: string, bank: string, account: string): { account?: PayoutAccount; error?: string } => {
-  const clean = account.replace(/\s/g, '');
-  if (!holder.trim()) return { error: 'Escribe el nombre del titular' };
-  if (!bank.trim()) return { error: 'Escribe el nombre del banco' };
-  if (!accountOk(clean)) return { error: 'La cuenta o IBAN no es válido' };
-  return { account: { holder: holder.trim(), bank: bank.trim(), accountLast4: clean.slice(-4) } };
+export const buildPayoutAccount = (email: string): { account?: PayoutAccount; error?: string } => {
+  const clean = email.trim().toLowerCase();
+  if (!emailOk(clean)) return { error: 'Escribe el email de tu cuenta PayPal' };
+  return { account: { email: clean } };
 };
+export const payoutAccountLabel = (account: PayoutAccount) => `PayPal · ${maskEmail(account.email)}`;
 
 export const validateReport = (input: ReportInput, signedIn: boolean): Check => {
   if (!input.reason) return bad('Elige un motivo');
@@ -187,7 +189,8 @@ export const computeEarnings = (sales: Transaction[], payouts: Payout[], at = ne
   const share = (list: Transaction[]) => round2(list.reduce((s, t) => s + creatorCut(t), 0));
   const credited = share(paid.filter((t) => t.createdAt < cutoff));
   const pending = share(paid.filter((t) => t.createdAt >= cutoff));
-  const withdrawn = round2(payouts.reduce((s, p) => s + p.amount, 0));
+  // A withdrawal PayPal couldn't deliver goes back to the balance.
+  const withdrawn = round2(payouts.filter((p) => p.status !== 'failed').reduce((s, p) => s + p.amount, 0));
   return {
     gross: round2(paid.reduce((s, t) => s + t.amount, 0)),
     thisMonth: pending,
