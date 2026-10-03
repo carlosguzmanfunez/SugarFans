@@ -2,7 +2,17 @@ import React, { useEffect, useRef, useState } from 'react';
 import type { User } from '../context/AuthContext';
 import { usePlatformQuery, platformApi, money } from '../lib/platform';
 import PaymentMethodForm, { paymentKindIcon } from './PaymentMethodForm';
-import { PAID_WITH_PAYPAL, capturePaypalOrder, createPaypalOrder, loadPaypalSdk, paypalConfig, type PaypalConfig, type PaypalPurchase } from '../lib/paypal';
+import {
+  PAID_WITH_PAYPAL,
+  activatePaypalSubscription,
+  capturePaypalOrder,
+  createPaypalOrder,
+  createPaypalSubscription,
+  loadPaypalSdk,
+  paypalConfig,
+  type PaypalConfig,
+  type PaypalPurchase,
+} from '../lib/paypal';
 
 interface Props {
   user: User;
@@ -19,7 +29,8 @@ interface Props {
   onClose: () => void;
 }
 
-// PayPal's buttons for one purchase. The server creates and captures the order.
+// PayPal's buttons for one purchase. The server creates and captures the order
+// (or creates and activates the subscription).
 const PaypalCheckout: React.FC<{ purchase: PaypalPurchase; config: PaypalConfig; onPaid: (operation: string) => void }> = ({ purchase, config, onPaid }) => {
   const box = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'paying'>('loading');
@@ -31,24 +42,42 @@ const PaypalCheckout: React.FC<{ purchase: PaypalPurchase; config: PaypalConfig;
   useEffect(() => {
     let buttons: { close(): Promise<void> } | null = null;
     let cancelled = false;
-    loadPaypalSdk(config.clientId!)
+    const subscription = purchase.kind === 'subscription';
+    // Shows the server's reason (e.g. a limit) and lets PayPal close its window.
+    const starting = async (start: () => Promise<string>) => {
+      setError('');
+      try {
+        return await start();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo iniciar el pago.');
+        throw err;
+      }
+    };
+    loadPaypalSdk(config.clientId!, subscription ? 'subscription' : 'capture')
       .then((paypal) => {
         if (cancelled || !box.current) return;
         const b = paypal.Buttons({
-          style: { layout: 'vertical', shape: 'pill', label: 'pay', height: 45 },
-          createOrder: async () => {
-            setError('');
-            try {
-              return await createPaypalOrder(latest.current.purchase);
-            } catch (err) {
-              setError(err instanceof Error ? err.message : 'No se pudo iniciar el pago.');
-              throw err;
-            }
-          },
-          onApprove: async ({ orderID }) => {
+          style: { layout: 'vertical', shape: 'pill', label: subscription ? 'subscribe' : 'pay', height: 45 },
+          ...(subscription
+            ? {
+                createSubscription: () =>
+                  starting(() => {
+                    const p = latest.current.purchase;
+                    return createPaypalSubscription(p.kind === 'subscription' ? p.params.creatorProfileId : '');
+                  }),
+              }
+            : {
+                createOrder: () =>
+                  starting(() => {
+                    const p = latest.current.purchase;
+                    if (p.kind === 'subscription') throw new Error('No se pudo iniciar el pago.');
+                    return createPaypalOrder(p);
+                  }),
+              }),
+          onApprove: async ({ orderID, subscriptionID }) => {
             setStatus('paying');
             try {
-              latest.current.onPaid(await capturePaypalOrder(orderID));
+              latest.current.onPaid(subscriptionID ? await activatePaypalSubscription(subscriptionID) : await capturePaypalOrder(orderID!));
             } catch (err) {
               setError(err instanceof Error ? err.message : 'No se pudo completar el pago.');
               setStatus('ready');
@@ -65,11 +94,15 @@ const PaypalCheckout: React.FC<{ purchase: PaypalPurchase; config: PaypalConfig;
       cancelled = true;
       buttons?.close().catch(() => undefined);
     };
+    // The kind of purchase never changes while the dialog is open.
   }, [config.clientId]);
 
   return (
     <div>
-      <h4 className="text-sm font-medium text-gray-700 mb-2">Paga con PayPal o con tarjeta</h4>
+      <h4 className="text-sm font-medium text-gray-700 mb-2">{purchase.kind === 'subscription' ? 'Suscríbete con PayPal' : 'Paga con PayPal o con tarjeta'}</h4>
+      {purchase.kind === 'subscription' && (
+        <p className="text-xs text-gray-500 mb-3">PayPal cobra este monto cada mes de forma automática. Cancela cuando quieras desde Mi perfil; sigues con acceso hasta el final del mes pagado.</p>
+      )}
       {status === 'loading' && <p className="text-sm text-gray-500 py-3"><i aria-hidden="true" className="fas fa-spinner fa-spin mr-2"></i>Cargando PayPal…</p>}
       {status === 'paying' && <p className="text-sm text-gray-600 py-3"><i aria-hidden="true" className="fas fa-spinner fa-spin mr-2"></i>Confirmando tu pago…</p>}
       <div ref={box} className={status === 'paying' ? 'hidden' : ''} data-testid="paypal-buttons" />
@@ -83,18 +116,27 @@ const PaypalCheckout: React.FC<{ purchase: PaypalPurchase; config: PaypalConfig;
 };
 
 // Shown once PayPal confirmed the payment, before the dialog closes.
-const PaymentReceipt: React.FC<{ title: string; amount: number; operation: string; error: string; onDone: () => void }> = ({ title, amount, operation, error, onDone }) => (
+const PaymentReceipt: React.FC<{ title: string; amount: number; operation: string; subscription: boolean; error: string; onDone: () => void }> = ({
+  title,
+  amount,
+  operation,
+  subscription,
+  error,
+  onDone,
+}) => (
   <div className="text-center" data-testid="payment-receipt">
     <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
       <i aria-hidden="true" className="fas fa-check text-3xl text-green-600"></i>
     </div>
     <h3 className="text-xl font-bold text-gray-900">Pago exitoso</h3>
-    <p className="mt-1 text-sm text-gray-500">Tu pago con PayPal se completó.</p>
+    <p className="mt-1 text-sm text-gray-500">
+      {subscription ? 'Tu suscripción está activa. PayPal la renueva cada mes; puedes cancelarla cuando quieras desde Mi perfil.' : 'Tu pago con PayPal se completó.'}
+    </p>
     <dl className="mt-5 space-y-2 rounded-xl bg-gray-50 p-4 text-left text-sm">
       <div className="flex justify-between gap-4"><dt className="text-gray-500">Concepto</dt><dd className="text-right font-medium text-gray-900">{title.replace(/^Pagar:\s*/, '')}</dd></div>
-      <div className="flex justify-between gap-4"><dt className="text-gray-500">Monto</dt><dd className="font-bold text-gray-900">{money(amount)} USD</dd></div>
+      <div className="flex justify-between gap-4"><dt className="text-gray-500">Monto</dt><dd className="font-bold text-gray-900">{money(amount)} USD{subscription ? ' al mes' : ''}</dd></div>
       <div className="flex justify-between gap-4"><dt className="text-gray-500">Fecha</dt><dd className="text-gray-900">{new Date().toLocaleString('es', { dateStyle: 'medium', timeStyle: 'short' })}</dd></div>
-      <div className="flex justify-between gap-4"><dt className="text-gray-500">Operación PayPal</dt><dd className="break-all text-right font-mono text-xs text-gray-900">{operation}</dd></div>
+      <div className="flex justify-between gap-4"><dt className="text-gray-500">{subscription ? 'Suscripción PayPal' : 'Operación PayPal'}</dt><dd className="break-all text-right font-mono text-xs text-gray-900">{operation}</dd></div>
     </dl>
     {error && <p role="alert" className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
     <button type="button" onClick={onDone} className="mt-5 w-full rounded-xl bg-green-600 py-3 font-bold text-white hover:bg-green-700">Listo</button>
@@ -143,7 +185,7 @@ const CheckoutDialog: React.FC<Props> = ({ user, title, amount, note, confirmLab
     return (
       <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Pago exitoso">
         <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6">
-          <PaymentReceipt title={title} amount={amount} operation={receipt} error={error} onDone={finishPaypal} />
+          <PaymentReceipt title={title} amount={amount} operation={receipt} subscription={paypal?.kind === 'subscription'} error={error} onDone={finishPaypal} />
         </div>
       </div>
     );

@@ -1,11 +1,14 @@
-// Vercel function: real payments with PayPal Checkout (Créditos, tips and
-// Reserve bookings). The browser shows PayPal's buttons; this function creates
-// the order for the amount the database quotes and, after the fan approves it,
-// captures it and fulfills the purchase. See
-// supabase/migrations/20261003000005_paypal_payments.sql for the database side.
+// Vercel function: real payments with PayPal (Créditos, tips, Reserve bookings
+// and monthly subscriptions). The browser shows PayPal's buttons; this function
+// creates the order or subscription for the amount the database quotes and,
+// after the fan approves it, confirms it with PayPal and fulfills it. PayPal's
+// webhook (POST /api/paypal?webhook) reports each subscription renewal,
+// cancellation and failed payment. See the migrations
+// 20261003000005_paypal_payments.sql and 20261003000006_paypal_subscriptions.sql.
 //
 // Needs in the Vercel project settings: PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET,
-// PAYPAL_ENV ('sandbox' or 'live') and SUPABASE_SERVICE_ROLE_KEY.
+// PAYPAL_ENV ('sandbox' or 'live'), SUPABASE_SERVICE_ROLE_KEY and, for the
+// webhook, PAYPAL_WEBHOOK_ID.
 
 // Public values (same as .env.production); the anon key is meant to be public.
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://odugxvqwuvewsvifwmwb.supabase.co';
@@ -26,6 +29,7 @@ const env = () => {
     clientId: clean(process.env.PAYPAL_CLIENT_ID),
     secret: clean(process.env.PAYPAL_CLIENT_SECRET),
     serviceKey: clean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+    webhookId: clean(process.env.PAYPAL_WEBHOOK_ID),
     api: mode === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com',
   };
 };
@@ -77,7 +81,8 @@ const paypal = async (e: ReturnType<typeof env>, token: string, path: string, bo
       'content-type': 'application/json',
       ...(requestId ? { 'PayPal-Request-Id': requestId } : {}),
     },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    // A string is sent as is (the webhook check must carry PayPal's exact event).
+    body: body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body),
   });
   return { status: r.status, data: (await r.json().catch(() => ({}))) as any };
 };
@@ -86,6 +91,124 @@ const paypal = async (e: ReturnType<typeof env>, token: string, path: string, bo
 const captureOf = (order: any): { id: string; value: number; currency: string } | null => {
   const c = order?.purchase_units?.[0]?.payments?.captures?.find((x: any) => x?.status === 'COMPLETED');
   return c ? { id: String(c.id), value: Number(c.amount?.value), currency: String(c.amount?.currency_code) } : null;
+};
+
+// --- Subscriptions --------------------------------------------------------------
+
+type Env = ReturnType<typeof env> & { serviceKey: string };
+const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Product and plan ids live in paypal_catalog, per environment.
+const catalogGet = async (e: Env, key: string) => {
+  const r = await supabase(`/rest/v1/paypal_catalog?key=eq.${encodeURIComponent(key)}&select=paypal_id`, asServer(e.serviceKey));
+  return Array.isArray(r.data) && r.data[0]?.paypal_id ? String(r.data[0].paypal_id) : null;
+};
+// Two checkouts at once may both create one; the first saved wins.
+const catalogSave = async (e: Env, key: string, paypalId: string) => {
+  await supabase('/rest/v1/paypal_catalog', { ...asServer(e.serviceKey), prefer: 'resolution=ignore-duplicates,return=minimal' }, { key, paypal_id: paypalId });
+  return (await catalogGet(e, key)) ?? paypalId;
+};
+
+// The monthly plan for a price (one per price, shared by every creator).
+const planFor = async (e: Env, token: string, amount: number) => {
+  const planKey = `${e.mode}:plan:${amount.toFixed(2)}`;
+  const known = await catalogGet(e, planKey);
+  if (known) return known;
+  let productId = await catalogGet(e, `${e.mode}:product`);
+  if (!productId) {
+    const product = await paypal(e, token, '/v1/catalogs/products', { name: 'Suscripciones Fans Reserve', type: 'SERVICE', category: 'SOFTWARE' });
+    if (product.status >= 300 || !product.data?.id) throw new Error('PayPal no pudo preparar la suscripción. Intenta de nuevo.');
+    productId = await catalogSave(e, `${e.mode}:product`, product.data.id);
+  }
+  const plan = await paypal(e, token, '/v1/billing/plans', {
+    product_id: productId,
+    name: `Suscripción mensual ${amount.toFixed(2)} USD`,
+    billing_cycles: [
+      {
+        frequency: { interval_unit: 'MONTH', interval_count: 1 },
+        tenure_type: 'REGULAR',
+        sequence: 1,
+        total_cycles: 0,
+        pricing_scheme: { fixed_price: { value: amount.toFixed(2), currency_code: 'USD' } },
+      },
+    ],
+    // One failed payment suspends it (the fan loses access; no debt builds up).
+    payment_preferences: { auto_bill_outstanding: false, payment_failure_threshold: 1 },
+  });
+  if (plan.status >= 300 || !plan.data?.id) throw new Error('PayPal no pudo preparar la suscripción. Intenta de nuevo.');
+  return catalogSave(e, planKey, plan.data.id);
+};
+
+const rpc = (e: Env, name: string, body: unknown) => supabase(`/rest/v1/rpc/${name}`, asServer(e.serviceKey), body);
+
+// Records every completed payment of a subscription (idempotent). Returns how many it saw.
+const syncPayments = async (e: Env, token: string, subscriptionId: string) => {
+  const from = new Date(Date.now() - 400 * 864e5).toISOString();
+  const to = new Date(Date.now() + 864e5).toISOString();
+  const r = await paypal(e, token, `/v1/billing/subscriptions/${encodeURIComponent(subscriptionId)}/transactions?start_time=${from}&end_time=${to}`);
+  const done = ((r.data?.transactions ?? []) as any[]).filter((t) => t?.status === 'COMPLETED' && t?.id);
+  for (const t of done) {
+    await rpc(e, 'paypal_subscription_payment', { p_id: subscriptionId, p_sale_id: String(t.id), p_amount: Number(t.amount_with_breakdown?.gross_amount?.value) });
+  }
+  return done.length;
+};
+
+// Cancels at PayPal; true when it is cancelled (or already ended) there.
+const cancelAtPaypal = async (e: Env, token: string, subscriptionId: string, reason: string) => {
+  const r = await paypal(e, token, `/v1/billing/subscriptions/${encodeURIComponent(subscriptionId)}/cancel`, { reason });
+  if (r.status < 300) return true;
+  const now = await paypal(e, token, `/v1/billing/subscriptions/${encodeURIComponent(subscriptionId)}`);
+  return ['CANCELLED', 'EXPIRED'].includes(now.data?.status);
+};
+
+// POST /api/paypal?webhook: PayPal's notifications, checked with PayPal itself.
+const webhook = async (request: Request, e: Env): Promise<Response> => {
+  if (!e.webhookId) return json(503, { error: 'Falta PAYPAL_WEBHOOK_ID' });
+  const raw = await request.text();
+  let event: any;
+  try {
+    event = JSON.parse(raw);
+  } catch {
+    return json(400, { error: 'Evento no válido' });
+  }
+  const h = (name: string) => JSON.stringify(request.headers.get(name) ?? '');
+  const token = await paypalToken(e);
+  const check = await paypal(
+    e,
+    token,
+    '/v1/notifications/verify-webhook-signature',
+    `{"auth_algo":${h('paypal-auth-algo')},"cert_url":${h('paypal-cert-url')},"transmission_id":${h('paypal-transmission-id')},` +
+      `"transmission_sig":${h('paypal-transmission-sig')},"transmission_time":${h('paypal-transmission-time')},` +
+      `"webhook_id":${JSON.stringify(e.webhookId)},"webhook_event":${raw}}`,
+  );
+  if (check.data?.verification_status !== 'SUCCESS') return json(401, { error: 'Firma no válida' });
+
+  const type = String(event?.event_type ?? '');
+  const res = event?.resource ?? {};
+  // A failed write answers 500 so PayPal retries the notification later.
+  const must = <T extends { ok: boolean; error: string }>(r: T) => {
+    if (!r.ok) throw new Error(r.error);
+    return r;
+  };
+
+  if (type === 'PAYMENT.SALE.COMPLETED' && res.billing_agreement_id) {
+    const subId = String(res.billing_agreement_id);
+    // The payment can arrive before the fan's browser confirmed the subscription.
+    await rpc(e, 'paypal_subscription_activate', { p_id: subId });
+    const saved = must(await rpc(e, 'paypal_subscription_payment', { p_id: subId, p_sale_id: String(res.id), p_amount: Number(res.amount?.total) }));
+    if (saved.data === 'orphan') {
+      // It no longer gives access here (deleted account or subscription): stop it and give the money back.
+      await cancelAtPaypal(e, token, subId, 'La suscripción ya no existe en Fans Reserve');
+      await paypal(e, token, `/v1/payments/sale/${encodeURIComponent(String(res.id))}/refund`, {}, `refund-${res.id}`);
+    }
+  } else if (type === 'BILLING.SUBSCRIPTION.ACTIVATED' && res.id) {
+    await rpc(e, 'paypal_subscription_activate', { p_id: String(res.id) });
+  } else if ((type === 'BILLING.SUBSCRIPTION.CANCELLED' || type === 'BILLING.SUBSCRIPTION.EXPIRED') && res.id) {
+    must(await rpc(e, 'paypal_subscription_ended', { p_id: String(res.id), p_now: false }));
+  } else if (type === 'BILLING.SUBSCRIPTION.SUSPENDED' && res.id) {
+    must(await rpc(e, 'paypal_subscription_ended', { p_id: String(res.id), p_now: true }));
+  }
+  return json(200, { ok: true });
 };
 
 // --- Handlers -----------------------------------------------------------------
@@ -119,9 +242,22 @@ export async function GET(): Promise<Response> {
 
 // POST /api/paypal {action: 'create', kind, params} → {orderId}
 // POST /api/paypal {action: 'capture', orderId}     → {ok: true, captureId}
+// POST /api/paypal {action: 'subscribe', creatorProfileId}  → {subscriptionId}
+// POST /api/paypal {action: 'activate', subscriptionId}     → {ok: true}
+// POST /api/paypal {action: 'cancel-subscription', creatorProfileId} → {ok: true, until}
+// POST /api/paypal?webhook (from PayPal)
 export async function POST(request: Request): Promise<Response> {
-  const e = env();
-  if (!e.clientId || !e.secret || !e.serviceKey) return json(503, { error: 'Los pagos con PayPal aún no están configurados.' });
+  const base = env();
+  if (!base.clientId || !base.secret || !base.serviceKey) return json(503, { error: 'Los pagos con PayPal aún no están configurados.' });
+  const e = base as Env;
+
+  if (new URL(request.url).searchParams.has('webhook')) {
+    try {
+      return await webhook(request, e);
+    } catch (err) {
+      return json(500, { error: err instanceof Error ? err.message : 'Error' });
+    }
+  }
 
   const token = (request.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '');
   if (!token) return json(401, { error: 'Inicia sesión para pagar.' });
@@ -129,7 +265,14 @@ export async function POST(request: Request): Promise<Response> {
   const userId = user.ok ? (user.data?.id as string | undefined) : undefined;
   if (!userId) return json(401, { error: 'Tu sesión caducó. Vuelve a iniciar sesión.' });
 
-  const body = (await request.json().catch(() => ({}))) as { action?: unknown; kind?: unknown; params?: unknown; orderId?: unknown };
+  const body = (await request.json().catch(() => ({}))) as {
+    action?: unknown;
+    kind?: unknown;
+    params?: unknown;
+    orderId?: unknown;
+    subscriptionId?: unknown;
+    creatorProfileId?: unknown;
+  };
   try {
     const ppToken = await paypalToken(e);
 
@@ -208,6 +351,74 @@ export async function POST(request: Request): Promise<Response> {
           ? `${done.error}. Te devolvimos el pago en PayPal.`
           : `${done.error}. No pudimos devolver el pago automáticamente; escríbenos y lo resolvemos.`,
       });
+    }
+
+    if (body.action === 'subscribe') {
+      const creator = typeof body.creatorProfileId === 'string' ? body.creatorProfileId.slice(0, 64) : '';
+      if (!creator) return json(400, { error: 'Falta el perfil.' });
+      const quote = await supabase('/rest/v1/rpc/paypal_subscription_quote', asUser(token), { p_creator_profile_id: creator });
+      if (!quote.ok) return json(400, { error: quote.error });
+      const amount = Number(quote.data?.amount);
+      if (!(amount > 0)) return json(400, { error: 'No se pudo calcular el monto.' });
+      const startTime = typeof quote.data?.startTime === 'string' ? new Date(quote.data.startTime).toISOString() : null;
+      const planId = await planFor(e, ppToken, amount);
+
+      const sub = await paypal(e, ppToken, '/v1/billing/subscriptions', {
+        plan_id: planId,
+        custom_id: `${userId}:${creator}`.slice(0, 127),
+        ...(startTime ? { start_time: startTime } : {}),
+        application_context: { brand_name: 'Fans Reserve', shipping_preference: 'NO_SHIPPING', user_action: 'SUBSCRIBE_NOW' },
+      });
+      if (sub.status >= 300 || !sub.data?.id) return json(502, { error: 'PayPal no pudo crear la suscripción. Intenta de nuevo.' });
+      const saved = await rpc(e, 'paypal_subscription_register', {
+        p_id: sub.data.id,
+        p_user: userId,
+        p_creator_profile_id: creator,
+        p_amount: amount,
+        p_starts_at: startTime,
+      });
+      if (!saved.ok) return json(500, { error: 'No se pudo registrar la suscripción. Intenta de nuevo.' });
+      return json(200, { subscriptionId: sub.data.id });
+    }
+
+    if (body.action === 'activate') {
+      const subId = typeof body.subscriptionId === 'string' ? body.subscriptionId.slice(0, 64) : '';
+      if (!subId) return json(400, { error: 'Falta la suscripción.' });
+      const mine = await supabase(`/rest/v1/paypal_subscriptions?id=eq.${encodeURIComponent(subId)}&select=status,creator_id,starts_at`, asUser(token));
+      const row = Array.isArray(mine.data) ? (mine.data[0] as { status: string; creator_id: string; starts_at: string | null } | undefined) : undefined;
+      if (!row) return json(404, { error: 'Suscripción no encontrada.' });
+      if (row.status === 'ended') return json(409, { error: 'Esta suscripción ya terminó.' });
+
+      // Right after approval PayPal may still be switching it to ACTIVE.
+      let sub = await paypal(e, ppToken, `/v1/billing/subscriptions/${encodeURIComponent(subId)}`);
+      for (let i = 0; i < 3 && ['APPROVAL_PENDING', 'APPROVED'].includes(sub.data?.status); i++) {
+        await pause(1500);
+        sub = await paypal(e, ppToken, `/v1/billing/subscriptions/${encodeURIComponent(subId)}`);
+      }
+      if (sub.data?.status !== 'ACTIVE') return json(402, { error: 'PayPal no activó la suscripción. No se te cobró nada.' });
+      if (sub.data?.custom_id !== `${userId}:${row.creator_id}`) return json(409, { error: 'La suscripción no corresponde a esta cuenta.' });
+
+      const active = await rpc(e, 'paypal_subscription_activate', { p_id: subId });
+      if (!active.ok) return json(500, { error: 'PayPal activó la suscripción, pero no pudimos guardarla. Escríbenos y lo resolvemos.' });
+      // The first payment usually completes within seconds; the webhook records it otherwise.
+      if (!row.starts_at) {
+        for (let i = 0; i < 3 && (await syncPayments(e, ppToken, subId)) === 0; i++) await pause(1500);
+      }
+      return json(200, { ok: true, subscriptionId: subId });
+    }
+
+    if (body.action === 'cancel-subscription') {
+      const creator = typeof body.creatorProfileId === 'string' ? body.creatorProfileId.slice(0, 64) : '';
+      const mine = await supabase(`/rest/v1/subscriptions?creator_id=eq.${encodeURIComponent(creator)}&select=paypal_subscription_id`, asUser(token));
+      const subId = Array.isArray(mine.data) ? (mine.data[0]?.paypal_subscription_id as string | null | undefined) : undefined;
+      if (!subId) return json(404, { error: 'No tienes una suscripción con PayPal a este perfil.' });
+      // PayPal first: the fan must never be charged for a subscription shown as cancelled.
+      if (!(await cancelAtPaypal(e, ppToken, subId, 'Cancelada por el fan en Fans Reserve'))) {
+        return json(502, { error: 'PayPal no pudo cancelar la suscripción. Intenta de nuevo.' });
+      }
+      const ended = await rpc(e, 'paypal_subscription_ended', { p_id: subId, p_now: false });
+      if (!ended.ok) return json(500, { error: 'Se canceló en PayPal, pero no pudimos actualizarla aquí. Recarga la página.' });
+      return json(200, { ok: true, until: ended.data });
     }
 
     return json(400, { error: 'Acción no válida.' });

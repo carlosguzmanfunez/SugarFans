@@ -10,7 +10,9 @@ export { PAID_WITH_PAYPAL } from './backend';
 export type PaypalPurchase =
   | { kind: 'coins'; params: { packId: string } }
   | { kind: 'tip'; params: { creatorProfileId: string; amount: number; postId?: string; message?: string } }
-  | { kind: 'booking'; params: { bookingId: string } };
+  | { kind: 'booking'; params: { bookingId: string } }
+  // Monthly, renewed automatically by PayPal Subscriptions.
+  | { kind: 'subscription'; params: { creatorProfileId: string } };
 
 export interface PaypalConfig {
   enabled: boolean;
@@ -39,32 +41,41 @@ interface PaypalButtons {
 interface PaypalNamespace {
   Buttons(options: {
     style?: Record<string, string | number>;
-    createOrder: () => Promise<string>;
-    onApprove: (data: { orderID: string }) => Promise<void>;
+    createOrder?: () => Promise<string>;
+    createSubscription?: () => Promise<string>;
+    onApprove: (data: { orderID?: string; subscriptionID?: string | null }) => Promise<void>;
     onCancel?: () => void;
     onError?: (err: unknown) => void;
   }): PaypalButtons;
 }
-declare global {
-  interface Window {
-    paypal?: PaypalNamespace;
-  }
-}
+// One-off payments and subscriptions need the SDK loaded with different
+// options, so each gets its own copy under its own global name.
+const SDK = {
+  capture: { namespace: 'paypal', query: 'intent=capture&enable-funding=card' },
+  subscription: { namespace: 'paypalSubscriptions', query: 'intent=subscription&vault=true' },
+} as const;
+export type PaypalSdkMode = keyof typeof SDK;
 
-let sdkPromise: Promise<PaypalNamespace> | null = null;
-export const loadPaypalSdk = (clientId: string): Promise<PaypalNamespace> => {
-  sdkPromise ??= new Promise<PaypalNamespace>((resolve, reject) => {
+const sdkPromises: Partial<Record<PaypalSdkMode, Promise<PaypalNamespace>>> = {};
+export const loadPaypalSdk = (clientId: string, mode: PaypalSdkMode = 'capture'): Promise<PaypalNamespace> => {
+  const { namespace, query } = SDK[mode];
+  sdkPromises[mode] ??= new Promise<PaypalNamespace>((resolve, reject) => {
     const s = document.createElement('script');
-    s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}&currency=USD&intent=capture&components=buttons&enable-funding=card`;
+    s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}&currency=USD&components=buttons&${query}`;
     s.async = true;
-    s.onload = () => (window.paypal ? resolve(window.paypal) : reject(new Error('PayPal no cargó')));
+    s.dataset.namespace = namespace;
+    s.onload = () => {
+      const sdk = (window as unknown as Record<string, PaypalNamespace | undefined>)[namespace];
+      if (sdk) resolve(sdk);
+      else reject(new Error('PayPal no cargó'));
+    };
     s.onerror = () => reject(new Error('No se pudo cargar PayPal. Revisa tu conexión.'));
     document.head.appendChild(s);
   }).catch((err) => {
-    sdkPromise = null; // let a later checkout try again
+    delete sdkPromises[mode]; // let a later checkout try again
     throw err;
   });
-  return sdkPromise;
+  return sdkPromises[mode]!;
 };
 
 const call = async <T>(body: unknown): Promise<T> => {
@@ -80,9 +91,18 @@ const call = async <T>(body: unknown): Promise<T> => {
   return data;
 };
 
-export const createPaypalOrder = async (purchase: PaypalPurchase) =>
+export const createPaypalOrder = async (purchase: Exclude<PaypalPurchase, { kind: 'subscription' }>) =>
   (await call<{ orderId: string }>({ action: 'create', kind: purchase.kind, params: purchase.params })).orderId;
 
 // Returns PayPal's operation number for the receipt.
 export const capturePaypalOrder = async (orderId: string) =>
   (await call<{ ok: true; captureId?: string | null }>({ action: 'capture', orderId })).captureId || orderId;
+
+export const createPaypalSubscription = async (creatorProfileId: string) =>
+  (await call<{ subscriptionId: string }>({ action: 'subscribe', creatorProfileId })).subscriptionId;
+
+// After the fan approves: the server checks PayPal says ACTIVE and gives access.
+export const activatePaypalSubscription = async (subscriptionId: string) => {
+  await call<{ ok: true }>({ action: 'activate', subscriptionId });
+  return subscriptionId;
+};

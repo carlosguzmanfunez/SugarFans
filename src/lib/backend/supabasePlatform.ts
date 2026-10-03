@@ -189,6 +189,7 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
   },
 
   async subscribeAndPay(_user, creatorProfileId, creatorName, price, methodId) {
+    if (methodId === PAID_WITH_PAYPAL) return { ok: true }; // PayPal Subscriptions already activated it
     const { error } = await sb.rpc('subscribe_and_pay', {
       p_creator_profile_id: creatorProfileId,
       p_creator_name: creatorName,

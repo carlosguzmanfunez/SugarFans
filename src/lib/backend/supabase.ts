@@ -359,7 +359,17 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
 
     async cancelSubscription(_user, creatorId) {
       const { data, error } = await sb.rpc('cancel_subscription', { p_creator_profile_id: creatorId });
-      return error ? dbError(error, 'No se pudo cancelar la suscripción') : { ok: true, until: data as string };
+      if (!error) return { ok: true, until: data as string };
+      if (!/se paga con PayPal/.test(error.message)) return dbError(error, 'No se pudo cancelar la suscripción');
+      // Paid with PayPal: the server cancels it at PayPal first, then here.
+      const token = (await sb.auth.getSession()).data.session?.access_token;
+      const r = await fetch('/api/paypal', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token ?? ''}` },
+        body: JSON.stringify({ action: 'cancel-subscription', creatorProfileId: creatorId }),
+      }).catch(() => null);
+      const body = (await r?.json().catch(() => null)) as { until?: string; error?: string } | null;
+      return r?.ok ? { ok: true, until: body?.until } : fail(body?.error || 'No se pudo cancelar la suscripción en PayPal. Intenta de nuevo.');
     },
 
     async requestPasswordReset(email) {
