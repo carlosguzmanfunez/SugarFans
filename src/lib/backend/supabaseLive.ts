@@ -23,6 +23,26 @@ const toNotification = (r: Row): AppNotification => ({
   read: !!r.read_at,
 });
 
+// Vercel function in api/live-token.ts (it holds the LiveKit secret).
+const liveToken = async (sb: SupabaseClient, payload: Record<string, string>, failMsg: string) => {
+  const { data } = await sb.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) return fail('Inicia sesión para entrar.');
+  try {
+    const r = await fetch('/api/live-token', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    });
+    const body = (await r.json().catch(() => ({}))) as Row;
+    // The status code helps tell a missing function (404) from a server error (500).
+    if (!r.ok || !body.token) return fail(typeof body.error === 'string' ? body.error : `${failMsg} (código ${r.status}).`);
+    return { ok: true, access: { url: body.url as string, token: body.token as string, host: !!body.host } };
+  } catch (err) {
+    return fail(`No se pudo conectar al video. Revisa tu conexión. (${err instanceof Error ? err.message : 'sin detalle'})`);
+  }
+};
+
 export const createSupabaseLive = (sb: SupabaseClient): LiveBackend => ({
   async currentLive(creatorProfileId) {
     const since = new Date(Date.now() - LIVE_MAX_HOURS * 3600_000).toISOString();
@@ -80,24 +100,12 @@ export const createSupabaseLive = (sb: SupabaseClient): LiveBackend => ({
     await sb.rpc('mark_notifications_read');
   },
 
-  async broadcastAccess(creatorProfileId) {
-    const { data } = await sb.auth.getSession();
-    const token = data.session?.access_token;
-    if (!token) return fail('Inicia sesión para ver el Live.');
-    try {
-      // Vercel function in api/live-token.ts (it holds the LiveKit secret).
-      const r = await fetch('/api/live-token', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-        body: JSON.stringify({ creatorProfileId }),
-      });
-      const body = (await r.json().catch(() => ({}))) as Row;
-      // The status code helps tell a missing function (404) from a server error (500).
-      if (!r.ok || !body.token) return fail(typeof body.error === 'string' ? body.error : `No se pudo obtener el acceso al Live (código ${r.status}).`);
-      return { ok: true, access: { url: body.url, token: body.token, host: !!body.host } };
-    } catch (err) {
-      return fail(`No se pudo conectar al Live. Revisa tu conexión. (${err instanceof Error ? err.message : 'sin detalle'})`);
-    }
+  broadcastAccess(creatorProfileId) {
+    return liveToken(sb, { creatorProfileId }, 'No se pudo obtener el acceso al Live');
+  },
+
+  callAccess(bookingId) {
+    return liveToken(sb, { bookingId }, 'No se pudo obtener el acceso a la sala');
   },
 
   watchNotifications(userId, cb) {

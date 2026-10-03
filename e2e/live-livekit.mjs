@@ -63,11 +63,26 @@ const waitUp = async (url) => {
 };
 
 // Supabase stand-in for api/live-token.ts: who the token belongs to, their
-// profile, and an open Live for creator '1'.
+// profile, an open Live for creator '1' and a confirmed Reserve call booked for
+// right now between the demo fan and creator '1' (row security: only those two see it).
 const PROFILES = {
   'demo-creator': { name: 'Valentina Rose', creator_profile_id: '1' },
   'demo-fan': { name: 'Carlos M.', creator_profile_id: null },
+  intruso: { name: 'Otra persona', creator_profile_id: null },
 };
+const pad = (n) => String(n).padStart(2, '0');
+const now = new Date();
+const CALL = {
+  id: 'e2e-call',
+  status: 'confirmed',
+  date: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
+  time: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
+  duration_minutes: 30,
+  fan_id: 'demo-fan',
+  creator_profile_id: '1',
+  details: null,
+};
+const BOOKINGS = { [CALL.id]: CALL, 'e2e-pending': { ...CALL, id: 'e2e-pending', status: 'accepted' } };
 const startStub = () =>
   new Promise((resolve) => {
     const server = createServer((req, res) => {
@@ -82,6 +97,10 @@ const startStub = () =>
       if (url.pathname === '/rest/v1/profiles') return send(200, [PROFILES[url.searchParams.get('id').replace('eq.', '')]]);
       if (url.pathname === '/rest/v1/live_broadcasts')
         return send(200, url.searchParams.get('creator_profile_id') === 'eq.1' ? [{ id: 'e2e', title: 'Live de prueba' }] : []);
+      if (url.pathname === '/rest/v1/vip_bookings') {
+        const b = BOOKINGS[url.searchParams.get('id').replace('eq.', '')];
+        return send(200, b && (b.fan_id === token || PROFILES[token].creator_profile_id === b.creator_profile_id) ? [b] : []);
+      }
       send(404, {});
     });
     server.listen(STUB_PORT, () => resolve(server));
@@ -202,10 +221,93 @@ const run = async () => {
       await f.goto(`${BASE}/creator/1`);
       await f.getByTestId('ladder-live').getByText('En vivo', { exact: true }).waitFor();
     });
+
+    console.log('\nVideollamada privada de Reserve');
+    const askCall = async (who, bookingId) => {
+      const res = await POST(new Request(`${BASE}/api/live-token`, { method: 'POST', headers: { authorization: `Bearer ${who}` }, body: JSON.stringify({ bookingId }) }));
+      return { status: res.status, body: await res.json() };
+    };
+    await check('Solo el fan y la creator de la reserva confirmada reciben acceso a la sala', async () => {
+      const fan = await askCall('demo-fan', CALL.id);
+      const creator = await askCall('demo-creator', CALL.id);
+      expect(fan.status === 200 && fan.body.token && fan.body.host === false, `fan: ${JSON.stringify(fan)}`);
+      expect(creator.status === 200 && creator.body.host === true, `creator: ${JSON.stringify(creator)}`);
+      const outsider = await askCall('intruso', CALL.id);
+      expect(outsider.status === 404 && !outsider.body.token, `intruso: ${JSON.stringify(outsider)}`);
+      const pending = await askCall('demo-fan', 'e2e-pending');
+      expect(pending.status === 403 && !pending.body.token, `sin pagar: ${JSON.stringify(pending)}`);
+    });
+    const callBooking = {
+      id: CALL.id,
+      experienceId: 'e2e-exp',
+      creatorProfileId: '1',
+      title: 'Videollamada de prueba',
+      creatorName: 'Valentina Rose',
+      price: 50,
+      fanId: 'demo-fan',
+      fanName: 'Carlos M.',
+      fanEmail: 'fan@sugarfans.com',
+      date: CALL.date,
+      time: CALL.time,
+      message: '',
+      status: 'confirmed',
+      durationMinutes: 30,
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+    };
+    await f.evaluate((b) => {
+      const key = 'fansreserve_vip_bookings';
+      localStorage.setItem(key, JSON.stringify([...JSON.parse(localStorage.getItem(key) || '[]'), b]));
+    }, callBooking);
+    const remotePlaying = (p) => p.getByTestId('remote-video').evaluate((v) => v.videoWidth > 0 && !v.paused && v.readyState >= 2);
+    await check('Fan y creator entran a la videollamada y se ven por LiveKit', async () => {
+      await f.goto(`${BASE}/live/${CALL.id}`);
+      await f.getByRole('button', { name: 'Entrar a la sala' }).click();
+      await f.getByTestId('live-room').getByText(/Esperando a Valentina Rose/).waitFor();
+      await c.goto(`${BASE}/live/${CALL.id}`);
+      await c.getByRole('button', { name: 'Entrar a la sala' }).click();
+      for (const p of [f, c]) {
+        await p.getByTestId('live-status').getByText('Conectado').waitFor();
+        await waitFor(() => remotePlaying(p), 'no llega el video del otro lado');
+      }
+      const ps = await rooms.listParticipants(`booking-${CALL.id}`);
+      expect(ps.length === 2 && ps.every((p) => p.tracks.length === 2), `participantes: ${ps.map((p) => `${p.identity}:${p.tracks.length}`)}`);
+    });
+    await check('El chat de la videollamada llega a los dos lados', async () => {
+      await f.getByLabel('Mensaje').fill('¡Hola Valentina!');
+      await f.getByRole('button', { name: 'Enviar' }).click();
+      await c.getByTestId('chat-line').filter({ hasText: '¡Hola Valentina!' }).waitFor();
+      await c.getByLabel('Mensaje').fill('¡Hola Carlos!');
+      await c.getByRole('button', { name: 'Enviar' }).click();
+      await f.getByTestId('chat-line').filter({ hasText: '¡Hola Carlos!' }).waitFor();
+    });
+    await check('Apagar la cámara y el micrófono funciona', async () => {
+      await f.getByRole('button', { name: 'Apagar cámara' }).click();
+      await f.getByRole('button', { name: 'Silenciar micrófono' }).click();
+      await waitFor(async () => {
+        const fan = (await rooms.listParticipants(`booking-${CALL.id}`)).find((p) => p.identity === 'demo-fan');
+        return fan && fan.tracks.every((t) => t.muted);
+      }, 'las pistas del fan siguen activas');
+      await f.getByRole('button', { name: 'Encender cámara' }).click();
+      await f.getByRole('button', { name: 'Activar micrófono' }).click();
+    });
+    await check('Cuando uno sale, el otro lo ve y puede volver a entrar', async () => {
+      await f.getByRole('button', { name: 'Salir de la llamada' }).click();
+      await f.waitForURL(`${BASE}/profile`);
+      await c.getByText(/Carlos M\. salió de la sala/).waitFor();
+      await c.getByTestId('live-status').getByText('Sin conexión').waitFor();
+      await f.goto(`${BASE}/live/${CALL.id}`);
+      await f.getByRole('button', { name: 'Entrar a la sala' }).click();
+      await c.getByTestId('live-status').getByText('Conectado').waitFor();
+      await waitFor(() => remotePlaying(c), 'no vuelve el video del fan');
+    });
   } finally {
     await browser.close();
+    // Empty the rooms and stop LiveKit at once: a server left draining keeps the
+    // port and its participants, and the next run would find them in the call.
+    await Promise.all((await rooms.listRooms().catch(() => [])).map((r) => rooms.deleteRoom(r.name).catch(() => {})));
     preview.kill();
-    lk.kill();
+    lk.kill('SIGKILL');
     stub.close();
   }
 

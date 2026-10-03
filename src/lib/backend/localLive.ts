@@ -4,7 +4,7 @@
 import { readJSON, writeJSONChecked, newId } from '../storage';
 import { moderate } from '../moderation';
 import type { AuthResult } from './types';
-import { LIVE_MAX_HOURS, LIVE_REALERT_MINUTES, type AppNotification, type LiveBackend, type LiveBroadcast } from './liveTypes';
+import { LIVE_MAX_HOURS, LIVE_REALERT_MINUTES, type AppNotification, type BroadcastAccess, type LiveBackend, type LiveBroadcast } from './liveTypes';
 
 interface StoredBroadcast extends LiveBroadcast {
   endedAt?: string;
@@ -38,6 +38,22 @@ export const createLocalLive = (deps: Deps): LiveBackend => {
   };
   const open = (st: Store, creatorProfileId: string) =>
     st.broadcasts.find((b) => b.creatorProfileId === creatorProfileId && !b.endedAt && !expired(b));
+
+  // Only the LiveKit test (npm run e2e:live) builds with VITE_LIVE_LOCAL_API: it
+  // serves api/live-token.ts and treats the local user id as the session token.
+  const liveToken = async (payload: Record<string, string>, unavailable: string): Promise<AuthResult & { access?: BroadcastAccess }> => {
+    if (!import.meta.env.VITE_LIVE_LOCAL_API) return fail(unavailable);
+    const userId = deps.currentUserId();
+    if (!userId) return fail('Inicia sesión para entrar.');
+    const r = await fetch('/api/live-token', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${userId}` },
+      body: JSON.stringify(payload),
+    });
+    const body = await r.json().catch(() => ({}));
+    if (!r.ok || !body.token) return fail(body.error ?? 'No se pudo conectar al video.');
+    return { ok: true, access: { url: body.url, token: body.token, host: !!body.host } };
+  };
 
   return {
     async currentLive(creatorProfileId) {
@@ -118,20 +134,12 @@ export const createLocalLive = (deps: Deps): LiveBackend => {
       save({ ...st, notifications: { ...st.notifications, [user.id]: mine.map((n) => ({ ...n, read: true })) } });
     },
 
-    async broadcastAccess(creatorProfileId) {
-      // Only the LiveKit test (npm run e2e:live) builds with this flag: it serves
-      // api/live-token.ts and treats the local user id as the session token.
-      if (!import.meta.env.VITE_LIVE_LOCAL_API) return fail('El video del Live solo funciona en la web publicada.');
-      const userId = deps.currentUserId();
-      if (!userId) return fail('Inicia sesión para ver el Live.');
-      const r = await fetch('/api/live-token', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${userId}` },
-        body: JSON.stringify({ creatorProfileId }),
-      });
-      const body = await r.json().catch(() => ({}));
-      if (!r.ok || !body.token) return fail(body.error ?? 'No se pudo conectar al Live.');
-      return { ok: true, access: { url: body.url, token: body.token, host: !!body.host } };
+    broadcastAccess(creatorProfileId) {
+      return liveToken({ creatorProfileId }, 'El video del Live solo funciona en la web publicada.');
+    },
+
+    callAccess(bookingId) {
+      return liveToken({ bookingId }, 'La videollamada solo funciona en la web publicada.');
     },
 
     watchNotifications(_userId, cb) {

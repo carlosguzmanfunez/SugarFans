@@ -1383,31 +1383,15 @@ const run = async () => {
       await fp.goto(`${BASE}/live/${href}`);
       await fp.getByTestId('live-unavailable').getByText(/La sala se abre el/).waitFor();
     });
-    await check('A la hora reservada fan y creador se ven en video y chatean', async () => {
+    // The video itself goes through LiveKit: npm run e2e:live tests it against a real server.
+    await check('A la hora reservada se entra a la sala; sin servidor de video avisa en vez de colgarse', async () => {
       const at = new Date(`${liveDate}T12:05:00`);
       await fp.clock.setFixedTime(at);
-      await cp.clock.setFixedTime(at);
       await fp.goto(`${BASE}/profile`);
       await fp.getByTestId('booking').filter({ hasText: '12:00' }).getByTestId('join-live').click();
+      await fp.getByTestId('live-lobby').getByText(/con Valentina Rose/).waitFor();
       await fp.getByRole('button', { name: 'Entrar a la sala' }).click();
-      await fp.getByTestId('live-room').getByText(/Esperando a Valentina Rose/).waitFor();
-      await cp.goto(`${BASE}/creator/dashboard?tab=vip`);
-      await openReserveSection(cp, 'Próximas');
-      await cp.getByTestId('vip-request').filter({ hasText: '12:00' }).getByTestId('join-live').click();
-      await cp.getByRole('button', { name: 'Entrar a la sala' }).click();
-      for (const pg of [fp, cp]) {
-        await pg.getByTestId('live-status').getByText('Conectado').waitFor({ timeout: 15000 });
-        await pg.waitForFunction(() => document.querySelector('[data-testid=remote-video]').videoWidth > 0, null, { timeout: 15000 });
-      }
-      await fp.getByLabel('Mensaje').fill('¡Hola Valentina!');
-      await fp.getByRole('button', { name: 'Enviar' }).click();
-      await cp.getByTestId('chat-line').filter({ hasText: '¡Hola Valentina!' }).waitFor();
-    });
-    await check('Cuando uno sale, el otro lo ve y puede esperar', async () => {
-      await fp.getByRole('button', { name: 'Salir de la llamada' }).click();
-      await waitPath(fp, '/profile');
-      await cp.getByText(/Carlos M\. salió de la sala/).waitFor();
-      await cp.getByTestId('live-status').getByText('Sin conexión').waitFor();
+      await fp.getByTestId('live-lobby').getByRole('alert').getByText('La videollamada solo funciona en la web publicada.').waitFor();
     });
     await social.close();
 
