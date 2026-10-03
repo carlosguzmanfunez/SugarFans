@@ -10,6 +10,12 @@ export const HERO = {
     'Sigue a tus creators favoritos, accede a contenido exclusivo y reserva experiencias directamente con ellos.',
   primaryCta: 'Crear cuenta gratis',
   secondaryCta: 'Explorar creadores',
+  // Signed-in visitors already have an account: offer their next step instead.
+  member: {
+    fan: { primary: { label: 'Explorar creadores', to: '/explore', icon: 'fa-compass' }, secondary: { label: 'Ver Reserve', to: '/reserve', icon: 'fa-ticket' } },
+    creator: { primary: { label: 'Ir a mi panel', to: '/creator/dashboard', icon: 'fa-chart-line' }, secondary: { label: 'Explorar creadores', to: '/explore', icon: 'fa-compass' } },
+    admin: { primary: { label: 'Panel de administración', to: '/admin', icon: 'fa-shield-halved' }, secondary: { label: 'Explorar creadores', to: '/explore', icon: 'fa-compass' } },
+  },
   socialProof: 'Creadores verificados en música, fitness, arte, gaming y más',
   trust: [
     { icon: 'fa-id-card', label: 'Identidad verificada' },
@@ -62,6 +68,7 @@ export const CREATOR_CTA = {
   title: '¿Creas contenido o experiencias?',
   subtitle: `Convierte a tu audiencia en una comunidad que te apoya. En ${BRAND.name} tú defines tus precios, tus membresías y tus experiencias.`,
   cta: 'Empezar como creador',
+  memberCta: 'Ir a mi panel',
   features: [
     { icon: 'fa-id-badge', label: 'Membresías mensuales' },
     { icon: 'fa-lock', label: 'Contenido exclusivo' },

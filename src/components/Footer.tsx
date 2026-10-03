@@ -2,21 +2,33 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import BrandLogo from './BrandLogo';
 import { BRAND } from '../config/brand';
+import { useAuth } from '../context/AuthContext';
+import type { UserRole } from '../lib/backend/types';
 
-const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
+// Signup links only make sense to visitors; members get their own shortcut.
+const accountLinks = (role: UserRole | undefined) => {
+  if (!role) return { platform: { label: 'Crear cuenta', to: '/register' }, creators: { label: 'Empezar como creador', to: '/register?role=creator' } };
+  if (role === 'creator') return { platform: { label: 'Mi perfil', to: '/profile' }, creators: { label: 'Mi panel de creador', to: '/creator/dashboard' } };
+  if (role === 'admin') return { platform: { label: 'Mi perfil', to: '/profile' }, creators: { label: 'Panel de administración', to: '/admin' } };
+  return { platform: { label: 'Mi perfil', to: '/profile' }, creators: null };
+};
+
+const columnsFor = (role: UserRole | undefined): { title: string; links: { label: string; to: string }[] }[] => {
+  const account = accountLinks(role);
+  return [
   {
     title: 'Plataforma',
     links: [
       { label: 'Explorar creadores', to: '/explore' },
       { label: 'Reserve', to: '/reserve' },
-      { label: 'Crear cuenta', to: '/register' },
+      account.platform,
       { label: 'Centro de ayuda', to: '/help' },
     ],
   },
   {
     title: 'Creadores',
     links: [
-      { label: 'Empezar como creador', to: '/register?role=creator' },
+      ...(account.creators ? [account.creators] : []),
       { label: 'Contrato de creadores', to: '/legal?doc=creator' },
       { label: 'Verificación de identidad', to: '/help' },
     ],
@@ -38,9 +50,12 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
       { label: 'Derechos de autor (DMCA)', to: '/legal?doc=dmca' },
     ],
   },
-];
+  ];
+};
 
-const Footer: React.FC = () => (
+const Footer: React.FC = () => {
+  const { user } = useAuth();
+  return (
   <footer className="relative overflow-hidden bg-night-950 text-white/70">
     <div aria-hidden="true" className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-500/50 to-transparent" />
     <div className="mx-auto max-w-7xl px-4 pb-10 pt-14 sm:px-6 md:pt-16 lg:px-8">
@@ -64,7 +79,7 @@ const Footer: React.FC = () => (
         </div>
 
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
-          {COLUMNS.map((col) => (
+          {columnsFor(user?.role).map((col) => (
             <div key={col.title}>
               <h3 className="font-display text-sm font-semibold text-white">{col.title}</h3>
               <ul className="mt-4 space-y-3 text-sm">
@@ -92,6 +107,7 @@ const Footer: React.FC = () => (
       </div>
     </div>
   </footer>
-);
+  );
+};
 
 export default Footer;
