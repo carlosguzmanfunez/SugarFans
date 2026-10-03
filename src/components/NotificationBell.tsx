@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { User } from '../context/AuthContext';
 import { useNotifications, markNotificationsRead } from '../lib/live';
+import { useDismiss } from '../hooks/useDismiss';
 
 const timeAgo = (iso: string) => {
   const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -16,6 +17,7 @@ const timeAgo = (iso: string) => {
 const NotificationBell: React.FC<{ user: User }> = ({ user }) => {
   const { data: items } = useNotifications(user);
   const [open, setOpen] = useState(false);
+  const ref = useDismiss<HTMLDivElement>(open, () => setOpen(false));
   const unread = items.filter((n) => !n.read).length;
 
   const toggle = () => {
@@ -25,7 +27,7 @@ const NotificationBell: React.FC<{ user: User }> = ({ user }) => {
   };
 
   return (
-    <div className="relative">
+    <div ref={ref} className="relative">
       <button
         type="button"
         onClick={toggle}
@@ -41,7 +43,6 @@ const NotificationBell: React.FC<{ user: User }> = ({ user }) => {
           </span>
         )}
       </button>
-      {open && <div className="fixed inset-0 z-40" onClick={() => setOpen(false)}></div>}
       {open && (
         <div
           role="region"
