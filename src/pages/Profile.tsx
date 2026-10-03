@@ -9,6 +9,8 @@ import { backend } from '../lib/backend';
 import { useBackendData } from '../lib/useBackendData';
 import { usePlatformQuery, platformApi, platformChanged, nextRenewal } from '../lib/platform';
 import { displayEmail } from '../config/demoAccounts';
+import { VIRTUAL_CURRENCY } from '../config/currency';
+import { formatCoins, giftsApi } from '../lib/gifts';
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -17,6 +19,7 @@ const Profile: React.FC = () => {
   const { creators } = useCreatorCatalog();
   const { data: myBookings, reload } = useBackendData(() => (user ? backend.fanBookings(user.id) : Promise.resolve([])), [user?.id], []);
   const { data: verification } = usePlatformQuery(() => (user ? platformApi.myVerification(user.id) : Promise.resolve(null)), [user?.id], null);
+  const { data: coins } = usePlatformQuery(() => (user ? giftsApi.wallet(user).then((w) => w.coins) : Promise.resolve(0)), [user?.id], 0);
   const [paying, setPaying] = useState<VipBooking | null>(null);
 
   if (!user) return null;
@@ -82,6 +85,9 @@ const Profile: React.FC = () => {
             <div className="flex space-x-3 mt-4">
               <Link to="/settings" className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition">
                 <i aria-hidden="true" className="fas fa-cog mr-1"></i> Editar perfil
+              </Link>
+              <Link to="/settings?section=wallet" className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition" data-testid="profile-wallet">
+                <i aria-hidden="true" className="fas fa-coins mr-1"></i> {VIRTUAL_CURRENCY.displayName}: {formatCoins(coins)}
               </Link>
               {user.role === 'creator' && (
                 <Link to="/creator/dashboard" className="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl text-sm font-medium hover:opacity-90 transition">
