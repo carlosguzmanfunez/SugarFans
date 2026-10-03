@@ -1769,6 +1769,45 @@ const run = async () => {
       // The follow state loads after the first render: wait for it instead of reading it once.
       await resF.getByTestId('follow-button').and(resF.locator('[aria-pressed="true"]')).waitFor();
     });
+    await check('Campanita: seguir activa los avisos de Live y se pueden apagar', async () => {
+      const toggle = resF.getByTestId('live-alerts');
+      await toggle.and(resF.locator('[aria-pressed="true"]')).getByText('Te avisaremos cuando esté en Live').waitFor();
+      await toggle.click();
+      await toggle.getByText('Avisos de Live desactivados').waitFor();
+      await toggle.click();
+      await toggle.getByText('Te avisaremos cuando esté en Live').waitFor();
+    });
+    await check('Live gratis: el creator lo inicia y el fan recibe el aviso en la campanita', async () => {
+      await resC.goto(`${BASE}/creator/dashboard`);
+      const panel = resC.getByTestId('creator-live-panel');
+      await panel.getByLabel('Título del Live').fill('Preguntas y respuestas de estilo');
+      await panel.getByRole('button', { name: 'Iniciar Live' }).click();
+      await waitPath(resC, '/en-vivo/1');
+      await resC.getByRole('button', { name: 'Encender cámara y empezar' }).waitFor();
+      await resF.goto(`${BASE}/explore`);
+      await resF.getByTestId('notification-count').getByText('1').waitFor();
+      await resF.getByTestId('notification-bell').click();
+      const item = resF.getByTestId('notification-panel').getByRole('link', { name: /está en Live/ });
+      await item.getByText('Preguntas y respuestas de estilo').waitFor();
+      expect((await resF.getByTestId('notification-count').count()) === 0, 'el aviso sigue sin leer al abrir la campanita');
+      await item.click();
+      await waitPath(resF, '/en-vivo/1');
+      await resF.getByRole('button', { name: 'Entrar al Live' }).click();
+      await resF.getByTestId('live-problem').getByText(/solo funciona en la web publicada/).waitFor();
+      await resF.goto(`${BASE}/creator/1`);
+      await resF.getByTestId('live-now').waitFor();
+    });
+    await check('Live gratis: al terminarlo el perfil deja de mostrar "En Live ahora"', async () => {
+      await resC.goto(`${BASE}/creator/dashboard`);
+      await resC.getByTestId('creator-live-panel').getByRole('button', { name: 'Terminar Live' }).click();
+      await resC.getByTestId('creator-live-panel').getByRole('button', { name: 'Iniciar Live' }).waitFor();
+      await resF.goto(`${BASE}/creator/1`);
+      await resF.getByTestId('ladder-live').getByText('En vivo', { exact: true }).waitFor();
+      expect((await resF.getByTestId('live-now').count()) === 0, 'sigue en Live');
+      await resF.goto(`${BASE}/en-vivo/1`);
+      await resF.getByText('Este creator no está en Live ahora').waitFor();
+      await resF.goto(`${BASE}/creator/1`);
+    });
     await check('La suscripción y los regalos dicen que no incluyen Reserve ni encuentros', async () => {
       const section = resF.getByTestId('creator-reserve');
       await section.getByTestId('notice-subscription').getByText(/No incluye videollamadas, encuentros ni Reserve/).waitFor();
