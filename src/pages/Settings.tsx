@@ -36,8 +36,12 @@ const sections = ['profile', 'security', 'verification', 'notifications', 'priva
 
 const fmtDate = (iso: string | Date) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 
+const PROVIDER_LABELS: Record<string, string> = { google: 'Google', azure: 'Microsoft' };
+
 const Settings: React.FC = () => {
   const { user, updateUser, changePassword, deleteAccount, cancelSubscription } = useAuth();
+  // Accounts created with Google/Microsoft have no password to change or confirm.
+  const socialProvider = user?.authProvider && user.authProvider !== 'email' ? PROVIDER_LABELS[user.authProvider] ?? user.authProvider : null;
   const { creators } = useCreatorCatalog();
   const userId = user?.id ?? '';
   const { data: platform } = usePlatformQuery(
@@ -279,6 +283,14 @@ const Settings: React.FC = () => {
               <div className="bg-white rounded-2xl shadow-sm p-6">
                 <h2 className="text-lg font-bold text-gray-900 mb-6">Seguridad</h2>
                 <div className="space-y-6">
+                  {socialProvider ? (
+                    <div data-testid="social-account-note">
+                      <h3 className="font-medium text-gray-900 mb-2">Inicio de sesión</h3>
+                      <p className="text-sm text-gray-600 bg-gray-50 rounded-xl p-4">
+                        Entras con tu cuenta de {socialProvider}, así que no necesitas contraseña en {BRAND.name}. Para cambiar tu contraseña o la seguridad de tu cuenta, hazlo en {socialProvider}.
+                      </p>
+                    </div>
+                  ) : (
                   <div>
                     <h3 className="font-medium text-gray-900 mb-2">Cambiar contraseña</h3>
                     <div className="space-y-3">
@@ -287,6 +299,7 @@ const Settings: React.FC = () => {
                       <input type="password" autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirmar nueva contraseña" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none" />
                     </div>
                   </div>
+                  )}
                   <div>
                     <h3 className="font-medium text-gray-900 mb-2">Autenticación de dos factores</h3>
                     <div className="flex items-center justify-between bg-gray-50 rounded-xl p-4">
@@ -320,9 +333,11 @@ const Settings: React.FC = () => {
                       </div>
                     </div>
                   </div>
+                  {!socialProvider && (
                   <button onClick={handleSaveSecurity} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition">
                     Actualizar contraseña
                   </button>
+                  )}
                 </div>
               </div>
             )}
@@ -431,6 +446,7 @@ const Settings: React.FC = () => {
                       </button>
                     ) : (
                       <div className="space-y-3">
+                        {!socialProvider && (
                         <input
                           type="password"
                           autoComplete="current-password"
@@ -439,6 +455,7 @@ const Settings: React.FC = () => {
                           placeholder="Tu contraseña"
                           className="w-full px-4 py-2 border border-red-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-red-400"
                         />
+                        )}
                         <input
                           type="text"
                           value={deleteConfirm}
