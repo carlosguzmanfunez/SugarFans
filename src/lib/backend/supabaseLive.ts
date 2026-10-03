@@ -92,10 +92,11 @@ export const createSupabaseLive = (sb: SupabaseClient): LiveBackend => ({
         body: JSON.stringify({ creatorProfileId }),
       });
       const body = (await r.json().catch(() => ({}))) as Row;
-      if (!r.ok || !body.token) return fail(typeof body.error === 'string' ? body.error : 'No se pudo conectar al Live.');
+      // The status code helps tell a missing function (404) from a server error (500).
+      if (!r.ok || !body.token) return fail(typeof body.error === 'string' ? body.error : `No se pudo obtener el acceso al Live (código ${r.status}).`);
       return { ok: true, access: { url: body.url, token: body.token, host: !!body.host } };
-    } catch {
-      return fail('No se pudo conectar al Live. Revisa tu conexión.');
+    } catch (err) {
+      return fail(`No se pudo conectar al Live. Revisa tu conexión. (${err instanceof Error ? err.message : 'sin detalle'})`);
     }
   },
 

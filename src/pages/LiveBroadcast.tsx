@@ -113,7 +113,8 @@ const LiveBroadcast: React.FC = () => {
     } catch (err) {
       console.warn('Live: no se pudo conectar', err);
       roomRef.current = null;
-      setProblem('No se pudo conectar al Live. Revisa tu conexión e inténtalo de nuevo.');
+      const detail = err instanceof Error ? err.message : String(err);
+      setProblem(`No se pudo conectar al servidor de video. Inténtalo de nuevo. (Detalle: ${detail.slice(0, 160)})`);
       setPhase('error');
     }
   }, [creatorId, user?.name]);

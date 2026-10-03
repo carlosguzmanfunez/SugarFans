@@ -18,7 +18,10 @@ const rest = async (path: string, token: string) => {
 };
 
 export async function POST(request: Request): Promise<Response> {
-  const { LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET } = process.env;
+  // Trimmed: a value pasted with a trailing space or newline breaks the signature.
+  const LIVEKIT_URL = process.env.LIVEKIT_URL?.trim();
+  const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY?.trim();
+  const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET?.trim();
   if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
     return json(503, { error: 'El video del Live aún no está configurado.' });
   }
