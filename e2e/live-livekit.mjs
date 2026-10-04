@@ -9,7 +9,7 @@
 import { chromium } from 'playwright';
 import { spawn, spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -21,6 +21,8 @@ const BASE = `http://localhost:${PORT}`;
 const LK_HTTP = 'http://127.0.0.1:7880';
 const STUB_PORT = 54329;
 const results = [];
+// E2E_SHOTS=<folder> saves screenshots of the camera filter screens.
+const shot = (p, name) => process.env.E2E_SHOTS && p.screenshot({ path: join(process.env.E2E_SHOTS, `${name}.png`) });
 const consoleErrors = [];
 const pages = [];
 
@@ -134,7 +136,8 @@ const run = async () => {
   await waitUp(LK_HTTP);
   await waitUp(BASE);
   const rooms = new RoomServiceClient(LK_HTTP, 'devkey', 'secret');
-  const browser = await chromium.launch({ args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] });
+  // Software WebGL so the camera filters run in headless Chromium.
+  const browser = await chromium.launch({ args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--enable-unsafe-swiftshader'] });
 
   try {
     const ctx = await browser.newContext({ locale: 'es-ES', permissions: ['camera', 'microphone'] });
@@ -143,6 +146,11 @@ const run = async () => {
       const req = route.request();
       const res = await POST(new Request(req.url(), { method: 'POST', headers: req.headers(), body: req.postData() }));
       await route.fulfill({ status: res.status, contentType: 'application/json', body: await res.text() });
+    });
+    // Background Blur's MediaPipe runtime comes from jsDelivr: serve the installed copy.
+    await ctx.route('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@*/wasm/*', (route) => {
+      const name = route.request().url().split('/').pop();
+      route.fulfill({ body: readFileSync(`node_modules/@mediapipe/tasks-vision/wasm/${name}`), contentType: name.endsWith('.wasm') ? 'application/wasm' : 'text/javascript' });
     });
     const page = async () => {
       const p = await ctx.newPage();
@@ -168,6 +176,19 @@ const run = async () => {
     await login(c, 'creator@sugarfans.com');
     await login(f, 'fan@sugarfans.com');
     const playing = (p) => p.locator('[data-testid=live-broadcast] video').evaluate((v) => v.videoWidth > 0 && !v.paused && v.readyState >= 2);
+    // How warm the picture looks (mean red minus mean blue) on a video element.
+    const warmth = (loc) =>
+      loc.evaluate((v) => {
+        const k = document.createElement('canvas');
+        k.width = 64;
+        k.height = 36;
+        const g = k.getContext('2d');
+        g.drawImage(v, 0, 0, 64, 36);
+        const d = g.getImageData(0, 0, 64, 36).data;
+        let rb = 0;
+        for (let i = 0; i < d.length; i += 4) rb += d[i] - d[i + 2];
+        return rb / (d.length / 4);
+      });
     const participants = async () => (await rooms.listRooms()).length ? rooms.listParticipants((await rooms.listRooms())[0].name) : [];
 
     await check('El fan sigue a la creator con la campanita activada', async () => {
@@ -180,6 +201,8 @@ const run = async () => {
       await c.getByLabel('Título del Live').fill('Live de prueba');
       await c.getByRole('button', { name: 'Iniciar Live' }).click();
       await c.waitForURL(`${BASE}/en-vivo/1`);
+      await c.getByRole('radio', { name: /Warm/ }).click();
+      await shot(c, 'live-antes-de-empezar');
       await c.getByRole('button', { name: 'Encender cámara y empezar' }).click();
       await c.getByRole('button', { name: 'Terminar Live' }).waitFor();
       await waitFor(() => playing(c), 'la vista previa de la creator no se reproduce');
@@ -196,6 +219,23 @@ const run = async () => {
       await f.getByRole('button', { name: 'Entrar al Live' }).click();
       await waitFor(() => playing(f), 'el fan no recibe el video');
       await f.getByTestId('live-viewers').getByText('1').waitFor();
+    });
+    await check('El fan recibe el video con el filtro que eligió la creator, y cambia en vivo', async () => {
+      const fanVideo = f.locator('[data-testid=live-broadcast] video');
+      await f.waitForTimeout(1500);
+      const warm = await warmth(fanVideo);
+      await c.getByTestId('looks-button').click();
+      await c.getByRole('radio', { name: /Natural/ }).click();
+      await waitFor(async () => (await warmth(fanVideo)) < warm - 8, `el video del fan no cambió al quitar Warm (antes ${warm.toFixed(1)})`);
+      await c.getByRole('radio', { name: /Background Blur/ }).click();
+      await c.getByTestId('enhance-toggle').click();
+      await c.waitForTimeout(3000);
+      await shot(c, 'live-filtros-en-vivo');
+      expect((await c.getByRole('radio', { name: /Background Blur/ }).getAttribute('aria-checked')) === 'true', 'Background Blur volvió a Natural');
+      expect((await c.getByTestId('enhance-toggle').getAttribute('aria-pressed')) === 'true', 'Mejorar apariencia no quedó activado');
+      await waitFor(() => playing(f), 'el fan dejó de recibir video con Background Blur');
+      await c.getByRole('radio', { name: /Natural/ }).click();
+      await c.getByTestId('enhance-toggle').click();
     });
     await check('Solo la creator puede publicar: el fan solo consume', async () => {
       const ps = await participants();
@@ -325,6 +365,10 @@ const run = async () => {
     const remotePlaying = (p) => p.getByTestId('remote-video').evaluate((v) => v.videoWidth > 0 && !v.paused && v.readyState >= 2);
     await check('Fan y creator entran a la videollamada y se ven por LiveKit', async () => {
       await f.goto(`${BASE}/live/${CALL.id}`);
+      await f.getByRole('button', { name: 'Ver cómo me veo' }).click();
+      await f.getByRole('radio', { name: /Studio/ }).click();
+      await waitFor(() => f.getByTestId('camera-preview').locator('video').evaluate((v) => v.videoWidth > 0 && !v.paused), 'la vista previa con filtro no se ve');
+      await shot(f, 'reserve-sala-de-espera');
       await f.getByRole('button', { name: 'Entrar a la sala' }).click();
       await f.getByTestId('live-room').getByText(/Esperando a Valentina Rose/).waitFor();
       await c.goto(`${BASE}/live/${CALL.id}`);
