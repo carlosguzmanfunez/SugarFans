@@ -365,7 +365,7 @@ const LiveRoom: React.FC = () => {
               <button onClick={() => toggleTrack('video')} disabled={!hasMedia} aria-label={camOn ? 'Apagar cámara' : 'Encender cámara'} className={`w-12 h-12 rounded-full ${camOn ? 'bg-white/10 hover:bg-white/20' : 'bg-red-500'} disabled:opacity-40`}>
                 <i aria-hidden="true" className={`fas ${camOn ? 'fa-video' : 'fa-video-slash'}`}></i>
               </button>
-              <button onClick={() => setShowLooks((v) => !v)} disabled={!hasMedia || !camOn} aria-label="Filtros de cámara" aria-expanded={showLooks} data-testid="looks-button" className={`w-12 h-12 rounded-full ${showLooks || cam.enhance || cam.shape || cam.look !== 'natural' ? 'bg-pink-600 hover:bg-pink-500' : 'bg-white/10 hover:bg-white/20'} disabled:opacity-40`}>
+              <button onClick={() => setShowLooks((v) => !v)} disabled={!hasMedia || !camOn} aria-label="Filtros de cámara" aria-expanded={showLooks} data-testid="looks-button" className={`w-12 h-12 rounded-full ${showLooks || cam.enhance || cam.look !== 'natural' ? 'bg-pink-600 hover:bg-pink-500' : 'bg-white/10 hover:bg-white/20'} disabled:opacity-40`}>
                 <i aria-hidden="true" className="fas fa-wand-magic-sparkles"></i>
               </button>
               <button onClick={hangUp} aria-label="Salir de la llamada" className="px-6 h-12 rounded-full bg-red-600 hover:bg-red-700 font-medium">

@@ -232,13 +232,9 @@ const run = async () => {
       await shot(c, 'live-filtros-en-vivo');
       expect((await c.getByRole('radio', { name: /Background Blur/ }).getAttribute('aria-checked')) === 'true', 'Background Blur volvió a Natural');
       expect((await c.getByTestId('enhance-toggle').getAttribute('aria-pressed')) === 'true', 'Mejorar apariencia no quedó activado');
-      await c.getByTestId('shape-toggle').click();
-      await c.waitForTimeout(3000);
-      expect((await c.getByTestId('shape-toggle').getAttribute('aria-pressed')) === 'true', 'Afinar rostro no quedó activado');
       await waitFor(() => playing(f), 'el fan dejó de recibir video con Background Blur');
       await c.getByRole('radio', { name: /Natural/ }).click();
       await c.getByTestId('enhance-toggle').click();
-      await c.getByTestId('shape-toggle').click();
     });
     await check('Solo la creator puede publicar: el fan solo consume', async () => {
       const ps = await participants();

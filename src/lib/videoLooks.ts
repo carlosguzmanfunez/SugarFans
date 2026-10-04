@@ -37,16 +37,9 @@ export interface LookParams {
   glow: number; // soft glow from the smoothed picture 0..1
   blush: number; // rosy tint on skin 0..1
   rose: number; // pink tint over the whole picture 0..1
-  // Face features (need face landmarks):
-  slim: number; // narrower jaw and cheeks 0..1
-  eyes: number; // slightly bigger eyes 0..1
-  lip: number; // lip colour strength 0..1
-  lipColor: [number, number, number];
-  iris: number; // eye colour strength 0..1
-  irisColor: [number, number, number];
 }
 
-const NEUTRAL: LookParams = { smooth: 0, exposure: 1, contrast: 1, saturation: 1, warmth: 0, lift: 0, blur: false, reach: 1, glow: 0, blush: 0, rose: 0, slim: 0, eyes: 0, lip: 0, lipColor: [0.85, 0.35, 0.4], iris: 0, irisColor: [0.5, 0.72, 0.95] };
+const NEUTRAL: LookParams = { smooth: 0, exposure: 1, contrast: 1, saturation: 1, warmth: 0, lift: 0, blur: false, reach: 1, glow: 0, blush: 0, rose: 0 };
 
 const BASE: Record<LookId, LookParams> = {
   natural: NEUTRAL,
@@ -54,9 +47,9 @@ const BASE: Record<LookId, LookParams> = {
   // Beauty-lens style: strong, wide smoothing on skin, a soft glow and a rosy touch.
   retouch: { ...NEUTRAL, smooth: 0.95, reach: 1.7, glow: 0.18, blush: 0.5, exposure: 1.04, contrast: 0.95, saturation: 1.02, warmth: 0.015, lift: 0.04 },
   // Dreamy pastel: very smooth, bright, low contrast, pink all over.
-  softlove: { ...NEUTRAL, smooth: 0.95, reach: 1.8, glow: 0.25, blush: 0.7, rose: 0.6, exposure: 1.07, contrast: 0.9, saturation: 0.95, lift: 0.06, lip: 0.5, lipColor: [0.95, 0.42, 0.52], iris: 0.45 },
+  softlove: { ...NEUTRAL, smooth: 0.95, reach: 1.8, glow: 0.25, blush: 0.7, rose: 0.6, exposure: 1.07, contrast: 0.9, saturation: 0.95, lift: 0.06 },
   // Polished glam: smooth skin but crisper contrast and a warm, neutral tone.
-  pure: { ...NEUTRAL, smooth: 0.8, reach: 1.4, glow: 0.08, blush: 0.25, exposure: 1.03, contrast: 1.08, saturation: 0.98, warmth: 0.02, lift: 0.02, lip: 0.35, lipColor: [0.72, 0.36, 0.36] },
+  pure: { ...NEUTRAL, smooth: 0.8, reach: 1.4, glow: 0.08, blush: 0.25, exposure: 1.03, contrast: 1.08, saturation: 0.98, warmth: 0.02, lift: 0.02 },
   // Punchy colour: more saturation and contrast, a light touch of smoothing.
   vivid: { ...NEUTRAL, smooth: 0.2, exposure: 1.02, contrast: 1.14, saturation: 1.35, warmth: 0.02 },
   warm: { ...NEUTRAL, exposure: 1.01, contrast: 0.95, saturation: 1.06, warmth: 0.07, lift: 0.015 },
@@ -64,13 +57,9 @@ const BASE: Record<LookId, LookParams> = {
   blur: { ...NEUTRAL, blur: true },
 };
 
-/**
- * "Mejorar apariencia" adds light smoothing and a little light on top of any look;
- * "Afinar rostro" adds a slimmer face and slightly bigger eyes.
- */
-export function lookParams(look: LookId, enhance: boolean, shape = false): LookParams {
-  const base = BASE[look] ?? NEUTRAL;
-  const p = shape ? { ...base, slim: 0.6, eyes: 0.5 } : base;
+/** "Mejorar apariencia" adds light smoothing and a little light on top of any look. */
+export function lookParams(look: LookId, enhance: boolean): LookParams {
+  const p = BASE[look] ?? NEUTRAL;
   if (!enhance) return p;
   return {
     ...p,
@@ -82,32 +71,24 @@ export function lookParams(look: LookId, enhance: boolean, shape = false): LookP
   };
 }
 
-/** Natural without "Mejorar apariencia" or "Afinar rostro" needs no processing at all. */
-export const needsProcessing = (look: LookId, enhance: boolean, shape = false) => look !== 'natural' || enhance || shape;
-
-export const needsFace = (p: LookParams) => p.slim > 0 || p.eyes > 0 || p.lip > 0 || p.iris > 0;
+/** Natural without "Mejorar apariencia" needs no processing at all. */
+export const needsProcessing = (look: LookId, enhance: boolean) => look !== 'natural' || enhance;
 
 const KEY = 'fr.cameraLook';
 
-export interface LookChoice {
-  look: LookId;
-  enhance: boolean;
-  shape: boolean;
-}
-
-export function savedLook(): LookChoice {
+export function savedLook(): { look: LookId; enhance: boolean } {
   try {
-    const v = JSON.parse(localStorage.getItem(KEY) || '{}') as { look?: string; enhance?: boolean; shape?: boolean };
+    const v = JSON.parse(localStorage.getItem(KEY) || '{}') as { look?: string; enhance?: boolean };
     const look = LOOKS.some((l) => l.id === v.look) ? (v.look as LookId) : 'natural';
-    return { look, enhance: v.enhance === true, shape: v.shape === true };
+    return { look, enhance: v.enhance === true };
   } catch {
-    return { look: 'natural', enhance: false, shape: false };
+    return { look: 'natural', enhance: false };
   }
 }
 
-export function saveLook(c: LookChoice) {
+export function saveLook(look: LookId, enhance: boolean) {
   try {
-    localStorage.setItem(KEY, JSON.stringify(c));
+    localStorage.setItem(KEY, JSON.stringify({ look, enhance }));
   } catch {
     // private mode or blocked storage: the choice just isn't remembered
   }
