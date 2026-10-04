@@ -73,6 +73,11 @@ export const createSupabaseLive = (sb: SupabaseClient, url: string, anonKey: str
       return error ? fail(rpcError(error.message)) : ok;
     },
 
+    async liveHeartbeat() {
+      const { data, error } = await sb.rpc('live_heartbeat');
+      return error ? null : data === true;
+    },
+
     endLiveOnExit() {
       if (!accessToken) return;
       // keepalive lets the request finish after the tab is gone.

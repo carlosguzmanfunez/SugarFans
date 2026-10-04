@@ -6,6 +6,7 @@ import type { AuthResult, User } from './backend/types';
 import { platformChanged, usePlatformQuery } from './platform';
 
 export type * from './backend/liveTypes';
+export { LIVE_HEARTBEAT_SECONDS, LIVE_STALE_MINUTES } from './backend/liveTypes';
 
 const l = backend.live;
 export const liveApi = l;

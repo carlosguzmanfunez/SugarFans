@@ -4,7 +4,7 @@ import { Room, RoomEvent, Track, VideoPresets, type RemoteParticipant, type Remo
 import { useAuth } from '../context/AuthContext';
 import ViewerWatermark, { noCaptureVideoProps } from '../components/ViewerWatermark';
 import { useLeaveGuard } from '../hooks/useLeaveGuard';
-import { liveApi, endLive, useCurrentLive } from '../lib/live';
+import { liveApi, endLive, useCurrentLive, LIVE_HEARTBEAT_SECONDS, LIVE_STALE_MINUTES } from '../lib/live';
 
 interface ChatLine {
   id: number;
@@ -184,6 +184,27 @@ const LiveBroadcast: React.FC = () => {
     return () => window.removeEventListener('pagehide', onHide);
   }, []);
 
+  // Check in while the creator has their open Live on screen: if the phone dies or the
+  // browser crashes the check-ins stop and the server closes the Live by itself.
+  const checkingIn = owner && (!!live || onAir);
+  useEffect(() => {
+    if (!checkingIn || !user) return;
+    const beat = async () => {
+      if (closedRef.current) return;
+      if ((await liveApi.liveHeartbeat(user)) !== false || closedRef.current) return;
+      // Closed meanwhile (the page was asleep for too long, or ended elsewhere).
+      closedRef.current = true;
+      roomRef.current?.disconnect();
+      roomRef.current = null;
+      setHasVideo(false);
+      setProblem(`Tu Live se cerró porque perdimos la conexión contigo por más de ${LIVE_STALE_MINUTES} minutos. Puedes iniciar otro desde tu panel.`);
+      setPhase('ended');
+    };
+    beat();
+    const t = setInterval(beat, LIVE_HEARTBEAT_SECONDS * 1000);
+    return () => clearInterval(t);
+  }, [checkingIn, user]);
+
   useLeaveGuard(onAir, (to) => setLeaving({ to: to ?? '/creator/dashboard' }));
 
   const toggle = async (kind: 'mic' | 'cam') => {
@@ -318,7 +339,7 @@ const LiveBroadcast: React.FC = () => {
                 </button>
               )}
             </div>
-            {problem && phase === 'on' && <p className="text-sm text-yellow-300 mt-3">{problem}</p>}
+            {problem && (phase === 'on' || phase === 'ended') && <p role="alert" data-testid="live-notice" className="text-sm text-yellow-300 mt-3">{problem}</p>}
             <div className="flex justify-center gap-3 mt-4">
               {host && phase === 'on' && (
                 <>

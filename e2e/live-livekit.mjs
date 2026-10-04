@@ -65,6 +65,7 @@ const waitUp = async (url) => {
 // Supabase stand-in for api/live-token.ts: who the token belongs to, their
 // profile, an open Live for creator '1' and a confirmed Reserve call booked for
 // right now between the demo fan and creator '1' (row security: only those two see it).
+const LIVE_KEY = 'fansreserve_live'; // local Live store (src/lib/backend/localLive.ts)
 const PROFILES = {
   'demo-creator': { name: 'Valentina Rose', creator_profile_id: '1' },
   'demo-fan': { name: 'Carlos M.', creator_profile_id: null },
@@ -253,6 +254,33 @@ const run = async () => {
       await c2.getByRole('button', { name: 'Encender cámara y empezar' }).click();
       await waitFor(() => playing(c2), 'la creator no emite');
       await c2.close({ runBeforeUnload: true });
+      await f.goto(`${BASE}/en-vivo/1`);
+      await f.getByText('Este creator no está en Live ahora').waitFor();
+    });
+
+    await check('Si a la creator se le apaga el celular en pleno Live, el Live se cierra solo', async () => {
+      const c3 = await page();
+      await login(c3, 'creator@sugarfans.com');
+      await c3.goto(`${BASE}/creator/dashboard`);
+      await c3.getByLabel('Título del Live').fill('Live que se apaga');
+      await c3.getByRole('button', { name: 'Iniciar Live' }).click();
+      await c3.waitForURL(`${BASE}/en-vivo/1`);
+      await c3.getByRole('button', { name: 'Encender cámara y empezar' }).click();
+      await waitFor(() => playing(c3), 'la creator no emite');
+      const openLive = (p) => p.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? '{}').broadcasts?.find((b) => !b.endedAt), LIVE_KEY);
+      await waitFor(async () => !!(await openLive(f))?.lastSeenAt, 'la página de la creator no reporta que sigue en Live');
+      // A phone that dies: the page stops running, with no pagehide or any other goodbye.
+      const cdp = await c3.context().newCDPSession(c3);
+      await cdp.send('Page.setWebLifecycleState', { state: 'frozen' });
+      await f.goto(`${BASE}/creator/1`);
+      await f.getByTestId('live-now').waitFor();
+      // Two minutes and a half later with no check-in…
+      await f.evaluate((key) => {
+        const st = JSON.parse(localStorage.getItem(key));
+        const ago = new Date(Date.now() - 150_000).toISOString();
+        st.broadcasts = st.broadcasts.map((b) => (b.endedAt ? b : { ...b, lastSeenAt: ago }));
+        localStorage.setItem(key, JSON.stringify(st));
+      }, LIVE_KEY);
       await f.goto(`${BASE}/en-vivo/1`);
       await f.getByText('Este creator no está en Live ahora').waitFor();
     });

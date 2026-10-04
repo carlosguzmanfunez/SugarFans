@@ -32,6 +32,10 @@ export interface BroadcastAccess {
 
 // A Live left open (closed tab, lost connection) stops counting after this long.
 export const LIVE_MAX_HOURS = 4;
+// The creator's Live page checks in this often; a Live with no check-in for
+// LIVE_STALE_MINUTES is closed on the server (creator's phone died, browser crashed).
+export const LIVE_HEARTBEAT_SECONDS = 30;
+export const LIVE_STALE_MINUTES = 2;
 // Restarting a Live within this window doesn't alert followers again.
 export const LIVE_REALERT_MINUTES = 30;
 
@@ -44,6 +48,9 @@ export interface LiveBackend {
   // Same as endLive, fired while the creator's tab is closing: it has no answer to
   // wait for and the request must outlive the page.
   endLiveOnExit(user: User): void;
+  // The creator's check-in: true while the Live is open, false once it was closed,
+  // null when the check-in couldn't be sent.
+  liveHeartbeat(user: User): Promise<boolean | null>;
   // The fan's bell for a creator they follow.
   liveAlerts(creatorProfileId: string, user: User): Promise<boolean>;
   setLiveAlerts(user: User, creatorProfileId: string, on: boolean): Promise<AuthResult>;
