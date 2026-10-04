@@ -1,31 +1,34 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { LocalVideoTrack, VideoCaptureOptions } from 'livekit-client';
 import { LookProcessor, type LookFailure } from '../lib/lookProcessor';
-import { looksSupported, needsProcessing, saveLook, savedLook, type LookId } from '../lib/videoLooks';
+import { looksSupported, needsProcessing, saveLook, savedLook, type LookChoice, type LookId } from '../lib/videoLooks';
 
 const FAIL_NOTICE: Record<LookFailure, string> = {
   blur: 'Background Blur no está disponible en este dispositivo. Volvimos a Natural.',
   slow: 'Tu dispositivo no da abasto con el filtro. Volvimos a Natural para no cortar el video.',
   gl: 'El filtro se detuvo en este dispositivo. Volvimos a Natural.',
+  face: 'Los retoques de rostro no están disponibles en este dispositivo. El resto del filtro sigue activo.',
 };
 
 // Keeps the chosen camera look and applies it to whichever camera track is bound
 // (the lobby preview or the published camera). Any failure falls back to Natural
 // without stopping the camera.
 export function useCameraLook() {
-  const [{ look, enhance }, setChoice] = useState(savedLook);
+  const [{ look, enhance, shape }, setChoice] = useState(savedLook);
   const [notice, setNotice] = useState('');
-  const choice = useRef({ look, enhance });
+  const choice = useRef<LookChoice>({ look, enhance, shape });
   const track = useRef<LocalVideoTrack | null>(null);
   const queue = useRef<Promise<void>>(Promise.resolve());
   const supported = looksSupported();
 
   const onFail = useCallback((why: LookFailure) => {
     setNotice(FAIL_NOTICE[why]);
-    const next = why === 'blur' ? { look: 'natural' as LookId, enhance: choice.current.enhance } : { look: 'natural' as LookId, enhance: false };
+    const cur = choice.current;
+    const next: LookChoice =
+      why === 'face' ? { ...cur, shape: false } : why === 'blur' ? { ...cur, look: 'natural' } : { look: 'natural', enhance: false, shape: false };
     choice.current = next;
     setChoice(next);
-    saveLook(next.look, next.enhance);
+    saveLook(next);
     apply();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -35,22 +38,22 @@ export function useCameraLook() {
     queue.current = queue.current.then(async () => {
       const t = track.current;
       if (!t) return;
-      const { look: l, enhance: e } = choice.current;
+      const { look: l, enhance: e, shape: sh } = choice.current;
       const cur = t.getProcessor();
       try {
-        if (!supported || !needsProcessing(l, e)) {
+        if (!supported || !needsProcessing(l, e, sh)) {
           if (cur) await t.stopProcessor();
           return;
         }
         if (cur instanceof LookProcessor && !cur.isFailed) {
-          cur.setLook(l, e);
+          cur.setLook(l, e, sh);
           return;
         }
         if (cur) await t.stopProcessor();
-        await t.setProcessor(new LookProcessor(l, e, onFail));
+        await t.setProcessor(new LookProcessor(l, e, onFail, sh));
       } catch {
         await t.stopProcessor().catch(() => undefined);
-        choice.current = { look: 'natural', enhance: false };
+        choice.current = { look: 'natural', enhance: false, shape: false };
         setChoice(choice.current);
         setNotice(FAIL_NOTICE.gl);
       }
@@ -59,10 +62,10 @@ export function useCameraLook() {
   }, [onFail, supported]);
 
   const choose = useCallback(
-    (next: { look?: LookId; enhance?: boolean }) => {
+    (next: Partial<LookChoice>) => {
       choice.current = { ...choice.current, ...next };
       setChoice(choice.current);
-      saveLook(choice.current.look, choice.current.enhance);
+      saveLook(choice.current);
       setNotice('');
       apply();
     },
@@ -81,8 +84,8 @@ export function useCameraLook() {
 
   /** Capture options that start the camera already filtered, so no raw frame is sent. */
   const captureOptions = useCallback((): VideoCaptureOptions => {
-    const { look: l, enhance: e } = choice.current;
-    return supported && needsProcessing(l, e) ? { processor: new LookProcessor(l, e, onFail) } : {};
+    const { look: l, enhance: e, shape: sh } = choice.current;
+    return supported && needsProcessing(l, e, sh) ? { processor: new LookProcessor(l, e, onFail, sh) } : {};
   }, [onFail, supported]);
 
   useEffect(() => () => void (track.current = null), []);
@@ -90,10 +93,12 @@ export function useCameraLook() {
   return {
     look,
     enhance,
+    shape,
     notice,
     supported,
     setLook: (l: LookId) => choose({ look: l }),
     toggleEnhance: () => choose({ enhance: !choice.current.enhance }),
+    toggleShape: () => choose({ shape: !choice.current.shape }),
     bind,
     captureOptions,
   };

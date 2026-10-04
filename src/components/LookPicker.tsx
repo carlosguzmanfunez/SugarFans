@@ -36,18 +36,32 @@ const LookPicker: React.FC<{ cam: CameraLook; className?: string }> = ({ cam, cl
           );
         })}
       </div>
-      <button
-        type="button"
-        aria-pressed={cam.enhance}
-        onClick={cam.toggleEnhance}
-        data-testid="enhance-toggle"
-        className={`mt-2 w-full px-4 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${
-          cam.enhance ? 'bg-gradient-to-r from-pink-500 to-purple-600 border-transparent text-white' : 'bg-white/5 border-white/15 text-gray-100 hover:bg-white/10'
-        }`}
-      >
-        <i aria-hidden="true" className="fas fa-wand-magic-sparkles mr-2"></i>
-        Mejorar apariencia{cam.enhance ? ' · activado' : ''}
-      </button>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          aria-pressed={cam.enhance}
+          onClick={cam.toggleEnhance}
+          data-testid="enhance-toggle"
+          className={`px-3 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${
+            cam.enhance ? 'bg-gradient-to-r from-pink-500 to-purple-600 border-transparent text-white' : 'bg-white/5 border-white/15 text-gray-100 hover:bg-white/10'
+          }`}
+        >
+          <i aria-hidden="true" className="fas fa-wand-magic-sparkles mr-2"></i>
+          Mejorar apariencia
+        </button>
+        <button
+          type="button"
+          aria-pressed={cam.shape}
+          onClick={cam.toggleShape}
+          data-testid="shape-toggle"
+          className={`px-3 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${
+            cam.shape ? 'bg-gradient-to-r from-pink-500 to-purple-600 border-transparent text-white' : 'bg-white/5 border-white/15 text-gray-100 hover:bg-white/10'
+          }`}
+        >
+          <i aria-hidden="true" className="fas fa-face-smile mr-2"></i>
+          Afinar rostro
+        </button>
+      </div>
       {cam.notice && (
         <p role="status" className="mt-2 text-xs text-yellow-300">
           {cam.notice}

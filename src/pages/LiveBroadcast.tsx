@@ -291,7 +291,7 @@ const LiveBroadcast: React.FC = () => {
                   <button onClick={() => toggle('cam')} aria-label={camOn ? 'Apagar cámara' : 'Encender cámara'} className={`w-12 h-12 rounded-full ${camOn ? 'bg-white/10 hover:bg-white/20' : 'bg-red-500'}`}>
                     <i aria-hidden="true" className={`fas ${camOn ? 'fa-video' : 'fa-video-slash'}`}></i>
                   </button>
-                  <button onClick={() => setShowLooks((v) => !v)} disabled={!camOn || !hasVideo} aria-label="Filtros de cámara" aria-expanded={showLooks} data-testid="looks-button" className={`w-12 h-12 rounded-full ${showLooks || cam.enhance || cam.look !== 'natural' ? 'bg-pink-600 hover:bg-pink-500' : 'bg-white/10 hover:bg-white/20'} disabled:opacity-40`}>
+                  <button onClick={() => setShowLooks((v) => !v)} disabled={!camOn || !hasVideo} aria-label="Filtros de cámara" aria-expanded={showLooks} data-testid="looks-button" className={`w-12 h-12 rounded-full ${showLooks || cam.enhance || cam.shape || cam.look !== 'natural' ? 'bg-pink-600 hover:bg-pink-500' : 'bg-white/10 hover:bg-white/20'} disabled:opacity-40`}>
                     <i aria-hidden="true" className="fas fa-wand-magic-sparkles"></i>
                   </button>
                 </>

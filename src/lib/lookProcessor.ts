@@ -1,13 +1,14 @@
 import type { Track, TrackProcessor, VideoProcessorOptions } from 'livekit-client';
-import type { ImageSegmenter } from '@mediapipe/tasks-vision';
-import { lookParams, isLightDevice, type LookId, type LookParams } from './videoLooks';
-import { loadSegmenter } from './segmenter';
+import type { FaceLandmarker, ImageSegmenter, NormalizedLandmark } from '@mediapipe/tasks-vision';
+import { lookParams, needsFace, isLightDevice, type LookId, type LookParams } from './videoLooks';
+import { loadFaceLandmarker, loadSegmenter } from './segmenter';
 
 // LiveKit video processor that draws each camera frame through a WebGL shader
-// (smoothing, light and colour, optional background blur) onto a canvas, and hands
+// (face shaping, smoothing, light and colour, makeup, optional background blur) onto a
+// canvas, and hands
 // LiveKit the canvas stream to publish. One instance stays on the track while the
 // look changes, so switching looks never interrupts the call.
-export type LookFailure = 'slow' | 'blur' | 'gl';
+export type LookFailure = 'slow' | 'blur' | 'gl' | 'face';
 
 const VERT = 'attribute vec2 p;varying vec2 uv;void main(){uv=p*0.5+0.5;gl_Position=vec4(p,0.0,1.0);}';
 
@@ -42,8 +43,28 @@ const FINAL_FRAG = `${HEAD}uniform sampler2D src;uniform sampler2D bg;uniform sa
 uniform vec2 radius;uniform float smoothAmt;uniform float exposure;uniform float contrast;
 uniform float saturation;uniform float warmth;uniform float lift;uniform float useBlur;
 uniform float glow;uniform float blush;uniform float rose;
+uniform vec2 aspect;uniform vec4 warpC[6];uniform vec2 warpV[6];
+uniform vec4 lips;uniform float lipAng;uniform vec3 lipColor;uniform float lipAmt;
+uniform vec4 irisL;uniform vec4 irisR;uniform vec3 irisColor;uniform float irisAmt;
+vec2 suv;
+// Face shaping: each control point pushes (warpV) or magnifies (warpC.w) the picture
+// inside a soft circle of radius warpC.z (measured with the picture's aspect ratio).
+vec2 warp(vec2 p){
+  vec2 d=vec2(0.0);
+  for(int i=0;i<6;i++){
+    vec4 c=warpC[i];
+    if(c.z>0.0){float t=length((p-c.xy)*aspect)/c.z;
+      if(t<1.0){float f=1.0-t*t;f*=f;d-=(warpV[i]+(p-c.xy)*c.w)*f;}}
+  }
+  return p+d;
+}
+float irisMask(vec4 ir){
+  if(ir.z<=0.0)return 0.0;
+  float d=length((suv-ir.xy)*aspect)/ir.z;
+  return (1.0-smoothstep(0.75,1.0,d))*smoothstep(0.25,0.45,d);
+}
 void tap(vec2 o,vec3 c,inout vec3 sum,inout float w){
-  vec3 s=texture2D(src,uv+o*radius).rgb;vec3 d=s-c;float k=exp(-dot(d,d)*90.0);sum+=s*k;w+=k;
+  vec3 s=texture2D(src,suv+o*radius).rgb;vec3 d=s-c;float k=exp(-dot(d,d)*90.0);sum+=s*k;w+=k;
 }
 float skin(vec3 c){
   float cb=-0.1687*c.r-0.3313*c.g+0.5*c.b;float cr=0.5*c.r-0.4187*c.g-0.0813*c.b;
@@ -55,7 +76,8 @@ vec3 grade(vec3 c){
   c+=vec3(warmth,warmth*0.25,-warmth);c+=rose*vec3(0.05,-0.015,0.035);return clamp(c,0.0,1.0);
 }
 void main(){
-  vec3 c0=texture2D(src,uv).rgb;vec3 c=c0;
+  suv=warp(uv);
+  vec3 c0=texture2D(src,suv).rgb;vec3 c=c0;
   if(smoothAmt>0.0){vec3 sum=c0;float w=1.0;
 ${TAPS}
     float sk=skin(c0);vec3 sm=sum/w;
@@ -64,7 +86,21 @@ ${TAPS}
     c=1.0-(1.0-c)*(1.0-sm*glow);
     c=mix(c,c*vec3(1.05,0.96,0.99)+vec3(0.015,0.0,0.01),blush*sk);}
   c=grade(c);
-  if(useBlur>0.5){vec3 b=grade(texture2D(bg,uv).rgb);float m=smoothstep(0.3,0.7,texture2D(mask,uv).r);c=mix(b,c,m);}
+  if(lipAmt>0.0){
+    vec2 q=(suv-lips.xy)*aspect;float cs=cos(lipAng);float sn=sin(lipAng);
+    q=vec2(cs*q.x+sn*q.y,-sn*q.x+cs*q.y);
+    float m=1.0-smoothstep(0.7,1.0,length(q/lips.zw));
+    float red=smoothstep(0.0,0.07,c0.r-c0.g);
+    float l=dot(c,vec3(0.299,0.587,0.114));
+    vec3 t=clamp(lipColor*l/dot(lipColor,vec3(0.299,0.587,0.114)),0.0,1.0);
+    c=mix(c,t,lipAmt*m*red);
+  }
+  if(irisAmt>0.0){
+    float l=dot(c0,vec3(0.299,0.587,0.114));
+    float m=max(irisMask(irisL),irisMask(irisR))*(1.0-smoothstep(0.45,0.7,l));
+    c=mix(c,clamp(irisColor*(0.3+l*1.3),0.0,1.0),irisAmt*m);
+  }
+  if(useBlur>0.5){vec3 b=grade(texture2D(bg,suv).rgb);float m=smoothstep(0.3,0.7,texture2D(mask,suv).r);c=mix(b,c,m);}
   gl_FragColor=vec4(c,1.0);
 }`;
 
@@ -94,6 +130,7 @@ export class LookProcessor implements TrackProcessor<Track.Kind.Video, VideoProc
 
   look: LookId;
   enhance: boolean;
+  shape: boolean;
   private params: LookParams;
   private onFail?: (why: LookFailure) => void;
   private failed = false;
@@ -121,10 +158,21 @@ export class LookProcessor implements TrackProcessor<Track.Kind.Video, VideoProc
   private lastEnd = 0;
   private pixel = new Uint8Array(4);
 
-  constructor(look: LookId, enhance: boolean, onFail?: (why: LookFailure) => void) {
+  private face?: FaceLandmarker;
+  private faceLoading = false;
+  private faceBroken = false;
+  private faceEvery = 1;
+  private faceTs = 0;
+  private faceMiss = 0;
+  private pts?: Float32Array; // smoothed landmarks in uv (x, y up), 2 per point
+  private warpC = new Float32Array(24);
+  private warpV = new Float32Array(12);
+
+  constructor(look: LookId, enhance: boolean, onFail?: (why: LookFailure) => void, shape = false) {
     this.look = look;
     this.enhance = enhance;
-    this.params = lookParams(look, enhance);
+    this.shape = shape;
+    this.params = lookParams(look, enhance, shape);
     this.onFail = onFail;
   }
 
@@ -133,13 +181,40 @@ export class LookProcessor implements TrackProcessor<Track.Kind.Video, VideoProc
   }
 
   /** Changes the look in place, without touching the published track. */
-  setLook(look: LookId, enhance: boolean) {
+  setLook(look: LookId, enhance: boolean, shape = false) {
     this.look = look;
     this.enhance = enhance;
-    this.params = lookParams(look, enhance);
+    this.shape = shape;
+    this.params = lookParams(look, enhance, shape);
     this.avgMs = 0;
     this.frame = 0;
+    this.ensureModels();
+  }
+
+  private ensureModels() {
     if (this.params.blur) this.ensureSegmenter();
+    if (needsFace(this.params)) this.ensureFace();
+  }
+
+  private ensureFace() {
+    if (this.face || this.faceLoading || this.faceBroken) return;
+    this.faceLoading = true;
+    loadFaceLandmarker()
+      .then((f) => {
+        this.face = f;
+        this.frame = 0; // its first frames are slow: restart the speed check
+      })
+      .catch(() => this.faceFail())
+      .finally(() => (this.faceLoading = false));
+  }
+
+  // Face features are extras: if they can't run, the look carries on without them.
+  private faceFail() {
+    if (this.faceBroken) return;
+    this.faceBroken = true;
+    this.face = undefined;
+    this.pts = undefined;
+    this.onFail?.('face');
   }
 
   async init(opts: VideoProcessorOptions) {
@@ -158,7 +233,7 @@ export class LookProcessor implements TrackProcessor<Track.Kind.Video, VideoProc
     });
     this.useSource(opts);
     this.processedTrack = canvas.captureStream(30).getVideoTracks()[0];
-    if (this.params.blur) this.ensureSegmenter();
+    this.ensureModels();
     this.stopTicker = makeTicker(30, () => {
       // Ticks that queued up while a slow frame was drawing are dropped, not replayed.
       if (performance.now() - this.lastEnd < 20) return;
@@ -314,6 +389,84 @@ export class LookProcessor implements TrackProcessor<Track.Kind.Video, VideoProc
     });
   }
 
+  private detectFace(v: HTMLVideoElement) {
+    const face = this.face;
+    if (!face || this.frame % this.faceEvery !== 0) return;
+    const ts = Math.max(performance.now(), this.faceTs + 1);
+    this.faceTs = ts;
+    const lm: NormalizedLandmark[] | undefined = face.detectForVideo(v, ts).faceLandmarks?.[0];
+    if (!lm || lm.length < 478) {
+      if (++this.faceMiss > 8) this.pts = undefined; // face gone: stop shaping
+      return;
+    }
+    this.faceMiss = 0;
+    const prev = this.pts;
+    const next = new Float32Array(lm.length * 2);
+    for (let i = 0; i < lm.length; i++) {
+      // Landmarks are top-left based; our texture space has y going up. Smooth jitter.
+      const x = lm[i].x;
+      const y = 1 - lm[i].y;
+      next[i * 2] = prev ? prev[i * 2] * 0.3 + x * 0.7 : x;
+      next[i * 2 + 1] = prev ? prev[i * 2 + 1] * 0.3 + y * 0.7 : y;
+    }
+    this.pts = next;
+  }
+
+  // Turns the landmarks into shader controls: 4 jaw pushes and 2 eye magnifiers,
+  // a rotated ellipse over the lips and two iris circles.
+  private faceUniforms(gl: WebGLRenderingContext, f: WebGLProgram, aspect: number) {
+    const u = (n: string) => gl.getUniformLocation(f, n);
+    const p = this.params;
+    const pts = this.pts;
+    this.warpC.fill(0);
+    this.warpV.fill(0);
+    let lipAmt = 0;
+    let irisAmt = 0;
+    if (pts) {
+      const P = (i: number): [number, number] => [pts[i * 2], pts[i * 2 + 1]];
+      const dist = (a: [number, number], b: [number, number]) => Math.hypot((a[0] - b[0]) * aspect, a[1] - b[1]);
+      const avg = (a: [number, number], b: [number, number]): [number, number] => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      const faceW = dist(P(234), P(454));
+      const mid = avg(P(234), P(454));
+      let k = 0;
+      if (p.slim > 0) {
+        for (const i of [132, 361, 172, 397]) {
+          const j = P(i);
+          this.warpC.set([j[0], j[1], faceW * 0.24, 0], k * 4);
+          this.warpV.set([(mid[0] - j[0]) * 0.14 * p.slim, (mid[1] - j[1]) * 0.14 * p.slim], k * 2);
+          k++;
+        }
+      }
+      if (p.eyes > 0) {
+        for (const [a, b] of [[33, 133], [362, 263]]) {
+          const c = avg(P(a), P(b));
+          this.warpC.set([c[0], c[1], dist(P(a), P(b)) * 1.1, 0.2 * p.eyes], k * 4);
+          k++;
+        }
+      }
+      if (p.lip > 0) {
+        const c = avg(P(0), P(17));
+        const l = P(61);
+        const r = P(291);
+        gl.uniform4f(u('lips'), c[0], c[1], (dist(l, r) / 2) * 1.15, (dist(P(0), P(17)) / 2) * 1.25);
+        gl.uniform1f(u('lipAng'), Math.atan2(r[1] - l[1], (r[0] - l[0]) * aspect));
+        gl.uniform3fv(u('lipColor'), p.lipColor);
+        lipAmt = p.lip;
+      }
+      if (p.iris > 0) {
+        gl.uniform4f(u('irisL'), pts[468 * 2], pts[468 * 2 + 1], dist(P(468), P(469)) * 1.05, 0);
+        gl.uniform4f(u('irisR'), pts[473 * 2], pts[473 * 2 + 1], dist(P(473), P(474)) * 1.05, 0);
+        gl.uniform3fv(u('irisColor'), p.irisColor);
+        irisAmt = p.iris;
+      }
+    }
+    gl.uniform2f(u('aspect'), aspect, 1);
+    gl.uniform4fv(u('warpC'), this.warpC);
+    gl.uniform2fv(u('warpV'), this.warpV);
+    gl.uniform1f(u('lipAmt'), lipAmt);
+    gl.uniform1f(u('irisAmt'), irisAmt);
+  }
+
   private render() {
     const gl = this.gl;
     const v = this.video;
@@ -330,6 +483,14 @@ export class LookProcessor implements TrackProcessor<Track.Kind.Video, VideoProc
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.srcTex!);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, v);
+
+    if (needsFace(p) && this.face) {
+      try {
+        this.detectFace(v);
+      } catch {
+        this.faceFail();
+      }
+    }
 
     if (blur) {
       try {
@@ -382,6 +543,7 @@ export class LookProcessor implements TrackProcessor<Track.Kind.Video, VideoProc
     gl.uniform1f(u('glow'), p.glow);
     gl.uniform1f(u('blush'), p.blush);
     gl.uniform1f(u('rose'), p.rose);
+    this.faceUniforms(gl, f, w / h);
     gl.uniform1f(u('useBlur'), blur ? 1 : 0);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     // Wait for the GPU to finish this frame, so slow devices can't pile up work and
@@ -399,9 +561,15 @@ export class LookProcessor implements TrackProcessor<Track.Kind.Video, VideoProc
     if (this.frame < 30) return;
     this.avgMs = this.frame === 30 ? ms : this.avgMs * 0.95 + ms * 0.05;
     if (this.frame < 90 || this.frame % 30 !== 0) return;
-    if (blur && this.avgMs > 28 && this.segEvery < 3) {
-      this.segEvery++;
-      return;
+    if (this.avgMs > 28) {
+      if (this.face && needsFace(this.params) && this.faceEvery < 3) {
+        this.faceEvery++;
+        return;
+      }
+      if (blur && this.segEvery < 3) {
+        this.segEvery++;
+        return;
+      }
     }
     if (this.avgMs > 55) this.fail('slow');
   }
