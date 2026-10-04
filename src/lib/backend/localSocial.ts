@@ -20,7 +20,7 @@ interface Deps {
 
 const KEY = 'social';
 // Demo catalogue ids (src/data/mockData.ts); the app lists those itself.
-const DEMO_IDS = ['1', '2', '3', '4', '5', '6'];
+const DEMO_IDS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
 const toPublicCreator = (a: User): PublicCreator => ({
   id: a.creatorProfileId!,
   name: a.name,

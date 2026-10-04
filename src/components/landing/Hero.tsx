@@ -1,23 +1,35 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import type { Creator } from '../../data/mockData';
+import { creators as demoCreators, type Creator } from '../../data/mockData';
 import { HERO } from '../../content/landing';
 import { useAuth } from '../../context/AuthContext';
 import { useVipCreatorIds } from '../../lib/catalog';
 import { useLiveCreatorIds } from '../../lib/live';
-import { categoryFor } from '../../config/reserve';
+import { CREATOR_CATEGORIES, categoryFor } from '../../config/reserve';
 import { formatPrice } from '../CreatorCard';
 import { ArrowRight, prefersReducedMotion } from './landingBits';
 
-// Each pass gets its own cover so the deck reads as five different worlds.
+// Each pass gets its own cover so the deck reads as different worlds.
 const COVERS = [
   { bg: 'radial-gradient(420px 300px at 80% 0%,rgba(227,169,58,.55),transparent 60%),linear-gradient(160deg,#851244,#160d1f)', fig: '#ffe3ee' },
   { bg: 'radial-gradient(420px 300px at 20% 0%,rgba(130,89,243,.6),transparent 60%),linear-gradient(160deg,#3e2483,#160d1f)', fig: '#dff3ea' },
   { bg: 'radial-gradient(420px 300px at 70% 10%,rgba(242,215,146,.55),transparent 60%),linear-gradient(160deg,#8f5318,#160d1f)', fig: '#fdf1dc' },
   { bg: 'radial-gradient(420px 300px at 30% 0%,rgba(247,99,155,.55),transparent 60%),linear-gradient(160deg,#6d133b,#21152d)', fig: '#e5e7f5' },
   { bg: 'radial-gradient(420px 300px at 80% 0%,rgba(229,51,122,.5),transparent 60%),linear-gradient(160deg,#4b27a3,#160d1f)', fig: '#fde6dc' },
+  { bg: 'radial-gradient(420px 300px at 25% 0%,rgba(242,215,146,.5),transparent 60%),linear-gradient(160deg,#5b1a73,#160d1f)', fig: '#efe4ff' },
+  { bg: 'radial-gradient(420px 300px at 75% 5%,rgba(247,99,155,.5),transparent 60%),linear-gradient(160deg,#8f1d4f,#21152d)', fig: '#ffe6ef' },
+  { bg: 'radial-gradient(420px 300px at 30% 0%,rgba(227,169,58,.5),transparent 60%),linear-gradient(160deg,#6b3f12,#160d1f)', fig: '#fff0d9' },
+  { bg: 'radial-gradient(420px 300px at 70% 0%,rgba(130,89,243,.55),transparent 60%),linear-gradient(160deg,#2f2a7a,#160d1f)', fig: '#e3e8ff' },
 ];
-const DECK_SIZE = 5;
+const DEMO_IDS = new Set(demoCreators.map((c) => c.id));
+
+// One pass per category, in the category order. A creator who signed up takes
+// the place of the demo creator of their category.
+const pickDeck = (creators: Creator[]) =>
+  CREATOR_CATEGORIES.map((cat) => {
+    const inCat = creators.filter((c) => c.avatar && categoryFor(c.category).id === cat.id);
+    return inCat.find((c) => !DEMO_IDS.has(c.id)) ?? inCat[0];
+  }).filter((c): c is Creator => !!c);
 const AUTOPLAY_MS = 4200;
 
 // Hero: the headline names the creator in front of the deck. The deck is a set of
@@ -26,7 +38,7 @@ const Hero: React.FC<{ creators: Creator[] }> = ({ creators }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const member = user ? HERO.member[user.role] : null;
-  const deck = creators.filter((c) => c.avatar).slice(0, DECK_SIZE);
+  const deck = useMemo(() => pickDeck(creators), [creators]);
   const vip = useVipCreatorIds();
   const live = useLiveCreatorIds(deck.map((c) => c.id));
   const n = deck.length;
