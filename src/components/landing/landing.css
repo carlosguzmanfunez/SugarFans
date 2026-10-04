@@ -114,6 +114,8 @@
 .lv2 .p-res .ap-face .lbl .price{background:linear-gradient(180deg,#f6dfa3,var(--gold));color:var(--night-9)}
 .lv2 .p-live .ap-face .lbl .price{background:var(--live);color:#fff}
 .lv2 .ap-face .who{position:absolute;right:-26px;bottom:0;height:62%;opacity:.95;filter:drop-shadow(0 20px 30px rgb(0 0 0 / .35));transition:transform .7s var(--ease)}
+.lv2 .who.photo{aspect-ratio:4/5;object-fit:cover;object-position:50% 20%;border-radius:22px 22px 0 0;-webkit-mask-image:linear-gradient(to top,transparent 0,#000 38%);mask-image:linear-gradient(to top,transparent 0,#000 38%)}
+.lv2 .ap-face .who.photo{right:-14px;height:58%}
 .lv2 .ap:not(.on):hover .who{transform:translateY(-10px)}
 .lv2 .ap:not(.on):hover{box-shadow:0 50px 90px -46px rgb(40 10 40 / .85)}
 .lv2 .ap-face .more{position:absolute;right:20px;top:24px;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:rgb(255 255 255 / .16);transition:background .3s}
@@ -177,6 +179,7 @@
 @keyframes burst{0%{transform:translate(0,0) scale(.5);opacity:0}15%{opacity:1}100%{transform:translate(var(--dx),-220px) scale(1.15);opacity:0}}
 .lv2 .livevid{position:relative;height:170px;border-radius:16px;overflow:hidden;background:linear-gradient(135deg,#851244,#3e2483)}
 .lv2 .livevid img{position:absolute;left:50%;bottom:0;height:96%;transform:translateX(-50%)}
+.lv2 .livevid img.photo{left:0;width:100%;height:100%;object-fit:cover;object-position:50% 25%;transform:none}
 .lv2 .livevid .tl{position:absolute;top:10px;left:10px;display:flex;gap:6px}
 .lv2 #comunidades .sec-head{max-width:900px}
 .lv2 .sec-head h2 em.grad{font-style:normal;background:linear-gradient(90deg,var(--brand),var(--iris) 60%,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}

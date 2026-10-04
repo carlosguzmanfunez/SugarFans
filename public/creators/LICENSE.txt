@@ -4,3 +4,5 @@ Placeholders for the demo profiles; real creators upload their own photo.
 
 cutout/: the same illustrations with the background removed and cropped to the figure (used in the landing hero video call).
 clear/: the same illustrations with only the background removed (uncropped), used in the landing sections.
+
+photos/: AI-generated portraits of fictional people (no real person is depicted), made for the demo profiles. They show on the demo profiles until real creators replace them.
