@@ -41,7 +41,7 @@ const TAPS = [1, 2]
 const FINAL_FRAG = `${HEAD}uniform sampler2D src;uniform sampler2D bg;uniform sampler2D mask;
 uniform vec2 radius;uniform float smoothAmt;uniform float exposure;uniform float contrast;
 uniform float saturation;uniform float warmth;uniform float lift;uniform float useBlur;
-uniform float glow;uniform float blush;
+uniform float glow;uniform float blush;uniform float rose;
 void tap(vec2 o,vec3 c,inout vec3 sum,inout float w){
   vec3 s=texture2D(src,uv+o*radius).rgb;vec3 d=s-c;float k=exp(-dot(d,d)*90.0);sum+=s*k;w+=k;
 }
@@ -52,7 +52,7 @@ float skin(vec3 c){
 vec3 grade(vec3 c){
   c*=exposure;c+=lift*(1.0-c)*(1.0-c);c=(c-0.5)*contrast+0.5;
   float l=dot(c,vec3(0.299,0.587,0.114));c=mix(vec3(l),c,saturation);
-  c+=vec3(warmth,warmth*0.25,-warmth);return clamp(c,0.0,1.0);
+  c+=vec3(warmth,warmth*0.25,-warmth);c+=rose*vec3(0.05,-0.015,0.035);return clamp(c,0.0,1.0);
 }
 void main(){
   vec3 c0=texture2D(src,uv).rgb;vec3 c=c0;
@@ -381,6 +381,7 @@ export class LookProcessor implements TrackProcessor<Track.Kind.Video, VideoProc
     gl.uniform1f(u('lift'), p.lift);
     gl.uniform1f(u('glow'), p.glow);
     gl.uniform1f(u('blush'), p.blush);
+    gl.uniform1f(u('rose'), p.rose);
     gl.uniform1f(u('useBlur'), blur ? 1 : 0);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     // Wait for the GPU to finish this frame, so slow devices can't pile up work and
