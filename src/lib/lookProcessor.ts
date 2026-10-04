@@ -41,7 +41,7 @@ const TAPS = [1, 2]
 const FINAL_FRAG = `${HEAD}uniform sampler2D src;uniform sampler2D bg;uniform sampler2D mask;
 uniform vec2 radius;uniform float smoothAmt;uniform float exposure;uniform float contrast;
 uniform float saturation;uniform float warmth;uniform float lift;uniform float useBlur;
-uniform float glow;uniform float blush;uniform float rose;
+uniform float glow;uniform float blush;uniform float rose;uniform float grain;uniform vec2 px;
 void tap(vec2 o,vec3 c,inout vec3 sum,inout float w){
   vec3 s=texture2D(src,uv+o*radius).rgb;vec3 d=s-c;float k=exp(-dot(d,d)*90.0);sum+=s*k;w+=k;
 }
@@ -60,6 +60,10 @@ void main(){
 ${TAPS}
     float sk=skin(c0);vec3 sm=sum/w;
     c=mix(c0,sm,min(1.0,smoothAmt*(0.35+0.65*sk)));
+    // Frequency separation: the wide pass erases spots and fine lines; adding back the
+    // pixel-level grain keeps real skin texture instead of a plastic look.
+    vec3 n4=(texture2D(src,uv+vec2(px.x,0.0)).rgb+texture2D(src,uv-vec2(px.x,0.0)).rgb+texture2D(src,uv+vec2(0.0,px.y)).rgb+texture2D(src,uv-vec2(0.0,px.y)).rgb)*0.25;
+    c+=(c0-n4)*grain*sk;
     // Retouch: soft glow from the smoothed picture and a little colour on the skin.
     c=1.0-(1.0-c)*(1.0-sm*glow);
     c=mix(c,c*vec3(1.05,0.96,0.99)+vec3(0.015,0.0,0.01),blush*sk);}
@@ -382,6 +386,8 @@ export class LookProcessor implements TrackProcessor<Track.Kind.Video, VideoProc
     gl.uniform1f(u('glow'), p.glow);
     gl.uniform1f(u('blush'), p.blush);
     gl.uniform1f(u('rose'), p.rose);
+    gl.uniform1f(u('grain'), p.grain);
+    gl.uniform2f(u('px'), 1 / w, 1 / h);
     gl.uniform1f(u('useBlur'), blur ? 1 : 0);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     // Wait for the GPU to finish this frame, so slow devices can't pile up work and

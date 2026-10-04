@@ -36,17 +36,19 @@ export interface LookParams {
   glow: number; // soft glow from the smoothed picture 0..1
   blush: number; // rosy tint on skin 0..1
   rose: number; // pink tint over the whole picture 0..1
+  grain: number; // fine skin texture kept after smoothing 0..1
 }
 
-const NEUTRAL: LookParams = { smooth: 0, exposure: 1, contrast: 1, saturation: 1, warmth: 0, lift: 0, blur: false, reach: 1, glow: 0, blush: 0, rose: 0 };
+const NEUTRAL: LookParams = { smooth: 0, exposure: 1, contrast: 1, saturation: 1, warmth: 0, lift: 0, blur: false, reach: 1, glow: 0, blush: 0, rose: 0, grain: 0 };
 
 const BASE: Record<LookId, LookParams> = {
   natural: NEUTRAL,
   soft: { ...NEUTRAL, smooth: 0.55, exposure: 1.02, contrast: 0.96, lift: 0.02, warmth: 0.01 },
-  // Beauty-lens style: strong, wide smoothing on skin, a soft glow and a rosy touch.
-  retouch: { ...NEUTRAL, smooth: 0.95, reach: 1.7, glow: 0.18, blush: 0.5, exposure: 1.04, contrast: 0.95, saturation: 1.02, warmth: 0.015, lift: 0.04 },
+  // Beauty-lens style: wide smoothing that clears spots and fine lines on skin while
+  // keeping its texture, a soft glow and a rosy touch.
+  retouch: { ...NEUTRAL, smooth: 1, reach: 2.3, grain: 0.6, glow: 0.18, blush: 0.5, exposure: 1.04, contrast: 0.95, saturation: 1.02, warmth: 0.015, lift: 0.04 },
   // Polished glam: smooth skin but crisper contrast and a warm, neutral tone.
-  pure: { ...NEUTRAL, smooth: 0.8, reach: 1.4, glow: 0.08, blush: 0.25, exposure: 1.03, contrast: 1.08, saturation: 0.98, warmth: 0.02, lift: 0.02 },
+  pure: { ...NEUTRAL, smooth: 0.85, reach: 1.9, grain: 0.5, glow: 0.08, blush: 0.25, exposure: 1.03, contrast: 1.08, saturation: 0.98, warmth: 0.02, lift: 0.02 },
   // Punchy colour: more saturation and contrast, a light touch of smoothing.
   vivid: { ...NEUTRAL, smooth: 0.2, exposure: 1.02, contrast: 1.14, saturation: 1.35, warmth: 0.02 },
   warm: { ...NEUTRAL, exposure: 1.01, contrast: 0.95, saturation: 1.06, warmth: 0.07, lift: 0.015 },
