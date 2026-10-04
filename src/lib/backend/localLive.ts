@@ -3,7 +3,7 @@
 // of the same browser through the storage event.
 import { readJSON, writeJSONChecked, newId } from '../storage';
 import { moderate } from '../moderation';
-import type { AuthResult } from './types';
+import type { AuthResult, User } from './types';
 import { LIVE_MAX_HOURS, LIVE_REALERT_MINUTES, type AppNotification, type BroadcastAccess, type LiveBackend, type LiveBroadcast } from './liveTypes';
 
 interface StoredBroadcast extends LiveBroadcast {
@@ -36,6 +36,15 @@ export const createLocalLive = (deps: Deps): LiveBackend => {
     deps.notify();
     return true;
   };
+  const closeLive = (user: User) => {
+    const st = load();
+    const now = new Date().toISOString();
+    save({
+      ...st,
+      broadcasts: st.broadcasts.map((b) => (b.creatorProfileId === user.creatorProfileId && !b.endedAt ? { ...b, endedAt: now } : b)),
+    });
+  };
+
   const open = (st: Store, creatorProfileId: string) =>
     st.broadcasts.find((b) => b.creatorProfileId === creatorProfileId && !b.endedAt && !expired(b));
 
@@ -102,14 +111,11 @@ export const createLocalLive = (deps: Deps): LiveBackend => {
     },
 
     async endLive(user) {
-      const st = load();
-      const now = new Date().toISOString();
-      save({
-        ...st,
-        broadcasts: st.broadcasts.map((b) => (b.creatorProfileId === user.creatorProfileId && !b.endedAt ? { ...b, endedAt: now } : b)),
-      });
+      closeLive(user);
       return ok;
     },
+
+    endLiveOnExit: closeLive,
 
     async liveAlerts(creatorProfileId, user) {
       return !(load().alertsOff[creatorProfileId] ?? []).includes(user.id);

@@ -43,78 +43,96 @@ const liveToken = async (sb: SupabaseClient, payload: Record<string, string>, fa
   }
 };
 
-export const createSupabaseLive = (sb: SupabaseClient): LiveBackend => ({
-  async currentLive(creatorProfileId) {
-    const since = new Date(Date.now() - LIVE_MAX_HOURS * 3600_000).toISOString();
-    const { data } = await sb
-      .from('live_broadcasts')
-      .select('id, creator_profile_id, title, started_at')
-      .eq('creator_profile_id', creatorProfileId)
-      .is('ended_at', null)
-      .gt('started_at', since)
-      .maybeSingle();
-    return data ? { id: data.id, creatorProfileId: data.creator_profile_id, title: data.title, startedAt: data.started_at } : null;
-  },
+export const createSupabaseLive = (sb: SupabaseClient, url: string, anonKey: string): LiveBackend => {
+  // A closing tab can't wait for getSession(), so keep the latest session token at hand.
+  let accessToken: string | null = null;
+  sb.auth.getSession().then(({ data }) => (accessToken = data.session?.access_token ?? null));
+  sb.auth.onAuthStateChange((_event, session) => (accessToken = session?.access_token ?? null));
 
-  async startLive(_user, title) {
-    const { data, error } = await sb.rpc('start_live', { p_title: title });
-    if (error) return fail(rpcError(error.message));
-    return { ok: true, notified: Number((data as Row | null)?.notified ?? 0) };
-  },
+  return {
+    async currentLive(creatorProfileId) {
+      const since = new Date(Date.now() - LIVE_MAX_HOURS * 3600_000).toISOString();
+      const { data } = await sb
+        .from('live_broadcasts')
+        .select('id, creator_profile_id, title, started_at')
+        .eq('creator_profile_id', creatorProfileId)
+        .is('ended_at', null)
+        .gt('started_at', since)
+        .maybeSingle();
+      return data ? { id: data.id, creatorProfileId: data.creator_profile_id, title: data.title, startedAt: data.started_at } : null;
+    },
 
-  async endLive() {
-    const { error } = await sb.rpc('end_live');
-    return error ? fail(rpcError(error.message)) : ok;
-  },
+    async startLive(_user, title) {
+      const { data, error } = await sb.rpc('start_live', { p_title: title });
+      if (error) return fail(rpcError(error.message));
+      return { ok: true, notified: Number((data as Row | null)?.notified ?? 0) };
+    },
 
-  async liveAlerts(creatorProfileId, user) {
-    const { data } = await sb
-      .from('follows')
-      .select('live_alerts')
-      .eq('user_id', user.id)
-      .eq('creator_profile_id', creatorProfileId)
-      .maybeSingle();
-    return data ? !!data.live_alerts : true;
-  },
+    async endLive() {
+      const { error } = await sb.rpc('end_live');
+      return error ? fail(rpcError(error.message)) : ok;
+    },
 
-  async setLiveAlerts(user, creatorProfileId, on) {
-    const { error } = await sb
-      .from('follows')
-      .update({ live_alerts: on })
-      .eq('user_id', user.id)
-      .eq('creator_profile_id', creatorProfileId);
-    return error ? fail('No se pudo actualizar. Inténtalo de nuevo.') : ok;
-  },
+    endLiveOnExit() {
+      if (!accessToken) return;
+      // keepalive lets the request finish after the tab is gone.
+      fetch(`${url}/rest/v1/rpc/end_live`, {
+        method: 'POST',
+        keepalive: true,
+        headers: { apikey: anonKey, authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
+        body: '{}',
+      }).catch(() => undefined);
+    },
 
-  async notifications(user) {
-    const { data } = await sb
-      .from('notifications')
-      .select('id, kind, creator_profile_id, title, body, link, created_at, read_at')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(50);
-    return (data ?? []).map(toNotification);
-  },
+    async liveAlerts(creatorProfileId, user) {
+      const { data } = await sb
+        .from('follows')
+        .select('live_alerts')
+        .eq('user_id', user.id)
+        .eq('creator_profile_id', creatorProfileId)
+        .maybeSingle();
+      return data ? !!data.live_alerts : true;
+    },
 
-  async markNotificationsRead() {
-    await sb.rpc('mark_notifications_read');
-  },
+    async setLiveAlerts(user, creatorProfileId, on) {
+      const { error } = await sb
+        .from('follows')
+        .update({ live_alerts: on })
+        .eq('user_id', user.id)
+        .eq('creator_profile_id', creatorProfileId);
+      return error ? fail('No se pudo actualizar. Inténtalo de nuevo.') : ok;
+    },
 
-  broadcastAccess(creatorProfileId) {
-    return liveToken(sb, { creatorProfileId }, 'No se pudo obtener el acceso al Live');
-  },
+    async notifications(user) {
+      const { data } = await sb
+        .from('notifications')
+        .select('id, kind, creator_profile_id, title, body, link, created_at, read_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      return (data ?? []).map(toNotification);
+    },
 
-  callAccess(bookingId) {
-    return liveToken(sb, { bookingId }, 'No se pudo obtener el acceso a la sala');
-  },
+    async markNotificationsRead() {
+      await sb.rpc('mark_notifications_read');
+    },
 
-  watchNotifications(userId, cb) {
-    const channel = sb
-      .channel(`notifications:${userId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` }, () => cb())
-      .subscribe();
-    return () => {
-      sb.removeChannel(channel);
-    };
-  },
-});
+    broadcastAccess(creatorProfileId) {
+      return liveToken(sb, { creatorProfileId }, 'No se pudo obtener el acceso al Live');
+    },
+
+    callAccess(bookingId) {
+      return liveToken(sb, { bookingId }, 'No se pudo obtener el acceso a la sala');
+    },
+
+    watchNotifications(userId, cb) {
+      const channel = sb
+        .channel(`notifications:${userId}`)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` }, () => cb())
+        .subscribe();
+      return () => {
+        sb.removeChannel(channel);
+      };
+    },
+  };
+};

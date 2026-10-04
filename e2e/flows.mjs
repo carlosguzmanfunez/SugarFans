@@ -1889,6 +1889,30 @@ const run = async () => {
       await resF.getByText('Este creator no está en Live ahora').waitFor();
       await resF.goto(`${BASE}/creator/1`);
     });
+    await check('Live gratis: Salir del fan no lo cierra; Terminar Live en la página pide confirmar y lo cierra', async () => {
+      await resC.goto(`${BASE}/creator/dashboard`);
+      const panel = resC.getByTestId('creator-live-panel');
+      await panel.getByLabel('Título del Live').fill('Segundo Live');
+      await panel.getByRole('button', { name: 'Iniciar Live' }).click();
+      await waitPath(resC, '/en-vivo/1');
+      await resF.goto(`${BASE}/en-vivo/1`);
+      await resF.getByRole('button', { name: 'Salir' }).click();
+      await waitPath(resF, '/creator/1');
+      await resF.getByTestId('live-now').waitFor();
+      await resC.getByRole('button', { name: 'Terminar Live' }).click();
+      const dialog = resC.getByTestId('leave-live-dialog');
+      await dialog.getByText('Estás abandonando el Live y se cerrará. ¿Estás de acuerdo?').waitFor();
+      await dialog.getByRole('button', { name: 'No, continuar en el Live' }).click();
+      await dialog.waitFor({ state: 'detached' });
+      expect(new URL(resC.url()).pathname === '/en-vivo/1', 'salió del Live al decir que no');
+      await resC.getByRole('button', { name: 'Terminar Live' }).click();
+      await dialog.getByRole('button', { name: 'Sí, cerrar el Live' }).click();
+      await waitPath(resC, '/creator/dashboard');
+      await panel.getByRole('button', { name: 'Iniciar Live' }).waitFor();
+      await resF.goto(`${BASE}/creator/1`);
+      await resF.getByTestId('ladder-live').getByText('En vivo', { exact: true }).waitFor();
+      expect((await resF.getByTestId('live-now').count()) === 0, 'sigue en Live');
+    });
     await check('La suscripción y los regalos dicen que no incluyen Reserve', async () => {
       const section = resF.getByTestId('creator-reserve');
       await section.getByTestId('notice-subscription').getByText(/No incluye videollamadas ni experiencias de Reserve/).waitFor();

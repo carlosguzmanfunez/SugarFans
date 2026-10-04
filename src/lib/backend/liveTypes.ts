@@ -41,6 +41,9 @@ export interface LiveBackend {
   // Marks the signed-in creator as live and alerts followers with the bell on.
   startLive(user: User, title: string): Promise<AuthResult & { notified?: number }>;
   endLive(user: User): Promise<AuthResult>;
+  // Same as endLive, fired while the creator's tab is closing: it has no answer to
+  // wait for and the request must outlive the page.
+  endLiveOnExit(user: User): void;
   // The fan's bell for a creator they follow.
   liveAlerts(creatorProfileId: string, user: User): Promise<boolean>;
   setLiveAlerts(user: User, creatorProfileId: string, on: boolean): Promise<AuthResult>;

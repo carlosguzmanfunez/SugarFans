@@ -213,13 +213,48 @@ const run = async () => {
       await c.getByRole('button', { name: 'Enviar' }).click();
       await f.getByTestId('broadcast-chat').getByText('¡Bienvenido!').waitFor();
     });
+    await check('Salir del Live (botón, atrás u otro enlace) pide confirmar; con "No" sigue emitiendo', async () => {
+      const dialog = c.getByTestId('leave-live-dialog');
+      const stay = async () => {
+        await dialog.getByText('Estás abandonando el Live y se cerrará. ¿Estás de acuerdo?').waitFor();
+        await dialog.getByRole('button', { name: 'No, continuar en el Live' }).click();
+        await dialog.waitFor({ state: 'detached' });
+        expect(new URL(c.url()).pathname === '/en-vivo/1', `salió del Live: ${c.url()}`);
+      };
+      await c.getByRole('button', { name: 'Terminar Live' }).click();
+      await stay();
+      await c.goBack();
+      await stay();
+      await c.evaluate(() => {
+        const a = Object.assign(document.createElement('a'), { href: '/explore', textContent: 'otra página' });
+        document.body.append(a);
+        a.click();
+      });
+      await stay();
+      expect((await participants()).some((p) => p.identity === 'demo-creator' && p.tracks.length === 2), 'la creator dejó de emitir');
+    });
     await check('Al terminar el Live, el fan ve que terminó y el perfil deja de estar en Live', async () => {
       await c.getByRole('button', { name: 'Terminar Live' }).click();
+      await c.getByTestId('leave-live-dialog').getByRole('button', { name: 'Sí, cerrar el Live' }).click();
       await c.waitForURL(`${BASE}/creator/dashboard`);
       await f.getByText('El Live terminó.').waitFor();
       await waitFor(async () => !(await participants()).some((p) => p.identity === 'demo-creator'), 'la creator sigue en la sala');
       await f.goto(`${BASE}/creator/1`);
       await f.getByTestId('ladder-live').getByText('En vivo', { exact: true }).waitFor();
+    });
+
+    await check('Si la creator cierra la pestaña en pleno Live, el Live se cierra', async () => {
+      const c2 = await page();
+      await login(c2, 'creator@sugarfans.com');
+      await c2.goto(`${BASE}/creator/dashboard`);
+      await c2.getByLabel('Título del Live').fill('Live que se cierra solo');
+      await c2.getByRole('button', { name: 'Iniciar Live' }).click();
+      await c2.waitForURL(`${BASE}/en-vivo/1`);
+      await c2.getByRole('button', { name: 'Encender cámara y empezar' }).click();
+      await waitFor(() => playing(c2), 'la creator no emite');
+      await c2.close({ runBeforeUnload: true });
+      await f.goto(`${BASE}/en-vivo/1`);
+      await f.getByText('Este creator no está en Live ahora').waitFor();
     });
 
     console.log('\nVideollamada privada de Reserve');
