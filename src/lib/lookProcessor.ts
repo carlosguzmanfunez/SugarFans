@@ -41,6 +41,7 @@ const TAPS = [1, 2]
 const FINAL_FRAG = `${HEAD}uniform sampler2D src;uniform sampler2D bg;uniform sampler2D mask;
 uniform vec2 radius;uniform float smoothAmt;uniform float exposure;uniform float contrast;
 uniform float saturation;uniform float warmth;uniform float lift;uniform float useBlur;
+uniform float glow;uniform float blush;
 void tap(vec2 o,vec3 c,inout vec3 sum,inout float w){
   vec3 s=texture2D(src,uv+o*radius).rgb;vec3 d=s-c;float k=exp(-dot(d,d)*90.0);sum+=s*k;w+=k;
 }
@@ -57,7 +58,11 @@ void main(){
   vec3 c0=texture2D(src,uv).rgb;vec3 c=c0;
   if(smoothAmt>0.0){vec3 sum=c0;float w=1.0;
 ${TAPS}
-    c=mix(c0,sum/w,smoothAmt*(0.35+0.65*skin(c0)));}
+    float sk=skin(c0);vec3 sm=sum/w;
+    c=mix(c0,sm,min(1.0,smoothAmt*(0.35+0.65*sk)));
+    // Retouch: soft glow from the smoothed picture and a little colour on the skin.
+    c=1.0-(1.0-c)*(1.0-sm*glow);
+    c=mix(c,c*vec3(1.05,0.96,0.99)+vec3(0.015,0.0,0.01),blush*sk);}
   c=grade(c);
   if(useBlur>0.5){vec3 b=grade(texture2D(bg,uv).rgb);float m=smoothstep(0.3,0.7,texture2D(mask,uv).r);c=mix(b,c,m);}
   gl_FragColor=vec4(c,1.0);
@@ -366,7 +371,7 @@ export class LookProcessor implements TrackProcessor<Track.Kind.Video, VideoProc
     gl.uniform1i(u('src'), 0);
     gl.uniform1i(u('bg'), 1);
     gl.uniform1i(u('mask'), 2);
-    const r = h / 180; // smoothing reach scales with the picture size
+    const r = (h / 180) * p.reach; // smoothing reach scales with the picture size
     gl.uniform2f(u('radius'), r / w, r / h);
     gl.uniform1f(u('smoothAmt'), p.smooth);
     gl.uniform1f(u('exposure'), p.exposure);
@@ -374,6 +379,8 @@ export class LookProcessor implements TrackProcessor<Track.Kind.Video, VideoProc
     gl.uniform1f(u('saturation'), p.saturation);
     gl.uniform1f(u('warmth'), p.warmth);
     gl.uniform1f(u('lift'), p.lift);
+    gl.uniform1f(u('glow'), p.glow);
+    gl.uniform1f(u('blush'), p.blush);
     gl.uniform1f(u('useBlur'), blur ? 1 : 0);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     // Wait for the GPU to finish this frame, so slow devices can't pile up work and

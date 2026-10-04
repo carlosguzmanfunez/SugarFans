@@ -3,7 +3,7 @@
 // The pixel work lives in lookProcessor.ts; this file holds the catalogue, the
 // per-look settings and the remembered choice.
 
-export type LookId = 'natural' | 'soft' | 'warm' | 'studio' | 'blur';
+export type LookId = 'natural' | 'soft' | 'retouch' | 'warm' | 'studio' | 'blur';
 
 export interface LookInfo {
   id: LookId;
@@ -15,6 +15,7 @@ export interface LookInfo {
 export const LOOKS: LookInfo[] = [
   { id: 'natural', name: 'Natural', hint: 'Sin filtro', icon: 'fa-circle' },
   { id: 'soft', name: 'Soft', hint: 'Suavizado ligero', icon: 'fa-feather' },
+  { id: 'retouch', name: 'Retouch', hint: 'Piel lisa y luminosa', icon: 'fa-star' },
   { id: 'warm', name: 'Warm', hint: 'Tono cálido', icon: 'fa-sun' },
   { id: 'studio', name: 'Studio', hint: 'Luz de estudio', icon: 'fa-lightbulb' },
   { id: 'blur', name: 'Background Blur', hint: 'Fondo desenfocado', icon: 'fa-user' },
@@ -29,13 +30,18 @@ export interface LookParams {
   warmth: number; // + warmer, - cooler
   lift: number; // brightens shadows
   blur: boolean; // background blur (needs person segmentation)
+  reach: number; // smoothing radius multiplier
+  glow: number; // soft glow from the smoothed picture 0..1
+  blush: number; // rosy tint on skin 0..1
 }
 
-const NEUTRAL: LookParams = { smooth: 0, exposure: 1, contrast: 1, saturation: 1, warmth: 0, lift: 0, blur: false };
+const NEUTRAL: LookParams = { smooth: 0, exposure: 1, contrast: 1, saturation: 1, warmth: 0, lift: 0, blur: false, reach: 1, glow: 0, blush: 0 };
 
 const BASE: Record<LookId, LookParams> = {
   natural: NEUTRAL,
   soft: { ...NEUTRAL, smooth: 0.55, exposure: 1.02, contrast: 0.96, lift: 0.02, warmth: 0.01 },
+  // Beauty-lens style: strong, wide smoothing on skin, a soft glow and a rosy touch.
+  retouch: { ...NEUTRAL, smooth: 0.95, reach: 1.7, glow: 0.18, blush: 0.5, exposure: 1.04, contrast: 0.95, saturation: 1.02, warmth: 0.015, lift: 0.04 },
   warm: { ...NEUTRAL, exposure: 1.01, contrast: 0.95, saturation: 1.06, warmth: 0.07, lift: 0.015 },
   studio: { ...NEUTRAL, smooth: 0.15, exposure: 1.07, contrast: 1.06, saturation: 1.05, warmth: 0.015, lift: 0.05 },
   blur: { ...NEUTRAL, blur: true },
@@ -47,7 +53,7 @@ export function lookParams(look: LookId, enhance: boolean): LookParams {
   if (!enhance) return p;
   return {
     ...p,
-    smooth: Math.min(0.8, Math.max(p.smooth, 0.25) + 0.25),
+    smooth: Math.max(p.smooth, Math.min(0.8, Math.max(p.smooth, 0.25) + 0.25)),
     exposure: p.exposure * 1.03,
     lift: p.lift + 0.03,
     saturation: p.saturation * 1.03,
