@@ -1488,7 +1488,8 @@ const run = async () => {
     await check('El fan envía una Corona: es apoyo y no promete nada', async () => {
       const dialog = await openGift(gf);
       await dialog.getByRole('button', { name: /Corona/ }).click();
-      await dialog.getByTestId('notice-gift').getByText(/No garantizan respuesta, conversación, acceso ni experiencias de Reserve/).waitFor();
+      await dialog.getByRole('button', { name: /Enviar Corona/ }).waitFor();
+      expect((await dialog.getByTestId('notice-gift').count()) === 0, 'la ventana de regalo aún muestra la leyenda de apoyo voluntario');
       expect((await dialog.getByTestId('gift-perks').count()) === 0, 'el regalo promete beneficios');
       expect((await dialog.getByLabel('Qué quieres en tu video').count()) === 0, 'el regalo pide un video personalizado');
       await dialog.getByLabel('Mensaje del regalo').fill('¡Para mi reina!');
@@ -1512,7 +1513,7 @@ const run = async () => {
       await grantCoins(gf, 150000);
       const dialog = await openGift(gf);
       await dialog.getByRole('button', { name: /Castillo/ }).click();
-      await dialog.getByTestId('notice-gift').waitFor();
+      await dialog.getByRole('button', { name: /Enviar Castillo/ }).waitFor();
       expect((await dialog.getByText(/Video personalizado|Videollamada|Bóveda/).count()) === 0, 'el regalo promete video, videollamada o Bóveda');
       await dialog.getByRole('button', { name: /Enviar Castillo/ }).click();
       await gf.getByText(/Castillo enviado/).waitFor();
@@ -1920,7 +1921,7 @@ const run = async () => {
       await resF.getByRole('button', { name: 'Enviar regalo' }).click();
       const dialog = resF.getByRole('dialog', { name: /Regalo para Valentina Rose/ });
       await dialog.getByRole('button', { name: /Corona/ }).first().click();
-      await dialog.getByTestId('notice-gift').waitFor();
+      await dialog.getByLabel('Mensaje del regalo').waitFor();
       expect((await dialog.getByText(/videollamada/i).count()) === 0, 'el regalo menciona una videollamada');
     });
     await check('Cada experiencia muestra modalidad, duración, lugar, reglas y quién aprueba', async () => {

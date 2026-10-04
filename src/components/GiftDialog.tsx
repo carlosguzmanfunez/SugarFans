@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import type { User } from '../context/AuthContext';
 import BuyCoinsDialog from './BuyCoinsDialog';
 import GiftArt from './GiftArt';
-import { ReserveNotice } from './reserve/ReserveBits';
 import CoinIcon from './CoinIcon';
 import { currencyWord } from '../config/currency';
 import { giftCategoryLabel } from '../config/gifts';
@@ -110,7 +109,6 @@ const GiftDialog: React.FC<Props> = ({ user, creatorProfileId, creatorName, post
                 {money(value)} en regalo para {creatorName}.
               </p>
             </div>
-            <ReserveNotice kind="gift" />
             <input
               aria-label="Mensaje del regalo"
               value={message}
