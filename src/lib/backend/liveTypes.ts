@@ -48,6 +48,9 @@ export interface LiveBackend {
   markNotificationsRead(user: User): Promise<void>;
   // LiveKit access to a creator's open Live: the owner publishes, everyone else watches.
   broadcastAccess(creatorProfileId: string): Promise<AuthResult & { access?: BroadcastAccess }>;
+  // LiveKit access to the private call of a confirmed Reserve booking: only its fan
+  // and its creator get in, both with camera and microphone (host = the creator).
+  callAccess(bookingId: string): Promise<AuthResult & { access?: BroadcastAccess }>;
   // Calls back when a new notification arrives for this user. Returns the unsubscribe.
   watchNotifications(userId: string, cb: () => void): () => void;
 }

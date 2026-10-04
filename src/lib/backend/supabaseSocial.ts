@@ -5,7 +5,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { newId } from '../storage';
 import { extensionOf, validateMedia } from '../media';
 import type { AuthResult } from './types';
-import type { FeedPost, LiveMessage, PostComment, PublicCreator, SocialBackend } from './socialTypes';
+import type { FeedPost, PostComment, PublicCreator, SocialBackend } from './socialTypes';
 
 type Row = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -149,38 +149,5 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
   async publicCreators() {
     const { data } = await sb.rpc('public_creators');
     return ((data as Row[] | null) ?? []).map(toPublicCreator);
-  },
-
-  async joinLive(user, bookingId, onMessage) {
-    const { data: booking } = await sb.from('vip_bookings').select('status').eq('id', bookingId).maybeSingle();
-    if (!booking) return fail('No tienes acceso a esta sesión');
-    if (booking.status !== 'confirmed') return fail('La sesión se abre cuando la reserva está pagada y confirmada');
-    // Private channel: Realtime checks can_join_live() on every message.
-    await sb.realtime.setAuth();
-    const channel = sb.channel(`live:${bookingId}`, { config: { private: true, broadcast: { self: false } } });
-    channel.on('broadcast', { event: 'signal' }, ({ payload }) => {
-      const m = payload as LiveMessage;
-      if (m?.from !== user.id) onMessage(m);
-    });
-    const status = await new Promise<string>((resolve) => {
-      channel.subscribe((s) => {
-        if (s === 'SUBSCRIBED' || s === 'CHANNEL_ERROR' || s === 'TIMED_OUT') resolve(s);
-      });
-    });
-    if (status !== 'SUBSCRIBED') {
-      sb.removeChannel(channel);
-      return fail('No se pudo conectar a la sala. Revisa tu conexión e inténtalo de nuevo.');
-    }
-    return {
-      ok: true,
-      channel: {
-        send: (signal) => {
-          channel.send({ type: 'broadcast', event: 'signal', payload: { ...signal, from: user.id } });
-        },
-        close: () => {
-          sb.removeChannel(channel);
-        },
-      },
-    };
   },
 });

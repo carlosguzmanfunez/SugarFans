@@ -228,7 +228,6 @@ const rewards = createLocalRewards({
 
 const social = createLocalSocial({
   listAccounts: () => loadAccounts().map(toPublic),
-  listBookings: () => listBookings(),
   notify,
 });
 

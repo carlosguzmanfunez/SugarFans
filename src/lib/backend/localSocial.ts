@@ -3,8 +3,8 @@
 // rooms signal over a BroadcastChannel, so both people must use the same browser.
 import { readJSON, writeJSONChecked, newId } from '../storage';
 import { extensionOf, validateMedia } from '../media';
-import type { AuthResult, User, VipBooking } from './types';
-import type { FeedPost, LiveMessage, PostComment, PublicCreator, SocialBackend } from './socialTypes';
+import type { AuthResult, User } from './types';
+import type { FeedPost, PostComment, PublicCreator, SocialBackend } from './socialTypes';
 import { BRAND } from '../../config/brand';
 
 interface Store {
@@ -15,7 +15,6 @@ interface Store {
 
 interface Deps {
   listAccounts(): User[];
-  listBookings(): VipBooking[];
   notify(): void;
 }
 
@@ -193,24 +192,6 @@ export const createLocalSocial = (deps: Deps): SocialBackend => {
         const ids = (st.follows?.[creatorProfileId] ?? []).filter((id) => id !== user.id);
         return { ...st, follows: { ...st.follows, [creatorProfileId]: follow ? [...ids, user.id] : ids } };
       });
-    },
-
-    async joinLive(user, bookingId, onMessage) {
-      const b = deps.listBookings().find((x) => x.id === bookingId);
-      const isParticipant = !!b && (b.fanId === user.id || (!!user.creatorProfileId && b.creatorProfileId === user.creatorProfileId));
-      if (!b || !isParticipant) return fail('No tienes acceso a esta sesión');
-      if (b.status !== 'confirmed') return fail('La sesión se abre cuando la reserva está pagada y confirmada');
-      const bc = new BroadcastChannel(`${BRAND.storagePrefix}live_${bookingId}`);
-      bc.onmessage = (e: MessageEvent<LiveMessage>) => {
-        if (e.data?.from !== user.id) onMessage(e.data);
-      };
-      return {
-        ok: true,
-        channel: {
-          send: (signal) => bc.postMessage({ ...signal, from: user.id }),
-          close: () => bc.close(),
-        },
-      };
     },
   };
 };

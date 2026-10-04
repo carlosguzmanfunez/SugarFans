@@ -1,29 +1,23 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Room, RoomEvent, Track, VideoPresets, type RemoteParticipant, type RemoteTrack } from 'livekit-client';
 import GiftDialog from '../components/GiftDialog';
 import GiftCelebration from '../components/GiftCelebration';
 import { giftById, type Gift } from '../lib/gifts';
 import { useAuth } from '../context/AuthContext';
 import ViewerWatermark, { noCaptureVideoProps } from '../components/ViewerWatermark';
 import { backend } from '../lib/backend';
+import { liveApi } from '../lib/live';
 import { sessionMinutes, formatLongDate, liveState, liveWindow, type VipBooking } from '../lib/vip';
-import type { LiveChannel, LiveMessage, LiveSignal } from '../lib/social';
 
-// 1:1 video call between the fan and the creator of a confirmed VIP booking.
-// Media flows peer to peer (WebRTC); the backend's private room only relays the
-// handshake and the chat. Optional TURN servers (VITE_TURN_*) help strict networks.
-const iceServers = (): RTCIceServer[] => {
-  const servers: RTCIceServer[] = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
-  const turn = import.meta.env.VITE_TURN_URLS as string | undefined;
-  if (turn) {
-    servers.push({
-      urls: turn.split(',').map((u) => u.trim()),
-      username: import.meta.env.VITE_TURN_USERNAME as string | undefined,
-      credential: import.meta.env.VITE_TURN_CREDENTIAL as string | undefined,
-    });
-  }
-  return servers;
-};
+// 1:1 video call between the fan and the creator of a confirmed Reserve booking.
+// Video, audio and chat go through LiveKit (like the free Live), so the call works
+// on mobile data and strict networks too. The token comes from api/live-token.ts,
+// which only lets in the booking's fan and creator. Nothing is recorded.
+type CallMessage = { type: 'chat'; text: string; name: string; at: string } | { type: 'gift'; giftId: string; name: string };
+
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
 
 interface ChatLine {
   mine: boolean;
@@ -46,6 +40,7 @@ const LiveRoom: React.FC = () => {
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const [hasMedia, setHasMedia] = useState(false);
+  const [needsAudio, setNeedsAudio] = useState(false);
   const [chat, setChat] = useState<ChatLine[]>([]);
   const [draft, setDraft] = useState('');
   const [gifting, setGifting] = useState(false);
@@ -53,11 +48,8 @@ const LiveRoom: React.FC = () => {
 
   const localVideo = useRef<HTMLVideoElement>(null);
   const remoteVideo = useRef<HTMLVideoElement>(null);
-  const pcRef = useRef<RTCPeerConnection | null>(null);
-  const chRef = useRef<LiveChannel | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const pendingIce = useRef<RTCIceCandidateInit[]>([]);
-  const queue = useRef<Promise<void>>(Promise.resolve());
+  const audioBox = useRef<HTMLDivElement>(null);
+  const roomRef = useRef<Room | null>(null);
 
   const isCreator = !!booking && !!user?.creatorProfileId && user.creatorProfileId === booking.creatorProfileId;
   const otherName = booking ? (isCreator ? booking.fanName : booking.creatorName) : '';
@@ -90,152 +82,149 @@ const LiveRoom: React.FC = () => {
     };
   }, [user, bookingId]);
 
-  const send = useCallback((signal: LiveSignal) => chRef.current?.send(signal), []);
-
-  const newPeer = useCallback(() => {
-    pcRef.current?.close();
-    pendingIce.current = [];
-    const pc = new RTCPeerConnection({ iceServers: iceServers() });
-    const stream = streamRef.current;
-    if (stream) stream.getTracks().forEach((t) => pc.addTrack(t, stream));
-    else {
-      pc.addTransceiver('video', { direction: 'recvonly' });
-      pc.addTransceiver('audio', { direction: 'recvonly' });
-    }
-    pc.onicecandidate = (e) => e.candidate && send({ type: 'ice', candidate: e.candidate.toJSON() });
-    pc.ontrack = (e) => {
-      if (remoteVideo.current) remoteVideo.current.srcObject = e.streams[0] ?? new MediaStream([e.track]);
-    };
-    pc.onconnectionstatechange = () => {
-      const st = pc.connectionState;
-      setConnected(st === 'connected');
-      if (st === 'connected') setStatus('');
-      else if (st === 'connecting') setStatus('Conectando…');
-      else if (st === 'failed') setStatus('No se pudo establecer la conexión. Pulsa “Reconectar”.');
-      else if (st === 'disconnected') setStatus('Conexión inestable…');
-    };
-    pcRef.current = pc;
-    return pc;
-  }, [send]);
-
-  const flushIce = async (pc: RTCPeerConnection) => {
-    for (const c of pendingIce.current.splice(0)) await pc.addIceCandidate(c).catch(() => undefined);
-  };
-
-  const makeOffer = useCallback(async () => {
-    const pc = newPeer();
-    setStatus('Conectando…');
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    send({ type: 'offer', sdp: offer.sdp ?? '' });
-  }, [newPeer, send]);
-
-  // The creator always places the offer; the fan answers. "hello" announces
-  // whoever arrives, so the order of arrival does not matter.
-  const handle = useCallback(
-    async (m: LiveMessage) => {
-      if (m.type === 'hello') {
-        if (isCreator) await makeOffer();
-        else send({ type: 'hello' });
-      } else if (m.type === 'offer' && !isCreator) {
-        const pc = newPeer();
-        await pc.setRemoteDescription({ type: 'offer', sdp: m.sdp });
-        await flushIce(pc);
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        send({ type: 'answer', sdp: answer.sdp ?? '' });
-      } else if (m.type === 'answer' && isCreator && pcRef.current) {
-        await pcRef.current.setRemoteDescription({ type: 'answer', sdp: m.sdp });
-        await flushIce(pcRef.current);
-      } else if (m.type === 'ice') {
-        const pc = pcRef.current;
-        if (pc?.remoteDescription) await pc.addIceCandidate(m.candidate).catch(() => undefined);
-        else pendingIce.current.push(m.candidate);
-      } else if (m.type === 'bye') {
-        pcRef.current?.close();
-        pcRef.current = null;
-        if (remoteVideo.current) remoteVideo.current.srcObject = null;
-        setConnected(false);
-        setStatus(`${otherName} salió de la sala. Puedes esperar a que vuelva.`);
-      } else if (m.type === 'chat') {
-        setChat((c) => [...c, { mine: false, name: m.name, text: m.text, at: m.at }]);
-      } else if (m.type === 'gift') {
-        const gift = giftById(m.giftId);
-        if (gift) setCelebration({ gift, caption: `¡${m.name} te envió ${gift.name}!` });
-      }
-    },
-    [isCreator, makeOffer, newPeer, otherName, send]
-  );
+  const send = useCallback((m: CallMessage) => {
+    roomRef.current?.localParticipant.publishData(encoder.encode(JSON.stringify(m)), { reliable: true }).catch(() => undefined);
+  }, []);
 
   const leave = useCallback(() => {
-    send({ type: 'bye' });
-    chRef.current?.close();
-    chRef.current = null;
-    pcRef.current?.close();
-    pcRef.current = null;
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
-  }, [send]);
+    const room = roomRef.current;
+    roomRef.current = null;
+    room?.disconnect();
+  }, []);
 
-  useEffect(() => {
-    window.addEventListener('beforeunload', leave);
-    return () => {
-      window.removeEventListener('beforeunload', leave);
-      leave();
-    };
-  }, [leave]);
+  useEffect(() => leave, [leave]);
+
+  // Joins (or rejoins) the private LiveKit room of this booking with camera and microphone.
+  const connect = useCallback(async (): Promise<string | null> => {
+    if (!booking) return 'No encontramos esta reserva en tu cuenta.';
+    leave();
+    const r = await liveApi.callAccess(booking.id);
+    if (!r.ok || !r.access) return r.error || 'No se pudo entrar a la sala';
+    const room = new Room({
+      adaptiveStream: true,
+      dynacast: true,
+      videoCaptureDefaults: { resolution: VideoPresets.h1080.resolution },
+      publishDefaults: { simulcast: true, videoSimulcastLayers: [VideoPresets.h360, VideoPresets.h720] },
+    });
+    roomRef.current = room;
+    const otherHere = () => room.remoteParticipants.size > 0;
+
+    room
+      .on(RoomEvent.TrackSubscribed, (track: RemoteTrack) => {
+        if (track.kind === Track.Kind.Video && remoteVideo.current) track.attach(remoteVideo.current);
+        else if (track.kind === Track.Kind.Audio && audioBox.current) audioBox.current.appendChild(track.attach());
+      })
+      .on(RoomEvent.TrackUnsubscribed, (track: RemoteTrack) => {
+        track.detach().forEach((el) => el !== remoteVideo.current && el.remove());
+      })
+      .on(RoomEvent.ParticipantConnected, () => {
+        setConnected(true);
+        setStatus('');
+      })
+      .on(RoomEvent.ParticipantDisconnected, () => {
+        if (otherHere()) return;
+        setConnected(false);
+        setStatus(`${otherName} salió de la sala. Puedes esperar a que vuelva.`);
+      })
+      .on(RoomEvent.Reconnecting, () => {
+        setConnected(false);
+        setStatus('Conexión inestable… reconectando.');
+      })
+      .on(RoomEvent.Reconnected, () => {
+        setConnected(otherHere());
+        setStatus(otherHere() ? '' : `Esperando a ${otherName}…`);
+      })
+      .on(RoomEvent.Disconnected, () => {
+        if (roomRef.current !== room) return; // we left on purpose
+        roomRef.current = null;
+        setConnected(false);
+        setStatus('Se perdió la conexión. Pulsa “Reconectar”.');
+      })
+      .on(RoomEvent.AudioPlaybackStatusChanged, () => setNeedsAudio(!room.canPlaybackAudio))
+      .on(RoomEvent.DataReceived, (payload: Uint8Array, participant?: RemoteParticipant) => {
+        let m: CallMessage;
+        try {
+          m = JSON.parse(decoder.decode(payload));
+        } catch {
+          return;
+        }
+        const name = participant?.name || otherName;
+        if (m.type === 'chat' && typeof m.text === 'string') {
+          setChat((c) => [...c, { mine: false, name, text: m.text.slice(0, 500), at: m.at }]);
+        } else if (m.type === 'gift') {
+          const gift = giftById(m.giftId);
+          if (gift) setCelebration({ gift, caption: `¡${name} te envió ${gift.name}!` });
+        }
+      });
+
+    try {
+      await room.connect(r.access.url, r.access.token);
+    } catch (err) {
+      if (roomRef.current === room) roomRef.current = null;
+      const detail = err instanceof Error ? err.message : String(err);
+      return `No se pudo conectar al servidor de video. Inténtalo de nuevo. (Detalle: ${detail.slice(0, 160)})`;
+    }
+    // Camera and microphone; if the camera is refused, at least the microphone.
+    const lp = room.localParticipant;
+    const cam = await lp.setCameraEnabled(true).then(() => true, () => false);
+    const mic = await lp.setMicrophoneEnabled(true).then(() => true, () => false);
+    setHasMedia(cam || mic);
+    setCamOn(cam);
+    setMicOn(mic);
+    const camTrack = lp.getTrackPublication(Track.Source.Camera)?.track;
+    if (camTrack && localVideo.current) camTrack.attach(localVideo.current);
+    setNeedsAudio(!room.canPlaybackAudio);
+    setConnected(otherHere());
+    setStatus(otherHere() ? '' : `Esperando a ${otherName}…`);
+    return null;
+  }, [booking, leave, otherName]);
 
   const join = async () => {
     if (!user || !booking) return;
     setPhase('joining');
     setProblem('');
-    let stream: MediaStream | null = null;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    } catch {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      } catch {
-        stream = null;
-      }
-    }
-    streamRef.current = stream;
-    setHasMedia(!!stream);
-    setCamOn(!!stream?.getVideoTracks().length);
-    setMicOn(!!stream?.getAudioTracks().length);
-    const result = await backend.social.joinLive(user, booking.id, (m) => {
-      queue.current = queue.current.then(() => handle(m)).catch(() => undefined);
-    });
-    if (!result.ok || !result.channel) {
-      stream?.getTracks().forEach((t) => t.stop());
-      setProblem(result.error || 'No se pudo entrar a la sala');
+    const error = await connect();
+    if (error) {
+      setProblem(error);
       setPhase('lobby');
       return;
     }
-    chRef.current = result.channel;
     setPhase('in-call');
-    setStatus(`Esperando a ${otherName}…`);
-    send({ type: 'hello' });
   };
 
-  // Attach the local preview once the call view is mounted.
+  // The call view mounts after joining: show my camera in the small box and the
+  // other person's picture and sound if they were already in the room.
   useEffect(() => {
-    if (phase === 'in-call' && localVideo.current && streamRef.current) localVideo.current.srcObject = streamRef.current;
-  }, [phase]);
+    const room = roomRef.current;
+    if (phase !== 'in-call' || !room) return;
+    const cam = room.localParticipant.getTrackPublication(Track.Source.Camera)?.track;
+    if (cam && localVideo.current) cam.attach(localVideo.current);
+    room.remoteParticipants.forEach((p) =>
+      p.trackPublications.forEach((pub) => {
+        const track = pub.track;
+        if (!track || track.attachedElements.length) return;
+        if (track.kind === Track.Kind.Video && remoteVideo.current) track.attach(remoteVideo.current);
+        else if (track.kind === Track.Kind.Audio && audioBox.current) audioBox.current.appendChild(track.attach());
+      })
+    );
+  }, [phase, hasMedia, camOn]);
 
-  const reconnect = () => {
+  const reconnect = async () => {
     setStatus('Reconectando…');
-    if (isCreator) makeOffer();
-    else send({ type: 'hello' });
+    const error = await connect();
+    if (error) setStatus(`${error} Pulsa “Reconectar”.`);
   };
 
-  const toggleTrack = (kind: 'audio' | 'video') => {
-    const tracks = kind === 'audio' ? streamRef.current?.getAudioTracks() : streamRef.current?.getVideoTracks();
-    if (!tracks?.length) return;
-    const next = !tracks[0].enabled;
-    tracks.forEach((t) => (t.enabled = next));
-    if (kind === 'audio') setMicOn(next);
-    else setCamOn(next);
+  const toggleTrack = async (kind: 'audio' | 'video') => {
+    const lp = roomRef.current?.localParticipant;
+    if (!lp) return;
+    if (kind === 'audio') {
+      await lp.setMicrophoneEnabled(!micOn).catch(() => undefined);
+      setMicOn(lp.isMicrophoneEnabled);
+    } else {
+      await lp.setCameraEnabled(!camOn).catch(() => undefined);
+      setCamOn(lp.isCameraEnabled);
+    }
   };
 
   const hangUp = () => {
@@ -319,6 +308,12 @@ const LiveRoom: React.FC = () => {
           <div className="lg:col-span-2">
             <div className="relative aspect-video bg-black rounded-2xl overflow-hidden">
               <video ref={remoteVideo} autoPlay playsInline {...noCaptureVideoProps} data-testid="remote-video" className="w-full h-full object-cover" />
+              <div ref={audioBox} className="hidden" />
+              {needsAudio && connected && (
+                <button onClick={() => roomRef.current?.startAudio()} className="absolute top-3 left-3 z-10 px-3 py-2 rounded-lg bg-white/90 text-gray-900 text-sm font-medium">
+                  <i aria-hidden="true" className="fas fa-volume-high mr-1"></i>Activar sonido
+                </button>
+              )}
               {connected && user && <ViewerWatermark name={user.name} userId={user.id} />}
               {!connected && (
                 <div className="absolute inset-0 flex items-center justify-center text-center p-6">

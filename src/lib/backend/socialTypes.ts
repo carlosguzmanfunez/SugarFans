@@ -62,21 +62,6 @@ export interface FollowState {
   count: number;
 }
 
-// Messages exchanged in a live room: WebRTC handshake plus chat.
-export type LiveSignal =
-  | { type: 'hello' | 'bye' }
-  | { type: 'offer' | 'answer'; sdp: string }
-  | { type: 'ice'; candidate: RTCIceCandidateInit }
-  | { type: 'chat'; text: string; name: string; at: string }
-  | { type: 'gift'; giftId: string; name: string };
-
-export type LiveMessage = LiveSignal & { from: string };
-
-export interface LiveChannel {
-  send(signal: LiveSignal): void;
-  close(): void;
-}
-
 export interface SocialBackend {
   postsByCreator(creatorProfileId: string): Promise<FeedPost[]>;
   engagement(postIds: string[], viewer: User | null): Promise<Record<string, Engagement>>;
@@ -91,6 +76,4 @@ export interface SocialBackend {
   publicCreators(): Promise<PublicCreator[]>;
   followState(creatorProfileId: string, viewer: User | null): Promise<FollowState>;
   setFollow(user: User, creatorProfileId: string, follow: boolean): Promise<AuthResult>;
-  // Joins the private room of a confirmed VIP booking (fan or creator only).
-  joinLive(user: User, bookingId: string, onMessage: (m: LiveMessage) => void): Promise<AuthResult & { channel?: LiveChannel }>;
 }
