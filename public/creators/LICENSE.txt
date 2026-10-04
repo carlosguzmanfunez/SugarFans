@@ -3,3 +3,4 @@ License: CC0 1.0 (public domain) — https://creativecommons.org/publicdomain/ze
 Placeholders for the demo profiles; real creators upload their own photo.
 
 cutout/: the same illustrations with the background removed and cropped to the figure (used in the landing hero video call).
+clear/: the same illustrations with only the background removed (uncropped), used in the landing sections.

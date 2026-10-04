@@ -9,6 +9,26 @@ import NotificationBell from './NotificationBell';
 import { useDismiss } from '../hooks/useDismiss';
 import { displayEmail } from '../config/demoAccounts';
 import { VIRTUAL_CURRENCY } from '../config/currency';
+import CoinIcon from './CoinIcon';
+import { usePlatformQuery } from '../lib/platform';
+import { formatCoins, giftsApi } from '../lib/gifts';
+import type { User } from '../context/AuthContext';
+
+// Fan's Créditos balance, always in sight, in the champagne tone of the coin.
+const CreditsPill: React.FC<{ user: User }> = ({ user }) => {
+  const { data: coins } = usePlatformQuery(async () => (await giftsApi.wallet(user)).coins, [user.id], 0);
+  return (
+    <Link
+      to="/settings?section=wallet"
+      aria-label={`Tus ${VIRTUAL_CURRENCY.displayName}: ${formatCoins(coins)}`}
+      data-testid="credits-pill"
+      className="hidden h-9 items-center gap-1.5 rounded-full border border-gold-200 sm:inline-flex bg-gold-50 pl-1.5 pr-3 text-sm font-semibold text-night-900 transition-colors hover:border-gold-300"
+    >
+      <CoinIcon size={22} />
+      {formatCoins(coins)}
+    </Link>
+  );
+};
 
 const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -69,6 +89,7 @@ const Navbar: React.FC = () => {
           {/* Right side */}
           <div className="flex items-center gap-2 sm:gap-3">
             <LanguageSelector />
+            {isAuthenticated && user?.role === 'fan' && <CreditsPill user={user} />}
             {isAuthenticated && user && <NotificationBell user={user} />}
 
             {isAuthenticated ? (

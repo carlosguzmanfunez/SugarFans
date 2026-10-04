@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { posts, type Creator } from '../data/mockData';
 import { useCreatorCatalog, fromPublic } from '../lib/catalog';
@@ -74,6 +74,10 @@ const CreatorProfile: React.FC = () => {
     [id],
     [] as VipExperience[]
   );
+  // Links to /creator/:id#reserve (the Reserve rails) land on the experiences once they load.
+  useEffect(() => {
+    if (location.hash === '#reserve' && experiences.length) document.getElementById('reserve')?.scrollIntoView({ block: 'start' });
+  }, [location.hash, experiences.length]);
 
   // Posts published from the creator panel, then like/comment totals for every post.
   const { data: feed } = usePlatformQuery(
@@ -229,7 +233,7 @@ const CreatorProfile: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-canvas">
       {/* Cover */}
       <CoverImage src={creator.cover} seed={creator.id + creator.name} className="h-48 md:h-72">
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
@@ -244,7 +248,7 @@ const CreatorProfile: React.FC = () => {
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-display-md text-ink">{creator.name}</h1>
                 {creator.isVerified && (
-                  <span className="flex items-center bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                  <span className="flex items-center bg-iris-50 text-iris-700 px-2 py-0.5 rounded-full text-xs font-medium">
                     <i aria-hidden="true" className="fas fa-check-circle mr-1"></i> Verificado
                   </span>
                 )}
@@ -254,7 +258,8 @@ const CreatorProfile: React.FC = () => {
               <p className="text-gray-500">@{creator.username}</p>
 
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            {/* Phone: the main action on its own row, then support and block side by side. */}
+            <div className="grid grid-cols-[1fr_1fr_auto] gap-2 md:flex md:flex-wrap md:items-center [&>*:first-child]:col-span-3">
               {iBlocked ? (
                 <button onClick={handleBlock} className="px-6 py-3 rounded-full font-bold bg-gray-200 text-gray-700 hover:bg-gray-300">
                   <i aria-hidden="true" className="fas fa-unlock mr-2"></i>Desbloquear
@@ -262,11 +267,7 @@ const CreatorProfile: React.FC = () => {
               ) : isAuthenticated && user?.role !== 'creator' && !isOwner ? (
                 <button
                   onClick={handleSubscribe}
-                  className={`px-6 py-3 rounded-full font-bold transition-all ${
-                    isSubscribed
-                      ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                      : 'bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:opacity-90 shadow-lg'
-                  }`}
+                  className={`btn btn-lg ${isSubscribed ? 'bg-ink/5 text-ink hover:bg-ink/10' : 'btn-primary'}`}
                 >
                   {isSubscribed && mySub?.cancelAt ? (
                     <><i aria-hidden="true" className="fas fa-redo mr-2"></i>Activa hasta el {formatDay(mySub.cancelAt)} · Reactivar</>
@@ -277,7 +278,7 @@ const CreatorProfile: React.FC = () => {
                   )}
                 </button>
               ) : !isAuthenticated ? (
-                <Link to="/login" state={{ from: location.pathname }} className="px-6 py-3 rounded-full font-bold bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:opacity-90 shadow-lg inline-block">
+                <Link to="/login" state={{ from: location.pathname }} className="btn btn-primary btn-lg">
                   Iniciar sesión para suscribirse
                 </Link>
               ) : null}
@@ -298,9 +299,9 @@ const CreatorProfile: React.FC = () => {
                 <button
                   onClick={() => openGift()}
                   aria-label="Enviar regalo"
-                  className="px-5 py-3 rounded-full font-bold bg-white border border-pink-200 text-pink-600 hover:bg-pink-50"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-gold-200 bg-gold-50 px-4 text-sm font-semibold text-gold-700 hover:border-gold-300"
                 >
-                  <i aria-hidden="true" className="fas fa-gift mr-2"></i>Regalo
+                  <i aria-hidden="true" className="fas fa-gift text-gold-600"></i>Regalo
                 </button>
               )}
               {!isOwner && !iBlocked && (
@@ -308,14 +309,14 @@ const CreatorProfile: React.FC = () => {
                   onClick={() => openTip()}
                   title="Propina: apoya con un monto libre"
                   aria-label="Enviar propina"
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 hover:border-gray-300 hover:text-ink"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-line bg-white px-4 text-sm font-semibold text-ink/80 hover:border-ink/25 hover:text-ink"
                 >
-                  <i aria-hidden="true" className="fas fa-hand-holding-dollar text-gray-500"></i>
+                  <i aria-hidden="true" className="fas fa-hand-holding-dollar text-ink/45"></i>
                   <span>Propina</span>
                 </button>
               )}
               {isAuthenticated && !iBlocked && !isOwner && (
-                <button onClick={handleBlock} title="Bloquear" aria-label="Bloquear" className="w-11 h-11 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-red-500">
+                <button onClick={handleBlock} title="Bloquear" aria-label="Bloquear" className="w-11 h-11 rounded-full bg-white border border-line text-ink/45 hover:text-red-500">
                   <i aria-hidden="true" className="fas fa-ban"></i>
                 </button>
               )}
