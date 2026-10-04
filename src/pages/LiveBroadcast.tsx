@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Room, RoomEvent, Track, VideoPresets, type RemoteParticipant, type RemoteTrack } from 'livekit-client';
+import { Room, RoomEvent, Track, VideoPresets, type LocalVideoTrack, type RemoteParticipant, type RemoteTrack } from 'livekit-client';
 import { useAuth } from '../context/AuthContext';
+import CameraPreview from '../components/CameraPreview';
+import LookPicker from '../components/LookPicker';
+import { useCameraLook } from '../hooks/useCameraLook';
 import ViewerWatermark, { noCaptureVideoProps } from '../components/ViewerWatermark';
 import { liveApi, endLive, useCurrentLive } from '../lib/live';
 
@@ -41,6 +44,10 @@ const LiveBroadcast: React.FC = () => {
   const video = useRef<HTMLVideoElement>(null);
   const audioBox = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
+  const [showLooks, setShowLooks] = useState(false);
+  const cam = useCameraLook();
+  const { bind: bindLook, captureOptions } = cam;
+  const isOwner = !!user?.creatorProfileId && user.creatorProfileId === creatorId;
 
   const readRatio = () => {
     const v = video.current;
@@ -119,14 +126,19 @@ const LiveBroadcast: React.FC = () => {
     try {
       await room.connect(url, token);
       if (isHost) {
-        await room.localParticipant.enableCameraAndMicrophone().catch(() => {
-          setProblem('No pudimos usar tu cámara o tu micrófono. Revisa los permisos del navegador.');
-        });
-        const cam = room.localParticipant.getTrackPublication(Track.Source.Camera)?.track;
-        if (cam && video.current) {
-          cam.attach(video.current);
+        // The chosen filter is set before publishing, so fans never see the raw camera.
+        const lp = room.localParticipant;
+        const camOpts = captureOptions();
+        let camOk = await lp.setCameraEnabled(true, camOpts).then(() => true, () => false);
+        if (!camOk && camOpts.processor) camOk = await lp.setCameraEnabled(true).then(() => true, () => false);
+        const micOk = await lp.setMicrophoneEnabled(true).then(() => true, () => false);
+        if (!camOk || !micOk) setProblem('No pudimos usar tu cámara o tu micrófono. Revisa los permisos del navegador.');
+        const camTrack = lp.getTrackPublication(Track.Source.Camera)?.track as LocalVideoTrack | undefined;
+        if (camTrack && video.current) {
+          camTrack.attach(video.current);
           setHasVideo(true);
         }
+        bindLook(camTrack);
         setHostName(user?.name ?? '');
       }
       setNeedsAudio(!room.canPlaybackAudio);
@@ -139,14 +151,15 @@ const LiveBroadcast: React.FC = () => {
       setProblem(`No se pudo conectar al servidor de video. Inténtalo de nuevo. (Detalle: ${detail.slice(0, 160)})`);
       setPhase('error');
     }
-  }, [creatorId, user?.name]);
+  }, [creatorId, user?.name, captureOptions, bindLook]);
 
   useEffect(
     () => () => {
+      bindLook(null);
       roomRef.current?.disconnect();
       roomRef.current = null;
     },
-    []
+    [bindLook]
   );
 
   const toggle = async (kind: 'mic' | 'cam') => {
@@ -172,6 +185,7 @@ const LiveBroadcast: React.FC = () => {
   };
 
   const finish = async () => {
+    bindLook(null);
     if (host && user) await endLive(user);
     roomRef.current?.disconnect();
     roomRef.current = null;
@@ -261,6 +275,13 @@ const LiveBroadcast: React.FC = () => {
               )}
             </div>
             {problem && phase === 'on' && <p className="text-sm text-yellow-300 mt-3">{problem}</p>}
+            {isOwner && (phase === 'idle' || phase === 'error') && (
+              <div className="mt-4 max-w-xl mx-auto">
+                <p className="text-sm text-gray-300 mb-2">Elige tu filtro antes de empezar. Tus fans verán el video ya con el filtro.</p>
+                <CameraPreview cam={cam} />
+              </div>
+            )}
+            {host && phase === 'on' && showLooks && camOn && hasVideo && <LookPicker cam={cam} className="mt-4 max-w-xl mx-auto" />}
             <div className="flex justify-center gap-3 mt-4">
               {host && phase === 'on' && (
                 <>
@@ -269,6 +290,9 @@ const LiveBroadcast: React.FC = () => {
                   </button>
                   <button onClick={() => toggle('cam')} aria-label={camOn ? 'Apagar cámara' : 'Encender cámara'} className={`w-12 h-12 rounded-full ${camOn ? 'bg-white/10 hover:bg-white/20' : 'bg-red-500'}`}>
                     <i aria-hidden="true" className={`fas ${camOn ? 'fa-video' : 'fa-video-slash'}`}></i>
+                  </button>
+                  <button onClick={() => setShowLooks((v) => !v)} disabled={!camOn || !hasVideo} aria-label="Filtros de cámara" aria-expanded={showLooks} data-testid="looks-button" className={`w-12 h-12 rounded-full ${showLooks || cam.enhance || cam.look !== 'natural' ? 'bg-pink-600 hover:bg-pink-500' : 'bg-white/10 hover:bg-white/20'} disabled:opacity-40`}>
+                    <i aria-hidden="true" className="fas fa-wand-magic-sparkles"></i>
                   </button>
                 </>
               )}

@@ -1,10 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Room, RoomEvent, Track, VideoPresets, type RemoteParticipant, type RemoteTrack } from 'livekit-client';
+import { Room, RoomEvent, Track, VideoPresets, type LocalVideoTrack, type RemoteParticipant, type RemoteTrack } from 'livekit-client';
 import GiftDialog from '../components/GiftDialog';
 import GiftCelebration from '../components/GiftCelebration';
 import { giftById, type Gift } from '../lib/gifts';
 import { useAuth } from '../context/AuthContext';
+import CameraPreview from '../components/CameraPreview';
+import LookPicker from '../components/LookPicker';
+import { useCameraLook } from '../hooks/useCameraLook';
 import ViewerWatermark, { noCaptureVideoProps } from '../components/ViewerWatermark';
 import { backend } from '../lib/backend';
 import { liveApi } from '../lib/live';
@@ -45,6 +48,9 @@ const LiveRoom: React.FC = () => {
   const [draft, setDraft] = useState('');
   const [gifting, setGifting] = useState(false);
   const [celebration, setCelebration] = useState<{ gift: Gift; caption: string } | null>(null);
+  const [showLooks, setShowLooks] = useState(false);
+  const cam = useCameraLook();
+  const { bind: bindLook, captureOptions } = cam;
 
   const localVideo = useRef<HTMLVideoElement>(null);
   const remoteVideo = useRef<HTMLVideoElement>(null);
@@ -89,8 +95,9 @@ const LiveRoom: React.FC = () => {
   const leave = useCallback(() => {
     const room = roomRef.current;
     roomRef.current = null;
+    bindLook(null);
     room?.disconnect();
-  }, []);
+  }, [bindLook]);
 
   useEffect(() => leave, [leave]);
 
@@ -166,18 +173,22 @@ const LiveRoom: React.FC = () => {
     }
     // Camera and microphone; if the camera is refused, at least the microphone.
     const lp = room.localParticipant;
-    const cam = await lp.setCameraEnabled(true).then(() => true, () => false);
+    // The chosen filter is set before publishing, so the other person never sees the raw camera.
+    const camOpts = captureOptions();
+    let cam = await lp.setCameraEnabled(true, camOpts).then(() => true, () => false);
+    if (!cam && camOpts.processor) cam = await lp.setCameraEnabled(true).then(() => true, () => false);
     const mic = await lp.setMicrophoneEnabled(true).then(() => true, () => false);
     setHasMedia(cam || mic);
     setCamOn(cam);
     setMicOn(mic);
-    const camTrack = lp.getTrackPublication(Track.Source.Camera)?.track;
+    const camTrack = lp.getTrackPublication(Track.Source.Camera)?.track as LocalVideoTrack | undefined;
     if (camTrack && localVideo.current) camTrack.attach(localVideo.current);
+    bindLook(camTrack);
     setNeedsAudio(!room.canPlaybackAudio);
     setConnected(otherHere());
     setStatus(otherHere() ? '' : `Esperando a ${otherName}…`);
     return null;
-  }, [booking, leave, otherName]);
+  }, [booking, leave, otherName, captureOptions, bindLook]);
 
   const join = async () => {
     if (!user || !booking) return;
@@ -268,7 +279,7 @@ const LiveRoom: React.FC = () => {
   if (phase !== 'in-call') {
     return (
       <div className="min-h-[70vh] flex items-center justify-center px-4 bg-gray-50">
-        <div className="bg-white rounded-2xl shadow-sm p-8 max-w-md w-full text-center" data-testid="live-lobby">
+        <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-8 max-w-md w-full text-center" data-testid="live-lobby">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center mx-auto mb-4">
             <i aria-hidden="true" className="fas fa-video text-white text-2xl"></i>
           </div>
@@ -276,6 +287,11 @@ const LiveRoom: React.FC = () => {
           <p className="text-gray-600 mt-1">con {otherName}</p>
           <p className="text-sm text-gray-500 mt-1 first-letter:uppercase">{formatLongDate(booking.date)} · {booking.time} · {minutes} min</p>
           <p className="text-sm text-gray-500 mt-4">Tu navegador te pedirá permiso para usar la cámara y el micrófono. La llamada es privada entre ustedes dos.</p>
+          {phase === 'lobby' && (
+            <div className="mt-5">
+              <CameraPreview cam={cam} />
+            </div>
+          )}
           {problem && <p role="alert" className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{problem}</p>}
           <button
             onClick={join}
@@ -341,12 +357,16 @@ const LiveRoom: React.FC = () => {
                 No pudimos usar tu cámara ni tu micrófono. Revisa los permisos del navegador; mientras tanto puedes ver, escuchar y usar el chat.
               </p>
             )}
+            {showLooks && hasMedia && camOn && <LookPicker cam={cam} className="mt-4" />}
             <div className="flex justify-center gap-3 mt-4">
               <button onClick={() => toggleTrack('audio')} disabled={!hasMedia} aria-label={micOn ? 'Silenciar micrófono' : 'Activar micrófono'} className={`w-12 h-12 rounded-full ${micOn ? 'bg-white/10 hover:bg-white/20' : 'bg-red-500'} disabled:opacity-40`}>
                 <i aria-hidden="true" className={`fas ${micOn ? 'fa-microphone' : 'fa-microphone-slash'}`}></i>
               </button>
               <button onClick={() => toggleTrack('video')} disabled={!hasMedia} aria-label={camOn ? 'Apagar cámara' : 'Encender cámara'} className={`w-12 h-12 rounded-full ${camOn ? 'bg-white/10 hover:bg-white/20' : 'bg-red-500'} disabled:opacity-40`}>
                 <i aria-hidden="true" className={`fas ${camOn ? 'fa-video' : 'fa-video-slash'}`}></i>
+              </button>
+              <button onClick={() => setShowLooks((v) => !v)} disabled={!hasMedia || !camOn} aria-label="Filtros de cámara" aria-expanded={showLooks} data-testid="looks-button" className={`w-12 h-12 rounded-full ${showLooks || cam.enhance || cam.look !== 'natural' ? 'bg-pink-600 hover:bg-pink-500' : 'bg-white/10 hover:bg-white/20'} disabled:opacity-40`}>
+                <i aria-hidden="true" className="fas fa-wand-magic-sparkles"></i>
               </button>
               <button onClick={hangUp} aria-label="Salir de la llamada" className="px-6 h-12 rounded-full bg-red-600 hover:bg-red-700 font-medium">
                 <i aria-hidden="true" className="fas fa-phone-slash mr-2"></i>Salir
