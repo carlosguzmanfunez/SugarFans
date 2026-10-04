@@ -13,6 +13,8 @@ import {
   experienceAvailability,
   freeHoursOn,
   formatLongDate,
+  isEventExperience,
+  isUpcomingEvent,
   meetsNotice,
   needsApproval,
   normalizeAvailability,
@@ -245,6 +247,10 @@ const gifts = createLocalGifts({
 
 const live = createLocalLive({
   followers: (creatorProfileId) => readJSON<{ follows?: Record<string, string[]> }>('social', {}).follows?.[creatorProfileId] ?? [],
+  subscribers: (creatorProfileId) =>
+    loadAccounts()
+      .filter((a) => a.subscriptions.some((s) => s.creatorId === creatorProfileId && isActiveSub(s)))
+      .map((a) => a.id),
   currentUserId: () => readSession(),
   onChange: (cb) => localBackend.onChange(cb),
   notify,
@@ -478,6 +484,7 @@ export const localBackend: Backend = {
     if (!input.time) return fail('Elige una hora disponible');
     const exp = listExperiences().find((e) => e.id === input.experienceId && e.active);
     if (!exp) return fail('Experiencia no encontrada');
+    if (isEventExperience(exp)) return fail('Reserva tu plaza desde el evento');
     if (user.creatorProfileId === exp.creatorProfileId) return fail('No puedes reservar tu propia experiencia');
     const note = moderate(input.message ?? '', 'request');
     if (!note.ok) return fail(note.error!);
@@ -529,6 +536,64 @@ export const localBackend: Backend = {
       },
     ]);
     return ok;
+  },
+
+  async bookEventSeat(user, experienceId, message) {
+    const exp = listExperiences().find((e) => e.id === experienceId && e.active);
+    if (!exp) return fail('Evento no encontrado');
+    if (!isEventExperience(exp)) return fail('Esta experiencia no es un Reserve Event');
+    if (user.creatorProfileId === exp.creatorProfileId) return fail('No puedes reservar tu propio evento');
+    if (platform.ledger.cutOff(user.id, exp.creatorProfileId)) return fail('No puedes reservar con este perfil');
+    const note = moderate(message ?? '', 'request');
+    if (!note.ok) return fail(note.error!);
+    const d = detailsOf(exp);
+    const subscribed = user.subscriptions.some((s) => s.creatorId === exp.creatorProfileId);
+    if (d.requirements.verifiedFans && !user.isVerified) return fail('Este evento es solo para fans con identidad verificada');
+    if (d.requirements.subscribersOnly && !subscribed) return fail('Este evento es solo para suscriptores');
+    if (!isUpcomingEvent(exp)) return fail('Este evento ya pasó');
+    const seats = listBookings().filter((b) => b.experienceId === exp.id && b.details?.kind === 'event' && ACTIVE_STATUSES.includes(b.status));
+    if (seats.some((b) => b.fanId === user.id)) return fail('Ya tienes una plaza en este evento');
+    if (seats.length >= d.maxParticipants) return fail('No quedan plazas para este evento');
+    const price = priceFor(exp, subscribed);
+    const now = new Date().toISOString();
+    saveBookings([
+      ...listBookings(),
+      {
+        id: newId(),
+        experienceId: exp.id,
+        creatorProfileId: exp.creatorProfileId,
+        title: exp.title,
+        creatorName: exp.creatorName,
+        price,
+        ...(exp.durationMinutes ? { durationMinutes: exp.durationMinutes } : {}),
+        date: d.eventDate!,
+        time: d.eventTime!,
+        message: (message ?? '').trim().slice(0, 500),
+        fanId: user.id,
+        fanName: user.name,
+        fanEmail: user.email,
+        status: d.approval === 'automatic' ? 'accepted' : 'pending',
+        createdAt: now,
+        updatedAt: now,
+        details: {
+          kind: 'event',
+          typeId: exp.type,
+          modality: d.modality,
+          participants: 1,
+          ...(d.modality !== 'virtual' ? { locationType: d.locationTypes[0], city: d.city, venue: d.venue } : {}),
+          ...(price !== exp.price ? { listPrice: exp.price, discountPercent: d.subscriberDiscount } : {}),
+        },
+      },
+    ]);
+    return ok;
+  },
+
+  async eventSeats(experienceIds) {
+    const taken: Record<string, number> = {};
+    for (const b of listBookings())
+      if (b.details?.kind === 'event' && experienceIds.includes(b.experienceId) && ACTIVE_STATUSES.includes(b.status))
+        taken[b.experienceId] = (taken[b.experienceId] ?? 0) + 1;
+    return taken;
   },
 
   async requestCustomExperience(user, input) {

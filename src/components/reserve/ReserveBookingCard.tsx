@@ -33,6 +33,8 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
   const d = b.details ?? {};
   const status = reserveStatusOf(b);
   const isCustom = b.experienceId === CUSTOM_EXPERIENCE || d.kind === 'custom';
+  // A seat in a Reserve Event: same day and time for everyone, so no counter-offer.
+  const isEvent = d.kind === 'event';
   const modality = d.modality ?? 'virtual';
 
   const run = async (fn: () => Promise<{ ok: boolean; error?: string }>) => {
@@ -68,7 +70,7 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-700">
-            {isCustom ? 'Experiencia personalizada' : d.typeId ? typeOf(d.typeId).name : 'Reserve'}
+            {isEvent ? 'Reserve Event · 1 plaza' : isCustom ? 'Experiencia personalizada' : d.typeId ? typeOf(d.typeId).name : 'Reserve'}
             {as === 'fan' ? ` · ${b.creatorName}` : ` · ${b.fanName}`}
           </p>
           <p className="mt-0.5 text-sm font-semibold text-ink">{b.title}</p>
@@ -120,9 +122,11 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
               <button type="button" disabled={busy} onClick={() => run(() => backend.updateBooking(user, b.id, 'rejected'))} className={`${btn} border border-line text-ink/70 hover:bg-gray-50`}>
                 Rechazar
               </button>
-              <button type="button" disabled={busy} onClick={() => setCountering(!countering)} aria-expanded={countering} className={`${btn} border border-iris-300 text-iris-700 hover:bg-iris-50`}>
-                Contraoferta
-              </button>
+              {!isEvent && (
+                <button type="button" disabled={busy} onClick={() => setCountering(!countering)} aria-expanded={countering} className={`${btn} border border-iris-300 text-iris-700 hover:bg-iris-50`}>
+                  Contraoferta
+                </button>
+              )}
               <button type="button" disabled={busy} onClick={() => run(() => backend.updateBooking(user, b.id, 'accepted'))} className={`${btn} bg-emerald-600 text-white hover:bg-emerald-700`}>
                 Aceptar
               </button>

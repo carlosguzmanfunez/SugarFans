@@ -84,7 +84,7 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
         heading: 'Regalos, suscripción y Reserve son distintos',
         bullets: [
           'Los regalos son apoyo voluntario. No garantizan respuesta, conversación, acceso ni experiencias de Reserve.',
-          'La suscripción da acceso al contenido y a los beneficios que el creator define. No incluye videollamadas ni experiencias de Reserve. Un creator puede ofrecer un descuento explícito a suscriptores en sus experiencias.',
+          'La suscripción da acceso al contenido, a los Lives para suscriptores (grupales, sin tiempo privado garantizado) y a los beneficios que el creator define. No incluye Reserve Events, sesiones privadas 1:1 ni otras experiencias de Reserve. Un creator puede ofrecer un descuento explícito a suscriptores en sus experiencias.',
           'Reserve es la única vía para reservar una experiencia.',
         ],
       },

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { User } from '../../context/AuthContext';
-import type { VipExperience } from '../../lib/vip';
-import { categoryFor } from '../../config/reserve';
+import { isUpcomingEvent, reserveProductOf, eventStart, type ReserveProduct, type VipExperience } from '../../lib/vip';
+import { categoryFor, RESERVE_FORMATS } from '../../config/reserve';
+import { backend } from '../../lib/backend';
+import { usePlatformQuery } from '../../lib/platform';
 import ReserveExperienceCard from './ReserveExperienceCard';
 import ReserveBookingDialog from './ReserveBookingDialog';
 import CustomExperienceRequest from './CustomExperienceRequest';
@@ -16,9 +18,25 @@ interface Props {
   onNeedLogin: () => void;
 }
 
-// "Reserve con {creator}": the experiences this creator offers, each fully
-// defined, plus a structured request for something tailored.
-const CreatorReserveSection: React.FC<Props> = ({ creator, experiences, user, isOwner, onNeedLogin }) => {
+// Reserve's products on a profile, in this order.
+const GROUPS: { id: ReserveProduct; title: string; hint: string }[] = [
+  { id: 'event', title: RESERVE_FORMATS.event.product, hint: 'En grupo, con fecha fija y plazas limitadas. Reserva tu plaza.' },
+  { id: 'one-to-one', title: RESERVE_FORMATS.private.product, hint: 'Sesión privada: solo tú y el creator en la sala.' },
+  { id: 'other', title: 'Otras experiencias', hint: 'Presenciales, profesionales o entregadas en la app.' },
+];
+
+// Seats already held per Reserve Event (counts only).
+export const useEventSeats = (experiences: VipExperience[]) => {
+  const ids = experiences.filter((e) => reserveProductOf(e) === 'event').map((e) => e.id);
+  return usePlatformQuery(() => backend.eventSeats(ids), [ids.join(',')], {} as Record<string, number>).data;
+};
+
+// "Reserve con {creator}": Reserve Events, Reserve 1:1 and the other experiences
+// this creator offers, each fully defined, plus a structured request for something tailored.
+const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, user, isOwner, onNeedLogin }) => {
+  // Fans only see events that haven't happened yet; the creator sees all of theirs.
+  const experiences = all.filter((e) => isOwner || reserveProductOf(e) !== 'event' || isUpcomingEvent(e));
+  const seats = useEventSeats(experiences);
   const [open, setOpen] = useState<{ exp: VipExperience; book: boolean } | null>(null);
   const [custom, setCustom] = useState(false);
   const first = creator.name.split(' ')[0];
@@ -31,7 +49,7 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences, user, is
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gold-700">Reserve · {category.name}</p>
           <h2 id="reserve-title" className="mt-1 text-xl font-bold text-ink sm:text-2xl">Reserve con {first}</h2>
-          <p className="mt-1 text-sm text-ink/70">Experiencias con fecha, duración, precio y reglas definidas por {first}. Reservas experiencias, no personas.</p>
+          <p className="mt-1 text-sm text-ink/70">Reserve Events en grupo, sesiones privadas 1:1 y experiencias con fecha, duración, precio y reglas definidas por {first}. Reservas experiencias, no personas.</p>
         </div>
         {isOwner && (
           <Link to="/creator/dashboard?tab=vip" className="inline-flex h-10 items-center rounded-full border border-line px-4 text-sm font-semibold text-ink">
@@ -41,17 +59,30 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences, user, is
       </div>
 
       {experiences.length > 0 ? (
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          {experiences.map((exp) => (
-            <ReserveExperienceCard
-              key={exp.id}
-              exp={exp}
-              isOwner={isOwner}
-              onDetails={() => setOpen({ exp, book: false })}
-              onBook={() => (user ? setOpen({ exp, book: true }) : onNeedLogin())}
-            />
-          ))}
-        </div>
+        GROUPS.map((g) => {
+          const items = experiences
+            .filter((e) => reserveProductOf(e) === g.id)
+            .sort((a, b) => (g.id === 'event' ? (eventStart(a)?.getTime() ?? 0) - (eventStart(b)?.getTime() ?? 0) : 0));
+          if (!items.length) return null;
+          return (
+            <div key={g.id} className="mt-5" data-testid={`reserve-group-${g.id}`}>
+              <h3 className="text-sm font-bold text-ink">{g.title}</h3>
+              <p className="text-xs text-ink/60">{g.hint}</p>
+              <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                {items.map((exp) => (
+                  <ReserveExperienceCard
+                    key={exp.id}
+                    exp={exp}
+                    isOwner={isOwner}
+                    seatsTaken={seats[exp.id] ?? 0}
+                    onDetails={() => setOpen({ exp, book: false })}
+                    onBook={() => (user ? setOpen({ exp, book: true }) : onNeedLogin())}
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })
       ) : (
         <p className="mt-5 rounded-2xl border border-dashed border-line p-5 text-center text-sm text-muted">
           {isOwner ? 'Aún no publicas experiencias. Créalas desde tu panel.' : `${first} aún no publica experiencias. Puedes enviar una solicitud personalizada.`}
@@ -79,10 +110,53 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences, user, is
         <ReserveNotice kind="gift" />
       </div>
 
-      {open && <ReserveBookingDialog exp={open.exp} user={user} startBooking={open.book} onNeedLogin={onNeedLogin} onClose={() => setOpen(null)} />}
+      {open && (
+        <ReserveBookingDialog exp={open.exp} user={user} startBooking={open.book} seatsTaken={seats[open.exp.id] ?? 0} onNeedLogin={onNeedLogin} onClose={() => setOpen(null)} />
+      )}
       {custom && user && <CustomExperienceRequest creator={creator} user={user} onClose={() => setCustom(false)} />}
     </section>
   );
 };
 
 export default CreatorReserveSection;
+
+// "Próximamente": the creator's Subscriber Live on air and their next Reserve Events,
+// each labelled with who it is for. Nothing shows when there is nothing scheduled.
+export const UpcomingAccess: React.FC<{ creatorId: string; experiences: VipExperience[]; liveTitle?: string | null }> = ({ creatorId, experiences, liveTitle }) => {
+  const events = experiences
+    .filter((e) => reserveProductOf(e) === 'event' && isUpcomingEvent(e))
+    .sort((a, b) => (eventStart(a)?.getTime() ?? 0) - (eventStart(b)?.getTime() ?? 0))
+    .slice(0, 3);
+  if (!events.length && !liveTitle) return null;
+  return (
+    <section aria-labelledby="upcoming-title" className="mb-6 rounded-3xl bg-white p-5 shadow-sm sm:p-6" data-testid="upcoming-access">
+      <h2 id="upcoming-title" className="text-base font-bold text-ink">Próximos Lives para suscriptores y Reserve Events</h2>
+      <ul className="mt-3 divide-y divide-line">
+        {liveTitle && (
+          <li className="flex flex-wrap items-center justify-between gap-2 py-3">
+            <span className="min-w-0">
+              <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-iris-700">Exclusivo para suscriptores · ahora</span>
+              <span className="block truncate text-sm font-semibold text-ink">{liveTitle}</span>
+            </span>
+            <Link to={`/en-vivo/${creatorId}`} className="inline-flex h-9 items-center rounded-full bg-red-600 px-4 text-xs font-semibold text-white">Entrar al Live</Link>
+          </li>
+        )}
+        {events.map((e) => {
+          const start = eventStart(e)!;
+          return (
+            <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
+              <span className="min-w-0">
+                <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-gold-700">
+                  Reserve Event · <span className="capitalize">{start.toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'short' })}</span>{' '}
+                  {start.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+                <span className="block truncate text-sm font-semibold text-ink">{e.title}</span>
+              </span>
+              <a href="#reserve" className="inline-flex h-9 items-center rounded-full border border-ink px-4 text-xs font-semibold text-ink">Reserva tu plaza</a>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+};

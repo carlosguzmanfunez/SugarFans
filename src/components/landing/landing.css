@@ -101,6 +101,7 @@
 .lv2 .ap.p-follow{background:radial-gradient(520px 380px at 85% 0%,rgb(255 176 208 / .85),transparent 60%),linear-gradient(165deg,#ec3d84,#a3104d 75%)}
 .lv2 .ap.p-sub{background:radial-gradient(520px 380px at 85% 0%,rgb(196 176 255 / .8),transparent 60%),linear-gradient(165deg,#8259f3,#3e2483 75%)}
 .lv2 .ap.p-live{background:radial-gradient(520px 380px at 15% 0%,rgb(229 51 74 / .7),transparent 60%),linear-gradient(165deg,#4a1638,#160d1f 75%)}
+.lv2 .ap.p-event{background:radial-gradient(520px 380px at 15% 0%,rgb(130 89 243 / .55),transparent 60%),linear-gradient(165deg,#2a1748,#0e0814 75%)}
 .lv2 .ap.p-res{background:radial-gradient(520px 380px at 90% 0%,rgb(227 169 58 / .6),transparent 60%),linear-gradient(165deg,#2c1b3a,#0e0814 75%)}
 .lv2 .ap .big{position:absolute;right:-8px;top:-30px;font-family:var(--display);font-weight:800;font-size:200px;line-height:1;letter-spacing:-.06em;color:rgb(255 255 255 / .08);pointer-events:none;z-index:-1}
 .lv2 .ap-face{position:absolute;inset:0;width:100%;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;padding:24px;text-align:left;transition:opacity .45s var(--ease)}
@@ -111,6 +112,7 @@
 .lv2 .ap-face .lbl small{display:block;font-family:var(--display);font-size:13px;letter-spacing:.14em;text-transform:uppercase;opacity:.75}
 .lv2 .ap-face .lbl b{display:block;font-family:var(--display);font-size:26px;font-weight:700;letter-spacing:-.02em;margin-top:4px}
 .lv2 .ap-face .lbl .price{display:inline-block;margin-top:10px;font-size:13px;font-weight:600;padding:6px 12px;border-radius:999px;background:rgb(255 255 255 / .92);color:var(--ink)}
+.lv2 .p-event .ap-face .lbl .price,
 .lv2 .p-res .ap-face .lbl .price{background:linear-gradient(180deg,#f6dfa3,var(--gold));color:var(--night-9)}
 .lv2 .p-live .ap-face .lbl .price{background:var(--live);color:#fff}
 .lv2 .ap-face .who{position:absolute;right:-26px;bottom:0;height:62%;opacity:.95;filter:drop-shadow(0 20px 30px rgb(0 0 0 / .35));transition:transform .7s var(--ease)}
@@ -143,6 +145,7 @@
 .lv2 .step{font-family:var(--display);font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--brand)}
 .lv2 .mini{margin-top:auto;border-radius:20px;background:var(--surface);padding:18px;box-shadow:0 20px 40px -28px rgb(40 10 40 / .45)}
 .lv2 .p-live .mini,
+.lv2 .p-event .mini,
 .lv2 .p-res .mini{background:rgb(255 255 255 / .06);border:1px solid rgb(255 255 255 / .1);box-shadow:none}
 .lv2 .row{display:flex;align-items:center;gap:12px}
 .lv2 .av{width:52px;height:52px;border-radius:50%;overflow:hidden;flex:none;background:var(--brand-1)}
@@ -151,6 +154,7 @@
 .lv2 .v-grow b{display:block;font-family:var(--display);font-weight:600}
 .lv2 .v-grow span{font-size:13px;color:var(--muted)}
 .lv2 .p-live .v-grow span,
+.lv2 .p-event .v-grow span,
 .lv2 .p-res .v-grow span{color:rgb(255 255 255 / .6)}
 .lv2 .follow-btn{min-width:122px}
 .lv2 .follow-btn.on{background:var(--ink);color:#fff;box-shadow:none}
@@ -168,6 +172,10 @@
 .lv2 .hours{display:flex;gap:8px;flex-wrap:wrap}
 .lv2 .hours button{padding:8px 12px;border-radius:10px;font-size:13px;background:rgb(255 255 255 / .06);color:rgb(255 255 255 / .75)}
 .lv2 .hours button.on{background:#fff;color:var(--night)}
+.lv2 .seats{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin:16px 0 4px}
+.lv2 .seats i{display:block;aspect-ratio:1;border-radius:999px;background:rgb(255 255 255 / .12)}
+.lv2 .seats i.on{background:rgb(196 176 255 / .75)}
+.lv2 .seats i.me{background:linear-gradient(180deg,#f6dfa3,var(--gold))}
 .lv2 .total{display:flex;justify-content:space-between;align-items:end;margin-top:16px;padding-top:14px;border-top:1px dashed rgb(242 215 146 / .3)}
 .lv2 .total small{font-size:11px;letter-spacing:.14em;color:rgb(255 255 255 / .55);text-transform:uppercase}
 .lv2 .total strong{display:block;font-family:var(--display);font-size:28px}

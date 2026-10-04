@@ -123,7 +123,7 @@ let vipDate = '';
 
 // Opens the Reserve request for the first experience (Valentina Rose's 1:1 video
 // call, creator profile 1: manual approval, 24 h minimum notice).
-const RESERVE_BUTTON = /^(Solicitar|Reservar): /;
+const RESERVE_BUTTON = /^(Solicitar|Reservar)( sesión privada)?: /;
 const openBooking = async (page) => {
   await page.goto(`${BASE}/reserve`);
   await page.getByRole('button', { name: RESERVE_BUTTON }).first().click();
@@ -1834,16 +1834,28 @@ const run = async () => {
       await resF.getByRole('button', { name: /Tu gente/ }).click();
       await resF.getByTestId('creator-card').filter({ hasText: 'Valentina Rose' }).waitFor();
       await resF.goto(`${BASE}/`);
-      await resF.getByText('Sigue a tus creators, entra a su Live y reserva experiencias con fecha, precio y reglas claras.').waitFor();
+      await resF.getByText('Suscríbete a tus creators y reserva eventos y sesiones privadas con fecha, precio y reglas claras.').waitFor();
       await resF.locator('#categories-title').getByText('influencers y creadores').waitFor();
       await resF.locator('#comunidades').getByRole('link', { name: /Tu gente/ }).waitFor();
-      for (const p of ['Seguir', 'Suscribirse', 'Live', 'Reserve']) await resF.locator('section[aria-labelledby=how-title]').getByText(p, { exact: true }).first().waitFor();
+      const how = resF.locator('section[aria-labelledby=how-title]');
+      for (const p of ['Seguir', 'Suscribirse', 'Reserve Event', 'Reserve 1:1']) await how.getByText(p, { exact: true }).first().waitFor();
       await resF.locator('#reserve video').first().waitFor({ state: 'attached' });
     });
-    await check('Perfil: Seguir → Suscribirse → Live → Reserve, y seguir persiste', async () => {
+    await check('Jerarquía: el menú no tiene un pilar Live y el Open Live está oculto', async () => {
+      await resF.goto(`${BASE}/`);
+      const nav = resF.getByRole('navigation').first();
+      for (const l of ['Explorar', 'Suscribirse', 'Reserve', 'Cómo funciona']) await nav.getByRole('link', { name: l, exact: true }).first().waitFor();
+      expect((await nav.getByRole('link', { name: 'Live', exact: true }).count()) === 0, 'el menú tiene un pilar Live');
+      expect((await resF.getByText('Live gratis').count()) === 0, 'la portada ofrece "Live gratis"');
+      // The old "only creators live now" filter of Explore no longer applies.
+      await resF.goto(`${BASE}/explore?live=1`);
+      await resF.getByTestId('creator-card').filter({ hasText: 'Valentina Rose' }).waitFor();
+    });
+    await check('Perfil: Seguir → Suscribirse → Reserve, y seguir persiste', async () => {
       await resF.goto(`${BASE}/creator/1`);
       const ladder = resF.getByTestId('access-ladder');
-      for (const s of ['1 · Seguir', '2 · Suscribirse', '3 · Live', '4 · Reserve']) await ladder.getByText(s).waitFor();
+      for (const s of ['1 · Seguir', '2 · Suscribirse', '3 · Reserve']) await ladder.getByText(s).waitFor();
+      expect((await ladder.getByText(/· Live$/).count()) === 0, 'el perfil tiene un paso Live');
       await resF.getByTestId('creator-reserve').getByRole('heading', { name: 'Reserve con Valentina' }).waitFor();
       await ladder.getByTestId('follow-button').click();
       await ladder.getByTestId('follow-button').getByText('Siguiendo').waitFor();
@@ -1859,44 +1871,70 @@ const run = async () => {
       await toggle.click();
       await toggle.getByText('Te avisaremos cuando esté en Live').waitFor();
     });
-    await check('Live gratis: el creator lo inicia y el fan recibe el aviso en la campanita', async () => {
+    await check('Subscriber Live: un seguidor sin suscripción no recibe aviso ni puede entrar', async () => {
       await resC.goto(`${BASE}/creator/dashboard`);
       const panel = resC.getByTestId('creator-live-panel');
-      await panel.getByLabel('Título del Live').fill('Preguntas y respuestas de estilo');
+      await panel.getByText('Live para suscriptores').first().waitFor();
+      await panel.getByLabel('Título del Live').fill('Backstage para suscriptores');
       await panel.getByRole('button', { name: 'Iniciar Live' }).click();
       await waitPath(resC, '/en-vivo/1');
       await resC.getByRole('button', { name: 'Encender cámara y empezar' }).waitFor();
-      await resF.goto(`${BASE}/explore`);
-      await resF.getByTestId('notification-count').getByText('1').waitFor();
-      await resF.getByTestId('notification-bell').click();
-      const item = resF.getByTestId('notification-panel').getByRole('link', { name: /está en Live/ });
-      await item.getByText('Preguntas y respuestas de estilo').waitFor();
-      expect((await resF.getByTestId('notification-count').count()) === 0, 'el aviso sigue sin leer al abrir la campanita');
-      await item.click();
+      await resF.goto(`${BASE}/creator/1`);
+      await resF.getByTestId('live-now').getByText('Live para suscriptores · ahora').waitFor();
+      await resF.getByTestId('subscriber-live-locked').getByText('Exclusivo para suscriptores').waitFor();
+      expect((await resF.getByTestId('access-ladder').getByRole('link', { name: 'Entrar al Live' }).count()) === 0, 'ofrece entrar sin suscripción');
+      expect((await resF.getByTestId('notification-count').count()) === 0, 'avisó a un seguidor sin suscripción');
+      await resF.goto(`${BASE}/en-vivo/1`);
+      await resF.getByTestId('subscriber-live-gate').getByText('Live exclusivo para suscriptores').waitFor();
+      expect((await resF.getByRole('button', { name: 'Entrar al Live' }).count()) === 0, 'la sala deja entrar sin suscripción');
+    });
+    await check('Subscriber Live: al suscribirse se puede entrar; la suscripción no crea reservas', async () => {
+      await resF.goto(`${BASE}/creator/1`);
+      await resF.getByRole('button', { name: /Suscribirse \$/ }).first().click();
+      const dialog = resF.getByRole('dialog');
+      await dialog.getByRole('button', { name: /Suscribirme y pagar|Guardar método de pago/ }).first().waitFor();
+      if (await dialog.getByTestId('payment-method-form').count()) {
+        await addCard(dialog);
+        await dialog.getByText('Visa •••• 4242').waitFor();
+      }
+      await dialog.getByRole('button', { name: /Suscribirme y pagar/ }).click();
+      await resF.getByRole('button', { name: /Suscrito/ }).first().waitFor();
+      await resF.getByTestId('access-ladder').getByRole('link', { name: 'Entrar al Live' }).click();
       await waitPath(resF, '/en-vivo/1');
       await resF.getByRole('button', { name: 'Entrar al Live' }).click();
       await resF.getByTestId('live-problem').getByText(/solo funciona en la web publicada/).waitFor();
-      await resF.goto(`${BASE}/creator/1`);
-      await resF.getByTestId('live-now').waitFor();
+      const bookings = await resF.evaluate(() => JSON.parse(localStorage.getItem('fansreserve_vip_bookings') || '[]'));
+      expect(!bookings.some((b) => b.creatorProfileId === '1' && b.fanEmail === 'fan@sugarfans.com' && b.status !== 'cancelled'), 'la suscripción creó una reserva');
     });
-    await check('Live gratis: al terminarlo el perfil deja de mostrar "En Live ahora"', async () => {
+    await check('Subscriber Live: al terminarlo el perfil deja de mostrarlo', async () => {
       await resC.goto(`${BASE}/creator/dashboard`);
       await resC.getByTestId('creator-live-panel').getByRole('button', { name: 'Terminar Live' }).click();
       await resC.getByTestId('creator-live-panel').getByRole('button', { name: 'Iniciar Live' }).waitFor();
       await resF.goto(`${BASE}/creator/1`);
-      await resF.getByTestId('ladder-live').getByText('En vivo', { exact: true }).waitFor();
+      await resF.getByTestId('access-ladder').waitFor();
       expect((await resF.getByTestId('live-now').count()) === 0, 'sigue en Live');
       await resF.goto(`${BASE}/en-vivo/1`);
       await resF.getByText('Este creator no está en Live ahora').waitFor();
-      await resF.goto(`${BASE}/creator/1`);
     });
-    await check('Live gratis: Salir del fan no lo cierra; Terminar Live en la página pide confirmar y lo cierra', async () => {
+    await check('Subscriber Live: el suscriptor recibe el aviso; Salir no lo cierra; Terminar Live pide confirmar', async () => {
+      // The first Live was minutes ago: age it so this one isn't held back by the anti-spam window.
+      await resC.evaluate(() => {
+        const st = JSON.parse(localStorage.getItem('fansreserve_live') || '{}');
+        st.broadcasts = (st.broadcasts ?? []).map((b) => ({ ...b, startedAt: new Date(Date.now() - 86400000).toISOString() }));
+        localStorage.setItem('fansreserve_live', JSON.stringify(st));
+      });
       await resC.goto(`${BASE}/creator/dashboard`);
       const panel = resC.getByTestId('creator-live-panel');
       await panel.getByLabel('Título del Live').fill('Segundo Live');
       await panel.getByRole('button', { name: 'Iniciar Live' }).click();
       await waitPath(resC, '/en-vivo/1');
-      await resF.goto(`${BASE}/en-vivo/1`);
+      await resF.goto(`${BASE}/explore`);
+      await resF.getByTestId('notification-count').getByText('1').waitFor();
+      await resF.getByTestId('notification-bell').click();
+      const item = resF.getByTestId('notification-panel').getByRole('link', { name: /Live para suscriptores/ });
+      await item.getByText('Segundo Live').waitFor();
+      await item.click();
+      await waitPath(resF, '/en-vivo/1');
       await resF.getByRole('button', { name: 'Salir' }).click();
       await waitPath(resF, '/creator/1');
       await resF.getByTestId('live-now').waitFor();
@@ -1911,12 +1949,30 @@ const run = async () => {
       await waitPath(resC, '/creator/dashboard');
       await panel.getByRole('button', { name: 'Iniciar Live' }).waitFor();
       await resF.goto(`${BASE}/creator/1`);
-      await resF.getByTestId('ladder-live').getByText('En vivo', { exact: true }).waitFor();
+      await resF.getByTestId('access-ladder').waitFor();
       expect((await resF.getByTestId('live-now').count()) === 0, 'sigue en Live');
     });
+    await check('Reserve Event: el fan reserva su plaza y la sala de grupo no es la de una sesión privada', async () => {
+      await resF.goto(`${BASE}/creator/1`);
+      const group = resF.getByTestId('reserve-group-event');
+      const card = group.getByTestId('reserve-card').filter({ hasText: 'Beauty Q&A con Valentina' });
+      await card.getByTestId('event-facts').waitFor();
+      await card.getByRole('button', { name: /^Reserva tu plaza: / }).click();
+      const dialog = resF.getByRole('dialog');
+      await dialog.getByRole('button', { name: /Reservar plaza/ }).waitFor();
+      expect((await resF.getByTestId('booking-calendar').count()) === 0, 'un evento pide elegir día y hora');
+      await dialog.getByRole('button', { name: /Reservar plaza/ }).click();
+      await resF.getByText('¡Plaza reservada!').waitFor();
+      const bookings = await resF.evaluate(() => JSON.parse(localStorage.getItem('fansreserve_vip_bookings') || '[]'));
+      const seat = bookings.find((b) => b.experienceId === 'ev-1' && b.fanEmail === 'fan@sugarfans.com');
+      expect(seat?.details?.kind === 'event', `la plaza no quedó como Reserve Event (${JSON.stringify(seat?.details)})`);
+      expect(['accepted', 'pending'].includes(seat.status), `estado inesperado ${seat.status}`);
+    });
     await check('La suscripción y los regalos dicen que no incluyen Reserve', async () => {
+      await resF.keyboard.press('Escape');
+      await resF.goto(`${BASE}/creator/1`);
       const section = resF.getByTestId('creator-reserve');
-      await section.getByTestId('notice-subscription').getByText(/No incluye videollamadas ni experiencias de Reserve/).waitFor();
+      await section.getByTestId('notice-subscription').getByText(/No incluye Reserve Events, sesiones privadas ni otras experiencias de Reserve/).waitFor();
       await section.getByTestId('notice-gift').getByText(/No garantizan respuesta, conversación, acceso ni experiencias de Reserve/).waitFor();
       await resF.getByRole('button', { name: 'Enviar regalo' }).click();
       const dialog = resF.getByRole('dialog', { name: /Regalo para Valentina Rose/ });
@@ -2088,17 +2144,15 @@ const run = async () => {
       await m.locator('button[aria-label="Menú"]').click();
       await m.getByRole('link', { name: /Iniciar Sesión/ }).last().waitFor();
     });
-    await check('Móvil: barra de pestañas tipo app con Inicio, Explorar, Live, Reserve y Entrar', async () => {
+    await check('Móvil: barra de pestañas tipo app con Inicio, Explorar, Reserve y Entrar (sin Live)', async () => {
       const tabs = m.getByTestId('tab-bar');
-      for (const name of ['Inicio', 'Explorar', 'Live', 'Reserve', 'Entrar']) await tabs.getByRole('link', { name, exact: true }).waitFor();
+      for (const name of ['Inicio', 'Explorar', 'Reserve', 'Entrar']) await tabs.getByRole('link', { name, exact: true }).waitFor();
+      expect((await tabs.getByRole('link', { name: 'Live', exact: true }).count()) === 0, 'la barra tiene una pestaña Live');
       await tabs.getByRole('link', { name: 'Explorar', exact: true }).tap();
       await waitPath(m, '/explore');
       await m.getByTestId('live-rail').waitFor();
       await m.getByTestId('reserve-rail').waitFor();
       expect((await tabs.getByRole('link', { name: 'Explorar', exact: true }).getAttribute('aria-current')) === 'page', 'Explorar no queda marcada');
-      await tabs.getByRole('link', { name: 'Live', exact: true }).tap();
-      await m.getByRole('heading', { name: /En Live ahora/ }).waitFor();
-      await m.getByTestId('live-empty').waitFor();
       await tabs.getByRole('link', { name: 'Reserve', exact: true }).tap();
       await waitPath(m, '/reserve');
       await m.goto(`${BASE}/`);
@@ -2114,8 +2168,8 @@ const run = async () => {
           return window.scrollY > 200;
         });
       };
-      await m.goto(`${BASE}/explore?live=1`);
-      await m.getByRole('heading', { name: /En Live ahora/ }).waitFor();
+      await m.goto(`${BASE}/explore`);
+      await m.getByTestId('reserve-rail').waitFor();
       await bottom();
       await tabs.getByRole('link', { name: 'Inicio', exact: true }).tap();
       await waitPath(m, '/');
@@ -2125,10 +2179,6 @@ const run = async () => {
       await waitPath(m, '/explore');
       expect((await scrolled()) === 0, 'Explorar no abrió desde arriba');
       await m.getByTestId('reserve-rail').waitFor();
-      await bottom();
-      await tabs.getByRole('link', { name: 'Live', exact: true }).tap();
-      await m.getByRole('heading', { name: /En Live ahora/ }).waitFor();
-      expect((await scrolled()) === 0, 'Live no abrió desde arriba');
       await m.goto(`${BASE}/reserve`);
       await bottom();
       await tabs.getByRole('link', { name: 'Reserve', exact: true }).tap();

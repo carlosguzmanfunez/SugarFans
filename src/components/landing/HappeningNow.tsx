@@ -4,6 +4,7 @@ import type { Creator } from '../../data/mockData';
 import { useLiveCreatorIds } from '../../lib/live';
 import { categoryFor } from '../../config/reserve';
 import { LIVE_NOW } from '../../content/landing';
+import { ENABLE_OPEN_LIVE } from '../../config/features';
 import { LiveChip, clearAvatar } from './landingBits';
 
 const BACKDROPS = [
@@ -15,8 +16,10 @@ const BACKDROPS = [
 ];
 const LIVE_CHAT = ['¡Qué buen Live!', 'Marta envió Rosas', '¿Haces Reserve este sábado?'];
 
-// "Está pasando ahora": a stage of creators, whoever is in Live first and then the
-// most followed. The big tile shows a Live as it feels: chat and rising gifts.
+// "Está pasando ahora": a stage of creators, the most followed first. With Open Live
+// on (ENABLE_OPEN_LIVE) whoever is in a public Live goes first and the big tile shows
+// a Live as it feels; otherwise there is no public Live directory and every tile opens
+// the creator's profile.
 const HappeningNow: React.FC<{ creators: Creator[] }> = ({ creators }) => {
   const live = useLiveCreatorIds(creators.map((c) => c.id));
   const stage = [...creators]
@@ -25,11 +28,11 @@ const HappeningNow: React.FC<{ creators: Creator[] }> = ({ creators }) => {
     .slice(0, 5);
 
   return (
-    <section className="sec" id="live" aria-labelledby="live-now-title" style={{ paddingTop: 64 }} data-testid="happening-now">
+    <section className="sec" id={ENABLE_OPEN_LIVE ? 'live' : 'ahora'} aria-labelledby="live-now-title" style={{ paddingTop: 64 }} data-testid="happening-now">
       <div className="wrap">
         <div className="sec-head v-reveal">
           <h2 id="live-now-title">{LIVE_NOW.title}</h2>
-          <p>{LIVE_NOW.subtitle}</p>
+          <p>{ENABLE_OPEN_LIVE ? LIVE_NOW.openLiveSubtitle : LIVE_NOW.subtitle}</p>
         </div>
         <div className="stage v-reveal">
           {stage.map((c, i) => {

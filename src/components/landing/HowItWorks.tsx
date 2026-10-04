@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { creators } from '../../data/mockData';
 import { HOW } from '../../content/landing';
+import { ENABLE_OPEN_LIVE } from '../../config/features';
 import { formatPrice } from '../CreatorCard';
 import { clearAvatar, LiveChip, prefersReducedMotion, trackSpot } from './landingBits';
 
@@ -109,6 +111,33 @@ const LiveDemo: React.FC<{ panel: React.RefObject<HTMLElement> }> = ({ panel }) 
   );
 };
 
+// Reserve Event: a group experience with a fixed date, seats and a price per seat.
+const EventDemo: React.FC = () => {
+  const c = byId('1');
+  const SEATS = 20;
+  const [taken, setTaken] = useState(14);
+  const mine = taken > 14;
+  return (
+    <div className="mini">
+      <div className="row">
+        <div className="av"><img src={c.avatar} alt="" /></div>
+        <div className="v-grow"><b>Beauty Q&amp;A con {c.name.split(' ')[0]}</b><span>Vie 20:00 · 60 min · virtual</span></div>
+      </div>
+      <div className="seats" aria-label={`${SEATS - taken} plazas libres de ${SEATS}`}>
+        {Array.from({ length: SEATS }, (_, i) => (
+          <i key={i} className={i < taken ? (mine && i === taken - 1 ? 'me' : 'on') : ''} />
+        ))}
+      </div>
+      <div className="total">
+        <div><small>Por participante</small><strong>$15</strong></div>
+        <button type="button" className="v-btn v-gold v-sm" aria-pressed={mine} onClick={() => setTaken(mine ? 14 : 15)}>
+          {mine ? 'Plaza reservada' : 'Reserva tu plaza'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const ReserveDemo: React.FC = () => {
   const c = byId('1');
   const [day, setDay] = useState(16);
@@ -123,7 +152,7 @@ const ReserveDemo: React.FC = () => {
     <div className="mini">
       <div className="row">
         <div className="av"><img src={c.avatar} alt="" /></div>
-        <div className="v-grow"><b>Asesoría de estilo 1:1</b><span>{c.name}, 30 min, virtual</span></div>
+        <div className="v-grow"><b>Videollamada privada 1:1</b><span>{c.name}, 20 min, solo tú y {c.name.split(' ')[0]}</span></div>
       </div>
       <div className="calendar">
         {DAYS.map((d) => (
@@ -138,8 +167,8 @@ const ReserveDemo: React.FC = () => {
         ))}
       </div>
       <div className="total">
-        <div><small>Total</small><strong>$99.99</strong></div>
-        <button type="button" className="v-btn v-gold v-sm" onClick={() => setSent(true)}>{sent ? 'Solicitud enviada' : 'Solicitar reserva'}</button>
+        <div><small>Total</small><strong>$90</strong></div>
+        <button type="button" className="v-btn v-gold v-sm" onClick={() => setSent(true)}>{sent ? 'Solicitud enviada' : 'Reservar sesión privada'}</button>
       </div>
     </div>
   );
@@ -156,17 +185,31 @@ type Panel = {
   icon: React.ReactNode;
 };
 
+const TICKET = <><path d="M3 9a2 2 0 0 0 0 6v3a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-3a2 2 0 0 0 0-6V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1z" /><path d="M14 5v14" strokeDasharray="2 2.5" /></>;
+
 // "Cuatro formas de acercarte": four panels in the brand colours. The open one is
 // a working demo and advances to the next on its own while the section is in view
-// (it waits while you are trying it).
+// (it waits while you are trying it). The steps follow the product's funnel:
+// Seguir → Suscribirse (with Subscriber Live) → Reserve Event → Reserve 1:1.
+// The free public Live panel only comes back with ENABLE_OPEN_LIVE.
 const HowItWorks: React.FC = () => {
-  const panels: Panel[] = [
-    { key: 'follow', cls: 'p-follow', label: 'Seguir', price: 'Gratis', title: 'Gratis, para no perderte nada', sub: 'Ves sus publicaciones públicas y te avisamos cuando empieza un Live.', who: byId('1').avatar, icon: <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" /> },
-    { key: 'sub', cls: 'p-sub', label: 'Suscribirse', price: `${formatPrice(byId('2').subscriptionPrice)} al mes`, title: 'Su contenido exclusivo, cada mes', sub: 'Publicaciones, videos y backstage solo para su comunidad. Cancelas cuando quieras.', who: byId('2').avatar, icon: <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" /> },
-    { key: 'live', cls: 'p-live', label: 'Live', price: 'Gratis', title: 'En vivo, con su comunidad', sub: 'Lives gratis para todos. Reacciona con un regalo y aparece en pantalla.', icon: <><circle cx="12" cy="12" r="2.5" /><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2" /></> },
-    { key: 'res', cls: 'p-res', label: 'Reserve', price: 'Desde $39.99', title: 'Experiencias con fecha y precio', sub: 'Cada creator define qué ofrece. Tú eliges, el creator aprueba y queda confirmada.', icon: <><path d="M3 9a2 2 0 0 0 0 6v3a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-3a2 2 0 0 0 0-6V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1z" /><path d="M14 5v14" strokeDasharray="2 2.5" /></> },
-  ];
+  const follow: Panel = { key: 'follow', cls: 'p-follow', label: 'Seguir', price: 'Gratis', title: 'Gratis, para no perderte nada', sub: 'Ves sus publicaciones públicas y sus novedades.', who: byId('1').avatar, icon: <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" /> };
+  const sub: Panel = { key: 'sub', cls: 'p-sub', label: 'Suscribirse', price: `${formatPrice(byId('2').subscriptionPrice)} al mes`, title: 'Su contenido exclusivo y sus Lives para suscriptores', sub: 'Publicaciones, backstage y Lives grupales solo para su comunidad. Cancelas cuando quieras.', who: byId('2').avatar, icon: <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" /> };
+  const panels: Panel[] = ENABLE_OPEN_LIVE
+    ? [
+        follow,
+        sub,
+        { key: 'live', cls: 'p-live', label: 'Live', price: 'Gratis', title: 'En vivo, con su comunidad', sub: 'Lives gratis para todos. Reacciona con un regalo y aparece en pantalla.', icon: <><circle cx="12" cy="12" r="2.5" /><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2" /></> },
+        { key: 'res', cls: 'p-res', label: 'Reserve', price: 'Desde $39.99', title: 'Experiencias con fecha y precio', sub: 'Cada creator define qué ofrece. Tú eliges, el creator aprueba y queda confirmada.', icon: TICKET },
+      ]
+    : [
+        follow,
+        sub,
+        { key: 'event', cls: 'p-event', label: 'Reserve Event', price: 'Desde $15 la plaza', title: 'Eventos en grupo, con plazas', sub: 'Q&A, masterclass, workshops o gaming con fecha, duración y plazas limitadas. Reservas y pagas tu plaza.', icon: <><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2.4" /><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5M15 14c3 0 6 1.7 6 5" /></> },
+        { key: 'res', cls: 'p-res', label: 'Reserve 1:1', price: 'Desde $39.99', title: 'Una sesión privada, solo para ti', sub: 'Videollamada privada con hora, duración y precio definidos. Solo tú y el creator en la sala.', icon: TICKET },
+      ];
   const faceWho = [byId('1').avatar, byId('2').avatar, byId('5').avatar, byId('3').avatar];
+  const { hash } = useLocation();
 
   const [cur, setCur] = useState(0);
   const [cycle, setCycle] = useState(0); // restarts the progress bar
@@ -188,6 +231,18 @@ const HowItWorks: React.FC = () => {
     setCur((i + 4) % 4);
     setCycle((c) => c + 1);
   }, []);
+
+  // "Suscribirse" in the menu lands here with that step open.
+  useEffect(() => {
+    const go = () => {
+      if (window.location.hash !== '#suscribirse') return;
+      open(1);
+      document.getElementById('suscribirse')?.scrollIntoView({ block: 'start' });
+    };
+    go();
+    window.addEventListener('hashchange', go);
+    return () => window.removeEventListener('hashchange', go);
+  }, [hash, open]);
   const paused = reduce || hovering || !visible;
   const fine = () => window.matchMedia('(pointer:fine)').matches;
 
@@ -200,6 +255,7 @@ const HowItWorks: React.FC = () => {
       onFocus={(e) => (e.target as HTMLElement).closest('.ap-body') && setHovering(true)}
       onBlur={() => setHovering(false)}
     >
+      <span id="suscribirse" className="block scroll-mt-28" aria-hidden="true" />
       <div className="wrap">
         <div className="j-head v-reveal">
           <span className="v-eyebrow">{HOW.eyebrow}</span>
@@ -253,6 +309,7 @@ const HowItWorks: React.FC = () => {
                   {p.key === 'follow' && <FollowDemo />}
                   {p.key === 'sub' && <SubscribeDemo />}
                   {p.key === 'live' && <LiveDemo panel={livePanel} />}
+                  {p.key === 'event' && <EventDemo />}
                   {p.key === 'res' && <ReserveDemo />}
                 </div>
                 <span className="jbar" aria-hidden="true">

@@ -13,6 +13,7 @@ import CoinIcon from './CoinIcon';
 import { usePlatformQuery } from '../lib/platform';
 import { formatCoins, giftsApi } from '../lib/gifts';
 import type { User } from '../context/AuthContext';
+import { ENABLE_OPEN_LIVE } from '../config/features';
 
 // Fan's Créditos balance, always in sight, in the champagne tone of the coin.
 const CreditsPill: React.FC<{ user: User }> = ({ user }) => {
@@ -52,15 +53,18 @@ const Navbar: React.FC = () => {
     navigate('/');
   };
 
-  // On the landing the menu jumps to its sections, as in the approved design.
+  // On the landing the menu jumps to its sections, as in the approved design. The
+  // product's pillars are Explorar, Suscribirse and Reserve; Live is not a pillar of its
+  // own (Subscriber Live lives inside Subscribe; Open Live only with ENABLE_OPEN_LIVE).
   const onLanding = location.pathname === '/';
   const showCreators = !isAuthenticated || user?.role === 'creator';
   const sections = [
-    { href: '#comunidades', label: 'Comunidades' },
-    { href: '#live', label: 'Live' },
-    { href: '#journey', label: 'Cómo funciona' },
+    { href: '#comunidades', label: 'Explorar' },
+    { href: '#suscribirse', label: 'Suscribirse' },
     { href: '#reserve', label: 'Reserve' },
+    ...(ENABLE_OPEN_LIVE ? [{ href: '#live', label: 'Live' }] : []),
     ...(showCreators ? [{ href: '#creadores', label: 'Para creadores' }] : []),
+    { href: '#journey', label: 'Cómo funciona' },
   ];
 
   const linkCls = (path: string) =>
@@ -94,6 +98,9 @@ const Navbar: React.FC = () => {
               <>
             <Link to="/explore" className={linkCls('/explore')}>
               {t('nav.explore')}
+            </Link>
+            <Link to="/#suscribirse" className={linkCls('/#suscribirse')}>
+              Suscribirse
             </Link>
             <Link to="/reserve" className={linkCls('/reserve')}>
               Reserve
@@ -187,8 +194,14 @@ const Navbar: React.FC = () => {
               <Link to="/explore" className={mobileLinkCls('/explore')} onClick={() => setShowMobile(false)}>
                 <i aria-hidden="true" className="fas fa-compass w-5 text-brand-600"></i> {t('nav.explore')}
               </Link>
+              <Link to="/#suscribirse" className={mobileLinkCls('/#suscribirse')} onClick={() => setShowMobile(false)}>
+                <i aria-hidden="true" className="fas fa-star w-5 text-iris-600"></i> Suscribirse
+              </Link>
               <Link to="/reserve" className={mobileLinkCls('/reserve')} onClick={() => setShowMobile(false)}>
                 <i aria-hidden="true" className="fas fa-ticket w-5 text-gold-600"></i> Reserve
+              </Link>
+              <Link to="/#journey" className={mobileLinkCls('/#journey')} onClick={() => setShowMobile(false)}>
+                <i aria-hidden="true" className="fas fa-circle-question w-5 text-ink/40"></i> Cómo funciona
               </Link>
               {isAuthenticated && user?.role === 'creator' && (
                 <Link to="/creator/dashboard" className={mobileLinkCls('/creator/dashboard')} onClick={() => setShowMobile(false)}>

@@ -10,16 +10,48 @@ Estado: en modo de prueba. Los pagos de Reserve son simulados y **no** están li
 
 Una Reserve es siempre una experiencia concreta, descrita de antemano por el creator: qué es, cómo se hace, cuánto dura, cuánto cuesta, cuándo y dónde ocurre, qué incluye, qué no incluye y bajo qué reglas. El creator decide si la acepta. Nada en la plataforma se compra "por tiempo con alguien".
 
-## 2. Los cuatro pilares
+## 2. Jerarquía de producto: Suscribirse y Reserve
 
-| Pilar | Qué da | Qué no da |
-|---|---|---|
-| **Discover / Seguir** | Gratis: contenido público y novedades. | Acceso exclusivo. |
-| **Subscribe / Suscribirse** | Contenido exclusivo del creator. Puede haber un descuento explícito en Reserve. | Videollamadas ni experiencias de Reserve. |
-| **Live** | Sesiones en vivo en la sala privada de Fans Reserve (hoy: las sesiones virtuales reservadas en Reserve). | — |
-| **Reserve** | Una experiencia definida, aprobada por el creator, con fecha, precio y reglas. | Compañía, citas ni nada fuera de lo descrito. |
+> “Fans Reserve no busca reemplazar las redes sociales donde los creators construyen su audiencia. Fans Reserve existe para ayudarles a monetizar acceso, experiencias y relaciones estructuradas con esa audiencia.”
 
-El perfil del creator muestra los cuatro en ese orden (`AccessLadder`) y una sección destacada "Reserve con {creator}".
+```
+SUSCRIBIRSE
+└── Subscriber Live        (Live grupal incluido en la suscripción activa)
+
+RESERVE
+├── Reserve Event          (experiencia grupal con fecha, duración, precio y plazas)
+└── Reserve 1:1            (sesión privada: solo el fan y el creator de la reserva)
+
+Open Live                  (Live público y gratis: conservado, DESACTIVADO por ENABLE_OPEN_LIVE)
+```
+
+| Nivel | Qué da | Qué no da | Quién entra a la sala |
+|---|---|---|---|
+| **Seguir** | Gratis: contenido público, novedades y la campanita. | Acceso exclusivo. | — |
+| **Suscribirse** | Contenido exclusivo, **Subscriber Live** y beneficios del creator. Puede haber un descuento explícito en Reserve. | Reserve Events, sesiones privadas ni otras experiencias de Reserve. | Subscriber Live: el creator y fans con suscripción activa. |
+| **Reserve Event** | Una plaza en una experiencia grupal (Q&A, masterclass, workshop, gaming…) con fecha, duración, precio y plazas limitadas. | Tiempo privado con el creator. | El creator y fans con plaza confirmada (aceptada y pagada). |
+| **Reserve 1:1** | Una sesión privada definida, aprobada por el creator. | Compañía, citas ni nada fuera de lo descrito. | Solo el fan y el creator de esa reserva. |
+
+Live no es un pilar propio: el Subscriber Live vive dentro de la suscripción y las salas de Reserve dentro de Reserve. La navegación es **Explorar, Suscribirse, Reserve, Para creadores, Cómo funciona**, y el perfil muestra Seguir → Suscribirse → Reserve (`AccessLadder`), la sección "Reserve con {creator}" agrupada en Reserve Events, Reserve 1:1 y otras, y "Próximo acceso" con el Subscriber Live en curso y los próximos Reserve Events.
+
+CTAs: "Exclusivo para suscriptores", "Reserva tu plaza", "Reservar sesión privada". Nunca "Live gratis" mientras el Open Live esté apagado.
+
+### Permisos (se aplican en el servidor)
+
+- La decisión vive en `src/lib/liveAccess.ts` y la aplica `api/live-token.ts` antes de firmar el token de LiveKit; ocultar un botón nunca es control de acceso.
+- **Open Live**: rechazado mientras esté apagado (403 en el token; `start_live` en la base de datos también lo rechaza).
+- **Subscriber Live**: el creator publica; solo fans con suscripción activa reciben token (de solo ver). Los avisos van solo a suscriptores activos.
+- **Reserve Event**: una sala por evento (`event-<experiencia>-<fecha>-<hora>`); el creator publica y los participantes con plaza confirmada miran y chatean. Una plaza por fan; plazas limitadas (`reserve_book_event_seat`).
+- **Reserve 1:1**: sala `booking-<id>`; solo el fan y el creator de la reserva.
+- Los regalos nunca dan acceso. La suscripción nunca da acceso a Reserve.
+
+### Open Live: conservado y desactivado
+
+El Open Live no se borró: LiveKit, `api/live-token.ts`, `live_broadcasts`, avisos, `follows.live_alerts`, migraciones, componentes y realtime siguen ahí. Para reactivarlo hay que encender los tres interruptores:
+
+1. `VITE_ENABLE_OPEN_LIVE=true` en Vercel (interfaz: menú, pestaña y opción "Live abierto").
+2. `ENABLE_OPEN_LIVE=true` en Vercel (servidor: el token de LiveKit).
+3. En Supabase: `create or replace function public.open_live_enabled() returns boolean language sql immutable set search_path = '' as $$ select true $$;`
 
 ## 3. Gift vs Reserve
 

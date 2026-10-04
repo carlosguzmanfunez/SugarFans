@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { sessionMinutes, liveState, liveWindow, isLiveBooking, type VipBooking } from '../lib/vip';
+import { sessionMinutes, liveState, liveWindow, isLiveBooking, isEventBooking, type VipBooking } from '../lib/vip';
 
-// "Join live session" for a confirmed booking of a live experience (virtual, with a duration).
+// "Join live session" for a confirmed booking of a live experience (virtual, with a duration):
+// a Reserve 1:1 opens the private room, a Reserve Event seat opens the event's group room.
 // In-person Reserves happen at their venue: no room.
 const LiveRoomButton: React.FC<{ booking: VipBooking }> = ({ booking }) => {
   const [now, setNow] = useState(() => new Date());
@@ -18,11 +19,12 @@ const LiveRoomButton: React.FC<{ booking: VipBooking }> = ({ booking }) => {
   if (state === 'open') {
     return (
       <Link
-        to={`/live/${booking.id}`}
+        to={isEventBooking(booking) ? `/evento/${booking.id}` : `/live/${booking.id}`}
         data-testid="join-live"
         className="text-xs px-3 py-1.5 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 inline-flex items-center"
       >
-        <span className="w-2 h-2 rounded-full bg-white mr-2 animate-pulse"></span>Entrar a la sesión en vivo
+        <span className="w-2 h-2 rounded-full bg-white mr-2 animate-pulse"></span>
+        {isEventBooking(booking) ? 'Entrar al Reserve Event' : 'Entrar a la sesión en vivo'}
       </Link>
     );
   }

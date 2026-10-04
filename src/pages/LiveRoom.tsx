@@ -72,6 +72,11 @@ const LiveRoom: React.FC = () => {
       ]);
       const b = lists.flat().find((x) => x.id === bookingId) ?? null;
       if (!active) return;
+      // A Reserve Event seat has a group room of its own.
+      if (b?.details?.kind === 'event') {
+        navigate(`/evento/${b.id}`, { replace: true });
+        return;
+      }
       setBooking(b);
       const mins = sessionMinutes(b);
       if (!b) setProblem('No encontramos esta reserva en tu cuenta.');
@@ -86,7 +91,7 @@ const LiveRoom: React.FC = () => {
     return () => {
       active = false;
     };
-  }, [user, bookingId]);
+  }, [user, bookingId, navigate]);
 
   const send = useCallback((m: CallMessage) => {
     roomRef.current?.localParticipant.publishData(encoder.encode(JSON.stringify(m)), { reliable: true }).catch(() => undefined);

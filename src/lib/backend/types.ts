@@ -120,7 +120,8 @@ export interface CounterOffer {
 // What a Reserve booking was for (vip_bookings.details). Empty on bookings made
 // before Reserve: those are virtual, for one person.
 export interface BookingDetails {
-  kind?: 'experience' | 'custom';
+  // event = one seat in a Reserve Event (same day and time for every participant).
+  kind?: 'experience' | 'custom' | 'event';
   typeId?: string;
   modality?: ReserveModality;
   purpose?: PurposeId;
@@ -193,6 +194,8 @@ export interface CounterInput {
   note: string;
 }
 
+export type ReserveFormat = 'private' | 'event';
+
 // The five original ids plus the Reserve catalogue (src/config/reserve.ts).
 export type ExperienceType = string;
 
@@ -216,6 +219,12 @@ export interface ReserveDetails {
   // Days (0–6) and hours this experience can be booked, within the creator's availability.
   days?: number[];
   hours?: string[];
+  // 'event' = Reserve Event: a group experience on a fixed day and time where each fan
+  // books one seat (maxParticipants = seats). Absent or 'private' = Reserve 1:1 or
+  // another private experience, booked on the creator's calendar.
+  format?: ReserveFormat;
+  eventDate?: string; // YYYY-MM-DD, creator's local time
+  eventTime?: string; // HH:MM
 }
 
 export interface VipExperienceInput {
@@ -274,6 +283,10 @@ export interface Backend {
   setAvailability(creatorProfileId: string, availability: Availability): Promise<AuthResult>;
   takenSlots(creatorProfileId: string): Promise<TakenSlot[]>;
   createBooking(user: User, input: BookingInput): Promise<AuthResult>;
+  // Reserve Event: one seat for the signed-in fan (day and time come from the event).
+  bookEventSeat(user: User, experienceId: string, message: string): Promise<AuthResult>;
+  // Seats already held per event (pending, accepted or confirmed), without who holds them.
+  eventSeats(experienceIds: string[]): Promise<Record<string, number>>;
   // Creator accepts/rejects, fan cancels. Paying goes through payBooking.
   updateBooking(user: User, bookingId: string, next: BookingStatus): Promise<AuthResult>;
   // Reserve: a fan's structured custom request, the creator's counter-offer

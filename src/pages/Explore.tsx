@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { usePlatformQuery, platformApi, isCutOff } from '../lib/platform';
 import { useLiveCreatorIds } from '../lib/live';
 import { LiveRail, ReserveRail, RailHeading } from '../components/AppRails';
+import { ENABLE_OPEN_LIVE } from '../config/features';
 
 const Explore: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
@@ -39,8 +40,9 @@ const Explore: React.FC = () => {
     return match?.name ?? '';
   });
   const [viewMode, setViewMode] = useState<'creators' | 'posts'>('creators');
-  // ?live=1 (the Live tab) shows only the creators in Live right now.
-  const liveOnly = params.has('live');
+  // ?live=1 (the Live tab) shows only the creators in an Open Live right now. Without
+  // Open Live there is no public Live directory: the parameter is ignored.
+  const liveOnly = ENABLE_OPEN_LIVE && params.has('live');
   const visibleCreators = creators.filter((c) => !hidden(c.id));
   const liveIds = useLiveCreatorIds(visibleCreators.map((c) => c.id));
   const browsing = !searchQuery && !selectedCategory && !liveOnly;
@@ -76,7 +78,7 @@ const Explore: React.FC = () => {
           </div>
 
           {!liveOnly && (
-            <section aria-label="Creadores y Live" className="mx-auto mt-6 max-w-5xl">
+            <section aria-label={ENABLE_OPEN_LIVE ? 'Creadores y Live' : 'Creadores'} className="mx-auto mt-6 max-w-5xl">
               <LiveRail creators={visibleCreators} liveIds={liveIds} className="md:justify-center" />
             </section>
           )}

@@ -8,6 +8,8 @@ import {
   MIN_EXPERIENCE_PRICE,
   MAX_EXPERIENCE_PRICE,
   defaultDetails,
+  bookingWindow,
+  canBeEvent,
   validateExperience,
   type Availability,
   type ReserveDetails,
@@ -18,6 +20,9 @@ import {
   CANCELLATION_POLICIES,
   LOCATION_TYPES,
   MIN_NOTICE_OPTIONS,
+  MAX_PARTICIPANTS,
+  MIN_EVENT_SEATS,
+  RESERVE_FORMATS,
   RESERVE_MODALITIES,
   SUBSCRIBER_DISCOUNTS,
   experienceTypeById,
@@ -110,10 +115,20 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category, availability
         locationTypes: modality === 'virtual' ? ['online'] : locations.slice(0, 1),
         maxParticipants: Math.min(x.details.maxParticipants, t.maxParticipants),
         approval: t.alwaysManual ? 'manual' : x.details.approval,
+        // Only some types can be a Reserve Event.
+        ...(canBeEvent(id) ? {} : { format: undefined, eventDate: undefined, eventTime: undefined }),
       },
     }));
     setError('');
   };
+
+  const isEvent = d.format === 'event';
+  const pickFormat = (format: 'private' | 'event') =>
+    setD(
+      format === 'event'
+        ? { format, maxParticipants: Math.max(d.maxParticipants, 10), eventTime: d.eventTime ?? '20:00' }
+        : { format: undefined, eventDate: undefined, eventTime: undefined, maxParticipants: Math.min(d.maxParticipants, type?.maxParticipants ?? 1) }
+    );
 
   const pickModality = (modality: ReserveModality) => {
     const locations = locationsFor(category, type, modality);
@@ -132,6 +147,7 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category, availability
     if (i === 0 && !type) return 'Elige el tipo de experiencia';
     if (i === 1) return input.title.trim().length < 3 || input.title.trim().length > 80 ? 'El nombre debe tener entre 3 y 80 caracteres' : mod([input.title]);
     if (i === 2) return input.description.trim().length < 10 ? 'Describe la experiencia (mínimo 10 caracteres)' : mod([input.description]);
+    if (i === 6 && isEvent && (!d.eventDate || !d.eventTime)) return 'Indica la fecha y la hora del evento';
     if (i === 5 && (!Number.isFinite(input.price) || input.price < MIN_EXPERIENCE_PRICE || input.price > MAX_EXPERIENCE_PRICE))
       return `El precio debe estar entre $${MIN_EXPERIENCE_PRICE} y $${MAX_EXPERIENCE_PRICE}`;
     if (i === 7 && d.modality !== 'virtual') {
@@ -227,6 +243,23 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category, availability
         </label>
       )}
 
+      {step === 3 && type && canBeEvent(type.id) && (
+        <div className="mb-4">
+          <p className="mb-2 text-sm font-semibold text-ink">Formato</p>
+          <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Formato" data-testid="format-picker">
+            {(['private', 'event'] as const).map((f) => (
+              <button key={f} type="button" role="radio" aria-checked={(f === 'event') === isEvent} onClick={() => pickFormat(f)} className={option((f === 'event') === isEvent)}>
+                <i aria-hidden="true" className={`fas ${RESERVE_FORMATS[f].icon} mt-0.5 text-brand-600`}></i>
+                <span>
+                  <span className="block text-sm font-semibold text-ink">{RESERVE_FORMATS[f].label}</span>
+                  <span className="block text-xs text-ink/60">{RESERVE_FORMATS[f].description}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {step === 3 && type && (
         <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Modalidad">
           {modalitiesFor(category, type).map((m) => (
@@ -269,7 +302,21 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category, availability
         </div>
       )}
 
-      {step === 6 && (
+      {step === 6 && isEvent && (
+        <div className="grid gap-3 sm:grid-cols-2" data-testid="event-schedule">
+          <label className="block text-sm">
+            <span className="font-semibold text-ink">Fecha del evento</span>
+            <input name="eventDate" type="date" min={bookingWindow().min} max={bookingWindow().max} value={d.eventDate ?? ''} onChange={(e) => setD({ eventDate: e.target.value })} className={field} />
+          </label>
+          <label className="block text-sm">
+            <span className="font-semibold text-ink">Hora</span>
+            <input name="eventTime" type="time" step={900} value={d.eventTime ?? ''} onChange={(e) => setD({ eventTime: e.target.value })} className={field} />
+          </label>
+          <p className="text-xs text-muted sm:col-span-2">Es la misma para todos los participantes, en tu hora local.</p>
+        </div>
+      )}
+
+      {step === 6 && !isEvent && (
         <div className="space-y-4">
           <p className="text-sm text-ink/70">Por defecto usa tus horarios generales. Puedes limitar esta experiencia a algunos días u horas.</p>
           <div>
@@ -349,7 +396,17 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category, availability
         )
       )}
 
-      {step === 8 && type && (
+      {step === 8 && type && isEvent && (
+        <label className="block text-sm sm:max-w-xs">
+          <span className="font-semibold text-ink">Plazas</span>
+          <select name="expSeats" value={d.maxParticipants} onChange={(e) => setD({ maxParticipants: Number(e.target.value) })} className={field}>
+            {Array.from({ length: MAX_PARTICIPANTS - MIN_EVENT_SEATS + 1 }, (_, i) => i + MIN_EVENT_SEATS).map((n) => <option key={n} value={n}>{n} plazas</option>)}
+          </select>
+          <span className="mt-1 block text-xs text-muted">Cada fan reserva y paga una plaza. El precio es por participante.</span>
+        </label>
+      )}
+
+      {step === 8 && type && !isEvent && (
         <label className="block text-sm sm:max-w-xs">
           <span className="font-semibold text-ink">Número máximo de participantes</span>
           <select name="expParticipants" value={d.maxParticipants} onChange={(e) => setD({ maxParticipants: Number(e.target.value) })} className={field}>

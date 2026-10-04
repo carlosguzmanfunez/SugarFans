@@ -5,6 +5,7 @@ import { HERO } from '../../content/landing';
 import { useAuth } from '../../context/AuthContext';
 import { useVipCreatorIds } from '../../lib/catalog';
 import { useLiveCreatorIds } from '../../lib/live';
+import { ENABLE_OPEN_LIVE } from '../../config/features';
 import { CREATOR_CATEGORIES, categoryFor } from '../../config/reserve';
 import { formatPrice } from '../CreatorCard';
 import { ArrowRight, prefersReducedMotion } from './landingBits';
@@ -158,8 +159,8 @@ const Hero: React.FC<{ creators: Creator[] }> = ({ creators }) => {
                 <Link to="/register" className="v-btn v-pri magnet">
                   {HERO.primaryCta} <ArrowRight />
                 </Link>
-                <Link to="/explore?live=1" className="v-btn v-ghost">
-                  {HERO.secondaryCta}
+                <Link to={ENABLE_OPEN_LIVE ? '/explore?live=1' : HERO.secondaryTo} className="v-btn v-ghost">
+                  {ENABLE_OPEN_LIVE ? HERO.openLiveCta : HERO.secondaryCta}
                 </Link>
               </>
             )}

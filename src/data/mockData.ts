@@ -304,6 +304,13 @@ export interface VIPExperience {
 }
 
 const online = { modality: 'virtual' as const, locationTypes: ['online' as const] };
+// YYYY-MM-DD of the next Friday at least two days from now (local time).
+const nextFriday = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 2);
+  d.setDate(d.getDate() + ((5 - d.getDay() + 7) % 7));
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 const noRecording = 'Grabación de la sesión';
 const offPlatform = 'Contacto o pagos fuera de Fans Reserve';
 
@@ -528,5 +535,36 @@ export const vipExperiences: VIPExperience[] = [
     reviews: 9,
     image: '',
     tags: ['Gimnasio', 'Presencial'],
+  },
+  // Demo Reserve Event: a group Q&A on the next Friday at 20:00 (at least two days away).
+  {
+    id: 'ev-1',
+    creatorId: '1',
+    creatorName: 'Valentina Rose',
+    creatorAvatar: '/creators/photos/valentina.jpg',
+    title: 'Beauty Q&A con Valentina',
+    description: 'Q&A grupal en vivo sobre maquillaje, cuidado de la piel y rutinas. Envías tus preguntas por el chat y Valentina responde en directo.',
+    type: 'qa-session',
+    details: {
+      ...online,
+      format: 'event',
+      eventDate: nextFriday(),
+      eventTime: '20:00',
+      includes: ['Sala del evento en Fans Reserve', 'Preguntas por chat', 'Lista de productos mencionados'],
+      excludes: [noRecording, 'Tiempo privado con la creator', offPlatform],
+      requirements: { verifiedFans: false, subscribersOnly: false },
+      minNoticeHours: 24,
+      maxParticipants: 20,
+      approval: 'automatic',
+      cancellationPolicy: 'moderate',
+    },
+    price: 15,
+    duration: '60 min',
+    availableSlots: 20,
+    totalSlots: 20,
+    rating: 5,
+    reviews: 0,
+    image: '',
+    tags: ['Q&A', 'Belleza', 'Grupal'],
   },
 ];

@@ -1,16 +1,18 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { ENABLE_OPEN_LIVE } from '../config/features';
 
 const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-// Phone navigation, like an installed app: five tabs pinned to the bottom of
-// the screen (hidden from md up, where the top bar has room for everything).
-// The account tab adapts to who is signed in.
+// Phone navigation, like an installed app: tabs pinned to the bottom of the
+// screen (hidden from md up, where the top bar has room for everything).
+// The account tab adapts to who is signed in. There is no Live tab: Live is not a
+// pillar of Fans Reserve (it comes back only with ENABLE_OPEN_LIVE).
 const MobileTabBar: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const { pathname, search } = useLocation();
-  const liveTab = pathname === '/explore' && new URLSearchParams(search).has('live');
+  const liveTab = ENABLE_OPEN_LIVE && pathname === '/explore' && new URLSearchParams(search).has('live');
 
   const account = !isAuthenticated
     ? { to: '/login', label: 'Entrar', icon: 'fa-circle-user', active: pathname === '/login' || pathname === '/register' }
@@ -23,7 +25,7 @@ const MobileTabBar: React.FC = () => {
   const tabs = [
     { to: '/', label: 'Inicio', icon: 'fa-house', active: pathname === '/' },
     { to: '/explore', label: 'Explorar', icon: 'fa-compass', active: pathname === '/explore' && !liveTab },
-    { to: '/explore?live=1', label: 'Live', icon: 'fa-tower-broadcast', active: liveTab, live: true },
+    ...(ENABLE_OPEN_LIVE ? [{ to: '/explore?live=1', label: 'Live', icon: 'fa-tower-broadcast', active: liveTab, live: true }] : []),
     { to: '/reserve', label: 'Reserve', icon: 'fa-ticket', active: pathname === '/reserve' || pathname === '/vip-experiences' },
     account,
   ];
@@ -34,7 +36,7 @@ const MobileTabBar: React.FC = () => {
       data-testid="tab-bar"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-line/80 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
     >
-      <ul className="mx-auto grid h-16 max-w-md grid-cols-5">
+      <ul className={`mx-auto grid h-16 max-w-md ${tabs.length === 5 ? 'grid-cols-5' : 'grid-cols-4'}`}>
         {tabs.map((tab) => (
           <li key={tab.label} className="flex">
             <Link
