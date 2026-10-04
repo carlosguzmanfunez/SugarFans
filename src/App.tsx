@@ -1,5 +1,5 @@
-import React, { Suspense, lazy, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate, Link } from 'react-router-dom';
+import React, { Suspense, lazy, useEffect, useLayoutEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate, useNavigationType, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import Navbar from './components/Navbar';
@@ -73,6 +73,26 @@ const AppLayout: React.FC<{ children: React.ReactNode; hideNav?: boolean }> = ({
   );
 };
 
+// Opening another page (a tab, a menu link) starts it from the top, like an
+// app. Back/forward keeps the browser's saved position, links to an anchor
+// (#reserve) scroll there themselves, and a page that only rewrites its own
+// query (Settings sections) stays where it is.
+const ScrollToTop: React.FC = () => {
+  const { pathname, search, hash } = useLocation();
+  const navigationType = useNavigationType();
+  const last = React.useRef({ pathname, search });
+  // Before paint, so the old page's spot never flashes on the new one.
+  useLayoutEffect(() => {
+    const prev = last.current;
+    last.current = { pathname, search };
+    if (navigationType === 'POP' || hash) return;
+    const changed = prev.pathname !== pathname || (navigationType === 'PUSH' && prev.search !== search);
+    // 'instant' overrides the smooth scrolling the page uses for anchor links.
+    if (changed) window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [pathname, search, hash, navigationType]);
+  return null;
+};
+
 // The "new password" email link may land on any page: take the user to the form.
 const RecoveryRedirect: React.FC = () => {
   const navigate = useNavigate();
@@ -96,6 +116,7 @@ const PendingSignupRedirect: React.FC = () => {
 const AppRoutes: React.FC = () => {
   return (
     <Suspense fallback={<LoadingScreen />}>
+    <ScrollToTop />
     <RecoveryRedirect />
     <PendingSignupRedirect />
     <Routes>

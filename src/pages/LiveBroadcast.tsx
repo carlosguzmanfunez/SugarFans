@@ -6,7 +6,8 @@ import CameraPreview from '../components/CameraPreview';
 import LookPicker from '../components/LookPicker';
 import { useCameraLook } from '../hooks/useCameraLook';
 import ViewerWatermark, { noCaptureVideoProps } from '../components/ViewerWatermark';
-import { liveApi, endLive, useCurrentLive } from '../lib/live';
+import { useLeaveGuard } from '../hooks/useLeaveGuard';
+import { liveApi, endLive, useCurrentLive, LIVE_HEARTBEAT_SECONDS, LIVE_STALE_MINUTES } from '../lib/live';
 
 interface ChatLine {
   id: number;
@@ -44,10 +45,30 @@ const LiveBroadcast: React.FC = () => {
   const video = useRef<HTMLVideoElement>(null);
   const audioBox = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
+  // Where the creator was heading when asked to confirm closing their Live.
+  const [leaving, setLeaving] = useState<{ to: string } | null>(null);
+  const [closing, setClosing] = useState(false);
+  // The owner of this Live, known from the session even before the camera is on.
+  const owner = !!user?.creatorProfileId && user.creatorProfileId === creatorId;
+  // While the creator is on air, leaving this page in any way closes the Live.
+  const onAir = owner && host && phase === 'on';
+  const onAirRef = useRef(false);
+  onAirRef.current = onAir;
+  const userRef = useRef(user);
+  userRef.current = user;
+  const closedRef = useRef(false);
+  // Closes the Live once, when the creator leaves without the dialog. `onExit` is for a
+  // tab that is going away and can't wait for an answer.
+  const closeOnLeave = (onExit = false) => {
+    const u = userRef.current;
+    if (!onAirRef.current || closedRef.current || !u) return;
+    closedRef.current = true;
+    if (onExit) liveApi.endLiveOnExit(u);
+    else endLive(u);
+  };
   const [showLooks, setShowLooks] = useState(false);
   const cam = useCameraLook();
   const { bind: bindLook, captureOptions } = cam;
-  const isOwner = !!user?.creatorProfileId && user.creatorProfileId === creatorId;
 
   const readRatio = () => {
     const v = video.current;
@@ -121,7 +142,11 @@ const LiveBroadcast: React.FC = () => {
           // ignore malformed messages
         }
       })
-      .on(RoomEvent.Disconnected, () => setPhase((p) => (p === 'on' ? 'ended' : p)));
+      .on(RoomEvent.Disconnected, () => {
+        // The creator lost the connection for good: their Live is over for everyone.
+        closeOnLeave();
+        setPhase((p) => (p === 'on' ? 'ended' : p));
+      });
 
     try {
       await room.connect(url, token);
@@ -156,11 +181,43 @@ const LiveBroadcast: React.FC = () => {
   useEffect(
     () => () => {
       bindLook(null);
+      // Left without the dialog (a button that navigates in code): the Live still closes.
+      closeOnLeave();
       roomRef.current?.disconnect();
       roomRef.current = null;
     },
     [bindLook]
   );
+
+  // Closing the tab or the browser: the request is sent as the page goes away.
+  useEffect(() => {
+    const onHide = () => closeOnLeave(true);
+    window.addEventListener('pagehide', onHide);
+    return () => window.removeEventListener('pagehide', onHide);
+  }, []);
+
+  // Check in while the creator has their open Live on screen: if the phone dies or the
+  // browser crashes the check-ins stop and the server closes the Live by itself.
+  const checkingIn = owner && (!!live || onAir);
+  useEffect(() => {
+    if (!checkingIn || !user) return;
+    const beat = async () => {
+      if (closedRef.current) return;
+      if ((await liveApi.liveHeartbeat(user)) !== false || closedRef.current) return;
+      // Closed meanwhile (the page was asleep for too long, or ended elsewhere).
+      closedRef.current = true;
+      roomRef.current?.disconnect();
+      roomRef.current = null;
+      setHasVideo(false);
+      setProblem(`Tu Live se cerró porque perdimos la conexión contigo por más de ${LIVE_STALE_MINUTES} minutos. Puedes iniciar otro desde tu panel.`);
+      setPhase('ended');
+    };
+    beat();
+    const t = setInterval(beat, LIVE_HEARTBEAT_SECONDS * 1000);
+    return () => clearInterval(t);
+  }, [checkingIn, user]);
+
+  useLeaveGuard(onAir, (to) => setLeaving({ to: to ?? '/creator/dashboard' }));
 
   const toggle = async (kind: 'mic' | 'cam') => {
     const lp = roomRef.current?.localParticipant;
@@ -184,12 +241,32 @@ const LiveBroadcast: React.FC = () => {
     setDraft('');
   };
 
-  const finish = async () => {
-    bindLook(null);
-    if (host && user) await endLive(user);
+  // A fan just leaves; the creator is asked first, because leaving closes their Live.
+  const finish = () => {
+    if (owner && (live || phase === 'on')) {
+      setLeaving({ to: '/creator/dashboard' });
+      return;
+    }
     roomRef.current?.disconnect();
     roomRef.current = null;
-    navigate(host ? '/creator/dashboard' : `/creator/${creatorId}`);
+    navigate(`/creator/${creatorId}`);
+  };
+
+  const closeAndLeave = async () => {
+    if (!user || !leaving) return;
+    setClosing(true);
+    const r = await endLive(user);
+    setClosing(false);
+    if (!r.ok) {
+      setLeaving(null);
+      setProblem(r.error ?? 'No se pudo cerrar el Live. Inténtalo de nuevo.');
+      return;
+    }
+    closedRef.current = true;
+    roomRef.current?.disconnect();
+    roomRef.current = null;
+    // replace: drops the extra history entry the leave guard added.
+    navigate(leaving.to, { replace: true });
   };
 
   const backTo = host || user?.creatorProfileId === creatorId ? '/creator/dashboard' : `/creator/${creatorId}`;
@@ -274,8 +351,8 @@ const LiveBroadcast: React.FC = () => {
                 </button>
               )}
             </div>
-            {problem && phase === 'on' && <p className="text-sm text-yellow-300 mt-3">{problem}</p>}
-            {isOwner && (phase === 'idle' || phase === 'error') && (
+            {problem && (phase === 'on' || phase === 'ended') && <p role="alert" data-testid="live-notice" className="text-sm text-yellow-300 mt-3">{problem}</p>}
+            {owner && (phase === 'idle' || phase === 'error') && (
               <div className="mt-4 max-w-xl mx-auto">
                 <p className="text-sm text-gray-300 mb-2">Elige tu filtro antes de empezar. Tus fans verán el video ya con el filtro.</p>
                 <CameraPreview cam={cam} />
@@ -297,7 +374,7 @@ const LiveBroadcast: React.FC = () => {
                 </>
               )}
               <button onClick={finish} className="px-6 h-12 rounded-full bg-red-600 hover:bg-red-700 font-medium">
-                <i aria-hidden="true" className="fas fa-right-from-bracket mr-2"></i>{host ? 'Terminar Live' : 'Salir'}
+                <i aria-hidden="true" className="fas fa-right-from-bracket mr-2"></i>{owner ? 'Terminar Live' : 'Salir'}
               </button>
             </div>
           </div>
@@ -320,6 +397,23 @@ const LiveBroadcast: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {leaving && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" role="alertdialog" aria-modal="true" aria-labelledby="leave-live-title" data-testid="leave-live-dialog">
+          <div className="bg-white text-gray-900 rounded-2xl max-w-sm w-full p-6 text-center">
+            <i aria-hidden="true" className="fas fa-tower-broadcast text-3xl text-red-500 mb-3"></i>
+            <h2 id="leave-live-title" className="text-lg font-bold">Estás abandonando el Live y se cerrará. ¿Estás de acuerdo?</h2>
+            <div className="mt-5 flex flex-col gap-2">
+              <button type="button" onClick={closeAndLeave} disabled={closing} className="px-4 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-medium disabled:opacity-50">
+                {closing ? 'Cerrando…' : 'Sí, cerrar el Live'}
+              </button>
+              <button type="button" onClick={() => setLeaving(null)} disabled={closing} autoFocus className="px-4 py-3 rounded-xl border border-gray-300 font-medium">
+                No, continuar en el Live
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

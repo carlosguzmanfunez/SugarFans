@@ -21,6 +21,13 @@ const DAYS = [
 ];
 const HOURS = ['12:00', '16:00', '18:00'];
 
+// The person on a panel: the cut-out illustration when there is one, otherwise
+// the photo as a portrait card that fades into the panel.
+const WhoImg: React.FC<{ src: string }> = ({ src }) => {
+  const clear = clearAvatar(src);
+  return <img className={`who ${clear ? '' : 'photo'}`} src={clear ?? src} alt="" />;
+};
+
 // Mini demos inside the open panel: they show what each step feels like.
 const FollowDemo: React.FC = () => {
   const c = byId('1');
@@ -88,7 +95,7 @@ const LiveDemo: React.FC<{ panel: React.RefObject<HTMLElement> }> = ({ panel }) 
   return (
     <div className="mini">
       <div className="livevid">
-        <img src={clearAvatar(c.avatar) ?? c.avatar} alt="" />
+        <img src={clearAvatar(c.avatar) ?? c.avatar} alt="" className={clearAvatar(c.avatar) ? undefined : 'photo'} />
         <div className="tl"><LiveChip /></div>
       </div>
       <div className="reacts" aria-label="Enviar una reacción">
@@ -231,7 +238,7 @@ const HowItWorks: React.FC = () => {
                   <span className="more">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{PLUS}</svg>
                   </span>
-                  <img className="who" src={clearAvatar(faceWho[i]) ?? faceWho[i]} alt="" />
+                  <WhoImg src={faceWho[i]} />
                   <span className="lbl">
                     <small>Paso {i + 1}</small>
                     <b>{p.label}</b>
@@ -239,7 +246,7 @@ const HowItWorks: React.FC = () => {
                   </span>
                 </button>
                 <div className="ap-body" id={`jb${i}`} role="region" aria-labelledby={`jt${i}`} {...(on ? {} : { inert: '' })}>
-                  {p.who && <img className="who" src={clearAvatar(p.who) ?? p.who} alt="" />}
+                  {p.who && <WhoImg src={p.who} />}
                   <span className="step">{p.label}</span>
                   <h3>{p.title}</h3>
                   <p className="sub">{p.sub}</p>

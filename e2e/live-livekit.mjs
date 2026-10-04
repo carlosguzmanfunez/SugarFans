@@ -67,6 +67,7 @@ const waitUp = async (url) => {
 // Supabase stand-in for api/live-token.ts: who the token belongs to, their
 // profile, an open Live for creator '1' and a confirmed Reserve call booked for
 // right now between the demo fan and creator '1' (row security: only those two see it).
+const LIVE_KEY = 'fansreserve_live'; // local Live store (src/lib/backend/localLive.ts)
 const PROFILES = {
   'demo-creator': { name: 'Valentina Rose', creator_profile_id: '1' },
   'demo-fan': { name: 'Carlos M.', creator_profile_id: null },
@@ -253,13 +254,75 @@ const run = async () => {
       await c.getByRole('button', { name: 'Enviar' }).click();
       await f.getByTestId('broadcast-chat').getByText('¡Bienvenido!').waitFor();
     });
+    await check('Salir del Live (botón, atrás u otro enlace) pide confirmar; con "No" sigue emitiendo', async () => {
+      const dialog = c.getByTestId('leave-live-dialog');
+      const stay = async () => {
+        await dialog.getByText('Estás abandonando el Live y se cerrará. ¿Estás de acuerdo?').waitFor();
+        await dialog.getByRole('button', { name: 'No, continuar en el Live' }).click();
+        await dialog.waitFor({ state: 'detached' });
+        expect(new URL(c.url()).pathname === '/en-vivo/1', `salió del Live: ${c.url()}`);
+      };
+      await c.getByRole('button', { name: 'Terminar Live' }).click();
+      await stay();
+      await c.goBack();
+      await stay();
+      await c.evaluate(() => {
+        const a = Object.assign(document.createElement('a'), { href: '/explore', textContent: 'otra página' });
+        document.body.append(a);
+        a.click();
+      });
+      await stay();
+      expect((await participants()).some((p) => p.identity === 'demo-creator' && p.tracks.length === 2), 'la creator dejó de emitir');
+    });
     await check('Al terminar el Live, el fan ve que terminó y el perfil deja de estar en Live', async () => {
       await c.getByRole('button', { name: 'Terminar Live' }).click();
+      await c.getByTestId('leave-live-dialog').getByRole('button', { name: 'Sí, cerrar el Live' }).click();
       await c.waitForURL(`${BASE}/creator/dashboard`);
       await f.getByText('El Live terminó.').waitFor();
       await waitFor(async () => !(await participants()).some((p) => p.identity === 'demo-creator'), 'la creator sigue en la sala');
       await f.goto(`${BASE}/creator/1`);
       await f.getByTestId('ladder-live').getByText('En vivo', { exact: true }).waitFor();
+    });
+
+    await check('Si la creator cierra la pestaña en pleno Live, el Live se cierra', async () => {
+      const c2 = await page();
+      await login(c2, 'creator@sugarfans.com');
+      await c2.goto(`${BASE}/creator/dashboard`);
+      await c2.getByLabel('Título del Live').fill('Live que se cierra solo');
+      await c2.getByRole('button', { name: 'Iniciar Live' }).click();
+      await c2.waitForURL(`${BASE}/en-vivo/1`);
+      await c2.getByRole('button', { name: 'Encender cámara y empezar' }).click();
+      await waitFor(() => playing(c2), 'la creator no emite');
+      await c2.close({ runBeforeUnload: true });
+      await f.goto(`${BASE}/en-vivo/1`);
+      await f.getByText('Este creator no está en Live ahora').waitFor();
+    });
+
+    await check('Si a la creator se le apaga el celular en pleno Live, el Live se cierra solo', async () => {
+      const c3 = await page();
+      await login(c3, 'creator@sugarfans.com');
+      await c3.goto(`${BASE}/creator/dashboard`);
+      await c3.getByLabel('Título del Live').fill('Live que se apaga');
+      await c3.getByRole('button', { name: 'Iniciar Live' }).click();
+      await c3.waitForURL(`${BASE}/en-vivo/1`);
+      await c3.getByRole('button', { name: 'Encender cámara y empezar' }).click();
+      await waitFor(() => playing(c3), 'la creator no emite');
+      const openLive = (p) => p.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? '{}').broadcasts?.find((b) => !b.endedAt), LIVE_KEY);
+      await waitFor(async () => !!(await openLive(f))?.lastSeenAt, 'la página de la creator no reporta que sigue en Live');
+      // A phone that dies: the page stops running, with no pagehide or any other goodbye.
+      const cdp = await c3.context().newCDPSession(c3);
+      await cdp.send('Page.setWebLifecycleState', { state: 'frozen' });
+      await f.goto(`${BASE}/creator/1`);
+      await f.getByTestId('live-now').waitFor();
+      // Two minutes and a half later with no check-in…
+      await f.evaluate((key) => {
+        const st = JSON.parse(localStorage.getItem(key));
+        const ago = new Date(Date.now() - 150_000).toISOString();
+        st.broadcasts = st.broadcasts.map((b) => (b.endedAt ? b : { ...b, lastSeenAt: ago }));
+        localStorage.setItem(key, JSON.stringify(st));
+      }, LIVE_KEY);
+      await f.goto(`${BASE}/en-vivo/1`);
+      await f.getByText('Este creator no está en Live ahora').waitFor();
     });
 
     console.log('\nVideollamada privada de Reserve');

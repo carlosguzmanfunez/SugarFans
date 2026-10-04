@@ -204,7 +204,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
     social: createSupabaseSocial(sb),
     gifts: createSupabaseGifts(sb),
     rewards: createSupabaseRewards(sb),
-    live: createSupabaseLive(sb),
+    live: createSupabaseLive(sb, url, anonKey),
 
     async getCurrentUser() {
       const { data: sessionData } = await sb.auth.getSession();
