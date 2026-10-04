@@ -52,6 +52,17 @@ const Navbar: React.FC = () => {
     navigate('/');
   };
 
+  // On the landing the menu jumps to its sections, as in the approved design.
+  const onLanding = location.pathname === '/';
+  const showCreators = !isAuthenticated || user?.role === 'creator';
+  const sections = [
+    { href: '#comunidades', label: 'Comunidades' },
+    { href: '#live', label: 'Live' },
+    { href: '#journey', label: 'Cómo funciona' },
+    { href: '#reserve', label: 'Reserve' },
+    ...(showCreators ? [{ href: '#creadores', label: 'Para creadores' }] : []),
+  ];
+
   const linkCls = (path: string) =>
     `relative rounded-full px-3.5 py-2 text-sm font-medium transition-colors ${
       location.pathname === path ? 'bg-brand-50 text-brand-700' : 'text-ink/70 hover:bg-ink/5 hover:text-ink'
@@ -60,20 +71,35 @@ const Navbar: React.FC = () => {
     `flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] font-medium ${location.pathname === path ? 'bg-brand-50 text-brand-700' : 'text-ink/80 hover:bg-ink/5'}`;
 
   return (
-    <nav ref={navRef} aria-label="Principal" className="sticky top-0 z-50 border-b border-line/80 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/70">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between gap-4 md:h-[72px]">
+    // Floating glass pill.
+    <nav ref={navRef} aria-label="Principal" className="sticky top-3 z-50 mx-auto mt-3.5 w-full max-w-[1240px] px-2.5 sm:px-6 lg:px-10">
+      <div
+        className={`border border-white/80 bg-white/75 pl-3 pr-2 shadow-[0_10px_40px_-18px_rgba(70,20,60,0.25),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl backdrop-saturate-150 sm:pl-[18px] sm:pr-2.5 ${
+          showMobile ? 'rounded-[28px]' : 'rounded-full'
+        }`}
+      >
+        <div className="flex h-16 items-center justify-between gap-2 sm:gap-4">
           {/* Logo */}
           <BrandLogo size="sm" />
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden md:flex items-center gap-1 lg:ml-auto">
+            {onLanding &&
+              sections.map((sct) => (
+                <a key={sct.href} href={sct.href} className="rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-ink/5">
+                  {sct.label}
+                </a>
+              ))}
+            {!onLanding && (
+              <>
             <Link to="/explore" className={linkCls('/explore')}>
               {t('nav.explore')}
             </Link>
             <Link to="/reserve" className={linkCls('/reserve')}>
               Reserve
             </Link>
+              </>
+            )}
             {isAuthenticated && user?.role === 'creator' && (
               <Link to="/creator/dashboard" className={linkCls('/creator/dashboard')}>
                 {t('nav.dashboard')}
@@ -87,7 +113,7 @@ const Navbar: React.FC = () => {
           </div>
 
           {/* Right side */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             <LanguageSelector />
             {isAuthenticated && user?.role === 'fan' && <CreditsPill user={user} />}
             {isAuthenticated && user && <NotificationBell user={user} />}
@@ -130,10 +156,13 @@ const Navbar: React.FC = () => {
               </div>
             ) : (
               <div className="hidden sm:flex items-center gap-2">
-                <Link to="/login" className="rounded-full px-3.5 py-2 text-sm font-medium text-ink/80 hover:bg-ink/5 hover:text-ink">
+                <Link to="/login" className="inline-flex items-center rounded-full border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-canvas">
                   {t('nav.login')}
                 </Link>
-                <Link to="/register" className="btn btn-primary px-4 py-2 text-sm">
+                <Link
+                  to="/register"
+                  className="inline-flex items-center rounded-full bg-[linear-gradient(120deg,#e5337a,#c81b63_55%,#9b2fb8)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_16px_34px_-16px_rgba(200,27,99,0.7)] transition-transform active:scale-[0.98]"
+                >
                   {t('nav.register')}
                 </Link>
               </div>
