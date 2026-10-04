@@ -18,7 +18,7 @@ export type ReserveModality = 'virtual' | 'presencial' | 'evento' | 'profesional
 
 export const RESERVE_MODALITIES: Record<ReserveModality, { label: string; icon: string; description: string }> = {
   virtual: { label: 'Virtual', icon: 'fa-video', description: 'En la sala privada de Fans Reserve o como contenido entregado en la app.' },
-  presencial: { label: 'Presencial', icon: 'fa-location-dot', description: 'En un venue, estudio o lugar público definido de antemano, o en el lugar del creator o del fan con aprobación manual (todas las categorías menos Modelos).' },
+  presencial: { label: 'Presencial', icon: 'fa-location-dot', description: 'En un venue, estudio o lugar público definido de antemano, o en el lugar del creator o del fan con aprobación manual (todas las categorías menos Tu gente).' },
   evento: { label: 'Evento', icon: 'fa-calendar-check', description: 'Convenciones, apariciones, firmas y eventos con público.' },
   profesional: { label: 'Profesional', icon: 'fa-briefcase', description: 'Colaboraciones, producciones y servicios profesionales.' },
 };
@@ -28,7 +28,7 @@ export const MODALITY_IDS = Object.keys(RESERVE_MODALITIES) as ReserveModality[]
 // Establishments, venues, studios and public places. Hotel rooms and private or
 // "discreet" places are never offered (PROHIBITED_LOCATIONS). The only private
 // addresses are HOME_SERVICE_LOCATIONS: a professional service at the creator's
-// own place or at the place the fan proposes, in every category but Modelos,
+// own place or at the place the fan proposes, in every category but Tu gente,
 // always approved by hand (Carlos, 2026-10-03).
 
 export type LocationType =
@@ -70,12 +70,12 @@ export const IN_PERSON_LOCATIONS = LOCATION_IDS.filter((l) => l !== 'online');
 // experiences and custom requests (locationsFor adds them); experiences using
 // them need manual approval.
 export const HOME_SERVICE_LOCATIONS: LocationType[] = ['creator-place', 'fan-place'];
-export const NO_HOME_SERVICE_CATEGORIES = ['modelaje-glamour'];
+export const NO_HOME_SERVICE_CATEGORIES = ['modelaje-glamour', 'premium-stars'];
 export const isHomeService = (locations: readonly string[]) => locations.some((l) => (HOME_SERVICE_LOCATIONS as string[]).includes(l));
 
 // Never offered as an option, rejected by validation and by the server.
 export const PROHIBITED_LOCATIONS = [
-  { id: 'private-residence', label: 'Domicilio privado como lugar de una experiencia, salvo servicios profesionales en el lugar del creator o del fan (no en Modelos)' },
+  { id: 'private-residence', label: 'Domicilio privado como lugar de una experiencia, salvo servicios profesionales en el lugar del creator o del fan (no en Tu gente)' },
   { id: 'hotel-room', label: 'Hotel o habitación de hotel como experiencia' },
   { id: 'private-room', label: 'Habitación o "lugar privado/discreto"' },
   { id: 'vehicle', label: 'Vehículo particular' },
@@ -184,7 +184,7 @@ export const PROHIBITED_EXPERIENCES = [
   'Vender compañía o tiempo personal ("pasar tiempo conmigo") sin un servicio definido',
   'Cita romántica o "date" remunerada',
   'Compensated dating',
-  'Hotel, habitación o lugar "discreto" como lugar de la experiencia (en el lugar del creator o del fan solo servicios profesionales, nunca en Modelos)',
+  'Hotel, habitación o lugar "discreto" como lugar de la experiencia (en el lugar del creator o del fan solo servicios profesionales, nunca en Tu gente)',
   'Servicios de escort o acompañamiento',
   'Cualquier actividad sexual, virtual o presencial',
   'Lives sexuales o sexting remunerado',
@@ -236,7 +236,8 @@ export type CreatorCategoryId =
   | 'arte'
   | 'belleza'
   | 'lifestyle'
-  | 'educacion';
+  | 'educacion'
+  | 'premium-stars';
 
 export interface CreatorCategory {
   id: CreatorCategoryId;
@@ -260,15 +261,15 @@ export interface CreatorCategory {
   restrictions?: string[];
 }
 
-export const CREATOR_CATEGORIES: CreatorCategory[] = [
+const BASE_CATEGORIES: CreatorCategory[] = [
   {
     id: 'modelaje-glamour',
-    name: 'Modelos',
-    icon: 'fa-camera-retro',
-    blurb: 'Moda, editorial, cosplay y glamour',
+    name: 'Tu gente',
+    icon: 'fa-user-group',
+    blurb: 'Trae a tu comunidad de TikTok o Instagram',
     tint: '#fff1f6',
     ink: '#c81b63',
-    aliases: ['Modelaje & Glamour', 'Modelaje', 'Modelaje y Glamour'],
+    aliases: ['Modelos', 'Modelaje & Glamour', 'Modelaje', 'Modelaje y Glamour'],
     experiences: [
       'live-1-1', 'video-call', 'qa-session', 'personal-greeting', 'themed-talk', 'fashion-beauty-talk', 'behind-the-scenes', 'custom-content',
       'meet-greet', 'appearance', 'event', 'fan-event', 'photo-session', 'collaboration', 'production',
@@ -390,6 +391,22 @@ export const CREATOR_CATEGORIES: CreatorCategory[] = [
     customPurposes: ['class', 'coaching', 'review', 'workshop', 'event', 'other'],
   },
 ];
+
+// PREMIUM STARS: red-carpet celebrities. Built but switched off; turn it on once
+// card payments (Stripe) are live. Same rules as Tu gente.
+export const PREMIUM_STARS_ENABLED = false;
+export const PREMIUM_STARS: CreatorCategory = {
+  ...BASE_CATEGORIES[0],
+  id: 'premium-stars',
+  name: 'PREMIUM STARS',
+  icon: 'fa-star',
+  blurb: 'Celebridades de alfombra roja',
+  tint: '#fdf8ec',
+  ink: '#8f5318',
+  aliases: [],
+};
+
+export const CREATOR_CATEGORIES: CreatorCategory[] = PREMIUM_STARS_ENABLED ? [...BASE_CATEGORIES, PREMIUM_STARS] : BASE_CATEGORIES;
 
 // Creators without a category (or with an unknown one) get the most general set.
 export const DEFAULT_CATEGORY: CreatorCategoryId = 'lifestyle';

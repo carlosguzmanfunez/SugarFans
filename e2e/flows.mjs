@@ -1755,9 +1755,11 @@ const run = async () => {
       const names = R.CREATOR_CATEGORIES.flatMap((c) => [c.name, ...c.aliases]);
       expect(!names.some((n) => forbidden.test(n)), `categorías: ${names.join(', ')}`);
     });
-    await check('Modelos existe y marca la línea de contenido', async () => {
-      const mg = R.CREATOR_CATEGORIES.find((c) => c.name === 'Modelos');
-      expect(!!mg, 'falta Modelos');
+    await check('Tu gente (antes Modelos) existe y marca la línea de contenido', async () => {
+      const mg = R.CREATOR_CATEGORIES.find((c) => c.name === 'Tu gente');
+      expect(!!mg, 'falta Tu gente');
+      expect(R.categoryFor('Modelos').id === 'modelaje-glamour', 'Modelos ya no resuelve a Tu gente');
+      expect(!R.CREATOR_CATEGORIES.some((c) => c.id === 'premium-stars'), 'PREMIUM STARS debería seguir oculta');
       expect(mg.contentLine === 'Glamour permitido. Contenido sexual explícito no permitido.', `línea: ${mg.contentLine}`);
       expect(R.categoryFor('Modelaje').id === 'modelaje-glamour', 'el nombre antiguo "Modelaje" no se reconoce');
       expect(R.categoryFor('Modelaje & Glamour').id === 'modelaje-glamour', 'el nombre antiguo "Modelaje & Glamour" no se reconoce');
@@ -1823,16 +1825,19 @@ const run = async () => {
     await login(resF, 'fan@sugarfans.com', 'demo1234', { remember: false });
     await waitPath(resF, '/explore');
 
-    await check('Explorar y la portada muestran Modelos y ninguna categoría +18', async () => {
+    await check('Explorar y la portada muestran Tu gente y ninguna categoría +18', async () => {
       await resF.goto(`${BASE}/explore`);
-      await resF.getByRole('button', { name: /Modelos/ }).waitFor();
+      await resF.getByRole('button', { name: /Tu gente/ }).waitFor();
       const chips = (await resF.locator('button[aria-pressed]').allTextContents()).join(' | ');
       expect(!forbidden.test(chips), `categorías visibles: ${chips}`);
-      await resF.getByRole('button', { name: /Modelos/ }).click();
+      await resF.getByRole('button', { name: /Tu gente/ }).click();
       await resF.getByTestId('creator-card').filter({ hasText: 'Valentina Rose' }).waitFor();
       await resF.goto(`${BASE}/`);
-      await resF.getByText('Sigue a tus creators favoritos, accede a contenido exclusivo y reserva experiencias directamente con ellos.').waitFor();
-      for (const p of ['Discover', 'Subscribe', 'Live', 'Reserve']) await resF.locator('section[aria-labelledby=how-title]').getByText(p, { exact: true }).waitFor();
+      await resF.getByText('Sigue a tus creators, entra a su Live y reserva experiencias con fecha, precio y reglas claras.').waitFor();
+      await resF.locator('#categories-title').getByText('influencers y creadores').waitFor();
+      await resF.locator('#comunidades').getByRole('link', { name: /Tu gente/ }).waitFor();
+      for (const p of ['Seguir', 'Suscribirse', 'Live', 'Reserve']) await resF.locator('section[aria-labelledby=how-title]').getByText(p, { exact: true }).first().waitFor();
+      await resF.locator('#reserve video').first().waitFor({ state: 'attached' });
     });
     await check('Perfil: Seguir → Suscribirse → Live → Reserve, y seguir persiste', async () => {
       await resF.goto(`${BASE}/creator/1`);
