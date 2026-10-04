@@ -465,6 +465,25 @@ export const CANCELLATION_POLICIES: Record<CancellationPolicyId, { label: string
 export const MIN_NOTICE_OPTIONS = [24, 48, 72, 168];
 export const SUBSCRIBER_DISCOUNTS = [0, 5, 10, 15, 20, 25];
 export const MAX_PARTICIPANTS = 50;
+
+// --- Reserve Event vs Reserve 1:1 ---------------------------------------------------
+// Reserve has two main products:
+//   Reserve Event  group experience on a fixed day and time; each fan books one seat.
+//   Reserve 1:1    private session: only the creator and the fan, in the private room.
+// Other Reserve experiences (in person, delivered content) stay as they were.
+// Types that make sense as a group event (Q&A, masterclass, gaming, workshop, cooking
+// class, listening party, group coaching, meet virtual, special event…). Each one is
+// still limited by the creator's category (category.experiences).
+export const EVENT_TYPES = [
+  'qa-session', 'themed-talk', 'workshop', 'event', 'fan-event', 'meet-greet', 'coaching', 'mentoring', 'creative-session',
+  'fashion-beauty-talk', 'behind-the-scenes', 'cooking-class', 'tasting', 'clinic', 'music-class', 'listening-session',
+  'gaming-session', 'private-match', 'tournament', 'art-class',
+];
+export const MIN_EVENT_SEATS = 2;
+export const RESERVE_FORMATS = {
+  private: { label: 'Sesión privada', product: 'Reserve 1:1', icon: 'fa-user-lock', description: 'Solo tú y el fan, en el horario que el fan elige de tu calendario.', cta: 'Reservar sesión privada' },
+  event: { label: 'Reserve Event', product: 'Reserve Event', icon: 'fa-people-group', description: 'Grupal, con fecha y hora fijas. Cada fan reserva y paga su plaza.', cta: 'Reserva tu plaza' },
+} as const;
 export const MAX_LIST_ITEMS = 6;
 
 export const noticeLabel = (hours: number) => (hours === 168 ? '1 semana' : `${hours} horas`);
@@ -505,7 +524,10 @@ export const RESERVE_FLOW = ['Solicitud', 'Aceptación', 'Pago', 'Confirmación'
 export const RESERVE_COPY = {
   principle: 'Reservas experiencias, no personas.',
   gift: 'Los regalos son apoyo voluntario. No garantizan respuesta, conversación, acceso ni experiencias de Reserve.',
-  subscription: 'La suscripción da acceso al contenido y a los beneficios que el creator define. No incluye videollamadas ni experiencias de Reserve.',
+  subscription: 'La suscripción da acceso al contenido, a los Lives para suscriptores y a los beneficios que el creator define. No incluye Reserve Events, sesiones privadas ni otras experiencias de Reserve.',
+  subscriberLive: 'Live grupal incluido en tu suscripción. No es tiempo privado con el creator ni garantiza interacción individual.',
+  event: 'Reserve Event: experiencia grupal con fecha, duración, precio y plazas definidas. Tu plaza garantiza el acceso al evento, no tiempo privado.',
+  oneToOne: 'Reserve 1:1: sesión privada solo entre tú y el creator, dentro de la reserva confirmada.',
   reserve: 'Una Reserve es una experiencia concreta, con fecha, duración, precio y condiciones definidas por el creator, que el creator acepta o rechaza.',
   testPayments: 'Pagos en modo de prueba: no se realiza ningún cargo real.',
   legalDraft: 'Borrador. Requiere revisión legal antes del lanzamiento a producción.',

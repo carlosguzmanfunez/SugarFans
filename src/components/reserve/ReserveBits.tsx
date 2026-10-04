@@ -1,6 +1,6 @@
 import React from 'react';
 import { CANCELLATION_POLICIES, RESERVE_COPY, RESERVE_MODALITIES, RESERVE_STATUSES, noticeLabel, type ReserveStatus } from '../../config/reserve';
-import { detailsOf, locationSummary, needsApproval, type VipExperience } from '../../lib/vip';
+import { detailsOf, eventStart, isEventExperience, locationSummary, needsApproval, seatsLeft, type VipExperience } from '../../lib/vip';
 import { money } from '../../lib/platform';
 
 // Status with icon and text (never colour alone).
@@ -21,6 +21,24 @@ export const Fact: React.FC<{ icon: string; children: React.ReactNode; strong?: 
   </span>
 );
 
+// A Reserve Event's date, time and seats ("6 de 20 plazas libres").
+export const EventFacts: React.FC<{ exp: VipExperience; seatsTaken?: number }> = ({ exp, seatsTaken = 0 }) => {
+  const start = eventStart(exp);
+  const seats = exp.details?.maxParticipants ?? 0;
+  const left = seatsLeft(exp, seatsTaken);
+  return (
+    <div className="flex flex-wrap gap-x-3 gap-y-1" data-testid="event-facts">
+      {start && (
+        <Fact icon="fa-calendar-day" strong>
+          <span className="first-letter:uppercase">{start.toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' })}</span> ·{' '}
+          {start.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
+        </Fact>
+      )}
+      <Fact icon="fa-chair" strong>{left ? `${left} de ${seats} plazas libres` : `Sin plazas (${seats})`}</Fact>
+    </div>
+  );
+};
+
 // The facts every Reserve shows: modality, duration, venue, participants, approval.
 export const ExperienceFacts: React.FC<{ exp: VipExperience; compact?: boolean }> = ({ exp, compact }) => {
   const d = detailsOf(exp);
@@ -29,11 +47,15 @@ export const ExperienceFacts: React.FC<{ exp: VipExperience; compact?: boolean }
       <Fact icon={RESERVE_MODALITIES[d.modality].icon}>{RESERVE_MODALITIES[d.modality].label}</Fact>
       <Fact icon="fa-clock">{exp.durationMinutes ? `${exp.durationMinutes} min` : 'Entregado en la app'}</Fact>
       {d.modality !== 'virtual' && <Fact icon="fa-location-dot">{locationSummary(d)}</Fact>}
-      {!compact && <Fact icon="fa-user-group">{d.maxParticipants === 1 ? 'Solo tú' : `Hasta ${d.maxParticipants} personas`}</Fact>}
+      {!compact && (
+        <Fact icon="fa-user-group">
+          {isEventExperience(exp) ? `${d.maxParticipants} plazas, una por fan` : d.maxParticipants === 1 ? 'Solo tú y el creator' : `Hasta ${d.maxParticipants} personas`}
+        </Fact>
+      )}
       {!compact && <Fact icon={needsApproval(exp) ? 'fa-user-check' : 'fa-bolt'}>{needsApproval(exp) ? 'El creator aprueba cada solicitud' : 'Confirmación inmediata'}</Fact>}
       {!compact && d.requirements.verifiedFans && <Fact icon="fa-id-card">Solo fans verificados</Fact>}
       {!compact && d.requirements.subscribersOnly && <Fact icon="fa-star">Solo suscriptores</Fact>}
-      {!compact && <Fact icon="fa-hourglass-start">Reserva con {noticeLabel(d.minNoticeHours)} de anticipación</Fact>}
+      {!compact && !isEventExperience(exp) && <Fact icon="fa-hourglass-start">Reserva con {noticeLabel(d.minNoticeHours)} de anticipación</Fact>}
     </div>
   );
 };
@@ -43,7 +65,7 @@ export const PriceTag: React.FC<{ exp: VipExperience; size?: 'md' | 'lg' }> = ({
   return (
     <div className="leading-tight">
       <span className={`${size === 'lg' ? 'text-2xl' : 'text-xl'} font-bold text-ink`}>{money(exp.price)}</span>
-      <span className="ml-1 text-xs text-muted">USD</span>
+      <span className="ml-1 text-xs text-muted">USD{isEventExperience(exp) ? ' por plaza' : ''}</span>
       {!!d.subscriberDiscount && (
         <span className="mt-0.5 block text-xs font-medium text-iris-700">
           <i aria-hidden="true" className="fas fa-star mr-1 text-[10px]"></i>Suscriptores: −{d.subscriberDiscount}%
@@ -94,9 +116,20 @@ export const ExperienceTerms: React.FC<{ exp: VipExperience }> = ({ exp }) => {
 };
 
 // The line that keeps Gift, Subscription and Reserve apart.
-export const ReserveNotice: React.FC<{ kind: 'gift' | 'subscription' | 'reserve' | 'payments'; text?: string; className?: string }> = ({ kind, text: override, className = '' }) => {
-  const text = override ?? { gift: RESERVE_COPY.gift, subscription: RESERVE_COPY.subscription, reserve: RESERVE_COPY.reserve, payments: RESERVE_COPY.testPayments }[kind];
-  const icon = { gift: 'fa-gift', subscription: 'fa-star', reserve: 'fa-ticket', payments: 'fa-flask' }[kind];
+type NoticeKind = 'gift' | 'subscription' | 'reserve' | 'payments' | 'event' | 'oneToOne' | 'subscriberLive';
+export const ReserveNotice: React.FC<{ kind: NoticeKind; text?: string; className?: string }> = ({ kind, text: override, className = '' }) => {
+  const text =
+    override ??
+    {
+      gift: RESERVE_COPY.gift,
+      subscription: RESERVE_COPY.subscription,
+      reserve: RESERVE_COPY.reserve,
+      payments: RESERVE_COPY.testPayments,
+      event: RESERVE_COPY.event,
+      oneToOne: RESERVE_COPY.oneToOne,
+      subscriberLive: RESERVE_COPY.subscriberLive,
+    }[kind];
+  const icon = { gift: 'fa-gift', subscription: 'fa-star', reserve: 'fa-ticket', payments: 'fa-flask', event: 'fa-people-group', oneToOne: 'fa-user-lock', subscriberLive: 'fa-tower-broadcast' }[kind];
   return (
     <p data-testid={`notice-${kind}`} className={`flex gap-2 rounded-xl bg-gray-50 px-3 py-2 text-xs leading-relaxed text-ink/70 ${className}`}>
       <i aria-hidden="true" className={`fas ${icon} mt-0.5 text-[11px] text-muted`}></i>

@@ -1,14 +1,20 @@
-// Free Live alerts ("campanita"): which creators are live right now, each
-// fan's bell per followed creator, and the in-app notifications they get.
-// Implemented by localLive.ts and supabaseLive.ts. The video of the free Live
-// itself (one creator to many fans) needs a streaming service and isn't here yet.
+// Creator Lives and their alerts ("campanita"): which creators are live right
+// now, each fan's bell per followed creator, and the in-app notifications they
+// get. A Live is a Subscriber Live (only active subscribers watch) or an Open
+// Live (public; disabled by ENABLE_OPEN_LIVE, see src/config/features.ts).
+// Who may enter is decided in src/lib/liveAccess.ts and enforced by api/live-token.ts.
+// Implemented by localLive.ts and supabaseLive.ts.
 import type { AuthResult, User } from './types';
+
+export type BroadcastMode = 'open' | 'subscriber';
 
 export interface LiveBroadcast {
   id: string;
   creatorProfileId: string;
   title: string;
   startedAt: string;
+  // Rows made before modes existed are open Lives.
+  mode: BroadcastMode;
 }
 
 export type NotificationKind = 'live_started';
@@ -42,8 +48,10 @@ export const LIVE_REALERT_MINUTES = 30;
 export interface LiveBackend {
   // The creator's open Live, if any.
   currentLive(creatorProfileId: string): Promise<LiveBroadcast | null>;
-  // Marks the signed-in creator as live and alerts followers with the bell on.
-  startLive(user: User, title: string): Promise<AuthResult & { notified?: number }>;
+  // Marks the signed-in creator as live. A Subscriber Live (the default) alerts the
+  // creator's active subscribers; an Open Live alerts followers with the bell on and
+  // is refused while Open Live is disabled.
+  startLive(user: User, title: string, mode?: BroadcastMode): Promise<AuthResult & { notified?: number }>;
   endLive(user: User): Promise<AuthResult>;
   // Same as endLive, fired while the creator's tab is closing: it has no answer to
   // wait for and the request must outlive the page.
@@ -56,10 +64,12 @@ export interface LiveBackend {
   setLiveAlerts(user: User, creatorProfileId: string, on: boolean): Promise<AuthResult>;
   notifications(user: User): Promise<AppNotification[]>;
   markNotificationsRead(user: User): Promise<void>;
-  // LiveKit access to a creator's open Live: the owner publishes, everyone else watches.
+  // LiveKit access to a creator's Live: the owner publishes; subscribers (Subscriber
+  // Live) or anyone signed in (Open Live, when enabled) watch.
   broadcastAccess(creatorProfileId: string): Promise<AuthResult & { access?: BroadcastAccess }>;
-  // LiveKit access to the private call of a confirmed Reserve booking: only its fan
-  // and its creator get in, both with camera and microphone (host = the creator).
+  // LiveKit access for a confirmed Reserve booking: a Reserve 1:1 lets in only its fan
+  // and its creator, both with camera and microphone (host = the creator); a Reserve
+  // Event seat joins the event's group room, where only the creator presents.
   callAccess(bookingId: string): Promise<AuthResult & { access?: BroadcastAccess }>;
   // Calls back when a new notification arrives for this user. Returns the unsubscribe.
   watchNotifications(userId: string, cb: () => void): () => void;

@@ -17,7 +17,8 @@ import TipDialog from '../components/TipDialog';
 import GiftDialog from '../components/GiftDialog';
 import NewPostForm from '../components/NewPostForm';
 import AccessLadder, { useFollow } from '../components/reserve/AccessLadder';
-import CreatorReserveSection from '../components/reserve/CreatorReserveSection';
+import CreatorReserveSection, { UpcomingAccess } from '../components/reserve/CreatorReserveSection';
+import { useCurrentLive } from '../lib/live';
 import { ReserveNotice } from '../components/reserve/ReserveBits';
 import { backend } from '../lib/backend';
 import type { VipExperience } from '../lib/vip';
@@ -69,6 +70,7 @@ const CreatorProfile: React.FC = () => {
   const creator: Creator | undefined = catalogCreator ?? (signedUp ? fromPublic(signedUp) : undefined);
   const levels = useLevels(id ? [id] : []);
   const follow = useFollow(id, user);
+  const currentLive = useCurrentLive(id);
   const { data: experiences } = usePlatformQuery(
     async () => (await backend.listExperiences()).filter((e) => e.creatorProfileId === id && e.active),
     [id],
@@ -365,6 +367,7 @@ const CreatorProfile: React.FC = () => {
               onNeedLogin={goLogin}
             />
             <CreatorReserveSection creator={creator} experiences={experiences} user={user} isOwner={isOwner} onNeedLogin={goLogin} />
+            <UpcomingAccess creatorId={creator.id} experiences={experiences} liveTitle={currentLive?.mode === 'subscriber' ? currentLive.title : null} />
           </>
         )}
 

@@ -8,6 +8,10 @@ import { useCameraLook } from '../hooks/useCameraLook';
 import ViewerWatermark, { noCaptureVideoProps } from '../components/ViewerWatermark';
 import { useLeaveGuard } from '../hooks/useLeaveGuard';
 import { liveApi, endLive, useCurrentLive, LIVE_HEARTBEAT_SECONDS, LIVE_STALE_MINUTES } from '../lib/live';
+import { backend } from '../lib/backend';
+import { ENABLE_OPEN_LIVE } from '../config/features';
+import { LIVE_MODES } from '../lib/liveAccess';
+import { formatLongDate, liveState, liveWindow, sessionMinutes, type VipBooking } from '../lib/vip';
 
 interface ChatLine {
   id: number;
@@ -20,13 +24,54 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 let lineId = 0;
 
-// Free Live: one creator broadcasts camera and microphone, signed-in fans watch
-// and chat. Video goes through LiveKit; the token comes from api/live-token.ts.
-const LiveBroadcast: React.FC = () => {
-  const { creatorId } = useParams<{ creatorId: string }>();
-  const { user } = useAuth();
+// One creator broadcasts camera and microphone to a group that watches and chats.
+// Video goes through LiveKit; the token comes from api/live-token.ts, which decides
+// who gets in (src/lib/liveAccess.ts):
+//   /en-vivo/:creatorId  the creator's Live: Subscriber Live (active subscribers only)
+//                        or Open Live (anyone signed in; only with ENABLE_OPEN_LIVE).
+//   /evento/:bookingId   a Reserve Event room: participants with a confirmed seat.
+const LiveBroadcast: React.FC<{ event?: boolean }> = ({ event: isEvent = false }) => {
+  const { creatorId: creatorParam, bookingId = '' } = useParams<{ creatorId: string; bookingId: string }>();
+  const { user, isSubscribed } = useAuth();
   const navigate = useNavigate();
-  const live = useCurrentLive(creatorId);
+  const broadcast = useCurrentLive(isEvent ? undefined : creatorParam);
+  // Reserve Event: the seat (booking) this person holds, or one of the event's seats for its creator.
+  const [seat, setSeat] = useState<VipBooking | null>(null);
+  const [seatProblem, setSeatProblem] = useState('');
+  useEffect(() => {
+    if (!isEvent || !user) return;
+    let active = true;
+    (async () => {
+      const lists = await Promise.all([
+        backend.fanBookings(user.id),
+        user.creatorProfileId ? backend.creatorBookings(user.creatorProfileId) : Promise.resolve([]),
+      ]);
+      const b = lists.flat().find((x) => x.id === bookingId) ?? null;
+      if (!active) return;
+      const mins = sessionMinutes(b);
+      const state = b && mins ? liveState(b.date, b.time, mins) : null;
+      setSeat(b);
+      setSeatProblem(
+        !b || b.details?.kind !== 'event'
+          ? 'No encontramos esta plaza en tu cuenta.'
+          : b.status !== 'confirmed'
+            ? 'La sala se abre cuando tu plaza está aceptada y pagada.'
+            : state === 'early'
+              ? `La sala se abre el ${formatLongDate(b.date)} a las ${liveWindow(b.date, b.time, mins!).opens.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}.`
+              : state === 'over'
+                ? 'Este evento ya terminó.'
+                : ''
+      );
+    })();
+    return () => {
+      active = false;
+    };
+  }, [isEvent, user, bookingId]);
+  const creatorId = isEvent ? seat?.creatorProfileId : creatorParam;
+  const eventReady = isEvent && !!seat && !seatProblem;
+  // What is on: the creator's Live, or the Reserve Event once its room is open.
+  const live = isEvent ? (eventReady ? { title: seat!.title, mode: 'reserve_event' as const } : null) : broadcast;
+  const mode = isEvent ? 'reserve_event' : broadcast?.mode === 'subscriber' ? 'subscriber' : 'open';
   const [checked, setChecked] = useState(false);
   const [phase, setPhase] = useState<'idle' | 'connecting' | 'on' | 'ended' | 'error'>('idle');
   const [problem, setProblem] = useState('');
@@ -48,10 +93,16 @@ const LiveBroadcast: React.FC = () => {
   // Where the creator was heading when asked to confirm closing their Live.
   const [leaving, setLeaving] = useState<{ to: string } | null>(null);
   const [closing, setClosing] = useState(false);
-  // The owner of this Live, known from the session even before the camera is on.
+  // The owner of this Live (or the event's creator), known from the session even before the camera is on.
   const owner = !!user?.creatorProfileId && user.creatorProfileId === creatorId;
+  // A Live closes when its creator leaves; a Reserve Event keeps its room until its time is over.
+  const ownsLive = owner && !isEvent;
   // While the creator is on air, leaving this page in any way closes the Live.
-  const onAir = owner && host && phase === 'on';
+  const onAir = ownsLive && host && phase === 'on';
+  // Who may watch: an Open Live only while it is enabled; a Subscriber Live, subscribers.
+  // (api/live-token.ts checks the same before giving a token.)
+  const openLiveOff = !isEvent && !!broadcast && mode === 'open' && !ENABLE_OPEN_LIVE;
+  const subscribersOnly = !isEvent && !!broadcast && mode === 'subscriber' && !owner && !(creatorId && isSubscribed(creatorId));
   const onAirRef = useRef(false);
   onAirRef.current = onAir;
   const userRef = useRef(user);
@@ -96,7 +147,7 @@ const LiveBroadcast: React.FC = () => {
     if (!creatorId) return;
     setPhase('connecting');
     setProblem('');
-    const r = await liveApi.broadcastAccess(creatorId);
+    const r = isEvent ? await liveApi.callAccess(bookingId) : await liveApi.broadcastAccess(creatorId);
     if (!r.ok || !r.access) {
       setProblem(r.error ?? 'No se pudo conectar al Live.');
       setPhase('error');
@@ -176,7 +227,7 @@ const LiveBroadcast: React.FC = () => {
       setProblem(`No se pudo conectar al servidor de video. Inténtalo de nuevo. (Detalle: ${detail.slice(0, 160)})`);
       setPhase('error');
     }
-  }, [creatorId, user?.name, captureOptions, bindLook]);
+  }, [creatorId, isEvent, bookingId, user?.name, captureOptions, bindLook]);
 
   useEffect(
     () => () => {
@@ -198,7 +249,7 @@ const LiveBroadcast: React.FC = () => {
 
   // Check in while the creator has their open Live on screen: if the phone dies or the
   // browser crashes the check-ins stop and the server closes the Live by itself.
-  const checkingIn = owner && (!!live || onAir);
+  const checkingIn = ownsLive && (!!live || onAir);
   useEffect(() => {
     if (!checkingIn || !user) return;
     const beat = async () => {
@@ -243,13 +294,13 @@ const LiveBroadcast: React.FC = () => {
 
   // A fan just leaves; the creator is asked first, because leaving closes their Live.
   const finish = () => {
-    if (owner && (live || phase === 'on')) {
+    if (ownsLive && (live || phase === 'on')) {
       setLeaving({ to: '/creator/dashboard' });
       return;
     }
     roomRef.current?.disconnect();
     roomRef.current = null;
-    navigate(`/creator/${creatorId}`);
+    navigate(isEvent ? (owner ? '/creator/dashboard?tab=vip' : '/profile') : `/creator/${creatorId}`);
   };
 
   const closeAndLeave = async () => {
@@ -269,7 +320,43 @@ const LiveBroadcast: React.FC = () => {
     navigate(leaving.to, { replace: true });
   };
 
-  const backTo = host || user?.creatorProfileId === creatorId ? '/creator/dashboard' : `/creator/${creatorId}`;
+  const backTo = isEvent
+    ? owner ? '/creator/dashboard?tab=vip' : '/profile'
+    : host || user?.creatorProfileId === creatorId ? '/creator/dashboard' : `/creator/${creatorId}`;
+
+  if ((openLiveOff || subscribersOnly) && phase !== 'on') {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center px-4" data-testid="live-broadcast">
+        <div className="max-w-md text-center" data-testid={subscribersOnly ? 'subscriber-live-gate' : 'open-live-off'}>
+          <i aria-hidden="true" className={`fas ${subscribersOnly ? 'fa-lock' : 'fa-tower-broadcast'} text-4xl text-ink/30 mb-4`}></i>
+          <h1 className="text-xl font-bold text-ink mb-2">{subscribersOnly ? 'Live exclusivo para suscriptores' : 'Este Live no está disponible'}</h1>
+          <p className="text-sm text-muted mb-6">
+            {subscribersOnly
+              ? 'Este Live está incluido en la suscripción del creator. Suscríbete para entrar a este y a sus próximos Lives para suscriptores.'
+              : 'Fans Reserve no ofrece Lives abiertos al público. Mira la suscripción y las experiencias de Reserve del creator.'}
+          </p>
+          <Link to={`/creator/${creatorId}`} className="btn btn-primary btn-md">{subscribersOnly ? 'Ver la suscripción' : 'Ver el perfil'}</Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (isEvent && !eventReady && phase !== 'on' && phase !== 'ended') {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center px-4" data-testid="live-broadcast">
+        {seat || seatProblem ? (
+          <div className="max-w-md text-center" data-testid="event-unavailable">
+            <i aria-hidden="true" className="fas fa-people-group text-4xl text-ink/30 mb-4"></i>
+            <h1 className="text-xl font-bold text-ink mb-2">{seat?.title ?? 'Reserve Event'}</h1>
+            <p className="text-sm text-muted mb-6">{seatProblem}</p>
+            <Link to={backTo} className="btn btn-primary btn-md">Volver</Link>
+          </div>
+        ) : (
+          <div role="status" aria-label="Cargando" className="w-10 h-10 border-4 border-pink-200 border-t-pink-500 rounded-full animate-spin"></div>
+        )}
+      </div>
+    );
+  }
 
   if (!live && phase !== 'on' && phase !== 'ended') {
     return (
@@ -278,7 +365,7 @@ const LiveBroadcast: React.FC = () => {
           <div className="max-w-md text-center">
             <i aria-hidden="true" className="fas fa-tower-broadcast text-4xl text-ink/30 mb-4"></i>
             <h1 className="text-xl font-bold text-ink mb-2">Este creator no está en Live ahora</h1>
-            <p className="text-sm text-muted mb-6">Síguelo y deja la campanita activada para enterarte del próximo.</p>
+            <p className="text-sm text-muted mb-6">Suscríbete y deja la campanita activada para enterarte de su próximo Live para suscriptores.</p>
             <Link to={backTo} className="btn btn-primary btn-md">Volver</Link>
           </div>
         ) : (
@@ -294,7 +381,8 @@ const LiveBroadcast: React.FC = () => {
         <div className="flex items-center justify-between mb-4 gap-3">
           <div className="min-w-0">
             <p className="text-xs uppercase tracking-wide text-red-400 font-bold flex items-center">
-              <span className="w-2 h-2 rounded-full bg-red-500 mr-2 animate-pulse"></span>En vivo · Gratis
+              <span className="w-2 h-2 rounded-full bg-red-500 mr-2 animate-pulse"></span>
+              {mode === 'open' ? 'En vivo · Gratis' : `En vivo · ${LIVE_MODES[mode].badge}`}
             </p>
             <h1 className="text-lg font-bold truncate">{live?.title ?? 'Live'}{hostName ? ` · ${hostName}` : ''}</h1>
           </div>
@@ -335,12 +423,12 @@ const LiveBroadcast: React.FC = () => {
                     <div>
                       {problem && <p role="alert" data-testid="live-problem" className="mb-4 text-sm text-red-200">{problem}</p>}
                       <button onClick={join} className="px-6 py-3 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 font-medium">
-                        {user?.creatorProfileId === creatorId ? 'Encender cámara y empezar' : 'Entrar al Live'}
+                        {owner ? 'Encender cámara y empezar' : isEvent ? 'Entrar al evento' : 'Entrar al Live'}
                       </button>
                     </div>
                   ) : (
                     <p className="text-gray-300">
-                      {phase === 'connecting' ? 'Conectando…' : phase === 'ended' ? 'El Live terminó.' : 'Esperando la imagen del creator…'}
+                      {phase === 'connecting' ? 'Conectando…' : phase === 'ended' ? (isEvent ? 'El evento terminó.' : 'El Live terminó.') : 'Esperando la imagen del creator…'}
                     </p>
                   )}
                 </div>
@@ -374,7 +462,7 @@ const LiveBroadcast: React.FC = () => {
                 </>
               )}
               <button onClick={finish} className="px-6 h-12 rounded-full bg-red-600 hover:bg-red-700 font-medium">
-                <i aria-hidden="true" className="fas fa-right-from-bracket mr-2"></i>{owner ? 'Terminar Live' : 'Salir'}
+                <i aria-hidden="true" className="fas fa-right-from-bracket mr-2"></i>{ownsLive ? 'Terminar Live' : 'Salir'}
               </button>
             </div>
           </div>

@@ -58,7 +58,7 @@ const GuestOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 };
 
 // Video rooms use the whole phone screen, so they skip the tab bar.
-const FULL_SCREEN = /^\/(live|en-vivo)\//;
+const FULL_SCREEN = /^\/(live|en-vivo|evento)\//;
 
 const AppLayout: React.FC<{ children: React.ReactNode; hideNav?: boolean }> = ({ children, hideNav }) => {
   const { pathname } = useLocation();
@@ -177,9 +177,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute><LiveRoom /></ProtectedRoute>
         </AppLayout>
       } />
+      {/* A creator's Live (Subscriber Live; Open Live only with ENABLE_OPEN_LIVE). */}
       <Route path="/en-vivo/:creatorId" element={
         <AppLayout>
           <ProtectedRoute><LiveBroadcast /></ProtectedRoute>
+        </AppLayout>
+      } />
+      {/* Reserve Event room, entered with a confirmed seat. */}
+      <Route path="/evento/:bookingId" element={
+        <AppLayout>
+          <ProtectedRoute><LiveBroadcast event /></ProtectedRoute>
         </AppLayout>
       } />
       <Route path="/profile" element={

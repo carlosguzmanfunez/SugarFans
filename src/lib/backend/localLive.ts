@@ -1,12 +1,15 @@
-// Browser-only implementation of free Live alerts (dev and offline tests).
-// Followers come from the local social store; notifications reach other tabs
-// of the same browser through the storage event.
+// Browser-only implementation of creator Lives and their alerts (dev and offline
+// tests). Followers come from the local social store, subscribers from the local
+// accounts; notifications reach other tabs of the same browser through the storage event.
 import { readJSON, writeJSONChecked, newId } from '../storage';
 import { moderate } from '../moderation';
 import type { AuthResult, User } from './types';
 import { LIVE_MAX_HOURS, LIVE_REALERT_MINUTES, LIVE_STALE_MINUTES, type AppNotification, type BroadcastAccess, type LiveBackend, type LiveBroadcast } from './liveTypes';
+import { ENABLE_OPEN_LIVE } from '../../config/features';
 
-interface StoredBroadcast extends LiveBroadcast {
+interface StoredBroadcast extends Omit<LiveBroadcast, 'mode'> {
+  // Missing on Lives stored before modes existed: those are open Lives.
+  mode?: LiveBroadcast['mode'];
   endedAt?: string;
   lastSeenAt?: string;
 }
@@ -19,6 +22,8 @@ interface Store {
 
 interface Deps {
   followers(creatorProfileId: string): string[];
+  // Fans with an active subscription to this creator.
+  subscribers(creatorProfileId: string): string[];
   currentUserId(): string | null;
   onChange(cb: () => void): () => void;
   notify(): void;
@@ -70,10 +75,11 @@ export const createLocalLive = (deps: Deps): LiveBackend => {
   return {
     async currentLive(creatorProfileId) {
       const b = open(load(), creatorProfileId);
-      return b ? { id: b.id, creatorProfileId: b.creatorProfileId, title: b.title, startedAt: b.startedAt } : null;
+      return b ? { id: b.id, creatorProfileId: b.creatorProfileId, title: b.title, startedAt: b.startedAt, mode: b.mode ?? 'open' } : null;
     },
 
-    async startLive(user, rawTitle) {
+    async startLive(user, rawTitle, mode = 'subscriber') {
+      if (mode === 'open' && !ENABLE_OPEN_LIVE) return fail('El Live abierto está desactivado. Usa el Live para suscriptores.');
       const profile = user.creatorProfileId;
       if (!profile || user.role !== 'creator') return fail('Solo los creators pueden iniciar un Live');
       const title = rawTitle.trim();
@@ -87,19 +93,21 @@ export const createLocalLive = (deps: Deps): LiveBackend => {
       );
       const broadcasts = [
         ...st.broadcasts.map((b) => (b.creatorProfileId === profile && !b.endedAt ? { ...b, endedAt: now.toISOString() } : b)),
-        { id: newId(), creatorProfileId: profile, title, startedAt: now.toISOString() },
+        { id: newId(), creatorProfileId: profile, title, startedAt: now.toISOString(), mode },
       ].slice(-100);
       const notifications = { ...st.notifications };
       let notified = 0;
       if (!recent) {
         const off = st.alertsOff[profile] ?? [];
-        for (const fan of deps.followers(profile)) {
+        // A Subscriber Live alerts active subscribers; an Open Live, followers.
+        const audience = mode === 'subscriber' ? deps.subscribers(profile) : deps.followers(profile);
+        for (const fan of audience) {
           if (fan === user.id || off.includes(fan)) continue;
           const n: AppNotification = {
             id: newId(),
             kind: 'live_started',
             creatorProfileId: profile,
-            title: `${user.name} está en Live`,
+            title: mode === 'subscriber' ? `${user.name} empezó un Live para suscriptores` : `${user.name} está en Live`,
             body: title,
             link: `/en-vivo/${profile}`,
             createdAt: now.toISOString(),

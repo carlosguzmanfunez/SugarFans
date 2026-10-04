@@ -13,7 +13,7 @@ const timeAgo = (iso: string) => {
   return new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short' });
 };
 
-// "Campanita": tells the fan when a creator they follow goes live.
+// "Campanita": tells the fan when a creator they subscribe to starts a Subscriber Live.
 const NotificationBell: React.FC<{ user: User }> = ({ user }) => {
   const { data: items } = useNotifications(user);
   const [open, setOpen] = useState(false);
@@ -53,7 +53,7 @@ const NotificationBell: React.FC<{ user: User }> = ({ user }) => {
           <p className="border-b border-line px-4 py-3 text-sm font-semibold text-ink">Avisos</p>
           {items.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-muted">
-              Aún no tienes avisos. Sigue a un creator y te avisaremos cuando esté en Live.
+              Aún no tienes avisos. Suscríbete a un creator y te avisaremos de sus Lives para suscriptores.
             </p>
           ) : (
             <ul className="max-h-96 overflow-y-auto">

@@ -1,8 +1,10 @@
-// Supabase implementation of free Live alerts. Tables and RPCs live in
-// supabase/migrations/20261003000001_live_alerts.sql.
+// Supabase implementation of creator Lives and their alerts. Tables and RPCs live in
+// supabase/migrations/20261003000001_live_alerts.sql (Lives, alerts),
+// 20261004000003_live_heartbeat.sql and 20261004000004_subscriber_live_reserve_events.sql (modes).
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { AuthResult } from './types';
 import { LIVE_MAX_HOURS, type AppNotification, type LiveBackend } from './liveTypes';
+import { broadcastModeOf } from '../liveAccess';
 
 type Row = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -10,7 +12,11 @@ const ok: AuthResult = { ok: true };
 const fail = (error: string): AuthResult => ({ ok: false, error });
 // RPC errors raised on purpose are already in Spanish; anything else gets a generic message.
 const rpcError = (message: string | undefined) =>
-  message && /Live|creators|título/.test(message) ? message : 'No se pudo actualizar. Inténtalo de nuevo.';
+  message && /start_subscriber_live/.test(message)
+    ? 'El Live para suscriptores aún no está activado en la base de datos.'
+    : message && /Live|creators|título/.test(message)
+      ? message
+      : 'No se pudo actualizar. Inténtalo de nuevo.';
 
 const toNotification = (r: Row): AppNotification => ({
   id: r.id,
@@ -54,16 +60,19 @@ export const createSupabaseLive = (sb: SupabaseClient, url: string, anonKey: str
       const since = new Date(Date.now() - LIVE_MAX_HOURS * 3600_000).toISOString();
       const { data } = await sb
         .from('live_broadcasts')
-        .select('id, creator_profile_id, title, started_at')
+        // '*' keeps working before the mode column exists.
+        .select('*')
         .eq('creator_profile_id', creatorProfileId)
         .is('ended_at', null)
         .gt('started_at', since)
         .maybeSingle();
-      return data ? { id: data.id, creatorProfileId: data.creator_profile_id, title: data.title, startedAt: data.started_at } : null;
+      return data
+        ? { id: data.id, creatorProfileId: data.creator_profile_id, title: data.title, startedAt: data.started_at, mode: broadcastModeOf(data.mode) }
+        : null;
     },
 
-    async startLive(_user, title) {
-      const { data, error } = await sb.rpc('start_live', { p_title: title });
+    async startLive(_user, title, mode = 'subscriber') {
+      const { data, error } = await sb.rpc(mode === 'open' ? 'start_live' : 'start_subscriber_live', { p_title: title });
       if (error) return fail(rpcError(error.message));
       return { ok: true, notified: Number((data as Row | null)?.notified ?? 0) };
     },

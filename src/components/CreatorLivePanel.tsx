@@ -1,13 +1,18 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { User } from '../context/AuthContext';
-import { startLive, endLive, useCurrentLive } from '../lib/live';
+import { startLive, endLive, useCurrentLive, type BroadcastMode } from '../lib/live';
+import { ENABLE_OPEN_LIVE } from '../config/features';
+import { RESERVE_COPY } from '../config/reserve';
 
-// Creator panel: start a free Live (followers with the bell on get an alert) or end it.
+// Creator panel: start a Subscriber Live (a group Live included in the subscription;
+// active subscribers get an alert) or end it. The public Open Live is only offered
+// while ENABLE_OPEN_LIVE is on.
 const CreatorLivePanel: React.FC<{ user: User }> = ({ user }) => {
   const live = useCurrentLive(user.creatorProfileId);
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
+  const [mode, setMode] = useState<BroadcastMode>('subscriber');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -15,14 +20,15 @@ const CreatorLivePanel: React.FC<{ user: User }> = ({ user }) => {
     e.preventDefault();
     setBusy(true);
     setMessage(null);
-    const r = await startLive(user, title);
+    const r = await startLive(user, title, ENABLE_OPEN_LIVE ? mode : 'subscriber');
     setBusy(false);
     if (!r.ok) {
       setMessage({ ok: false, text: r.error ?? 'No se pudo iniciar el Live.' });
       return;
     }
     setTitle('');
-    setMessage({ ok: true, text: r.notified ? `Avisamos a ${r.notified} ${r.notified === 1 ? 'seguidor' : 'seguidores'}.` : 'Tu Live está activo.' });
+    const who = mode === 'open' && ENABLE_OPEN_LIVE ? ['seguidor', 'seguidores'] : ['suscriptor', 'suscriptores'];
+    setMessage({ ok: true, text: r.notified ? `Avisamos a ${r.notified} ${r.notified === 1 ? who[0] : who[1]}.` : 'Tu Live está activo.' });
     navigate(`/en-vivo/${user.creatorProfileId}`);
   };
 
@@ -38,11 +44,16 @@ const CreatorLivePanel: React.FC<{ user: User }> = ({ user }) => {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 id="creator-live-title" className="font-bold text-gray-900 flex items-center">
-            <i aria-hidden="true" className="fas fa-tower-broadcast mr-2 text-red-500"></i>Live gratis
+            <i aria-hidden="true" className="fas fa-tower-broadcast mr-2 text-red-500"></i>Live para suscriptores
           </h2>
           <p className="text-sm text-gray-600">
-            {live ? <>Estás en Live: <span className="font-medium">{live.title}</span></> : 'Emite para todos tus seguidores. Quien tenga la campanita activada recibe un aviso.'}
+            {live ? (
+              <>Estás en Live{live.mode === 'open' ? ' abierto' : ' para suscriptores'}: <span className="font-medium">{live.title}</span></>
+            ) : (
+              'Un Live grupal incluido en tu suscripción: solo entran tus suscriptores activos y les llega un aviso. Hazlo cuando quieras.'
+            )}
           </p>
+          {!live && <p className="mt-1 text-xs text-gray-500">{RESERVE_COPY.subscriberLive}</p>}
         </div>
         {live ? (
           <div className="flex flex-wrap gap-2">
@@ -55,6 +66,12 @@ const CreatorLivePanel: React.FC<{ user: User }> = ({ user }) => {
           </div>
         ) : (
           <form onSubmit={start} className="flex w-full flex-col gap-2 sm:flex-row md:w-auto">
+            {ENABLE_OPEN_LIVE && (
+              <select value={mode} onChange={(e) => setMode(e.target.value as BroadcastMode)} aria-label="Quién puede entrar" className="px-3 py-2 rounded-xl border border-gray-300 text-sm">
+                <option value="subscriber">Solo suscriptores</option>
+                <option value="open">Abierto (experimental)</option>
+              </select>
+            )}
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -62,7 +79,7 @@ const CreatorLivePanel: React.FC<{ user: User }> = ({ user }) => {
               required
               minLength={3}
               aria-label="Título del Live"
-              placeholder="De qué va tu Live"
+              placeholder="Ej.: Live exclusivo para suscriptores"
               className="min-w-0 flex-1 px-3 py-2 rounded-xl border border-gray-300 text-sm md:w-64"
             />
             <button type="submit" disabled={busy} className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 whitespace-nowrap">

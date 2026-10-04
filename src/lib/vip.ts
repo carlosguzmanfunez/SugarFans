@@ -19,6 +19,8 @@ import {
   LOCATION_TYPES,
   MAX_LIST_ITEMS,
   MAX_PARTICIPANTS,
+  MIN_EVENT_SEATS,
+  EVENT_TYPES,
   MIN_NOTICE_OPTIONS,
   PURPOSES,
   RESERVE_EXPERIENCE_TYPES,
@@ -167,6 +169,31 @@ export const detailsOf = (exp: Pick<VipExperience, 'type' | 'details'>): Reserve
 export const needsApproval = (exp: Pick<VipExperience, 'type' | 'details'>) =>
   detailsOf(exp).approval !== 'automatic' || !!experienceTypeById(exp.type)?.alwaysManual;
 
+// --- Reserve Event / Reserve 1:1 ---------------------------------------------------
+export const isEventExperience = (exp: Pick<VipExperience, 'details'>) => exp.details?.format === 'event';
+export const isEventBooking = (b: Pick<VipBooking, 'details'>) => b.details?.kind === 'event';
+export const canBeEvent = (typeId: string) => EVENT_TYPES.includes(typeId);
+
+// Where an experience sits in Reserve: a group event, a private live session (1:1), or another experience.
+export type ReserveProduct = 'event' | 'one-to-one' | 'other';
+export const reserveProductOf = (exp: Pick<VipExperience, 'details' | 'durationMinutes'>): ReserveProduct =>
+  isEventExperience(exp) ? 'event' : isLiveExperience(exp) ? 'one-to-one' : 'other';
+
+// The event's start in the viewer's clock (the creator sets it in local time).
+export const eventStart = (exp: Pick<VipExperience, 'details'>) => {
+  const d = exp.details;
+  if (!d?.eventDate || !d.eventTime) return null;
+  const start = fromISODate(d.eventDate);
+  const [h, m] = d.eventTime.split(':').map(Number);
+  start.setHours(h, m || 0, 0, 0);
+  return start;
+};
+export const isUpcomingEvent = (exp: Pick<VipExperience, 'details'>, now = new Date()) => {
+  const start = eventStart(exp);
+  return !!start && start.getTime() > now.getTime();
+};
+export const seatsLeft = (exp: Pick<VipExperience, 'details'>, taken: number) => Math.max(0, (exp.details?.maxParticipants ?? 0) - taken);
+
 // Virtual experiences with a session happen in the app's private room.
 export const isLiveExperience = (exp: Pick<VipExperience, 'durationMinutes' | 'details'>) =>
   !!exp.durationMinutes && (exp.details?.modality ?? 'virtual') === 'virtual';
@@ -216,7 +243,17 @@ export const validateExperience = (input: VipExperienceInput, categoryName?: str
       if (categoryName !== undefined && !offersHomeServices(categoryFor(categoryName))) return { ok: false, error: 'Esta experiencia no se puede ofrecer a domicilio' };
       if (d.approval !== 'manual') return { ok: false, error: 'Las experiencias a domicilio requieren tu aprobación manual' };
     }
-    if (!Number.isInteger(d.maxParticipants) || d.maxParticipants < 1 || d.maxParticipants > Math.min(MAX_PARTICIPANTS, type.maxParticipants))
+    if (d.format === 'event') {
+      // Reserve Event: fixed day and time, a duration and seats for a group.
+      if (!canBeEvent(type.id)) return { ok: false, error: `${type.name} no se ofrece como Reserve Event` };
+      if (!type.minutes || input.durationMinutes === undefined) return { ok: false, error: 'Indica la duración del evento' };
+      if (!d.eventDate || !d.eventTime || !/^\d{4}-\d{2}-\d{2}$/.test(d.eventDate) || !/^\d{2}:\d{2}$/.test(d.eventTime))
+        return { ok: false, error: 'Indica la fecha y la hora del evento' };
+      const { max } = bookingWindow();
+      if (!isUpcomingEvent({ details: d }) || d.eventDate > max) return { ok: false, error: 'La fecha del evento debe estar dentro de los próximos 3 meses' };
+      if (!Number.isInteger(d.maxParticipants) || d.maxParticipants < MIN_EVENT_SEATS || d.maxParticipants > MAX_PARTICIPANTS)
+        return { ok: false, error: `Un Reserve Event tiene entre ${MIN_EVENT_SEATS} y ${MAX_PARTICIPANTS} plazas` };
+    } else if (!Number.isInteger(d.maxParticipants) || d.maxParticipants < 1 || d.maxParticipants > Math.min(MAX_PARTICIPANTS, type.maxParticipants))
       return { ok: false, error: `Máximo ${Math.min(MAX_PARTICIPANTS, type.maxParticipants)} participantes para esta experiencia` };
     if (!MIN_NOTICE_OPTIONS.includes(d.minNoticeHours)) return { ok: false, error: 'Elige la anticipación mínima' };
     if (!CANCELLATION_POLICIES[d.cancellationPolicy]) return { ok: false, error: 'Elige la política de cancelación' };
@@ -256,8 +293,12 @@ export const cleanDetails = (d: ReserveDetails): ReserveDetails => ({
   cancellationPolicy: d.cancellationPolicy,
   ...(d.conditions?.trim() ? { conditions: d.conditions.trim() } : {}),
   ...(d.subscriberDiscount ? { subscriberDiscount: d.subscriberDiscount } : {}),
-  ...(d.days?.length ? { days: [...new Set(d.days)].sort() } : {}),
-  ...(d.hours?.length ? { hours: [...new Set(d.hours)].sort() } : {}),
+  ...(d.format === 'event'
+    ? { format: 'event' as const, eventDate: d.eventDate, eventTime: d.eventTime }
+    : {
+        ...(d.days?.length ? { days: [...new Set(d.days)].sort() } : {}),
+        ...(d.hours?.length ? { hours: [...new Set(d.hours)].sort() } : {}),
+      }),
 });
 
 // The experience's own days/hours narrow the creator's availability.

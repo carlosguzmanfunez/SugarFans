@@ -5,7 +5,8 @@ import { backend } from '../lib/backend';
 import { usePlatformQuery } from '../lib/platform';
 import { useCreatorCatalog } from '../lib/catalog';
 import type { VipExperience } from '../lib/vip';
-import { detailsOf } from '../lib/vip';
+import { detailsOf, isUpcomingEvent, reserveProductOf, type ReserveProduct } from '../lib/vip';
+import { useEventSeats } from '../components/reserve/CreatorReserveSection';
 import { CREATOR_CATEGORIES, MODALITY_IDS, PROFESSIONAL_SERVICES_ALLOWED, PROHIBITED_EXPERIENCES, RESERVE_COPY, RESERVE_FLOW, RESERVE_MODALITIES, categoryFor, type ReserveModality } from '../config/reserve';
 import ReserveExperienceCard from '../components/reserve/ReserveExperienceCard';
 import ReserveBookingDialog from '../components/reserve/ReserveBookingDialog';
@@ -13,12 +14,22 @@ import { ReserveNotice } from '../components/reserve/ReserveBits';
 
 // Reserve: experiences fans can book with creators. Each one is defined by its
 // creator (type, modality, duration, price, venue, rules) and approved by them.
+// Its two main products: Reserve Event (group, one seat per fan) and Reserve 1:1
+// (private session); other experiences (in person, delivered) are listed too.
+const PRODUCTS: { id: ReserveProduct | 'all'; label: string; icon: string }[] = [
+  { id: 'all', label: 'Todo Reserve', icon: 'fa-ticket' },
+  { id: 'event', label: 'Reserve Event', icon: 'fa-people-group' },
+  { id: 'one-to-one', label: 'Reserve 1:1', icon: 'fa-user-lock' },
+  { id: 'other', label: 'Otras experiencias', icon: 'fa-star' },
+];
+
 const ReservePage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [modality, setModality] = useState<ReserveModality | 'all'>('all');
   const [category, setCategory] = useState('all');
+  const [product, setProduct] = useState<ReserveProduct | 'all'>('all');
   const [open, setOpen] = useState<{ exp: VipExperience; book: boolean } | null>(null);
   const { data: experiences, loading } = usePlatformQuery(() => backend.listExperiences(), [], [] as VipExperience[]);
   const { creators } = useCreatorCatalog();
@@ -27,9 +38,13 @@ const ReservePage: React.FC = () => {
 
   const visible = experiences
     .filter((e) => e.active)
+    // Events that already happened aren't bookable.
+    .filter((e) => reserveProductOf(e) !== 'event' || isUpcomingEvent(e))
+    .filter((e) => product === 'all' || reserveProductOf(e) === product)
     .filter((e) => modality === 'all' || detailsOf(e).modality === modality)
     .filter((e) => category === 'all' || categoryFor(creatorOf(e)?.category).id === category);
 
+  const seats = useEventSeats(visible);
   const chip = (active: boolean) =>
     `inline-flex h-10 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-medium transition ${active ? 'bg-ink text-white' : 'border border-line bg-white text-ink/80 hover:border-ink/30'}`;
 
@@ -46,7 +61,7 @@ const ReservePage: React.FC = () => {
           </span>
           <h1 className="text-display-lg mb-4">Reserve</h1>
           <p className="mx-auto max-w-2xl text-lg text-white/75 md:text-xl">
-            Reserva experiencias definidas por tus creators: clases, sesiones, meet &amp; greets, eventos y colaboraciones. Cada una con su modalidad, duración, precio y reglas.
+            Reserve Events en grupo, sesiones privadas 1:1 y experiencias definidas por tus creators. Cada una con su fecha, duración, precio, alcance y reglas.
           </p>
           <p className="mt-4 text-sm font-semibold uppercase tracking-[0.18em] text-gold-200">{RESERVE_COPY.principle}</p>
         </div>
@@ -54,6 +69,14 @@ const ReservePage: React.FC = () => {
 
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="mb-8 space-y-3">
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0" role="group" aria-label="Tipo de Reserve" data-testid="reserve-products">
+            {PRODUCTS.map((p) => (
+              <button key={p.id} type="button" aria-pressed={product === p.id} onClick={() => setProduct(p.id)} className={chip(product === p.id)}>
+                <i aria-hidden="true" className={`fas ${p.icon} text-xs`}></i>
+                {p.label}
+              </button>
+            ))}
+          </div>
           <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0" role="group" aria-label="Modalidad">
             <button type="button" aria-pressed={modality === 'all'} onClick={() => setModality('all')} className={chip(modality === 'all')}>
               Todas
@@ -84,6 +107,7 @@ const ReservePage: React.FC = () => {
                 exp={exp}
                 isOwner={isOwn}
                 creator={{ id: exp.creatorProfileId, name: exp.creatorName, avatar: c?.avatar ?? '' }}
+                seatsTaken={seats[exp.id] ?? 0}
                 onDetails={() => setOpen({ exp, book: false })}
                 onBook={() => (user ? setOpen({ exp, book: true }) : goLogin())}
               />
@@ -139,7 +163,7 @@ const ReservePage: React.FC = () => {
         </section>
       </div>
 
-      {open && <ReserveBookingDialog exp={open.exp} user={user} startBooking={open.book} onNeedLogin={goLogin} onClose={() => setOpen(null)} />}
+      {open && <ReserveBookingDialog exp={open.exp} user={user} startBooking={open.book} seatsTaken={seats[open.exp.id] ?? 0} onNeedLogin={goLogin} onClose={() => setOpen(null)} />}
     </div>
   );
 };

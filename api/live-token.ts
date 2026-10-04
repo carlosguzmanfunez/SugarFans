@@ -1,28 +1,22 @@
-// Vercel function: hands out LiveKit tokens.
-// - Free Live ({ creatorProfileId }): the creator who owns the open Live may
-//   publish camera and microphone; everyone else who is signed in may only watch.
-// - Private Reserve call ({ bookingId }): only the fan and the creator of a
-//   confirmed live booking get in, and both may publish.
+// Vercel function: hands out LiveKit tokens after deciding who may enter
+// (rules in src/lib/liveAccess.ts, the same ones the app shows):
+// - A creator's Live ({ creatorProfileId }), from live_broadcasts:
+//   · Subscriber Live: the creator publishes; only fans with an active subscription watch.
+//   · Open Live: anyone signed in watches. Off unless ENABLE_OPEN_LIVE=true (src/config/features.ts).
+// - A Reserve booking ({ bookingId }), confirmed and on its day:
+//   · Reserve Event seat: everyone with a seat meets in the event's room; the creator presents.
+//   · Reserve 1:1: only the booking's fan and creator get in, and both publish.
+// Gifts never grant access, and a subscription never grants a Reserve.
 // Needs LIVEKIT_URL, LIVEKIT_API_KEY and LIVEKIT_API_SECRET in the Vercel project settings.
 import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
+import { decideBooking, decideBroadcast, type BookingRow, type Decision } from '../src/lib/liveAccess';
 
 // Public values (same as .env.production); the anon key is meant to be public.
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://odugxvqwuvewsvifwmwb.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_vuRosXd_owmQ4KeeExEAPQ_d32g6WEL';
 const LIVE_MAX_HOURS = 4;
-// Booked times are local to the people in the call; ±14 h covers every time zone.
-const CALL_DAY_SLACK_HOURS = 14 + 4;
-
-interface BookingRow {
-  id: string;
-  status: string;
-  date: string;
-  time: string;
-  duration_minutes: number | null;
-  fan_id: string;
-  creator_profile_id: string;
-  details: { modality?: string } | null;
-}
+// Open Live stays off unless the project turns it back on (src/config/features.ts).
+const openLiveEnabled = () => process.env.ENABLE_OPEN_LIVE === 'true';
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
@@ -92,34 +86,35 @@ export async function POST(request: Request): Promise<Response> {
     at.addGrant({ room, roomJoin: true, canPublish, canPublishData: true, canSubscribe: true });
     return at.toJwt();
   };
+  const answer = async (d: Decision, extra: Record<string, unknown> = {}) =>
+    d.ok
+      ? json(200, { url: LIVEKIT_URL, token: await sign(d.room, d.canPublish, '4h'), host: d.host, mode: d.mode, ...extra })
+      : json(d.status, { error: d.error });
 
   if (bookingId) {
     // Row security only shows a booking to its fan and its creator.
     const [b] = ((await rest(
-      `/rest/v1/vip_bookings?id=eq.${encodeURIComponent(bookingId)}&select=id,status,date,time,duration_minutes,fan_id,creator_profile_id,details`,
+      `/rest/v1/vip_bookings?id=eq.${encodeURIComponent(bookingId)}&select=id,experience_id,status,date,time,duration_minutes,fan_id,creator_profile_id,details`,
       token
     )) ?? []) as BookingRow[];
-    const isFan = b?.fan_id === authUser.id;
-    const isCreator = !!b && !!profile?.creator_profile_id && b.creator_profile_id === profile.creator_profile_id;
-    if (!b || (!isFan && !isCreator)) return json(404, { error: 'No encontramos esta reserva en tu cuenta.' });
-    if (b.status !== 'confirmed') return json(403, { error: 'La sala se abre cuando la reserva está aceptada y pagada.' });
-    if (!b.duration_minutes || (b.details?.modality ?? 'virtual') !== 'virtual') return json(403, { error: 'Esta experiencia no es una sesión en vivo.' });
-    // The app opens the room at the exact local time; the server, which doesn't know the
-    // time zone, only refuses calls far from the booked day.
-    const day = Date.parse(`${b.date}T${b.time || '00:00'}:00Z`);
-    if (Number.isNaN(day) || Math.abs(Date.now() - day) > CALL_DAY_SLACK_HOURS * 3600_000) {
-      return json(403, { error: 'La sala solo abre el día de la reserva.' });
-    }
-    return json(200, { url: LIVEKIT_URL, token: await sign(`booking-${b.id}`, true, '4h'), host: isCreator });
+    return answer(decideBooking({ booking: b ?? null, userId: authUser.id, myCreatorProfileId: profile?.creator_profile_id }));
   }
 
   const since = new Date(Date.now() - LIVE_MAX_HOURS * 3600_000).toISOString();
+  // select=* so the request still works before the `mode` column exists (rows without it are open Lives).
   const [live] = ((await rest(
-    `/rest/v1/live_broadcasts?creator_profile_id=eq.${encodeURIComponent(creatorProfileId)}&ended_at=is.null&started_at=gt.${encodeURIComponent(since)}&select=id,title`,
+    `/rest/v1/live_broadcasts?creator_profile_id=eq.${encodeURIComponent(creatorProfileId)}&ended_at=is.null&started_at=gt.${encodeURIComponent(since)}&select=*`,
     token
-  )) ?? []) as Array<{ id: string; title: string }>;
-  if (!live) return json(404, { error: 'Este creator no está en Live ahora.' });
-
-  const isHost = profile?.creator_profile_id === creatorProfileId;
-  return json(200, { url: LIVEKIT_URL, token: await sign(`live-${live.id}`, isHost, '4h'), host: isHost, title: live.title });
+  )) ?? []) as Array<{ id: string; title: string; mode?: string | null }>;
+  const isOwner = !!live && profile?.creator_profile_id === creatorProfileId;
+  // Row security only shows the fan their own subscriptions.
+  const [subscription] = live && !isOwner
+    ? (((await rest(
+        `/rest/v1/subscriptions?fan_id=eq.${authUser.id}&creator_id=eq.${encodeURIComponent(creatorProfileId)}&select=cancel_at`,
+        token
+      )) ?? []) as Array<{ cancel_at: string | null }>)
+    : [];
+  return answer(decideBroadcast({ live: live ?? null, isOwner, subscription: subscription ?? null, openLiveEnabled: openLiveEnabled() }), {
+    title: live?.title,
+  });
 }

@@ -168,7 +168,7 @@ const fail = (error: string) => ({ ok: false, error });
 // Postgres raises our own Spanish messages; pass those through, hide the rest.
 const dbError = (error: { message?: string } | null, fallback: string) => {
   const msg = error?.message ?? '';
-  return fail(/[áéíóúñ¿]|Debes|Esta acción|Ese horario|La fecha|No puedes|No tienes|Reserva|Solo|Elige|Experiencia|Este perfil|Esta experiencia|Fans Reserve|Las experiencias|Mantén|El presupuesto|La duración|Entre/.test(msg) ? msg : fallback);
+  return fail(/[áéíóúñ¿]|Debes|Esta acción|Ese horario|La fecha|No puedes|No tienes|Reserva|Solo|Elige|Experiencia|Este perfil|Esta experiencia|Fans Reserve|Las experiencias|Mantén|El presupuesto|La duración|Entre|No quedan|Ya tienes|Evento|Este evento|Un Reserve Event|Indica/.test(msg) ? msg : fallback);
 };
 
 const translateAuthError = (message: string): string => {
@@ -450,6 +450,19 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
         p_participants: input.participants ?? 1,
       });
       return error ? dbError(error, 'No se pudo enviar la reserva') : ok;
+    },
+
+    async bookEventSeat(_user, experienceId, message) {
+      // Day, time, price and seats come from the event (server side).
+      const { error } = await sb.rpc('reserve_book_event_seat', { p_experience_id: experienceId, p_message: message });
+      if (error && /reserve_book_event_seat/.test(error.message)) return fail('Los Reserve Events aún no están activados en la base de datos.');
+      return error ? dbError(error, 'No se pudo reservar tu plaza') : ok;
+    },
+
+    async eventSeats(experienceIds) {
+      if (!experienceIds.length) return {};
+      const { data } = await sb.rpc('reserve_event_seats', { p_experience_ids: experienceIds });
+      return Object.fromEntries(((data ?? []) as { experience_id: string; taken: number }[]).map((r) => [r.experience_id, Number(r.taken)]));
     },
 
     async requestCustomExperience(_user, input) {

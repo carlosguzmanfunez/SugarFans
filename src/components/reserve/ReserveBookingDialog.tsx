@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ReserveModal from './ReserveModal';
-import { ExperienceFacts, ExperienceTerms, PriceTag, ReserveNotice } from './ReserveBits';
+import { EventFacts, ExperienceFacts, ExperienceTerms, PriceTag, ReserveNotice } from './ReserveBits';
+import { bookLabel } from './ReserveExperienceCard';
 import BookingCalendar from '../BookingCalendar';
 import { backend } from '../../lib/backend';
 import { money } from '../../lib/platform';
@@ -11,7 +12,10 @@ import {
   detailsOf,
   experienceAvailability,
   formatLongDate,
+  isEventExperience,
   needsApproval,
+  reserveProductOf,
+  seatsLeft,
   priceFor,
   typeOf,
   type Availability,
@@ -28,15 +32,21 @@ interface Props {
   startBooking?: boolean;
   onNeedLogin: () => void;
   onClose: () => void;
+  // Reserve Event: seats already held.
+  seatsTaken?: number;
 }
 
 // One experience, two steps: its full definition ("Ver detalles"), then day,
 // time, participants and a note. Manual approval sends a request; automatic
 // approval books it and leaves it waiting for payment.
-const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeedLogin, onClose }) => {
+const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeedLogin, onClose, seatsTaken = 0 }) => {
   const d = detailsOf(exp);
   const type = typeOf(exp.type);
-  const approval = needsApproval(exp);
+  // A Reserve Event has its own day and time: the fan books a seat, not a slot.
+  const isEvent = isEventExperience(exp);
+  const product = reserveProductOf(exp);
+  const full = isEvent && seatsLeft(exp, seatsTaken) === 0;
+  const approval = isEvent ? d.approval !== 'automatic' : needsApproval(exp);
   const isOwn = !!user?.creatorProfileId && user.creatorProfileId === exp.creatorProfileId;
   const subscribed = !!user?.subscriptions.some((s) => s.creatorId === exp.creatorProfileId);
   const price = priceFor(exp, subscribed);
@@ -52,6 +62,12 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
+    if (isEventExperience(exp)) {
+      setDate(exp.details?.eventDate ?? '');
+      setTime(exp.details?.eventTime ?? '');
+      setLoadingSlots(false);
+      return;
+    }
     Promise.all([backend.getAvailability(exp.creatorProfileId), backend.takenSlots(exp.creatorProfileId)]).then(([a, t]) => {
       setAvailability(experienceAvailability(a, exp));
       setTaken(t);
@@ -71,7 +87,9 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
     const check = moderate(message, 'request', { homeAllowed: isHomeService(d.locationTypes ?? []) });
     if (!check.ok) return setError(check.error!);
     setSending(true);
-    const result = await backend.createBooking(user, { experienceId: exp.id, date, time, message: message.trim(), participants });
+    const result = isEvent
+      ? await backend.bookEventSeat(user, exp.id, message.trim())
+      : await backend.createBooking(user, { experienceId: exp.id, date, time, message: message.trim(), participants });
     setSending(false);
     if (!result.ok) {
       setError(result.error || 'No se pudo enviar la reserva');
@@ -82,11 +100,11 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
     setStep('done');
   };
 
-  const verb = approval ? 'Solicitar' : 'Reservar';
+  const verb = bookLabel(exp);
 
   if (step === 'done') {
     return (
-      <ReserveModal title={approval ? '¡Solicitud enviada!' : '¡Reserva aceptada!'} onClose={onClose} size="md" testId="reserve-dialog">
+      <ReserveModal title={isEvent ? (approval ? '¡Plaza solicitada!' : '¡Plaza reservada!') : approval ? '¡Solicitud enviada!' : '¡Reserva aceptada!'} onClose={onClose} size="md" testId="reserve-dialog">
         <div className="text-center">
           <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
             <i aria-hidden="true" className="fas fa-check text-xl"></i>
@@ -112,7 +130,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
   return (
     <ReserveModal
       title={step === 'book' ? `${verb}: ${exp.title}` : exp.title}
-      subtitle={<>{type.name} · con {exp.creatorName}</>}
+      subtitle={<>{product === 'event' ? 'Reserve Event' : product === 'one-to-one' ? 'Reserve 1:1' : type.name} · con {exp.creatorName}</>}
       onClose={onClose}
       testId="reserve-dialog"
       footer={
@@ -120,8 +138,8 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
           <div className="flex items-center justify-between gap-3">
             <PriceTag exp={exp} />
             {!isOwn && (
-              <button type="button" onClick={begin} className="h-11 rounded-full bg-ink px-6 text-sm font-semibold text-white hover:bg-night-800">
-                {verb}
+              <button type="button" onClick={begin} disabled={full} className="h-11 rounded-full bg-ink px-6 text-sm font-semibold text-white hover:bg-night-800 disabled:opacity-50">
+                {full ? 'Sin plazas' : verb}
               </button>
             )}
           </div>
@@ -131,7 +149,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
               Volver a los detalles
             </button>
             <button type="button" onClick={submit} disabled={sending} className="h-11 rounded-full bg-gradient-to-r from-brand-600 to-iris-600 px-6 text-sm font-semibold text-white disabled:opacity-60">
-              {approval ? 'Enviar solicitud' : 'Confirmar reserva'} · {money(price)}
+              {isEvent ? (approval ? 'Solicitar plaza' : 'Reservar plaza') : approval ? 'Enviar solicitud' : 'Confirmar reserva'} · {money(price)}
             </button>
           </div>
         )
@@ -140,6 +158,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
       {step === 'details' ? (
         <div className="space-y-5">
           <p className="text-sm leading-relaxed text-ink/80">{exp.description}</p>
+          {isEvent && <EventFacts exp={exp} seatsTaken={seatsTaken} />}
           <ExperienceFacts exp={exp} />
           <ExperienceTerms exp={exp} />
           <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted" aria-label="Cómo funciona">
@@ -150,10 +169,17 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
               </li>
             ))}
           </ol>
-          <ReserveNotice kind="reserve" />
+          <ReserveNotice kind={product === 'event' ? 'event' : product === 'one-to-one' ? 'oneToOne' : 'reserve'} />
         </div>
       ) : (
         <div className="space-y-5">
+          {isEvent ? (
+            <div className="rounded-2xl border border-line p-4">
+              <p className="mb-2 text-sm font-semibold text-ink">Tu plaza</p>
+              <EventFacts exp={exp} seatsTaken={seatsTaken} />
+              <p className="mt-2 text-xs text-ink/70">Una plaza por fan. La fecha y la hora las fija el creator para todos los participantes.</p>
+            </div>
+          ) : (
           <div>
             <p className="mb-2 text-sm font-semibold text-ink">Elige día y hora</p>
             {loadingSlots ? (
@@ -170,7 +196,8 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
               />
             )}
           </div>
-          {d.maxParticipants > 1 && (
+          )}
+          {d.maxParticipants > 1 && !isEvent && (
             <label className="block text-sm">
               <span className="font-semibold text-ink">Participantes</span>
               <select name="participants" value={participants} onChange={(e) => setParticipants(Number(e.target.value))} className="mt-1 block w-full rounded-xl border border-line px-3 py-2.5">

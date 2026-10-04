@@ -1,9 +1,11 @@
-// UI access to free Live alerts: the creator's "En Live" switch, the fan's bell
-// per creator and the notifications inbox. Mutations reload mounted screens.
+// UI access to creator Lives and their alerts: the creator's Subscriber Live switch,
+// the fan's bell per creator and the notifications inbox. Mutations reload mounted screens.
 import { useEffect } from 'react';
 import { backend } from './backend';
 import type { AuthResult, User } from './backend/types';
 import { platformChanged, usePlatformQuery } from './platform';
+import { ENABLE_OPEN_LIVE } from '../config/features';
+import type { BroadcastMode } from './backend/liveTypes';
 
 export type * from './backend/liveTypes';
 export { LIVE_HEARTBEAT_SECONDS, LIVE_STALE_MINUTES } from './backend/liveTypes';
@@ -17,7 +19,7 @@ const after = async <T extends AuthResult>(result: Promise<T>): Promise<T> => {
   return r;
 };
 
-export const startLive = (user: User, title: string) => after(l.startLive(user, title));
+export const startLive = (user: User, title: string, mode: BroadcastMode = 'subscriber') => after(l.startLive(user, title, mode));
 export const endLive = (user: User) => after(l.endLive(user));
 export const setLiveAlerts = (user: User, creatorProfileId: string, on: boolean) => after(l.setLiveAlerts(user, creatorProfileId, on));
 export const markNotificationsRead = async (user: User) => {
@@ -44,13 +46,16 @@ export const useNotifications = (user: User | null) => {
   return query;
 };
 
-// Which of these creators are in Live right now (for the LIVE rings and the Live tab).
+// Which of these creators are in an Open Live right now (the public LIVE rings and the
+// Live tab). Empty while Open Live is disabled: Subscriber Lives are never listed in a
+// public directory, they show on the creator's profile for their subscribers.
 export const useLiveCreatorIds = (creatorProfileIds: string[]) => {
-  const key = creatorProfileIds.join(',');
+  const key = ENABLE_OPEN_LIVE ? creatorProfileIds.join(',') : '';
   return usePlatformQuery(
     async () => {
+      if (!ENABLE_OPEN_LIVE) return new Set<string>();
       const lives = await Promise.all(creatorProfileIds.map((id) => l.currentLive(id).catch(() => null)));
-      return new Set(creatorProfileIds.filter((_, i) => !!lives[i]));
+      return new Set(creatorProfileIds.filter((_, i) => lives[i]?.mode === 'open'));
     },
     [key],
     new Set<string>()
