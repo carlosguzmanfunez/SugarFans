@@ -2,6 +2,8 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
 // Phone navigation, like an installed app: five tabs pinned to the bottom of
 // the screen (hidden from md up, where the top bar has room for everything).
 // The account tab adapts to who is signed in.
@@ -38,6 +40,10 @@ const MobileTabBar: React.FC = () => {
             <Link
               to={tab.to}
               aria-current={tab.active ? 'page' : undefined}
+              onClick={() => {
+                // Tapping the tab you are already on goes back to its top.
+                if (tab.active) window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' });
+              }}
               className={`tab-press flex flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium ${
                 tab.active ? ('live' in tab ? 'text-red-600' : 'text-brand-700') : 'text-ink/55'
               }`}

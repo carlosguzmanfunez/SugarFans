@@ -2080,6 +2080,35 @@ const run = async () => {
       await m.getByTestId('happening-now').waitFor();
       expect(await m.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'la portada desborda en móvil');
     });
+    await check('Móvil: cada pestaña abre su página desde arriba', async () => {
+      const tabs = m.getByTestId('tab-bar');
+      const scrolled = () => m.evaluate(() => window.scrollY);
+      const bottom = async () => {
+        await m.waitForFunction(() => {
+          window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' });
+          return window.scrollY > 200;
+        });
+      };
+      await m.goto(`${BASE}/explore?live=1`);
+      await m.getByRole('heading', { name: /En Live ahora/ }).waitFor();
+      await bottom();
+      await tabs.getByRole('link', { name: 'Inicio', exact: true }).tap();
+      await waitPath(m, '/');
+      expect((await scrolled()) === 0, 'Inicio no abrió desde arriba');
+      await bottom();
+      await tabs.getByRole('link', { name: 'Explorar', exact: true }).tap();
+      await waitPath(m, '/explore');
+      expect((await scrolled()) === 0, 'Explorar no abrió desde arriba');
+      await m.getByTestId('reserve-rail').waitFor();
+      await bottom();
+      await tabs.getByRole('link', { name: 'Live', exact: true }).tap();
+      await m.getByRole('heading', { name: /En Live ahora/ }).waitFor();
+      expect((await scrolled()) === 0, 'Live no abrió desde arriba');
+      await m.goto(`${BASE}/reserve`);
+      await bottom();
+      await tabs.getByRole('link', { name: 'Reserve', exact: true }).tap();
+      await m.waitForFunction(() => window.scrollY === 0);
+    });
     await check('Escritorio no muestra la barra de pestañas', async () => {
       const desk = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });
       const d = await newPage(desk);
