@@ -3,7 +3,7 @@
 // The pixel work lives in lookProcessor.ts; this file holds the catalogue, the
 // per-look settings and the remembered choice.
 
-export type LookId = 'natural' | 'soft' | 'retouch' | 'softlove' | 'pure' | 'vivid' | 'warm' | 'studio' | 'blur';
+export type LookId = 'natural' | 'soft' | 'retouch' | 'pure' | 'vivid' | 'warm' | 'studio' | 'blur';
 
 export interface LookInfo {
   id: LookId;
@@ -16,7 +16,6 @@ export const LOOKS: LookInfo[] = [
   { id: 'natural', name: 'Natural', hint: 'Sin filtro', icon: 'fa-circle' },
   { id: 'soft', name: 'Soft', hint: 'Suavizado ligero', icon: 'fa-feather' },
   { id: 'retouch', name: 'Retouch', hint: 'Piel lisa y luminosa', icon: 'fa-star' },
-  { id: 'softlove', name: 'Soft Love', hint: 'Rosado y suave', icon: 'fa-heart' },
   { id: 'pure', name: 'Pure', hint: 'Piel pulida y definida', icon: 'fa-gem' },
   { id: 'vivid', name: 'Vivid', hint: 'Colores intensos', icon: 'fa-bolt' },
   { id: 'warm', name: 'Warm', hint: 'Tono cálido', icon: 'fa-sun' },
@@ -46,8 +45,6 @@ const BASE: Record<LookId, LookParams> = {
   soft: { ...NEUTRAL, smooth: 0.55, exposure: 1.02, contrast: 0.96, lift: 0.02, warmth: 0.01 },
   // Beauty-lens style: strong, wide smoothing on skin, a soft glow and a rosy touch.
   retouch: { ...NEUTRAL, smooth: 0.95, reach: 1.7, glow: 0.18, blush: 0.5, exposure: 1.04, contrast: 0.95, saturation: 1.02, warmth: 0.015, lift: 0.04 },
-  // Dreamy pastel: very smooth, bright, low contrast, pink all over.
-  softlove: { ...NEUTRAL, smooth: 0.95, reach: 1.8, glow: 0.25, blush: 0.7, rose: 0.6, exposure: 1.07, contrast: 0.9, saturation: 0.95, lift: 0.06 },
   // Polished glam: smooth skin but crisper contrast and a warm, neutral tone.
   pure: { ...NEUTRAL, smooth: 0.8, reach: 1.4, glow: 0.08, blush: 0.25, exposure: 1.03, contrast: 1.08, saturation: 0.98, warmth: 0.02, lift: 0.02 },
   // Punchy colour: more saturation and contrast, a light touch of smoothing.
