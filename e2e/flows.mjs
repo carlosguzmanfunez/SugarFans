@@ -2058,6 +2058,31 @@ const run = async () => {
       await m.locator('button[aria-label="Menú"]').click();
       await m.getByRole('link', { name: /Iniciar Sesión/ }).last().waitFor();
     });
+    await check('Móvil: barra de pestañas tipo app con Inicio, Explorar, Live, Reserve y Entrar', async () => {
+      const tabs = m.getByTestId('tab-bar');
+      for (const name of ['Inicio', 'Explorar', 'Live', 'Reserve', 'Entrar']) await tabs.getByRole('link', { name, exact: true }).waitFor();
+      await tabs.getByRole('link', { name: 'Explorar', exact: true }).tap();
+      await waitPath(m, '/explore');
+      await m.getByTestId('live-rail').waitFor();
+      await m.getByTestId('reserve-rail').waitFor();
+      expect((await tabs.getByRole('link', { name: 'Explorar', exact: true }).getAttribute('aria-current')) === 'page', 'Explorar no queda marcada');
+      await tabs.getByRole('link', { name: 'Live', exact: true }).tap();
+      await m.getByRole('heading', { name: /En Live ahora/ }).waitFor();
+      await m.getByTestId('live-empty').waitFor();
+      await tabs.getByRole('link', { name: 'Reserve', exact: true }).tap();
+      await waitPath(m, '/reserve');
+      await m.goto(`${BASE}/`);
+      await m.getByTestId('happening-now').waitFor();
+      expect(await m.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'la portada desborda en móvil');
+    });
+    await check('Escritorio no muestra la barra de pestañas', async () => {
+      const desk = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });
+      const d = await newPage(desk);
+      await d.goto(`${BASE}/explore`);
+      await d.getByTestId('live-rail').waitFor();
+      expect(!(await d.getByTestId('tab-bar').isVisible()), 'la barra de pestañas se ve en escritorio');
+      await desk.close();
+    });
     await mobile.close();
   } finally {
     await browser.close();

@@ -7,6 +7,7 @@ import CategoryGrid from '../components/landing/CategoryGrid';
 import HowItWorks from '../components/landing/HowItWorks';
 import VipShowcase from '../components/landing/VipShowcase';
 import CreatorCta from '../components/landing/CreatorCta';
+import HappeningNow from '../components/landing/HappeningNow';
 
 const Landing: React.FC = () => {
   const { creators } = useCreatorCatalog();
@@ -16,6 +17,7 @@ const Landing: React.FC = () => {
     <div className="min-h-screen bg-canvas">
       <Hero creators={creators} />
       <CategoryGrid />
+      <HappeningNow creators={creators} />
       <FeaturedCreators creators={creators} featured={featured} />
       <HowItWorks />
       <VipShowcase />

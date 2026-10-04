@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import MobileTabBar from './components/MobileTabBar';
 import Landing from './pages/Landing';
 import AgeVerification from './pages/AgeVerification';
 import Login from './pages/Login';
@@ -56,12 +57,18 @@ const GuestOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return <>{children}</>;
 };
 
+// Video rooms use the whole phone screen, so they skip the tab bar.
+const FULL_SCREEN = /^\/(live|en-vivo)\//;
+
 const AppLayout: React.FC<{ children: React.ReactNode; hideNav?: boolean }> = ({ children, hideNav }) => {
+  const { pathname } = useLocation();
+  const tabs = !hideNav && !FULL_SCREEN.test(pathname);
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className={`flex flex-col min-h-screen ${tabs ? 'max-md:pb-[calc(4rem+env(safe-area-inset-bottom))]' : ''}`}>
       {!hideNav && <Navbar />}
       <main className="flex-1">{children}</main>
       {!hideNav && <Footer />}
+      {tabs && <MobileTabBar />}
     </div>
   );
 };

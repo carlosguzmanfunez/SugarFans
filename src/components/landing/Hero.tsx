@@ -53,7 +53,7 @@ const Hero: React.FC<{ creators: Creator[] }> = ({ creators }) => {
           </div>
 
           {faces.length > 0 && (
-            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
+            <div className="mt-8 hidden items-center gap-3 sm:flex sm:flex-row sm:justify-center lg:justify-start">
               <div className="flex -space-x-2.5">
                 {faces.map((c) => (
                   <Avatar key={c.id} src={c.avatar} name={c.name} size={36} decorative className="ring-2 ring-canvas" />
@@ -63,7 +63,7 @@ const Hero: React.FC<{ creators: Creator[] }> = ({ creators }) => {
             </div>
           )}
 
-          <ul className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-ink/70 lg:justify-start">
+          <ul className="mt-6 flex flex-wrap justify-center gap-x-5 gap-y-2 text-[13px] text-ink/70 sm:gap-x-6 sm:text-sm lg:justify-start">
             {HERO.trust.map((item) => (
               <li key={item.label} className="inline-flex items-center gap-2">
                 <i className={`fas ${item.icon} text-iris-600`} aria-hidden="true"></i>

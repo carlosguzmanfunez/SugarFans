@@ -42,3 +42,16 @@ export const useNotifications = (user: User | null) => {
   useEffect(() => (userId ? l.watchNotifications(userId, reload) : undefined), [userId, reload]);
   return query;
 };
+
+// Which of these creators are in Live right now (for the LIVE rings and the Live tab).
+export const useLiveCreatorIds = (creatorProfileIds: string[]) => {
+  const key = creatorProfileIds.join(',');
+  return usePlatformQuery(
+    async () => {
+      const lives = await Promise.all(creatorProfileIds.map((id) => l.currentLive(id).catch(() => null)));
+      return new Set(creatorProfileIds.filter((_, i) => !!lives[i]));
+    },
+    [key],
+    new Set<string>()
+  ).data;
+};
