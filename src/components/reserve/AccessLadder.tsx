@@ -1,6 +1,6 @@
 import React from 'react';
 import type { User } from '../../context/AuthContext';
-import { socialApi, setFollow, compactCount } from '../../lib/social';
+import { socialApi, compactCount } from '../../lib/social';
 import { usePlatformQuery } from '../../lib/platform';
 import { Link } from 'react-router-dom';
 import { useCurrentLive, useLiveAlerts, setLiveAlerts } from '../../lib/live';
@@ -27,8 +27,7 @@ interface Props {
 // How to get closer to a creator, from free to most personal:
 // Seguir → Suscribirse (includes Subscriber Live) → Reserve (Reserve Event, Reserve 1:1).
 // Each one says what it gives and what it doesn't. Live is not a step of its own.
-const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, following, experiences, onSubscribe, onNeedLogin }) => {
-  const toggleFollow = () => (user ? setFollow(user, creator.id, !following) : onNeedLogin());
+const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, following, experiences, onSubscribe }) => {
   const current = useCurrentLive(creator.id);
   // An Open Live only counts while Open Live is enabled.
   const live = current && (current.mode === 'subscriber' || ENABLE_OPEN_LIVE) ? current : null;
@@ -46,16 +45,10 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
           <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">1 · Seguir</span>
           <span className="mt-1 text-sm font-semibold text-ink">Gratis</span>
           <span className="text-xs text-ink/60">Contenido público y novedades.</span>
-          {!isOwner && (
-            <button
-              type="button"
-              onClick={toggleFollow}
-              aria-pressed={following}
-              data-testid="follow-button"
-              className={`${action} ${following ? 'border border-line text-ink' : 'bg-ink text-white hover:bg-night-800'}`}
-            >
-              {following ? <><i aria-hidden="true" className="fas fa-check mr-1.5"></i>Siguiendo</> : 'Seguir'}
-            </button>
+          {!isOwner && following && (
+            <span className="mt-3 inline-flex items-center text-xs font-semibold text-ink/70" data-testid="ladder-following">
+              <i aria-hidden="true" className="fas fa-check mr-1.5 text-emerald-600"></i>Ya lo sigues
+            </span>
           )}
           {isOwner && <span className="mt-3 text-xs text-muted">{compactCount(creator.followers)} seguidores</span>}
           {!isOwner && following && user && (
@@ -93,11 +86,13 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
             <span className="mt-3 inline-flex h-10 items-center justify-center rounded-full border border-line px-4 text-sm font-semibold text-ink/70">
               <i aria-hidden="true" className="fas fa-check mr-1.5"></i>Tu suscripción está activa
             </span>
-          ) : (
+          ) : live && subscriberLive ? (
+            // The main "Suscribirse" button lives in the profile header; here it only
+            // shows when it unlocks a Live that is on right now.
             <button type="button" onClick={onSubscribe} className={`${action} bg-gradient-to-r from-brand-600 to-iris-600 text-white`}>
-              {live && subscriberLive ? 'Suscribirse para entrar' : 'Suscribirse'}
+              Suscribirse para entrar
             </button>
-          ))}
+          ) : null)}
           {live && subscriberLive && !canEnter && (
             <span className="mt-2 text-xs text-ink/60" data-testid="subscriber-live-locked">
               <i aria-hidden="true" className="fas fa-lock mr-1"></i>Exclusivo para suscriptores
@@ -108,7 +103,7 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
           <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gold-700">3 · Reserve</span>
           <span className="mt-1 text-sm font-semibold text-ink">{experiences ? `${experiences} ${experiences === 1 ? 'experiencia' : 'experiencias'}` : 'A medida'}</span>
           <span className="text-xs text-ink/60">Reserve Events en grupo y sesiones privadas 1:1 con {creator.name.split(' ')[0]}, con fecha, precio y reglas.</span>
-          <a href="#reserve" className={`${action} bg-ink text-white hover:bg-night-800`}>Ver Reserve</a>
+          <a href="#reserve" className="mt-3 inline-flex items-center gap-1.5 self-start text-sm font-semibold text-ink hover:text-brand-700">Ver experiencias <i aria-hidden="true" className="fas fa-arrow-right text-xs"></i></a>
         </li>
       </ol>
     </section>

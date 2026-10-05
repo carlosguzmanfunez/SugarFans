@@ -690,7 +690,8 @@ const run = async () => {
     });
     await check('Bloquear a un creador lo oculta, aparece en Bloqueos y se puede desbloquear', async () => {
       await page.goto(`${BASE}/creator/2`);
-      await page.getByRole('button', { name: 'Bloquear' }).click();
+      await page.getByRole('button', { name: 'Más opciones' }).click();
+      await page.getByRole('menuitem', { name: 'Bloquear' }).click();
       await page.getByText('Has bloqueado a Diego Torres').waitFor();
       await page.goto(`${BASE}/explore`);
       await page.getByText('Valentina Rose').first().waitFor();
@@ -1341,7 +1342,7 @@ const run = async () => {
       await cp.goto(`${BASE}/creator/1`);
       await cp.getByTestId('post').filter({ hasText: 'Foto nueva desde la playa' }).getByTestId('post-image').waitFor();
       await cp.getByTestId('post').filter({ hasText: 'Video solo para suscriptores' }).getByTestId('post-video').waitFor();
-      expect((await cp.getByRole('button', { name: 'Enviar propina' }).count()) === 0, 'el creador puede darse propina');
+      expect((await cp.getByRole('button', { name: 'Más opciones' }).count()) === 0, 'el creador puede darse propina');
     });
     await check('Un fan sin suscripción ve la foto pero no el video exclusivo', async () => {
       await fp.goto(`${BASE}/creator/1`);
@@ -1396,7 +1397,8 @@ const run = async () => {
       expect(tips.length === 1 && tips[0].amount === 10 && tips[0].creatorProfileId === '1', 'la propina no se registró');
     });
     await check('Propina con monto inválido se rechaza', async () => {
-      await fp.getByRole('button', { name: 'Enviar propina' }).click();
+      await fp.getByRole('button', { name: 'Más opciones' }).click();
+      await fp.getByRole('menuitem', { name: 'Enviar propina' }).click();
       const dialog = fp.getByRole('dialog', { name: /Propina para/ });
       await dialog.getByLabel('Otro monto (USD)').fill('0.5');
       await dialog.getByRole('button', { name: /Continuar/ }).click();
@@ -1735,7 +1737,8 @@ const run = async () => {
       await login(rf, 'fan@sugarfans.com', 'demo1234');
       await waitPath(rf, '/explore');
       await rf.goto(`${BASE}/creator/${creatorId}`);
-      await rf.getByRole('button', { name: 'Enviar propina' }).click();
+      await rf.getByRole('button', { name: 'Más opciones' }).click();
+      await rf.getByRole('menuitem', { name: 'Enviar propina' }).click();
       const dialog = rf.getByRole('dialog', { name: /Propina para/ });
       await dialog.getByRole('button', { name: '$10' }).click();
       await dialog.getByRole('button', { name: /Continuar/ }).click();
@@ -2022,8 +2025,8 @@ const run = async () => {
       for (const s of ['1 · Seguir', '2 · Suscribirse', '3 · Reserve']) await ladder.getByText(s).waitFor();
       expect((await ladder.getByText(/· Live$/).count()) === 0, 'el perfil tiene un paso Live');
       await resF.getByTestId('creator-reserve').getByRole('heading', { name: 'Reserve con Valentina' }).waitFor();
-      await ladder.getByTestId('follow-button').click();
-      await ladder.getByTestId('follow-button').getByText('Siguiendo').waitFor();
+      await resF.getByTestId('follow-button').click();
+      await resF.getByTestId('follow-button').getByText('Siguiendo').waitFor();
       await resF.reload();
       // The follow state loads after the first render: wait for it instead of reading it once.
       await resF.getByTestId('follow-button').and(resF.locator('[aria-pressed="true"]')).waitFor();
@@ -2122,7 +2125,7 @@ const run = async () => {
       const group = resF.getByTestId('reserve-group-event');
       const card = group.getByTestId('reserve-card').filter({ hasText: 'Beauty Q&A con Valentina' });
       await card.getByTestId('event-facts').waitFor();
-      await card.getByRole('button', { name: /^Reserva tu plaza: / }).click();
+      await card.getByRole('button', { name: /^Reservar plaza: / }).click();
       const dialog = resF.getByRole('dialog');
       await dialog.getByRole('button', { name: /Reservar plaza/ }).waitFor();
       expect((await resF.getByTestId('booking-calendar').count()) === 0, 'un evento pide elegir día y hora');

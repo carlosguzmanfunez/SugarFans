@@ -16,7 +16,7 @@ export type LiveMode = 'open' | 'subscriber' | 'reserve_event' | 'reserve_1to1';
 export const LIVE_MODES: Record<LiveMode, { label: string; badge: string; who: string; cta: string }> = {
   open: { label: 'Open Live', badge: 'En vivo', who: 'Cualquier persona con sesión (desactivado)', cta: 'Entrar al Live' },
   subscriber: { label: 'Subscriber Live', badge: 'Exclusivo para suscriptores', who: 'Solo suscriptores con suscripción activa', cta: 'Entrar al Live' },
-  reserve_event: { label: 'Reserve Event', badge: 'Reserve Event', who: 'Solo participantes con plaza confirmada', cta: 'Reserva tu plaza' },
+  reserve_event: { label: 'Reserve Event', badge: 'Reserve Event', who: 'Solo participantes con plaza confirmada', cta: 'Reservar plaza' },
   reserve_1to1: { label: 'Reserve 1:1', badge: 'Sesión privada', who: 'Solo el fan y el creador de la reserva', cta: 'Reservar sesión privada' },
 };
 

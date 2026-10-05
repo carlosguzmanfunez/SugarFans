@@ -22,7 +22,8 @@ import { useCurrentLive } from '../lib/live';
 import { ReserveNotice } from '../components/reserve/ReserveBits';
 import { backend } from '../lib/backend';
 import type { VipExperience } from '../lib/vip';
-import { socialApi, compactCount, type PublicCreator } from '../lib/social';
+import { socialApi, compactCount, setFollow, type PublicCreator } from '../lib/social';
+import { useDismiss } from '../hooks/useDismiss';
 import {
   usePlatformQuery,
   platformApi,
@@ -57,6 +58,8 @@ const CreatorProfile: React.FC = () => {
   const [gifting, setGifting] = useState<{ postId?: string } | null>(null);
   const [celebrating, setCelebrating] = useState<Gift | null>(null);
   const [composing, setComposing] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useDismiss<HTMLDivElement>(moreOpen, () => setMoreOpen(false));
 
   // Demo creators and platform-run profiles first, then creators who signed up.
   const { creators, loading: catalogLoading } = useCreatorCatalog();
@@ -260,16 +263,28 @@ const CreatorProfile: React.FC = () => {
               <p className="text-gray-500">@{creator.username}</p>
 
             </div>
-            {/* Phone: the main action on its own row, then support and block side by side. */}
-            <div className="grid grid-cols-[1fr_1fr_auto] gap-2 md:flex md:flex-wrap md:items-center [&>*:first-child]:col-span-3">
+            {/* The access ladder in one row: Seguir → Suscribirse, then the gift and
+                a "⋯" menu with the less frequent actions (propina, bloquear). */}
+            <div className="grid grid-cols-[1fr_auto_auto] gap-2 md:flex md:flex-wrap md:items-center">
+              {!isOwner && !iBlocked && (
+                <button
+                  type="button"
+                  onClick={() => (user ? setFollow(user, creator.id, !follow.following) : goLogin())}
+                  aria-pressed={follow.following}
+                  data-testid="follow-button"
+                  className={`btn btn-lg ${follow.following ? 'border border-line bg-white text-ink/70 hover:border-ink/25' : 'btn-outline'}`}
+                >
+                  {follow.following ? <><i aria-hidden="true" className="fas fa-check mr-2"></i>Siguiendo</> : 'Seguir'}
+                </button>
+              )}
               {iBlocked ? (
-                <button onClick={handleBlock} className="px-6 py-3 rounded-full font-bold bg-gray-200 text-gray-700 hover:bg-gray-300">
+                <button onClick={handleBlock} className="col-span-3 px-6 py-3 rounded-full font-bold bg-gray-200 text-gray-700 hover:bg-gray-300">
                   <i aria-hidden="true" className="fas fa-unlock mr-2"></i>Desbloquear
                 </button>
               ) : isAuthenticated && user?.role !== 'creator' && !isOwner ? (
                 <button
                   onClick={handleSubscribe}
-                  className={`btn btn-lg ${isSubscribed ? 'bg-ink/5 text-ink hover:bg-ink/10' : 'btn-primary'}`}
+                  className={`btn btn-lg col-span-3 order-first md:order-none ${isSubscribed ? 'bg-ink/5 text-ink hover:bg-ink/10' : 'btn-primary'}`}
                 >
                   {isSubscribed && mySub?.cancelAt ? (
                     <><i aria-hidden="true" className="fas fa-redo mr-2"></i>Activa hasta el {formatDay(mySub.cancelAt)} · Reactivar</>
@@ -280,20 +295,20 @@ const CreatorProfile: React.FC = () => {
                   )}
                 </button>
               ) : !isAuthenticated ? (
-                <Link to="/login" state={{ from: location.pathname }} className="btn btn-primary btn-lg">
-                  Iniciar sesión para suscribirse
+                <Link to="/login" state={{ from: location.pathname }} className="btn btn-primary btn-lg col-span-3 order-first md:order-none">
+                  Suscribirse ${creator.subscriptionPrice}/mes
                 </Link>
               ) : null}
               {managesProfile && (
                 <button
                   onClick={() => setComposing(!composing)}
-                  className="px-6 py-3 rounded-full font-bold bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:opacity-90 shadow-lg"
+                  className="btn btn-lg btn-primary col-span-3"
                 >
                   <i aria-hidden="true" className="fas fa-plus mr-2"></i>Publicar como {creator.name}
                 </button>
               )}
               {isOwner && !managesProfile && (
-                <Link to="/creator/dashboard?tab=content" className="px-6 py-3 rounded-full font-bold bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:opacity-90 shadow-lg">
+                <Link to="/creator/dashboard?tab=content" className="btn btn-lg btn-primary col-span-3">
                   <i aria-hidden="true" className="fas fa-plus mr-2"></i>Nueva publicación
                 </Link>
               )}
@@ -301,26 +316,56 @@ const CreatorProfile: React.FC = () => {
                 <button
                   onClick={() => openGift()}
                   aria-label="Enviar regalo"
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-gold-200 bg-gold-50 px-4 text-sm font-semibold text-gold-700 hover:border-gold-300"
+                  title="Enviar regalo"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-gold-200 bg-gold-50 text-gold-600 transition hover:border-gold-300 active:scale-[0.96]"
                 >
-                  <i aria-hidden="true" className="fas fa-gift text-gold-600"></i>Regalo
+                  <i aria-hidden="true" className="fas fa-gift"></i>
                 </button>
               )}
               {!isOwner && !iBlocked && (
-                <button
-                  onClick={() => openTip()}
-                  title="Propina: apoya con un monto libre"
-                  aria-label="Enviar propina"
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-line bg-white px-4 text-sm font-semibold text-ink/80 hover:border-ink/25 hover:text-ink"
-                >
-                  <i aria-hidden="true" className="fas fa-hand-holding-dollar text-ink/45"></i>
-                  <span>Propina</span>
-                </button>
-              )}
-              {isAuthenticated && !iBlocked && !isOwner && (
-                <button onClick={handleBlock} title="Bloquear" aria-label="Bloquear" className="w-11 h-11 rounded-full bg-white border border-line text-ink/45 hover:text-red-500">
-                  <i aria-hidden="true" className="fas fa-ban"></i>
-                </button>
+                <div ref={moreRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setMoreOpen((o) => !o)}
+                    aria-label="Más opciones"
+                    aria-expanded={moreOpen}
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-line bg-white text-ink/60 transition hover:text-ink active:scale-[0.96]"
+                  >
+                    <i aria-hidden="true" className="fas fa-ellipsis"></i>
+                  </button>
+                  {moreOpen && (
+                    <div role="menu" className="menu-pop absolute right-0 top-12 z-30 w-56 overflow-hidden rounded-2xl border border-line bg-white py-1.5 shadow-xl">
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => { setMoreOpen(false); openTip(); }}
+                        aria-label="Enviar propina"
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-ink/80 hover:bg-canvas"
+                      >
+                        <i aria-hidden="true" className="fas fa-hand-holding-dollar w-4 text-ink/45"></i>Enviar propina
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => { setMoreOpen(false); setReporting({ kind: 'creator', targetId: creator.id, label: creator.name }); }}
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-ink/80 hover:bg-canvas"
+                      >
+                        <i aria-hidden="true" className="fas fa-flag w-4 text-ink/45"></i>Reportar perfil
+                      </button>
+                      {isAuthenticated && (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => { setMoreOpen(false); handleBlock(); }}
+                          aria-label="Bloquear"
+                          className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
+                        >
+                          <i aria-hidden="true" className="fas fa-ban w-4"></i>Bloquear
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>

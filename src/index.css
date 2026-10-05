@@ -228,6 +228,13 @@
   /* Cards that react to hover: lift and deepen the shadow (no scaling). */
   .card-hover { transition: transform 0.25s var(--ease-out-soft), box-shadow 0.25s var(--ease-out-soft), border-color 0.25s; }
   .card-hover:hover { transform: translateY(-4px); box-shadow: var(--shadow-lift); border-color: #e2d8df; }
+
+  /* Dropdown menus grow out of the button that opened them. */
+  .menu-pop { transform-origin: top right; animation: menu-pop 0.16s var(--ease-out-soft) both; }
+}
+
+@keyframes menu-pop {
+  from { opacity: 0; transform: translateY(-4px) scale(0.97); }
 }
 
 /* Sections fade in as they scroll into view, where the browser supports
@@ -274,6 +281,7 @@
   .reveal, .float-slow, .float-slower, .live-dot, .speak-bar { animation: none; }
   .reaction-rise { animation: none; opacity: 0; }
   .btn, .card-hover { transition: none; }
+  .menu-pop { animation: none; }
   .btn:hover, .card-hover:hover { transform: none; }
 }
 

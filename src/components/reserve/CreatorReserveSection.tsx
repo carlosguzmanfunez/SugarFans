@@ -152,7 +152,7 @@ export const UpcomingAccess: React.FC<{ creatorId: string; experiences: VipExper
                 </span>
                 <span className="block truncate text-sm font-semibold text-ink">{e.title}</span>
               </span>
-              <a href="#reserve" className="inline-flex h-9 items-center rounded-full border border-ink px-4 text-xs font-semibold text-ink">Reserva tu plaza</a>
+              <a href="#reserve" className="inline-flex h-9 items-center rounded-full border border-ink px-4 text-xs font-semibold text-ink">Reservar plaza</a>
             </li>
           );
         })}

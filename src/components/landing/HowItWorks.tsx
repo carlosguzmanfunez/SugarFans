@@ -131,7 +131,7 @@ const EventDemo: React.FC = () => {
       <div className="total">
         <div><small>Por participante</small><strong>$15</strong></div>
         <button type="button" className="v-btn v-gold v-sm" aria-pressed={mine} onClick={() => setTaken(mine ? 14 : 15)}>
-          {mine ? 'Plaza reservada' : 'Reserva tu plaza'}
+          {mine ? 'Plaza reservada' : 'Reservar plaza'}
         </button>
       </div>
     </div>
