@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth, UserRole } from '../context/AuthContext';
 import { isValidEmail } from '../lib/storage';
 import { clearRefCode, readRefCode } from '../lib/rewardRules';
+import { readSpecialCode } from '../lib/specialRules';
 import { useLanguage } from '../context/LanguageContext';
 import LanguageSelector from '../components/LanguageSelector';
 import BrandLogo from '../components/BrandLogo';
@@ -136,6 +137,12 @@ const Register: React.FC = () => {
             {step === 2 && t('register.passwordInfo')}
             {step === 3 && t('register.howToUse')}
           </p>
+
+          {role === 'creator' && readSpecialCode() && (
+            <div className="bg-purple-50 border border-purple-200 text-purple-800 px-4 py-3 rounded-lg mb-4 text-sm" data-testid="special-register-note">
+              <i aria-hidden="true" className="fas fa-star mr-2"></i>Vienes con un link de cuenta especial: se activa al crear tu cuenta de creador.
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">

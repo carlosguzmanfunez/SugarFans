@@ -11,6 +11,7 @@ import { createSupabaseSocial } from './supabaseSocial';
 import { createSupabaseLive } from './supabaseLive';
 import { createSupabaseGifts } from './supabaseGifts';
 import { createSupabaseRewards } from './supabaseRewards';
+import { createSupabaseSpecial } from './supabaseSpecial';
 import { BRAND } from '../../config/brand';
 
 const REMEMBER_KEY = `${BRAND.storagePrefix}remember`;
@@ -209,6 +210,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
     social: createSupabaseSocial(sb),
     gifts: createSupabaseGifts(sb),
     rewards: createSupabaseRewards(sb),
+    special: createSupabaseSpecial(sb),
     live: createSupabaseLive(sb, url, anonKey),
 
     async getCurrentUser() {

@@ -45,6 +45,20 @@ const loadReserveRules = async () => {
   return import(pathToFileURL(out).href);
 };
 
+// Special-account rules (Reserve al neto), bundled from the sources the app uses.
+const loadSpecialRules = async () => {
+  const out = join(mkdtempSync(join(tmpdir(), 'special-rules-')), 'rules.mjs');
+  await build({
+    stdin: { contents: "export * from './src/lib/specialRules.ts';", resolveDir: new URL('..', import.meta.url).pathname, loader: 'ts' },
+    bundle: true,
+    format: 'esm',
+    platform: 'node',
+    outfile: out,
+    logLevel: 'silent',
+  });
+  return import(pathToFileURL(out).href);
+};
+
 const expect = (cond, msg) => {
   if (!cond) throw new Error(msg);
 };
@@ -1787,6 +1801,85 @@ const run = async () => {
       await vp.getByTestId('creator-benefits').getByText(/Tu enlace de invitación/).waitFor();
     });
     await visitor.close();
+
+    // ------------------------------------------------------------------
+    console.log('\nCuentas especiales: links del admin con Reserve al neto y visibilidad');
+    const specialCtx = await newContext(browser, { locale: 'es-ES' });
+    const sa = await newPage(specialCtx); // admin
+    const sc = await newPage(specialCtx); // the invited creator
+    for (const pg of [sa, sc]) {
+      await pg.goto(`${BASE}/age-verification`);
+      await pg.getByRole('button', { name: /Soy mayor|18/ }).first().click();
+    }
+    let specialUrl = '';
+    await check('El admin crea un link de cuenta especial y lo puede copiar', async () => {
+      await login(sa, 'admin@sugarfans.com', 'demo1234', { remember: false });
+      await waitPath(sa, '/explore');
+      await sa.goto(`${BASE}/admin`);
+      await sa.getByRole('button', { name: 'Cuentas especiales' }).click();
+      const box = sa.getByTestId('special-admin');
+      await box.locator('input[name=label]').fill('Gimnasio de Juan');
+      await box.locator('input[name=tax]').fill('10');
+      await box.getByRole('button', { name: 'Crear link' }).click();
+      await box.getByText('Link creado. Cópialo y envíaselo.').waitFor();
+      const row = box.getByTestId('special-invite-row').filter({ hasText: 'Gimnasio de Juan' });
+      await row.getByText('Activo', { exact: true }).waitFor();
+      await row.getByText(/Reserve al neto \(−10% impuesto\) · Visibilidad extra · usado 0 de 1/).waitFor();
+      specialUrl = await row.getByTestId('special-invite-url').inputValue();
+      expect(/\/especial\/[0-9a-f]{16}$/.test(specialUrl), `link raro: ${specialUrl}`);
+    });
+    await check('Quien abre el link se registra como creador y el plan se activa solo', async () => {
+      await sc.goto(specialUrl);
+      await sc.getByText('Te invitaron con un plan especial').waitFor();
+      await sc.getByRole('link', { name: 'Crear mi cuenta de creador' }).click();
+      await waitPath(sc, '/register');
+      await register(sc, { name: 'Juan Gimnasio', email: `juan.gym.${stamp}@test.com`, password: 'password123', role: 'creator' });
+      await waitPath(sc, '/creator/dashboard');
+      await sc.getByTestId('special-claim-notice').getByText('Tu cuenta ya tiene el plan especial «Gimnasio de Juan».').waitFor();
+      await sc.goto(`${BASE}/creator/dashboard?tab=rewards`);
+      const plan = sc.getByTestId('special-plan');
+      await plan.getByText(/menos la comisión que cobra PayPal por ese pago y el 10% de impuesto/).waitFor();
+      await plan.getByText(/apareces primero entre los creadores destacados/).waitFor();
+    });
+    await check('El link de un solo uso ya no sirve para otra cuenta', async () => {
+      await logoutViaMenu(sc);
+      await register(sc, { name: 'Otra Creadora', email: `otra.${stamp}@test.com`, password: 'password123', role: 'creator' });
+      await waitPath(sc, '/creator/dashboard');
+      await sc.goto(specialUrl);
+      await sc.getByTestId('special-invite-result').getByText('Este link ya se usó todas las veces permitidas').waitFor();
+      await sc.goto(`${BASE}/creator/dashboard?tab=rewards`);
+      await sc.getByTestId('rewards-panel').waitFor();
+      expect((await sc.getByTestId('special-plan').count()) === 0, 'la otra cuenta tiene plan especial');
+    });
+    await check('La cuenta especial con visibilidad sale primero en destacados', async () => {
+      await sc.goto(`${BASE}/explore`);
+      const first = sc.locator('a[href^="/creator/"]').filter({ has: sc.getByTestId('featured-tag') }).first();
+      await first.waitFor();
+      expect((await first.innerText()).includes('Juan Gimnasio'), `el primero destacado es otro: ${(await first.innerText()).split('\n')[0]}`);
+    });
+    await check('El admin ve la cuenta, y al quitar el plan el creador deja de tenerlo', async () => {
+      await sa.reload();
+      await sa.getByRole('button', { name: 'Cuentas especiales' }).click();
+      const acc = sa.getByTestId('special-account-row').filter({ hasText: 'Juan Gimnasio' });
+      await acc.getByText('Plan activo').waitFor();
+      await sa.getByTestId('special-invite-row').filter({ hasText: 'Gimnasio de Juan' }).getByText('Usado', { exact: true }).waitFor();
+      await acc.getByRole('button', { name: 'Quitar plan' }).click();
+      await acc.getByText('Plan quitado').waitFor();
+      await logoutViaMenu(sc);
+      await login(sc, `juan.gym.${stamp}@test.com`, 'password123', { remember: false });
+      await waitPath(sc, '/explore');
+      await sc.goto(`${BASE}/creator/dashboard?tab=rewards`);
+      await sc.getByTestId('rewards-panel').waitFor();
+      expect((await sc.getByTestId('special-plan').count()) === 0, 'sigue mostrando el plan');
+    });
+    await check('Reserve al neto: monto menos comisión real (o estimada) y menos impuesto', async () => {
+      const S = await loadSpecialRules();
+      const real = S.netReserve(100, 0.15, 5.7);
+      expect(real.share === 0.793 && real.gatewayFee === 5.7 && real.tax === 15, JSON.stringify(real));
+      const est = S.netReserve(50, 0);
+      expect(est.share === 0.94 && est.gatewayFee === 3, JSON.stringify(est));
+    });
+    await specialCtx.close();
 
     // ------------------------------------------------------------------
     console.log('\nReserve: categorías, experiencias permitidas y seguridad');

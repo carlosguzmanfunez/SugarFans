@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import ManagedProfilesAdmin from '../components/ManagedProfilesAdmin';
+import SpecialAccountsAdmin from '../components/SpecialAccountsAdmin';
 import {
   usePlatformQuery,
   platformApi,
@@ -153,6 +154,7 @@ const AdminDashboard: React.FC = () => {
             { id: 'reports', label: `Reportes (${pendingReports.length})`, icon: 'fa-flag' },
             { id: 'payouts', label: 'Retiros', icon: 'fa-money-check-alt' },
             { id: 'managed', label: 'Perfiles gestionados', icon: 'fa-robot' },
+            { id: 'special', label: 'Cuentas especiales', icon: 'fa-star' },
             { id: 'users', label: 'Usuarios', icon: 'fa-users' },
             { id: 'content', label: 'Contenido', icon: 'fa-images' },
           ].map((tab) => (
@@ -386,6 +388,8 @@ const AdminDashboard: React.FC = () => {
 
         {/* Users */}
         {activeTab === 'managed' && <ManagedProfilesAdmin transactions={platform.transactions} />}
+
+        {activeTab === 'special' && <SpecialAccountsAdmin accounts={accounts} transactions={platform.transactions} />}
 
         {activeTab === 'users' && (
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">

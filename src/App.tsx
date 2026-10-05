@@ -11,11 +11,13 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Explore from './pages/Explore';
 import PlatformSync from './components/PlatformSync';
+import SpecialInviteClaimer from './components/SpecialInviteClaimer';
 import { openedFromRecoveryLink } from './lib/backend';
 
 // Less visited pages load on demand, so the first visit downloads less.
 const CreatorProfile = lazy(() => import('./pages/CreatorProfile'));
 const ReferralLink = lazy(() => import('./pages/ReferralLink'));
+const SpecialInviteLink = lazy(() => import('./pages/SpecialInviteLink'));
 const CreatorDashboard = lazy(() => import('./pages/CreatorDashboard'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const Help = lazy(() => import('./pages/Help'));
@@ -119,6 +121,7 @@ const AppRoutes: React.FC = () => {
     <ScrollToTop />
     <RecoveryRedirect />
     <PendingSignupRedirect />
+    <SpecialInviteClaimer />
     <Routes>
       {/* Age Verification */}
       <Route path="/age-verification" element={
@@ -161,6 +164,7 @@ const AppRoutes: React.FC = () => {
         <AppLayout><VIPExperiences /></AppLayout>
       } />
       <Route path="/r/:id" element={<ReferralLink />} />
+      <Route path="/especial/:code" element={<AppLayout><SpecialInviteLink /></AppLayout>} />
       <Route path="/pricing" element={<Navigate to="/register?role=creator" replace />} />
       <Route path="/help" element={
         <AppLayout><Help /></AppLayout>
