@@ -183,7 +183,7 @@ const createExperience = async (page, { title, description, price }) => {
 
 // Opens a section of the creator's Reserve tab.
 const openReserveSection = async (page, section) => {
-  await page.getByRole('button', { name: /^Reservas/ }).click();
+  await page.getByTestId('dashboard-reservas').click();
   await page.getByRole('navigation', { name: 'Secciones de Reserve' }).getByRole('button', { name: new RegExp(`^${section}`) }).click();
 };
 
@@ -1124,9 +1124,14 @@ const run = async () => {
     });
     await check('Reservas en la barra: globito rojo, aviso en la campanita, plazo y "vista" para el fan', async () => {
       await page.goto(`${BASE}/explore`);
-      const link = page.getByTestId('nav-reservas');
+      const menu = Number(await page.getByTestId('nav-dashboard').getByTestId('reserve-badge').textContent());
+      expect(menu >= 2, `el globito de Mi panel muestra ${menu}`);
+      await page.getByTestId('nav-dashboard').click();
+      const link = page.getByTestId('dashboard-reservas');
       const count = Number(await link.getByTestId('reserve-badge').textContent());
-      expect(count >= 2, `el globito muestra ${count}`);
+      expect(count === menu, `el botón Reservas muestra ${count}`);
+      const [r, n] = [await link.boundingBox(), await page.getByRole('button', { name: /Nueva Publicación/ }).boundingBox()];
+      expect(r.x < n.x && Math.abs(r.height - n.height) < 1, 'Reservas no está a la izquierda de Nueva Publicación con el mismo alto');
       await page.getByTestId('notification-bell').click();
       await page.getByTestId('notification-panel').getByText('Nueva solicitud de Reserve').first().waitFor();
       await page.getByTestId('notification-bell').click();
