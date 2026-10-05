@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Icon from '../components/Icon';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import CreatorPayouts from '../components/CreatorPayouts';
@@ -185,14 +186,14 @@ const CreatorDashboard: React.FC = () => {
               aria-label={pendingVip ? `Reservas, ${pendingVip} por responder` : 'Reservas'}
               className={`btn btn-md btn-dark relative hidden sm:inline-flex ${activeTab === 'vip' ? 'ring-2 ring-brand-200 ring-offset-2' : ''}`}
             >
-              <i aria-hidden="true" className="fas fa-ticket"></i> Reservas
+              <Icon name="fa-ticket" /> Reservas
               {!!pendingVip && <RedDot count={pendingVip} className="absolute -right-2 -top-2" />}
             </button>
             <button
               onClick={() => { setShowNewPost(!showNewPost); setNotice(null); }}
               className="btn btn-md btn-primary"
             >
-              <i aria-hidden="true" className="fas fa-plus"></i> Nueva publicación
+              <Icon name="fa-plus" /> Nueva publicación
             </button>
           </div>
         </div>
@@ -251,7 +252,7 @@ const CreatorDashboard: React.FC = () => {
                   on ? 'bg-ink text-white' : 'text-ink/60 hover:text-ink hover:bg-canvas'
                 }`}
               >
-                <i aria-hidden="true" className={`fas ${tab.icon} mr-1.5 ${on ? '' : 'text-ink/40'}`}></i>{tab.label}
+                <Icon name={tab.icon} className={`mr-1.5 ${on ? '' : 'text-ink/40'}`} />{tab.label}
                 {'badge' in tab && !!tab.badge && (
                   <>
                     <RedDot count={tab.badge} className="ml-1.5 inline-flex align-[1px]" />
@@ -293,7 +294,7 @@ const CreatorDashboard: React.FC = () => {
               {stats.map((stat) => (
                 <div key={stat.label} className="bg-white rounded-2xl border border-line p-4 sm:p-5">
                   <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center mb-3">
-                    <i aria-hidden="true" className={`fas ${stat.icon} text-sm text-brand-600`}></i>
+                    <Icon name={stat.icon} className="text-base text-brand-600" />
                   </div>
                   <p className="font-display text-2xl font-bold text-ink tabular-nums">{stat.value}</p>
                   <p className="text-xs sm:text-sm text-ink/55 mt-1">{stat.label}</p>
@@ -320,12 +321,12 @@ const CreatorDashboard: React.FC = () => {
               ) : (
                 <div className="flex flex-col items-center text-center py-6">
                   <div className="w-12 h-12 rounded-2xl bg-brand-50 flex items-center justify-center mb-3">
-                    <i aria-hidden="true" className="fas fa-chart-line text-brand-600"></i>
+                    <Icon name="fa-chart-line" className="text-brand-600" />
                   </div>
                   <p className="font-medium text-ink">Aún no hay ingresos esta semana</p>
                   <p className="text-sm text-ink/60 mt-1 max-w-sm">Comparte tu perfil en tus redes para conseguir tus primeros suscriptores y reservas.</p>
                   <button type="button" onClick={copyProfileLink} className="btn btn-md btn-outline mt-4 active:scale-[0.97]">
-                    <i aria-hidden="true" className={`fas ${linkCopied ? 'fa-check text-emerald-600' : 'fa-link'}`}></i>
+                    <Icon name={linkCopied ? 'fa-check' : 'fa-link'} className={linkCopied ? 'text-emerald-600' : ''} />
                     {linkCopied ? 'Enlace copiado' : 'Copiar enlace de mi perfil'}
                   </button>
                 </div>
@@ -413,7 +414,7 @@ const CreatorDashboard: React.FC = () => {
                         </div>
                         <div className="mt-auto flex items-center justify-between text-xs text-gray-500">
                           <span className="flex gap-3">
-                            <span><i aria-hidden="true" className="fas fa-heart mr-1"></i>{e?.likes ?? 0}</span>
+                            <span><Icon name="fa-heart" className="mr-1" />{e?.likes ?? 0}</span>
                             <span><i aria-hidden="true" className="fas fa-comment mr-1"></i>{e?.comments ?? 0}</span>
                             <span>{new Date(post.createdAt).toLocaleDateString('es')}</span>
                           </span>
@@ -463,7 +464,7 @@ const CreatorDashboard: React.FC = () => {
                         aria-label={`Bloquear a ${sub.name}`}
                         className="p-2 text-gray-400 hover:text-red-500 transition"
                       >
-                        <i aria-hidden="true" className="fas fa-ban"></i>
+                        <Icon name="fa-ban" />
                       </button>
                     )}
                   </div>

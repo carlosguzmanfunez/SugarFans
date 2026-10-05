@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Icon from './Icon';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -145,7 +146,7 @@ const Navbar: React.FC = () => {
                   className="flex items-center gap-2 rounded-full p-0.5 pr-0.5 ring-1 ring-line transition hover:ring-brand-200 sm:pr-2.5"
                 >
                   <Avatar src={user?.avatar} name={user?.name ?? 'Cuenta'} size={34} decorative />
-                  <i className="fas fa-chevron-down text-[10px] text-ink/50 max-sm:hidden!" aria-hidden="true"></i>
+                  <Icon name="fa-chevron-down" className="text-[10px] text-ink/50 max-sm:hidden!" />
                 </button>
                 {showMenu && (
                   <div className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-line bg-white py-2 shadow-[var(--shadow-lift)]">
@@ -154,20 +155,20 @@ const Navbar: React.FC = () => {
                       <p className="truncate text-xs text-muted">{displayEmail(user?.email)}</p>
                     </div>
                     <Link to="/profile" className="flex items-center gap-3 px-4 py-2.5 text-sm text-ink/80 hover:bg-canvas">
-                      <i aria-hidden="true" className="fas fa-user w-4 text-ink/40"></i> {t('nav.profile')}
+                      <Icon name="fa-user" className="w-4 text-ink/40" /> {t('nav.profile')}
                     </Link>
                     <Link to="/settings?section=wallet" className="flex items-center gap-3 px-4 py-2.5 text-sm text-ink/80 hover:bg-canvas">
-                      <i aria-hidden="true" className="fas fa-coins w-4 text-ink/40"></i> {VIRTUAL_CURRENCY.displayName}
+                      <Icon name="fa-coins" className="w-4 text-ink/40" /> {VIRTUAL_CURRENCY.displayName}
                     </Link>
                     <Link to="/settings" className="flex items-center gap-3 px-4 py-2.5 text-sm text-ink/80 hover:bg-canvas">
-                      <i aria-hidden="true" className="fas fa-gear w-4 text-ink/40"></i> {t('nav.settings')}
+                      <Icon name="fa-gear" className="w-4 text-ink/40" /> {t('nav.settings')}
                     </Link>
                     <Link to="/help" className="flex items-center gap-3 px-4 py-2.5 text-sm text-ink/80 hover:bg-canvas">
-                      <i aria-hidden="true" className="fas fa-circle-question w-4 text-ink/40"></i> {t('nav.help')}
+                      <Icon name="fa-circle-question" className="w-4 text-ink/40" /> {t('nav.help')}
                     </Link>
                     <div className="my-1 border-t border-line" />
                     <button onClick={handleLogout} className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-danger hover:bg-red-50">
-                      <i aria-hidden="true" className="fas fa-arrow-right-from-bracket w-4"></i> {t('nav.logout')}
+                      <Icon name="fa-arrow-right-from-bracket" className="w-4" /> {t('nav.logout')}
                     </button>
                   </div>
                 )}
@@ -193,7 +194,7 @@ const Navbar: React.FC = () => {
               aria-expanded={showMobile}
               className="md:hidden flex h-10 w-10 items-center justify-center rounded-full text-ink ring-1 ring-line"
             >
-              <i aria-hidden="true" className={`fas ${showMobile ? 'fa-xmark' : 'fa-bars'} text-lg`}></i>
+              <Icon name={showMobile ? 'fa-xmark' : 'fa-bars'} className="text-xl" />
             </button>
           </div>
         </div>
@@ -203,48 +204,48 @@ const Navbar: React.FC = () => {
           <div className="md:hidden border-t border-line pb-5 pt-3">
             <div className="flex flex-col gap-1">
               <Link to="/explore" className={mobileLinkCls('/explore')} onClick={() => setShowMobile(false)}>
-                <i aria-hidden="true" className="fas fa-compass w-5 text-brand-600"></i> {t('nav.explore')}
+                <Icon name="fa-compass" className="w-5 text-brand-600" /> {t('nav.explore')}
               </Link>
               <Link to="/reserve" className={mobileLinkCls('/reserve')} onClick={() => setShowMobile(false)}>
-                <i aria-hidden="true" className="fas fa-ticket w-5 text-gold-600"></i> Reserve
+                <Icon name="fa-ticket" className="w-5 text-gold-600" /> Reserve
               </Link>
               {showCreators && (
                 <Link to="/#creadores" className={mobileLinkCls('/#creadores')} onClick={() => setShowMobile(false)}>
-                  <i aria-hidden="true" className="fas fa-star w-5 text-iris-600"></i> Para creadores
+                  <Icon name="fa-star" className="w-5 text-iris-600" /> Para creadores
                 </Link>
               )}
               <Link to="/#journey" className={mobileLinkCls('/#journey')} onClick={() => setShowMobile(false)}>
-                <i aria-hidden="true" className="fas fa-circle-question w-5 text-ink/40"></i> Cómo funciona
+                <Icon name="fa-circle-question" className="w-5 text-ink/40" /> Cómo funciona
               </Link>
               {isCreator && (
                 <Link to={CREATOR_RESERVE_LINK} className={mobileLinkCls(onReservas ? location.pathname : '-')} onClick={() => setShowMobile(false)}>
-                  <i aria-hidden="true" className="fas fa-ticket w-5 text-brand-600"></i> Reservas
+                  <Icon name="fa-ticket" className="w-5 text-brand-600" /> Reservas
                   {!!waiting && <RedDot count={waiting} className="ml-auto" />}
                 </Link>
               )}
               {isAuthenticated && user?.role === 'creator' && (
                 <Link to="/creator/dashboard" className={mobileLinkCls('/creator/dashboard')} onClick={() => setShowMobile(false)}>
-                  <i aria-hidden="true" className="fas fa-chart-line w-5 text-iris-600"></i> {t('nav.dashboard')}
+                  <Icon name="fa-chart-line" className="w-5 text-iris-600" /> {t('nav.dashboard')}
                 </Link>
               )}
               {isAuthenticated && user?.role === 'admin' && (
                 <Link to="/admin" className={mobileLinkCls('/admin')} onClick={() => setShowMobile(false)}>
-                  <i aria-hidden="true" className="fas fa-shield-halved w-5 text-iris-600"></i> {t('nav.admin')}
+                  <Icon name="fa-shield-halved" className="w-5 text-iris-600" /> {t('nav.admin')}
                 </Link>
               )}
               {isAuthenticated && (
                 <>
                   <Link to="/profile" className={mobileLinkCls('/profile')}>
-                    <i aria-hidden="true" className="fas fa-user w-5 text-ink/40"></i> {t('nav.profile')}
+                    <Icon name="fa-user" className="w-5 text-ink/40" /> {t('nav.profile')}
                   </Link>
                   <Link to="/settings?section=wallet" className={mobileLinkCls('/settings?section=wallet')}>
-                    <i aria-hidden="true" className="fas fa-coins w-5 text-ink/40"></i> {VIRTUAL_CURRENCY.displayName}
+                    <Icon name="fa-coins" className="w-5 text-ink/40" /> {VIRTUAL_CURRENCY.displayName}
                   </Link>
                   <Link to="/settings" className={mobileLinkCls('/settings')}>
-                    <i aria-hidden="true" className="fas fa-gear w-5 text-ink/40"></i> {t('nav.settings')}
+                    <Icon name="fa-gear" className="w-5 text-ink/40" /> {t('nav.settings')}
                   </Link>
                   <button onClick={handleLogout} className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] font-medium text-danger hover:bg-red-50">
-                    <i aria-hidden="true" className="fas fa-arrow-right-from-bracket w-5"></i> {t('nav.logout')}
+                    <Icon name="fa-arrow-right-from-bracket" className="w-5" /> {t('nav.logout')}
                   </button>
                 </>
               )}

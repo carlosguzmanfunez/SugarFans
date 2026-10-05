@@ -1,4 +1,5 @@
 import React from 'react';
+import Icon from './Icon';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ENABLE_OPEN_LIVE } from '../config/features';
@@ -71,7 +72,7 @@ const MobileTabBar: React.FC = () => {
               }`}
             >
               <span className="relative">
-                <i key={tab.active ? 'on' : 'off'} className={`fas ${tab.icon} text-[19px] ${tab.active ? 'tab-pop' : ''}`} aria-hidden="true"></i>
+                <span key={tab.active ? 'on' : 'off'} className={`block text-[21px] leading-none ${tab.active ? 'tab-pop' : ''}`}><Icon name={tab.icon} strokeWidth={tab.active ? 2.2 : 1.8} /></span>
                 {'badge' in tab && !!tab.badge && <RedDot count={tab.badge} className="absolute -right-2.5 -top-1.5" />}
               </span>
               {tab.label}

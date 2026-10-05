@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Icon from './Icon';
 import { Link } from 'react-router-dom';
 import type { User } from '../context/AuthContext';
 import { useNotifications, markNotificationsRead, type AppNotification } from '../lib/live';
@@ -43,7 +44,7 @@ const NotificationBell: React.FC<{ user: User }> = ({ user }) => {
         data-testid="notification-bell"
         className="relative flex h-10 w-10 items-center justify-center rounded-full text-ink/70 ring-1 ring-line transition hover:text-ink hover:ring-brand-200"
       >
-        <i aria-hidden="true" className="fas fa-bell"></i>
+        <Icon name="fa-bell" />
         {unread > 0 && (
           <span data-testid="notification-count" className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-600 px-1 text-[10px] font-bold text-white">
             {unread > 9 ? '9+' : unread}

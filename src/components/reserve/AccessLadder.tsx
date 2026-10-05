@@ -1,4 +1,5 @@
 import React from 'react';
+import Icon from '../Icon';
 import type { User } from '../../context/AuthContext';
 import { socialApi, compactCount } from '../../lib/social';
 import { usePlatformQuery } from '../../lib/platform';
@@ -47,7 +48,7 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
           <span className="text-xs text-ink/60">Contenido público y novedades.</span>
           {!isOwner && following && (
             <span className="mt-3 inline-flex items-center text-xs font-semibold text-ink/70" data-testid="ladder-following">
-              <i aria-hidden="true" className="fas fa-check mr-1.5 text-emerald-600"></i>Ya lo sigues
+              <Icon name="fa-check" className="mr-1.5 text-emerald-600" />Ya lo sigues
             </span>
           )}
           {isOwner && <span className="mt-3 text-xs text-muted">{compactCount(creator.followers)} seguidores</span>}
@@ -59,7 +60,7 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
               data-testid="live-alerts"
               className="mt-2 inline-flex items-center gap-1.5 self-start text-xs font-medium text-ink/70 hover:text-ink"
             >
-              <i aria-hidden="true" className={`fas ${alerts ? 'fa-bell text-brand-600' : 'fa-bell-slash'}`}></i>
+              <Icon name={alerts ? 'fa-bell' : 'fa-bell-slash'} className={alerts ? 'text-brand-600' : ''} />
               {alerts ? 'Te avisaremos cuando esté en Live' : 'Avisos de Live desactivados'}
             </button>
           )}
@@ -84,7 +85,7 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
           )}
           {!isOwner && user?.role !== 'creator' && (isSubscribed ? (
             <span className="mt-3 inline-flex h-10 items-center justify-center rounded-full border border-line px-4 text-sm font-semibold text-ink/70">
-              <i aria-hidden="true" className="fas fa-check mr-1.5"></i>Tu suscripción está activa
+              <Icon name="fa-check" className="mr-1.5" />Tu suscripción está activa
             </span>
           ) : live && subscriberLive ? (
             // The main "Suscribirse" button lives in the profile header; here it only
@@ -103,7 +104,7 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
           <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gold-700">3 · Reserve</span>
           <span className="mt-1 text-sm font-semibold text-ink">{experiences ? `${experiences} ${experiences === 1 ? 'experiencia' : 'experiencias'}` : 'A medida'}</span>
           <span className="text-xs text-ink/60">Reserve Events en grupo y sesiones privadas 1:1 con {creator.name.split(' ')[0]}, con fecha, precio y reglas.</span>
-          <a href="#reserve" className="mt-3 inline-flex items-center gap-1.5 self-start text-sm font-semibold text-ink hover:text-brand-700">Ver experiencias <i aria-hidden="true" className="fas fa-arrow-right text-xs"></i></a>
+          <a href="#reserve" className="mt-3 inline-flex items-center gap-1.5 self-start text-sm font-semibold text-ink hover:text-brand-700">Ver experiencias <Icon name="fa-arrow-right" className="text-xs" /></a>
         </li>
       </ol>
     </section>

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Icon from '../components/Icon';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { useCreatorCatalog } from '../lib/catalog';
@@ -57,7 +58,7 @@ const Profile: React.FC = () => {
                 <h1 className="font-display text-2xl font-bold tracking-tight text-ink">{user.name}</h1>
                 {user.isVerified && (
                   <span className="inline-flex items-center rounded-full bg-iris-50 px-2 py-0.5 text-xs font-medium text-iris-700">
-                    <i aria-hidden="true" className="fas fa-circle-check mr-1"></i>Verificado
+                    <Icon name="fa-circle-check" className="mr-1" />Verificado
                   </span>
                 )}
                 <span className="rounded-full bg-canvas px-2 py-0.5 text-xs font-medium text-ink/60">
@@ -86,14 +87,14 @@ const Profile: React.FC = () => {
             )}
             <div className="flex flex-wrap gap-2 mt-5">
               <Link to="/settings" className="btn btn-md btn-outline text-sm">
-                <i aria-hidden="true" className="fas fa-pen text-ink/50"></i> Editar perfil
+                <Icon name="fa-pen" className="text-ink/50" /> Editar perfil
               </Link>
               <Link to="/settings?section=wallet" className="btn btn-md btn-outline text-sm" data-testid="profile-wallet">
-                <i aria-hidden="true" className="fas fa-coins text-gold-600"></i> {VIRTUAL_CURRENCY.displayName}: {formatCoins(coins)}
+                <Icon name="fa-coins" className="text-gold-600" /> {VIRTUAL_CURRENCY.displayName}: {formatCoins(coins)}
               </Link>
               {user.role === 'creator' && (
                 <Link to="/creator/dashboard" className="btn btn-md btn-primary text-sm">
-                  <i aria-hidden="true" className="fas fa-chart-line"></i> Mi panel
+                  <Icon name="fa-chart-line" /> Mi panel
                 </Link>
               )}
             </div>
@@ -104,7 +105,7 @@ const Profile: React.FC = () => {
           <div id="mis-reservas" className="bg-white rounded-2xl border border-line p-5 scroll-mt-24" data-testid="bookings">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h3 className="font-semibold text-ink">
-                <i aria-hidden="true" className="fas fa-ticket text-brand-600 mr-2"></i> Mis reservas
+                <Icon name="fa-ticket" className="text-brand-600 mr-2" /> Mis reservas
               </h3>
               <Link to="/reserve" className="text-sm font-medium text-brand-700">Ver Reserve</Link>
             </div>
@@ -124,7 +125,7 @@ const Profile: React.FC = () => {
 
           <div className="bg-white rounded-2xl border border-line p-5" data-testid="subscriptions">
             <h3 className="font-semibold text-ink mb-3">
-              <i aria-hidden="true" className="fas fa-star text-iris-600 mr-2"></i> Mis suscripciones
+              <Icon name="fa-star" className="text-iris-600 mr-2" /> Mis suscripciones
             </h3>
             {subscribedCreators.length === 0 ? (
               <p className="text-sm text-gray-500">
@@ -162,7 +163,7 @@ const Profile: React.FC = () => {
         {/* Account Info */}
         <div className="mt-6 bg-white rounded-2xl border border-line p-5">
           <h3 className="font-semibold text-ink mb-4">
-            <i aria-hidden="true" className="fas fa-user text-ink/40 mr-2"></i> Tu cuenta
+            <Icon name="fa-user" className="text-ink/40 mr-2" /> Tu cuenta
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
@@ -176,7 +177,7 @@ const Profile: React.FC = () => {
             <div>
               <p className="text-gray-500">Verificación de edad</p>
               {user.ageVerified ? (
-                <p className="font-medium text-green-600"><i aria-hidden="true" className="fas fa-check-circle mr-1"></i> Verificado</p>
+                <p className="font-medium text-green-600"><Icon name="fa-check-circle" className="mr-1" /> Verificado</p>
               ) : (
                 <p className="font-medium text-yellow-600"><i aria-hidden="true" className="fas fa-clock mr-1"></i> Pendiente</p>
               )}
@@ -184,7 +185,7 @@ const Profile: React.FC = () => {
             <div>
               <p className="text-gray-500">Verificación de identidad</p>
               {user.isVerified ? (
-                <p className="font-medium text-green-600"><i aria-hidden="true" className="fas fa-check-circle mr-1"></i> Verificada</p>
+                <p className="font-medium text-green-600"><Icon name="fa-check-circle" className="mr-1" /> Verificada</p>
               ) : verification?.status === 'pending' ? (
                 <p className="font-medium text-yellow-600"><i aria-hidden="true" className="fas fa-clock mr-1"></i> En revisión</p>
               ) : (
