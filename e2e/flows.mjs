@@ -2156,7 +2156,9 @@ const run = async () => {
       await tabs.getByRole('link', { name: 'Reserve', exact: true }).tap();
       await waitPath(m, '/reserve');
       await m.goto(`${BASE}/`);
-      await m.getByTestId('happening-now').waitFor();
+      await m.locator('#comunidades').waitFor();
+      expect((await m.getByTestId('happening-now').count()) === 0, '"Está pasando ahora" sigue en la portada');
+      expect((await m.getByText('Está pasando ahora').count()) === 0, '"Está pasando ahora" sigue en la portada');
       expect(await m.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'la portada desborda en móvil');
     });
     await check('Móvil: cada pestaña abre su página desde arriba', async () => {
