@@ -56,9 +56,9 @@ const Navbar: React.FC = () => {
     navigate('/');
   };
 
-  // On the landing the menu jumps to its sections, as in the approved design. The
-  // product's pillars are Explorar, Suscribirse and Reserve; Live is not a pillar of its
-  // own (Subscriber Live lives inside Subscribe; Open Live only with ENABLE_OPEN_LIVE).
+  // On the landing the menu jumps to its sections, as in the approved design. Subscribing
+  // is explained in "Cómo funciona" (and offered on each creator's profile), so it has no
+  // menu entry of its own. Live is not a pillar either (Open Live only with ENABLE_OPEN_LIVE).
   // #live is the "Está pasando ahora" section, so it also needs ENABLE_HAPPENING_NOW.
   const onLanding = location.pathname === '/';
   // A creator's requests, one tap away, with a red dot while some wait for an answer.
@@ -68,7 +68,6 @@ const Navbar: React.FC = () => {
   const showCreators = !isAuthenticated || user?.role === 'creator';
   const sections = [
     { href: '#comunidades', label: 'Explorar' },
-    { href: '#suscribirse', label: 'Suscribirse' },
     { href: '#reserve', label: 'Reserve' },
     ...(ENABLE_OPEN_LIVE && ENABLE_HAPPENING_NOW ? [{ href: '#live', label: 'Live' }] : []),
     ...(showCreators ? [{ href: '#creadores', label: 'Para creadores' }] : []),
@@ -106,9 +105,6 @@ const Navbar: React.FC = () => {
               <>
             <Link to="/explore" className={linkCls('/explore')}>
               {t('nav.explore')}
-            </Link>
-            <Link to="/#suscribirse" className={linkCls('/#suscribirse')}>
-              Suscribirse
             </Link>
             <Link to="/reserve" className={linkCls('/reserve')}>
               Reserve
@@ -212,9 +208,6 @@ const Navbar: React.FC = () => {
             <div className="flex flex-col gap-1">
               <Link to="/explore" className={mobileLinkCls('/explore')} onClick={() => setShowMobile(false)}>
                 <i aria-hidden="true" className="fas fa-compass w-5 text-brand-600"></i> {t('nav.explore')}
-              </Link>
-              <Link to="/#suscribirse" className={mobileLinkCls('/#suscribirse')} onClick={() => setShowMobile(false)}>
-                <i aria-hidden="true" className="fas fa-star w-5 text-iris-600"></i> Suscribirse
               </Link>
               <Link to="/reserve" className={mobileLinkCls('/reserve')} onClick={() => setShowMobile(false)}>
                 <i aria-hidden="true" className="fas fa-ticket w-5 text-gold-600"></i> Reserve
