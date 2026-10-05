@@ -20,6 +20,9 @@ import { socialApi, compactCount } from '../lib/social';
 import { posts as catalogPosts } from '../data/mockData';
 import { BRAND, displayPayer } from '../config/brand';
 
+// "Dinero" in the tab bar: income, gifts and rewards.
+const MONEY_TABS = ['earnings', 'gifts', 'rewards'];
+
 const CreatorDashboard: React.FC = () => {
   const { user, deletePost, updateUser } = useAuth();
   // The open tab lives in the address (?tab=vip), so "Reservas" in the menus opens
@@ -126,11 +129,34 @@ const CreatorDashboard: React.FC = () => {
   const activeSubscribers = subscribers.filter((sub) => !isBlocked(sub.id)).length;
 
   const stats = [
-    { label: 'Por acreditar el día 1', value: money(earnings?.pending ?? 0), change: 'Según tu nivel', icon: 'fa-dollar-sign', color: 'green' },
-    { label: 'Suscriptores activos', value: String(activeSubscribers), change: 'activos', icon: 'fa-users', color: 'blue' },
-    { label: 'Publicaciones', value: String(user?.posts ?? 0), change: '+12', icon: 'fa-image', color: 'purple' },
-    { label: 'Me gusta totales', value: compactCount(content.likes), change: 'total', icon: 'fa-heart', color: 'pink' },
+    { label: 'Por acreditar el día 1', value: money(earnings?.pending ?? 0), icon: 'fa-dollar-sign' },
+    { label: 'Suscriptores activos', value: String(activeSubscribers), icon: 'fa-users' },
+    { label: 'Publicaciones', value: String(user?.posts ?? 0), icon: 'fa-image' },
+    { label: 'Me gusta totales', value: compactCount(content.likes), icon: 'fa-heart' },
   ];
+
+  // Real income of the last 7 days (the creator's part of each fan payment).
+  const week = Array.from({ length: 7 }, (_, i) => {
+    const day = new Date();
+    day.setHours(0, 0, 0, 0);
+    day.setDate(day.getDate() - (6 - i));
+    const next = day.getTime() + 86_400_000;
+    const total = (live?.sales ?? [])
+      .filter((t) => { const at = new Date(t.createdAt).getTime(); return at >= day.getTime() && at < next; })
+      .reduce((sum, t) => sum + creatorCut(t), 0);
+    return { label: day.toLocaleDateString('es', { weekday: 'short' }).replace('.', ''), total };
+  });
+  const weekMax = Math.max(...week.map((d) => d.total));
+  const [linkCopied, setLinkCopied] = useState(false);
+  const copyProfileLink = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/creator/${profileId}`);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      // Clipboard blocked: nothing to do, the link is in the profile.
+    }
+  };
 
   const recentTransactions = (live?.sales ?? []).slice(0, 5).map((t) => ({
     id: t.id,
@@ -142,13 +168,13 @@ const CreatorDashboard: React.FC = () => {
   }));
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-canvas">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Panel de creador</h1>
-            <p className="text-gray-600">Bienvenida, {user?.name}</p>
+            <h1 className="font-display text-3xl font-bold tracking-tight text-ink">Panel de creador</h1>
+            <p className="text-ink/60">Bienvenida, {user?.name}</p>
           </div>
           <div className="mt-4 sm:mt-0 flex gap-2 sm:gap-3">
             {/* Reservas: same shape as "Nueva publicación", with the red count of requests waiting. */}
@@ -156,16 +182,16 @@ const CreatorDashboard: React.FC = () => {
               onClick={() => { setActiveTab('vip'); setNotice(null); }}
               data-testid="dashboard-reservas"
               aria-label={pendingVip ? `Reservas, ${pendingVip} por responder` : 'Reservas'}
-              className={`relative bg-gray-900 text-white px-3.5 sm:px-6 py-3 text-sm sm:text-base whitespace-nowrap rounded-xl font-medium hover:bg-gray-800 transition shadow-lg ${activeTab === 'vip' ? 'ring-2 ring-pink-300 ring-offset-2' : ''}`}
+              className={`btn btn-md btn-dark relative hidden sm:inline-flex ${activeTab === 'vip' ? 'ring-2 ring-brand-200 ring-offset-2' : ''}`}
             >
-              <i aria-hidden="true" className="fas fa-ticket mr-2"></i> Reservas
+              <i aria-hidden="true" className="fas fa-ticket"></i> Reservas
               {!!pendingVip && <RedDot count={pendingVip} className="absolute -right-2 -top-2" />}
             </button>
             <button
               onClick={() => { setShowNewPost(!showNewPost); setNotice(null); }}
-              className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-3.5 sm:px-6 py-3 text-sm sm:text-base whitespace-nowrap rounded-xl font-medium hover:opacity-90 transition shadow-lg"
+              className="btn btn-md btn-primary"
             >
-              <i aria-hidden="true" className="fas fa-plus mr-2"></i> Nueva publicación
+              <i aria-hidden="true" className="fas fa-plus"></i> Nueva publicación
             </button>
           </div>
         </div>
@@ -203,78 +229,112 @@ const CreatorDashboard: React.FC = () => {
 
         {user?.creatorProfileId && <CreatorLivePanel user={user} />}
 
-        {/* Tabs */}
-        <div className="flex space-x-1 bg-white rounded-xl p-1 shadow-sm mb-8 overflow-x-auto">
+        {/* Tabs: six sections. "Dinero" groups income, gifts and rewards (their
+            old ?tab= addresses still work and pick the sub-section). */}
+        <div className="flex gap-1 bg-white border border-line rounded-full p-1 mb-3 overflow-x-auto scrollbar-hide">
           {[
             { id: 'overview', label: 'Resumen', icon: 'fa-chart-pie' },
             { id: 'content', label: 'Contenido', icon: 'fa-images' },
             { id: 'subscribers', label: 'Suscriptores', icon: 'fa-users' },
-            { id: 'earnings', label: 'Ingresos', icon: 'fa-wallet' },
-            { id: 'gifts', label: 'Regalos', icon: 'fa-gift' },
-            { id: 'rewards', label: 'Recompensas', icon: 'fa-trophy' },
+            { id: 'earnings', label: 'Dinero', icon: 'fa-wallet', group: MONEY_TABS },
             { id: 'vip', label: 'Reservas', icon: 'fa-ticket', badge: pendingVip },
             { id: 'settings', label: 'Configuración', icon: 'fa-cog' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => { setActiveTab(tab.id); setNotice(null); }}
-              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
-                activeTab === tab.id ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <i aria-hidden="true" className={`fas ${tab.icon} mr-1`}></i> {tab.label}
-              {'badge' in tab && !!tab.badge && (
-                <>
-                  <RedDot count={tab.badge} className="ml-1.5 inline-flex align-[1px]" />
-                  <span className="sr-only">, {tab.badge} por responder</span>
-                </>
-              )}
-            </button>
-          ))}
+          ].map((tab) => {
+            const on = 'group' in tab && tab.group ? tab.group.includes(activeTab) : activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => { setActiveTab(tab.id); setNotice(null); }}
+                aria-current={on ? 'page' : undefined}
+                className={`flex-none px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors active:scale-[0.97] ${
+                  on ? 'bg-ink text-white' : 'text-ink/60 hover:text-ink hover:bg-canvas'
+                }`}
+              >
+                <i aria-hidden="true" className={`fas ${tab.icon} mr-1.5 ${on ? '' : 'text-ink/40'}`}></i>{tab.label}
+                {'badge' in tab && !!tab.badge && (
+                  <>
+                    <RedDot count={tab.badge} className="ml-1.5 inline-flex align-[1px]" />
+                    <span className="sr-only">, {tab.badge} por responder</span>
+                  </>
+                )}
+              </button>
+            );
+          })}
         </div>
+        {MONEY_TABS.includes(activeTab) ? (
+          <div className="flex gap-2 mb-8" role="tablist" aria-label="Dinero">
+            {[
+              { id: 'earnings', label: 'Ingresos' },
+              { id: 'gifts', label: 'Regalos' },
+              { id: 'rewards', label: 'Recompensas' },
+            ].map((sub) => (
+              <button
+                key={sub.id}
+                role="tab"
+                aria-selected={activeTab === sub.id}
+                onClick={() => { setActiveTab(sub.id); setNotice(null); }}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                  activeTab === sub.id ? 'border-ink text-ink bg-white' : 'border-transparent text-ink/55 hover:text-ink'
+                }`}
+              >
+                {sub.label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="mb-8" />
+        )}
 
         {/* Stats Grid */}
         {activeTab === 'overview' && (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              {stats.map((stat, i) => (
-                <div key={i} className="bg-white rounded-2xl p-5 shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className={`w-10 h-10 rounded-xl bg-${stat.color}-100 flex items-center justify-center`}>
-                      <i aria-hidden="true" className={`fas ${stat.icon} text-${stat.color}-600`}></i>
-                    </div>
-                    <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                      {stat.change}
-                    </span>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
+              {stats.map((stat) => (
+                <div key={stat.label} className="bg-white rounded-2xl border border-line p-4 sm:p-5">
+                  <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center mb-3">
+                    <i aria-hidden="true" className={`fas ${stat.icon} text-sm text-brand-600`}></i>
                   </div>
-                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                  <p className="text-sm text-gray-500 mt-1">{stat.label}</p>
+                  <p className="font-display text-2xl font-bold text-ink tabular-nums">{stat.value}</p>
+                  <p className="text-xs sm:text-sm text-ink/55 mt-1">{stat.label}</p>
                 </div>
               ))}
             </div>
 
-            {/* Revenue Chart Placeholder */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm mb-8">
-              <h3 className="font-bold text-gray-900 mb-4">Ingresos últimos 7 días</h3>
-              <div className="flex items-end space-x-2 h-40">
-                {[65, 45, 80, 55, 90, 70, 95].map((height, i) => (
-                  <div key={i} className="flex-1 flex flex-col items-center">
-                    <div
-                      className="w-full bg-gradient-to-t from-pink-500 to-purple-500 rounded-t-lg transition-all hover:opacity-80"
-                      style={{ height: `${height}%` }}
-                    ></div>
-                    <span className="text-xs text-gray-500 mt-2">
-                      {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][i]}
-                    </span>
+            {/* Income of the last 7 days, or what to do while there is none */}
+            <div className="bg-white rounded-2xl border border-line p-6 mb-8" data-testid="income-week">
+              <h3 className="font-semibold text-ink mb-4">Ingresos últimos 7 días</h3>
+              {weekMax > 0 ? (
+                <div className="flex items-end gap-2 h-40">
+                  {week.map((d) => (
+                    <div key={d.label} className="flex-1 h-full flex flex-col items-center justify-end">
+                      <div
+                        className="w-full rounded-t-lg bg-gradient-to-t from-brand-600 to-iris-500"
+                        style={{ height: `${Math.max(4, (d.total / weekMax) * 100)}%` }}
+                        title={money(d.total)}
+                      ></div>
+                      <span className="text-xs text-ink/50 mt-2 capitalize">{d.label}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center text-center py-6">
+                  <div className="w-12 h-12 rounded-2xl bg-brand-50 flex items-center justify-center mb-3">
+                    <i aria-hidden="true" className="fas fa-chart-line text-brand-600"></i>
                   </div>
-                ))}
-              </div>
+                  <p className="font-medium text-ink">Aún no hay ingresos esta semana</p>
+                  <p className="text-sm text-ink/60 mt-1 max-w-sm">Comparte tu perfil en tus redes para conseguir tus primeros suscriptores y reservas.</p>
+                  <button type="button" onClick={copyProfileLink} className="btn btn-md btn-outline mt-4 active:scale-[0.97]">
+                    <i aria-hidden="true" className={`fas ${linkCopied ? 'fa-check text-emerald-600' : 'fa-link'}`}></i>
+                    {linkCopied ? 'Enlace copiado' : 'Copiar enlace de mi perfil'}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Recent Transactions */}
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-              <div className="p-5 border-b border-gray-100">
-                <h3 className="font-bold text-gray-900">Transacciones recientes</h3>
+            <div className="bg-white rounded-2xl border border-line overflow-hidden">
+              <div className="p-5 border-b border-line">
+                <h3 className="font-semibold text-ink">Transacciones recientes</h3>
               </div>
               <div className="divide-y divide-gray-100">
                 {recentTransactions.length === 0 && <p className="p-6 text-center text-sm text-gray-500">Aún no hay pagos de fans</p>}
@@ -307,7 +367,7 @@ const CreatorDashboard: React.FC = () => {
         )}
 
         {activeTab === 'content' && (
-          <div className="bg-white rounded-2xl shadow-sm p-6">
+          <div className="bg-white rounded-2xl border border-line p-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div>
                 <h3 className="font-bold text-gray-900">Gestión de contenido</h3>
@@ -370,7 +430,7 @@ const CreatorDashboard: React.FC = () => {
         )}
 
         {activeTab === 'subscribers' && (
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl border border-line overflow-hidden">
             <div className="p-5 border-b border-gray-100 flex justify-between items-center">
               <h3 className="font-bold text-gray-900">Suscriptores ({subscribers.length})</h3>
               <button className="text-sm text-pink-600 hover:text-pink-700">
@@ -423,7 +483,7 @@ const CreatorDashboard: React.FC = () => {
             bookings={vipBookings}
             reloadBookings={reloadBookings}
             availabilityEditor={
-              <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="vip-availability">
+              <div className="bg-white rounded-2xl border border-line p-6" data-testid="vip-availability">
                 <h3 className="font-bold text-gray-900 mb-1">Horarios generales de Reserve</h3>
                 <p className="text-sm text-gray-500 mb-5">
                   Los fans solo podrán reservar en estos días y horas, con hasta {MAX_BOOKING_MONTHS} meses de antelación. Cada experiencia puede limitarlos aún más.
@@ -469,7 +529,7 @@ const CreatorDashboard: React.FC = () => {
         )}
 
         {activeTab === 'settings' && (
-          <div className="bg-white rounded-2xl shadow-sm p-6">
+          <div className="bg-white rounded-2xl border border-line p-6">
             <h3 className="font-bold text-gray-900 mb-6">Configuración del perfil</h3>
             <div className="space-y-6 max-w-lg">
               <div>

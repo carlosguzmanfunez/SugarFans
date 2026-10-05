@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { User } from '../context/AuthContext';
 import { startLive, endLive, useCurrentLive, type BroadcastMode } from '../lib/live';
 import { ENABLE_OPEN_LIVE } from '../config/features';
-import { RESERVE_COPY } from '../config/reserve';
 
 // Creator panel: start a Subscriber Live (a group Live included in the subscription;
 // active subscribers get an alert) or end it. The public Open Live is only offered
@@ -40,20 +39,19 @@ const CreatorLivePanel: React.FC<{ user: User }> = ({ user }) => {
   };
 
   return (
-    <section className="bg-white rounded-2xl p-5 shadow-sm mb-6" data-testid="creator-live-panel" aria-labelledby="creator-live-title">
+    <section className="bg-white rounded-2xl border border-line p-5 mb-6" data-testid="creator-live-panel" aria-labelledby="creator-live-title">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 id="creator-live-title" className="font-bold text-gray-900 flex items-center">
-            <i aria-hidden="true" className="fas fa-tower-broadcast mr-2 text-red-500"></i>Live para suscriptores
+            <span aria-hidden="true" className="mr-2 h-2 w-2 rounded-full bg-brand-600"></span>Live para suscriptores
           </h2>
           <p className="text-sm text-gray-600">
             {live ? (
               <>Estás en Live{live.mode === 'open' ? ' abierto' : ' para suscriptores'}: <span className="font-medium">{live.title}</span></>
             ) : (
-              'Un Live grupal incluido en tu suscripción: solo entran tus suscriptores activos y les llega un aviso. Hazlo cuando quieras.'
+              'Solo entran tus suscriptores activos y les llega un aviso. Es grupal: no es tiempo privado ni garantiza interacción individual.'
             )}
           </p>
-          {!live && <p className="mt-1 text-xs text-gray-500">{RESERVE_COPY.subscriberLive}</p>}
         </div>
         {live ? (
           <div className="flex flex-wrap gap-2">
@@ -80,10 +78,10 @@ const CreatorLivePanel: React.FC<{ user: User }> = ({ user }) => {
               minLength={3}
               aria-label="Título del Live"
               placeholder="Ej.: Live exclusivo para suscriptores"
-              className="min-w-0 flex-1 px-3 py-2 rounded-xl border border-gray-300 text-sm md:w-64"
+              className="min-w-0 flex-1 px-4 py-2.5 rounded-full border border-line text-sm md:w-64"
             />
-            <button type="submit" disabled={busy} className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 whitespace-nowrap">
-              <i aria-hidden="true" className="fas fa-circle text-[8px] mr-2 align-middle"></i>Iniciar Live
+            <button type="submit" disabled={busy} className="btn btn-md btn-primary disabled:opacity-50">
+              <span aria-hidden="true" className="h-2 w-2 rounded-full bg-white"></span>Iniciar Live
             </button>
           </form>
         )}
