@@ -1,6 +1,6 @@
 // What each side is told when a Reserve booking is created or changes state. The
 // database writes the same notices with the trigger public.reserve_alert()
-// (supabase/migrations/20261005000001_reserve_alerts.sql); the browser-only
+// (supabase/migrations/20261005000002_reserve_alerts.sql); the browser-only
 // backend uses this copy. Keep both in step.
 import { RESERVE_RESPONSE_HOURS } from '../config/reserve';
 import type { VipBooking } from './backend/types';

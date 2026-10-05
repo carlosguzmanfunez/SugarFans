@@ -84,7 +84,7 @@ interface BookingRow {
   duration_minutes: number | null;
   // Missing until migration 20261002000001_reserve is applied.
   details?: BookingDetails | null;
-  // Missing until migration 20261005000001_reserve_alerts is applied.
+  // Missing until migration 20261005000002_reserve_alerts is applied.
   seen_at?: string | null;
   respond_by?: string | null;
 }

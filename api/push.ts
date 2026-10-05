@@ -6,7 +6,7 @@
 //   and only while fresh, so calling it again or with a made-up id does nothing.
 // - POST /api/push { test: true } with the person's session: a test alert to
 //   their own devices ("Probar aviso").
-// Tables and triggers: supabase/migrations/20261005000001_reserve_alerts.sql.
+// Tables and triggers: supabase/migrations/20261005000002_reserve_alerts.sql.
 //
 // Needs SUPABASE_SERVICE_ROLE_KEY (already set for PayPal). The push keys (VAPID)
 // are created on first use and kept in public.app_secrets; VAPID_PUBLIC_KEY and

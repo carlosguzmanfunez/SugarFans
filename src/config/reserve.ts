@@ -521,7 +521,7 @@ export const RESERVE_STATUSES: Record<ReserveStatus, { label: string; icon: stri
 // Hours to answer: the creator for a new request, the fan for a counter-offer.
 // Past it the request expires on its own and frees the slot; nothing is charged
 // before the creator accepts. Same number as public.reserve_response_hours() in
-// supabase/migrations/20261005000001_reserve_alerts.sql: change both.
+// supabase/migrations/20261005000002_reserve_alerts.sql: change both.
 export const RESERVE_RESPONSE_HOURS = 48;
 
 // Request → acceptance → payment → confirmation → experience → payout.
