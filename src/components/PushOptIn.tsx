@@ -19,7 +19,7 @@ const PushOptIn: React.FC<{ user: User }> = ({ user }) => {
     };
   }, [user.id]);
 
-  if (!state || state === 'unsupported') return null;
+  if (!state || state === 'local') return null;
   const creator = user.role === 'creator';
 
   const run = async (fn: () => Promise<{ ok: boolean; error?: string } | void>, okText: string) => {
@@ -40,7 +40,9 @@ const PushOptIn: React.FC<{ user: User }> = ({ user }) => {
           <div className="min-w-0">
             <p className="text-sm font-semibold text-ink">{state === 'on' ? 'Avisos activados en este dispositivo' : 'Recibe avisos en tu celular'}</p>
             <p className="text-xs text-ink/60">
-              {state === 'install-first'
+              {state === 'unsupported'
+                ? 'Este navegador no permite avisos. Abre fansreserve.com en Chrome (Android) o en Safari desde la pantalla de inicio (iPhone).'
+                : state === 'install-first'
                 ? 'En iPhone: toca Compartir y “Añadir a pantalla de inicio”, abre Fans Reserve desde ese ícono y activa los avisos aquí.'
                 : state === 'denied'
                   ? 'Bloqueaste los avisos para este sitio. Actívalos en los ajustes del navegador y vuelve aquí.'
