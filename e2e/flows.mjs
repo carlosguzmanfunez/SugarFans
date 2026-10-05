@@ -1891,6 +1891,13 @@ const run = async () => {
       const names = R.CREATOR_CATEGORIES.flatMap((c) => [c.name, ...c.aliases]);
       expect(!names.some((n) => forbidden.test(n)), `categorías: ${names.join(', ')}`);
     });
+    await check('La verificación de edad no habla de contenido para adultos', async () => {
+      const src = readFileSync('src/context/LanguageContext.tsx', 'utf8');
+      const texts = [...src.matchAll(/'age\.description': '([^']*)'/g)].map((m) => m[1]);
+      expect(texts.length >= 5, `textos: ${texts.length}`);
+      const bad = texts.filter((t) => /adult|para adultos|pour adultes|per adulti|explicit/i.test(t));
+      expect(!bad.length, `dice: ${bad.join(' | ')}`);
+    });
     await check('Tu gente (antes Modelos) existe y marca la línea de contenido', async () => {
       const mg = R.CREATOR_CATEGORIES.find((c) => c.name === 'Tu gente');
       expect(!!mg, 'falta Tu gente');
