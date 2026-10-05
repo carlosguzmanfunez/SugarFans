@@ -208,6 +208,11 @@ const Navbar: React.FC = () => {
               <Link to="/reserve" className={mobileLinkCls('/reserve')} onClick={() => setShowMobile(false)}>
                 <i aria-hidden="true" className="fas fa-ticket w-5 text-gold-600"></i> Reserve
               </Link>
+              {showCreators && (
+                <Link to="/#creadores" className={mobileLinkCls('/#creadores')} onClick={() => setShowMobile(false)}>
+                  <i aria-hidden="true" className="fas fa-star w-5 text-iris-600"></i> Para creadores
+                </Link>
+              )}
               <Link to="/#journey" className={mobileLinkCls('/#journey')} onClick={() => setShowMobile(false)}>
                 <i aria-hidden="true" className="fas fa-circle-question w-5 text-ink/40"></i> Cómo funciona
               </Link>

@@ -59,6 +59,12 @@ const CreatorProfile: React.FC = () => {
   const [celebrating, setCelebrating] = useState<Gift | null>(null);
   const [composing, setComposing] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [toast, setToast] = useState('');
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(''), 2200);
+    return () => clearTimeout(t);
+  }, [toast]);
   const moreRef = useDismiss<HTMLDivElement>(moreOpen, () => setMoreOpen(false));
 
   // Demo creators and platform-run profiles first, then creators who signed up.
@@ -112,8 +118,15 @@ const CreatorProfile: React.FC = () => {
 
   if (!creator && (catalogLoading || creatorLoading)) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-label="Cargando">
-        <div className="w-10 h-10 border-4 border-pink-200 border-t-pink-500 rounded-full animate-spin"></div>
+      <div className="min-h-[60vh]" role="status" aria-label="Cargando">
+        <div className="skeleton h-48 md:h-72"></div>
+        <div className="max-w-4xl mx-auto px-4 -mt-12 md:-mt-16">
+          <div className="skeleton h-24 w-24 md:h-32 md:w-32 rounded-full ring-4 ring-canvas"></div>
+          <div className="skeleton mt-4 h-7 w-56 rounded-lg"></div>
+          <div className="skeleton mt-2 h-4 w-32 rounded-lg"></div>
+          <div className="skeleton mt-6 h-12 w-full md:w-80 rounded-full"></div>
+          <div className="skeleton mt-6 h-28 w-full rounded-2xl"></div>
+        </div>
       </div>
     );
   }
@@ -239,6 +252,11 @@ const CreatorProfile: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-canvas">
+      {toast && (
+        <div role="status" className="toast-in fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-ink px-5 py-3 text-sm font-medium text-white shadow-xl md:bottom-8" data-testid="toast">
+          <i aria-hidden="true" className="fas fa-check mr-2 text-emerald-400"></i>{toast}
+        </div>
+      )}
       {/* Cover */}
       <CoverImage src={creator.cover} seed={creator.id + creator.name} className="h-48 md:h-72">
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
@@ -269,7 +287,12 @@ const CreatorProfile: React.FC = () => {
               {!isOwner && !iBlocked && (
                 <button
                   type="button"
-                  onClick={() => (user ? setFollow(user, creator.id, !follow.following) : goLogin())}
+                  onClick={() => {
+                    if (!user) return goLogin();
+                    const now = !follow.following;
+                    setFollow(user, creator.id, now);
+                    setToast(now ? `Ahora sigues a ${creator.name.split(' ')[0]}` : `Dejaste de seguir a ${creator.name.split(' ')[0]}`);
+                  }}
                   aria-pressed={follow.following}
                   data-testid="follow-button"
                   className={`btn btn-lg ${follow.following ? 'border border-line bg-white text-ink/70 hover:border-ink/25' : 'btn-outline'}`}

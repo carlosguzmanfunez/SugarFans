@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import CreatorPayouts from '../components/CreatorPayouts';
 import CreatorGiftsPanel from '../components/CreatorGiftsPanel';
 import CreatorRewardsPanel from '../components/CreatorRewardsPanel';
+import Avatar from '../components/Avatar';
 import CreatorLivePanel from '../components/CreatorLivePanel';
 import { usePlatformQuery, platformApi, computeEarnings, iBlocked, blockUser, unblockUser, money, CREATOR_SHARE, creatorCut, transactionLabel } from '../lib/platform';
 import { WEEKDAYS, ALL_HOURS, MAX_BOOKING_MONTHS, DEFAULT_AVAILABILITY } from '../lib/vip';
@@ -442,7 +443,7 @@ const CreatorDashboard: React.FC = () => {
               {subscribers.map((sub) => (
                 <div key={sub.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
                   <div className="flex items-center space-x-3">
-                    <img src={sub.avatar} alt="" className="w-10 h-10 rounded-full" />
+                    <Avatar src={sub.avatar} name={sub.name} size={40} decorative />
                     <div>
                       <p className="font-medium text-gray-900">{sub.name}</p>
                       <p className="text-xs text-gray-500">Suscriptor desde {sub.since} • {sub.plan}</p>

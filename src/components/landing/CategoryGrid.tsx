@@ -65,7 +65,8 @@ const CategoryGrid: React.FC<{ creators: Creator[] }> = ({ creators }) => {
                         ))}
                       </span>
                     )}
-                    {members.length === 0 ? 'Nueva comunidad' : `${members.length} ${members.length === 1 ? 'creador' : 'creadores'}`}
+                    {/* Counts only once a community has a few creators; a lone "1 creador" reads as empty. */}
+                    {members.length >= 5 ? `${members.length} creadores` : members.length === 0 ? 'Nueva comunidad' : 'Ver comunidad'}
                   </span>
                 </span>
                 <span className="go">

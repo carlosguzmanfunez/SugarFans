@@ -71,7 +71,7 @@ const MobileTabBar: React.FC = () => {
               }`}
             >
               <span className="relative">
-                <i className={`fas ${tab.icon} text-[19px]`} aria-hidden="true"></i>
+                <i key={tab.active ? 'on' : 'off'} className={`fas ${tab.icon} text-[19px] ${tab.active ? 'tab-pop' : ''}`} aria-hidden="true"></i>
                 {'badge' in tab && !!tab.badge && <RedDot count={tab.badge} className="absolute -right-2.5 -top-1.5" />}
               </span>
               {tab.label}
