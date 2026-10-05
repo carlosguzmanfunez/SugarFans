@@ -45,7 +45,10 @@ const CreatorCta: React.FC = () => {
   if (user && user.role !== 'creator') return null;
   const isCreator = user?.role === 'creator';
   return (
-    <section className="sec" id="creadores" aria-labelledby="creator-cta-title" style={{ paddingTop: 20 }}>
+    <section className="sec cta-band" id="creadores" aria-labelledby="creator-cta-title">
+      <span className="cta-orb o1" aria-hidden="true"></span>
+      <span className="cta-orb o2" aria-hidden="true"></span>
+      <span className="cta-orb o3" aria-hidden="true"></span>
       <div className="wrap">
         <div ref={panel} className={`cta v-reveal ${shown ? 'in' : ''}`}>
           <div className="cta-copy">
