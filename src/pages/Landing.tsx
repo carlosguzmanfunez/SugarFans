@@ -6,6 +6,7 @@ import HappeningNow from '../components/landing/HappeningNow';
 import HowItWorks from '../components/landing/HowItWorks';
 import VipShowcase from '../components/landing/VipShowcase';
 import CreatorCta from '../components/landing/CreatorCta';
+import { ENABLE_HAPPENING_NOW } from '../config/features';
 import { useLandingMotion } from '../components/landing/landingBits';
 import '../components/landing/landing.css';
 
@@ -18,7 +19,8 @@ const Landing: React.FC = () => {
     <div ref={root} className="lv2 min-h-screen">
       <Hero creators={creators} />
       <CategoryGrid creators={creators} />
-      <HappeningNow creators={creators} />
+      {/* "Está pasando ahora" is off until further notice (ENABLE_HAPPENING_NOW). */}
+      {ENABLE_HAPPENING_NOW && <HappeningNow creators={creators} />}
       <HowItWorks />
       <VipShowcase />
       <CreatorCta />

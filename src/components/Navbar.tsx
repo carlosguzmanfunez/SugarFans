@@ -13,7 +13,7 @@ import CoinIcon from './CoinIcon';
 import { usePlatformQuery } from '../lib/platform';
 import { formatCoins, giftsApi } from '../lib/gifts';
 import type { User } from '../context/AuthContext';
-import { ENABLE_OPEN_LIVE } from '../config/features';
+import { ENABLE_HAPPENING_NOW, ENABLE_OPEN_LIVE } from '../config/features';
 
 // Fan's Créditos balance, always in sight, in the champagne tone of the coin.
 const CreditsPill: React.FC<{ user: User }> = ({ user }) => {
@@ -56,13 +56,14 @@ const Navbar: React.FC = () => {
   // On the landing the menu jumps to its sections, as in the approved design. The
   // product's pillars are Explorar, Suscribirse and Reserve; Live is not a pillar of its
   // own (Subscriber Live lives inside Subscribe; Open Live only with ENABLE_OPEN_LIVE).
+  // #live is the "Está pasando ahora" section, so it also needs ENABLE_HAPPENING_NOW.
   const onLanding = location.pathname === '/';
   const showCreators = !isAuthenticated || user?.role === 'creator';
   const sections = [
     { href: '#comunidades', label: 'Explorar' },
     { href: '#suscribirse', label: 'Suscribirse' },
     { href: '#reserve', label: 'Reserve' },
-    ...(ENABLE_OPEN_LIVE ? [{ href: '#live', label: 'Live' }] : []),
+    ...(ENABLE_OPEN_LIVE && ENABLE_HAPPENING_NOW ? [{ href: '#live', label: 'Live' }] : []),
     ...(showCreators ? [{ href: '#creadores', label: 'Para creadores' }] : []),
     { href: '#journey', label: 'Cómo funciona' },
   ];
