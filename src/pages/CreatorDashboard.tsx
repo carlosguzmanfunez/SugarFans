@@ -147,11 +147,11 @@ const CreatorDashboard: React.FC = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Panel de Creador</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Panel de creador</h1>
             <p className="text-gray-600">Bienvenida, {user?.name}</p>
           </div>
           <div className="mt-4 sm:mt-0 flex gap-2 sm:gap-3">
-            {/* Reservas: same shape as "Nueva Publicación", with the red count of requests waiting. */}
+            {/* Reservas: same shape as "Nueva publicación", with the red count of requests waiting. */}
             <button
               onClick={() => { setActiveTab('vip'); setNotice(null); }}
               data-testid="dashboard-reservas"
@@ -165,7 +165,7 @@ const CreatorDashboard: React.FC = () => {
               onClick={() => { setShowNewPost(!showNewPost); setNotice(null); }}
               className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-3.5 sm:px-6 py-3 text-sm sm:text-base whitespace-nowrap rounded-xl font-medium hover:opacity-90 transition shadow-lg"
             >
-              <i aria-hidden="true" className="fas fa-plus mr-2"></i> Nueva Publicación
+              <i aria-hidden="true" className="fas fa-plus mr-2"></i> Nueva publicación
             </button>
           </div>
         </div>
@@ -274,7 +274,7 @@ const CreatorDashboard: React.FC = () => {
             {/* Recent Transactions */}
             <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
               <div className="p-5 border-b border-gray-100">
-                <h3 className="font-bold text-gray-900">Transacciones Recientes</h3>
+                <h3 className="font-bold text-gray-900">Transacciones recientes</h3>
               </div>
               <div className="divide-y divide-gray-100">
                 {recentTransactions.length === 0 && <p className="p-6 text-center text-sm text-gray-500">Aún no hay pagos de fans</p>}
@@ -310,7 +310,7 @@ const CreatorDashboard: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-sm p-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div>
-                <h3 className="font-bold text-gray-900">Gestión de Contenido</h3>
+                <h3 className="font-bold text-gray-900">Gestión de contenido</h3>
                 <p className="text-sm text-gray-500">Aquí subes fotos y videos. Lo que publiques aparece en tu perfil público.</p>
               </div>
               <div className="flex gap-2">
@@ -470,7 +470,7 @@ const CreatorDashboard: React.FC = () => {
 
         {activeTab === 'settings' && (
           <div className="bg-white rounded-2xl shadow-sm p-6">
-            <h3 className="font-bold text-gray-900 mb-6">Configuración del Perfil</h3>
+            <h3 className="font-bold text-gray-900 mb-6">Configuración del perfil</h3>
             <div className="space-y-6 max-w-lg">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de visualización</label>

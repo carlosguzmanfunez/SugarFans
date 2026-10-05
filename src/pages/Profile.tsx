@@ -128,7 +128,7 @@ const Profile: React.FC = () => {
 
           <div className="bg-white rounded-2xl shadow-sm p-5" data-testid="subscriptions">
             <h3 className="font-bold text-gray-900 mb-3">
-              <i aria-hidden="true" className="fas fa-star text-purple-500 mr-2"></i> Suscripciones Activas
+              <i aria-hidden="true" className="fas fa-star text-purple-500 mr-2"></i> Suscripciones activas
             </h3>
             {subscribedCreators.length === 0 ? (
               <p className="text-sm text-gray-500">
@@ -166,7 +166,7 @@ const Profile: React.FC = () => {
         {/* Account Info */}
         <div className="mt-6 bg-white rounded-2xl shadow-sm p-5">
           <h3 className="font-bold text-gray-900 mb-4">
-            <i aria-hidden="true" className="fas fa-info-circle text-blue-500 mr-2"></i> Información de la Cuenta
+            <i aria-hidden="true" className="fas fa-info-circle text-blue-500 mr-2"></i> Información de la cuenta
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>

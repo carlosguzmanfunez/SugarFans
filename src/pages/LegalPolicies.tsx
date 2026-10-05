@@ -13,7 +13,7 @@ const LegalPolicies: React.FC = () => {
     { id: 'terms', name: 'Términos y Condiciones', icon: 'fa-file-contract' },
     { id: 'privacy', name: 'Política de Privacidad', icon: 'fa-lock' },
     { id: 'creator', name: 'Contrato de Creadores', icon: 'fa-handshake' },
-    { id: 'minors', name: 'Protección de Menores', icon: 'fa-user-shield' },
+    { id: 'minors', name: 'Protección de menores', icon: 'fa-user-shield' },
     { id: 'cookies', name: 'Política de Cookies', icon: 'fa-cookie-bite' },
     { id: 'dmca', name: 'Política DMCA', icon: 'fa-scale-balanced' },
     ...RESERVE_POLICIES.map(({ id, name, icon }) => ({ id, name, icon })),
@@ -28,7 +28,7 @@ const LegalPolicies: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Políticas Legales</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Políticas legales</h1>
           <p className="text-xl text-gray-600">Documentos legales y políticas de {BRAND.name}</p>
         </div>
 
@@ -84,18 +84,18 @@ const LegalPolicies: React.FC = () => {
                     <h3 className="text-xl font-bold text-gray-900 mt-6">4. Contenido del Usuario</h3>
                     <p>Usted conserva los derechos de su Contenido original. Al publicar, nos otorga licencia para distribuirlo en la Plataforma. Todo el Contenido debe cumplir con nuestras políticas.</p>
 
-                    <h3 className="text-xl font-bold text-gray-900 mt-6">5. Contenido y Servicios Prohibidos</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mt-6">5. Contenido y Servicios prohibidos</h3>
                     <ul className="list-disc pl-5 space-y-2">
                       <li>Contenido que involucre menores de 18 años</li>
                       <li>Contenido sexual explícito y cualquier servicio o actividad sexual (glamour permitido)</li>
                       <li>Contenido sin consentimiento verificable</li>
                       <li>Contenido ilegal, violento o que infrinja derechos de terceros</li>
                       <li>Spam, fraude o actividades engañosas</li>
-                      <li>Los servicios descritos en <a href="/legal?doc=prohibited-services" className="underline">Servicios Prohibidos</a></li>
+                      <li>Los servicios descritos en <a href="/legal?doc=prohibited-services" className="underline">Servicios prohibidos</a></li>
                     </ul>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">6. Reserve</h3>
-                    <p>{BRAND.name} permite reservar experiencias, no personas. Los servicios profesionales con un propósito definido están permitidos; vender la compañía o la intimidad de una persona no. Si el creator no cumple lo publicado, el fan recibe el reembolso completo, previa verificación. Las videollamadas y los Lives no se graban y está prohibido grabarlos. Las reservas se rigen por la <a href="/legal?doc=reserve-policy" className="underline">Política de Reserve</a> y la de <a href="/legal?doc=cancellation" className="underline">Cancelación y No-show</a>.</p>
+                    <p>{BRAND.name} permite reservar experiencias, no personas. Los servicios profesionales con un propósito definido están permitidos; vender la compañía o la intimidad de una persona no. Si el creador no cumple lo publicado, el fan recibe el reembolso completo, previa verificación. Las videollamadas y los Lives no se graban y está prohibido grabarlos. Las reservas se rigen por la <a href="/legal?doc=reserve-policy" className="underline">Política de Reserve</a> y la de <a href="/legal?doc=cancellation" className="underline">Cancelación y No-show</a>.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">7. Pagos y Comisiones</h3>
                     <p>Métodos de pago: tarjetas Visa y Mastercard, PayPal y Google Pay. Todos los precios y pagos son en dólares estadounidenses (USD). Los Creadores reciben del 80% al 90% de suscripciones y propinas según su nivel y sus recompensas, el 80% de las reservas de Reserve y el 60% de los regalos; la Plataforma conserva siempre al menos el 10%. Los ingresos se acreditan el día 1 de cada mes y se retiran a la cuenta PayPal del Creador desde $50 USD; la comisión de PayPal por enviar el retiro (2%, máximo $20) se descuenta del monto retirado.</p>
@@ -115,7 +115,7 @@ const LegalPolicies: React.FC = () => {
                     <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-xl">
                       <p className="text-sm text-blue-800">
                         <strong>Documento Completo:</strong> Este es un resumen. Para el documento completo, consulte{' '}
-                        <a href="/legal/TERMS_AND_CONDITIONS.md" className="underline" target="_blank">Términos Completos</a>
+                        <a href="/legal/TERMS_AND_CONDITIONS.md" className="underline" target="_blank">Términos completos</a>
                       </p>
                     </div>
                   </div>
@@ -155,7 +155,7 @@ const LegalPolicies: React.FC = () => {
                     <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-xl">
                       <p className="text-sm text-blue-800">
                         <strong>Documento Completo:</strong> Consulte{' '}
-                        <a href="/legal/PRIVACY_POLICY.md" className="underline" target="_blank">Política Completa</a>
+                        <a href="/legal/PRIVACY_POLICY.md" className="underline" target="_blank">Política completa</a>
                       </p>
                     </div>
                   </div>
@@ -212,7 +212,7 @@ const LegalPolicies: React.FC = () => {
                     <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-xl">
                       <p className="text-sm text-blue-800">
                         <strong>Documento Completo:</strong> Consulte{' '}
-                        <a href="/legal/CREATOR_AFFILIATE_AGREEMENT.md" className="underline" target="_blank">Contrato Completo</a>
+                        <a href="/legal/CREATOR_AFFILIATE_AGREEMENT.md" className="underline" target="_blank">Contrato completo</a>
                         {' '}y el <a href="/legal?doc=reserve-agreement" className="underline">Acuerdo de Creator (Reserve)</a>.
                       </p>
                     </div>
@@ -222,7 +222,7 @@ const LegalPolicies: React.FC = () => {
 
               {activePolicy === 'minors' && (
                 <div>
-                  <h2 className="text-3xl font-bold text-gray-900 mb-6">Política de Protección de Menores</h2>
+                  <h2 className="text-3xl font-bold text-gray-900 mb-6">Política de Protección de menores</h2>
                   <div className="bg-red-50 border-2 border-red-300 rounded-xl p-6 mb-6">
                     <div className="flex items-start space-x-3">
                       <span className="text-3xl">⚠️</span>
@@ -297,7 +297,7 @@ const LegalPolicies: React.FC = () => {
                     <h3 className="text-xl font-bold text-gray-900 mt-6">Respeto por Derechos de Autor</h3>
                     <p>Respetamos los derechos de propiedad intelectual y esperamos que nuestros Usuarios hagan lo mismo.</p>
 
-                    <h3 className="text-xl font-bold text-gray-900 mt-6">Notificación de Infracción</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mt-6">Notificación de infracción</h3>
                     <p>Si cree que su trabajo ha sido copiado ilegalmente, envíe una notificación DMCA a: <strong>{BRAND.emails.dmca}</strong></p>
                     <p>Debe incluir:</p>
                     <ul className="list-disc pl-5 space-y-2">
@@ -311,7 +311,7 @@ const LegalPolicies: React.FC = () => {
                     <h3 className="text-xl font-bold text-gray-900 mt-6">Contra-notificación</h3>
                     <p>Si cree que su Contenido fue eliminado erróneamente, puede enviar una contra-notificación.</p>
 
-                    <h3 className="text-xl font-bold text-gray-900 mt-6">Infractores Reincidentes</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mt-6">Infractores reincidentes</h3>
                     <p>Las cuentas que infrinjan derechos de autor repetidamente serán terminadas.</p>
                   </div>
                 </div>

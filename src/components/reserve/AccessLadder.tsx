@@ -74,7 +74,7 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
         <li className={`${step} ${live ? 'border-iris-200 bg-iris-50/40' : ''}`} data-testid="ladder-subscribe">
           <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">2 · Suscribirse</span>
           <span className="mt-1 text-sm font-semibold text-ink">${creator.subscriptionPrice}/mes</span>
-          <span className="text-xs text-ink/60">Contenido exclusivo, Lives para suscriptores y beneficios del creator.</span>
+          <span className="text-xs text-ink/60">Contenido exclusivo, Lives para suscriptores y beneficios del creador.</span>
           {live && (
             <span className="mt-2 flex flex-col gap-0.5" data-testid="live-now">
               <span className="flex items-center text-sm font-semibold text-red-600">

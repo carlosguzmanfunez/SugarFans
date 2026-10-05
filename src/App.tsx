@@ -123,7 +123,7 @@ const AppRoutes: React.FC = () => {
     <PendingSignupRedirect />
     <SpecialInviteClaimer />
     <Routes>
-      {/* Age Verification */}
+      {/* Age verification */}
       <Route path="/age-verification" element={
         <AppLayout hideNav={true}><AgeVerification /></AppLayout>
       } />

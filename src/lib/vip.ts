@@ -337,7 +337,7 @@ export const validateCustomRequest = (input: CustomRequestInput, categoryName?: 
   if (input.modality !== 'virtual' && input.city.trim().length < 2) return { ok: false, error: 'Indica la ciudad' };
   if (!Number.isFinite(input.budget) || input.budget < MIN_EXPERIENCE_PRICE || input.budget > MAX_EXPERIENCE_PRICE)
     return { ok: false, error: `El presupuesto debe estar entre $${MIN_EXPERIENCE_PRICE} y $${MAX_EXPERIENCE_PRICE}` };
-  if (input.message.trim().length < 10) return { ok: false, error: 'Cuéntale al creator los detalles (mínimo 10 caracteres)' };
+  if (input.message.trim().length < 10) return { ok: false, error: 'Cuéntale al creador los detalles (mínimo 10 caracteres)' };
   if (input.message.length > 500 || input.purposeNote.length > 80 || input.venue.length > 80 || input.city.length > 60)
     return { ok: false, error: 'El texto es demasiado largo' };
   const check = moderate([input.purposeNote, input.city, input.venue, input.message], 'request', { homeAllowed: allowed.some((l) => isHomeService([l])) });

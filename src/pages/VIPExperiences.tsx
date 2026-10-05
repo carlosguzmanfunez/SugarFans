@@ -61,7 +61,7 @@ const ReservePage: React.FC = () => {
           </span>
           <h1 className="text-display-lg mb-4">Reserve</h1>
           <p className="mx-auto max-w-2xl text-lg text-white/75 md:text-xl">
-            Reserve Events en grupo, sesiones privadas 1:1 y experiencias definidas por tus creators. Cada una con su fecha, duración, precio, alcance y reglas.
+            Reserve Events en grupo, sesiones privadas 1:1 y experiencias definidas por tus creadores. Cada una con su fecha, duración, precio, alcance y reglas.
           </p>
           <p className="mt-4 text-sm font-semibold uppercase tracking-[0.18em] text-gold-200">{RESERVE_COPY.principle}</p>
         </div>
@@ -126,7 +126,7 @@ const ReservePage: React.FC = () => {
                   {
                     [
                       'Eliges una experiencia, o propones una personalizada.',
-                      'El creator la acepta, la rechaza o te hace una contraoferta.',
+                      'El creador la acepta, la rechaza o te hace una contraoferta.',
                       'Pagas solo cuando la acepta.',
                       'Recibes la confirmación con fecha, hora y lugar.',
                       'Vives la experiencia: en la sala privada de Fans Reserve o en el venue acordado.',
@@ -156,7 +156,7 @@ const ReservePage: React.FC = () => {
               <span>{PROFESSIONAL_SERVICES_ALLOWED}</span>
             </p>
             <p className="mt-4 text-xs text-ink/60">
-              Las experiencias presenciales ocurren en venues, estudios, eventos y lugares públicos o profesionales; en el lugar del creator o del fan solo servicios profesionales con aprobación del creator, nunca en Tu gente. Lee la{' '}
+              Las experiencias presenciales ocurren en venues, estudios, eventos y lugares públicos o profesionales; en el lugar del creador o del fan solo servicios profesionales con aprobación del creador, nunca en Tu gente. Lee la{' '}
               <Link to="/legal?doc=reserve-policy" className="font-semibold text-ink underline">Política de Reserve</Link>.
             </p>
           </div>

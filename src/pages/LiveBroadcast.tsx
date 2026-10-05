@@ -332,8 +332,8 @@ const LiveBroadcast: React.FC<{ event?: boolean }> = ({ event: isEvent = false }
           <h1 className="text-xl font-bold text-ink mb-2">{subscribersOnly ? 'Live exclusivo para suscriptores' : 'Este Live no está disponible'}</h1>
           <p className="text-sm text-muted mb-6">
             {subscribersOnly
-              ? 'Este Live está incluido en la suscripción del creator. Suscríbete para entrar a este y a sus próximos Lives para suscriptores.'
-              : 'Fans Reserve no ofrece Lives abiertos al público. Mira la suscripción y las experiencias de Reserve del creator.'}
+              ? 'Este Live está incluido en la suscripción del creador. Suscríbete para entrar a este y a sus próximos Lives para suscriptores.'
+              : 'Fans Reserve no ofrece Lives abiertos al público. Mira la suscripción y las experiencias de Reserve del creador.'}
           </p>
           <Link to={`/creator/${creatorId}`} className="btn btn-primary btn-md">{subscribersOnly ? 'Ver la suscripción' : 'Ver el perfil'}</Link>
         </div>
@@ -364,7 +364,7 @@ const LiveBroadcast: React.FC<{ event?: boolean }> = ({ event: isEvent = false }
         {checked ? (
           <div className="max-w-md text-center">
             <i aria-hidden="true" className="fas fa-tower-broadcast text-4xl text-ink/30 mb-4"></i>
-            <h1 className="text-xl font-bold text-ink mb-2">Este creator no está en Live ahora</h1>
+            <h1 className="text-xl font-bold text-ink mb-2">Este creador no está en Live ahora</h1>
             <p className="text-sm text-muted mb-6">Suscríbete y deja la campanita activada para enterarte de su próximo Live para suscriptores.</p>
             <Link to={backTo} className="btn btn-primary btn-md">Volver</Link>
           </div>
@@ -428,7 +428,7 @@ const LiveBroadcast: React.FC<{ event?: boolean }> = ({ event: isEvent = false }
                     </div>
                   ) : (
                     <p className="text-gray-300">
-                      {phase === 'connecting' ? 'Conectando…' : phase === 'ended' ? (isEvent ? 'El evento terminó.' : 'El Live terminó.') : 'Esperando la imagen del creator…'}
+                      {phase === 'connecting' ? 'Conectando…' : phase === 'ended' ? (isEvent ? 'El evento terminó.' : 'El Live terminó.') : 'Esperando la imagen del creador…'}
                     </p>
                   )}
                 </div>

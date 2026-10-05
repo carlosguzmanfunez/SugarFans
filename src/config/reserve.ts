@@ -18,7 +18,7 @@ export type ReserveModality = 'virtual' | 'presencial' | 'evento' | 'profesional
 
 export const RESERVE_MODALITIES: Record<ReserveModality, { label: string; icon: string; description: string }> = {
   virtual: { label: 'Virtual', icon: 'fa-video', description: 'En la sala privada de Fans Reserve o como contenido entregado en la app.' },
-  presencial: { label: 'Presencial', icon: 'fa-location-dot', description: 'En un venue, estudio o lugar público definido de antemano, o en el lugar del creator o del fan con aprobación manual (todas las categorías menos Tu gente).' },
+  presencial: { label: 'Presencial', icon: 'fa-location-dot', description: 'En un venue, estudio o lugar público definido de antemano, o en el lugar del creador o del fan con aprobación manual (todas las categorías menos Tu gente).' },
   evento: { label: 'Evento', icon: 'fa-calendar-check', description: 'Convenciones, apariciones, firmas y eventos con público.' },
   profesional: { label: 'Profesional', icon: 'fa-briefcase', description: 'Colaboraciones, producciones y servicios profesionales.' },
 };
@@ -60,8 +60,8 @@ export const LOCATION_TYPES: Record<LocationType, { label: string; icon: string;
   'art-space': { label: 'Taller, galería o espacio creativo', icon: 'fa-palette', hint: 'Espacio artístico abierto' },
   'gaming-venue': { label: 'Gaming center o torneo', icon: 'fa-gamepad', hint: 'Local o evento de gaming' },
   'commercial-space': { label: 'Espacio comercial o tienda', icon: 'fa-store', hint: 'Tienda, showroom o marca' },
-  'creator-place': { label: 'Lugar del creator', icon: 'fa-house-flag', hint: 'Su restaurante, local, estudio o casa, donde presta el servicio' },
-  'fan-place': { label: 'Lugar que propone el fan', icon: 'fa-map-pin', hint: 'Domicilio, oficina o evento del fan; el creator lo acepta o no' },
+  'creator-place': { label: 'Lugar del creador', icon: 'fa-house-flag', hint: 'Su restaurante, local, estudio o casa, donde presta el servicio' },
+  'fan-place': { label: 'Lugar que propone el fan', icon: 'fa-map-pin', hint: 'Domicilio, oficina o evento del fan; el creador lo acepta o no' },
 };
 export const LOCATION_IDS = Object.keys(LOCATION_TYPES) as LocationType[];
 export const IN_PERSON_LOCATIONS = LOCATION_IDS.filter((l) => l !== 'online');
@@ -75,7 +75,7 @@ export const isHomeService = (locations: readonly string[]) => locations.some((l
 
 // Never offered as an option, rejected by validation and by the server.
 export const PROHIBITED_LOCATIONS = [
-  { id: 'private-residence', label: 'Domicilio privado como lugar de una experiencia, salvo servicios profesionales en el lugar del creator o del fan (no en Tu gente)' },
+  { id: 'private-residence', label: 'Domicilio privado como lugar de una experiencia, salvo servicios profesionales en el lugar del creador o del fan (no en Tu gente)' },
   { id: 'hotel-room', label: 'Hotel o habitación de hotel como experiencia' },
   { id: 'private-room', label: 'Habitación o "lugar privado/discreto"' },
   { id: 'vehicle', label: 'Vehículo particular' },
@@ -116,7 +116,7 @@ export const RESERVE_EXPERIENCE_TYPES: ReserveExperienceType[] = [
   t({ id: 'personal-greeting', name: 'Saludo personalizado', icon: 'fa-hand-sparkles', description: 'Un video con tu nombre, entregado en la app.', modalities: ['virtual'], locations: [], minutes: null, maxParticipants: 1 }),
   t({ id: 'custom-content', name: 'Contenido personalizado', icon: 'fa-wand-magic-sparkles', description: 'Contenido hecho para ti, dentro de las políticas.', modalities: ['virtual'], locations: [], minutes: null, maxParticipants: 1, legacy: true }),
   t({ id: 'early-access', name: 'Acceso anticipado', icon: 'fa-bolt', description: 'Estrenos y lanzamientos antes que nadie.', modalities: ['virtual'], locations: [], minutes: null, maxParticipants: 1, legacy: true }),
-  t({ id: 'themed-talk', name: 'Conversación temática', icon: 'fa-comment-dots', description: 'Una charla sobre un tema concreto que el creator domina.', modalities: ['virtual'], locations: [], minutes: [15, 60], defaultMinutes: 30, maxParticipants: 2 }),
+  t({ id: 'themed-talk', name: 'Conversación temática', icon: 'fa-comment-dots', description: 'Una charla sobre un tema concreto que el creador domina.', modalities: ['virtual'], locations: [], minutes: [15, 60], defaultMinutes: 30, maxParticipants: 2 }),
   t({ id: 'coaching', name: 'Coaching', icon: 'fa-bullseye', description: 'Sesión guiada con objetivos concretos.', modalities: ['virtual'], locations: [], minutes: [20, 90], defaultMinutes: 45, maxParticipants: 1 }),
   t({ id: 'mentoring', name: 'Mentoría', icon: 'fa-chalkboard-user', description: 'Orientación profesional sobre tu proyecto.', modalities: ['virtual'], locations: [], minutes: [20, 90], defaultMinutes: 45, maxParticipants: 2 }),
   t({ id: 'creative-session', name: 'Sesión creativa', icon: 'fa-lightbulb', description: 'Crear juntos: ideas, bocetos o maquetas.', modalities: ['virtual'], locations: [], minutes: [30, 120], defaultMinutes: 60, maxParticipants: 2 }),
@@ -128,7 +128,7 @@ export const RESERVE_EXPERIENCE_TYPES: ReserveExperienceType[] = [
   t({ id: 'meet-greet', name: 'Meet & Greet', icon: 'fa-handshake', description: 'Saludo, foto y firma en un lugar público o evento.', modalities: ['virtual', 'presencial', 'evento'], locations: ['public-place', 'event-venue', 'convention', 'commercial-space', 'restaurant', 'gaming-venue'], minutes: [10, 60], defaultMinutes: 30, maxParticipants: 4, legacy: true }),
   t({ id: 'workshop', name: 'Workshop', icon: 'fa-people-group', description: 'Taller práctico en grupo.', modalities: ['virtual', 'presencial', 'evento'], locations: ['event-venue', 'studio', 'gym', 'salon', 'culinary-space', 'art-space', 'commercial-space'], minutes: [45, 180], defaultMinutes: 90, maxParticipants: 30 }),
   t({ id: 'event', name: 'Evento', icon: 'fa-calendar-check', description: 'Evento programado con público.', modalities: ['evento'], locations: ['event-venue', 'convention', 'gym', 'restaurant', 'gaming-venue', 'commercial-space', 'art-space'], minutes: [30, 180], defaultMinutes: 120, maxParticipants: 50 }),
-  t({ id: 'appearance', name: 'Aparición', icon: 'fa-star', description: 'Presencia del creator en tu evento o convención.', modalities: ['evento'], locations: ['event-venue', 'convention', 'commercial-space', 'gaming-venue'], minutes: [30, 180], defaultMinutes: 60, maxParticipants: 50, alwaysManual: true }),
+  t({ id: 'appearance', name: 'Aparición', icon: 'fa-star', description: 'Presencia del creador en tu evento o convención.', modalities: ['evento'], locations: ['event-venue', 'convention', 'commercial-space', 'gaming-venue'], minutes: [30, 180], defaultMinutes: 60, maxParticipants: 50, alwaysManual: true }),
   t({ id: 'fan-event', name: 'Firma / fan event', icon: 'fa-signature', description: 'Firma de autógrafos y fotos con fans.', modalities: ['evento'], locations: ['event-venue', 'convention', 'commercial-space', 'public-place'], minutes: [30, 180], defaultMinutes: 60, maxParticipants: 50 }),
   t({ id: 'collaboration', name: 'Colaboración profesional', icon: 'fa-people-arrows', description: 'Proyecto conjunto para tu marca o canal.', modalities: ['virtual', 'profesional'], locations: ['studio', 'commercial-space', 'event-venue'], minutes: [30, 180], defaultMinutes: 60, maxParticipants: 5, legacy: true, alwaysManual: true }),
   t({ id: 'production', name: 'Producción', icon: 'fa-film', description: 'Rodaje o producción con equipo profesional.', modalities: ['profesional'], locations: ['studio', 'commercial-space', 'event-venue'], minutes: [60, 180], defaultMinutes: 120, maxParticipants: 10, alwaysManual: true }),
@@ -139,7 +139,7 @@ export const RESERVE_EXPERIENCE_TYPES: ReserveExperienceType[] = [
   t({ id: 'culinary-consulting', name: 'Asesoría culinaria', icon: 'fa-clipboard-list', description: 'Menú, técnica o negocio gastronómico.', modalities: ['virtual'], locations: [], minutes: [20, 90], defaultMinutes: 45, maxParticipants: 2 }),
   t({ id: 'catering', name: 'Catering', icon: 'fa-bowl-food', description: 'Servicio de cocina para tu evento.', modalities: ['profesional'], locations: ['event-venue', 'commercial-space', 'restaurant'], minutes: [60, 180], defaultMinutes: 180, maxParticipants: 50, alwaysManual: true }),
   t({ id: 'tasting', name: 'Degustación', icon: 'fa-wine-glass', description: 'Degustación guiada de platos o productos.', modalities: ['presencial', 'evento'], locations: ['restaurant', 'culinary-space', 'event-venue'], minutes: [30, 180], defaultMinutes: 90, maxParticipants: 12 }),
-  t({ id: 'gastronomic-experience', name: 'Experiencia gastronómica', icon: 'fa-kitchen-set', description: 'Menú o experiencia culinaria diseñada por el creator.', modalities: ['presencial'], locations: ['restaurant', 'culinary-space'], minutes: [60, 180], defaultMinutes: 120, maxParticipants: 12 }),
+  t({ id: 'gastronomic-experience', name: 'Experiencia gastronómica', icon: 'fa-kitchen-set', description: 'Menú o experiencia culinaria diseñada por el creador.', modalities: ['presencial'], locations: ['restaurant', 'culinary-space'], minutes: [60, 180], defaultMinutes: 120, maxParticipants: 12 }),
 
   // Fitness
   t({ id: 'training-1-1', name: 'Entrenamiento 1:1', icon: 'fa-dumbbell', description: 'Entrenamiento guiado, online, en gimnasio o a domicilio.', modalities: ['virtual', 'presencial'], locations: ['gym'], minutes: [30, 120], defaultMinutes: 60, maxParticipants: 2 }),
@@ -153,10 +153,10 @@ export const RESERVE_EXPERIENCE_TYPES: ReserveExperienceType[] = [
   t({ id: 'studio-session', name: 'Sesión de estudio', icon: 'fa-sliders', description: 'Grabación o producción en estudio.', modalities: ['presencial', 'profesional'], locations: ['studio'], minutes: [60, 180], defaultMinutes: 120, maxParticipants: 4, alwaysManual: true }),
 
   // Gaming
-  t({ id: 'private-match', name: 'Partida privada', icon: 'fa-gamepad', description: 'Juega una partida con el creator.', modalities: ['virtual'], locations: [], minutes: [20, 120], defaultMinutes: 45, maxParticipants: 4 }),
+  t({ id: 'private-match', name: 'Partida privada', icon: 'fa-gamepad', description: 'Juega una partida con el creador.', modalities: ['virtual'], locations: [], minutes: [20, 120], defaultMinutes: 45, maxParticipants: 4 }),
   t({ id: 'gaming-session', name: 'Gaming session', icon: 'fa-headset', description: 'Sesión de juego con estrategia y charla.', modalities: ['virtual'], locations: [], minutes: [30, 180], defaultMinutes: 60, maxParticipants: 4 }),
   t({ id: 'stream-1-1', name: 'Stream 1:1', icon: 'fa-display', description: 'Un stream privado solo para ti.', modalities: ['virtual'], locations: [], minutes: [15, 90], defaultMinutes: 30, maxParticipants: 1 }),
-  t({ id: 'tournament', name: 'Torneo', icon: 'fa-trophy', description: 'Torneo presencial organizado por el creator.', modalities: ['evento'], locations: ['gaming-venue', 'convention', 'event-venue'], minutes: [60, 180], defaultMinutes: 180, maxParticipants: 50 }),
+  t({ id: 'tournament', name: 'Torneo', icon: 'fa-trophy', description: 'Torneo presencial organizado por el creador.', modalities: ['evento'], locations: ['gaming-venue', 'convention', 'event-venue'], minutes: [60, 180], defaultMinutes: 180, maxParticipants: 50 }),
 
   // Art
   t({ id: 'art-class', name: 'Clase de arte', icon: 'fa-paintbrush', description: 'Técnica de dibujo, pintura o arte digital.', modalities: ['virtual', 'presencial'], locations: ['art-space', 'studio'], minutes: [30, 120], defaultMinutes: 60, maxParticipants: 4 }),
@@ -166,10 +166,10 @@ export const RESERVE_EXPERIENCE_TYPES: ReserveExperienceType[] = [
   // Beauty
   t({ id: 'beauty-consulting', name: 'Asesoría de belleza', icon: 'fa-wand-magic', description: 'Rutina, productos y cuidado para ti.', modalities: ['virtual'], locations: [], minutes: [20, 60], defaultMinutes: 30, maxParticipants: 1 }),
   t({ id: 'styling', name: 'Styling', icon: 'fa-shirt', description: 'Asesoría de imagen y estilo.', modalities: ['virtual', 'presencial'], locations: ['salon', 'studio', 'commercial-space'], minutes: [30, 120], defaultMinutes: 60, maxParticipants: 2 }),
-  t({ id: 'makeup-session', name: 'Sesión de maquillaje', icon: 'fa-brush', description: 'Maquillaje guiado o aplicado por el creator.', modalities: ['virtual', 'presencial'], locations: ['salon', 'studio'], minutes: [30, 120], defaultMinutes: 60, maxParticipants: 2 }),
+  t({ id: 'makeup-session', name: 'Sesión de maquillaje', icon: 'fa-brush', description: 'Maquillaje guiado o aplicado por el creador.', modalities: ['virtual', 'presencial'], locations: ['salon', 'studio'], minutes: [30, 120], defaultMinutes: 60, maxParticipants: 2 }),
 
   // Lifestyle
-  t({ id: 'themed-experience', name: 'Experiencia temática', icon: 'fa-compass', description: 'Experiencia con un tema y un plan definidos, aprobada por el creator.', modalities: ['presencial', 'evento'], locations: ['event-venue', 'commercial-space', 'public-place', 'restaurant'], minutes: [30, 180], defaultMinutes: 90, maxParticipants: 8, alwaysManual: true }),
+  t({ id: 'themed-experience', name: 'Experiencia temática', icon: 'fa-compass', description: 'Experiencia con un tema y un plan definidos, aprobada por el creador.', modalities: ['presencial', 'evento'], locations: ['event-venue', 'commercial-space', 'public-place', 'restaurant'], minutes: [30, 180], defaultMinutes: 90, maxParticipants: 8, alwaysManual: true }),
 ];
 
 export const EXPERIENCE_TYPE_IDS = RESERVE_EXPERIENCE_TYPES.map((x) => x.id);
@@ -184,7 +184,7 @@ export const PROHIBITED_EXPERIENCES = [
   'Vender compañía o tiempo personal ("pasar tiempo conmigo") sin un servicio definido',
   'Cita romántica o "date" remunerada',
   'Compensated dating',
-  'Hotel, habitación o lugar "discreto" como lugar de la experiencia (en el lugar del creator o del fan solo servicios profesionales, nunca en Tu gente)',
+  'Hotel, habitación o lugar "discreto" como lugar de la experiencia (en el lugar del creador o del fan solo servicios profesionales, nunca en Tu gente)',
   'Servicios de escort o acompañamiento',
   'Cualquier actividad sexual, virtual o presencial',
   'Lives sexuales o sexting remunerado',
@@ -459,7 +459,7 @@ export type CancellationPolicyId = 'flexible' | 'moderate' | 'strict';
 export const CANCELLATION_POLICIES: Record<CancellationPolicyId, { label: string; summary: string }> = {
   flexible: { label: 'Flexible', summary: 'Cancelación sin coste hasta 24 h antes.' },
   moderate: { label: 'Moderada', summary: 'Cancelación sin coste hasta 72 h antes; después, se retiene el 50%.' },
-  strict: { label: 'Estricta', summary: 'Sin reembolso una vez confirmada, salvo que el creator cancele.' },
+  strict: { label: 'Estricta', summary: 'Sin reembolso una vez confirmada, salvo que el creador cancele.' },
 };
 
 export const MIN_NOTICE_OPTIONS = [24, 48, 72, 168];
@@ -507,7 +507,7 @@ export type ReserveStatus =
 
 export const RESERVE_STATUSES: Record<ReserveStatus, { label: string; icon: string; className: string }> = {
   pending: { label: 'Solicitud pendiente', icon: 'fa-hourglass-half', className: 'bg-amber-50 text-amber-800 ring-amber-200' },
-  countered: { label: 'Contraoferta del creator', icon: 'fa-right-left', className: 'bg-iris-50 text-iris-700 ring-iris-200' },
+  countered: { label: 'Contraoferta del creador', icon: 'fa-right-left', className: 'bg-iris-50 text-iris-700 ring-iris-200' },
   accepted: { label: 'Aceptada · pendiente de pago', icon: 'fa-credit-card', className: 'bg-blue-50 text-blue-700 ring-blue-200' },
   confirmed: { label: 'Confirmada', icon: 'fa-circle-check', className: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
   completed: { label: 'Realizada', icon: 'fa-flag-checkered', className: 'bg-gray-100 text-gray-700 ring-gray-200' },
@@ -532,11 +532,11 @@ export const RESERVE_FLOW = ['Solicitud', 'Aceptación', 'Pago', 'Confirmación'
 export const RESERVE_COPY = {
   principle: 'Reservas experiencias, no personas.',
   gift: 'Los regalos son apoyo voluntario. No garantizan respuesta, conversación, acceso ni experiencias de Reserve.',
-  subscription: 'La suscripción da acceso al contenido, a los Lives para suscriptores y a los beneficios que el creator define. No incluye Reserve Events, sesiones privadas ni otras experiencias de Reserve.',
-  subscriberLive: 'Live grupal incluido en tu suscripción. No es tiempo privado con el creator ni garantiza interacción individual.',
+  subscription: 'La suscripción da acceso al contenido, a los Lives para suscriptores y a los beneficios que el creador define. No incluye Reserve Events, sesiones privadas ni otras experiencias de Reserve.',
+  subscriberLive: 'Live grupal incluido en tu suscripción. No es tiempo privado con el creador ni garantiza interacción individual.',
   event: 'Reserve Event: experiencia grupal con fecha, duración, precio y plazas definidas. Tu plaza garantiza el acceso al evento, no tiempo privado.',
-  oneToOne: 'Reserve 1:1: sesión privada solo entre tú y el creator, dentro de la reserva confirmada.',
-  reserve: 'Una Reserve es una experiencia concreta, con fecha, duración, precio y condiciones definidas por el creator, que el creator acepta o rechaza.',
+  oneToOne: 'Reserve 1:1: sesión privada solo entre tú y el creador, dentro de la reserva confirmada.',
+  reserve: 'Una Reserve es una experiencia concreta, con fecha, duración, precio y condiciones definidas por el creador, que el creador acepta o rechaza.',
   testPayments: 'Pagos en modo de prueba: no se realiza ningún cargo real.',
   legalDraft: 'Borrador. Requiere revisión legal antes del lanzamiento a producción.',
 };

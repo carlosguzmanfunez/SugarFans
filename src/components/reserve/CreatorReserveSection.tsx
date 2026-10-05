@@ -21,7 +21,7 @@ interface Props {
 // Reserve's products on a profile, in this order.
 const GROUPS: { id: ReserveProduct; title: string; hint: string }[] = [
   { id: 'event', title: RESERVE_FORMATS.event.product, hint: 'En grupo, con fecha fija y plazas limitadas. Reserva tu plaza.' },
-  { id: 'one-to-one', title: RESERVE_FORMATS.private.product, hint: 'Sesión privada: solo tú y el creator en la sala.' },
+  { id: 'one-to-one', title: RESERVE_FORMATS.private.product, hint: 'Sesión privada: solo tú y el creador en la sala.' },
   { id: 'other', title: 'Otras experiencias', hint: 'Presenciales, profesionales o entregadas en la app.' },
 ];
 

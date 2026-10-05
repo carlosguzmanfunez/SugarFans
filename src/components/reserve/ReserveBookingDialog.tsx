@@ -177,7 +177,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
             <div className="rounded-2xl border border-line p-4">
               <p className="mb-2 text-sm font-semibold text-ink">Tu plaza</p>
               <EventFacts exp={exp} seatsTaken={seatsTaken} />
-              <p className="mt-2 text-xs text-ink/70">Una plaza por fan. La fecha y la hora las fija el creator para todos los participantes.</p>
+              <p className="mt-2 text-xs text-ink/70">Una plaza por fan. La fecha y la hora las fija el creador para todos los participantes.</p>
             </div>
           ) : (
           <div>
@@ -215,7 +215,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
               maxLength={500}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder={(d.locationTypes ?? []).includes('fan-place') ? 'Qué te gustaría, tu nivel y, si lo quieres en tu lugar, la dirección o la zona (solo la ve el creator)' : 'Tema que te gustaría tratar, tu nivel, alguna pregunta…'}
+              placeholder={(d.locationTypes ?? []).includes('fan-place') ? 'Qué te gustaría, tu nivel y, si lo quieres en tu lugar, la dirección o la zona (solo la ve el creador)' : 'Tema que te gustaría tratar, tu nivel, alguna pregunta…'}
               className="mt-1 block w-full rounded-xl border border-line px-3 py-2.5"
             />
           </label>
