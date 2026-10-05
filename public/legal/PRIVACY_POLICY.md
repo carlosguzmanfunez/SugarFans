@@ -309,7 +309,7 @@ En caso de violación de datos:
 
 **NO recopilamos conscientemente información de menores de 18 años.**
 
-- La Plataforma es exclusivamente para adultos (18+)
+- La Plataforma es solo para mayores de 18 años
 - Todos los Usuarios confirman que son mayores de 18 años al entrar y al registrarse; los Creadores verifican su edad con documento y selfie
 - Eliminamos inmediatamente cualquier cuenta de menor identificada
 - Reportamos a autoridades cualquier sospecha de contenido con menores

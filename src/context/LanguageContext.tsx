@@ -152,7 +152,7 @@ const translations: Record<Language, Record<string, string>> = {
     'login.or': 'or continue with',
     'login.noAccount': 'Don\'t have an account?',
     'login.register': 'Sign up for free',
-    'login.demo': 'Quick demo:',
+    'login.demo': 'Demo access',
     
     // Register
     'register.createAccount': 'Create account',
@@ -238,7 +238,7 @@ const translations: Record<Language, Record<string, string>> = {
     'login.or': 'ou continue com',
     'login.noAccount': 'Não tem conta?',
     'login.register': 'Cadastre-se grátis',
-    'login.demo': 'Demo rápida:',
+    'login.demo': 'Acesso demo',
     
     // Register
     'register.createAccount': 'Criar conta',
@@ -324,7 +324,7 @@ const translations: Record<Language, Record<string, string>> = {
     'login.or': 'ou continuer avec',
     'login.noAccount': 'Vous n\'avez pas de compte?',
     'login.register': 'Inscrivez-vous gratuitement',
-    'login.demo': 'Démo rapide:',
+    'login.demo': 'Accès démo',
     
     // Register
     'register.createAccount': 'Créer un compte',
@@ -410,7 +410,7 @@ const translations: Record<Language, Record<string, string>> = {
     'login.or': 'o continua con',
     'login.noAccount': 'Non hai un account?',
     'login.register': 'Registrati gratuitamente',
-    'login.demo': 'Demo veloce:',
+    'login.demo': 'Accesso demo',
     
     // Register
     'register.createAccount': 'Crea account',
@@ -426,7 +426,7 @@ const translations: Record<Language, Record<string, string>> = {
     'register.continue': 'Continua',
     'register.back': 'Indietro',
     'register.fan': 'Fan',
-    'register.fanDesc': 'Vedi e supporta creatori',
+    'register.fanDesc': 'Segui e sostieni i creator',
     'register.creator': 'Creatore',
     'register.creatorDesc': 'Pubblica e monetizza',
     'register.terms': 'Accetto i',

@@ -1903,6 +1903,22 @@ const run = async () => {
       const bad = texts.filter((t) => /adult|para adultos|pour adultes|per adulti|explicit/i.test(t));
       expect(!bad.length, `dice: ${bad.join(' | ')}`);
     });
+    await check('Los 5 idiomas tienen los mismos textos y el mismo marco de marca', async () => {
+      const src = readFileSync('src/context/LanguageContext.tsx', 'utf8');
+      const body = src.slice(src.indexOf('const translations'), src.indexOf('export const LanguageProvider'));
+      const blocks = Object.fromEntries(
+        [...body.matchAll(/\n  (es|en|pt|fr|it): \{([\s\S]*?)\n  \},/g)].map((m) => [m[1], m[2]]),
+      );
+      expect(Object.keys(blocks).length === 5, `idiomas: ${Object.keys(blocks).join(', ')}`);
+      const keysOf = (b) => [...b.matchAll(/'([\w.]+)':/g)].map((m) => m[1]).sort().join(',');
+      for (const lang of ['en', 'pt', 'fr', 'it']) {
+        expect(keysOf(blocks[lang]) === keysOf(blocks.es), `${lang} no tiene los mismos textos que es`);
+      }
+      const offBrand = /adult|explicit|xxx|sexy|er[oó]tic|onlyfans|escort|terron|coins?\b|tokens?\b|moedas|pi[eè]ces|monete/i;
+      const values = [...body.matchAll(/'[\w.]+': '((?:[^'\\]|\\.)*)'/g)].map((m) => m[1]).filter((v) => !v.includes('@sugarfans.com'));
+      const bad = values.filter((v) => offBrand.test(v));
+      expect(!bad.length, `fuera de marca: ${bad.join(' | ')}`);
+    });
     await check('Tu gente (antes Modelos) existe y marca la línea de contenido', async () => {
       const mg = R.CREATOR_CATEGORIES.find((c) => c.name === 'Tu gente');
       expect(!!mg, 'falta Tu gente');
