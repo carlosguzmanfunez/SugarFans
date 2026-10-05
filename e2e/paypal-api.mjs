@@ -43,6 +43,11 @@ globalThis.fetch = async (url, init = {}) => {
   if (u.includes('/rest/v1/paypal_orders?id=eq.')) {
     const id = decodeURIComponent(u.split('id=eq.')[1].split('&')[0]);
     const o = db.orders.get(id);
+    if (init.method === 'PATCH') {
+      if (h.apikey !== 'sb_secret_test') return res(401, {});
+      if (o.status === 'created') o.fee = body.fee;
+      return res(204, null);
+    }
     return res(200, o && o.user === 'fan-1' ? [{ status: o.status, amount: o.amount }] : []);
   }
   if (u.endsWith('/rest/v1/rpc/paypal_fulfill')) {
@@ -182,7 +187,7 @@ globalThis.fetch = async (url, init = {}) => {
     const o = pp.orders.get(cap[1]);
     if (o.captured) return res(422, { name: 'UNPROCESSABLE_ENTITY', details: [{ issue: 'ORDER_ALREADY_CAPTURED' }] });
     o.captured = true;
-    return res(201, { id: cap[1], status: pp.captureStatus, purchase_units: [{ payments: { captures: [{ id: `CAP-${cap[1]}`, status: pp.captureStatus, amount: o.amount }] } }] });
+    return res(201, { id: cap[1], status: pp.captureStatus, purchase_units: [{ payments: { captures: [{ id: `CAP-${cap[1]}`, status: pp.captureStatus, amount: o.amount, seller_receivable_breakdown: { paypal_fee: { currency_code: 'USD', value: '0.57' } } }] } }] });
   }
   const get = u.match(/\/v2\/checkout\/orders\/(\w+)$/);
   if (get) {
@@ -266,6 +271,7 @@ await check('Capturar confirma la compra una sola vez', async () => {
   expect(r.status === 200 && r.data.ok && r.data.captureId === `CAP-${data.orderId}`, JSON.stringify(r.data));
   const f = db.fulfilled.at(-1);
   expect(f.p_order_id === data.orderId && f.p_user === 'fan-1' && f.p_amount === 12.5 && f.p_capture_id === `CAP-${data.orderId}`, JSON.stringify(f));
+  expect(db.orders.get(data.orderId).fee === 0.57, 'no guardó la comisión de PayPal antes de entregar');
   const n = db.fulfilled.length;
   const again = await post({ action: 'capture', orderId: data.orderId });
   expect(again.status === 200 && db.fulfilled.length === n, 'se cumplió dos veces');
@@ -437,7 +443,7 @@ await check('Un retiro a un email sin cuenta PayPal se puede cancelar y vuelve a
 });
 
 await check('La service role solo se usa en llamadas del servidor', async () => {
-  const leaked = calls.filter((c) => c.h.apikey === 'sb_secret_test' && !/paypal_(register|fulfill|mark|catalog|subscription_(register|activate|payment|ended)|payout_(start|mark))|\/rest\/v1\/payouts\?/.test(c.u));
+  const leaked = calls.filter((c) => c.h.apikey === 'sb_secret_test' && !/paypal_(register|fulfill|mark|catalog|subscription_(register|activate|payment|ended)|payout_(start|mark))|\/rest\/v1\/payouts\?|\/rest\/v1\/paypal_orders\?id=eq\.[^&]+&status=eq\.created$/.test(c.u));
   expect(leaked.length === 0, leaked.map((c) => c.u).join(', '));
 });
 

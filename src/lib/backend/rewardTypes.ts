@@ -33,7 +33,7 @@ export interface CreatorRewards {
 export interface FeaturedCreator {
   creatorProfileId: string;
   level: LevelId;
-  reason: 'level' | 'goal';
+  reason: 'level' | 'goal' | 'special'; // special: an account the admin gave extra visibility
 }
 
 export interface RewardsBackend {
@@ -41,6 +41,7 @@ export interface RewardsBackend {
   myRewards(user: User): Promise<CreatorRewards>;
   // Public: level of each creator profile (Bronce when unknown).
   levels(creatorProfileIds: string[]): Promise<Record<string, LevelId>>;
-  // Public: creators featured this month (Oro and Diamante, or a goal reached this month or last).
+  // Public: special accounts with extra visibility, then creators featured this month
+  // (Oro and Diamante, or a goal reached this month or last).
   featured(): Promise<FeaturedCreator[]>;
 }

@@ -41,9 +41,9 @@ const asUser = (token: string) => ({ apikey: SUPABASE_ANON_KEY, authorization: `
 // New secret keys (sb_secret_…) go in apikey only; the legacy service_role key is a JWT.
 const asServer = (key: string): Record<string, string> => (key.startsWith('eyJ') ? { apikey: key, authorization: `Bearer ${key}` } : { apikey: key });
 
-const supabase = async (path: string, headers: Record<string, string>, body?: unknown) => {
+const supabase = async (path: string, headers: Record<string, string>, body?: unknown, method?: 'PATCH') => {
   const r = await fetch(`${SUPABASE_URL}${path}`, {
-    method: body === undefined ? 'GET' : 'POST',
+    method: method ?? (body === undefined ? 'GET' : 'POST'),
     headers: { ...headers, 'content-type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
@@ -89,9 +89,18 @@ const paypal = async (e: ReturnType<typeof env>, token: string, path: string, bo
 };
 
 // The completed capture of an order, if any.
-const captureOf = (order: any): { id: string; value: number; currency: string } | null => {
+// `fee` is what PayPal kept for it, when PayPal says so (special accounts deduct it).
+const captureOf = (order: any): { id: string; value: number; currency: string; fee: number | null } | null => {
   const c = order?.purchase_units?.[0]?.payments?.captures?.find((x: any) => x?.status === 'COMPLETED');
-  return c ? { id: String(c.id), value: Number(c.amount?.value), currency: String(c.amount?.currency_code) } : null;
+  const fee = c?.seller_receivable_breakdown?.paypal_fee;
+  return c
+    ? {
+        id: String(c.id),
+        value: Number(c.amount?.value),
+        currency: String(c.amount?.currency_code),
+        fee: fee?.currency_code === 'USD' && Number.isFinite(Number(fee.value)) ? Number(fee.value) : null,
+      }
+    : null;
 };
 
 // --- Subscriptions --------------------------------------------------------------
@@ -442,6 +451,10 @@ export async function POST(request: Request): Promise<Response> {
         return json(402, { error: declined ? 'PayPal rechazó el método de pago. Prueba con otro.' : 'PayPal no completó el pago.' });
       }
 
+      // Saved first: a special account's Reserve payment deducts it (see set_special_share).
+      if (capture.fee !== null) {
+        await supabase(`/rest/v1/paypal_orders?id=eq.${encodeURIComponent(orderId)}&status=eq.created`, asServer(e.serviceKey), { fee: capture.fee }, 'PATCH');
+      }
       const done = await supabase('/rest/v1/rpc/paypal_fulfill', asServer(e.serviceKey), {
         p_order_id: orderId,
         p_user: userId,
