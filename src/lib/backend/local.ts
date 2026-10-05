@@ -39,6 +39,7 @@ import { createLocalPlatform } from './localPlatform';
 import { createLocalSocial } from './localSocial';
 import { createLocalGifts } from './localGifts';
 import { createLocalRewards } from './localRewards';
+import { createLocalSpecial } from './localSpecial';
 import { createLocalLive } from './localLive';
 import { creators as demoCreators } from '../../data/mockData';
 import { moderate } from '../moderation';
@@ -226,6 +227,16 @@ const rewards = createLocalRewards({
       ...loadAccounts().flatMap((a) => (a.role === 'creator' && a.creatorProfileId ? [a.creatorProfileId] : [])),
     ]),
   ],
+  specialFeatured: () => special.featuredIds(),
+});
+
+const special = createLocalSpecial({
+  currentUser: () => {
+    const id = readSession();
+    const account = id ? loadAccounts().find((a) => a.id === id) : undefined;
+    return account ? toPublic(account) : null;
+  },
+  notify,
 });
 
 const social = createLocalSocial({
@@ -268,6 +279,7 @@ export const localBackend: Backend = {
   social,
   gifts,
   rewards,
+  special,
   live,
 
   async getCurrentUser() {
@@ -719,6 +731,7 @@ export const localBackend: Backend = {
       creatorName: b.creatorName,
       kind: 'vip',
       amount: round2(b.price),
+      share: special.reserveShare(b.creatorProfileId, round2(b.price)),
       note: b.title,
       methodLabel,
       status: 'paid',

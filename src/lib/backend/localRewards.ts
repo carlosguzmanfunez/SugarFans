@@ -29,6 +29,8 @@ interface Deps {
   listAccounts(): User[];
   // Every public creator profile id (demo, registered and managed) for the featured list.
   creatorProfileIds(): string[];
+  // Special accounts with extra visibility, listed first.
+  specialFeatured(): string[];
 }
 
 const KEY = 'referrals';
@@ -152,8 +154,10 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
       const at = new Date();
       const all = refs();
       const books = txs();
+      const special = deps.specialFeatured();
       const out: (FeaturedCreator & { fans: number })[] = [];
       for (const id of deps.creatorProfileIds()) {
+        if (special.includes(id)) continue;
         const fans = activeFans(books, id, at);
         const level = levelFor(fans);
         const goal =
@@ -162,10 +166,13 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
         const high = LEVELS.indexOf(level) >= 2;
         if (high || goal) out.push({ creatorProfileId: id, level: level.id, reason: high ? 'level' : 'goal', fans });
       }
-      return out
-        .sort((a, b) => b.fans - a.fans)
-        .slice(0, 8)
-        .map(({ fans: _f, ...f }) => f);
+      return [
+        ...special.map((id): FeaturedCreator => ({ creatorProfileId: id, level: levelOf(id), reason: 'special' })),
+        ...out
+          .sort((a, b) => b.fans - a.fans)
+          .slice(0, 8)
+          .map(({ fans: _f, ...f }) => f),
+      ];
     },
   };
 };

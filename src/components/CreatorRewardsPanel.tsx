@@ -16,6 +16,7 @@ import {
   type CreatorRewards,
 } from '../lib/rewards';
 import { BRAND } from '../config/brand';
+import { ratePct, specialApi } from '../lib/special';
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 const EMPTY: CreatorRewards = { level: 'bronce', activeFans: 0, share: 0.8, bonus: 0, attractedThisMonth: 0, attractedLastMonth: 0, referrals: [], invitedCreators: [] };
@@ -24,6 +25,7 @@ const EMPTY: CreatorRewards = { level: 'bronce', activeFans: 0, share: 0.8, bonu
 const CreatorRewardsPanel: React.FC = () => {
   const { user } = useAuth();
   const { data } = usePlatformQuery(() => (user ? rewardsApi.myRewards(user) : Promise.resolve(EMPTY)), [user?.id], EMPTY);
+  const { data: special } = usePlatformQuery(() => (user ? specialApi.mine() : Promise.resolve(null)), [user?.id], null);
   const [copied, setCopied] = useState('');
   if (!user) return null;
 
@@ -45,6 +47,25 @@ const CreatorRewardsPanel: React.FC = () => {
 
   return (
     <div className="space-y-6" data-testid="rewards-panel">
+      {special && !special.revokedAt && (
+        <div className="bg-white rounded-2xl p-6 shadow-sm border-2 border-purple-200" data-testid="special-plan">
+          <h3 className="font-bold text-gray-900 mb-2"><i aria-hidden="true" className="fas fa-star text-purple-500 mr-2"></i>Tienes un plan especial</h3>
+          <ul className="text-sm text-gray-700 space-y-1">
+            {special.reserveNet && (
+              <li>
+                <span className="font-semibold">Reserve al neto:</span> recibes cada pago de Reserve completo, menos la comisión que cobra PayPal por ese pago
+                {special.taxRate > 0 ? ` y el ${ratePct(special.taxRate)} de impuesto` : ''}.
+              </li>
+            )}
+            {special.featured && (
+              <li>
+                <span className="font-semibold">Visibilidad extra:</span> apareces primero entre los creadores destacados.
+              </li>
+            )}
+            <li className="text-gray-500">Suscripciones, propinas y regalos siguen con tu comisión normal. Al retirar, PayPal cobra su comisión de envío como siempre.</li>
+          </ul>
+        </div>
+      )}
       <div className="grid md:grid-cols-3 gap-4">
         <div className="bg-white rounded-2xl p-5 shadow-sm">
           <p className="text-sm text-gray-500">Tu nivel</p>
