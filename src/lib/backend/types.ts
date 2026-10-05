@@ -94,7 +94,8 @@ export interface TakenSlot {
 
 // pending: waiting for the creator · countered: the creator proposed other
 // terms, waiting for the fan · accepted: waiting for the fan's payment ·
-// confirmed: paid, confirmation email sent · rejected / cancelled: closed.
+// confirmed: paid, confirmation email sent · rejected / cancelled: closed ·
+// expired: nobody answered within RESERVE_RESPONSE_HOURS (nothing was charged).
 // reschedule_requested, completed and disputed are reserved for the next phase
 // (the database accepts them; "realizada" is derived from the date for now).
 export type BookingStatus =
@@ -106,7 +107,8 @@ export type BookingStatus =
   | 'cancelled'
   | 'reschedule_requested'
   | 'completed'
-  | 'disputed';
+  | 'disputed'
+  | 'expired';
 
 // Terms a creator proposes instead of the requested ones.
 export interface CounterOffer {
@@ -159,6 +161,11 @@ export interface VipBooking {
   // Minutes of the experience (the live video session when it is virtual).
   durationMinutes?: number;
   details?: BookingDetails;
+  // When the creator first saw the request (the fan sees "Vista").
+  seenAt?: string;
+  // Deadline to answer a pending request (creator) or a counter-offer (fan);
+  // past it the booking becomes 'expired'.
+  respondBy?: string;
 }
 
 // The creator, title and price come from the experience itself (server side).
@@ -302,6 +309,11 @@ export interface Backend {
   saveExperience(user: User, input: VipExperienceInput, id?: string): Promise<AuthResult>;
   deleteExperience(user: User, id: string): Promise<AuthResult>;
   fanBookings(fanId: string): Promise<VipBooking[]>;
+  // The creator opened their requests: the waiting ones count as seen.
+  markBookingsSeen(user: User): Promise<void>;
+  // This device's Web Push subscription (phone alerts), tied to the signed-in person.
+  savePushSubscription(sub: { endpoint: string; p256dh: string; auth: string }): Promise<AuthResult>;
+  deletePushSubscription(endpoint: string): Promise<void>;
   creatorBookings(creatorProfileId: string): Promise<VipBooking[]>;
 
   // Verification, payments, payouts, reports and blocks (see platformTypes.ts).

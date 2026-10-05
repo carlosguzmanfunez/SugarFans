@@ -37,6 +37,14 @@ const expired = (b: StoredBroadcast) =>
   Date.now() - new Date(b.startedAt).getTime() > LIVE_MAX_HOURS * 3600_000 ||
   (!!b.lastSeenAt && Date.now() - new Date(b.lastSeenAt).getTime() > LIVE_STALE_MINUTES * 60_000);
 
+// Adds a notice to someone's inbox (Reserve alerts from the local bookings store).
+// The caller signals the change, which reaches the bell through onChange.
+export const addLocalNotification = (userId: string, n: Omit<AppNotification, 'id' | 'createdAt' | 'read'>) => {
+  const st = readJSON<Partial<Store>>(KEY, {});
+  const item: AppNotification = { ...n, id: newId(), createdAt: new Date().toISOString(), read: false };
+  writeJSONChecked(KEY, { ...st, notifications: { ...st.notifications, [userId]: [item, ...(st.notifications?.[userId] ?? [])].slice(0, MAX_NOTIFICATIONS) } });
+};
+
 export const createLocalLive = (deps: Deps): LiveBackend => {
   const load = (): Store => ({ broadcasts: [], notifications: {}, alertsOff: {}, ...readJSON<Partial<Store>>(KEY, {}) });
   const save = (st: Store) => {

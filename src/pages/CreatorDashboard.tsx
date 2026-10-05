@@ -11,6 +11,9 @@ import { backend } from '../lib/backend';
 import { useBackendData } from '../lib/useBackendData';
 import NewPostForm from '../components/NewPostForm';
 import CreatorReservePanel from '../components/reserve/CreatorReservePanel';
+import { RedDot } from '../components/MobileTabBar';
+import { onNewNotification } from '../lib/live';
+import { needsCreatorAnswer } from '../lib/reserveAlerts';
 import { CREATOR_CATEGORIES, categoryFor } from '../config/reserve';
 import { creators as demoCreators } from '../data/mockData';
 import { socialApi, compactCount } from '../lib/social';
@@ -19,8 +22,11 @@ import { BRAND, displayPayer } from '../config/brand';
 
 const CreatorDashboard: React.FC = () => {
   const { user, deletePost, updateUser } = useAuth();
-  const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'overview');
+  // The open tab lives in the address (?tab=vip), so "Reservas" in the menus opens
+  // it even when the panel is already on screen, and back/forward move between tabs.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'overview';
+  const setActiveTab = (id: string) => setSearchParams(id === 'overview' ? {} : { tab: id }, { replace: true });
   const [showNewPost, setShowNewPost] = useState(false);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -41,7 +47,10 @@ const CreatorDashboard: React.FC = () => {
     });
   }, [profileId]);
   const { data: vipBookings, reload: reloadBookings } = useBackendData(() => backend.creatorBookings(profileId), [profileId], []);
-  const pendingVip = vipBookings.filter((b) => b.status === 'pending' || b.status === 'reschedule_requested').length;
+  const pendingVip = vipBookings.filter((b) => needsCreatorAnswer(b)).length;
+  // A new request shows up in the list at once.
+  const userId = user?.id;
+  useEffect(() => (userId ? onNewNotification(userId, reloadBookings) : undefined), [userId, reloadBookings]);
 
   // Real verification state, fan payments (80% for the creator), subscribers and blocks.
   const verified = !!user?.isVerified;
@@ -191,7 +200,7 @@ const CreatorDashboard: React.FC = () => {
             { id: 'earnings', label: 'Ingresos', icon: 'fa-wallet' },
             { id: 'gifts', label: 'Regalos', icon: 'fa-gift' },
             { id: 'rewards', label: 'Recompensas', icon: 'fa-trophy' },
-            { id: 'vip', label: `Reserve${pendingVip ? ` (${pendingVip})` : ''}`, icon: 'fa-ticket' },
+            { id: 'vip', label: 'Reservas', icon: 'fa-ticket', badge: pendingVip },
             { id: 'settings', label: 'Configuración', icon: 'fa-cog' },
           ].map((tab) => (
             <button
@@ -202,6 +211,12 @@ const CreatorDashboard: React.FC = () => {
               }`}
             >
               <i aria-hidden="true" className={`fas ${tab.icon} mr-1`}></i> {tab.label}
+              {'badge' in tab && !!tab.badge && (
+                <>
+                  <RedDot count={tab.badge} className="ml-1.5 inline-flex align-[1px]" />
+                  <span className="sr-only">, {tab.badge} por responder</span>
+                </>
+              )}
             </button>
           ))}
         </div>

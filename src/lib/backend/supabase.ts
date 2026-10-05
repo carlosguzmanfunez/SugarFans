@@ -85,6 +85,9 @@ interface BookingRow {
   duration_minutes: number | null;
   // Missing until migration 20261002000001_reserve is applied.
   details?: BookingDetails | null;
+  // Missing until migration 20261005000002_reserve_alerts is applied.
+  seen_at?: string | null;
+  respond_by?: string | null;
 }
 
 interface ExperienceRow {
@@ -161,6 +164,8 @@ const toBooking = (b: BookingRow): VipBooking => ({
   emailSentAt: b.email_sent_at ?? undefined,
   durationMinutes: b.duration_minutes ?? undefined,
   ...(hasDetails(b.details) ? { details: b.details as BookingDetails } : {}),
+  ...(b.seen_at ? { seenAt: b.seen_at } : {}),
+  ...(b.respond_by ? { respondBy: b.respond_by } : {}),
 });
 
 const ok = { ok: true } as const;
@@ -559,6 +564,20 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
     async fanBookings(fanId) {
       const { data } = await sb.from('vip_bookings').select('*').eq('fan_id', fanId).order('created_at', { ascending: false });
       return (data ?? []).map((b) => toBooking(b as BookingRow));
+    },
+
+    async markBookingsSeen() {
+      // Quietly does nothing until the migration is applied.
+      await sb.rpc('reserve_mark_seen');
+    },
+
+    async savePushSubscription(sub) {
+      const { error } = await sb.rpc('save_push_subscription', { p_endpoint: sub.endpoint, p_p256dh: sub.p256dh, p_auth: sub.auth });
+      return error ? fail('No se pudieron activar los avisos. Inténtalo de nuevo.') : ok;
+    },
+
+    async deletePushSubscription(endpoint) {
+      await sb.rpc('delete_push_subscription', { p_endpoint: endpoint });
     },
 
     async creatorBookings(id) {

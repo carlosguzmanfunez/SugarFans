@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { backend } from '../../lib/backend';
 import { usePlatformQuery, platformChanged, money } from '../../lib/platform';
 import { creators as demoCreators } from '../../data/mockData';
-import { categoryFor, RESERVE_COPY } from '../../config/reserve';
+import { categoryFor, RESERVE_COPY, RESERVE_RESPONSE_HOURS } from '../../config/reserve';
 import { detailsOf, reserveStatusOf, typeOf, type Availability, type VipBooking, type VipExperience } from '../../lib/vip';
 import ReserveExperienceWizard from './ReserveExperienceWizard';
 import ReserveBookingCard from './ReserveBookingCard';
 import { ExperienceFacts } from './ReserveBits';
+import PushOptIn from '../PushOptIn';
 
 interface Props {
   availability: Availability;
@@ -26,14 +27,31 @@ const CreatorReservePanel: React.FC<Props> = ({ availability, bookings, reloadBo
   const profileId = user?.creatorProfileId ?? '';
   const { data: all, reload } = usePlatformQuery(() => backend.listExperiences(), [], [] as VipExperience[]);
   const mine = all.filter((e) => e.creatorProfileId === profileId);
-  const [section, setSection] = useState<Section>('experiences');
+  const [picked, setPicked] = useState<Section | null>(null);
   const [wizard, setWizard] = useState<{ editing?: VipExperience } | null>(null);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const requests = bookings.filter((b) => {
+    const s = reserveStatusOf(b);
+    return s === 'pending' || s === 'countered' || s === 'reschedule_requested';
+  });
+  // Opens on Solicitudes while some are waiting, otherwise on the experiences.
+  const section: Section = picked ?? (requests.length ? 'requests' : 'experiences');
+  const setSection = (s: Section) => setPicked(s);
+  useEffect(() => {
+    if (!picked && requests.length) setPicked('requests');
+  }, [picked, requests.length]);
+
+  // Looking at Solicitudes counts as having read them: the fan sees "Vista".
+  const unseen = section === 'requests' && requests.some((b) => !b.seenAt && b.status === 'pending');
+  useEffect(() => {
+    if (!unseen || !user) return;
+    backend.markBookingsSeen(user).then(reloadBookings);
+  }, [unseen, user, reloadBookings]);
 
   if (!user || user.role !== 'creator') return null;
   const category = categoryFor(user.settings.category || demoCreators.find((c) => c.id === profileId)?.category);
 
-  const requests = bookings.filter((b) => b.status === 'pending' || b.status === 'countered' || b.status === 'reschedule_requested');
   const upcoming = bookings.filter((b) => {
     const s = reserveStatusOf(b);
     return s === 'accepted' || s === 'confirmed';
@@ -173,7 +191,16 @@ const CreatorReservePanel: React.FC<Props> = ({ availability, bookings, reloadBo
         </div>
       )}
 
-      {section === 'requests' && <div data-testid="vip-requests">{list(requests, 'No tienes solicitudes pendientes.', 'vip-request')}</div>}
+      {section === 'requests' && (
+        <div data-testid="vip-requests" className="space-y-3">
+          <PushOptIn user={user} />
+          <p className="text-xs text-muted">
+            <i aria-hidden="true" className="fas fa-clock mr-1"></i>
+            Tienes {RESERVE_RESPONSE_HOURS} horas para responder cada solicitud. Si no respondes, se cierra sola, el horario queda libre y al fan no se le cobra nada.
+          </p>
+          {list(requests, 'No tienes solicitudes pendientes.', 'vip-request')}
+        </div>
+      )}
       {section === 'availability' && availabilityEditor}
       {section === 'upcoming' && <div data-testid="reserve-upcoming">{list(upcoming, 'No tienes reservas próximas.', 'vip-request')}</div>}
       {section === 'history' && <div data-testid="reserve-history">{list(history, 'Aún no hay historial.', 'vip-request')}</div>}

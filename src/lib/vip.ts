@@ -37,6 +37,7 @@ import {
   type ReserveStatus,
 } from '../config/reserve';
 import { moderate } from './moderation';
+import { isOverdue } from './reserveAlerts';
 
 export type {
   Availability,
@@ -98,7 +99,8 @@ export const normalizeAvailability = (a: Availability): Availability => ({
 });
 
 // Status as Reserve names it: a confirmed experience whose time has passed reads "Realizada".
-export const reserveStatusOf = (b: Pick<VipBooking, 'status' | 'date' | 'time' | 'durationMinutes'>, now = new Date()): ReserveStatus => {
+export const reserveStatusOf = (b: Pick<VipBooking, 'status' | 'date' | 'time' | 'durationMinutes' | 'respondBy'>, now = new Date()): ReserveStatus => {
+  if (isOverdue(b, now)) return 'expired';
   if (b.status === 'confirmed') {
     const end = liveWindow(b.date, b.time, b.durationMinutes ?? 60).closes;
     if (now > end) return 'completed';

@@ -6,7 +6,8 @@
 // Checks: Open Live refused while open_live_enabled() is false and back when true;
 // Subscriber Live alerts only active subscribers; Reserve Event seats (capacity, one
 // per fan, several fans at the same time, payment); Reserve 1:1 keeps one booking per
-// slot; guards on event seats; subscriptions and gifts create no access.
+// slot; guards on event seats; Reserve alerts, read receipts and the answer deadline;
+// subscriptions and gifts create no access.
 import { readdirSync, readFileSync } from 'node:fs';
 import { createDbTest } from './db-harness.mjs';
 
@@ -126,6 +127,45 @@ const run = async () => {
     expect(as(fanC, `select count(*) from public.vip_bookings`) === '0', 'un tercero ve reservas ajenas');
     expect(as(sub, `select count(*) from public.vip_bookings where fan_id <> '${sub}'`) === '0', 'una suscriptora ve reservas ajenas');
     expect(Number(as(creator, `select count(*) from public.vip_bookings`)) >= 4, 'el creator no ve sus reservas');
+  });
+
+  console.log('Avisos de Reserve');
+  const request = (fan, day, extra = '') =>
+    psql(DB, `insert into public.vip_bookings (experience_id, creator_profile_id, title, creator_name, price, fan_id, fan_name, fan_email, date, time, status, details) values ('custom', '${cp}', 'Clase privada', 'Vale Rose', 60, '${fan}', 'Ana Pérez', 'a@x', current_date + ${day}, '10:00', 'pending', '{"kind":"custom"}') returning id${extra}`);
+  let req = '';
+  await check('Una solicitud nueva avisa al creator y le da 48 horas para responder', async () => {
+    req = request(fanC, 20);
+    const n = psql(DB, `select kind || '|' || title || '|' || link from public.notifications where user_id = '${creator}' order by created_at desc limit 1`);
+    expect(n === 'reserve_request|Nueva solicitud de Reserve|/creator/dashboard?tab=vip', `aviso inesperado: ${n}`);
+    const hours = Number(psql(DB, `select round(extract(epoch from respond_by - now()) / 3600) from public.vip_bookings where id = '${req}'`));
+    expect(hours === 48, `plazo de ${hours} h`);
+  });
+  await check('Al abrir Reservas el creator la marca como vista y el fan lo ve', async () => {
+    expect(as(fanC, `select seen_at is null from public.vip_bookings where id = '${req}'`) === 't', 'ya estaba vista');
+    expect(as(fanC, `select public.reserve_mark_seen()`) === '0', 'un fan marcó solicitudes ajenas');
+    expect(Number(as(creator, `select public.reserve_mark_seen()`)) >= 1, 'no marcó nada');
+    expect(as(fanC, `select seen_at is not null from public.vip_bookings where id = '${req}'`) === 't', 'el fan no ve que fue vista');
+  });
+  await check('Cuando el creator acepta, el fan recibe el aviso', async () => {
+    as(creator, `select public.vip_update_booking('${req}', 'accepted')`);
+    const n = as(fanC, `select kind || '|' || title from public.notifications order by created_at desc limit 1`);
+    expect(n === 'reserve_update|Vale aceptó tu solicitud', `aviso inesperado: ${n}`);
+  });
+  await check('Sin respuesta a tiempo la solicitud expira, el fan lo sabe y el horario queda libre', async () => {
+    const late = request(fanB, 22);
+    psql(DB, `update public.vip_bookings set respond_by = now() - interval '1 minute' where id = '${late}'`);
+    raises(() => as(creator, `select public.vip_update_booking('${late}', 'accepted')`), /expiró/, 'aceptar tarde');
+    expect(psql(DB, `select public.expire_reserve_requests()`) === '1', 'no expiró');
+    expect(psql(DB, `select status from public.vip_bookings where id = '${late}'`) === 'expired', 'estado incorrecto');
+    const n = as(fanB, `select title from public.notifications order by created_at desc limit 1`);
+    expect(n === 'Tu solicitud expiró sin respuesta', `aviso inesperado: ${n}`);
+    request(fanA, 22); // the same slot can be requested again
+  });
+  await check('Cada quien guarda solo su celular para avisos; las claves del servidor no se leen', async () => {
+    as(fanA, `select public.save_push_subscription('https://push.example/abc', 'k', 'a')`);
+    expect(as(fanB, `select count(*) from public.push_subscriptions`) === '0', 'otro usuario ve la suscripción');
+    expect(as(fanA, `select count(*) from public.push_subscriptions`) === '1', 'no se guardó');
+    raises(() => as(fanA, `select count(*) from public.app_secrets`), /permission denied/, 'leer app_secrets');
   });
 
   console.log('Regalos');
