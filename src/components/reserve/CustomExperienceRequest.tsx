@@ -16,6 +16,7 @@ import {
   locationsFor,
   purposesFor,
   type ReserveModality,
+  RESERVE_RESPONSE_HOURS,
 } from '../../config/reserve';
 import type { User } from '../../context/AuthContext';
 
@@ -119,7 +120,7 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
             <i aria-hidden="true" className="fas fa-check text-xl"></i>
           </span>
           <p className="text-sm text-ink/70">
-            {first} revisará tu propuesta. Puede aceptarla, rechazarla, pedirte cambios o enviarte una contraoferta con otra fecha, precio o duración.
+            {first} revisará tu propuesta y tiene {RESERVE_RESPONSE_HOURS} horas para responder. Puede aceptarla, rechazarla, pedirte cambios o enviarte una contraoferta con otra fecha, precio o duración. En Mis reservas verás cuando la vea; si no responde a tiempo, se cierra sola y no se te cobra nada.
           </p>
           <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
             <button type="button" onClick={onClose} className="h-11 rounded-full border border-line px-6 text-sm font-semibold text-ink">Cerrar</button>

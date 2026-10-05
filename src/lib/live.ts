@@ -6,6 +6,7 @@ import type { AuthResult, User } from './backend/types';
 import { platformChanged, usePlatformQuery } from './platform';
 import { ENABLE_OPEN_LIVE } from '../config/features';
 import type { BroadcastMode } from './backend/liveTypes';
+import { needsCreatorAnswer } from './reserveAlerts';
 
 export type * from './backend/liveTypes';
 export { LIVE_HEARTBEAT_SECONDS, LIVE_STALE_MINUTES } from './backend/liveTypes';
@@ -37,13 +38,50 @@ export const useLiveAlerts = (creatorProfileId: string | undefined, user: User |
     true
   ).data;
 
+// One Realtime subscription per person, shared by every screen that listens
+// (the bell, the Reservas badge): the same channel can't be opened twice.
+const watchers = new Map<string, { stop: () => void; listeners: Set<() => void> }>();
+export const onNewNotification = (userId: string, cb: () => void) => {
+  let w = watchers.get(userId);
+  if (!w) {
+    const listeners = new Set<() => void>();
+    w = { listeners, stop: l.watchNotifications(userId, () => listeners.forEach((fn) => fn())) };
+    watchers.set(userId, w);
+  }
+  w.listeners.add(cb);
+  return () => {
+    const cur = watchers.get(userId);
+    if (!cur) return;
+    cur.listeners.delete(cb);
+    if (cur.listeners.size === 0) {
+      cur.stop();
+      watchers.delete(userId);
+    }
+  };
+};
+
 // The signed-in person's notifications, refreshed when a new one arrives.
 export const useNotifications = (user: User | null) => {
   const query = usePlatformQuery(() => (user ? l.notifications(user) : Promise.resolve([])), [user?.id], []);
   const { reload } = query;
   const userId = user?.id;
-  useEffect(() => (userId ? l.watchNotifications(userId, reload) : undefined), [userId, reload]);
+  useEffect(() => (userId ? onNewNotification(userId, reload) : undefined), [userId, reload]);
   return query;
+};
+
+// How many Reserve requests the creator still has to answer (the red dot on
+// "Reservas"), refreshed as soon as a new request arrives.
+export const useReserveInbox = (user: User | null) => {
+  const profileId = user?.role === 'creator' ? user.creatorProfileId : undefined;
+  const query = usePlatformQuery(
+    async () => (profileId ? (await backend.creatorBookings(profileId)).filter((b) => needsCreatorAnswer(b)).length : 0),
+    [profileId],
+    0
+  );
+  const { reload } = query;
+  const userId = profileId ? user?.id : undefined;
+  useEffect(() => (userId ? onNewNotification(userId, reload) : undefined), [userId, reload]);
+  return query.data;
 };
 
 // Which of these creators are in an Open Live right now (the public LIVE rings and the

@@ -502,7 +502,8 @@ export type ReserveStatus =
   | 'rejected'
   | 'cancelled'
   | 'reschedule_requested'
-  | 'disputed';
+  | 'disputed'
+  | 'expired';
 
 export const RESERVE_STATUSES: Record<ReserveStatus, { label: string; icon: string; className: string }> = {
   pending: { label: 'Solicitud pendiente', icon: 'fa-hourglass-half', className: 'bg-amber-50 text-amber-800 ring-amber-200' },
@@ -514,7 +515,14 @@ export const RESERVE_STATUSES: Record<ReserveStatus, { label: string; icon: stri
   cancelled: { label: 'Cancelada', icon: 'fa-ban', className: 'bg-gray-100 text-gray-500 ring-gray-200' },
   reschedule_requested: { label: 'Reprogramación solicitada', icon: 'fa-calendar-days', className: 'bg-amber-50 text-amber-800 ring-amber-200' },
   disputed: { label: 'En revisión', icon: 'fa-scale-balanced', className: 'bg-orange-50 text-orange-700 ring-orange-200' },
+  expired: { label: 'Expirada · sin respuesta', icon: 'fa-clock', className: 'bg-gray-100 text-gray-500 ring-gray-200' },
 };
+
+// Hours to answer: the creator for a new request, the fan for a counter-offer.
+// Past it the request expires on its own and frees the slot; nothing is charged
+// before the creator accepts. Same number as public.reserve_response_hours() in
+// supabase/migrations/20261005000001_reserve_alerts.sql: change both.
+export const RESERVE_RESPONSE_HOURS = 48;
 
 // Request → acceptance → payment → confirmation → experience → payout.
 export const RESERVE_FLOW = ['Solicitud', 'Aceptación', 'Pago', 'Confirmación', 'Experiencia', 'Liquidación'] as const;

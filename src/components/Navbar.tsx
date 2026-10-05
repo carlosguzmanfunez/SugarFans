@@ -14,6 +14,9 @@ import { usePlatformQuery } from '../lib/platform';
 import { formatCoins, giftsApi } from '../lib/gifts';
 import type { User } from '../context/AuthContext';
 import { ENABLE_HAPPENING_NOW, ENABLE_OPEN_LIVE } from '../config/features';
+import { useReserveInbox } from '../lib/live';
+import { CREATOR_RESERVE_LINK } from '../lib/reserveAlerts';
+import { RedDot } from './MobileTabBar';
 
 // Fan's Créditos balance, always in sight, in the champagne tone of the coin.
 const CreditsPill: React.FC<{ user: User }> = ({ user }) => {
@@ -58,6 +61,10 @@ const Navbar: React.FC = () => {
   // own (Subscriber Live lives inside Subscribe; Open Live only with ENABLE_OPEN_LIVE).
   // #live is the "Está pasando ahora" section, so it also needs ENABLE_HAPPENING_NOW.
   const onLanding = location.pathname === '/';
+  // A creator's requests, one tap away, with a red dot while some wait for an answer.
+  const isCreator = isAuthenticated && user?.role === 'creator';
+  const waiting = useReserveInbox(isCreator ? user : null);
+  const onReservas = location.pathname === '/creator/dashboard' && new URLSearchParams(location.search).get('tab') === 'vip';
   const showCreators = !isAuthenticated || user?.role === 'creator';
   const sections = [
     { href: '#comunidades', label: 'Explorar' },
@@ -108,8 +115,19 @@ const Navbar: React.FC = () => {
             </Link>
               </>
             )}
+            {isCreator && (
+              <Link
+                to={CREATOR_RESERVE_LINK}
+                aria-label={waiting ? `Reservas, ${waiting} por responder` : 'Reservas'}
+                data-testid="nav-reservas"
+                className={`${linkCls(onReservas ? location.pathname : '-')} inline-flex items-center gap-1.5`}
+              >
+                Reservas
+                {!!waiting && <RedDot count={waiting} />}
+              </Link>
+            )}
             {isAuthenticated && user?.role === 'creator' && (
-              <Link to="/creator/dashboard" className={linkCls('/creator/dashboard')}>
+              <Link to="/creator/dashboard" className={linkCls(onReservas ? '-' : '/creator/dashboard')}>
                 {t('nav.dashboard')}
               </Link>
             )}
@@ -204,6 +222,12 @@ const Navbar: React.FC = () => {
               <Link to="/#journey" className={mobileLinkCls('/#journey')} onClick={() => setShowMobile(false)}>
                 <i aria-hidden="true" className="fas fa-circle-question w-5 text-ink/40"></i> Cómo funciona
               </Link>
+              {isCreator && (
+                <Link to={CREATOR_RESERVE_LINK} className={mobileLinkCls(onReservas ? location.pathname : '-')} onClick={() => setShowMobile(false)}>
+                  <i aria-hidden="true" className="fas fa-ticket w-5 text-brand-600"></i> Reservas
+                  {!!waiting && <RedDot count={waiting} className="ml-auto" />}
+                </Link>
+              )}
               {isAuthenticated && user?.role === 'creator' && (
                 <Link to="/creator/dashboard" className={mobileLinkCls('/creator/dashboard')} onClick={() => setShowMobile(false)}>
                   <i aria-hidden="true" className="fas fa-chart-line w-5 text-iris-600"></i> {t('nav.dashboard')}

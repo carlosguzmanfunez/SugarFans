@@ -39,7 +39,8 @@ import { createLocalPlatform } from './localPlatform';
 import { createLocalSocial } from './localSocial';
 import { createLocalGifts } from './localGifts';
 import { createLocalRewards } from './localRewards';
-import { createLocalLive } from './localLive';
+import { createLocalLive, addLocalNotification } from './localLive';
+import { bookingAlert, isOverdue, respondByFrom } from '../reserveAlerts';
 import { creators as demoCreators } from '../../data/mockData';
 import { moderate } from '../moderation';
 import { demoAccount } from '../../config/demoAccounts';
@@ -185,10 +186,32 @@ const checkPassword = async (id: string, password: string) => {
   return !!account && (await hashPassword(password, account.salt)) === account.passwordHash;
 };
 
-const listBookings = (): VipBooking[] => readJSON<VipBooking[]>(BOOKINGS_KEY, []);
+// Like the database triggers: a booking that starts waiting for an answer gets its
+// deadline, and each new booking or change of state alerts the other side.
 const saveBookings = (bookings: VipBooking[]) => {
+  const before = new Map(readJSON<VipBooking[]>(BOOKINGS_KEY, []).map((b) => [b.id, b]));
+  for (const b of bookings) {
+    const prev = before.get(b.id);
+    if ((b.status === 'pending' || b.status === 'countered') && prev?.status !== b.status) b.respondBy = respondByFrom(b);
+  }
   writeJSON(BOOKINGS_KEY, bookings);
+  for (const b of bookings) {
+    const alert = bookingAlert(before.get(b.id), b);
+    if (!alert) continue;
+    const kind = alert.to === 'creator' ? 'reserve_request' : 'reserve_update';
+    const to = alert.to === 'fan' ? [b.fanId] : loadAccounts().filter((a) => a.role === 'creator' && a.creatorProfileId === b.creatorProfileId).map((a) => a.id);
+    for (const userId of to) addLocalNotification(userId, { kind, creatorProfileId: b.creatorProfileId, title: alert.title, body: alert.body, link: alert.link });
+  }
   notify();
+};
+// Requests nobody answered in time expire when read (the server runs a job).
+const listBookings = (): VipBooking[] => {
+  const all = readJSON<VipBooking[]>(BOOKINGS_KEY, []);
+  if (!all.some((b) => isOverdue(b))) return all;
+  const now = new Date().toISOString();
+  const next = all.map((b): VipBooking => (isOverdue(b) ? { ...b, status: 'expired', updatedAt: now } : b));
+  saveBookings(next);
+  return next;
 };
 const loadAvailability = (id: string): Availability =>
   readJSON<Record<string, Availability>>(AVAILABILITY_KEY, {})[id] ?? DEFAULT_AVAILABILITY;
@@ -788,6 +811,25 @@ export const localBackend: Backend = {
       .filter((b) => b.fanId === fanId)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   },
+
+  async markBookingsSeen(user) {
+    const bookings = listBookings();
+    const now = new Date().toISOString();
+    let changed = false;
+    for (const b of bookings)
+      if (user.creatorProfileId && b.creatorProfileId === user.creatorProfileId && !b.seenAt && (b.status === 'pending' || b.status === 'reschedule_requested')) {
+        b.seenAt = now;
+        changed = true;
+      }
+    if (changed) saveBookings(bookings);
+  },
+
+  // Phone alerts need the published site (api/push.ts and the database).
+  async savePushSubscription() {
+    return fail('Los avisos al celular solo funcionan en la web publicada.');
+  },
+
+  async deletePushSubscription() {},
 
   async creatorBookings(id) {
     return listBookings()

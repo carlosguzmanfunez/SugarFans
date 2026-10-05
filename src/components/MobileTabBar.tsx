@@ -2,22 +2,40 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ENABLE_OPEN_LIVE } from '../config/features';
+import { useReserveInbox } from '../lib/live';
+import { CREATOR_RESERVE_LINK } from '../lib/reserveAlerts';
 
 const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 // Phone navigation, like an installed app: tabs pinned to the bottom of the
 // screen (hidden from md up, where the top bar has room for everything).
 // The account tab adapts to who is signed in. There is no Live tab: Live is not a
-// pillar of Fans Reserve (it comes back only with ENABLE_OPEN_LIVE).
+// pillar of Fans Reserve (it comes back only with ENABLE_OPEN_LIVE). A creator gets
+// "Reservas" (their requests, with a red dot while some wait for an answer)
+// instead of the fans' Reserve catalogue.
+// The red dot with how many items wait (shared with the top bar and the panel).
+export const RedDot: React.FC<{ count: number; className?: string }> = ({ count, className = '' }) => (
+  <span
+    aria-hidden="true"
+    data-testid="reserve-badge"
+    className={`flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white ${className}`}
+  >
+    {count > 9 ? '9+' : count}
+  </span>
+);
+
 const MobileTabBar: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const { pathname, search } = useLocation();
   const liveTab = ENABLE_OPEN_LIVE && pathname === '/explore' && new URLSearchParams(search).has('live');
+  const isCreator = isAuthenticated && user?.role === 'creator';
+  const waiting = useReserveInbox(isCreator ? user : null);
+  const onReservas = pathname.startsWith('/creator/dashboard') && new URLSearchParams(search).get('tab') === 'vip';
 
   const account = !isAuthenticated
     ? { to: '/login', label: 'Entrar', icon: 'fa-circle-user', active: pathname === '/login' || pathname === '/register' }
     : user?.role === 'creator'
-      ? { to: '/creator/dashboard', label: 'Mi panel', icon: 'fa-chart-line', active: pathname.startsWith('/creator/dashboard') }
+      ? { to: '/creator/dashboard', label: 'Mi panel', icon: 'fa-chart-line', active: pathname.startsWith('/creator/dashboard') && !onReservas }
       : user?.role === 'admin'
         ? { to: '/admin', label: 'Admin', icon: 'fa-shield-halved', active: pathname === '/admin' }
         : { to: '/profile', label: 'Perfil', icon: 'fa-user', active: pathname === '/profile' || pathname === '/settings' };
@@ -26,7 +44,9 @@ const MobileTabBar: React.FC = () => {
     { to: '/', label: 'Inicio', icon: 'fa-house', active: pathname === '/' },
     { to: '/explore', label: 'Explorar', icon: 'fa-compass', active: pathname === '/explore' && !liveTab },
     ...(ENABLE_OPEN_LIVE ? [{ to: '/explore?live=1', label: 'Live', icon: 'fa-tower-broadcast', active: liveTab, live: true }] : []),
-    { to: '/reserve', label: 'Reserve', icon: 'fa-ticket', active: pathname === '/reserve' || pathname === '/vip-experiences' },
+    isCreator
+      ? { to: CREATOR_RESERVE_LINK, label: 'Reservas', icon: 'fa-ticket', active: onReservas, badge: waiting }
+      : { to: '/reserve', label: 'Reserve', icon: 'fa-ticket', active: pathname === '/reserve' || pathname === '/vip-experiences' },
     account,
   ];
 
@@ -50,8 +70,12 @@ const MobileTabBar: React.FC = () => {
                 tab.active ? ('live' in tab ? 'text-red-600' : 'text-brand-700') : 'text-ink/55'
               }`}
             >
-              <i className={`fas ${tab.icon} text-[19px]`} aria-hidden="true"></i>
+              <span className="relative">
+                <i className={`fas ${tab.icon} text-[19px]`} aria-hidden="true"></i>
+                {'badge' in tab && !!tab.badge && <RedDot count={tab.badge} className="absolute -right-2.5 -top-1.5" />}
+              </span>
               {tab.label}
+              {'badge' in tab && !!tab.badge && <span className="sr-only">, {tab.badge} por responder</span>}
             </Link>
           </li>
         ))}

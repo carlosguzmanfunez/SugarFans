@@ -169,7 +169,7 @@ const createExperience = async (page, { title, description, price }) => {
 
 // Opens a section of the creator's Reserve tab.
 const openReserveSection = async (page, section) => {
-  await page.getByRole('button', { name: /^Reserve/ }).click();
+  await page.getByRole('button', { name: /^Reservas/ }).click();
   await page.getByRole('navigation', { name: 'Secciones de Reserve' }).getByRole('button', { name: new RegExp(`^${section}`) }).click();
 };
 
@@ -1108,6 +1108,20 @@ const run = async () => {
       expect((await saved.getByRole('button', { name: '20:00' }).getAttribute('aria-pressed')) === 'true', '20:00 no se guardó');
       expect((await saved.getByRole('button', { name: '10:00' }).getAttribute('aria-pressed')) === 'false', '10:00 no se quitó');
     });
+    await check('Reservas en la barra: globito rojo, aviso en la campanita, plazo y "vista" para el fan', async () => {
+      await page.goto(`${BASE}/explore`);
+      const link = page.getByTestId('nav-reservas');
+      const count = Number(await link.getByTestId('reserve-badge').textContent());
+      expect(count >= 2, `el globito muestra ${count}`);
+      await page.getByTestId('notification-bell').click();
+      await page.getByTestId('notification-panel').getByText('Nueva solicitud de Reserve').first().waitFor();
+      await page.getByTestId('notification-bell').click();
+      await link.click();
+      await page.waitForURL(/tab=vip/);
+      const requests = page.getByTestId('vip-requests');
+      await requests.getByTestId('vip-request').filter({ hasText: '12:00' }).getByTestId('request-deadline').getByText(/Responde antes del .*quedan \d+ h/).waitFor();
+      await page.waitForFunction(() => JSON.parse(localStorage.getItem('fansreserve_vip_bookings') || '[]').some((b) => b.time === '12:00' && b.seenAt));
+    });
     await check('El creador ve las solicitudes y acepta o rechaza', async () => {
       await openReserveSection(page, 'Solicitudes');
       const requests = page.getByTestId('vip-requests');
@@ -1133,6 +1147,34 @@ const run = async () => {
       await paid.getByText('Confirmada').waitFor();
       await paid.getByText(`Correo de confirmación enviado a ${fanEmail}`).waitFor();
       await page.getByTestId('booking').filter({ hasText: '16:00' }).getByText('Rechazada', { exact: true }).waitFor();
+    });
+    await check('El fan ve si su solicitud fue vista, cuánto tiene el creador y cuándo expira', async () => {
+      // Two copies of a booking: one waiting (seen by the creator), one past its deadline.
+      await page.evaluate(() => {
+        const key = 'fansreserve_vip_bookings';
+        const all = JSON.parse(localStorage.getItem(key) || '[]');
+        const base = all.find((b) => b.time === '12:00');
+        const soon = new Date(Date.now() + 30 * 3600_000).toISOString();
+        all.push({ ...base, id: 'seen-1', time: '14:00', status: 'pending', seenAt: new Date().toISOString(), respondBy: soon, paidAt: undefined, emailSentAt: undefined });
+        all.push({ ...base, id: 'late-1', time: '15:00', status: 'pending', seenAt: undefined, respondBy: new Date(Date.now() - 60_000).toISOString(), paidAt: undefined, emailSentAt: undefined });
+        localStorage.setItem(key, JSON.stringify(all));
+      });
+      await page.reload();
+      const seen = page.getByTestId('booking').filter({ hasText: '14:00' });
+      await seen.getByTestId('request-receipt').getByText(/^Vista por Valentina/).waitFor();
+      await seen.getByText(/Valentina tiene hasta el .* para responder/).waitFor();
+      const late = page.getByTestId('booking').filter({ hasText: '15:00' });
+      await late.getByText('Expirada · sin respuesta').waitFor();
+      await late.getByText(/No se te cobró nada/).waitFor();
+      expect((await late.getByRole('button', { name: 'Cancelar' }).count()) === 0, 'una solicitud expirada aún se puede cancelar');
+      await page.getByTestId('notification-bell').click();
+      await page.getByTestId('notification-panel').getByText('Tu solicitud expiró sin respuesta').waitFor();
+      await page.getByTestId('notification-bell').click();
+      // Leave the store as it was for the next flows.
+      await page.evaluate(() => {
+        const key = 'fansreserve_vip_bookings';
+        localStorage.setItem(key, JSON.stringify(JSON.parse(localStorage.getItem(key)).filter((b) => b.id !== 'seen-1' && b.id !== 'late-1')));
+      });
     });
     await check('El pago VIP queda en el historial del fan como cualquier otro pago', async () => {
       await page.goto(`${BASE}/settings?section=payments`);

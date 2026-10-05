@@ -23,7 +23,7 @@ import {
   type VipExperience,
 } from '../../lib/vip';
 import type { User } from '../../context/AuthContext';
-import { RESERVE_COPY, RESERVE_FLOW, isHomeService } from '../../config/reserve';
+import { RESERVE_COPY, RESERVE_FLOW, RESERVE_RESPONSE_HOURS, isHomeService } from '../../config/reserve';
 
 interface Props {
   exp: VipExperience;
@@ -115,7 +115,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
           </p>
           <p className="mt-4 text-sm text-ink/70">
             {approval
-              ? `${exp.creatorName} revisará tu solicitud. Si la acepta, podrás pagar desde Mis reservas y recibirás la confirmación.`
+              ? `${exp.creatorName} revisará tu solicitud y tiene ${RESERVE_RESPONSE_HOURS} horas para responder. Te avisaremos cuando la vea y cuando responda. Si la acepta, pagas desde Mis reservas; si no responde a tiempo, se cierra sola y no se te cobra nada.`
               : 'Esta experiencia se confirma al pagar. Completa el pago desde Mis reservas.'}
           </p>
           <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">

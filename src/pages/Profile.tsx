@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { useCreatorCatalog } from '../lib/catalog';
 import { formatLongDate, type VipBooking } from '../lib/vip';
 import ReserveBookingCard from '../components/reserve/ReserveBookingCard';
+import PushOptIn from '../components/PushOptIn';
+import { onNewNotification } from '../lib/live';
 import CheckoutDialog from '../components/CheckoutDialog';
 import { backend } from '../lib/backend';
 import { useBackendData } from '../lib/useBackendData';
@@ -18,6 +20,9 @@ const Profile: React.FC = () => {
   const { user, cancelSubscription } = useAuth();
   const { creators } = useCreatorCatalog();
   const { data: myBookings, reload } = useBackendData(() => (user ? backend.fanBookings(user.id) : Promise.resolve([])), [user?.id], []);
+  // The creator's answer shows up at once.
+  const userId = user?.id;
+  useEffect(() => (userId ? onNewNotification(userId, reload) : undefined), [userId, reload]);
   const { data: verification } = usePlatformQuery(() => (user ? platformApi.myVerification(user.id) : Promise.resolve(null)), [user?.id], null);
   const { data: coins } = usePlatformQuery(() => (user ? giftsApi.wallet(user).then((w) => w.coins) : Promise.resolve(0)), [user?.id], 0);
   const [paying, setPaying] = useState<VipBooking | null>(null);
@@ -100,7 +105,7 @@ const Profile: React.FC = () => {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white rounded-2xl shadow-sm p-5 md:col-span-2" data-testid="bookings">
+          <div id="mis-reservas" className="bg-white rounded-2xl shadow-sm p-5 md:col-span-2 scroll-mt-24" data-testid="bookings">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h3 className="font-bold text-gray-900">
                 <i aria-hidden="true" className="fas fa-ticket text-brand-600 mr-2"></i> Mis reservas
@@ -113,6 +118,7 @@ const Profile: React.FC = () => {
               </p>
             ) : (
               <div className="space-y-3">
+                <PushOptIn user={user} />
                 {myBookings.map((b) => (
                   <ReserveBookingCard key={b.id} booking={b} user={user} as="fan" testId="booking" onChanged={reload} onPay={setPaying} />
                 ))}

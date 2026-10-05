@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { User } from '../context/AuthContext';
-import { useNotifications, markNotificationsRead } from '../lib/live';
+import { useNotifications, markNotificationsRead, type AppNotification } from '../lib/live';
 import { useDismiss } from '../hooks/useDismiss';
 
 const timeAgo = (iso: string) => {
@@ -13,7 +13,14 @@ const timeAgo = (iso: string) => {
   return new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short' });
 };
 
-// "Campanita": tells the fan when a creator they subscribe to starts a Subscriber Live.
+const KIND_ICON: Record<AppNotification['kind'], { icon: string; className: string }> = {
+  live_started: { icon: 'fa-tower-broadcast', className: 'bg-red-50 text-red-600' },
+  reserve_request: { icon: 'fa-ticket', className: 'bg-brand-50 text-brand-700' },
+  reserve_update: { icon: 'fa-ticket', className: 'bg-iris-50 text-iris-700' },
+};
+
+// "Campanita": Subscriber Lives of the creators a fan subscribes to, and Reserve
+// news for both sides (new requests for the creator, answers for the fan).
 const NotificationBell: React.FC<{ user: User }> = ({ user }) => {
   const { data: items } = useNotifications(user);
   const [open, setOpen] = useState(false);
@@ -53,7 +60,9 @@ const NotificationBell: React.FC<{ user: User }> = ({ user }) => {
           <p className="border-b border-line px-4 py-3 text-sm font-semibold text-ink">Avisos</p>
           {items.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-muted">
-              Aún no tienes avisos. Suscríbete a un creator y te avisaremos de sus Lives para suscriptores.
+              {user.role === 'creator'
+                ? 'Aún no tienes avisos. Aquí verás cada nueva solicitud de Reserve.'
+                : 'Aún no tienes avisos. Te avisaremos de los Lives de tus suscripciones y de las respuestas a tus reservas.'}
             </p>
           ) : (
             <ul className="max-h-96 overflow-y-auto">
@@ -64,8 +73,8 @@ const NotificationBell: React.FC<{ user: User }> = ({ user }) => {
                     onClick={() => setOpen(false)}
                     className={`flex gap-3 px-4 py-3 text-left hover:bg-canvas ${n.read ? '' : 'bg-brand-50/60'}`}
                   >
-                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
-                      <i aria-hidden="true" className="fas fa-tower-broadcast text-xs"></i>
+                    <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${(KIND_ICON[n.kind] ?? KIND_ICON.live_started).className}`}>
+                      <i aria-hidden="true" className={`fas ${(KIND_ICON[n.kind] ?? KIND_ICON.live_started).icon} text-xs`}></i>
                     </span>
                     <span className="min-w-0">
                       <span className="block text-sm font-semibold text-ink">{n.title}</span>

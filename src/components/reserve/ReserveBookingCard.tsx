@@ -9,6 +9,12 @@ import { ReserveStatusBadge } from './ReserveBits';
 import LiveRoomButton from '../LiveRoomButton';
 import ReportDialog from '../ReportDialog';
 import { displayEmail } from '../../config/demoAccounts';
+import { deadlineLabel, timeLeft } from '../../lib/reserveAlerts';
+
+const ago = (iso: string) => {
+  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  return mins < 1 ? 'ahora' : mins < 60 ? `hace ${mins} min` : mins < 1440 ? `hace ${Math.round(mins / 60)} h` : new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short' });
+};
 
 interface Props {
   booking: VipBooking;
@@ -117,7 +123,7 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
         <ReserveStatusBadge status={status} />
         <div className="flex flex-wrap items-center gap-2">
           <LiveRoomButton booking={b} />
-          {as === 'creator' && b.status === 'pending' && (
+          {as === 'creator' && status === 'pending' && (
             <>
               <button type="button" disabled={busy} onClick={() => run(() => backend.updateBooking(user, b.id, 'rejected'))} className={`${btn} border border-line text-ink/70 hover:bg-gray-50`}>
                 Rechazar
@@ -132,7 +138,7 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
               </button>
             </>
           )}
-          {as === 'fan' && b.status === 'countered' && (
+          {as === 'fan' && status === 'countered' && (
             <>
               <button type="button" disabled={busy} onClick={() => run(() => backend.respondCounter(user, b.id, false))} className={`${btn} border border-line text-ink/70`}>
                 Rechazar contraoferta
@@ -147,7 +153,7 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
               Pagar {money(b.price)}
             </button>
           )}
-          {as === 'fan' && (b.status === 'pending' || b.status === 'accepted') && (
+          {as === 'fan' && (status === 'pending' || status === 'accepted') && (
             <button type="button" disabled={busy} onClick={() => run(() => backend.updateBooking(user, b.id, 'cancelled'))} className={`${btn} text-red-600 hover:bg-red-50`}>
               Cancelar
             </button>
@@ -196,6 +202,8 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
         </div>
       )}
 
+      <WaitingNote booking={b} status={status} as={as} />
+
       {error && <p role="alert" className="mt-2 text-xs text-red-600">{error}</p>}
       {as === 'fan' && b.emailSentAt && (
         <p className="mt-2 text-xs text-emerald-700">
@@ -205,6 +213,46 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
       {reporting && <ReportDialog kind="other" targetId={b.id} targetLabel={`Reserva: ${b.title} (${b.date} ${b.time})`} onClose={() => setReporting(false)} />}
     </div>
   );
+};
+
+// Where a request stands while someone has to answer: sent / seen (the fan's
+// read receipt), the deadline, and what happens when it passes.
+const WaitingNote: React.FC<{ booking: VipBooking; status: ReturnType<typeof reserveStatusOf>; as: 'fan' | 'creator' }> = ({ booking: b, status, as }) => {
+  const creator = b.creatorName.split(' ')[0];
+  const fan = b.fanName.split(' ')[0];
+  const due = b.respondBy ? `${deadlineLabel(b.respondBy)} (${timeLeft(b.respondBy)})` : '';
+  const line = 'mt-2 flex items-start gap-1.5 text-xs';
+  if (status === 'pending' && as === 'fan')
+    return (
+      <div className="mt-2 space-y-1" data-testid="request-receipt">
+        <p className={`${line} ${b.seenAt ? 'text-emerald-700' : 'text-ink/60'}`}>
+          <i aria-hidden="true" className={`fas ${b.seenAt ? 'fa-check-double' : 'fa-check'} mt-0.5`}></i>
+          {b.seenAt ? `Vista por ${creator} · ${ago(b.seenAt)}` : `Enviada · ${creator} aún no la ha visto`}
+        </p>
+        {due && <p className="text-xs text-ink/60">{creator} tiene hasta el {due} para responder. Si no responde, se cierra sola y no se te cobra nada.</p>}
+      </div>
+    );
+  if (status === 'pending' && as === 'creator' && due)
+    return (
+      <p className={`${line} font-medium text-amber-800`} data-testid="request-deadline">
+        <i aria-hidden="true" className="fas fa-clock mt-0.5"></i>Responde antes del {due}.
+      </p>
+    );
+  if (status === 'countered' && due)
+    return (
+      <p className={`${line} text-ink/60`} data-testid="request-deadline">
+        <i aria-hidden="true" className="fas fa-clock mt-0.5"></i>
+        {as === 'fan' ? `Tienes hasta el ${due} para responder a la contraoferta.` : `${fan} tiene hasta el ${due} para responder.`}
+      </p>
+    );
+  if (status === 'expired')
+    return (
+      <p className={`${line} text-ink/60`}>
+        <i aria-hidden="true" className="fas fa-clock mt-0.5"></i>
+        {as === 'fan' ? 'Nadie respondió a tiempo. No se te cobró nada y puedes enviar otra solicitud.' : 'Se cerró porque pasó el tiempo para responder. El horario quedó libre.'}
+      </p>
+    );
+  return null;
 };
 
 export default ReserveBookingCard;
