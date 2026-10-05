@@ -111,20 +111,16 @@ const Navbar: React.FC = () => {
             </Link>
               </>
             )}
-            {isCreator && (
-              <Link
-                to={CREATOR_RESERVE_LINK}
-                aria-label={waiting ? `Reservas, ${waiting} por responder` : 'Reservas'}
-                data-testid="nav-reservas"
-                className={`${linkCls(onReservas ? location.pathname : '-')} inline-flex items-center gap-1.5`}
-              >
-                Reservas
-                {!!waiting && <RedDot count={waiting} />}
-              </Link>
-            )}
             {isAuthenticated && user?.role === 'creator' && (
-              <Link to="/creator/dashboard" className={linkCls(onReservas ? '-' : '/creator/dashboard')}>
+              <Link
+                to="/creator/dashboard"
+                data-testid="nav-dashboard"
+                aria-label={waiting ? `${t('nav.dashboard')}, ${waiting} reservas por responder` : undefined}
+                className={`${linkCls('/creator/dashboard')} inline-flex items-center gap-1.5`}
+              >
                 {t('nav.dashboard')}
+                {/* Reservas lives in the panel now; the red count stays visible from any page. */}
+                {!!waiting && <RedDot count={waiting} />}
               </Link>
             )}
             {isAuthenticated && user?.role === 'admin' && (

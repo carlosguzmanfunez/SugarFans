@@ -4,7 +4,8 @@
 // the home screen (iOS 16.4+), so that case gets its own explanation.
 import { backend } from './backend';
 
-export type PushState = 'unsupported' | 'install-first' | 'denied' | 'off' | 'on';
+// local: the browser-only demo backend (no alerts at all, nothing to show).
+export type PushState = 'local' | 'unsupported' | 'install-first' | 'denied' | 'off' | 'on';
 
 const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const standalone = () => window.matchMedia?.('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true;
@@ -24,7 +25,7 @@ const save = (sub: PushSubscription) => {
 };
 
 export const pushState = async (): Promise<PushState> => {
-  if (backend.mode !== 'supabase') return 'unsupported';
+  if (backend.mode !== 'supabase') return 'local';
   if (!supported()) return isIOS() && !standalone() ? 'install-first' : 'unsupported';
   if (Notification.permission === 'denied') return 'denied';
   if (Notification.permission !== 'granted') return 'off';

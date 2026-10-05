@@ -150,12 +150,24 @@ const CreatorDashboard: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-900">Panel de Creador</h1>
             <p className="text-gray-600">Bienvenida, {user?.name}</p>
           </div>
-          <button
-            onClick={() => { setShowNewPost(!showNewPost); setNotice(null); }}
-            className="mt-4 sm:mt-0 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition shadow-lg"
-          >
-            <i aria-hidden="true" className="fas fa-plus mr-2"></i> Nueva Publicación
-          </button>
+          <div className="mt-4 sm:mt-0 flex gap-2 sm:gap-3">
+            {/* Reservas: same shape as "Nueva Publicación", with the red count of requests waiting. */}
+            <button
+              onClick={() => { setActiveTab('vip'); setNotice(null); }}
+              data-testid="dashboard-reservas"
+              aria-label={pendingVip ? `Reservas, ${pendingVip} por responder` : 'Reservas'}
+              className={`relative bg-gray-900 text-white px-3.5 sm:px-6 py-3 text-sm sm:text-base whitespace-nowrap rounded-xl font-medium hover:bg-gray-800 transition shadow-lg ${activeTab === 'vip' ? 'ring-2 ring-pink-300 ring-offset-2' : ''}`}
+            >
+              <i aria-hidden="true" className="fas fa-ticket mr-2"></i> Reservas
+              {!!pendingVip && <RedDot count={pendingVip} className="absolute -right-2 -top-2" />}
+            </button>
+            <button
+              onClick={() => { setShowNewPost(!showNewPost); setNotice(null); }}
+              className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-3.5 sm:px-6 py-3 text-sm sm:text-base whitespace-nowrap rounded-xl font-medium hover:opacity-90 transition shadow-lg"
+            >
+              <i aria-hidden="true" className="fas fa-plus mr-2"></i> Nueva Publicación
+            </button>
+          </div>
         </div>
 
         {!verified && live && (
