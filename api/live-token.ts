@@ -9,7 +9,8 @@
 // Gifts never grant access, and a subscription never grants a Reserve.
 // Needs LIVEKIT_URL, LIVEKIT_API_KEY and LIVEKIT_API_SECRET in the Vercel project settings.
 import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
-import { decideBooking, decideBroadcast, type BookingRow, type Decision } from '../src/lib/liveAccess';
+// Node runs this file as an ES module, so the relative import needs its .js extension.
+import { decideBooking, decideBroadcast, type BookingRow, type Decision } from '../src/lib/liveAccess.js';
 
 // Public values (same as .env.production); the anon key is meant to be public.
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://odugxvqwuvewsvifwmwb.supabase.co';
