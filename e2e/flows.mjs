@@ -1991,8 +1991,10 @@ const run = async () => {
     await check('Jerarquía: el menú no tiene un pilar Live y el Open Live está oculto', async () => {
       await resF.goto(`${BASE}/`);
       const nav = resF.getByRole('navigation').first();
-      for (const l of ['Explorar', 'Suscribirse', 'Reserve', 'Cómo funciona']) await nav.getByRole('link', { name: l, exact: true }).first().waitFor();
+      for (const l of ['Explorar', 'Reserve', 'Cómo funciona']) await nav.getByRole('link', { name: l, exact: true }).first().waitFor();
       expect((await nav.getByRole('link', { name: 'Live', exact: true }).count()) === 0, 'el menú tiene un pilar Live');
+      // Subscribing is explained in "Cómo funciona"; the menu doesn't repeat it.
+      expect((await nav.getByRole('link', { name: 'Suscribirse', exact: true }).count()) === 0, 'el menú repite Suscribirse');
       expect((await resF.getByText('Live gratis').count()) === 0, 'la portada ofrece "Live gratis"');
       // The old "only creators live now" filter of Explore no longer applies.
       await resF.goto(`${BASE}/explore?live=1`);
