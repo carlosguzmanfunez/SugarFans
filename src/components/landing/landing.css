@@ -43,6 +43,8 @@
 .lv2 .chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:6px 11px;border-radius:999px;background:rgb(255 255 255 / .14);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgb(255 255 255 / .16)}
 .lv2 .chip.live{background:var(--live);border-color:transparent;letter-spacing:.06em}
 .lv2 .chip.gold{color:var(--gold-2);border-color:rgb(242 215 146 / .35);background:rgb(14 8 20 / .45)}
+/* Hero deck cards: category and Reserve labels a bit larger so the word reads at a glance. */
+.lv2 .pass .top .chip{font-size:14.5px;padding:7px 14px}
 .lv2 .pass .info{position:absolute;left:0;right:0;bottom:0;padding:20px 22px 22px;background:linear-gradient(to top,rgb(14 8 20 / .96) 55%,rgb(14 8 20 / 0))}
 .lv2 .pass h3{font-size:24px;font-weight:600}
 .lv2 .pass .meta{font-size:13.5px;color:rgb(255 255 255 / .7);margin-top:2px}
