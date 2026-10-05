@@ -1,10 +1,10 @@
 <!doctype html>
-<!-- Source of the PWA / touch icons. ?maskable adds the safe-zone padding Android needs; ?touch fills the corners for iOS;
+<!-- Source of the PWA / touch icons. ?maskable shrinks the letters into Android's safe zone; ?touch fills the corners for iOS;
      ?favicon uses the small-size cut; ?coin renders the Créditos symbol. -->
 <html><head><meta charset="utf-8"><style>
 *{margin:0}html,body{width:100vw;height:100vh;overflow:hidden}
 body{display:flex;align-items:center;justify-content:center;background:transparent}
 body.full img,body.favicon img,body.coin img{width:100vw;height:100vh}
-body.maskable,body.touch{background:#160d1f}body.maskable img{width:72vw;height:72vw}body.touch img{width:100vw;height:100vh}
+body.maskable img,body.touch img{width:100vw;height:100vh}
 </style></head><body><img src="mark.svg" alt="">
-<script>const v = location.search.slice(1) || 'full'; document.body.className = v; if (v === 'favicon' || v === 'coin') document.querySelector('img').src = `${v}.svg`;</script></body></html>
+<script>const v = location.search.slice(1) || 'full'; document.body.className = v; const img = document.querySelector('img'); if (v === 'favicon' || v === 'coin') img.src = `${v}.svg`; if (v === 'touch') img.src = 'mark-full.svg'; if (v === 'maskable') img.src = 'mark-maskable.svg';</script></body></html>
