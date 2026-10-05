@@ -6,42 +6,30 @@ tokens in `src/index.css` (`@theme`) and `src/config/theme.ts`.
 
 | Source | Produces | How |
 | --- | --- | --- |
-| `mark.svg` | `public/icons/icon-{180,192,512}.png`, `public/icons/icon-maskable-512.png`, OG logo | `node scripts/brand-assets.mjs` |
+| `kit/` | the approved logo kit (2026-10-05): logo for light and dark backgrounds (`-reverse`), icon, PNGs and presentation sheet | used as is |
+| `mark.svg` | copy of `kit/fansreserve-icon-aprobado.svg`; `public/icons/icon-{192,512}.png` | `node scripts/brand-assets.mjs` |
+| `mark-full.svg`, `mark-maskable.svg` | square-cornered icon for iOS (`icon-180.png`) and Android (`icon-maskable-512.png`, letters inside the safe zone) | same script |
 | `favicon.svg` | `public/favicon.svg` (copy), `public/favicon-32.png` | same script |
-| `mark-mono-dark.svg`, `mark-mono-light.svg` | monochrome marks (one colour, strokes knocked out) | used as is |
-| `lockup.html` | `exports/logo-{primary,mono-dark,mono-light}.png` (mark + wordmark) | same script |
 | `coin.svg` | `public/brand/coin.png` (the Créditos symbol, shown by `CoinIcon`) | same script |
 | `og.html` | `public/og-fans-reserve.jpg` (1200×630, Open Graph / X) | same script |
 | `icon.html` | wrapper used to rasterise the marks (`?maskable`, `?touch`, `?favicon`, `?coin`) | — |
 
 The React version of the mark and wordmark is `src/components/BrandLogo.tsx` (same
-geometry, `variant="color" | "mono-dark" | "mono-light"`). If the mark changes, update
+geometry and the kit's wordmark outlines). If the mark changes, update
 both and re-run the script.
 
-## Mark
+## Mark (approved kit, 2026-10-05)
 
-- An "R" whose first strokes draw an "F" (white); the bowl and leg (champagne gold)
-  complete the R: *Fans* inside *Reserve*. Dark tile with a magenta glow.
-- Geometry on a 40×40 grid, optically centred: stem x=12, top arm to x=23, bowl radius
-  4.625 closing at y=19.75 (just above centre, as in the R of Sora), middle arm to x=20
-  where the leg starts, leg to (28, 29.5). The leg reaches slightly past the bowl so the
-  R doesn't lean back.
-- Stroke 3.6 units; 4.2 below 28 px (`favicon.svg`, `BrandMark` at small sizes) so the
-  F/R reads at 16–24 px. The hairline tile border is dropped at small sizes.
-
-## Variants
-
-- **Primary**: colour mark + ink wordmark (light backgrounds) or white/gold wordmark
-  (`tone="dark"`, dark backgrounds).
-- **Monochrome dark**: everything in ink `#160d1f`, for light backgrounds, print, stamps.
-- **Monochrome light / inverse**: everything in white, for dark or photographic backgrounds.
+- Rounded tile (128 grid, radius 30) with a gradient `#CE4F9C` → `#8B3B9D` → `#392269`,
+  a white "F" and a gold (`#FFD39A` → `#F3A54F`) bowl and leg that complete the "R":
+  *Fans* inside *Reserve*.
+- The same icon is used at every size, including the favicon.
 
 ## Wordmark
 
-`FANS` Sora Bold (tracking 0.11em) + `RESERVE` Sora 350 (tracking 0.16em; the light
-weight needs more air), uppercase. Trailing tracking is cancelled so the lockup centres
-optically. Gap between mark and wordmark ≈ 0.6× the cap height (`gap-2` … `gap-3.5`
-by size).
+`FANS` bold + `RESERVE` regular, uppercase, drawn as outlines (no font needed). Ink
+`#241C2F` on light backgrounds, white on dark ones (`tone="dark"`). Cap height ≈ 0.37×
+the mark; gap between mark and wordmark ≈ a third of the mark.
 
 ## Currency symbol (Créditos)
 

@@ -1,21 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
-  <!-- Fans Reserve mark, small-size cut (16-32 px): heavier strokes, no hairline. Copied to public/favicon.svg -->
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 128 128" role="img" aria-label="FansReserve FR icon">
   <defs>
-    <radialGradient id="g" cx="0.12" cy="0.05" r="1.15">
-      <stop offset="0" stop-color="#f7639b"/>
-      <stop offset="0.38" stop-color="#c81b63" stop-opacity="0.85"/>
-      <stop offset="0.8" stop-color="#4b1d7a" stop-opacity="0.35"/>
-      <stop offset="1" stop-color="#160d1f" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="q" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#fbe7b5"/>
-      <stop offset="1" stop-color="#e3a93a"/>
+    <linearGradient id="mark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#CE4F9C"/>
+      <stop offset="0.48" stop-color="#8B3B9D"/>
+      <stop offset="1" stop-color="#392269"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFD39A"/>
+      <stop offset="1" stop-color="#F3A54F"/>
     </linearGradient>
   </defs>
-  <rect width="40" height="40" rx="11" fill="#160d1f"/>
-  <rect width="40" height="40" rx="11" fill="url(#g)"/>
-  <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="4.2">
-    <path d="M23 10.5 a4.625 4.625 0 0 1 0 9.25 H20 L28 29.5" stroke="url(#q)"/>
-    <path d="M12 29.5 V10.5 H23 M12 19.75 H20" stroke="#fff"/>
-  </g>
+  <rect width="128" height="128" rx="30" fill="url(#mark)"/>
+  <path fill="url(#gold)" d="M70 24c20 0 32 12 32 29 0 12-7 21-18 26l22 28H83L70 79V61c9 0 14-3 14-9 0-7-5-11-14-11V24z"/>
+  <path fill="#fff" d="M30 24h43v17H49v17h21v16H49v33H30V24z"/>
 </svg>

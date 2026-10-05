@@ -10,7 +10,9 @@
       <stop offset="1" stop-color="#F3A54F"/>
     </linearGradient>
   </defs>
-  <rect width="128" height="128" rx="30" fill="url(#mark)"/>
+  <rect width="128" height="128" fill="url(#mark)"/>
+  <g transform="translate(12.8 12.8) scale(0.8)">
   <path fill="url(#gold)" d="M70 24c20 0 32 12 32 29 0 12-7 21-18 26l22 28H83L70 79V61c9 0 14-3 14-9 0-7-5-11-14-11V24z"/>
   <path fill="#fff" d="M30 24h43v17H49v17h21v16H49v33H30V24z"/>
+  </g>
 </svg>
