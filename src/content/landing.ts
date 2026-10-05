@@ -63,6 +63,11 @@ export const CREATOR_CTA = {
   subtitle: `Sigue construyendo tu audiencia en TikTok, Instagram o YouTube. En ${BRAND.name} monetizas a la parte de esa audiencia que quiere más acceso a ti: membresías, eventos y sesiones privadas con tus precios.`,
   cta: 'Empezar como creador',
   memberCta: 'Ir a mi panel',
+  // Short muted loop of a person creating their account on the phone. Until the
+  // real clip is in public/creator-cta/, the photo below is shown instead.
+  video: '',
+  poster: '/creators/photos/valentina.jpg',
+  signupDone: 'Cuenta de creador lista',
   // Example notifications on the panel (illustration only).
   notifications: [
     { title: 'Nueva suscripción', text: 'Lucía se unió a tu comunidad' },
