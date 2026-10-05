@@ -42,7 +42,7 @@ const translations: Record<Language, Record<string, string>> = {
     
     // Age Verification
     'age.title': 'Verificación de edad',
-    'age.description': '{brand} es una comunidad solo para mayores de 18 años. Algunos creadores publican contenido para adultos. Confirma tu edad para continuar.',
+    'age.description': '{brand} es para mayores de 18 años porque aquí se hacen pagos y reservas directamente con creadores. Confirma tu edad para continuar.',
     'age.warning': 'Aviso legal',
     'age.warningText': 'Al ingresar, declaras bajo juramento que tienes 18 años o más. El acceso a menores está estrictamente prohibido.',
     'age.confirm': 'Sí, soy mayor de 18 años',
@@ -128,7 +128,7 @@ const translations: Record<Language, Record<string, string>> = {
     
     // Age Verification
     'age.title': 'Age Verification',
-    'age.description': 'This site contains exclusive adult content. You must confirm that you are over 18 years old to continue.',
+    'age.description': '{brand} is for people 18 and over because payments and bookings are made directly with creators. Please confirm your age to continue.',
     'age.warning': 'Legal Notice',
     'age.warningText': 'By entering, you declare under oath that you are 18 years or older. Access by minors is strictly prohibited.',
     'age.confirm': 'Yes, I am over 18 years old',
@@ -214,7 +214,7 @@ const translations: Record<Language, Record<string, string>> = {
     
     // Age Verification
     'age.title': 'Verificação de Idade',
-    'age.description': 'Este site contém conteúdo exclusivo para adultos. Você deve confirmar que tem mais de 18 anos para continuar.',
+    'age.description': '{brand} é para maiores de 18 anos porque aqui são feitos pagamentos e reservas diretamente com criadores. Confirme sua idade para continuar.',
     'age.warning': 'Aviso Legal',
     'age.warningText': 'Ao entrar, você declara sob juramento que tem 18 anos ou mais. O acesso de menores é estritamente proibido.',
     'age.confirm': 'Sim, tenho mais de 18 anos',
@@ -300,7 +300,7 @@ const translations: Record<Language, Record<string, string>> = {
     
     // Age Verification
     'age.title': 'Vérification de l\'Âge',
-    'age.description': 'Ce site contient du contenu exclusif pour adultes. Vous devez confirmer que vous avez plus de 18 ans pour continuer.',
+    'age.description': '{brand} est réservé aux personnes de 18 ans et plus, car les paiements et réservations se font directement avec les créateurs. Confirmez votre âge pour continuer.',
     'age.warning': 'Avis Légal',
     'age.warningText': 'En entrant, vous déclarez sous serment que vous avez 18 ans ou plus. L\'accès aux mineurs est strictement interdit.',
     'age.confirm': 'Oui, j\'ai plus de 18 ans',
@@ -386,7 +386,7 @@ const translations: Record<Language, Record<string, string>> = {
     
     // Age Verification
     'age.title': 'Verifica dell\'Età',
-    'age.description': 'Questo sito contiene contenuti esclusivi per adulti. Devi confermare di avere più di 18 anni per continuare.',
+    'age.description': '{brand} è riservato ai maggiori di 18 anni perché qui si effettuano pagamenti e prenotazioni direttamente con i creator. Conferma la tua età per continuare.',
     'age.warning': 'Avviso Legale',
     'age.warningText': 'Entrando, dichiari sotto giuramento di avere 18 anni o più. L\'accesso ai minori è severamente vietato.',
     'age.confirm': 'Sì, ho più di 18 anni',

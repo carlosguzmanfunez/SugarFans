@@ -134,6 +134,9 @@ const CreatorReservePanel: React.FC<Props> = ({ availability, bookings, reloadBo
         </nav>
       </div>
 
+      {/* Always in sight, whatever section is open: phone alerts for new requests. */}
+      <PushOptIn user={user} />
+
       {message && (
         <div role="status" className={`rounded-xl border px-4 py-3 text-sm ${message.ok ? 'border-green-200 bg-green-50 text-green-700' : 'border-red-200 bg-red-50 text-red-700'}`}>
           {message.text}
@@ -193,7 +196,6 @@ const CreatorReservePanel: React.FC<Props> = ({ availability, bookings, reloadBo
 
       {section === 'requests' && (
         <div data-testid="vip-requests" className="space-y-3">
-          <PushOptIn user={user} />
           <p className="text-xs text-muted">
             <i aria-hidden="true" className="fas fa-clock mr-1"></i>
             Tienes {RESERVE_RESPONSE_HOURS} horas para responder cada solicitud. Si no respondes, se cierra sola, el horario queda libre y al fan no se le cobra nada.

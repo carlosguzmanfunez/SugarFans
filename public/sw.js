@@ -16,7 +16,9 @@ self.addEventListener('push', (event) => {
     self.registration.showNotification(title, {
       body: data.body || '',
       icon: '/icons/icon-192.png',
-      badge: '/icons/icon-192.png',
+      badge: '/icons/badge-96.png',
+      vibrate: [200, 100, 200],
+      renotify: Boolean(data.tag),
       tag: data.tag || undefined,
       data: { link: data.link || '/' },
     })
