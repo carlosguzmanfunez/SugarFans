@@ -15,29 +15,29 @@ interface Faq {
 
 // Every answer here describes a feature that exists in the app, with a link to it.
 export const faqs: Faq[] = [
-  { category: 'Cuenta y Perfil', q: '¿Cómo creo una cuenta?', a: 'Haz clic en "Registrarse" y completa el formulario eligiendo si eres fan o creador. Necesitas ser mayor de 18 años.', link: { to: '/register', label: 'Crear cuenta' } },
-  { category: 'Cuenta y Perfil', q: '¿Cómo verifico mi identidad?', a: 'Ve a Configuración > Verificación, completa tus datos y sube solo dos fotos: el frente de tu documento de identidad y un selfie de frente. Comprobamos que eres mayor de edad y que tu cara coincide con la del documento, y verás el estado en esa misma pantalla. Al aprobarse obtienes la insignia "Verificado" y tus imágenes se eliminan.', link: { to: '/settings?section=verification', label: 'Ir a Verificación' } },
-  { category: 'Cuenta y Perfil', q: '¿Cómo elimino mi cuenta?', a: 'En Configuración > Privacidad, "Eliminar mi cuenta". Te pediremos tu contraseña; se borran tu cuenta, tus métodos de pago y tus documentos de verificación.', link: { to: '/settings?section=privacy', label: 'Ir a Privacidad' } },
-  { category: 'Pagos y Suscripciones', q: '¿Qué métodos de pago aceptan?', a: 'Tarjetas de crédito o débito Visa y Mastercard, PayPal y Google Pay. Añádelos y elige el principal en Configuración > Pagos.', link: { to: '/settings?section=payments', label: 'Ir a Pagos' } },
-  { category: 'Pagos y Suscripciones', q: '¿Cuándo se renueva mi suscripción?', a: 'Cada mes en la misma fecha en que te suscribiste, con tu método de pago principal. Ves la próxima fecha de cobro y tu historial de pagos en Configuración > Pagos y en tu perfil.', link: { to: '/settings?section=payments', label: 'Ver mis suscripciones' } },
-  { category: 'Pagos y Suscripciones', q: '¿Puedo cancelar mi suscripción en cualquier momento?', a: 'Sí, sin permanencia. Cancélala desde Configuración > Pagos, desde tu perfil o desde el perfil del creador; no se te volverá a cobrar.', link: { to: '/settings?section=payments', label: 'Gestionar suscripciones' } },
-  { category: 'Pagos y Suscripciones', q: `¿Qué son los ${currencyWord} y los regalos?`, a: `Los ${currencyWord} son la moneda para enviar regalos a tus creadores: compras un paquete (desde $4.99) y recibes en ${currencyWord} todo lo que pagas, 100 ${currencyWord} = $1. Un regalo es apoyo voluntario: no da acceso, videos ni videollamadas, ni garantiza respuesta. Las videollamadas y experiencias se reservan en Reserve.`, link: { to: '/settings?section=wallet', label: `Mis ${currencyWord}` } },
-  { category: 'Seguridad y Privacidad', q: '¿Mis datos están seguros?', a: 'Tu contraseña se guarda cifrada (hash con sal), de tu tarjeta solo guardamos la marca y los últimos 4 dígitos, y los documentos de identidad se borran tras la verificación. Conforme al GDPR puedes descargar todos tus datos o eliminar tu cuenta desde Configuración > Privacidad.', link: { to: '/settings?section=privacy', label: 'Descargar mis datos' } },
-  { category: 'Seguridad y Privacidad', q: '¿Cómo protegen mi privacidad?', a: 'Tu información personal nunca se comparte. Puedes usar un alias como nombre visible (Configuración > Perfil) y ocultar tu perfil de las búsquedas o tu actividad en Configuración > Privacidad.', link: { to: '/settings?section=privacy', label: 'Ajustes de privacidad' } },
-  { category: 'Para Creadores', q: '¿Cómo puedo monetizar mi contenido?', a: 'Regístrate como creador, verifica tu identidad (es obligatorio para publicar y cobrar), fija tu precio de suscripción en el panel y empieza a publicar. Recibes del 80% al 90% de suscripciones y propinas según tu nivel, tus metas y tus invitados, y el 60% de los regalos.', link: { to: '/creator/dashboard', label: 'Ir al panel de creador' } },
-  { category: 'Para Creadores', q: '¿Qué recompensas tengo como creador?', a: 'En tu panel, pestaña Recompensas, tienes tu enlace de invitación: de cada fan que se registre con él te quedas con el 90% de lo que te pague durante 90 días. Subes de nivel según tus fans activos (Plata 10, Oro 50, Diamante 200), con comisión del 82%, 84% u 85% e insignia en tu perfil. Cada mes, si atraes con tu enlace 10, 25 o 50 fans que te paguen, tu comisión sube 2, 5 o 10 puntos todo el mes siguiente (máximo 90%). Oro, Diamante y quienes cumplen una meta aparecen en Creadores destacados. Y cuando al menos 2 creadores se registran con tu enlace de creadores, ganas un 5% extra de lo que venda cada uno (suscripciones, renovaciones y propinas) durante un mes, sin que a ellos se les descuente nada. Sumando todos los beneficios, un creador nunca supera el 90% de una venta. Los regalos tienen sus propias reglas.', link: { to: '/creator/dashboard?tab=rewards', label: 'Ver mis recompensas' } },
-  { category: 'Para Creadores', q: '¿Cuándo recibo mis pagos?', a: 'Tu saldo se acumula en Panel > Ingresos. Tus ingresos se acreditan el día 1 de cada mes y se acumulan; retira el saldo completo a tu cuenta PayPal cuando quieras desde $50 USD (desde PayPal puedes pasarlo a tu banco). Todo es en dólares (USD); PayPal cobra 2% (máximo $20) por enviar el retiro y se descuenta del monto retirado.', link: { to: '/creator/dashboard?tab=earnings', label: 'Ver mis ingresos' } },
-  { category: 'Para Creadores', q: '¿Cómo publico contenido exclusivo?', a: 'En el panel de creador pulsa "Nueva Publicación" y marca "Exclusivo": solo lo verán tus suscriptores.', link: { to: '/creator/dashboard', label: 'Nueva publicación' } },
-  { category: 'Reportes y Bloqueos', q: '¿Cómo reporto contenido inapropiado?', a: 'Cada publicación tiene un botón "Reportar", y cada perfil uno en "Acerca de". También puedes usar el formulario al final de esta página o escribir a ' + BRAND.emails.support + '. El equipo de moderación revisa cada reporte y puede retirar el contenido.' },
-  { category: 'Reportes y Bloqueos', q: '¿Cómo bloqueo a un usuario?', a: 'Ve al perfil del usuario y pulsa el botón de bloquear. No podrá contactarte ni ver tu contenido, y dejarás de verlo en Explorar. Gestiona y desbloquea a quien quieras en Configuración > Bloqueos.', link: { to: '/settings?section=blocking', label: 'Ver bloqueados' } },
+  { category: 'Cuenta y perfil', q: '¿Cómo creo una cuenta?', a: 'Haz clic en "Registrarse" y completa el formulario eligiendo si eres fan o creador. Necesitas ser mayor de 18 años.', link: { to: '/register', label: 'Crear cuenta' } },
+  { category: 'Cuenta y perfil', q: '¿Cómo verifico mi identidad?', a: 'Ve a Configuración > Verificación, completa tus datos y sube solo dos fotos: el frente de tu documento de identidad y un selfie de frente. Comprobamos que eres mayor de edad y que tu cara coincide con la del documento, y verás el estado en esa misma pantalla. Al aprobarse obtienes la insignia "Verificado" y tus imágenes se eliminan.', link: { to: '/settings?section=verification', label: 'Ir a verificación' } },
+  { category: 'Cuenta y perfil', q: '¿Cómo elimino mi cuenta?', a: 'En Configuración > Privacidad, "Eliminar mi cuenta". Te pediremos tu contraseña; se borran tu cuenta, tus métodos de pago y tus documentos de verificación.', link: { to: '/settings?section=privacy', label: 'Ir a privacidad' } },
+  { category: 'Pagos y suscripciones', q: '¿Qué métodos de pago aceptan?', a: 'Tarjetas de crédito o débito Visa y Mastercard, PayPal y Google Pay. Añádelos y elige el principal en Configuración > Pagos.', link: { to: '/settings?section=payments', label: 'Ir a pagos' } },
+  { category: 'Pagos y suscripciones', q: '¿Cuándo se renueva mi suscripción?', a: 'Cada mes en la misma fecha en que te suscribiste, con tu método de pago principal. Ves la próxima fecha de cobro y tu historial de pagos en Configuración > Pagos y en tu perfil.', link: { to: '/settings?section=payments', label: 'Ver mis suscripciones' } },
+  { category: 'Pagos y suscripciones', q: '¿Puedo cancelar mi suscripción en cualquier momento?', a: 'Sí, sin permanencia. Cancélala desde Configuración > Pagos, desde tu perfil o desde el perfil del creador; no se te volverá a cobrar.', link: { to: '/settings?section=payments', label: 'Gestionar suscripciones' } },
+  { category: 'Pagos y suscripciones', q: `¿Qué son los ${currencyWord} y los regalos?`, a: `Los ${currencyWord} son la moneda para enviar regalos a tus creadores: compras un paquete (desde $4.99) y recibes en ${currencyWord} todo lo que pagas, 100 ${currencyWord} = $1. Un regalo es apoyo voluntario: no da acceso, videos ni videollamadas, ni garantiza respuesta. Las videollamadas y experiencias se reservan en Reserve.`, link: { to: '/settings?section=wallet', label: `Mis ${currencyWord}` } },
+  { category: 'Seguridad y privacidad', q: '¿Mis datos están seguros?', a: 'Tu contraseña se guarda cifrada (hash con sal), de tu tarjeta solo guardamos la marca y los últimos 4 dígitos, y los documentos de identidad se borran tras la verificación. Conforme al GDPR puedes descargar todos tus datos o eliminar tu cuenta desde Configuración > Privacidad.', link: { to: '/settings?section=privacy', label: 'Descargar mis datos' } },
+  { category: 'Seguridad y privacidad', q: '¿Cómo protegen mi privacidad?', a: 'Tu información personal nunca se comparte. Puedes usar un alias como nombre visible (Configuración > Perfil) y ocultar tu perfil de las búsquedas o tu actividad en Configuración > Privacidad.', link: { to: '/settings?section=privacy', label: 'Ajustes de privacidad' } },
+  { category: 'Para creadores', q: '¿Cómo puedo monetizar mi contenido?', a: 'Regístrate como creador, verifica tu identidad (es obligatorio para publicar y cobrar), fija tu precio de suscripción en el panel y empieza a publicar. Recibes del 80% al 90% de suscripciones y propinas según tu nivel, tus metas y tus invitados, y el 60% de los regalos.', link: { to: '/creator/dashboard', label: 'Ir al panel de creador' } },
+  { category: 'Para creadores', q: '¿Qué recompensas tengo como creador?', a: 'En tu panel, pestaña Recompensas, tienes tu enlace de invitación: de cada fan que se registre con él te quedas con el 90% de lo que te pague durante 90 días. Subes de nivel según tus fans activos (Plata 10, Oro 50, Diamante 200), con comisión del 82%, 84% u 85% e insignia en tu perfil. Cada mes, si atraes con tu enlace 10, 25 o 50 fans que te paguen, tu comisión sube 2, 5 o 10 puntos todo el mes siguiente (máximo 90%). Oro, Diamante y quienes cumplen una meta aparecen en Creadores destacados. Y cuando al menos 2 creadores se registran con tu enlace de creadores, ganas un 5% extra de lo que venda cada uno (suscripciones, renovaciones y propinas) durante un mes, sin que a ellos se les descuente nada. Sumando todos los beneficios, un creador nunca supera el 90% de una venta. Los regalos tienen sus propias reglas.', link: { to: '/creator/dashboard?tab=rewards', label: 'Ver mis recompensas' } },
+  { category: 'Para creadores', q: '¿Cuándo recibo mis pagos?', a: 'Tu saldo se acumula en Panel > Ingresos. Tus ingresos se acreditan el día 1 de cada mes y se acumulan; retira el saldo completo a tu cuenta PayPal cuando quieras desde $50 USD (desde PayPal puedes pasarlo a tu banco). Todo es en dólares (USD); PayPal cobra 2% (máximo $20) por enviar el retiro y se descuenta del monto retirado.', link: { to: '/creator/dashboard?tab=earnings', label: 'Ver mis ingresos' } },
+  { category: 'Para creadores', q: '¿Cómo publico contenido exclusivo?', a: 'En el panel de creador pulsa "Nueva publicación" y marca "Exclusivo": solo lo verán tus suscriptores.', link: { to: '/creator/dashboard', label: 'Nueva publicación' } },
+  { category: 'Reportes y bloqueos', q: '¿Cómo reporto contenido inapropiado?', a: 'Cada publicación tiene un botón "Reportar", y cada perfil uno en "Acerca de". También puedes usar el formulario al final de esta página o escribir a ' + BRAND.emails.support + '. El equipo de moderación revisa cada reporte y puede retirar el contenido.' },
+  { category: 'Reportes y bloqueos', q: '¿Cómo bloqueo a un usuario?', a: 'Ve al perfil del usuario y pulsa el botón de bloquear. No podrá contactarte ni ver tu contenido, y dejarás de verlo en Explorar. Gestiona y desbloquea a quien quieras en Configuración > Bloqueos.', link: { to: '/settings?section=blocking', label: 'Ver bloqueados' } },
 ];
 
 const helpCategories = [
-  { name: 'Cuenta y Perfil', icon: 'fa-user' },
-  { name: 'Pagos y Suscripciones', icon: 'fa-credit-card' },
-  { name: 'Seguridad y Privacidad', icon: 'fa-shield-alt' },
-  { name: 'Para Creadores', icon: 'fa-star' },
-  { name: 'Reportes y Bloqueos', icon: 'fa-flag' },
+  { name: 'Cuenta y perfil', icon: 'fa-user' },
+  { name: 'Pagos y suscripciones', icon: 'fa-credit-card' },
+  { name: 'Seguridad y privacidad', icon: 'fa-shield-alt' },
+  { name: 'Para creadores', icon: 'fa-star' },
+  { name: 'Reportes y bloqueos', icon: 'fa-flag' },
 ];
 
 const Help: React.FC = () => {
@@ -76,7 +76,7 @@ const Help: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Centro de Ayuda</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Centro de ayuda</h1>
           <p className="text-xl text-gray-600 mb-8">¿En qué podemos ayudarte?</p>
           <div className="relative max-w-xl mx-auto">
             <i aria-hidden="true" className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
@@ -110,7 +110,7 @@ const Help: React.FC = () => {
         {/* FAQs */}
         <div className="space-y-3">
           <h2 className="text-xl font-bold text-gray-900 mb-4">
-            {selectedCategory ? `Preguntas sobre: ${selectedCategory}` : 'Preguntas Frecuentes'}
+            {selectedCategory ? `Preguntas sobre: ${selectedCategory}` : 'Preguntas frecuentes'}
           </h2>
           {filteredFaqs.map((faq, i) => (
             <details key={i} className="bg-white rounded-xl shadow-sm group">
@@ -200,7 +200,7 @@ const Help: React.FC = () => {
               </p>
             )}
             <button type="button" onClick={sendReport} className={`${reportKind === 'support' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-red-600 hover:bg-red-700'} text-white px-6 py-3 rounded-xl font-medium transition`}>
-              <i aria-hidden="true" className="fas fa-paper-plane mr-2"></i> {reportKind === 'support' ? 'Enviar mensaje' : 'Enviar Reporte'}
+              <i aria-hidden="true" className="fas fa-paper-plane mr-2"></i> {reportKind === 'support' ? 'Enviar mensaje' : 'Enviar reporte'}
             </button>
           </div>
         </div>

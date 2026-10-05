@@ -708,7 +708,7 @@ export const localBackend: Backend = {
     if (b.status !== 'countered' || !c) return fail('Esta reserva no tiene una contraoferta pendiente');
     if (accept) {
       const clash = takenFor(b.creatorProfileId).some((t) => t.date === c.date && t.time === c.time);
-      if (clash) return fail('Ese horario ya no está disponible. Pide al creator otra fecha.');
+      if (clash) return fail('Ese horario ya no está disponible. Pide al creador otra fecha.');
       b.price = c.price;
       b.date = c.date;
       b.time = c.time;
@@ -784,7 +784,7 @@ export const localBackend: Backend = {
   },
 
   async saveExperience(user, input, id) {
-    if (user.role !== 'creator' || !user.creatorProfileId) return fail('Solo los creators publican experiencias');
+    if (user.role !== 'creator' || !user.creatorProfileId) return fail('Solo los creadores publican experiencias');
     const demo = demoCreators.find((c) => c.id === user.creatorProfileId);
     const check = validateExperience(input, input.details ? user.settings.category || demo?.category || '' : undefined);
     if (!check.ok) return fail(check.error!);

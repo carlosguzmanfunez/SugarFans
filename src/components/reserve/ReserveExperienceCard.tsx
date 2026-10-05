@@ -19,8 +19,8 @@ interface Props {
 export const bookLabel = (exp: VipExperience) => {
   const approval = needsApproval(exp);
   const product = reserveProductOf(exp);
-  if (product === 'event') return 'Reserva tu plaza';
-  if (product === 'one-to-one') return approval ? 'Solicitar sesión privada' : 'Reservar sesión privada';
+  // Two verbs only: "Reservar" books right away, "Solicitar" asks the creator.
+  if (product === 'event') return 'Reservar plaza';
   return approval ? 'Solicitar' : 'Reservar';
 };
 

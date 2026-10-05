@@ -21,7 +21,7 @@ interface Props {
 // Reserve's products on a profile, in this order.
 const GROUPS: { id: ReserveProduct; title: string; hint: string }[] = [
   { id: 'event', title: RESERVE_FORMATS.event.product, hint: 'En grupo, con fecha fija y plazas limitadas. Reserva tu plaza.' },
-  { id: 'one-to-one', title: RESERVE_FORMATS.private.product, hint: 'Sesión privada: solo tú y el creator en la sala.' },
+  { id: 'one-to-one', title: RESERVE_FORMATS.private.product, hint: 'Sesión privada: solo tú y el creador en la sala.' },
   { id: 'other', title: 'Otras experiencias', hint: 'Presenciales, profesionales o entregadas en la app.' },
 ];
 
@@ -152,7 +152,7 @@ export const UpcomingAccess: React.FC<{ creatorId: string; experiences: VipExper
                 </span>
                 <span className="block truncate text-sm font-semibold text-ink">{e.title}</span>
               </span>
-              <a href="#reserve" className="inline-flex h-9 items-center rounded-full border border-ink px-4 text-xs font-semibold text-ink">Reserva tu plaza</a>
+              <a href="#reserve" className="inline-flex h-9 items-center rounded-full border border-ink px-4 text-xs font-semibold text-ink">Reservar plaza</a>
             </li>
           );
         })}

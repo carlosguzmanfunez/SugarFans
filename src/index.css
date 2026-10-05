@@ -192,7 +192,8 @@
     transition: transform 0.2s var(--ease-out-soft), box-shadow 0.2s var(--ease-out-soft), background-color 0.2s, color 0.2s, border-color 0.2s;
   }
   .btn:hover { transform: translateY(-1px); }
-  .btn:active { transform: translateY(0); }
+  /* Pressed: the button sinks a little, like a native control. */
+  .btn:active { transform: scale(0.97); transition-duration: 0.08s; }
   .btn-md { padding: 0.625rem 1.25rem; font-size: 0.9375rem; }
   .btn-lg { padding: 0.9rem 1.6rem; font-size: 1rem; }
   .btn-primary { color: #fff; background-image: linear-gradient(120deg, #e5337a 0%, #c81b63 55%, #9b2fb8 100%); box-shadow: var(--shadow-glow); }
@@ -228,6 +229,40 @@
   /* Cards that react to hover: lift and deepen the shadow (no scaling). */
   .card-hover { transition: transform 0.25s var(--ease-out-soft), box-shadow 0.25s var(--ease-out-soft), border-color 0.25s; }
   .card-hover:hover { transform: translateY(-4px); box-shadow: var(--shadow-lift); border-color: #e2d8df; }
+
+  /* Dropdown menus grow out of the button that opened them. */
+  .menu-pop { transform-origin: top right; animation: menu-pop 0.16s var(--ease-out-soft) both; }
+}
+
+/* Dialogs: the backdrop fades in; the panel rises from below on phones (a sheet)
+   and fades up on larger screens. Covers both dialog shapes in the app: the
+   overlay itself marked as the dialog, or a panel marked as the dialog. */
+.fixed[role="dialog"][aria-modal="true"],
+.fixed[role="alertdialog"][aria-modal="true"],
+.fixed:has(> [role="dialog"][aria-modal="true"]) { animation: overlay-in 0.18s ease-out both; }
+.fixed[role="dialog"][aria-modal="true"] > :first-child,
+.fixed[role="alertdialog"][aria-modal="true"] > :first-child,
+.fixed > [role="dialog"][aria-modal="true"] { animation: dialog-in 0.28s var(--ease-out-soft) both; }
+@keyframes overlay-in { from { opacity: 0; } }
+@keyframes dialog-in { from { opacity: 0; transform: translateY(10px) scale(0.98); } }
+@media (max-width: 639px) {
+  @keyframes dialog-in { from { opacity: 0.4; transform: translateY(40px); } }
+}
+
+/* Short confirmation that slides up from the bottom ("Ahora sigues a …"). */
+.toast-in { animation: toast-in 0.24s var(--ease-out-soft) both; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(12px); } }
+
+/* Active tab icon in the phone tab bar: a small pop when it becomes active. */
+.tab-pop { animation: tab-pop 0.32s var(--ease-out-soft); }
+@keyframes tab-pop { 40% { transform: scale(1.18); } }
+
+/* Placeholder blocks while a page loads (instead of a spinner). */
+.skeleton { background: linear-gradient(90deg, #f1ecef 25%, #f8f4f6 50%, #f1ecef 75%); background-size: 200% 100%; animation: skeleton 1.2s ease-in-out infinite; }
+@keyframes skeleton { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+@keyframes menu-pop {
+  from { opacity: 0; transform: translateY(-4px) scale(0.97); }
 }
 
 /* Sections fade in as they scroll into view, where the browser supports
@@ -274,6 +309,11 @@
   .reveal, .float-slow, .float-slower, .live-dot, .speak-bar { animation: none; }
   .reaction-rise { animation: none; opacity: 0; }
   .btn, .card-hover { transition: none; }
+  .menu-pop, .toast-in, .tab-pop, .skeleton { animation: none; }
+  .fixed[role="dialog"][aria-modal="true"], .fixed[role="alertdialog"][aria-modal="true"], .fixed:has(> [role="dialog"][aria-modal="true"]),
+  .fixed[role="dialog"][aria-modal="true"] > :first-child, .fixed[role="alertdialog"][aria-modal="true"] > :first-child,
+  .fixed > [role="dialog"][aria-modal="true"] { animation: none; }
+  .btn:active { transform: none; }
   .btn:hover, .card-hover:hover { transform: none; }
 }
 

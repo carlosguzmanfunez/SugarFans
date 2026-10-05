@@ -152,9 +152,9 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 - El fan envía una solicitud; el Creador la acepta, la rechaza o hace una contraoferta
 - El pago se realiza solo después de la aceptación
 - Cada experiencia tiene su política de cancelación (ver Cancelación y No-show)
-- Si el creator no cumple (no se presenta, llega más de 15 minutos tarde, cambia por su cuenta fecha, hora o lugar, o la experiencia no corresponde a lo publicado; en Live 1:1, si no entra a la sala en los primeros 10 minutos), el fan recibe el reembolso completo, previa verificación
-- El fan es responsable de cumplir lo publicado por el creator; si no lo hace, se aplica la política de cancelación
-- Las experiencias presenciales ocurren en venues, estudios, eventos y lugares públicos o profesionales. En todas las categorías menos Modelos, los servicios profesionales también pueden darse en el lugar del creator o en el que proponga el fan, siempre con aprobación manual del creator. Nunca en hoteles ni lugares discretos
+- Si el creador no cumple (no se presenta, llega más de 15 minutos tarde, cambia por su cuenta fecha, hora o lugar, o la experiencia no corresponde a lo publicado; en Live 1:1, si no entra a la sala en los primeros 10 minutos), el fan recibe el reembolso completo, previa verificación
+- El fan es responsable de cumplir lo publicado por el creador; si no lo hace, se aplica la política de cancelación
+- Las experiencias presenciales ocurren en venues, estudios, eventos y lugares públicos o profesionales. En todas las categorías menos Modelos, los servicios profesionales también pueden darse en el lugar del creador o en el que proponga el fan, siempre con aprobación manual del creador. Nunca en hoteles ni lugares discretos
 
 5.3. **Conducta Esperada**:
 - Los Fans deben tratar a los Creadores con respeto; un Creador puede rechazar cualquier solicitud

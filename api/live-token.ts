@@ -73,7 +73,7 @@ export async function POST(request: Request): Promise<Response> {
   const body = (await request.json().catch(() => ({}))) as { creatorProfileId?: unknown; bookingId?: unknown };
   const bookingId = typeof body.bookingId === 'string' ? body.bookingId.slice(0, 64) : '';
   const creatorProfileId = typeof body.creatorProfileId === 'string' ? body.creatorProfileId.slice(0, 64) : '';
-  if (!creatorProfileId && !bookingId) return json(400, { error: 'Falta el creator.' });
+  if (!creatorProfileId && !bookingId) return json(400, { error: 'Falta el creador.' });
 
   // Who is asking (the Supabase session token is checked by Supabase itself).
   const authUser = await rest('/auth/v1/user', token);

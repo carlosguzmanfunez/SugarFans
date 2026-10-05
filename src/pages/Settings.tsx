@@ -226,7 +226,7 @@ const Settings: React.FC = () => {
           <div className="flex-1">
             {activeSection === 'profile' && (
               <div className="bg-white rounded-2xl shadow-sm p-6">
-                <h2 className="text-lg font-bold text-gray-900 mb-6">Editar Perfil</h2>
+                <h2 className="text-lg font-bold text-gray-900 mb-6">Editar perfil</h2>
                 <div className="flex items-center space-x-4 mb-6">
                   <img
                     src={avatarSeed ? `https://api.dicebear.com/7.0/adventurer/svg?seed=${encodeURIComponent(avatarSeed)}` : user?.avatar}
@@ -456,7 +456,7 @@ const Settings: React.FC = () => {
             {activeSection === 'payments' && user && (
               <div className="space-y-6">
                 <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="payment-methods">
-                  <h2 className="text-lg font-bold text-gray-900 mb-2">Métodos de Pago</h2>
+                  <h2 className="text-lg font-bold text-gray-900 mb-2">Métodos de pago</h2>
                   <p className="text-sm text-gray-500 mb-6">Aceptamos tarjetas Visa y Mastercard, PayPal y Google Pay.</p>
                   <div className="space-y-3">
                     {myMethods.length === 0 && <p className="text-sm text-gray-500">Aún no tienes métodos de pago.</p>}
@@ -564,7 +564,7 @@ const Settings: React.FC = () => {
 
             {activeSection === 'blocking' && (
               <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="blocked-users">
-                <h2 className="text-lg font-bold text-gray-900 mb-6">Usuarios Bloqueados</h2>
+                <h2 className="text-lg font-bold text-gray-900 mb-6">Usuarios bloqueados</h2>
                 {myBlocks.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <i aria-hidden="true" className="fas fa-shield-alt text-4xl text-gray-300 mb-3"></i>

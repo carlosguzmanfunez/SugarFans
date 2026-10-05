@@ -16,8 +16,8 @@ export type LiveMode = 'open' | 'subscriber' | 'reserve_event' | 'reserve_1to1';
 export const LIVE_MODES: Record<LiveMode, { label: string; badge: string; who: string; cta: string }> = {
   open: { label: 'Open Live', badge: 'En vivo', who: 'Cualquier persona con sesión (desactivado)', cta: 'Entrar al Live' },
   subscriber: { label: 'Subscriber Live', badge: 'Exclusivo para suscriptores', who: 'Solo suscriptores con suscripción activa', cta: 'Entrar al Live' },
-  reserve_event: { label: 'Reserve Event', badge: 'Reserve Event', who: 'Solo participantes con plaza confirmada', cta: 'Reserva tu plaza' },
-  reserve_1to1: { label: 'Reserve 1:1', badge: 'Sesión privada', who: 'Solo el fan y el creator de la reserva', cta: 'Reservar sesión privada' },
+  reserve_event: { label: 'Reserve Event', badge: 'Reserve Event', who: 'Solo participantes con plaza confirmada', cta: 'Reservar plaza' },
+  reserve_1to1: { label: 'Reserve 1:1', badge: 'Sesión privada', who: 'Solo el fan y el creador de la reserva', cta: 'Reservar sesión privada' },
 };
 
 // Lives stored in live_broadcasts: rows without a mode (made before modes existed) are open.
@@ -44,7 +44,7 @@ export const decideBroadcast = (input: {
   now?: number;
 }): Decision => {
   const { live, isOwner } = input;
-  if (!live) return deny(404, 'Este creator no está en Live ahora.');
+  if (!live) return deny(404, 'Este creador no está en Live ahora.');
   const mode = broadcastModeOf(live.mode);
   const room = `live-${live.id}`;
   if (mode === 'open') {

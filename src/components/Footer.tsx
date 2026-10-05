@@ -63,7 +63,7 @@ const Footer: React.FC = () => {
         <div className="max-w-sm">
           <BrandLogo size="sm" tone="dark" />
           <p className="mt-5 text-[15px] leading-relaxed text-white/60">
-            Membresías, contenido exclusivo, sesiones en vivo y Reserve: experiencias definidas por cada creator.
+            Membresías, contenido exclusivo, sesiones en vivo y Reserve: experiencias definidas por cada creador.
           </p>
           <ul className="mt-6 flex flex-wrap gap-2 text-xs">
             {[

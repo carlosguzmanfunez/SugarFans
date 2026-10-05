@@ -295,7 +295,7 @@ const run = async () => {
       await waitFor(() => playing(c2), 'la creator no emite');
       await c2.close({ runBeforeUnload: true });
       await f.goto(`${BASE}/en-vivo/1`);
-      await f.getByText('Este creator no está en Live ahora').waitFor();
+      await f.getByText('Este creador no está en Live ahora').waitFor();
     });
 
     await check('Si a la creator se le apaga el celular en pleno Live, el Live se cierra solo', async () => {
@@ -322,7 +322,7 @@ const run = async () => {
         localStorage.setItem(key, JSON.stringify(st));
       }, LIVE_KEY);
       await f.goto(`${BASE}/en-vivo/1`);
-      await f.getByText('Este creator no está en Live ahora').waitFor();
+      await f.getByText('Este creador no está en Live ahora').waitFor();
     });
 
     console.log('\nVideollamada privada de Reserve');

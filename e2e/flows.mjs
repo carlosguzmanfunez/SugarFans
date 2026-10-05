@@ -111,7 +111,7 @@ const login = async (page, email, password, { remember = true } = {}) => {
 
 const logoutViaMenu = async (page) => {
   await page.click('button[aria-label="Menú de cuenta"]');
-  await page.getByRole('button', { name: /Cerrar Sesión/ }).click();
+  await page.getByRole('button', { name: /Cerrar sesión/ }).click();
   await waitPath(page, '/');
 };
 
@@ -128,7 +128,7 @@ const register = async (page, { name, email, password, confirm = password, role 
   if (await page.locator('[class*="bg-red-50"]').count()) return;
   if (role === 'creator') await page.getByRole('button', { name: /Creador/ }).click();
   if (terms) await page.check('input[type=checkbox]');
-  await page.getByRole('button', { name: /Crear cuenta|Crear Cuenta|Registrarse/ }).last().click();
+  await page.getByRole('button', { name: /Crear cuenta|Crear cuenta|Registrarse/ }).last().click();
 };
 
 const isoDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -344,20 +344,20 @@ const run = async () => {
     });
     await check('Ayuda: cada categoría filtra sus preguntas y el buscador busca en las respuestas', async () => {
       await page.goto(`${BASE}/help`);
-      await page.getByRole('button', { name: /Para Creadores/ }).click();
+      await page.getByRole('button', { name: /Para creadores/ }).click();
       await page.getByText('¿Cuándo recibo mis pagos?').waitFor();
       expect((await page.locator('details').count()) === 4, 'la categoría no filtra');
-      await page.getByRole('button', { name: /Para Creadores/ }).click();
+      await page.getByRole('button', { name: /Para creadores/ }).click();
       await page.fill('input[placeholder="Buscar en la ayuda..."]', 'selfie');
       await page.getByText('¿Cómo verifico mi identidad?').waitFor();
     });
     await check('Ayuda: el formulario de reporte exige email a un visitante y se envía', async () => {
       await page.fill('input[placeholder="Buscar en la ayuda..."]', '');
       await page.fill('#report-description', 'Perfil falso que pide dinero por mensaje');
-      await page.getByRole('button', { name: 'Enviar Reporte' }).click();
+      await page.getByRole('button', { name: 'Enviar reporte' }).click();
       await page.getByText('Deja un email de contacto válido').waitFor();
       await page.fill('#report-email', 'visitante@test.com');
-      await page.getByRole('button', { name: 'Enviar Reporte' }).click();
+      await page.getByRole('button', { name: 'Enviar reporte' }).click();
       await page.getByText(/Reporte enviado/).waitFor();
     });
     await check('Ruta inexistente muestra 404', async () => {
@@ -401,7 +401,7 @@ const run = async () => {
         await page.click('button[aria-label="Menú de cuenta"]');
         await page.getByText(`Cuenta ${label}`).first().waitFor();
         expect(!/sugarfans/i.test(await page.locator('body').innerText()), 'el menú muestra el correo interno');
-        await page.getByRole('button', { name: /Cerrar Sesión/ }).click();
+        await page.getByRole('button', { name: /Cerrar sesión/ }).click();
         await waitPath(page, '/');
       });
     }
@@ -431,12 +431,12 @@ const run = async () => {
     });
     await check('El menú de cuenta se cierra al navegar', async () => {
       await page.click('button[aria-label="Menú de cuenta"]');
-      await page.getByRole('link', { name: /Mi Perfil/ }).click();
+      await page.getByRole('link', { name: /Mi perfil/ }).last().click();
       await waitPath(page, '/profile');
-      expect((await page.getByRole('button', { name: /Cerrar Sesión/ }).count()) === 0, 'el menú siguió abierto');
+      expect((await page.getByRole('button', { name: /Cerrar sesión/ }).count()) === 0, 'el menú siguió abierto');
     });
     await check('El menú de cuenta se cierra al tocar fuera o con Escape', async () => {
-      const menuOpen = async () => (await page.getByRole('button', { name: /Cerrar Sesión/ }).count()) > 0;
+      const menuOpen = async () => (await page.getByRole('button', { name: /Cerrar sesión/ }).count()) > 0;
       await page.click('button[aria-label="Menú de cuenta"]');
       expect(await menuOpen(), 'el menú no se abrió');
       await page.mouse.click(40, 500);
@@ -463,7 +463,7 @@ const run = async () => {
       await page.getByTestId('notification-bell').click();
       await page.click('button[aria-label="Menú de cuenta"]');
       await panel.waitFor({ state: 'detached' });
-      await page.getByRole('button', { name: /Cerrar Sesión/ }).waitFor();
+      await page.getByRole('button', { name: /Cerrar sesión/ }).waitFor();
       await page.mouse.click(40, 500);
     });
     await check('Un fan no puede entrar al panel de creador ni al de admin', async () => {
@@ -483,7 +483,7 @@ const run = async () => {
     await check('Cerrar sesión funciona y persiste tras recargar', async () => {
       await logoutViaMenu(page);
       await page.reload();
-      await page.getByRole('link', { name: 'Iniciar Sesión' }).first().waitFor();
+      await page.getByRole('link', { name: 'Iniciar sesión' }).first().waitFor();
       await page.goto(`${BASE}/profile`);
       await waitPath(page, '/login');
       await page.goto(`${BASE}/`);
@@ -690,7 +690,8 @@ const run = async () => {
     });
     await check('Bloquear a un creador lo oculta, aparece en Bloqueos y se puede desbloquear', async () => {
       await page.goto(`${BASE}/creator/2`);
-      await page.getByRole('button', { name: 'Bloquear' }).click();
+      await page.getByRole('button', { name: 'Más opciones' }).click();
+      await page.getByRole('menuitem', { name: 'Bloquear' }).click();
       await page.getByText('Has bloqueado a Diego Torres').waitFor();
       await page.goto(`${BASE}/explore`);
       await page.getByText('Valentina Rose').first().waitFor();
@@ -811,7 +812,7 @@ const run = async () => {
     });
     await check('Un creador sin verificar no puede publicar', async () => {
       await page.getByTestId('verification-banner').waitFor();
-      await page.getByRole('button', { name: /Nueva Publicación/ }).click();
+      await page.getByRole('button', { name: /Nueva publicación/ }).click();
       await page.fill('textarea', 'Intento sin verificar');
       await page.getByRole('button', { name: 'Publicar' }).click();
       await page.getByText('Verifica tu identidad antes de publicar contenido').waitFor();
@@ -928,7 +929,7 @@ const run = async () => {
     });
     await check('Nueva publicación se guarda y persiste', async () => {
       expect((await page.getByTestId('verification-banner').count()) === 0, 'sigue el aviso de verificación');
-      await page.getByRole('button', { name: /Nueva Publicación/ }).click();
+      await page.getByRole('button', { name: /Nueva publicación/ }).click();
       await page.fill('textarea', 'Mi primera publicación de prueba');
       await page.getByRole('button', { name: /Solo suscriptores/ }).click();
       await page.getByRole('button', { name: 'Publicar' }).click();
@@ -1130,8 +1131,8 @@ const run = async () => {
       const link = page.getByTestId('dashboard-reservas');
       const count = Number(await link.getByTestId('reserve-badge').textContent());
       expect(count === menu, `el botón Reservas muestra ${count}`);
-      const [r, n] = [await link.boundingBox(), await page.getByRole('button', { name: /Nueva Publicación/ }).boundingBox()];
-      expect(r.x < n.x && Math.abs(r.height - n.height) < 1, 'Reservas no está a la izquierda de Nueva Publicación con el mismo alto');
+      const [r, n] = [await link.boundingBox(), await page.getByRole('button', { name: /Nueva publicación/ }).boundingBox()];
+      expect(r.x < n.x && Math.abs(r.height - n.height) < 1, 'Reservas no está a la izquierda de Nueva publicación con el mismo alto');
       await page.getByTestId('notification-bell').click();
       await page.getByTestId('notification-panel').getByText('Nueva solicitud de Reserve').first().waitFor();
       await page.getByTestId('notification-bell').click();
@@ -1247,7 +1248,7 @@ const run = async () => {
       await page.fill('input[placeholder="Tu contraseña"]', 'nueva-clave-2');
       await page.getByRole('button', { name: 'Eliminar definitivamente' }).click();
       await waitPath(page, '/');
-      await page.getByRole('link', { name: 'Iniciar Sesión' }).first().waitFor();
+      await page.getByRole('link', { name: 'Iniciar sesión' }).first().waitFor();
       await login(page, fanEmail, 'nueva-clave-2');
       expect((await errorText(page))?.includes('incorrectos'), 'la cuenta borrada aún entra');
     });
@@ -1285,7 +1286,7 @@ const run = async () => {
     });
     await check('La web se muestra solo en español (sin selector de idioma a medio traducir)', async () => {
       await page.goto(BASE);
-      await page.getByRole('link', { name: 'Iniciar Sesión' }).first().waitFor();
+      await page.getByRole('link', { name: 'Iniciar sesión' }).first().waitFor();
       expect((await page.locator('button[aria-label="Seleccionar idioma"]').count()) === 0, 'sigue el selector de idioma');
     });
     await context.close();
@@ -1306,9 +1307,9 @@ const run = async () => {
     const firstPost = (pg) => pg.getByTestId('post').first();
 
     console.log('\nPublicaciones: fotos, videos, me gusta, comentarios y propinas');
-    await check('El creador sube una foto desde "Nueva Publicación" y la ve en su panel', async () => {
+    await check('El creador sube una foto desde "Nueva publicación" y la ve en su panel', async () => {
       await cp.goto(`${BASE}/creator/dashboard`);
-      await cp.getByRole('button', { name: /Nueva Publicación/ }).click();
+      await cp.getByRole('button', { name: /Nueva publicación/ }).click();
       await cp.getByTestId('image-input').setInputFiles(photo('playa.png'));
       await cp.getByTestId('media-preview').locator('img').waitFor();
       await cp.getByLabel('Texto de la publicación').fill('Foto nueva desde la playa');
@@ -1341,7 +1342,7 @@ const run = async () => {
       await cp.goto(`${BASE}/creator/1`);
       await cp.getByTestId('post').filter({ hasText: 'Foto nueva desde la playa' }).getByTestId('post-image').waitFor();
       await cp.getByTestId('post').filter({ hasText: 'Video solo para suscriptores' }).getByTestId('post-video').waitFor();
-      expect((await cp.getByRole('button', { name: 'Enviar propina' }).count()) === 0, 'el creador puede darse propina');
+      expect((await cp.getByRole('button', { name: 'Más opciones' }).count()) === 0, 'el creador puede darse propina');
     });
     await check('Un fan sin suscripción ve la foto pero no el video exclusivo', async () => {
       await fp.goto(`${BASE}/creator/1`);
@@ -1396,7 +1397,8 @@ const run = async () => {
       expect(tips.length === 1 && tips[0].amount === 10 && tips[0].creatorProfileId === '1', 'la propina no se registró');
     });
     await check('Propina con monto inválido se rechaza', async () => {
-      await fp.getByRole('button', { name: 'Enviar propina' }).click();
+      await fp.getByRole('button', { name: 'Más opciones' }).click();
+      await fp.getByRole('menuitem', { name: 'Enviar propina' }).click();
       const dialog = fp.getByRole('dialog', { name: /Propina para/ });
       await dialog.getByLabel('Otro monto (USD)').fill('0.5');
       await dialog.getByRole('button', { name: /Continuar/ }).click();
@@ -1735,7 +1737,8 @@ const run = async () => {
       await login(rf, 'fan@sugarfans.com', 'demo1234');
       await waitPath(rf, '/explore');
       await rf.goto(`${BASE}/creator/${creatorId}`);
-      await rf.getByRole('button', { name: 'Enviar propina' }).click();
+      await rf.getByRole('button', { name: 'Más opciones' }).click();
+      await rf.getByRole('menuitem', { name: 'Enviar propina' }).click();
       const dialog = rf.getByRole('dialog', { name: /Propina para/ });
       await dialog.getByRole('button', { name: '$10' }).click();
       await dialog.getByRole('button', { name: /Continuar/ }).click();
@@ -1903,6 +1906,22 @@ const run = async () => {
       const bad = texts.filter((t) => /adult|para adultos|pour adultes|per adulti|explicit/i.test(t));
       expect(!bad.length, `dice: ${bad.join(' | ')}`);
     });
+    await check('Los 5 idiomas tienen los mismos textos y el mismo marco de marca', async () => {
+      const src = readFileSync('src/context/LanguageContext.tsx', 'utf8');
+      const body = src.slice(src.indexOf('const translations'), src.indexOf('export const LanguageProvider'));
+      const blocks = Object.fromEntries(
+        [...body.matchAll(/\n  (es|en|pt|fr|it): \{([\s\S]*?)\n  \},/g)].map((m) => [m[1], m[2]]),
+      );
+      expect(Object.keys(blocks).length === 5, `idiomas: ${Object.keys(blocks).join(', ')}`);
+      const keysOf = (b) => [...b.matchAll(/'([\w.]+)':/g)].map((m) => m[1]).sort().join(',');
+      for (const lang of ['en', 'pt', 'fr', 'it']) {
+        expect(keysOf(blocks[lang]) === keysOf(blocks.es), `${lang} no tiene los mismos textos que es`);
+      }
+      const offBrand = /adult|explicit|xxx|sexy|er[oó]tic|onlyfans|escort|terron|coins?\b|tokens?\b|moedas|pi[eè]ces|monete/i;
+      const values = [...body.matchAll(/'[\w.]+': '((?:[^'\\]|\\.)*)'/g)].map((m) => m[1]).filter((v) => !v.includes('@sugarfans.com'));
+      const bad = values.filter((v) => offBrand.test(v));
+      expect(!bad.length, `fuera de marca: ${bad.join(' | ')}`);
+    });
     await check('Tu gente (antes Modelos) existe y marca la línea de contenido', async () => {
       const mg = R.CREATOR_CATEGORIES.find((c) => c.name === 'Tu gente');
       expect(!!mg, 'falta Tu gente');
@@ -1981,7 +2000,7 @@ const run = async () => {
       await resF.getByRole('button', { name: /Tu gente/ }).click();
       await resF.getByTestId('creator-card').filter({ hasText: 'Valentina Rose' }).waitFor();
       await resF.goto(`${BASE}/`);
-      await resF.getByText('Suscríbete a tus creators y reserva eventos y sesiones privadas con fecha, precio y reglas claras.').waitFor();
+      await resF.getByText('Suscríbete a tus creadores y reserva eventos y sesiones privadas con fecha, precio y reglas claras.').waitFor();
       await resF.locator('#categories-title').getByText('influencers y creadores').waitFor();
       await resF.locator('#comunidades').getByRole('link', { name: /Tu gente/ }).waitFor();
       const how = resF.locator('section[aria-labelledby=how-title]');
@@ -2006,8 +2025,8 @@ const run = async () => {
       for (const s of ['1 · Seguir', '2 · Suscribirse', '3 · Reserve']) await ladder.getByText(s).waitFor();
       expect((await ladder.getByText(/· Live$/).count()) === 0, 'el perfil tiene un paso Live');
       await resF.getByTestId('creator-reserve').getByRole('heading', { name: 'Reserve con Valentina' }).waitFor();
-      await ladder.getByTestId('follow-button').click();
-      await ladder.getByTestId('follow-button').getByText('Siguiendo').waitFor();
+      await resF.getByTestId('follow-button').click();
+      await resF.getByTestId('follow-button').getByText('Siguiendo').waitFor();
       await resF.reload();
       // The follow state loads after the first render: wait for it instead of reading it once.
       await resF.getByTestId('follow-button').and(resF.locator('[aria-pressed="true"]')).waitFor();
@@ -2063,7 +2082,7 @@ const run = async () => {
       await resF.getByTestId('access-ladder').waitFor();
       expect((await resF.getByTestId('live-now').count()) === 0, 'sigue en Live');
       await resF.goto(`${BASE}/en-vivo/1`);
-      await resF.getByText('Este creator no está en Live ahora').waitFor();
+      await resF.getByText('Este creador no está en Live ahora').waitFor();
     });
     await check('Subscriber Live: el suscriptor recibe el aviso; Salir no lo cierra; Terminar Live pide confirmar', async () => {
       // The first Live was minutes ago: age it so this one isn't held back by the anti-spam window.
@@ -2106,7 +2125,7 @@ const run = async () => {
       const group = resF.getByTestId('reserve-group-event');
       const card = group.getByTestId('reserve-card').filter({ hasText: 'Beauty Q&A con Valentina' });
       await card.getByTestId('event-facts').waitFor();
-      await card.getByRole('button', { name: /^Reserva tu plaza: / }).click();
+      await card.getByRole('button', { name: /^Reservar plaza: / }).click();
       const dialog = resF.getByRole('dialog');
       await dialog.getByRole('button', { name: /Reservar plaza/ }).waitFor();
       expect((await resF.getByTestId('booking-calendar').count()) === 0, 'un evento pide elegir día y hora');
@@ -2135,7 +2154,7 @@ const run = async () => {
       await card.getByText('Presencial').waitFor();
       await card.getByRole('button', { name: 'Ver detalles' }).click();
       const dialog = resF.getByTestId('reserve-dialog');
-      for (const t of ['Incluye', 'No incluye', /Cancelación/, 'Solo fans verificados', 'El creator aprueba cada solicitud', /Reserva con 72 horas de anticipación/]) await dialog.getByText(t).first().waitFor();
+      for (const t of ['Incluye', 'No incluye', /Cancelación/, 'Solo fans verificados', 'El creador aprueba cada solicitud', /Reserva con 72 horas de anticipación/]) await dialog.getByText(t).first().waitFor();
       await dialog.getByTestId('notice-reserve').waitFor();
       await resF.keyboard.press('Escape');
     });
@@ -2176,7 +2195,7 @@ const run = async () => {
       await req.locator('input[name=counterPrice]').fill('220');
       await req.locator('input[name=counterNote]').fill('Incluye revisión de 10 fotos');
       await req.getByRole('button', { name: 'Enviar contraoferta' }).click();
-      await req.getByText('Contraoferta del creator').waitFor();
+      await req.getByText('Contraoferta del creador').waitFor();
       await resF.goto(`${BASE}/profile`);
       const mine = resF.getByTestId('booking').filter({ hasText: 'Experiencia personalizada' });
       await mine.getByTestId('counter-offer').getByText('$220.00').waitFor();
@@ -2276,10 +2295,10 @@ const run = async () => {
       await login(m, 'creator@sugarfans.com', 'demo1234');
       await waitPath(m, '/explore');
       await m.locator('button[aria-label="Menú de cuenta"]').tap();
-      await m.getByRole('button', { name: /Cerrar Sesión/ }).first().waitFor();
+      await m.getByRole('button', { name: /Cerrar sesión/ }).first().waitFor();
       await m.touchscreen.tap(195, 600);
       await m.waitForTimeout(100);
-      expect((await m.getByRole('button', { name: /Cerrar Sesión/ }).count()) === 0, 'el menú de cuenta siguió abierto al tocar fuera');
+      expect((await m.getByRole('button', { name: /Cerrar sesión/ }).count()) === 0, 'el menú de cuenta siguió abierto al tocar fuera');
       await m.locator('button[aria-label="Menú"]').tap();
       await m.getByRole('link', { name: /Panel/ }).waitFor();
       await m.touchscreen.tap(195, 780);
@@ -2288,10 +2307,10 @@ const run = async () => {
       await m.getByRole('link', { name: /Panel/ }).click();
       await waitPath(m, '/creator/dashboard');
       await m.locator('button[aria-label="Menú"]').click();
-      await m.locator('nav').getByRole('button', { name: /Cerrar Sesión/ }).click();
+      await m.locator('nav').getByRole('button', { name: /Cerrar sesión/ }).click();
       await waitPath(m, '/');
       await m.locator('button[aria-label="Menú"]').click();
-      await m.getByRole('link', { name: /Iniciar Sesión/ }).last().waitFor();
+      await m.getByRole('link', { name: /Iniciar sesión/ }).last().waitFor();
     });
     await check('Móvil: barra de pestañas tipo app con Inicio, Explorar, Reserve y Entrar (sin Live)', async () => {
       const tabs = m.getByTestId('tab-bar');

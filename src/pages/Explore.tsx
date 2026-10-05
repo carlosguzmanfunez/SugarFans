@@ -124,7 +124,7 @@ const Explore: React.FC = () => {
             </span>
             <p className="text-lg font-semibold text-ink">Nadie está en Live en este momento</p>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted">
-              Sigue a tus creators y activa la campanita en su perfil: te avisamos apenas empiecen un Live.
+              Sigue a tus creadores y activa la campanita en su perfil: te avisamos apenas empiecen un Live.
             </p>
             <Link to="/explore" className="btn btn-dark btn-md mt-6">Ver creadores</Link>
           </div>

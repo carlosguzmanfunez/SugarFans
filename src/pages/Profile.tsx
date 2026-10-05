@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Icon from '../components/Icon';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { useCreatorCatalog } from '../lib/catalog';
@@ -13,6 +14,7 @@ import { usePlatformQuery, platformApi, platformChanged, nextRenewal } from '../
 import { displayEmail } from '../config/demoAccounts';
 import { VIRTUAL_CURRENCY } from '../config/currency';
 import { formatCoins, giftsApi } from '../lib/gifts';
+import Avatar from '../components/Avatar';
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -45,32 +47,28 @@ const Profile: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-canvas">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Profile Header */}
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-6">
-          <div className="h-32 bg-gradient-to-r from-pink-400 to-purple-500"></div>
-          <div className="px-6 pb-6 -mt-12">
-            <img src={user.avatar} alt={user.name} className="w-24 h-24 rounded-full border-4 border-white shadow-lg" />
-            <div className="mt-4">
-              <div className="flex items-center space-x-2">
-                <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
+        {/* Profile header: compact card, the useful things below it */}
+        <div className="bg-white rounded-2xl border border-line p-5 sm:p-6 mb-6">
+          <div className="flex items-center gap-4">
+            <Avatar src={user.avatar} name={user.name} size={72} className="ring-4 ring-brand-50" />
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="font-display text-2xl font-bold tracking-tight text-ink">{user.name}</h1>
                 {user.isVerified && (
-                  <span className="flex items-center bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium">
-                    <i aria-hidden="true" className="fas fa-check-circle mr-1"></i> Verificado
+                  <span className="inline-flex items-center rounded-full bg-iris-50 px-2 py-0.5 text-xs font-medium text-iris-700">
+                    <Icon name="fa-circle-check" className="mr-1" />Verificado
                   </span>
                 )}
-                <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                  user.role === 'admin' ? 'bg-red-100 text-red-700' :
-                  user.role === 'creator' ? 'bg-purple-100 text-purple-700' :
-                  'bg-blue-100 text-blue-700'
-                }`}>
+                <span className="rounded-full bg-canvas px-2 py-0.5 text-xs font-medium text-ink/60">
                   {user.role === 'admin' ? 'Administrador' : user.role === 'creator' ? 'Creador' : 'Fan'}
                 </span>
               </div>
-              <p className="text-gray-500">{displayEmail(user.email)}</p>
-              {user.bio && <p className="text-gray-600 mt-2">{user.bio}</p>}
+              <p className="truncate text-sm text-ink/55">{displayEmail(user.email)}</p>
+              {user.bio && <p className="text-ink/70 mt-1 text-sm">{user.bio}</p>}
             </div>
+          </div>
             {user.role === 'creator' && (
               <div className="flex space-x-6 mt-4">
                 <div className="text-center">
@@ -87,28 +85,27 @@ const Profile: React.FC = () => {
                 </div>
               </div>
             )}
-            <div className="flex space-x-3 mt-4">
-              <Link to="/settings" className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition">
-                <i aria-hidden="true" className="fas fa-cog mr-1"></i> Editar perfil
+            <div className="flex flex-wrap gap-2 mt-5">
+              <Link to="/settings" className="btn btn-md btn-outline text-sm">
+                <Icon name="fa-pen" className="text-ink/50" /> Editar perfil
               </Link>
-              <Link to="/settings?section=wallet" className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition" data-testid="profile-wallet">
-                <i aria-hidden="true" className="fas fa-coins mr-1"></i> {VIRTUAL_CURRENCY.displayName}: {formatCoins(coins)}
+              <Link to="/settings?section=wallet" className="btn btn-md btn-outline text-sm" data-testid="profile-wallet">
+                <Icon name="fa-coins" className="text-gold-600" /> {VIRTUAL_CURRENCY.displayName}: {formatCoins(coins)}
               </Link>
               {user.role === 'creator' && (
-                <Link to="/creator/dashboard" className="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl text-sm font-medium hover:opacity-90 transition">
-                  <i aria-hidden="true" className="fas fa-chart-line mr-1"></i> Mi panel
+                <Link to="/creator/dashboard" className="btn btn-md btn-primary text-sm">
+                  <Icon name="fa-chart-line" /> Mi panel
                 </Link>
               )}
             </div>
-          </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div id="mis-reservas" className="bg-white rounded-2xl shadow-sm p-5 md:col-span-2 scroll-mt-24" data-testid="bookings">
+        <div className="grid grid-cols-1 gap-4">
+          <div id="mis-reservas" className="bg-white rounded-2xl border border-line p-5 scroll-mt-24" data-testid="bookings">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <h3 className="font-bold text-gray-900">
-                <i aria-hidden="true" className="fas fa-ticket text-brand-600 mr-2"></i> Mis reservas
+              <h3 className="font-semibold text-ink">
+                <Icon name="fa-ticket" className="text-brand-600 mr-2" /> Mis reservas
               </h3>
               <Link to="/reserve" className="text-sm font-medium text-brand-700">Ver Reserve</Link>
             </div>
@@ -126,9 +123,9 @@ const Profile: React.FC = () => {
             )}
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm p-5" data-testid="subscriptions">
-            <h3 className="font-bold text-gray-900 mb-3">
-              <i aria-hidden="true" className="fas fa-star text-purple-500 mr-2"></i> Suscripciones Activas
+          <div className="bg-white rounded-2xl border border-line p-5" data-testid="subscriptions">
+            <h3 className="font-semibold text-ink mb-3">
+              <Icon name="fa-star" className="text-iris-600 mr-2" /> Mis suscripciones
             </h3>
             {subscribedCreators.length === 0 ? (
               <p className="text-sm text-gray-500">
@@ -139,7 +136,7 @@ const Profile: React.FC = () => {
                 {subscribedCreators.map(({ sub, creator }) => (
                   <div key={sub.creatorId} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                     <Link to={`/creator/${creator.id}`} className="flex items-center space-x-3">
-                      <img src={creator.avatar} alt="" className="w-8 h-8 rounded-full" />
+                      <Avatar src={creator.avatar} name={creator.name} size={32} decorative />
                       <div>
                         <p className="text-sm font-medium text-gray-900">{creator.name}</p>
                         <p className="text-xs text-gray-500">
@@ -164,9 +161,9 @@ const Profile: React.FC = () => {
         </div>
 
         {/* Account Info */}
-        <div className="mt-6 bg-white rounded-2xl shadow-sm p-5">
-          <h3 className="font-bold text-gray-900 mb-4">
-            <i aria-hidden="true" className="fas fa-info-circle text-blue-500 mr-2"></i> Información de la Cuenta
+        <div className="mt-6 bg-white rounded-2xl border border-line p-5">
+          <h3 className="font-semibold text-ink mb-4">
+            <Icon name="fa-user" className="text-ink/40 mr-2" /> Tu cuenta
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
@@ -180,7 +177,7 @@ const Profile: React.FC = () => {
             <div>
               <p className="text-gray-500">Verificación de edad</p>
               {user.ageVerified ? (
-                <p className="font-medium text-green-600"><i aria-hidden="true" className="fas fa-check-circle mr-1"></i> Verificado</p>
+                <p className="font-medium text-green-600"><Icon name="fa-check-circle" className="mr-1" /> Verificado</p>
               ) : (
                 <p className="font-medium text-yellow-600"><i aria-hidden="true" className="fas fa-clock mr-1"></i> Pendiente</p>
               )}
@@ -188,7 +185,7 @@ const Profile: React.FC = () => {
             <div>
               <p className="text-gray-500">Verificación de identidad</p>
               {user.isVerified ? (
-                <p className="font-medium text-green-600"><i aria-hidden="true" className="fas fa-check-circle mr-1"></i> Verificada</p>
+                <p className="font-medium text-green-600"><Icon name="fa-check-circle" className="mr-1" /> Verificada</p>
               ) : verification?.status === 'pending' ? (
                 <p className="font-medium text-yellow-600"><i aria-hidden="true" className="fas fa-clock mr-1"></i> En revisión</p>
               ) : (

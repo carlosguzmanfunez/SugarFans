@@ -551,7 +551,7 @@ export const vipExperiences: VIPExperience[] = [
       eventDate: nextFriday(),
       eventTime: '20:00',
       includes: ['Sala del evento en Fans Reserve', 'Preguntas por chat', 'Lista de productos mencionados'],
-      excludes: [noRecording, 'Tiempo privado con la creator', offPlatform],
+      excludes: [noRecording, 'Tiempo privado con la creadora', offPlatform],
       requirements: { verifiedFans: false, subscribersOnly: false },
       minNoticeHours: 24,
       maxParticipants: 20,

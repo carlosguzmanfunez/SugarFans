@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Icon from '../components/Icon';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { posts, type Creator } from '../data/mockData';
 import { useCreatorCatalog, fromPublic } from '../lib/catalog';
@@ -22,7 +23,8 @@ import { useCurrentLive } from '../lib/live';
 import { ReserveNotice } from '../components/reserve/ReserveBits';
 import { backend } from '../lib/backend';
 import type { VipExperience } from '../lib/vip';
-import { socialApi, compactCount, type PublicCreator } from '../lib/social';
+import { socialApi, compactCount, setFollow, type PublicCreator } from '../lib/social';
+import { useDismiss } from '../hooks/useDismiss';
 import {
   usePlatformQuery,
   platformApi,
@@ -57,6 +59,14 @@ const CreatorProfile: React.FC = () => {
   const [gifting, setGifting] = useState<{ postId?: string } | null>(null);
   const [celebrating, setCelebrating] = useState<Gift | null>(null);
   const [composing, setComposing] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [toast, setToast] = useState('');
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(''), 2200);
+    return () => clearTimeout(t);
+  }, [toast]);
+  const moreRef = useDismiss<HTMLDivElement>(moreOpen, () => setMoreOpen(false));
 
   // Demo creators and platform-run profiles first, then creators who signed up.
   const { creators, loading: catalogLoading } = useCreatorCatalog();
@@ -109,8 +119,15 @@ const CreatorProfile: React.FC = () => {
 
   if (!creator && (catalogLoading || creatorLoading)) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-label="Cargando">
-        <div className="w-10 h-10 border-4 border-pink-200 border-t-pink-500 rounded-full animate-spin"></div>
+      <div className="min-h-[60vh]" role="status" aria-label="Cargando">
+        <div className="skeleton h-48 md:h-72"></div>
+        <div className="max-w-4xl mx-auto px-4 -mt-12 md:-mt-16">
+          <div className="skeleton h-24 w-24 md:h-32 md:w-32 rounded-full ring-4 ring-canvas"></div>
+          <div className="skeleton mt-4 h-7 w-56 rounded-lg"></div>
+          <div className="skeleton mt-2 h-4 w-32 rounded-lg"></div>
+          <div className="skeleton mt-6 h-12 w-full md:w-80 rounded-full"></div>
+          <div className="skeleton mt-6 h-28 w-full rounded-2xl"></div>
+        </div>
       </div>
     );
   }
@@ -236,6 +253,11 @@ const CreatorProfile: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-canvas">
+      {toast && (
+        <div role="status" className="toast-in fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-ink px-5 py-3 text-sm font-medium text-white shadow-xl md:bottom-8" data-testid="toast">
+          <Icon name="fa-check" className="mr-2 text-emerald-400" />{toast}
+        </div>
+      )}
       {/* Cover */}
       <CoverImage src={creator.cover} seed={creator.id + creator.name} className="h-48 md:h-72">
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
@@ -251,7 +273,7 @@ const CreatorProfile: React.FC = () => {
                 <h1 className="text-display-md text-ink">{creator.name}</h1>
                 {creator.isVerified && (
                   <span className="flex items-center bg-iris-50 text-iris-700 px-2 py-0.5 rounded-full text-xs font-medium">
-                    <i aria-hidden="true" className="fas fa-check-circle mr-1"></i> Verificado
+                    <Icon name="fa-check-circle" className="mr-1" /> Verificado
                   </span>
                 )}
                 <ManagedBadge creator={creator} size="md" />
@@ -260,67 +282,114 @@ const CreatorProfile: React.FC = () => {
               <p className="text-gray-500">@{creator.username}</p>
 
             </div>
-            {/* Phone: the main action on its own row, then support and block side by side. */}
-            <div className="grid grid-cols-[1fr_1fr_auto] gap-2 md:flex md:flex-wrap md:items-center [&>*:first-child]:col-span-3">
+            {/* The access ladder in one row: Seguir → Suscribirse, then the gift and
+                a "⋯" menu with the less frequent actions (propina, bloquear). */}
+            <div className="grid grid-cols-[1fr_auto_auto] gap-2 md:flex md:flex-wrap md:items-center">
+              {!isOwner && !iBlocked && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!user) return goLogin();
+                    const now = !follow.following;
+                    setFollow(user, creator.id, now);
+                    setToast(now ? `Ahora sigues a ${creator.name.split(' ')[0]}` : `Dejaste de seguir a ${creator.name.split(' ')[0]}`);
+                  }}
+                  aria-pressed={follow.following}
+                  data-testid="follow-button"
+                  className={`btn btn-lg ${follow.following ? 'border border-line bg-white text-ink/70 hover:border-ink/25' : 'btn-outline'}`}
+                >
+                  {follow.following ? <><Icon name="fa-check" className="mr-2" />Siguiendo</> : 'Seguir'}
+                </button>
+              )}
               {iBlocked ? (
-                <button onClick={handleBlock} className="px-6 py-3 rounded-full font-bold bg-gray-200 text-gray-700 hover:bg-gray-300">
-                  <i aria-hidden="true" className="fas fa-unlock mr-2"></i>Desbloquear
+                <button onClick={handleBlock} className="col-span-3 px-6 py-3 rounded-full font-bold bg-gray-200 text-gray-700 hover:bg-gray-300">
+                  <Icon name="fa-unlock" className="mr-2" />Desbloquear
                 </button>
               ) : isAuthenticated && user?.role !== 'creator' && !isOwner ? (
                 <button
                   onClick={handleSubscribe}
-                  className={`btn btn-lg ${isSubscribed ? 'bg-ink/5 text-ink hover:bg-ink/10' : 'btn-primary'}`}
+                  className={`btn btn-lg col-span-3 order-first md:order-none ${isSubscribed ? 'bg-ink/5 text-ink hover:bg-ink/10' : 'btn-primary'}`}
                 >
                   {isSubscribed && mySub?.cancelAt ? (
                     <><i aria-hidden="true" className="fas fa-redo mr-2"></i>Activa hasta el {formatDay(mySub.cancelAt)} · Reactivar</>
                   ) : isSubscribed ? (
-                    <><i aria-hidden="true" className="fas fa-check mr-2"></i>Suscrito · Cancelar</>
+                    <><Icon name="fa-check" className="mr-2" />Suscrito · Cancelar</>
                   ) : (
-                    <><i aria-hidden="true" className="fas fa-star mr-2"></i>Suscribirse ${creator.subscriptionPrice}/mes</>
+                    <><Icon name="fa-star" className="mr-2" />Suscribirse ${creator.subscriptionPrice}/mes</>
                   )}
                 </button>
               ) : !isAuthenticated ? (
-                <Link to="/login" state={{ from: location.pathname }} className="btn btn-primary btn-lg">
-                  Iniciar sesión para suscribirse
+                <Link to="/login" state={{ from: location.pathname }} className="btn btn-primary btn-lg col-span-3 order-first md:order-none">
+                  Suscribirse ${creator.subscriptionPrice}/mes
                 </Link>
               ) : null}
               {managesProfile && (
                 <button
                   onClick={() => setComposing(!composing)}
-                  className="px-6 py-3 rounded-full font-bold bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:opacity-90 shadow-lg"
+                  className="btn btn-lg btn-primary col-span-3"
                 >
-                  <i aria-hidden="true" className="fas fa-plus mr-2"></i>Publicar como {creator.name}
+                  <Icon name="fa-plus" className="mr-2" />Publicar como {creator.name}
                 </button>
               )}
               {isOwner && !managesProfile && (
-                <Link to="/creator/dashboard?tab=content" className="px-6 py-3 rounded-full font-bold bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:opacity-90 shadow-lg">
-                  <i aria-hidden="true" className="fas fa-plus mr-2"></i>Nueva publicación
+                <Link to="/creator/dashboard?tab=content" className="btn btn-lg btn-primary col-span-3">
+                  <Icon name="fa-plus" className="mr-2" />Nueva publicación
                 </Link>
               )}
               {!isOwner && !iBlocked && (
                 <button
                   onClick={() => openGift()}
                   aria-label="Enviar regalo"
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-gold-200 bg-gold-50 px-4 text-sm font-semibold text-gold-700 hover:border-gold-300"
+                  title="Enviar regalo"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-gold-200 bg-gold-50 text-gold-600 transition hover:border-gold-300 active:scale-[0.96]"
                 >
-                  <i aria-hidden="true" className="fas fa-gift text-gold-600"></i>Regalo
+                  <Icon name="fa-gift" />
                 </button>
               )}
               {!isOwner && !iBlocked && (
-                <button
-                  onClick={() => openTip()}
-                  title="Propina: apoya con un monto libre"
-                  aria-label="Enviar propina"
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-line bg-white px-4 text-sm font-semibold text-ink/80 hover:border-ink/25 hover:text-ink"
-                >
-                  <i aria-hidden="true" className="fas fa-hand-holding-dollar text-ink/45"></i>
-                  <span>Propina</span>
-                </button>
-              )}
-              {isAuthenticated && !iBlocked && !isOwner && (
-                <button onClick={handleBlock} title="Bloquear" aria-label="Bloquear" className="w-11 h-11 rounded-full bg-white border border-line text-ink/45 hover:text-red-500">
-                  <i aria-hidden="true" className="fas fa-ban"></i>
-                </button>
+                <div ref={moreRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setMoreOpen((o) => !o)}
+                    aria-label="Más opciones"
+                    aria-expanded={moreOpen}
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-line bg-white text-ink/60 transition hover:text-ink active:scale-[0.96]"
+                  >
+                    <Icon name="fa-ellipsis" />
+                  </button>
+                  {moreOpen && (
+                    <div role="menu" className="menu-pop absolute right-0 top-12 z-30 w-56 overflow-hidden rounded-2xl border border-line bg-white py-1.5 shadow-xl">
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => { setMoreOpen(false); openTip(); }}
+                        aria-label="Enviar propina"
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-ink/80 hover:bg-canvas"
+                      >
+                        <Icon name="fa-hand-holding-dollar" className="w-4 text-ink/45" />Enviar propina
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => { setMoreOpen(false); setReporting({ kind: 'creator', targetId: creator.id, label: creator.name }); }}
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-ink/80 hover:bg-canvas"
+                      >
+                        <Icon name="fa-flag" className="w-4 text-ink/45" />Reportar perfil
+                      </button>
+                      {isAuthenticated && (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => { setMoreOpen(false); handleBlock(); }}
+                          aria-label="Bloquear"
+                          className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
+                        >
+                          <Icon name="fa-ban" className="w-4" />Bloquear
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -383,7 +452,7 @@ const CreatorProfile: React.FC = () => {
             onClick={() => setActiveTab('media')}
             className={`flex-auto sm:flex-1 whitespace-nowrap px-2 py-2.5 rounded-lg text-[13px] sm:text-sm font-medium transition ${activeTab === 'media' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'}`}
           >
-            <i aria-hidden="true" className="fas fa-images mr-1 max-sm:hidden!"></i> Media
+            <Icon name="fa-images" className="mr-1 max-sm:hidden!" /> Media
           </button>
           <button
             onClick={() => setActiveTab('about')}
@@ -395,7 +464,7 @@ const CreatorProfile: React.FC = () => {
 
         {iBlocked && (
           <div className="bg-white rounded-2xl p-6 shadow-sm mb-6 text-center text-gray-600">
-            <i aria-hidden="true" className="fas fa-ban text-3xl text-gray-300 mb-2"></i>
+            <Icon name="fa-ban" className="text-3xl text-gray-300 mb-2" />
             <p>Has bloqueado a {creator.name}. Desbloquéalo para volver a ver su contenido.</p>
           </div>
         )}
@@ -432,7 +501,7 @@ const CreatorProfile: React.FC = () => {
               />
             )) : (
               <div className="text-center py-12 bg-white rounded-2xl">
-                <i aria-hidden="true" className="fas fa-image text-4xl text-gray-300 mb-4"></i>
+                <Icon name="fa-image" className="text-4xl text-gray-300 mb-4" />
                 <p className="text-gray-500">No hay publicaciones aún</p>
               </div>
             )}
@@ -463,7 +532,7 @@ const CreatorProfile: React.FC = () => {
                 )}
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition">
                   <div className="flex items-center space-x-3 text-white text-xs">
-                    <span><i aria-hidden="true" className="fas fa-heart mr-1"></i>{compactCount(post.baseLikes + (feed.engagement[post.id]?.likes ?? 0))}</span>
+                    <span><Icon name="fa-heart" className="mr-1" />{compactCount(post.baseLikes + (feed.engagement[post.id]?.likes ?? 0))}</span>
                     <span><i aria-hidden="true" className="fas fa-comment mr-1"></i>{compactCount(post.baseComments + (feed.engagement[post.id]?.comments ?? 0))}</span>
                   </div>
                 </div>
@@ -490,7 +559,7 @@ const CreatorProfile: React.FC = () => {
             <hr className="my-6" />
             <div className="flex space-x-4">
               <button onClick={() => handleReport('creator', creator.id, `Perfil de ${creator.name}`)} className="text-gray-500 hover:text-pink-500 transition">
-                <i aria-hidden="true" className="fas fa-flag text-sm"></i> Reportar perfil
+                <Icon name="fa-flag" className="text-sm" /> Reportar perfil
               </button>
               <button className="text-gray-500 hover:text-pink-500 transition">
                 <i aria-hidden="true" className="fas fa-share text-sm"></i> Compartir perfil

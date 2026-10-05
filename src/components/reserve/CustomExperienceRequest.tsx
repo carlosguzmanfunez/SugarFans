@@ -242,7 +242,7 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
                 </select>
                 <span className="mt-1 block text-xs text-muted">
                   {homeAllowed
-                    ? 'Venues, establecimientos, el lugar del creator o el que tú propongas. Si es tu lugar, escribe la dirección o la zona en "Venue o dirección"; solo la ve este creator. Nunca hoteles.'
+                    ? 'Venues, establecimientos, el lugar del creador o el que tú propongas. Si es tu lugar, escribe la dirección o la zona en "Venue o dirección"; solo la ve este creador. Nunca hoteles.'
                     : 'Solo venues, estudios, establecimientos y lugares públicos. Nunca domicilios ni hoteles.'}
                 </span>
               </label>

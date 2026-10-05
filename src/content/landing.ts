@@ -5,10 +5,10 @@ import { BRAND } from '../config/brand';
 // The thesis behind the copy: social networks build the audience; Fans Reserve
 // monetizes access to, and the relationship with, the part of it that wants more.
 export const THESIS =
-  'Fans Reserve no busca reemplazar las redes sociales donde los creators construyen su audiencia. Fans Reserve existe para ayudarles a monetizar acceso, experiencias y relaciones estructuradas con esa audiencia.';
+  'Fans Reserve no busca reemplazar las redes sociales donde los creadores construyen su audiencia. Fans Reserve existe para ayudarles a monetizar acceso, experiencias y relaciones estructuradas con esa audiencia.';
 
 export const HERO = {
-  subtitle: 'Suscríbete a tus creators y reserva eventos y sesiones privadas con fecha, precio y reglas claras.',
+  subtitle: 'Suscríbete a tus creadores y reserva eventos y sesiones privadas con fecha, precio y reglas claras.',
   primaryCta: 'Crear cuenta gratis',
   secondaryCta: 'Explorar Reserve',
   secondaryTo: '/reserve',
@@ -47,15 +47,15 @@ export const VIP = {
   titleLead: 'Reserva experiencias,',
   titleAccent: 'no personas',
   subtitle:
-    'Cada creator define qué ofrece: modalidad, duración, precio, lugar y reglas. Tú eliges, el creator aprueba y la experiencia queda confirmada.',
+    'Cada creador define qué ofrece: modalidad, duración, precio, lugar y reglas. Tú eliges, el creador aprueba y la experiencia queda confirmada.',
   cta: 'Explorar Reserve',
   perks: [
     { title: 'Reserve Events', text: 'Q&A, masterclass, workshops y gaming en grupo, con plazas.' },
-    { title: 'Reserve 1:1', text: 'Sesión privada solo con el creator, en la sala de Fans Reserve.' },
+    { title: 'Reserve 1:1', text: 'Sesión privada solo con el creador, en la sala de Fans Reserve.' },
     { title: 'Clases y coaching', text: 'Cocina, fitness, música, arte y más.' },
-    { title: 'A medida', text: 'Propón tu experiencia; el creator decide.' },
+    { title: 'A medida', text: 'Propón tu experiencia; el creador decide.' },
   ],
-  steps: ['Eliges la experiencia', 'El creator la aprueba', 'Pagas y queda confirmada'],
+  steps: ['Eliges la experiencia', 'El creador la aprueba', 'Pagas y queda confirmada'],
 };
 
 export const CREATOR_CTA = {

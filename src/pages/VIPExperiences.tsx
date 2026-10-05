@@ -7,7 +7,7 @@ import { useCreatorCatalog } from '../lib/catalog';
 import type { VipExperience } from '../lib/vip';
 import { detailsOf, isUpcomingEvent, reserveProductOf, type ReserveProduct } from '../lib/vip';
 import { useEventSeats } from '../components/reserve/CreatorReserveSection';
-import { CREATOR_CATEGORIES, MODALITY_IDS, PROFESSIONAL_SERVICES_ALLOWED, PROHIBITED_EXPERIENCES, RESERVE_COPY, RESERVE_FLOW, RESERVE_MODALITIES, categoryFor, type ReserveModality } from '../config/reserve';
+import { CREATOR_CATEGORIES, MODALITY_IDS, RESERVE_COPY, RESERVE_FLOW, RESERVE_MODALITIES, categoryFor, type ReserveModality } from '../config/reserve';
 import ReserveExperienceCard from '../components/reserve/ReserveExperienceCard';
 import ReserveBookingDialog from '../components/reserve/ReserveBookingDialog';
 import { ReserveNotice } from '../components/reserve/ReserveBits';
@@ -61,7 +61,7 @@ const ReservePage: React.FC = () => {
           </span>
           <h1 className="text-display-lg mb-4">Reserve</h1>
           <p className="mx-auto max-w-2xl text-lg text-white/75 md:text-xl">
-            Reserve Events en grupo, sesiones privadas 1:1 y experiencias definidas por tus creators. Cada una con su fecha, duración, precio, alcance y reglas.
+            Reserve Events en grupo, sesiones privadas 1:1 y experiencias definidas por tus creadores. Cada una con su fecha, duración, precio, alcance y reglas.
           </p>
           <p className="mt-4 text-sm font-semibold uppercase tracking-[0.18em] text-gold-200">{RESERVE_COPY.principle}</p>
         </div>
@@ -126,7 +126,7 @@ const ReservePage: React.FC = () => {
                   {
                     [
                       'Eliges una experiencia, o propones una personalizada.',
-                      'El creator la acepta, la rechaza o te hace una contraoferta.',
+                      'El creador la acepta, la rechaza o te hace una contraoferta.',
                       'Pagas solo cuando la acepta.',
                       'Recibes la confirmación con fecha, hora y lugar.',
                       'Vives la experiencia: en la sala privada de Fans Reserve o en el venue acordado.',
@@ -141,24 +141,28 @@ const ReservePage: React.FC = () => {
               <ReserveNotice kind="payments" />
             </div>
           </div>
-          <div className="rounded-2xl bg-gray-50 p-5">
-            <h3 className="font-semibold text-ink">Reserve no es</h3>
-            <ul className="mt-3 space-y-2 text-sm text-ink/80" data-testid="prohibited-list">
-              {PROHIBITED_EXPERIENCES.map((p) => (
+          <div className="rounded-2xl bg-gray-50 p-5" data-testid="reserve-allowed">
+            <h3 className="font-semibold text-ink">Qué puedes reservar</h3>
+            <ul className="mt-3 space-y-2 text-sm text-ink/80">
+              {[
+                'Clases y talleres: cocina, música, arte, maquillaje',
+                'Coaching, entrenamiento y asesorías',
+                'Q&A, masterclasses y eventos en grupo',
+                'Sesiones privadas 1:1 con un propósito definido',
+              ].map((p) => (
                 <li key={p} className="flex gap-2">
-                  <i aria-hidden="true" className="fas fa-xmark mt-1 text-xs text-red-500"></i>
+                  <i aria-hidden="true" className="fas fa-check mt-1 text-xs text-emerald-600"></i>
                   {p}
                 </li>
               ))}
             </ul>
-            <p className="mt-4 flex gap-2 text-sm text-ink/80" data-testid="professional-allowed">
-              <i aria-hidden="true" className="fas fa-check mt-1 text-xs text-emerald-600"></i>
-              <span>{PROFESSIONAL_SERVICES_ALLOWED}</span>
+            <p className="mt-4 text-sm text-ink/70">
+              Cada experiencia dice qué se hace, dónde, cuánto dura y cuánto cuesta. Las presenciales ocurren en venues, estudios, eventos y lugares públicos o profesionales.
             </p>
-            <p className="mt-4 text-xs text-ink/60">
-              Las experiencias presenciales ocurren en venues, estudios, eventos y lugares públicos o profesionales; en el lugar del creator o del fan solo servicios profesionales con aprobación del creator, nunca en Tu gente. Lee la{' '}
-              <Link to="/legal?doc=reserve-policy" className="font-semibold text-ink underline">Política de Reserve</Link>.
-            </p>
+            <Link to="/legal?doc=reserve-policy" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-ink underline underline-offset-2" data-testid="reserve-rules-link">
+              Ver qué está permitido y qué no
+              <i aria-hidden="true" className="fas fa-arrow-right text-xs"></i>
+            </Link>
           </div>
         </section>
       </div>

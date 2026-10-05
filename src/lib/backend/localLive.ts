@@ -89,7 +89,7 @@ export const createLocalLive = (deps: Deps): LiveBackend => {
     async startLive(user, rawTitle, mode = 'subscriber') {
       if (mode === 'open' && !ENABLE_OPEN_LIVE) return fail('El Live abierto está desactivado. Usa el Live para suscriptores.');
       const profile = user.creatorProfileId;
-      if (!profile || user.role !== 'creator') return fail('Solo los creators pueden iniciar un Live');
+      if (!profile || user.role !== 'creator') return fail('Solo los creadores pueden iniciar un Live');
       const title = rawTitle.trim();
       if (title.length < 3 || title.length > 80) return fail('El título del Live debe tener entre 3 y 80 caracteres');
       if (!moderate(title, 'experience').ok) return fail('Ese título no está permitido en Fans Reserve');

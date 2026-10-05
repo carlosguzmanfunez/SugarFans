@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Avatar from './Avatar';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -180,7 +181,7 @@ const ManagedProfilesAdmin: React.FC<{ transactions: Transaction[] }> = ({ trans
           return (
             <div key={m.id} className="p-4 flex flex-col sm:flex-row sm:items-center gap-3" data-testid="managed-row">
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                <img src={m.avatar} alt={m.name} className="w-12 h-12 rounded-full object-cover" />
+                <Avatar src={m.avatar} name={m.name} size={48} />
                 <div className="min-w-0">
                   <p className="font-medium text-gray-900 truncate">
                     {m.name}{' '}

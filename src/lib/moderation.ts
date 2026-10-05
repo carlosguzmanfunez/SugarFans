@@ -121,7 +121,7 @@ export const MODERATION_RULES: ModerationRule[] = [
   {
     id: 'minors',
     severity: 'review',
-    message: 'Fans Reserve es solo para mayores de 18. El creator revisará esta mención.',
+    message: 'Fans Reserve es solo para mayores de 18. El creador revisará esta mención.',
     test: any(/\b(menor(es)? de edad|underage|ninos?|ninas?|adolescentes?|\b1[0-7] anos)\b/),
   },
   {
@@ -148,7 +148,7 @@ const hasPhone = (raw: string) => (raw.match(/\+?\d[\d\s().-]{7,}\d/g) ?? []).so
 // homeAllowed: the creator offers home services (every category but Tu gente). Free text
 // like "en mi casa" stays blocked everywhere (the server repeats it); the
 // address type is chosen as "Lugar que propone el fan", so the message says that.
-const HOME_HINT = 'Para un servicio a domicilio elige "Lugar que propone el fan" como lugar y escribe la dirección o la zona sin frases como "mi casa"; solo la ve el creator de esta reserva.';
+const HOME_HINT = 'Para un servicio a domicilio elige "Lugar que propone el fan" como lugar y escribe la dirección o la zona sin frases como "mi casa"; solo la ve el creador de esta reserva.';
 
 export const moderate = (
   texts: string | Array<string | undefined | null>,

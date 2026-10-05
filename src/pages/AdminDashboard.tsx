@@ -115,7 +115,7 @@ const AdminDashboard: React.FC = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Panel de Administración</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Panel de administración</h1>
             <p className="text-gray-600">Bienvenido, {user?.name}</p>
           </div>
           <div className="mt-4 sm:mt-0 flex items-center space-x-3">
@@ -175,7 +175,7 @@ const AdminDashboard: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
               <div className="p-5 border-b border-gray-100 flex justify-between items-center">
-                <h3 className="font-bold text-gray-900">Verificaciones Pendientes</h3>
+                <h3 className="font-bold text-gray-900">Verificaciones pendientes</h3>
                 <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs font-medium">{pendingVerifications.length}</span>
               </div>
               <div className="divide-y divide-gray-100">
@@ -186,7 +186,7 @@ const AdminDashboard: React.FC = () => {
 
             <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
               <div className="p-5 border-b border-gray-100 flex justify-between items-center">
-                <h3 className="font-bold text-gray-900">Reportes Recientes</h3>
+                <h3 className="font-bold text-gray-900">Reportes recientes</h3>
                 <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs font-medium">{pendingReports.length}</span>
               </div>
               <div className="divide-y divide-gray-100">
@@ -209,7 +209,7 @@ const AdminDashboard: React.FC = () => {
         {activeTab === 'verifications' && (
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden" data-testid="admin-verifications">
             <div className="p-5 border-b border-gray-100">
-              <h3 className="font-bold text-gray-900">Gestión de Verificaciones</h3>
+              <h3 className="font-bold text-gray-900">Gestión de verificaciones</h3>
               <p className="text-sm text-gray-600 mt-1">Compara la cara del selfie con la foto del documento y confirma que es mayor de edad antes de aprobar.</p>
             </div>
             <div className="divide-y divide-gray-100">
@@ -238,8 +238,8 @@ const AdminDashboard: React.FC = () => {
         {activeTab === 'reports' && (
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden" data-testid="admin-reports">
             <div className="p-5 border-b border-gray-100">
-              <h3 className="font-bold text-gray-900">Gestión de Reportes</h3>
-              <p className="text-sm text-gray-600 mt-1">Reportes enviados desde las publicaciones, los perfiles y el Centro de Ayuda</p>
+              <h3 className="font-bold text-gray-900">Gestión de reportes</h3>
+              <p className="text-sm text-gray-600 mt-1">Reportes enviados desde las publicaciones, los perfiles y el Centro de ayuda</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -394,7 +394,7 @@ const AdminDashboard: React.FC = () => {
         {activeTab === 'users' && (
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div className="p-5 border-b border-gray-100 flex justify-between items-center">
-              <h3 className="font-bold text-gray-900">Gestión de Usuarios</h3>
+              <h3 className="font-bold text-gray-900">Gestión de usuarios</h3>
               <div className="relative">
                 <i aria-hidden="true" className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                 <input type="text" value={userQuery} onChange={(e) => setUserQuery(e.target.value)} placeholder="Buscar usuario..." className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-pink-500 outline-none" />
@@ -436,7 +436,7 @@ const AdminDashboard: React.FC = () => {
         {/* Content Review */}
         {activeTab === 'content' && (
           <div className="bg-white rounded-2xl shadow-sm p-6">
-            <h3 className="font-bold text-gray-900 mb-4">Revisión de Contenido</h3>
+            <h3 className="font-bold text-gray-900 mb-4">Revisión de contenido</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="border border-gray-200 rounded-xl p-4">
                 <div className="bg-gray-200 rounded-lg h-32 mb-3 flex items-center justify-center">
