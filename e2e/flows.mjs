@@ -128,8 +128,8 @@ const logoutViaMenu = async (page) => {
   await waitPath(page, '/');
 };
 
-const register = async (page, { name, email, password, confirm = password, role = 'fan', terms = true }) => {
-  await page.goto(`${BASE}/register`);
+const register = async (page, { name, email, password, confirm = password, role = 'fan', terms = true, from = '/register' }) => {
+  await page.goto(`${BASE}${from}`);
   await page.fill('input[type=text]', name);
   await page.fill('input[type=email]', email);
   await page.getByRole('button', { name: 'Continuar', exact: true }).click();
@@ -2508,6 +2508,14 @@ const run = async () => {
       await p.goto(`${BASE}/`);
       await p.locator('#hero-title').waitFor();
       expect((await p.locator('.pcover').count()) === 0, 'un fan con sesión ve la presentación en video');
+      await ctx.close();
+    });
+    await check('Escritorio: el registro está junto al video y lleva a la portada principal', async () => {
+      const ctx = await newContext(browser, { viewport: { width: 1366, height: 768 }, locale: 'es-ES' });
+      const p = await newPage(ctx);
+      await register(p, { name: 'Fan Portada', email: `portada${Date.now()}@test.com`, password: 'secreta123', from: '/' });
+      await p.locator('#hero-title').waitFor();
+      expect(new URL(p.url()).pathname === '/', 'tras registrarse en la portada no queda en /');
       await ctx.close();
     });
     await mobile.close();

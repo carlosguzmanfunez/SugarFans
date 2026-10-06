@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, prefersReducedMotion } from './landingBits';
+import Register from '../../pages/Register';
 
 // Sign-up entrance for visitors: a short film (made with HyperFrames) that presents
 // Fans Reserve as a whole. It opens the sign-up page (JoinPage) that visitors get at "/".
-// Desktop: headline, CTAs and the 16:9 film on a flat screen.
+// Desktop: headline and the 16:9 film on the left, the sign-up form itself on the right
+// (no extra click to reach /register).
 // Phone: only the vertical 9:16 film, large, with the sign-up button under it.
 const PHONE = '(max-width: 760px)';
 const isPhone = () => typeof window !== 'undefined' && window.matchMedia(PHONE).matches;
@@ -94,6 +96,12 @@ const PresentationCover: React.FC = () => {
             <div className="pc-bar" ref={bar} />
           </div>
         </div>
+
+        {!phone && (
+          <div className="pc-signup">
+            <Register embedded />
+          </div>
+        )}
 
         <div className="pc-join">
           <Link to="/register" className="v-btn v-pri">

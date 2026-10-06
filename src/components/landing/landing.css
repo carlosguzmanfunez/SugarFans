@@ -4,12 +4,15 @@
    .lv2 so none of it leaks into the rest of the app. */
 .lv2{color-scheme: light; --canvas:#faf7f5; --surface:#ffffff; --ink:#160d1f; --ink-soft:#2a1d36; --muted:#6c6474; --line:#ece6ea; --brand:#c81b63; --brand-4:#f7639b; --brand-1:#ffe3ee; --iris:#6d3ce6; --iris-1:#ece8ff; --gold:#e3a93a; --gold-2:#f2d792; --gold-1:#fdf8ec; --gold-7:#8f5318; --night:#160d1f; --night-9:#0e0814; --night-7:#2f2140; --live:#e5334a; --display:"Sora Variable", "Sora", "Inter Variable", ui-sans-serif, system-ui, sans-serif; --body:"Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; --ease:cubic-bezier(.16,1,.3,1); --radius:22px;}
 .lv2 *{box-sizing:border-box}
-.lv2 h1,
-.lv2 h2,
-.lv2 h3{font-family:var(--display);font-weight:700;letter-spacing:-.03em;text-wrap:balance;margin:0}
-.lv2 p{margin:0}
-.lv2 a{color:inherit;text-decoration:none}
-.lv2 button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+/* Element resets live in the base layer so Tailwind utilities (the embedded sign-up card) still win. */
+@layer base {
+  .lv2 h1,
+  .lv2 h2,
+  .lv2 h3{font-family:var(--display);font-weight:700;letter-spacing:-.03em;text-wrap:balance;margin:0}
+  .lv2 p{margin:0}
+  .lv2 a{color:inherit;text-decoration:none}
+  .lv2 button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+}
 .lv2 :focus-visible{outline:2px solid var(--brand);outline-offset:3px;border-radius:10px}
 .lv2 .wrap{max-width:1240px;margin:0 auto;padding-inline:clamp(16px,4vw,40px)}
 .lv2 img{display:block;max-width:100%}
@@ -407,8 +410,8 @@
 @keyframes pc-drift{to{transform:translate(140px,90px)}}
 .lv2 .pc-kick{display:inline-flex;align-items:center;gap:10px;font-size:12px;font-weight:700;letter-spacing:.26em;text-transform:uppercase;color:var(--gold-2)}
 .lv2 .pc-kick i{width:8px;height:8px;border-radius:50%;background:#1fbf75;box-shadow:0 0 0 5px rgb(31 191 117 / .2)}
-.lv2 .pcover h2{margin:0 auto;font-size:clamp(28px,2.7vw,40px);line-height:1.08;letter-spacing:-.04em}
-.lv2 .pcover h2 em{display:block;font-style:normal;background:linear-gradient(90deg,#ff9cc0,var(--gold-2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.lv2 .pcover-in > h2{margin:0 auto;font-size:clamp(28px,2.7vw,40px);line-height:1.08;letter-spacing:-.04em}
+.lv2 .pcover-in > h2 em{display:block;font-style:normal;background:linear-gradient(90deg,#ff9cc0,var(--gold-2));-webkit-background-clip:text;background-clip:text;color:transparent}
 .lv2 .pc-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px 24px;margin-top:14px}
 .lv2 .pc-lead{margin:0;max-width:52ch;text-align:left;font-size:clamp(15px,1.2vw,16px);color:rgb(255 255 255 / .74);text-wrap:balance}
 .lv2 .pc-ctas{display:flex;flex-wrap:wrap;justify-content:center;gap:12px}
@@ -426,10 +429,22 @@
 .lv2 .pc-join{display:none}
 .lv2 .pc-login{font-size:15px;color:rgb(255 255 255 / .74)}
 .lv2 .pc-login b{color:#fff}
+/* Desktop: film on the left, the sign-up card on the right (like a sign-up page, no extra click). */
+@media (min-width:761px){
+  .lv2 .pcover-in{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,400px);grid-template-areas:"h form" "row form" "stage form" "ribbon ribbon" "trust trust";column-gap:clamp(28px,4vw,56px);align-items:center;text-align:left}
+  .lv2 .pcover-in > h2{grid-area:h;margin:0;font-size:clamp(26px,2.4vw,36px)}
+  .lv2 .pc-row{grid-area:row;justify-content:flex-start;margin-top:10px}
+  .lv2 .pc-ctas{display:none}
+  .lv2 .pc-stage{grid-area:stage;margin-top:22px}
+  .lv2 .pc-screen{margin:0;width:min(100%,calc((100svh - 290px) * 16 / 9))}
+  .lv2 .pc-signup{grid-area:form;align-self:center;color:var(--ink,#160d1f);text-align:left}
+  .lv2 .pc-ribbon{grid-area:ribbon}
+  .lv2 .pc-trust{grid-area:trust}
+}
 /* Phone: only the vertical film, as large as the screen allows, and the sign-up button. */
 @media (max-width:760px){
   .lv2 .pcover{padding-block:56px 0;overflow:clip}
-  .lv2 .pc-kick,.lv2 .pcover h2,.lv2 .pc-row,.lv2 .pc-ctas,.lv2 .pc-ribbon,.lv2 .pc-trust,.lv2 .pc-login{display:none}
+  .lv2 .pc-kick,.lv2 .pcover-in > h2,.lv2 .pc-row,.lv2 .pc-ctas,.lv2 .pc-ribbon,.lv2 .pc-trust,.lv2 .pc-login{display:none}
   .lv2 .pc-stage{margin-top:0;width:100vw;margin-left:calc(50% - 50vw)}
   /* No phone frame: the film takes the full width and the height left under the header. On short
      screens it crops at most ~7% top/bottom and the page scrolls a little; the sign-up button
