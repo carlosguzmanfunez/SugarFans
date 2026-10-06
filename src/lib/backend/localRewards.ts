@@ -132,7 +132,7 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
         if (!['subscription', 'renewal', 'tip'].includes(t.kind) || t.status !== 'paid' || has.has(`bonus:${t.id}`)) continue;
         const inv = all.find((i) => i.creatorProfileId === t.creatorProfileId);
         const window = inv && inviteWindow(inv, all, q);
-        // The sale that completes the qualification earns nothing, as in the database.
+        // The sale that completes the qualification earns nothing (same in the database).
         if (!inv || !window || t.createdAt <= window.from || t.createdAt >= window.until) continue;
         const amount = inviteBonusFor(t, paidSoFar.get(t.creatorProfileId) ?? 0);
         if (amount < 0.01) continue;

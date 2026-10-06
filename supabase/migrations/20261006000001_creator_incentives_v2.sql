@@ -346,7 +346,8 @@ begin
     return new;
   end if;
   select * into v_window from public.invite_window(new.creator_profile_id);
-  if v_window.from_at is null or new.created_at < v_window.from_at or new.created_at >= v_window.until_at then
+  -- The sale that completes the qualification earns nothing.
+  if v_window.from_at is null or new.created_at <= v_window.from_at or new.created_at >= v_window.until_at then
     return new;
   end if;
   v_net := new.amount - coalesce(new.gateway_fee, public.gateway_fee_estimate(new.amount));
