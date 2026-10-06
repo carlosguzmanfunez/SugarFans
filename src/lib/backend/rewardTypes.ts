@@ -52,7 +52,6 @@ export interface CreatorBadges {
 
 export interface PayoutTerms {
   min: number;
-  feeWaived: boolean;
 }
 
 // Meta de experiencia
@@ -102,7 +101,7 @@ export interface RewardsBackend {
   featured(): Promise<FeaturedCreator[]>;
   // Public: new paying fans of each creator this month (category ranking).
   monthlyNewFans(): Promise<Record<string, number>>;
-  // The signed-in creator's withdrawal terms (minimum and who pays PayPal's fee).
+  // The signed-in creator's withdrawal minimum.
   payoutTerms(user: User): Promise<PayoutTerms>;
 
   // Meta de experiencia

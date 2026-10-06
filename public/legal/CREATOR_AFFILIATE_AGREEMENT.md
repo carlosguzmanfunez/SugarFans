@@ -211,7 +211,7 @@ Pago al Creador = (Precio pagado por el fan − comisión del procesador por ese
 - Mínimo: $50 USD ($25 USD en los niveles Oro y Diamante); si no lo alcanza, el saldo se acumula
 - Cualquier día del mes, sin aprobación previa
 - A cuenta bancaria
-- La comisión que cobre el procesador de pagos por enviar el retiro se descuenta del monto retirado (ver 6.4), salvo en el nivel Diamante, donde la paga la Plataforma
+- La comisión que cobre el procesador de pagos por enviar el retiro se descuenta del monto retirado (ver 6.4)
 
 ### 6.4. Moneda y Comisiones de Pago
 
@@ -552,8 +552,8 @@ Este Contrato está sujeto a las siguientes políticas adicionales:
 |-------|----------------------------------------------|-------------------|------------|
 | Bronce | Al empezar | 80% | Reserve Event de hasta 10 plazas |
 | Plata | 10+ fans o $250, sin reportes confirmados en 90 días | 80% | "En ascenso" en Explorar, Reserve Event de hasta 20 plazas |
-| Oro | 50+ fans o $1,000, sin reportes y respondiendo a tiempo el 95% de las solicitudes | 80% | Destacado en Explorar, retiros desde $25, filtros de video avanzados, Reserve Event de hasta 50 plazas |
-| Diamante | 200+ fans o $5,000, mismas condiciones que Oro | 83% | Todo lo de Oro, primero en la portada de su categoría, retiros sin comisión |
+| Oro | 50+ fans o $1,000, sin reportes y respondiendo a tiempo el 95% de las solicitudes | 80% | Destacado en Explorar, retiros desde $25, Reserve Event de hasta 50 plazas |
+| Diamante | 200+ fans o $5,000, mismas condiciones que Oro | 83% | Todo lo de Oro, primero en la portada de su categoría |
 
 Los fans que llegan con su enlace cuentan doble para el nivel. Las medallas (Primer Reserve, Imán de fans, Puntual, Constante y Embajador) dan días destacado en Explorar o una insignia visible. Tope de cualquier combinación de beneficios: 90% del neto.
 
@@ -564,7 +564,7 @@ Los fans que llegan con su enlace cuentan doble para el nivel. Las medallas (Pri
 | Qué | Cuándo |
 |-----|--------|
 | Acreditación | Día 1 de cada mes, por lo pagado antes de esa fecha |
-| Retiro | Cualquier día, saldo completo, desde $50 USD ($25 en Oro y Diamante); la comisión de envío del retiro se descuenta del monto, salvo en Diamante |
+| Retiro | Cualquier día, saldo completo, desde $50 USD ($25 en Oro y Diamante); la comisión de envío del retiro se descuenta del monto |
 
 ---
 **AL REGISTRARSE COMO CREADOR, USTED RECONOCE QUE HA LEÍDO, ENTENDIDO Y ACEPTA ESTAR VINCULADO POR ESTE CONTRATO.**

@@ -7,18 +7,20 @@
 // $100; minimum prices; withdrawals by level; Reserve Event seats by level; medals
 // and the featured list; the Meta de experiencia from gifts and tips to a ticket and
 // a booking that needs no payment.
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { createDbTest } from './db-harness.mjs';
 
 const DB = 'fr_incentives_test';
 const { check, expect, psql, as, raises, setup, user, finish } = createDbTest(DB);
 
-const MIGRATION = new URL('../supabase/migrations/20261006000001_creator_incentives_v2.sql', import.meta.url);
+// The incentives migration and the ones after it.
+const MIGRATIONS_DIR = new URL('../supabase/migrations/', import.meta.url);
+const MIGRATIONS = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql') && f >= '20261006000001').sort();
 
 const run = async () => {
   setup();
-  // Running the migration again changes nothing.
-  psql(DB, readFileSync(MIGRATION, 'utf8'));
+  // Running the migrations again changes nothing.
+  for (const f of MIGRATIONS) psql(DB, readFileSync(new URL(f, MIGRATIONS_DIR), 'utf8'));
 
   let n = 0;
   const sale = (creator, payer, amount, kind = 'subscription', when = 'now()') =>
@@ -143,12 +145,12 @@ const run = async () => {
   });
 
   console.log('Retiros');
-  await check('Bronce retira desde $50 y paga la comisión; Oro desde $25; Diamante sin comisión', async () => {
+  await check('Bronce retira desde $50; Oro y Diamante desde $25; todos pagan la comisión de PayPal', async () => {
     psql(DB, `insert into public.payout_accounts (user_id, paypal_email) values ('${vale}', 'v@x.com'), ('${diamante}', 'd@x.com') on conflict do nothing`);
     expect(psql(DB, `select public.payout_min('${vale}') || '|' || public.payout_fee_for('${vale}', 100)`) === '50|2.00', 'Bronce');
-    expect(psql(DB, `select public.payout_min('${diamante}') || '|' || public.payout_fee_for('${diamante}', 100)`) === '25|0', 'Diamante');
+    expect(psql(DB, `select public.payout_min('${diamante}') || '|' || public.payout_fee_for('${diamante}', 100)`) === '25|2.00', 'Diamante');
     const terms = JSON.parse(as(diamante, `select public.my_payout_terms()`));
-    expect(terms.min === 25 && terms.fee_waived === true, JSON.stringify(terms));
+    expect(terms.min === 25 && !('fee_waived' in terms), JSON.stringify(terms));
   });
 
   console.log('Reserve Event por nivel');
