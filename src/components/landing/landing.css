@@ -4,12 +4,15 @@
    .lv2 so none of it leaks into the rest of the app. */
 .lv2{color-scheme: light; --canvas:#faf7f5; --surface:#ffffff; --ink:#160d1f; --ink-soft:#2a1d36; --muted:#6c6474; --line:#ece6ea; --brand:#c81b63; --brand-4:#f7639b; --brand-1:#ffe3ee; --iris:#6d3ce6; --iris-1:#ece8ff; --gold:#e3a93a; --gold-2:#f2d792; --gold-1:#fdf8ec; --gold-7:#8f5318; --night:#160d1f; --night-9:#0e0814; --night-7:#2f2140; --live:#e5334a; --display:"Sora Variable", "Sora", "Inter Variable", ui-sans-serif, system-ui, sans-serif; --body:"Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; --ease:cubic-bezier(.16,1,.3,1); --radius:22px;}
 .lv2 *{box-sizing:border-box}
-.lv2 h1,
-.lv2 h2,
-.lv2 h3{font-family:var(--display);font-weight:700;letter-spacing:-.03em;text-wrap:balance;margin:0}
-.lv2 p{margin:0}
-.lv2 a{color:inherit;text-decoration:none}
-.lv2 button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+/* Element resets live in the base layer so Tailwind utilities (the embedded sign-up card) still win. */
+@layer base {
+  .lv2 h1,
+  .lv2 h2,
+  .lv2 h3{font-family:var(--display);font-weight:700;letter-spacing:-.03em;text-wrap:balance;margin:0}
+  .lv2 p{margin:0}
+  .lv2 a{color:inherit;text-decoration:none}
+  .lv2 button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+}
 .lv2 :focus-visible{outline:2px solid var(--brand);outline-offset:3px;border-radius:10px}
 .lv2 .wrap{max-width:1240px;margin:0 auto;padding-inline:clamp(16px,4vw,40px)}
 .lv2 img{display:block;max-width:100%}
@@ -146,6 +149,12 @@
 .lv2 .ap-face .who{z-index:0}
 .lv2 .step{font-family:var(--display);font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--brand)}
 .lv2 .mini{margin-top:auto;border-radius:20px;background:var(--surface);padding:18px;box-shadow:0 20px 40px -28px rgb(40 10 40 / .45)}
+.lv2 .res-modes{display:inline-flex;align-self:flex-start;margin-top:auto;flex:none;padding:4px;gap:4px;border-radius:999px;background:rgb(255 255 255 / .1);border:1px solid rgb(255 255 255 / .16)}
+.lv2 .res-modes button{padding:8px 16px;border-radius:999px;font-weight:600;font-size:14px;color:rgb(255 255 255 / .8);transition:background .25s,color .25s}
+.lv2 .res-modes button.on{background:#fff;color:var(--ink)}
+.lv2 .res-modes + .mini{margin-top:0}
+.lv2 .ap.p-both .ap-body{gap:12px}
+.lv2 .ap.p-both .ap-body .step{display:none}
 .lv2 .p-live .mini,
 .lv2 .p-event .mini,
 .lv2 .p-res .mini{background:rgb(255 255 255 / .06);border:1px solid rgb(255 255 255 / .1);box-shadow:none}
@@ -398,3 +407,71 @@
 }
 .lv2{position:relative;isolation:isolate;overflow-x:clip;background:var(--canvas);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
 .lv2 section[id]{scroll-margin-top:96px}
+
+/* Presentation cover (visitors without a session only): dark stage with the 20 s film. */
+.lv2 .pcover{position:relative;isolation:isolate;overflow:hidden;padding-block:78px 64px;background:var(--night);color:#fff;text-align:center}
+.lv2 .pcover::before,.lv2 .pcover::after{content:"";position:absolute;width:900px;height:900px;border-radius:50%;filter:blur(120px);z-index:-1;pointer-events:none}
+.lv2 .pcover::before{left:-320px;top:-360px;background:var(--brand);opacity:.42;animation:pc-drift 18s ease-in-out infinite alternate}
+.lv2 .pcover::after{right:-360px;top:260px;background:var(--iris);opacity:.45;animation:pc-drift 22s ease-in-out infinite alternate-reverse}
+@keyframes pc-drift{to{transform:translate(140px,90px)}}
+.lv2 .pc-kick{display:inline-flex;align-items:center;gap:10px;font-size:12px;font-weight:700;letter-spacing:.26em;text-transform:uppercase;color:var(--gold-2)}
+.lv2 .pc-kick i{width:8px;height:8px;border-radius:50%;background:#1fbf75;box-shadow:0 0 0 5px rgb(31 191 117 / .2)}
+.lv2 .pc-main > h2{margin:0 auto;font-size:clamp(28px,2.7vw,40px);line-height:1.08;letter-spacing:-.04em}
+.lv2 .pc-main > h2 em{display:block;font-style:normal;background:linear-gradient(90deg,#ff9cc0,var(--gold-2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.lv2 .pc-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px 24px;margin-top:14px}
+.lv2 .pc-lead{margin:0;max-width:52ch;text-align:left;font-size:clamp(15px,1.2vw,16px);color:rgb(255 255 255 / .74);text-wrap:balance}
+.lv2 .pc-ctas{display:flex;flex-wrap:wrap;justify-content:center;gap:12px}
+.lv2 .pc-sec{color:#fff;background:rgb(255 255 255 / .08);border:1px solid rgb(255 255 255 / .16)}
+.lv2 .pc-stage{margin-top:24px}
+.lv2 .pc-screen{position:relative;width:min(100%,1100px,max(560px,calc((100svh - 290px) * 16 / 9)));margin:0 auto;aspect-ratio:16/9;border-radius:28px;overflow:hidden;background:#21152d;border:1px solid rgb(255 255 255 / .18);box-shadow:0 60px 140px rgb(0 0 0 / .6),0 0 0 10px rgb(255 255 255 / .04)}
+.lv2 .pc-screen video{display:block;width:100%;height:100%;object-fit:cover}
+.lv2 .pc-pp{position:absolute;right:16px;bottom:16px;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;background:rgb(22 13 31 / .7);border:1px solid rgb(255 255 255 / .25)}
+.lv2 .pc-bar{position:absolute;left:0;bottom:0;width:100%;height:3px;background:linear-gradient(90deg,#ff9cc0,var(--gold-2));transform-origin:0 50%;transform:scaleX(0)}
+.lv2 .pc-ribbon{position:relative;z-index:1;display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:34px}
+.lv2 .pc-ribbon span{display:inline-flex;align-items:center;gap:9px;padding:6px 14px 6px 6px;border-radius:999px;background:rgb(255 255 255 / .07);border:1px solid rgb(255 255 255 / .14);font-size:14px;font-weight:600}
+.lv2 .pc-ribbon img{width:30px;height:30px;border-radius:50%;border:2px solid var(--c);object-fit:cover}
+.lv2 .pc-trust{position:relative;z-index:1;display:flex;flex-wrap:wrap;justify-content:center;gap:8px 22px;margin-top:26px;font-size:14px;color:rgb(255 255 255 / .74)}
+.lv2 .pc-trust b{color:#fff;font-weight:600}
+.lv2 .pc-join{display:none}
+.lv2 .pc-login{font-size:15px;color:rgb(255 255 255 / .74)}
+.lv2 .pc-login b{color:#fff}
+/* Desktop: film on the left, the sign-up card on the right (like a sign-up page, no extra click). */
+@media (min-width:761px){
+  .lv2 .pcover-in{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,400px);grid-template-areas:"main form" "ribbon ribbon" "trust trust";column-gap:clamp(28px,4vw,56px);align-items:center;text-align:left}
+  .lv2 .pc-main{grid-area:main;align-self:center;min-width:0}
+  .lv2 .pc-main > h2{margin:0;font-size:clamp(26px,2.4vw,36px)}
+  .lv2 .pc-row{justify-content:flex-start;margin-top:10px}
+  .lv2 .pc-ctas{display:none}
+  .lv2 .pc-stage{margin-top:22px}
+  .lv2 .pc-screen{margin:0;width:min(100%,calc((100svh - 290px) * 16 / 9))}
+  .lv2 .pc-signup{grid-area:form;align-self:center;color:var(--ink,#160d1f);text-align:left}
+  .lv2 .pc-ribbon{grid-area:ribbon}
+  .lv2 .pc-trust{grid-area:trust}
+}
+/* Phone: only the vertical film, as large as the screen allows, and the sign-up button. */
+@media (max-width:760px){
+  .lv2 .pcover{padding-block:56px 0;overflow:clip}
+  .lv2 .pc-kick,.lv2 .pc-main > h2,.lv2 .pc-row,.lv2 .pc-ctas,.lv2 .pc-ribbon,.lv2 .pc-trust,.lv2 .pc-login{display:none}
+  .lv2 .pc-stage{margin-top:0;width:100vw;margin-left:calc(50% - 50vw)}
+  /* No phone frame: the film takes the full width and the height left under the header. On short
+     screens it crops at most ~7% top/bottom and the page scrolls a little; the sign-up button
+     stays pinned at the bottom. Edges fade into the background instead of showing a border. */
+  .lv2 .pc-screen{height:min(calc(100vw * 16 / 9),max(calc(100svh - 72px),calc(100vw * 16 / 9 * .93)));width:100%;max-width:none;aspect-ratio:auto;border:0;border-radius:0;box-shadow:none;background:transparent;
+    -webkit-mask-image:linear-gradient(transparent,#000 4%,#000 96%,transparent);mask-image:linear-gradient(transparent,#000 4%,#000 96%,transparent)}
+  .lv2 .pc-pp{right:14px;top:14px;bottom:auto;width:38px;height:38px}
+  .lv2 .pc-bar{display:none}
+  .lv2 .pc-join{position:sticky;bottom:0;z-index:2;display:flex;flex-direction:column;align-items:center;gap:12px;margin:-8px -16px 0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgb(22 13 31 / .55) 45%)}
+  .lv2 .pc-join .v-pri{width:min(100%,360px);padding-block:16px;font-size:16px}
+}
+@media (prefers-reduced-motion:reduce){.lv2 .pcover::before,.lv2 .pcover::after{animation:none}}
+
+/* Sign-up page ("/" without a session): own top bar over the film, closing call. */
+.lv2.join{background:var(--canvas)}
+.lv2 .join-top{position:absolute;inset:0 0 auto 0;z-index:5;padding-top:calc(14px + env(safe-area-inset-top))}
+.lv2 .join-bar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.lv2 .join-login{padding:10px 18px;border-radius:999px;font-weight:600;font-size:14px;color:#fff;background:rgb(255 255 255 / .1);border:1px solid rgb(255 255 255 / .2)}
+.lv2 .join-end{padding-block:72px 84px;background:var(--night);color:#fff;text-align:center}
+.lv2 .join-end h2{font-size:clamp(30px,4.4vw,54px);line-height:1.05;letter-spacing:-.035em}
+.lv2 .join-end h2 em{font-style:normal;background:linear-gradient(90deg,#ff9cc0,var(--gold-2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.lv2 .join-end p{margin-top:14px;color:rgb(255 255 255 / .74)}
+.lv2 .join-end-ctas{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:26px}

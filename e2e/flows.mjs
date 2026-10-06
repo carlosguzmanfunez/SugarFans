@@ -128,8 +128,8 @@ const logoutViaMenu = async (page) => {
   await waitPath(page, '/');
 };
 
-const register = async (page, { name, email, password, confirm = password, role = 'fan', terms = true, country = 'ES', phone = '' }) => {
-  await page.goto(`${BASE}/register`);
+const register = async (page, { name, email, password, confirm = password, role = 'fan', terms = true, country = 'ES', phone = '', from = '/register' }) => {
+  await page.goto(`${BASE}${from}`);
   await page.fill('input[type=text]', name);
   await page.fill('input[type=email]', email);
   await page.selectOption('[data-testid=signup-country]', country);
@@ -502,7 +502,7 @@ const run = async () => {
       await page.goto(`${BASE}/profile`);
       await waitPath(page, '/login');
       await page.goto(`${BASE}/`);
-      await page.getByRole('link', { name: /Crear cuenta gratis/ }).waitFor();
+      await page.getByRole('link', { name: /Crear cuenta gratis/ }).first().waitFor();
     });
     await check('Tras login desde una página protegida vuelve a esa página', async () => {
       await page.goto(`${BASE}/settings`);
@@ -550,7 +550,7 @@ const run = async () => {
     });
     await check('Registro de fan válido crea la cuenta y entra', async () => {
       await register(page, { name: 'Ana Prueba', email: fanEmail, password: 'clave-segura-1', country: 'HN', phone: '9999-8888' });
-      await waitPath(page, '/explore');
+      await waitPath(page, '/');
       await page.goto(`${BASE}/profile`);
       await page.getByText('Ana Prueba').first().waitFor();
       await page.getByText(fanEmail).first().waitFor();
@@ -1303,7 +1303,7 @@ const run = async () => {
     });
     await check('Se puede volver a registrar con el email de la cuenta eliminada', async () => {
       await register(page, { name: 'Ana Vuelve', email: fanEmail, password: 'clave-segura-9' });
-      await waitPath(page, '/explore');
+      await waitPath(page, '/');
     });
 
     console.log('\nPestañas, "Recordarme", idioma y móvil');
@@ -1727,7 +1727,7 @@ const run = async () => {
       await rf.goto(`${BASE}/r/1`);
       await waitPath(rf, '/creator/1');
       await register(rf, { name: 'Lucía Invitada', email: 'lucia.invitada@test.com', password: 'password123' });
-      await waitPath(rf, '/explore');
+      await waitPath(rf, '/');
       await rf.goto(`${BASE}/creator/1`);
       await rf.getByRole('button', { name: /Suscribirse \$/ }).first().click();
       const dialog = rf.getByRole('dialog');
@@ -1746,7 +1746,7 @@ const run = async () => {
       // Lucía's sign-up used up the link: signing up again from this browser counts nobody.
       await logoutViaMenu(rf);
       await register(rf, { name: 'Pedro Directo', email: 'pedro.directo@test.com', password: 'password123' });
-      await waitPath(rf, '/explore');
+      await waitPath(rf, '/');
       const refs = await rf.evaluate(() => JSON.parse(localStorage.getItem('fansreserve_referrals') || '[]'));
       expect(refs.length === 1, `se registró un invitado de más (${refs.length})`);
       await logoutViaMenu(rf);
@@ -2161,7 +2161,8 @@ const run = async () => {
       await resF.locator('#categories-title').getByText('influencers y creadores').waitFor();
       await resF.locator('#comunidades').getByRole('link', { name: /Tu gente/ }).waitFor();
       const how = resF.locator('section[aria-labelledby=how-title]');
-      for (const p of ['Seguir', 'Suscribirse', 'Reserve Event', 'Reserve 1:1']) await how.getByText(p, { exact: true }).first().waitFor();
+      for (const p of ['Sigue', 'Suscríbete', 'Reserva', 'Reserve Event', 'Reserve 1:1']) await how.getByText(p, { exact: true }).first().waitFor({ state: 'attached' });
+      expect((await how.locator('article.ap').count()) === 3, 'Cómo funciona no tiene los 3 pasos del video');
       await resF.locator('#reserve video').first().waitFor({ state: 'attached' });
     });
     await check('Jerarquía: el menú no tiene un pilar Live y el Open Live está oculto', async () => {
@@ -2314,6 +2315,11 @@ const run = async () => {
       for (const t of ['Incluye', 'No incluye', /Cancelación/, 'Solo fans verificados', 'El creador aprueba cada solicitud', /Reserva con 72 horas de anticipación/]) await dialog.getByText(t).first().waitFor();
       await dialog.getByTestId('notice-reserve').waitFor();
       await resF.keyboard.press('Escape');
+    });
+    await check('"Habla con …" en el perfil lleva a su Reserve', async () => {
+      await resF.evaluate(() => window.scrollTo(0, 0));
+      await resF.getByTestId('talk-button').filter({ hasText: 'Habla con Valentina' }).click();
+      await resF.waitForFunction(() => Math.abs(document.getElementById('reserve').getBoundingClientRect().top) < 200);
     });
     await check('Solicitar experiencia personalizada: 5 pasos estructurados y moderados', async () => {
       await resF.getByRole('button', { name: /Solicitar experiencia personalizada/ }).click();
@@ -2480,10 +2486,12 @@ const run = async () => {
       await m.locator('button[aria-label="Menú"]').click();
       await m.locator('nav').getByRole('button', { name: /Cerrar sesión/ }).click();
       await waitPath(m, '/');
-      await m.locator('button[aria-label="Menú"]').click();
-      await m.getByRole('link', { name: /Iniciar sesión/ }).last().waitFor();
+      // Signed out, "/" is the sign-up page: no app menus, just the way in.
+      await m.getByRole('link', { name: /Iniciar sesión/ }).first().waitFor();
+      expect((await m.locator('button[aria-label="Menú"]').count()) === 0, 'la página de registro muestra el menú de la app');
     });
     await check('Móvil: barra de pestañas tipo app con Inicio, Explorar, Reserve y Entrar (sin Live)', async () => {
+      await m.goto(`${BASE}/explore`);
       const tabs = m.getByTestId('tab-bar');
       for (const name of ['Inicio', 'Explorar', 'Reserve', 'Entrar']) await tabs.getByRole('link', { name, exact: true }).waitFor();
       expect((await tabs.getByRole('link', { name: 'Live', exact: true }).count()) === 0, 'la barra tiene una pestaña Live');
@@ -2495,7 +2503,8 @@ const run = async () => {
       await tabs.getByRole('link', { name: 'Reserve', exact: true }).tap();
       await waitPath(m, '/reserve');
       await m.goto(`${BASE}/`);
-      await m.locator('#comunidades').waitFor();
+      await m.locator('.pcover video').waitFor();
+      expect((await m.getByTestId('tab-bar').count()) === 0, 'la página de registro muestra la barra de pestañas');
       expect((await m.getByTestId('happening-now').count()) === 0, '"Está pasando ahora" sigue en la portada');
       expect((await m.getByText('Está pasando ahora').count()) === 0, '"Está pasando ahora" sigue en la portada');
       expect(await m.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'la portada desborda en móvil');
@@ -2515,6 +2524,7 @@ const run = async () => {
       await tabs.getByRole('link', { name: 'Inicio', exact: true }).tap();
       await waitPath(m, '/');
       expect((await scrolled()) === 0, 'Inicio no abrió desde arriba');
+      await m.goto(`${BASE}/reserve`);
       await bottom();
       await tabs.getByRole('link', { name: 'Explorar', exact: true }).tap();
       await waitPath(m, '/explore');
@@ -2532,6 +2542,26 @@ const run = async () => {
       await d.getByTestId('live-rail').waitFor();
       expect(!(await d.getByTestId('tab-bar').isVisible()), 'la barra de pestañas se ve en escritorio');
       await desk.close();
+    });
+    await check('La presentación en video solo la ven visitantes sin sesión', async () => {
+      const ctx = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });
+      const p = await newPage(ctx);
+      await p.goto(`${BASE}/`);
+      await p.locator('.pcover video').waitFor();
+      await login(p, 'fan@sugarfans.com', 'demo1234');
+      await p.waitForURL((u) => new URL(u).pathname !== '/login');
+      await p.goto(`${BASE}/`);
+      await p.locator('#hero-title').waitFor();
+      expect((await p.locator('.pcover').count()) === 0, 'un fan con sesión ve la presentación en video');
+      await ctx.close();
+    });
+    await check('Escritorio: el registro está junto al video y lleva a la portada principal', async () => {
+      const ctx = await newContext(browser, { viewport: { width: 1366, height: 768 }, locale: 'es-ES' });
+      const p = await newPage(ctx);
+      await register(p, { name: 'Fan Portada', email: `portada${Date.now()}@test.com`, password: 'secreta123', from: '/' });
+      await p.locator('#hero-title').waitFor();
+      expect(new URL(p.url()).pathname === '/', 'tras registrarse en la portada no queda en /');
+      await ctx.close();
     });
     await mobile.close();
   } finally {

@@ -6,6 +6,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import MobileTabBar from './components/MobileTabBar';
 import Landing from './pages/Landing';
+import JoinPage from './pages/JoinPage';
 import AgeVerification from './pages/AgeVerification';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -57,6 +58,14 @@ const GuestOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   if (loading) return <LoadingScreen />;
   if (isAuthenticated) return <Navigate to="/explore" replace />;
   return <>{children}</>;
+};
+
+// "/" is the sign-up page for visitors (film + how it works, no app menus) and the
+// main page once signed in.
+const Home: React.FC = () => {
+  const { isAuthenticated, loading } = useAuth();
+  if (loading) return <LoadingScreen />;
+  return isAuthenticated ? <AppLayout><Landing /></AppLayout> : <AppLayout hideNav><JoinPage /></AppLayout>;
 };
 
 // Video rooms use the whole phone screen, so they skip the tab bar.
@@ -148,9 +157,7 @@ const AppRoutes: React.FC = () => {
       } />
 
       {/* Public pages */}
-      <Route path="/" element={
-        <AppLayout><Landing /></AppLayout>
-      } />
+      <Route path="/" element={<Home />} />
       <Route path="/explore" element={
         <AppLayout><Explore /></AppLayout>
       } />
