@@ -66,6 +66,12 @@ export const useCreatorCatalog = () => {
   return { creators: data, loading };
 };
 
+// Creator profile id → country code (only creators who set one).
+export const useCreatorCountries = () => {
+  const { data } = usePlatformQuery(() => backend.social.creatorCountries(), [], {} as Record<string, string>);
+  return data;
+};
+
 // Creators who currently offer bookable VIP experiences (VIP badge on cards).
 export const useVipCreatorIds = () => {
   const { data } = usePlatformQuery(

@@ -6,6 +6,9 @@ import { clearRefCode, readRefCode } from '../lib/rewardRules';
 import BrandLogo from '../components/BrandLogo';
 import { BRAND } from '../config/brand';
 import { SOCIAL_INTENT_KEY, type SocialIntent } from '../components/SocialLoginButtons';
+import CountryPhoneFields, { phoneFromForm } from '../components/CountryPhoneFields';
+import { detectCountry } from '../config/countries';
+import { useLanguage } from '../context/LanguageContext';
 
 // The provider sends errors (e.g. the user pressed "Cancel") in the query or the hash.
 const providerError = (): string => {
@@ -27,6 +30,9 @@ const AuthCallback: React.FC = () => {
   const [intent] = useState<SocialIntent>(() => readJSON<SocialIntent>(SOCIAL_INTENT_KEY, {}));
   const [role, setRole] = useState<UserRole>(intent.role === 'creator' ? 'creator' : 'fan');
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const { t } = useLanguage();
+  const [country, setCountry] = useState(detectCountry);
+  const [phone, setPhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(providerError);
   const [timedOut, setTimedOut] = useState(false);
@@ -48,6 +54,15 @@ const AuthCallback: React.FC = () => {
   }, [user]);
 
   const handleSubmit = async () => {
+    if (!country) {
+      setError(t('register.chooseCountry'));
+      return;
+    }
+    const checked = phoneFromForm(country, phone, t);
+    if ('error' in checked) {
+      setError(checked.error);
+      return;
+    }
     if (!agreeTerms) {
       setError('Debes aceptar los términos y confirmar que eres mayor de 18 años');
       return;
@@ -55,7 +70,7 @@ const AuthCallback: React.FC = () => {
     setSubmitting(true);
     setError('');
     completing.current = true;
-    const result = await completeSocialSignup(role, readRefCode());
+    const result = await completeSocialSignup(role, readRefCode(), { country, phone: checked.phone });
     completing.current = false;
     setSubmitting(false);
     if (!result.ok) {
@@ -129,6 +144,10 @@ const AuthCallback: React.FC = () => {
                   Como creador verificarás tu identidad con tu ID y un selfie desde tu panel antes de recibir la insignia Verificado.
                 </p>
               )}
+
+              <div className="space-y-4 mb-4">
+                <CountryPhoneFields country={country} phone={phone} onCountry={setCountry} onPhone={setPhone} />
+              </div>
 
               <label className="flex items-start space-x-2 mb-6">
                 <input type="checkbox" checked={agreeTerms} onChange={(e) => setAgreeTerms(e.target.checked)} className="mt-1 w-4 h-4 text-pink-600 rounded" />

@@ -17,6 +17,10 @@ import {
 } from '../lib/rewards';
 import { BRAND } from '../config/brand';
 import ExperienceGoalSettings from './ExperienceGoalSettings';
+import { Link } from 'react-router-dom';
+import { useLanguage } from '../context/LanguageContext';
+import { useCreatorCountries } from '../lib/catalog';
+import { OTHER_COUNTRY, countryName } from '../config/countries';
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 const EMPTY: CreatorRewards = {
@@ -58,6 +62,37 @@ const medalProgress = (id: MedalId, data: CreatorRewards): string => {
   }
 };
 
+// The creator's place this month among creators of the same country, by new
+// paying fans (the same count as Explore's Top del mes).
+const CountryRankCard: React.FC = () => {
+  const { user } = useAuth();
+  const { t, language } = useLanguage();
+  const countries = useCreatorCountries();
+  const { data: newFans } = usePlatformQuery(() => rewardsApi.monthlyNewFans(), [], {} as Record<string, number>);
+  if (!user?.creatorProfileId) return null;
+  const myId = user.creatorProfileId;
+  const country = user.country && user.country !== OTHER_COUNTRY ? user.country : '';
+  const place = country ? countryName(country, language, t('country.other')) : '';
+  const mine = newFans[myId] ?? 0;
+  const peers = new Set([myId, ...Object.keys(countries).filter((id) => countries[id] === country)]);
+  const rank = 1 + [...peers].filter((id) => id !== myId && (newFans[id] ?? 0) > mine).length;
+  const text = !country
+    ? t('goals.countryMissing')
+    : mine === 0
+      ? t('goals.countryStart').replace('{country}', place)
+      : t('goals.countryRank').replace('{rank}', String(rank)).replace('{total}', String(peers.size)).replace('{country}', place);
+
+  return (
+    <div className="bg-white rounded-2xl p-6 shadow-sm" data-testid="country-rank">
+      <h3 className="font-bold text-gray-900 mb-1"><i aria-hidden="true" className="fas fa-trophy text-amber-500 mr-2"></i>{t('goals.countryTitle')}</h3>
+      <p className="text-sm text-gray-700">{text}</p>
+      {!country && (
+        <Link to="/settings?section=profile" className="mt-3 inline-block text-sm font-medium text-pink-600 hover:text-pink-700">{t('nav.settings')}</Link>
+      )}
+    </div>
+  );
+};
+
 // Creator panel > Metas: what to aim for next. The next level (with progress
 // bars), the medals still to win and the Meta de experiencia for fans.
 const CreatorGoalsPanel: React.FC = () => {
@@ -93,6 +128,8 @@ const CreatorGoalsPanel: React.FC = () => {
           <p className="font-display text-3xl font-bold mt-1">{level.icon} Estás en {level.name}, el nivel más alto</p>
         )}
       </div>
+
+      <CountryRankCard />
 
       <div className="bg-white rounded-2xl p-6 shadow-sm" data-testid="medals">
         <h3 className="font-bold text-gray-900 mb-1"><i aria-hidden="true" className="fas fa-award text-pink-500 mr-2"></i>Medallas</h3>

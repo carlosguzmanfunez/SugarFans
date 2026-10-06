@@ -129,7 +129,7 @@ const LegalPolicies: React.FC = () => {
                     <p className="text-sm text-gray-500"><strong>Última actualización:</strong> {LEGAL_UPDATED}</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">1. Información que Recopilamos</h3>
-                    <p>Datos de cuenta (nombre o alias, email, foto de perfil), actividad en la Plataforma (publicaciones, mensajes, suscripciones, reservas), datos de verificación de los Creadores y, de los métodos de pago, solo la marca y los últimos 4 dígitos.</p>
+                    <p>Datos de cuenta (nombre o alias, email, país, teléfono si decide darlo, foto de perfil), actividad en la Plataforma (publicaciones, mensajes, suscripciones, reservas), datos de verificación de los Creadores y, de los métodos de pago, solo la marca y los últimos 4 dígitos.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">2. Cómo Usamos su Información</h3>
                     <ul className="list-disc pl-5 space-y-2">
@@ -137,6 +137,7 @@ const LegalPolicies: React.FC = () => {
                       <li>Procesar pagos, suscripciones y reservas</li>
                       <li>Verificar la identidad y la edad de los Creadores</li>
                       <li>Prevenir fraude, revisar reportes y aplicar nuestras políticas</li>
+                      <li>Ver cuántos usuarios hay por país (en totales, sin datos individuales) y, en el caso de los Creadores, filtrarlos por país en Explorar y en el Top del mes de su país. El teléfono es opcional, solo lo usa el equipo para contactarle sobre su cuenta o sus reservas, y nunca se muestra en su perfil ni se comparte con otros usuarios</li>
                       <li>Cumplir con obligaciones legales</li>
                     </ul>
 

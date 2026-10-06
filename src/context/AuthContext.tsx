@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { readJSON, writeJSON } from '../lib/storage';
-import { backend, type AuthResult, type MediaUpload, type ProfilePatch, type SocialProvider, type Subscription, type User, type UserRole } from '../lib/backend';
+import { backend, type AuthResult, type MediaUpload, type ProfilePatch, type SignupExtras, type SocialProvider, type Subscription, type User, type UserRole } from '../lib/backend';
 
 export type { SocialProvider, User, UserRole, UserSettings, Subscription, CreatorPost, AuthResult } from '../lib/backend';
 export { defaultSettings } from '../lib/backend';
@@ -15,10 +15,10 @@ interface AuthContextType {
   ageVerified: boolean;
   backendMode: 'supabase' | 'local';
   login: (email: string, password: string, remember?: boolean) => Promise<AuthResult>;
-  register: (name: string, email: string, password: string, role: UserRole, ref?: string) => Promise<AuthResult & { needsConfirmation?: boolean }>;
+  register: (name: string, email: string, password: string, role: UserRole, ref?: string, extras?: SignupExtras) => Promise<AuthResult & { needsConfirmation?: boolean }>;
   // Leaves for Google/Microsoft; the user comes back to /auth/callback.
   signInWithProvider: (provider: SocialProvider) => Promise<AuthResult>;
-  completeSocialSignup: (role: UserRole, ref?: string) => Promise<AuthResult>;
+  completeSocialSignup: (role: UserRole, ref?: string, extras?: SignupExtras) => Promise<AuthResult>;
   logout: () => Promise<void>;
   verifyAge: () => void;
   updateUser: (data: ProfilePatch) => Promise<AuthResult>;
@@ -77,8 +77,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = (email: string, password: string, remember = true) => run(() => backend.login(email, password, remember));
 
-  const register = async (name: string, email: string, password: string, role: UserRole, ref?: string) => {
-    const result = await backend.register(name, email, password, role, ref);
+  const register = async (name: string, email: string, password: string, role: UserRole, ref?: string, extras?: SignupExtras) => {
+    const result = await backend.register(name, email, password, role, ref, extras);
     await refreshUser();
     if (result.ok) {
       // The sign-up form includes the 18+ confirmation.
@@ -91,8 +91,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const signInWithProvider = (provider: SocialProvider) =>
     backend.signInWithProvider(provider, `${window.location.origin}/auth/callback`);
 
-  const completeSocialSignup = async (role: UserRole, ref?: string) => {
-    const result = await run(() => backend.completeSocialSignup(role, ref));
+  const completeSocialSignup = async (role: UserRole, ref?: string, extras?: SignupExtras) => {
+    const result = await run(() => backend.completeSocialSignup(role, ref, extras));
     if (result.ok) {
       // The completion form includes the 18+ confirmation.
       writeJSON(AGE_KEY, true);

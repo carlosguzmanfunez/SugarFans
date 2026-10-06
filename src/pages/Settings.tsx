@@ -20,6 +20,9 @@ import {
 import { BRAND } from '../config/brand';
 import { VIRTUAL_CURRENCY, displayMethodLabel } from '../config/currency';
 import { displayEmail, isDemoEmail } from '../config/demoAccounts';
+import CountryPhoneFields, { phoneFromForm } from '../components/CountryPhoneFields';
+import { nationalPart } from '../config/countries';
+import { useLanguage } from '../context/LanguageContext';
 
 const notificationItems: { key: string; label: string }[] = [
   { key: 'newPosts', label: 'Nuevas publicaciones de creadores que sigues' },
@@ -84,6 +87,9 @@ const Settings: React.FC = () => {
   const [bio, setBio] = useState(user?.bio ?? '');
   const [price, setPrice] = useState(String(user?.subscriptionPrice ?? 9.99));
   const [avatarSeed, setAvatarSeed] = useState('');
+  const { t } = useLanguage();
+  const [country, setCountry] = useState(user?.country ?? '');
+  const [phone, setPhone] = useState(nationalPart(user?.country ?? '', user?.phone));
 
   // Security form
   const [currentPassword, setCurrentPassword] = useState('');
@@ -122,6 +128,12 @@ const Settings: React.FC = () => {
 
   const handleSaveProfile = async () => {
     const data: Parameters<typeof updateUser>[0] = { name, email };
+    if (country) {
+      const checked = phoneFromForm(country, phone, t);
+      if ('error' in checked) return showResult({ ok: false, error: checked.error });
+      if (country !== (user?.country ?? '')) data.country = country;
+      if (checked.phone !== (user?.phone ?? '')) data.phone = checked.phone;
+    }
     if (avatarSeed) data.avatar = `https://api.dicebear.com/7.0/adventurer/svg?seed=${encodeURIComponent(avatarSeed)}`;
     if (user?.role === 'creator') {
       data.bio = bio;
@@ -257,6 +269,7 @@ const Settings: React.FC = () => {
                       <input type="email" name="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none" />
                     )}
                   </div>
+                  <CountryPhoneFields country={country} phone={phone} onCountry={setCountry} onPhone={setPhone} />
                   {user?.role === 'creator' && (
                     <>
                       <div>

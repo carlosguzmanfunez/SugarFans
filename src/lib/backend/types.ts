@@ -73,6 +73,16 @@ export interface User {
   // False right after a Google/Microsoft sign-up, until the user picks fan or
   // creator and accepts the terms (18+).
   signupCompleted?: boolean;
+  // ISO country code chosen at sign-up ('ZZ' = other), and the optional phone in
+  // international format (+50499998888). Private: only the user and admins see them.
+  country?: string;
+  phone?: string;
+}
+
+// Asked at sign-up besides name, email and password.
+export interface SignupExtras {
+  country?: string;
+  phone?: string;
 }
 
 export interface AuthResult {
@@ -257,7 +267,7 @@ export interface VipExperience extends VipExperienceInput {
   createdAt: string;
 }
 
-export type ProfilePatch = Partial<Pick<User, 'name' | 'email' | 'avatar' | 'bio' | 'subscriptionPrice' | 'settings' | 'ageVerified'>>;
+export type ProfilePatch = Partial<Pick<User, 'name' | 'email' | 'avatar' | 'bio' | 'subscriptionPrice' | 'settings' | 'ageVerified' | 'country' | 'phone'>>;
 
 export interface Backend {
   mode: 'supabase' | 'local';
@@ -267,11 +277,11 @@ export interface Backend {
   // Fires when the session or the signed-in user's data may have changed elsewhere.
   onChange(cb: () => void): () => void;
   login(email: string, password: string, remember: boolean): Promise<AuthResult>;
-  register(name: string, email: string, password: string, role: UserRole, ref?: string): Promise<AuthResult & { needsConfirmation?: boolean }>;
+  register(name: string, email: string, password: string, role: UserRole, ref?: string, extras?: SignupExtras): Promise<AuthResult & { needsConfirmation?: boolean }>;
   // Leaves the site for the provider's sign-in page; comes back to `redirectTo`.
   signInWithProvider(provider: SocialProvider, redirectTo: string): Promise<AuthResult>;
   // Finishes a Google/Microsoft sign-up: account type, 18+ and terms.
-  completeSocialSignup(role: UserRole, ref?: string): Promise<AuthResult>;
+  completeSocialSignup(role: UserRole, ref?: string, extras?: SignupExtras): Promise<AuthResult>;
   logout(): Promise<void>;
   updateProfile(user: User, patch: ProfilePatch): Promise<AuthResult>;
   changePassword(user: User, current: string, next: string): Promise<AuthResult>;
