@@ -74,6 +74,9 @@ export interface SocialBackend {
   publicCreator(creatorProfileId: string): Promise<PublicCreator | null>;
   // Every creator who signed up (the demo catalogue is listed by the app itself).
   publicCreators(): Promise<PublicCreator[]>;
+  // Creator profile id → country code, for creators who set one (demo creators
+  // have a test country). Public: nothing else about the account is exposed.
+  creatorCountries(): Promise<Record<string, string>>;
   followState(creatorProfileId: string, viewer: User | null): Promise<FollowState>;
   setFollow(user: User, creatorProfileId: string, follow: boolean): Promise<AuthResult>;
 }

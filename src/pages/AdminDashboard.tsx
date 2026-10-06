@@ -14,6 +14,9 @@ import {
   type VerificationRequest,
 } from '../lib/platform';
 import { displayEmail } from '../config/demoAccounts';
+import { countryName } from '../config/countries';
+
+const countryLabel = (code: string) => (code ? countryName(code, 'es', 'Otro país') : 'Sin país');
 
 const ago = (iso: string) => {
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
@@ -85,7 +88,24 @@ const AdminDashboard: React.FC = () => {
       role: roleName[u.role],
       status: u.isVerified ? 'verified' : 'active',
       date: new Date(u.createdAt).toLocaleDateString('es'),
+      country: u.country ?? '',
+      phone: u.phone ?? '',
     }));
+
+  // Sign-ups per country (fans and creators), most first. Accounts from before
+  // the country question count as "Sin país".
+  const byCountry = Object.values(
+    accounts
+      .filter((u) => u.role !== 'admin')
+      .reduce<Record<string, { country: string; fans: number; creators: number; phones: number }>>((acc, u) => {
+        const key = u.country ?? '';
+        const row = (acc[key] ??= { country: key, fans: 0, creators: 0, phones: 0 });
+        if (u.role === 'creator') row.creators += 1;
+        else row.fans += 1;
+        if (u.phone) row.phones += 1;
+        return acc;
+      }, {})
+  ).sort((a, b) => b.fans + b.creators - (a.fans + a.creators) || (a.country ? 0 : 1) - (b.country ? 0 : 1));
 
   const review = async (v: VerificationRequest, approve: boolean) => {
     const r = await reviewVerification(v.id, approve, rejectReason);
@@ -392,6 +412,35 @@ const AdminDashboard: React.FC = () => {
         {activeTab === 'special' && <SpecialAccountsAdmin accounts={accounts} transactions={platform.transactions} />}
 
         {activeTab === 'users' && (
+          <div className="space-y-6">
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden" data-testid="admin-countries">
+            <div className="p-5 border-b border-gray-100">
+              <h3 className="font-bold text-gray-900">Usuarios por país</h3>
+              <p className="text-xs text-gray-500 mt-1">Del registro. El teléfono es opcional y solo lo ve el equipo.</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-xs text-gray-500">
+                  <tr>
+                    <th scope="col" className="px-5 py-2 text-left font-medium">País</th>
+                    <th scope="col" className="px-5 py-2 text-right font-medium">Fans</th>
+                    <th scope="col" className="px-5 py-2 text-right font-medium">Creadores</th>
+                    <th scope="col" className="px-5 py-2 text-right font-medium">Con teléfono</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {byCountry.map((r) => (
+                    <tr key={r.country || 'none'}>
+                      <td className="px-5 py-2 text-gray-900">{countryLabel(r.country)}</td>
+                      <td className="px-5 py-2 text-right tabular-nums">{r.fans}</td>
+                      <td className="px-5 py-2 text-right tabular-nums">{r.creators}</td>
+                      <td className="px-5 py-2 text-right tabular-nums">{r.phones}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div className="p-5 border-b border-gray-100 flex justify-between items-center">
               <h3 className="font-bold text-gray-900">Gestión de usuarios</h3>
@@ -412,7 +461,9 @@ const AdminDashboard: React.FC = () => {
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">{u.name}</p>
-                      <p className="text-xs text-gray-500">{displayEmail(u.email)} • {u.role} • Registrado: {u.date}</p>
+                      <p className="text-xs text-gray-500">
+                        {displayEmail(u.email)} • {u.role} • {countryLabel(u.country)}{u.phone ? ` • ${u.phone}` : ''} • Registrado: {u.date}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">
@@ -430,6 +481,7 @@ const AdminDashboard: React.FC = () => {
                 </div>
               ))}
             </div>
+          </div>
           </div>
         )}
 

@@ -128,10 +128,12 @@ const logoutViaMenu = async (page) => {
   await waitPath(page, '/');
 };
 
-const register = async (page, { name, email, password, confirm = password, role = 'fan', terms = true, from = '/register' }) => {
+const register = async (page, { name, email, password, confirm = password, role = 'fan', terms = true, country = 'ES', phone = '', from = '/register' }) => {
   await page.goto(`${BASE}${from}`);
   await page.fill('input[type=text]', name);
   await page.fill('input[type=email]', email);
+  await page.selectOption('[data-testid=signup-country]', country);
+  if (phone) await page.fill('[data-testid=signup-phone]', phone);
   await page.getByRole('button', { name: 'Continuar', exact: true }).click();
   if (await page.locator('[class*="bg-red-50"]').count()) return;
   const pw = page.locator('input[type=password]');
@@ -529,16 +531,30 @@ const run = async () => {
       await register(page, { name: 'X', email: 'x@test.com', password: 'clave-segura-1', terms: false });
       expect((await errorText(page))?.includes('términos'), 'no exigió términos');
     });
+    await check('Registro pide país (preseleccionado) y teléfono opcional con el código del país', async () => {
+      await page.goto(`${BASE}/register`);
+      // The browser is es-ES: Spain comes pre-selected, with its +34 next to the phone.
+      expect((await page.inputValue('[data-testid=signup-country]')) === 'ES', 'no preseleccionó el país');
+      await page.getByText('+34', { exact: true }).waitFor();
+      await page.selectOption('[data-testid=signup-country]', 'HN');
+      await page.getByText('+504', { exact: true }).waitFor();
+      await page.getByText('Nunca se muestra en tu perfil').waitFor();
+    });
+    await check('Registro rechaza un teléfono inválido', async () => {
+      await register(page, { name: 'X', email: 'x@test.com', password: 'x', country: 'HN', phone: '12' });
+      expect((await errorText(page))?.includes('teléfono'), 'no rechazó el teléfono');
+    });
     await check('Registro rechaza email ya existente', async () => {
       await register(page, { name: 'Dup', email: 'FAN@sugarfans.com', password: 'clave-segura-1' });
       expect((await errorText(page))?.includes('Ya existe'), 'permitió duplicado');
     });
     await check('Registro de fan válido crea la cuenta y entra', async () => {
-      await register(page, { name: 'Ana Prueba', email: fanEmail, password: 'clave-segura-1' });
+      await register(page, { name: 'Ana Prueba', email: fanEmail, password: 'clave-segura-1', country: 'HN', phone: '9999-8888' });
       await waitPath(page, '/');
       await page.goto(`${BASE}/profile`);
       await page.getByText('Ana Prueba').first().waitFor();
       await page.getByText(fanEmail).first().waitFor();
+      expect(!(await page.locator('body').innerText()).includes('9999'), 'el teléfono se muestra en el perfil');
     });
     await check('La cuenta nueva persiste tras recargar y tras cerrar/abrir sesión', async () => {
       await page.reload();
@@ -548,6 +564,16 @@ const run = async () => {
       await waitPath(page, '/explore');
       await page.goto(`${BASE}/profile`);
       await page.getByText('Ana Prueba').first().waitFor();
+    });
+    await check('El país y el teléfono del registro se guardan y se pueden cambiar en Configuración', async () => {
+      await page.goto(`${BASE}/settings`);
+      expect((await page.inputValue('[data-testid=signup-country]')) === 'HN', 'no guardó el país');
+      expect((await page.inputValue('[data-testid=signup-phone]')) === '99998888', `teléfono: ${await page.inputValue('[data-testid=signup-phone]')}`);
+      await page.fill('[data-testid=signup-phone]', '3333 4444');
+      await page.getByRole('button', { name: 'Guardar cambios' }).click();
+      await page.getByText('Cambios guardados exitosamente').waitFor();
+      await page.reload();
+      expect((await page.inputValue('[data-testid=signup-phone]')) === '33334444', 'el teléfono nuevo no persistió');
     });
 
     console.log('\nConfiguración y guardados');
@@ -1114,6 +1140,9 @@ const run = async () => {
       await page.goto(`${BASE}/admin`);
       await page.getByRole('button', { name: /Usuarios/ }).click();
       await page.getByText(creatorEmail).waitFor();
+      // Sign-ups per country: Ana registered from Honduras with a phone.
+      const byCountry = page.getByTestId('admin-countries');
+      await byCountry.getByText(/Honduras/).waitFor();
       await page.fill('input[placeholder="Buscar usuario..."]', 'lola');
       await page.getByText(creatorEmail).waitFor();
       expect((await page.getByText(fanEmail).count()) === 0, 'el filtro no funciona');
@@ -2003,6 +2032,21 @@ const run = async () => {
     await specialCtx.close();
 
     // ------------------------------------------------------------------
+    console.log('\nExplorar por país');
+    const countryCtx = await newContext(browser, { locale: 'es-ES' });
+    const countryPage = await newPage(countryCtx);
+    await check('Explorar filtra creadores por país', async () => {
+      await countryPage.goto(`${BASE}/explore`);
+      await countryPage.selectOption('[data-testid=explore-country]', 'HN');
+      await countryPage.getByRole('heading', { name: 'Andrés Vega' }).first().waitFor();
+      await countryPage.getByRole('heading', { name: 'Isabela Cruz' }).first().waitFor();
+      expect((await countryPage.getByRole('heading', { name: 'Valentina Rose' }).count()) === 0, 'muestra creadores de otro país');
+      await countryPage.goto(`${BASE}/explore?country=MX`);
+      await countryPage.getByRole('heading', { name: 'Diego Torres' }).first().waitFor();
+      expect((await countryPage.getByRole('heading', { name: 'Andrés Vega' }).count()) === 0, '?country=MX no filtra');
+    });
+    await countryCtx.close();
+
     console.log('\nReserve: categorías, experiencias permitidas y seguridad');
     // The product rules themselves (config + moderation), bundled from the sources.
     const R = await loadReserveRules();

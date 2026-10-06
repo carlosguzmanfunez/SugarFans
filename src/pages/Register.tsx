@@ -8,6 +8,8 @@ import { useLanguage } from '../context/LanguageContext';
 import LanguageSelector from '../components/LanguageSelector';
 import BrandLogo from '../components/BrandLogo';
 import SocialLoginButtons from '../components/SocialLoginButtons';
+import CountryPhoneFields, { phoneFromForm } from '../components/CountryPhoneFields';
+import { detectCountry } from '../config/countries';
 
 // What a creator account includes (all of it works in the app today).
 const CREATOR_BENEFITS = [
@@ -38,6 +40,9 @@ const Register: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const [role, setRole] = useState<UserRole>(searchParams.get('role') === 'creator' ? 'creator' : 'fan');
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [error, setError] = useState('');
+  // Pre-selected from the browser's time zone / language; the phone is optional.
+  const [country, setCountry] = useState(detectCountry);
+  const [phone, setPhone] = useState('');
 
   const handleNext = () => {
     if (step === 1) {
@@ -47,6 +52,15 @@ const Register: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
       }
       if (!isValidEmail(email)) {
         setError('Introduce un email válido');
+        return;
+      }
+      if (!country) {
+        setError(t('register.chooseCountry'));
+        return;
+      }
+      const checked = phoneFromForm(country, phone, t);
+      if ('error' in checked) {
+        setError(checked.error);
         return;
       }
       setError('');
@@ -74,12 +88,13 @@ const Register: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
       return;
     }
     setSubmitting(true);
-    const result = await register(name, email, password, role, readRefCode());
+    const checked = phoneFromForm(country, phone, t);
+    const result = await register(name, email, password, role, readRefCode(), { country, phone: 'phone' in checked ? checked.phone : '' });
     setSubmitting(false);
     if (!result.ok) {
       setError(result.error || 'No se pudo crear la cuenta');
       // Send the user back to the step that holds the offending field.
-      if (result.error?.includes('email') || result.error?.includes('nombre')) setStep(1);
+      if (/email|nombre|país|teléfono/.test(result.error ?? '')) setStep(1);
       return;
     }
     clearRefCode();
@@ -169,6 +184,7 @@ const Register: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
               placeholder="tu@email.com"
             />
           </div>
+          <CountryPhoneFields country={country} phone={phone} onCountry={setCountry} onPhone={setPhone} />
           <button onClick={handleNext} className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-xl font-bold hover:opacity-90 transition">
             {t('register.continue')}
           </button>

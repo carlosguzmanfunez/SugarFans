@@ -150,4 +150,10 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
     const { data } = await sb.rpc('public_creators');
     return ((data as Row[] | null) ?? []).map(toPublicCreator);
   },
+
+  async creatorCountries() {
+    // Empty until migration 20261006000003_country_phone is applied.
+    const { data } = await sb.rpc('creator_countries');
+    return Object.fromEntries(((data as Row[] | null) ?? []).map((r) => [r.id as string, r.country as string]));
+  },
 });

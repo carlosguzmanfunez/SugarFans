@@ -2,7 +2,7 @@
 // Security. Rules that span users (booking lifecycle, account deletion) run in
 // SECURITY DEFINER functions, see supabase/migrations.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { PAID_WITH_PAYPAL, WRONG_CREDENTIALS, cleanPatch, mergeSettings, normalizeEmail, validateRegistration } from './shared';
+import { PAID_WITH_PAYPAL, WRONG_CREDENTIALS, cleanPatch, mergeSettings, normalizeEmail, validateRegistration, validateSignupExtras } from './shared';
 import { DEFAULT_AVAILABILITY, cleanDetails, customTitle, normalizeAvailability, validateCounter, validateCustomRequest, validateExperience } from '../vip';
 import type { Backend, BookingDetails, BookingStatus, ExperienceType, ReserveDetails, SocialProvider, User, UserRole, VipBooking, VipExperience } from './types';
 import { creators as demoCreators } from '../../data/mockData';
@@ -62,6 +62,9 @@ interface ProfileRow {
   created_at: string;
   // Missing until the social-login migration is applied.
   signup_completed?: boolean;
+  // Missing until migration 20261006000003_country_phone is applied.
+  country?: string | null;
+  phone?: string | null;
 }
 
 interface BookingRow {
@@ -142,6 +145,8 @@ const toUser = (p: ProfileRow, extra?: Pick<User, 'subscriptions' | 'createdPost
   createdPosts: extra?.createdPosts ?? [],
   authProvider: extra?.authProvider,
   signupCompleted: p.signup_completed !== false,
+  country: p.country ?? undefined,
+  phone: p.phone ?? undefined,
 });
 
 const toBooking = (b: BookingRow): VipBooking => ({
@@ -258,10 +263,12 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       return error ? fail(translateAuthError(error.message)) : ok;
     },
 
-    async register(name, email, password, role, ref) {
+    async register(name, email, password, role, ref, extras) {
       const cleanEmail = normalizeEmail(email);
       const valid = validateRegistration(name, cleanEmail, password, role);
       if (!valid.ok) return valid;
+      const validExtras = validateSignupExtras(extras);
+      if (!validExtras.ok) return validExtras;
       try {
         localStorage.setItem(REMEMBER_KEY, 'true');
       } catch {
@@ -271,7 +278,17 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
         email: cleanEmail,
         password,
         // The terms checkbox at sign-up confirms the user is 18+.
-        options: { data: { name: name.trim(), role, age_verified: true, ...(ref ? { ref } : {}) }, emailRedirectTo: `${window.location.origin}/login` },
+        options: {
+          data: {
+            name: name.trim(),
+            role,
+            age_verified: true,
+            country: extras?.country,
+            ...(extras?.phone ? { phone: extras.phone } : {}),
+            ...(ref ? { ref } : {}),
+          },
+          emailRedirectTo: `${window.location.origin}/login`,
+        },
       });
       if (error) return fail(translateAuthError(error.message));
       // With "Confirm email" enabled Supabase returns no session and, for an
@@ -306,9 +323,19 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       return error ? fail(translateAuthError(error.message)) : ok;
     },
 
-    async completeSocialSignup(role, ref) {
+    async completeSocialSignup(role, ref, extras) {
       if (role !== 'fan' && role !== 'creator') return fail('Elige un tipo de cuenta');
-      const { error } = await sb.rpc('complete_social_signup', { p_role: role, p_ref: ref ?? null });
+      const validExtras = validateSignupExtras(extras);
+      if (!validExtras.ok) return validExtras;
+      let { error } = await sb.rpc('complete_social_signup', {
+        p_role: role,
+        p_ref: ref ?? null,
+        p_country: extras?.country ?? null,
+        p_phone: extras?.phone || null,
+      });
+      // Until migration 20261006000003_country_phone is applied the function has no
+      // country/phone arguments: finish the sign-up without them.
+      if (error?.code === 'PGRST202') ({ error } = await sb.rpc('complete_social_signup', { p_role: role, p_ref: ref ?? null }));
       return error ? dbError(error, 'No se pudo completar el registro') : ok;
     },
 
@@ -319,7 +346,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
     async updateProfile(user, patch) {
       const cleaned = cleanPatch(patch);
       if (!cleaned.patch) return fail(cleaned.error!);
-      const { email, name, avatar, bio, subscriptionPrice, settings, ageVerified } = cleaned.patch;
+      const { email, name, avatar, bio, subscriptionPrice, settings, ageVerified, country, phone } = cleaned.patch;
       const row: Record<string, unknown> = {};
       if (name !== undefined) row.name = name;
       if (avatar !== undefined) row.avatar = avatar;
@@ -327,6 +354,8 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       if (subscriptionPrice !== undefined) row.subscription_price = subscriptionPrice;
       if (settings !== undefined) row.settings = settings;
       if (ageVerified !== undefined) row.age_verified = ageVerified;
+      if (country !== undefined) row.country = country || null;
+      if (phone !== undefined) row.phone = phone || null;
       if (Object.keys(row).length) {
         const { error } = await sb.from('profiles').update(row).eq('id', user.id);
         if (error) return dbError(error, 'No se pudieron guardar los cambios');

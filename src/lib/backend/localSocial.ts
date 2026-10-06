@@ -6,6 +6,7 @@ import { extensionOf, validateMedia } from '../media';
 import type { AuthResult, User } from './types';
 import type { FeedPost, PostComment, PublicCreator, SocialBackend } from './socialTypes';
 import { BRAND } from '../../config/brand';
+import { DEMO_CREATOR_COUNTRIES, OTHER_COUNTRY } from '../../config/countries';
 
 interface Store {
   likes: Record<string, string[]>; // post id -> user ids
@@ -179,6 +180,14 @@ export const createLocalSocial = (deps: Deps): SocialBackend => {
         .filter((a) => a.role === 'creator' && a.creatorProfileId && !DEMO_IDS.includes(a.creatorProfileId))
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
         .map(toPublicCreator);
+    },
+
+    async creatorCountries() {
+      const owned = deps
+        .listAccounts()
+        .filter((a) => a.role === 'creator' && a.creatorProfileId && a.country && a.country !== OTHER_COUNTRY)
+        .map((a) => [a.creatorProfileId!, a.country!] as const);
+      return { ...DEMO_CREATOR_COUNTRIES, ...Object.fromEntries(owned) };
     },
 
     async followState(creatorProfileId, viewer) {
