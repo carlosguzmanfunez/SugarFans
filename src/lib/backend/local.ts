@@ -34,7 +34,7 @@ import {
   normalizeEmail,
   validateRegistration,
 } from './shared';
-import type { Availability, Backend, BookingStatus, User, VipBooking, VipExperience } from './types';
+import type { AuthResult, Availability, Backend, BookingInput, BookingStatus, User, VipBooking, VipExperience } from './types';
 import { createLocalPlatform } from './localPlatform';
 import { createLocalSocial } from './localSocial';
 import { createLocalGifts } from './localGifts';
@@ -193,9 +193,16 @@ const saveBookings = (bookings: VipBooking[]) => {
   const before = new Map(readJSON<VipBooking[]>(BOOKINGS_KEY, []).map((b) => [b.id, b]));
   for (const b of bookings) {
     const prev = before.get(b.id);
+    // A Meta de experiencia ticket pays for the booking: accepting it confirms it.
+    if (b.details?.ticketId && b.status === 'accepted' && prev?.status !== 'accepted') {
+      b.status = 'confirmed';
+      b.paidAt = new Date().toISOString();
+    }
     if ((b.status === 'pending' || b.status === 'countered') && prev?.status !== b.status) b.respondBy = respondByFrom(b);
   }
   writeJSON(BOOKINGS_KEY, bookings);
+  for (const b of bookings)
+    if (b.details?.ticketId && before.get(b.id)?.status !== b.status) rewards.syncTicket(b.id, b.details.ticketId, b.status);
   for (const b of bookings) {
     const alert = bookingAlert(before.get(b.id), b);
     if (!alert) continue;
@@ -221,6 +228,67 @@ const takenFor = (id: string) =>
     .filter((b) => b.creatorProfileId === id && ACTIVE_STATUSES.includes(b.status))
     .map((b) => ({ date: b.date, time: b.time }));
 
+// A Reserve 1:1 request (also used to book with a Meta de experiencia ticket).
+const createBooking = async (user: User, input: BookingInput): Promise<AuthResult & { bookingId?: string }> => {
+  if (!input.date) return fail('Elige un día en el calendario');
+  if (!input.time) return fail('Elige una hora disponible');
+  const exp = listExperiences().find((e) => e.id === input.experienceId && e.active);
+  if (!exp) return fail('Experiencia no encontrada');
+  if (isEventExperience(exp)) return fail('Reserva tu plaza desde el evento');
+  if (user.creatorProfileId === exp.creatorProfileId) return fail('No puedes reservar tu propia experiencia');
+  const note = moderate(input.message ?? '', 'request');
+  if (!note.ok) return fail(note.error!);
+  if (platform.ledger.cutOff(user.id, exp.creatorProfileId)) return fail('No puedes reservar con este perfil');
+  const d = detailsOf(exp);
+  const subscribed = user.subscriptions.some((s) => s.creatorId === exp.creatorProfileId);
+  if (d.requirements.verifiedFans && !user.isVerified) return fail('Esta experiencia es solo para fans con identidad verificada');
+  if (d.requirements.subscribersOnly && !subscribed) return fail('Esta experiencia es solo para suscriptores');
+  const participants = input.participants ?? 1;
+  if (!Number.isInteger(participants) || participants < 1 || participants > d.maxParticipants)
+    return fail(`Esta experiencia admite hasta ${d.maxParticipants} participante${d.maxParticipants === 1 ? '' : 's'}`);
+  const { min, max } = bookingWindow();
+  if (input.date < min || input.date > max) return fail('La fecha debe estar dentro de los próximos 3 meses');
+  if (!meetsNotice(input.date, input.time, d.minNoticeHours)) return fail(`Reserva con al menos ${d.minNoticeHours} horas de anticipación`);
+  const availability = experienceAvailability(loadAvailability(exp.creatorProfileId), exp);
+  if (!freeHoursOn(availability, takenFor(exp.creatorProfileId), input.date).includes(input.time)) {
+    return fail('Ese horario ya no está disponible. Elige otro.');
+  }
+  const price = priceFor(exp, subscribed);
+  const now = new Date().toISOString();
+  const id = newId();
+  saveBookings([
+    ...listBookings(),
+    {
+      experienceId: exp.id,
+      creatorProfileId: exp.creatorProfileId,
+      title: exp.title,
+      creatorName: exp.creatorName,
+      price,
+      ...(exp.durationMinutes ? { durationMinutes: exp.durationMinutes } : {}),
+      date: input.date,
+      time: input.time,
+      message: input.message.trim().slice(0, 500),
+      id,
+      fanId: user.id,
+      fanName: user.name,
+      fanEmail: user.email,
+      // Automatic approval skips straight to payment.
+      status: needsApproval(exp) ? 'pending' : 'accepted',
+      createdAt: now,
+      updatedAt: now,
+      details: {
+        kind: 'experience',
+        typeId: exp.type,
+        modality: d.modality,
+        participants,
+        ...(d.modality !== 'virtual' ? { locationType: d.locationTypes[0], city: d.city, venue: d.venue } : {}),
+        ...(price !== exp.price ? { listPrice: exp.price, discountPercent: d.subscriberDiscount } : {}),
+      },
+    },
+  ]);
+  return { ok: true, bookingId: id };
+};
+
 const platform = createLocalPlatform({
   listAccounts: () => loadAccounts().map(toPublic),
   setSubscription: (userId, creatorId, price) =>
@@ -235,7 +303,8 @@ const platform = createLocalPlatform({
     })),
   creatorPrice: (creatorProfileId) => creatorAccount(creatorProfileId)?.subscriptionPrice ?? null,
   setVerified: (userId) => mutate(userId, (a) => ({ ...a, isVerified: true })),
-  shareFor: (fanId, creatorProfileId, at) => rewards.shareFor(fanId, creatorProfileId, at),
+  shareFor: (fanId, creatorProfileId, at, amount) => rewards.shareFor(fanId, creatorProfileId, at, amount),
+  payoutTerms: (user) => rewards.payoutTermsFor(user),
   withInviteBonuses: (transactions) => rewards.withInviteBonuses(transactions),
   notify,
 });
@@ -251,6 +320,24 @@ const rewards = createLocalRewards({
     ]),
   ],
   specialFeatured: () => special.featuredIds(),
+  bookings: () => listBookings(),
+  lives: () => readJSON<{ broadcasts?: { creatorProfileId: string; startedAt: string; mode?: string }[] }>('live', {}).broadcasts ?? [],
+  experiences: () => listExperiences(),
+  bookTicket: async (user, experienceId, date, time, message) => createBooking(user, { experienceId, date, time, message }),
+  markTicketBooking: (bookingId, ticketId, bonus) => {
+    const bookings = listBookings();
+    const b = bookings.find((x) => x.id === bookingId);
+    if (!b) return;
+    b.price = 0;
+    b.details = { ...b.details, ticketId, ticketBonus: bonus };
+    // Automatic approval: the ticket pays for it, so it is confirmed at once.
+    if (b.status === 'accepted') {
+      const prev = readJSON<VipBooking[]>(BOOKINGS_KEY, []);
+      writeJSON(BOOKINGS_KEY, prev.map((x) => (x.id === b.id ? { ...x, status: 'pending' as const } : x)));
+    }
+    b.updatedAt = new Date().toISOString();
+    saveBookings(bookings);
+  },
 });
 
 const special = createLocalSpecial({
@@ -514,64 +601,7 @@ export const localBackend: Backend = {
     return takenFor(id);
   },
 
-  async createBooking(user, input) {
-    if (!input.date) return fail('Elige un día en el calendario');
-    if (!input.time) return fail('Elige una hora disponible');
-    const exp = listExperiences().find((e) => e.id === input.experienceId && e.active);
-    if (!exp) return fail('Experiencia no encontrada');
-    if (isEventExperience(exp)) return fail('Reserva tu plaza desde el evento');
-    if (user.creatorProfileId === exp.creatorProfileId) return fail('No puedes reservar tu propia experiencia');
-    const note = moderate(input.message ?? '', 'request');
-    if (!note.ok) return fail(note.error!);
-    if (platform.ledger.cutOff(user.id, exp.creatorProfileId)) return fail('No puedes reservar con este perfil');
-    const d = detailsOf(exp);
-    const subscribed = user.subscriptions.some((s) => s.creatorId === exp.creatorProfileId);
-    if (d.requirements.verifiedFans && !user.isVerified) return fail('Esta experiencia es solo para fans con identidad verificada');
-    if (d.requirements.subscribersOnly && !subscribed) return fail('Esta experiencia es solo para suscriptores');
-    const participants = input.participants ?? 1;
-    if (!Number.isInteger(participants) || participants < 1 || participants > d.maxParticipants)
-      return fail(`Esta experiencia admite hasta ${d.maxParticipants} participante${d.maxParticipants === 1 ? '' : 's'}`);
-    const { min, max } = bookingWindow();
-    if (input.date < min || input.date > max) return fail('La fecha debe estar dentro de los próximos 3 meses');
-    if (!meetsNotice(input.date, input.time, d.minNoticeHours)) return fail(`Reserva con al menos ${d.minNoticeHours} horas de anticipación`);
-    const availability = experienceAvailability(loadAvailability(exp.creatorProfileId), exp);
-    if (!freeHoursOn(availability, takenFor(exp.creatorProfileId), input.date).includes(input.time)) {
-      return fail('Ese horario ya no está disponible. Elige otro.');
-    }
-    const price = priceFor(exp, subscribed);
-    const now = new Date().toISOString();
-    saveBookings([
-      ...listBookings(),
-      {
-        experienceId: exp.id,
-        creatorProfileId: exp.creatorProfileId,
-        title: exp.title,
-        creatorName: exp.creatorName,
-        price,
-        ...(exp.durationMinutes ? { durationMinutes: exp.durationMinutes } : {}),
-        date: input.date,
-        time: input.time,
-        message: input.message.trim().slice(0, 500),
-        id: newId(),
-        fanId: user.id,
-        fanName: user.name,
-        fanEmail: user.email,
-        // Automatic approval skips straight to payment.
-        status: needsApproval(exp) ? 'pending' : 'accepted',
-        createdAt: now,
-        updatedAt: now,
-        details: {
-          kind: 'experience',
-          typeId: exp.type,
-          modality: d.modality,
-          participants,
-          ...(d.modality !== 'virtual' ? { locationType: d.locationTypes[0], city: d.city, venue: d.venue } : {}),
-          ...(price !== exp.price ? { listPrice: exp.price, discountPercent: d.subscriberDiscount } : {}),
-        },
-      },
-    ]);
-    return ok;
-  },
+  createBooking: (user, input) => createBooking(user, input),
 
   async bookEventSeat(user, experienceId, message) {
     const exp = listExperiences().find((e) => e.id === experienceId && e.active);
@@ -681,6 +711,7 @@ export const localBackend: Backend = {
     const b = bookings.find((x) => x.id === bookingId);
     if (!b || !user.creatorProfileId || b.creatorProfileId !== user.creatorProfileId) return fail('Reserva no encontrada');
     if (b.status !== 'pending') return fail('Solo puedes responder a solicitudes pendientes');
+    if (b.details?.ticketId) return fail('Esta reserva usa un ticket de Meta de experiencia: acéptala o recházala');
     const check = validateCounter(input);
     if (!check.ok) return fail(check.error!);
     b.status = 'countered';
@@ -754,7 +785,12 @@ export const localBackend: Backend = {
       creatorName: b.creatorName,
       kind: 'vip',
       amount: round2(b.price),
-      share: special.reserveShare(b.creatorProfileId, round2(b.price)),
+      // Special accounts keep Reserve al neto; everyone else gets their rate of the net.
+      ...(() => {
+        const normal = rewards.shareFor(user.id, b.creatorProfileId, new Date(), round2(b.price));
+        const special_ = special.reserveShare(b.creatorProfileId, round2(b.price));
+        return special_ === undefined ? normal : { share: special_, gatewayFee: normal.gatewayFee };
+      })(),
       note: b.title,
       methodLabel,
       status: 'paid',
@@ -791,6 +827,11 @@ export const localBackend: Backend = {
     const list = listExperiences();
     const existing = id ? list.find((e) => e.id === id) : undefined;
     if (id && (!existing || existing.creatorProfileId !== user.creatorProfileId)) return fail('Experiencia no encontrada');
+    // Reserve Event seats depend on the creator's level (an event saved earlier keeps its seats).
+    const seats = input.details?.format === 'event' ? input.details.maxParticipants : 0;
+    const cap = rewards.eventSeatCap(user.creatorProfileId);
+    if (seats > cap && (!existing || existing.details?.maxParticipants !== seats))
+      return fail(`Con tu nivel actual un Reserve Event tiene hasta ${cap} plazas`);
     const clean = {
       title: input.title.trim(),
       description: input.description.trim(),

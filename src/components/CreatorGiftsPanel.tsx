@@ -94,7 +94,9 @@ const CreatorGiftsPanel: React.FC = () => {
         </p>
         <p className="text-sm text-gray-600">
           Los regalos no desbloquean acceso, videos ni videollamadas. Las videollamadas y experiencias se ofrecen en{' '}
-          <Link to="/creator/dashboard?tab=vip" className="text-pink-600 hover:underline">Reserve</Link>.
+          <Link to="/creator/dashboard?tab=vip" className="text-pink-600 hover:underline">Reserve</Link>. Si activas tu{' '}
+          <Link to="/creator/dashboard?tab=rewards" className="text-pink-600 hover:underline">Meta de experiencia</Link>, los regalos y propinas
+          de cada fan la van llenando hasta ganar una de tus experiencias.
         </p>
       </div>
 

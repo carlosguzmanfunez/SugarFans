@@ -1,5 +1,6 @@
 // Defaults and validation shared by every backend.
 import { isValidEmail } from '../storage';
+import { MIN_SUBSCRIPTION } from '../platformRules';
 import type { AuthResult, ProfilePatch, UserRole, UserSettings } from './types';
 
 export { DEMO_PASSWORD } from '../../config/demoAccounts';
@@ -52,8 +53,8 @@ export const cleanPatch = (patch: ProfilePatch): { patch?: ProfilePatch; error?:
     next.name = next.name.trim();
     if (!next.name) return { error: 'El nombre es obligatorio' };
   }
-  if (next.subscriptionPrice !== undefined && !(next.subscriptionPrice >= 0.99 && next.subscriptionPrice <= 999)) {
-    return { error: 'El precio debe estar entre $0.99 y $999' };
+  if (next.subscriptionPrice !== undefined && !(next.subscriptionPrice >= MIN_SUBSCRIPTION && next.subscriptionPrice <= 999)) {
+    return { error: `El precio debe estar entre $${MIN_SUBSCRIPTION} y $999` };
   }
   return { patch: next };
 };

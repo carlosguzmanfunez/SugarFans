@@ -9,6 +9,7 @@ import { ENABLE_OPEN_LIVE } from '../../config/features';
 import { CREATOR_CATEGORIES, categoryFor } from '../../config/reserve';
 import { formatPrice } from '../CreatorCard';
 import { ArrowRight, prefersReducedMotion } from './landingBits';
+import { useLevels, type LevelId } from '../../lib/rewards';
 
 // Each pass gets its own cover so the deck reads as different worlds.
 const COVERS = [
@@ -26,10 +27,11 @@ const DEMO_IDS = new Set(demoCreators.map((c) => c.id));
 
 // One pass per category, in the category order. A creator who signed up takes
 // the place of the demo creator of their category.
-const pickDeck = (creators: Creator[]) =>
+// A Diamante creator goes first in their category.
+const pickDeck = (creators: Creator[], levels: Record<string, LevelId>) =>
   CREATOR_CATEGORIES.map((cat) => {
     const inCat = creators.filter((c) => c.avatar && categoryFor(c.category).id === cat.id);
-    return inCat.find((c) => !DEMO_IDS.has(c.id)) ?? inCat[0];
+    return inCat.find((c) => !DEMO_IDS.has(c.id) && levels[c.id] === 'diamante') ?? inCat.find((c) => !DEMO_IDS.has(c.id)) ?? inCat[0];
   }).filter((c): c is Creator => !!c);
 const AUTOPLAY_MS = 4200;
 
@@ -39,7 +41,8 @@ const Hero: React.FC<{ creators: Creator[] }> = ({ creators }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const member = user ? HERO.member[user.role] : null;
-  const deck = useMemo(() => pickDeck(creators), [creators]);
+  const levels = useLevels(creators.filter((c) => !DEMO_IDS.has(c.id)).map((c) => c.id));
+  const deck = useMemo(() => pickDeck(creators, levels), [creators, levels]);
   const vip = useVipCreatorIds();
   const live = useLiveCreatorIds(deck.map((c) => c.id));
   const n = deck.length;

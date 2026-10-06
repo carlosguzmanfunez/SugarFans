@@ -54,7 +54,8 @@ export interface Transaction {
   kind: 'subscription' | 'renewal' | 'tip' | 'gift' | 'referral' | 'vip';
   amount: number;
   note?: string; // the fan's message with a tip or gift
-  share?: number; // creator's cut; 80% unless set (gifts pay 60%)
+  share?: number; // creator's cut as a fraction of the amount (80% of the net, gifts 60%)
+  gatewayFee?: number; // what the payment processor kept (estimated when it didn't say)
   giftId?: string;
   methodLabel: string;
   status: 'paid' | 'failed' | 'refunded';

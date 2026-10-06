@@ -2,7 +2,7 @@
 // Everything lives in one localStorage key; accounts are touched through the
 // callbacks local.ts passes in.
 import { readJSON, writeJSONChecked, newId } from '../storage';
-import { addMonths, round2, validateReport, validateTip, validateVerification, computeEarnings, MIN_PAYOUT, payoutFee, payoutAccountLabel, money, buildManagedProfile } from '../platformRules';
+import { addMonths, round2, validateReport, validateTip, validateVerification, computeEarnings, payoutFee, payoutAccountLabel, money, buildManagedProfile } from '../platformRules';
 import { creators as catalogue } from '../../data/mockData';
 import type { AuthResult, User } from './types';
 import type { Block, ManagedProfile, PaymentMethod, Payout, PayoutAccount, PlatformBackend, Report, Transaction, VerificationRequest } from './platformTypes';
@@ -27,8 +27,11 @@ interface Deps {
   // Monthly price of a creator account's profile, or null when no account owns it.
   creatorPrice(creatorProfileId: string): number | null;
   setVerified(userId: string): void;
-  // Creator's cut of a subscription, renewal or tip (rewards: level, goals, referral).
-  shareFor(fanId: string, creatorProfileId: string, at: Date): number;
+  // Creator's cut of a subscription, renewal or tip (rewards: level and referral, from the
+  // net) and the processor's fee it was taken after.
+  shareFor(fanId: string, creatorProfileId: string, at: Date, amount: number): { share: number; gatewayFee: number };
+  // Smallest withdrawal and whether Fans Reserve pays PayPal's fee, by the creator's level.
+  payoutTerms(user: User): { min: number; feeWaived: boolean };
   // Adds (and keeps in step) the 5% bonus rows for creators who invited the seller.
   withInviteBonuses(transactions: Store['transactions']): Store['transactions'];
   notify(): void;
@@ -64,6 +67,7 @@ export interface LocalLedger {
   // Someone runs this profile (a creator account or a visible managed profile), so it can take money.
   acceptsPayments(creatorProfileId: string): boolean;
   transactions(): Transaction[];
+  reports(): Report[];
   addTransaction(t: Omit<Transaction, 'id'> & { key: string }): AuthResult & { id?: string };
   refund(transactionId: string): void;
 }
@@ -122,6 +126,7 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
     cutOff: (fanId, creatorProfileId) => cutOff(load(), fanId, creatorProfileId),
     acceptsPayments: (creatorProfileId) => priceOf(load(), creatorProfileId) !== null,
     transactions: () => load().transactions,
+    reports: () => load().reports,
     addTransaction(t) {
       const id = newId();
       const r = commit((s) => ({ ...s, transactions: [...s.transactions, { ...t, id }] }));
@@ -258,7 +263,7 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
             creatorName,
             kind: 'subscription',
             amount: round2(price),
-            share: deps.shareFor(user.id, creatorProfileId, new Date(at)),
+            ...deps.shareFor(user.id, creatorProfileId, new Date(at), round2(price)),
             methodLabel: method.label,
             status: 'paid',
             createdAt: at,
@@ -293,7 +298,7 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
             creatorName,
             kind: 'tip',
             amount: round2(amount),
-            share: deps.shareFor(user.id, creatorProfileId, new Date(at)),
+            ...deps.shareFor(user.id, creatorProfileId, new Date(at), round2(amount)),
             methodLabel: method.label,
             status: 'paid',
             createdAt: at,
@@ -326,7 +331,7 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
             creatorName: creatorNames[sub.creatorId] ?? 'Creador',
             kind: 'renewal',
             amount: round2(sub.price),
-            share: deps.shareFor(user.id, sub.creatorId, addMonths(sub.since, n)),
+            ...deps.shareFor(user.id, sub.creatorId, addMonths(sub.since, n), round2(sub.price)),
             methodLabel: method?.label ?? 'Sin método de pago',
             status: method ? 'paid' : 'failed',
             createdAt: due.toISOString(),
@@ -382,8 +387,10 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
       const account = s.payoutAccounts[user.id];
       if (!account) return fail('Añade el email de tu cuenta PayPal para retiros');
       const { available } = earningsOf(s, user);
-      if (available < MIN_PAYOUT)
-        return fail(`Necesitas al menos ${money(MIN_PAYOUT)} USD acreditados para retirar; tu saldo disponible es ${money(available)}`);
+      const terms = deps.payoutTerms(user);
+      const fee = terms.feeWaived ? 0 : payoutFee(available);
+      if (available < terms.min)
+        return fail(`Necesitas al menos ${money(terms.min)} USD acreditados para retirar; tu saldo disponible es ${money(available)}`);
       const result = commit((data) => ({
         ...data,
         payouts: [
@@ -393,8 +400,8 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
             userId: user.id,
             creatorName: user.name,
             amount: available,
-            fee: payoutFee(available),
-            net: round2(available - payoutFee(available)),
+            fee,
+            net: round2(available - fee),
             accountLabel: payoutAccountLabel(account),
             status: 'paid',
             availableBefore: available,
@@ -403,7 +410,7 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
           },
         ],
       }));
-      return result.ok ? { ...result, amount: round2(available - payoutFee(available)), status: 'paid' as const } : result;
+      return result.ok ? { ...result, amount: round2(available - fee), status: 'paid' as const } : result;
     },
 
     // Local withdrawals are paid at once, so there's never one to cancel.

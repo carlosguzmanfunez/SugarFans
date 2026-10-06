@@ -77,31 +77,33 @@ const run = async () => {
       `insert into public.transactions (key, payer_id, payer_name, creator_profile_id, creator_name, kind, amount, method_label, status)
        values ('vip:${s.booking}', '${fan}', 'Fan', '${gym}', 'Creador', 'vip', 100, 'PayPal', 'paid') returning id`
     );
-    // 100 - 5.70 PayPal - 15.00 tax = 79.30
-    expect(row(id) === '0.7930|5.70|15.00', `fila: ${row(id)}`);
+    // 100 - 5.70 PayPal - 5.00 service (5%) - 15.00 tax = 74.30
+    expect(row(id) === '0.7430|5.70|15.00', `fila: ${row(id)}`);
+    expect(psql(DB, `select service_fee from public.transactions where id = '${id}'`) === '5.00', 'sin cargo de servicio');
   });
   await check('Sin comisión informada usa el estimado (5.4% + $0.30)', async () => {
     as(admin, `update public.special_accounts set tax_rate = 0`);
     const { id } = sale(gym, 50);
-    // 50 - (2.70 + 0.30) = 47.00
-    expect(row(id) === '0.9400|3.00|0.00', `fila: ${row(id)}`);
+    // 50 - (2.70 + 0.30) - 2.50 service = 44.50
+    expect(row(id) === '0.8900|3.00|0.00', `fila: ${row(id)}`);
   });
-  await check('Suscripciones del mismo creador y Reserve de otros creadores no cambian', async () => {
+  await check('Suscripciones del mismo creador y Reserve de otros creadores van con la regla normal (80% del neto)', async () => {
     const subs = sale(gym, 10, 'subscription');
-    expect(row(subs.id).startsWith('0.8000|'), `suscripción: ${row(subs.id)}`);
+    // 10 - 0.84 estimated fee = 9.16; 80% = 7.328
+    expect(row(subs.id) === '0.7328|0.84|', `suscripción: ${row(subs.id)}`);
     const theirs = sale(other, 100);
-    expect(row(theirs.id) === '0.8000||', `otro creador: ${row(theirs.id)}`);
+    expect(row(theirs.id) === '0.7544|5.70|', `otro creador: ${row(theirs.id)}`);
   });
   await check('El saldo del creador suma lo neto', async () => {
     psql(DB, `update public.transactions set created_at = now() - interval '40 days' where creator_profile_id = '${gym}'`);
-    // 79.30 + 47.00 + 8.00 (suscripción al 80%)
-    expect(psql(DB, `select public.creator_available_balance('${gym}')`) === '134.30', 'saldo incorrecto');
+    // 74.30 + 44.50 + 7.328 (suscripción al 80% del neto)
+    expect(psql(DB, `select public.creator_available_balance('${gym}')`) === '126.13', 'saldo incorrecto');
   });
-  await check('Revocar el plan vuelve al 80% solo para pagos nuevos', async () => {
+  await check('Revocar el plan vuelve al 80% del neto solo para pagos nuevos', async () => {
     as(admin, `update public.special_accounts set revoked_at = now()`);
     const { id } = sale(gym, 100);
-    expect(row(id) === '0.8000||', `fila: ${row(id)}`);
-    expect(psql(DB, `select count(*) from public.transactions where creator_profile_id = '${gym}' and gateway_fee is not null`) === '2', 'cambió pagos viejos');
+    expect(row(id) === '0.7544|5.70|', `fila: ${row(id)}`);
+    expect(psql(DB, `select count(*) from public.transactions where creator_profile_id = '${gym}' and tax_amount is not null`) === '2', 'cambió pagos viejos');
   });
   await check('Con el plan revocado, un link nuevo lo reactiva', async () => {
     const again = as(admin, `insert into public.special_invites (label) values ('Otra vez') returning code`);

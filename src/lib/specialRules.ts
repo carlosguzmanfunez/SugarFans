@@ -15,12 +15,17 @@ export const MAX_INVITE_USES = 1000;
 export const ESTIMATED_FEE = { rate: 0.054, fixed: 0.3 };
 export const estimatedFee = (amount: number) => round2(amount * ESTIMATED_FEE.rate + ESTIMATED_FEE.fixed);
 
-// What a special account keeps from a Reserve payment.
+// Fans Reserve's service fee on a special account's Reserve payment.
+export const SERVICE_RATE = 0.05;
+
+// What a special account keeps from a Reserve payment: the amount minus the
+// processor's fee, the 5% service fee and the plan's tax.
 export const netReserve = (amount: number, taxRate: number, fee = estimatedFee(amount)) => {
   const gatewayFee = Math.min(amount, fee);
-  const tax = Math.min(amount - gatewayFee, round2(amount * taxRate));
-  const share = amount > 0 ? Math.max(0, Math.min(1, Math.round(((amount - gatewayFee - tax) / amount) * 10000) / 10000)) : 0;
-  return { gatewayFee, tax, share };
+  const service = Math.min(amount - gatewayFee, round2(amount * SERVICE_RATE));
+  const tax = Math.min(amount - gatewayFee - service, round2(amount * taxRate));
+  const share = amount > 0 ? Math.max(0, Math.min(1, Math.round(((amount - gatewayFee - service - tax) / amount) * 10000) / 10000)) : 0;
+  return { gatewayFee, service, tax, share };
 };
 
 export const validateInvite = (input: SpecialInviteInput): AuthResult => {

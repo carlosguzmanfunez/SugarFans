@@ -98,7 +98,7 @@ const LegalPolicies: React.FC = () => {
                     <p>{BRAND.name} permite reservar experiencias, no personas. Los servicios profesionales con un propósito definido están permitidos; vender la compañía o la intimidad de una persona no. Si el creador no cumple lo publicado, el fan recibe el reembolso completo, previa verificación. Las videollamadas y los Lives no se graban y está prohibido grabarlos. Las reservas se rigen por la <a href="/legal?doc=reserve-policy" className="underline">Política de Reserve</a> y la de <a href="/legal?doc=cancellation" className="underline">Cancelación y No-show</a>.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">7. Pagos y Comisiones</h3>
-                    <p>Métodos de pago: tarjetas Visa y Mastercard, PayPal y Google Pay. Todos los precios y pagos son en dólares estadounidenses (USD). Los Creadores reciben del 80% al 90% de suscripciones y propinas según su nivel y sus recompensas, el 80% de las reservas de Reserve y el 60% de los regalos; la Plataforma conserva siempre al menos el 10%. Los ingresos se acreditan el día 1 de cada mes y se retiran a la cuenta PayPal del Creador desde $50 USD; la comisión de PayPal por enviar el retiro (2%, máximo $20) se descuenta del monto retirado.</p>
+                    <p>Métodos de pago: tarjetas Visa y Mastercard, PayPal y Google Pay. Todos los precios y pagos son en dólares estadounidenses (USD). Los Creadores reciben el 80% del neto (lo pagado menos la comisión de PayPal por ese pago) de suscripciones, propinas y reservas de Reserve, más según su nivel y sus recompensas, nunca más del 90% del neto, y el 60% de los regalos. Suscripción mínima $4.99 USD al mes y propina mínima $3 USD. Los ingresos se acreditan el día 1 de cada mes y se retiran a la cuenta PayPal del Creador desde $50 USD ($25 en Oro y Diamante); la comisión de PayPal por enviar el retiro (2%, máximo $20) se descuenta del monto retirado, salvo en Diamante.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">8. Propiedad Intelectual</h3>
                     <p>Los Creadores conservan derechos de autor de su Contenido. La Plataforma posee derechos sobre el software, diseño y marcas.</p>
@@ -186,22 +186,22 @@ const LegalPolicies: React.FC = () => {
                         <thead>
                           <tr className="border-b">
                             <th className="text-left py-2">Nivel</th>
-                            <th className="text-left py-2">Fans activos</th>
-                            <th className="text-left py-2">Usted recibe</th>
+                            <th className="text-left py-2">Fans activos o ventas en 30 días</th>
+                            <th className="text-left py-2">Usted recibe del neto</th>
                           </tr>
                         </thead>
                         <tbody>
                           {CREATOR_LEVELS.map((l) => (
                             <tr key={l.id} className="border-b last:border-0">
                               <td className="py-2">{l.name}</td>
-                              <td className="py-2">{l.minFans}+</td>
+                              <td className="py-2">{l.minFans === 0 ? 'Al empezar' : `${l.minFans}+ o $${l.minSales.toLocaleString('en-US')}`}</td>
                               <td className="py-2">{pct(l.share)}</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
-                    <p>Aplica a suscripciones, renovaciones y propinas. Las metas mensuales, los fans de su enlace de invitación ({pct(REFERRAL_SHARE)} durante {REFERRAL_DAYS} días) y el bono por invitar creadores pueden subirlo, sin superar nunca el {pct(MAX_SHARE)}. Las reservas de Reserve le dejan el {pct(CREATOR_SHARE)} y los regalos el {pct(GIFT_SHARE)}. Los ingresos se acreditan el día 1 de cada mes y se retiran completos, a su cuenta PayPal, desde ${MIN_PAYOUT} USD. Todo se paga en dólares estadounidenses (USD). La comisión del procesador cuando el fan paga la asume la Plataforma; la comisión de PayPal por enviar cada retiro (2%, máximo $20) la paga usted y se descuenta del monto retirado. Si PayPal no puede entregar un retiro (por ejemplo, el email no tiene cuenta PayPal y no se reclama), el monto vuelve a su saldo.</p>
+                    <p>Aplica a suscripciones, renovaciones, propinas y reservas de Reserve, sobre el neto: lo que paga el fan menos la comisión de PayPal por ese pago. Desde Plata se pide no tener reportes confirmados en 90 días, y desde Oro responder a tiempo el 95% de las solicitudes de Reserve. Los fans de su enlace de invitación le dejan el {pct(REFERRAL_SHARE)} durante {REFERRAL_DAYS} días, y el bono por invitar creadores lo paga la Plataforma; nada supera el {pct(MAX_SHARE)} del neto. Los regalos le dejan el {pct(GIFT_SHARE)}. Los ingresos se acreditan el día 1 de cada mes y se retiran completos, a su cuenta PayPal, desde ${MIN_PAYOUT} USD (${CREATOR_LEVELS[2].payoutMin} USD en Oro y Diamante). Todo se paga en dólares estadounidenses (USD). La comisión de PayPal por enviar cada retiro (2%, máximo $20) la paga usted y se descuenta del monto retirado, salvo en Diamante, donde la paga la Plataforma. Si PayPal no puede entregar un retiro (por ejemplo, el email no tiene cuenta PayPal y no se reclama), el monto vuelve a su saldo.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">4. Propiedad Intelectual</h3>
                     <p>Usted conserva derechos de autor. Nos otorga licencia para distribuir su Contenido en la Plataforma.</p>

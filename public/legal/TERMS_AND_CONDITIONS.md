@@ -163,7 +163,9 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 - La Plataforma no graba videollamadas ni Lives, y está prohibido grabarlos o capturarlos por cualquier medio. El video muestra el nombre de quien lo ve para identificar copias; grabar supone el cierre de la cuenta y puede tener consecuencias legales
 - La comunicación y los pagos se mantienen dentro de la Plataforma
 
-5.4. **Suscripciones y regalos no incluyen Reserve**: La suscripción da acceso al contenido; los regalos son apoyo voluntario y no desbloquean nada. Ninguno incluye experiencias de Reserve.
+5.4. **Suscripciones y regalos no incluyen Reserve**: La suscripción da acceso al contenido; los regalos son apoyo voluntario y por sí solos no desbloquean nada. Ninguno incluye experiencias de Reserve, salvo la Meta de experiencia (5.5).
+
+5.5. **Meta de experiencia**: Si un Creador la activa, los regalos y propinas que cada fan le envía llenan la meta de ese fan. Al completarla, el fan elige una de las experiencias que el Creador incluyó y recibe un ticket para reservarla sin pagar nada más, eligiendo día y hora según la disponibilidad del Creador, más un extra gratis elegido al azar en una ruleta donde todas las opciones son premio. El ticket vence a los 60 días, no tiene valor en dinero, no es transferible ni reembolsable, y si el Creador rechaza la fecha o la solicitud vence, sigue activo para elegir otra.
 
 5.5. **Políticas aplicables**: Política de Reserve, Experiencias Aceptables, Servicios Prohibidos, Cancelación y No-show, Normas de la Comunidad y Acuerdo de Creator (Reserve).
 

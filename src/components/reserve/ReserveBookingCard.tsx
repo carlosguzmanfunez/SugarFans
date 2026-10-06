@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { backend } from '../../lib/backend';
 import { money } from '../../lib/platform';
+import { bonusInfo } from '../../lib/experienceGoalRules';
 import { formatLongDate, reserveStatusOf, typeOf, CUSTOM_EXPERIENCE, MIN_SESSION_MINUTES, MAX_SESSION_MINUTES, type VipBooking } from '../../lib/vip';
 import { LOCATION_TYPES, PURPOSES, RESERVE_MODALITIES } from '../../config/reserve';
 import { MODERATION_RULES } from '../../lib/moderation';
@@ -86,7 +87,11 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
           </p>
         </div>
         <div className="text-right">
-          <span className="text-sm font-bold text-ink">{money(b.price)}</span>
+          {d.ticketId ? (
+            <span className="text-sm font-bold text-pink-600" data-testid="booking-ticket"><i aria-hidden="true" className="fas fa-ticket mr-1"></i>Ticket</span>
+          ) : (
+            <span className="text-sm font-bold text-ink">{money(b.price)}</span>
+          )}
           {d.discountPercent ? <span className="block text-[11px] text-iris-700">−{d.discountPercent}% suscriptor</span> : null}
         </div>
       </div>
@@ -98,6 +103,11 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
         {isCustom && d.purpose && <span><i aria-hidden="true" className={`fas ${PURPOSES[d.purpose].icon} mr-1 text-brand-600`}></i>{PURPOSES[d.purpose].label}</span>}
       </div>
 
+      {d.ticketId && d.ticketBonus && (
+        <p className="mt-2 rounded-xl bg-pink-50 px-3 py-2 text-xs text-pink-800" data-testid="booking-ticket-bonus">
+          <i aria-hidden="true" className="fas fa-trophy mr-1"></i>Meta de experiencia: sin costo para el fan. Extra que ganó en la ruleta: {bonusInfo(d.ticketBonus).label}.
+        </p>
+      )}
       {b.message && <p className="mt-2 text-sm italic text-ink/70">“{b.message}”</p>}
       {as === 'creator' && flags.length > 0 && (
         <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800" data-testid="request-flags">
@@ -128,7 +138,7 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
               <button type="button" disabled={busy} onClick={() => run(() => backend.updateBooking(user, b.id, 'rejected'))} className={`${btn} border border-line text-ink/70 hover:bg-gray-50`}>
                 Rechazar
               </button>
-              {!isEvent && (
+              {!isEvent && !d.ticketId && (
                 <button type="button" disabled={busy} onClick={() => setCountering(!countering)} aria-expanded={countering} className={`${btn} border border-iris-300 text-iris-700 hover:bg-iris-50`}>
                   Contraoferta
                 </button>

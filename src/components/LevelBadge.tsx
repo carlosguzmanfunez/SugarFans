@@ -1,5 +1,5 @@
 import React from 'react';
-import { levelById, type LevelId } from '../lib/rewards';
+import { levelById, type CreatorBadges, type LevelId } from '../lib/rewards';
 
 // Creator level shown next to the name; Bronce (the starting level) shows nothing.
 const STYLE: Record<string, { icon: string; cls: string }> = {
@@ -18,5 +18,21 @@ const LevelBadge: React.FC<{ level?: LevelId }> = ({ level }) => {
     </span>
   );
 };
+
+// Medals fans can see on a profile: Puntual and Constante.
+export const MedalBadges: React.FC<{ badges?: CreatorBadges }> = ({ badges }) => (
+  <>
+    {badges?.puntual && (
+      <span data-testid="badge-puntual" title="Responde a tiempo sus solicitudes de Reserve" className="inline-flex items-center gap-1 text-[11px] font-semibold border px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border-emerald-200">
+        <i className="fas fa-clock text-[10px]" aria-hidden="true"></i> Puntual
+      </span>
+    )}
+    {badges?.constante && (
+      <span data-testid="badge-constante" title="Hace un Live para suscriptores cada semana" className="inline-flex items-center gap-1 text-[11px] font-semibold border px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 border-orange-200">
+        <i className="fas fa-fire text-[10px]" aria-hidden="true"></i> Constante
+      </span>
+    )}
+  </>
+);
 
 export default LevelBadge;

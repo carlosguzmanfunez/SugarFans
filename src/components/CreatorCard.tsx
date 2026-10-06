@@ -19,9 +19,11 @@ const CreatorCard: React.FC<{
   creator: Creator;
   level?: LevelId;
   featured?: boolean;
+  // "En ascenso" for Plata creators the rewards programme pushes up.
+  featuredLabel?: string;
   vip?: boolean;
   className?: string;
-}> = ({ creator, level, featured = false, vip = false, className = '' }) => {
+}> = ({ creator, level, featured = false, featuredLabel = 'Destacado', vip = false, className = '' }) => {
   const visual = creator.category ? categoryVisual(creator.category) : null;
   return (
     <Link
@@ -42,7 +44,7 @@ const CreatorCard: React.FC<{
           <span className="flex gap-1.5">
             {featured && (
               <span data-testid="featured-tag" className="rounded-full bg-white/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-brand-700">
-                Destacado
+                {featuredLabel}
               </span>
             )}
             {vip && (

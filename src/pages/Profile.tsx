@@ -15,6 +15,8 @@ import { displayEmail } from '../config/demoAccounts';
 import { VIRTUAL_CURRENCY } from '../config/currency';
 import { formatCoins, giftsApi } from '../lib/gifts';
 import Avatar from '../components/Avatar';
+import { rewardsApi, type ExperienceTicket } from '../lib/rewards';
+import { bonusInfo } from '../lib/experienceGoalRules';
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -27,6 +29,7 @@ const Profile: React.FC = () => {
   useEffect(() => (userId ? onNewNotification(userId, reload) : undefined), [userId, reload]);
   const { data: verification } = usePlatformQuery(() => (user ? platformApi.myVerification(user.id) : Promise.resolve(null)), [user?.id], null);
   const { data: coins } = usePlatformQuery(() => (user ? giftsApi.wallet(user).then((w) => w.coins) : Promise.resolve(0)), [user?.id], 0);
+  const { data: tickets } = usePlatformQuery(() => (user ? rewardsApi.myTickets(user) : Promise.resolve([])), [user?.id], [] as ExperienceTicket[]);
   const [paying, setPaying] = useState<VipBooking | null>(null);
 
   if (!user) return null;
@@ -122,6 +125,31 @@ const Profile: React.FC = () => {
               </div>
             )}
           </div>
+
+          {tickets.length > 0 && (
+            <div className="bg-white rounded-2xl border border-line p-5" data-testid="my-tickets">
+              <h3 className="font-semibold text-ink mb-1">
+                <Icon name="fa-trophy" className="text-pink-500 mr-2" /> Mis tickets de experiencia
+              </h3>
+              <p className="mb-3 text-xs text-gray-500">Los ganas al llenar la Meta de experiencia de un creador. Resérvalos desde su perfil.</p>
+              <ul className="space-y-2">
+                {tickets.map((t) => {
+                  const expired = t.status === 'active' && t.expiresAt < new Date().toISOString();
+                  return (
+                    <li key={t.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-dashed border-pink-200 p-3 text-sm">
+                      <div>
+                        <p className="font-semibold text-ink">{t.experienceTitle} · {t.creatorName}</p>
+                        <p className="text-xs text-gray-500">+ {bonusInfo(t.bonus).label} · {expired ? 'venció' : t.status === 'used' ? 'usado' : t.status === 'reserved' ? 'reserva enviada' : `vence el ${formatDate(t.expiresAt)}`}</p>
+                      </div>
+                      {t.status === 'active' && !expired && (
+                        <Link to={`/creator/${t.creatorProfileId}`} className="text-sm font-semibold text-pink-600">Reservar</Link>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
 
           <div className="bg-white rounded-2xl border border-line p-5" data-testid="subscriptions">
             <h3 className="font-semibold text-ink mb-3">
