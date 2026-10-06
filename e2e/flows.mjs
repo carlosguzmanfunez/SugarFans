@@ -2271,6 +2271,11 @@ const run = async () => {
       await dialog.getByTestId('notice-reserve').waitFor();
       await resF.keyboard.press('Escape');
     });
+    await check('"Habla con …" en el perfil lleva a su Reserve', async () => {
+      await resF.evaluate(() => window.scrollTo(0, 0));
+      await resF.getByTestId('talk-button').filter({ hasText: 'Habla con Valentina' }).click();
+      await resF.waitForFunction(() => Math.abs(document.getElementById('reserve').getBoundingClientRect().top) < 200);
+    });
     await check('Solicitar experiencia personalizada: 5 pasos estructurados y moderados', async () => {
       await resF.getByRole('button', { name: /Solicitar experiencia personalizada/ }).click();
       const dlg = resF.getByTestId('custom-request');

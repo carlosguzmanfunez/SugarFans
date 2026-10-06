@@ -2,7 +2,7 @@ import React from 'react';
 import {
   ArrowRight, Ban, Bell, BellOff, Check, ChartLine, ChartPie, ChevronDown, CircleCheck, CircleHelp, CircleUser, Coins, Compass, DollarSign, Ellipsis,
   Flag, Gift, HandCoins, Heart, House, Image, Images, Link, LogOut, Menu, Pen, Plus, Settings, ShieldHalf, Star, Target, Ticket, Trophy, Unlock, User, Users,
-  Wallet, X, type LucideIcon,
+  Video, Wallet, X, type LucideIcon,
 } from 'lucide-react';
 
 // One icon family for the app chrome (tab bar, menus, panels): thin-stroke Lucide
@@ -47,6 +47,7 @@ const ICONS: Record<string, LucideIcon> = {
   'fa-unlock': Unlock,
   'fa-user': User,
   'fa-users': Users,
+  'fa-video': Video,
   'fa-wallet': Wallet,
   'fa-xmark': X,
 };

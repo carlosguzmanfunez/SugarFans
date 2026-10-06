@@ -325,6 +325,17 @@ const CreatorProfile: React.FC = () => {
                   Suscribirse ${creator.subscriptionPrice}/mes
                 </Link>
               ) : null}
+              {/* "Habla con …": the shortest way to the creator's Reserve (1:1 calls and events). */}
+              {!isOwner && !iBlocked && experiences.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('reserve')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  data-testid="talk-button"
+                  className="btn btn-lg col-span-3 border border-gold-300 bg-gold-50 text-ink hover:border-gold-400"
+                >
+                  <Icon name="fa-video" className="mr-2" />Habla con {creator.name.split(' ')[0]}
+                </button>
+              )}
               {managesProfile && (
                 <button
                   onClick={() => setComposing(!composing)}

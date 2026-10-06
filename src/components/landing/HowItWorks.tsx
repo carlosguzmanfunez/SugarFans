@@ -193,8 +193,8 @@ const TICKET = <><path d="M3 9a2 2 0 0 0 0 6v3a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-3
 // Seguir → Suscribirse (with Subscriber Live) → Reserve Event → Reserve 1:1.
 // The free public Live panel only comes back with ENABLE_OPEN_LIVE.
 const HowItWorks: React.FC = () => {
-  const follow: Panel = { key: 'follow', cls: 'p-follow', label: 'Seguir', price: 'Gratis', title: 'Gratis, para no perderte nada', sub: 'Ves sus publicaciones públicas y sus novedades.', who: byId('1').avatar, icon: <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" /> };
-  const sub: Panel = { key: 'sub', cls: 'p-sub', label: 'Suscribirse', price: `${formatPrice(byId('2').subscriptionPrice)} al mes`, title: 'Su contenido exclusivo y sus Lives para suscriptores', sub: 'Publicaciones, backstage y Lives grupales solo para su comunidad. Cancelas cuando quieras.', who: byId('2').avatar, icon: <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" /> };
+  const follow: Panel = { key: 'follow', cls: 'p-follow', label: 'Seguir', price: 'Gratis', title: 'Te enteras de todo', sub: 'Ves sus publicaciones públicas y sus novedades, gratis.', who: byId('1').avatar, icon: <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" /> };
+  const sub: Panel = { key: 'sub', cls: 'p-sub', label: 'Suscribirse', price: `${formatPrice(byId('2').subscriptionPrice)} al mes`, title: 'Le hablas en su Live', sub: 'Contenido exclusivo y Lives solo para suscriptores, donde le escribes y le preguntas en directo. Cancelas cuando quieras.', who: byId('2').avatar, icon: <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" /> };
   const panels: Panel[] = ENABLE_OPEN_LIVE
     ? [
         follow,
@@ -205,8 +205,8 @@ const HowItWorks: React.FC = () => {
     : [
         follow,
         sub,
-        { key: 'event', cls: 'p-event', label: 'Reserve Event', price: 'Desde $15.99 la plaza', title: 'Eventos en grupo, con plazas', sub: 'Q&A, masterclass, workshops o gaming con fecha, duración y plazas limitadas. Reservas y pagas tu plaza.', icon: <><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2.4" /><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5M15 14c3 0 6 1.7 6 5" /></> },
-        { key: 'res', cls: 'p-res', label: 'Reserve 1:1', price: 'Desde $15.99', title: 'Una sesión privada, solo para ti', sub: 'Videollamada privada con hora, duración y precio definidos. Solo tú y el creador en la sala.', icon: TICKET },
+        { key: 'event', cls: 'p-event', label: 'Reserve Event', price: 'Desde $15.99 la plaza', title: 'Le preguntas en grupo', sub: 'Q&A, masterclass, workshops o gaming con fecha, duración y plazas limitadas. Reservas y pagas tu plaza.', icon: <><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2.4" /><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5M15 14c3 0 6 1.7 6 5" /></> },
+        { key: 'res', cls: 'p-res', label: 'Reserve 1:1', price: 'Desde $15.99', title: 'Habla contigo, cara a cara', sub: 'Videollamada privada con hora, duración y precio definidos. Solo tú y el creador en la sala.', icon: TICKET },
       ];
   const faceWho = [byId('1').avatar, byId('2').avatar, byId('5').avatar, byId('3').avatar];
   const { hash } = useLocation();

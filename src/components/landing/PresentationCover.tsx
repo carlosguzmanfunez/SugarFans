@@ -57,10 +57,10 @@ const PresentationCover: React.FC = () => {
     <section className="pcover" aria-labelledby="pcover-title">
       <div className="wrap pcover-in">
         <h2 id="pcover-title">
-          Tus creadores, <em>más allá del feed.</em>
+          Deja de comentar. <em>Empieza a hablar con los creadores de contenido que sigues.</em>
         </h2>
         <p className="pc-lead">
-          Sigue a quienes te inspiran, suscríbete a sus Lives exclusivos y reserva eventos o sesiones privadas con fecha, precio y reglas claras.
+          Pregúntales en su Live para suscriptores o habla cara a cara en una videollamada 1:1. Todo dentro de Fans Reserve.
         </p>
         <div className="pc-ctas">
           <Link to="/register" className="v-btn v-pri">

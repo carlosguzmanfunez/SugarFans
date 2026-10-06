@@ -30,8 +30,8 @@ export const CATEGORIES = {
 
 export const HOW = {
   eyebrow: 'Cómo funciona',
-  titleLead: 'Cuatro formas de acercarte,',
-  titleAccent: 'de gratis a muy personal',
+  titleLead: 'Cada paso te acerca más,',
+  titleAccent: 'hasta hablar cara a cara',
   subtitle: 'Abre cada una y pruébala aquí mismo.',
 };
 
