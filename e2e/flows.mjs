@@ -2316,6 +2316,20 @@ const run = async () => {
       await mine.getByText('Aceptada · pendiente de pago').waitFor();
       await mine.getByRole('button', { name: 'Pagar $220.00' }).waitFor();
     });
+    await check('Al crear una experiencia el creador puede cambiar de categoría ahí mismo', async () => {
+      await resC.goto(`${BASE}/creator/dashboard?tab=vip`);
+      await resC.getByRole('button', { name: /Crear experiencia/ }).click();
+      const form = resC.getByTestId('experience-form');
+      const cats = form.getByTestId('wizard-categories');
+      const types = form.getByTestId('allowed-types');
+      await types.locator('[data-type=photo-session]').waitFor();
+      await cats.getByRole('radio', { name: 'Cocina' }).click();
+      await types.locator('[data-type=cooking-class]').waitFor();
+      expect((await cats.getByRole('radio', { name: 'Cocina' }).getAttribute('aria-checked')) === 'true', 'Cocina no quedó elegida');
+      await cats.getByRole('radio', { name: 'Tu gente' }).click();
+      await types.locator('[data-type=photo-session]').waitFor();
+      await form.getByRole('button', { name: 'Cancelar' }).first().click();
+    });
     await check('El creator solo puede crear experiencias permitidas para su categoría', async () => {
       await resC.goto(`${BASE}/creator/dashboard?tab=vip`);
       await resC.getByRole('button', { name: /Crear experiencia/ }).click();

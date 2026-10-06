@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { backend } from '../../lib/backend';
 import type { User } from '../../context/AuthContext';
 import {
@@ -18,6 +19,7 @@ import {
 } from '../../lib/vip';
 import {
   CANCELLATION_POLICIES,
+  CREATOR_CATEGORIES,
   LOCATION_TYPES,
   MIN_NOTICE_OPTIONS,
   MAX_PARTICIPANTS,
@@ -68,7 +70,9 @@ const field = 'mt-1 block w-full rounded-xl border border-line px-3 py-2.5 text-
 const toggle = <T,>(list: T[], item: T) => (list.includes(item) ? list.filter((x) => x !== item) : [...list, item]);
 
 // "Crear experiencia": the creator defines a Reserve step by step, choosing only
-// among the experiences, modalities and venue types their category allows.
+// among the experiences, modalities and venue types their category allows. The
+// first step also lets them switch their category (it is the profile's, so it
+// applies to all their experiences) without going to Configuración.
 const ReserveExperienceWizard: React.FC<Props> = ({ user, category, availability, editing, onSaved, onCancel }) => {
   const allowedTypes = experienceTypesFor(category);
   const initialType = editing ? experienceTypeById(editing.type) : allowedTypes[0];
@@ -134,6 +138,27 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category, availability
     const locations = locationsFor(category, type, modality);
     setD({ modality, locationTypes: modality === 'virtual' ? ['online'] : locations.slice(0, 1) });
   };
+
+  // Category switched from the first step: save it on the profile, then offer that
+  // category's first experience (the old type may not be allowed there).
+  const { updateUser } = useAuth();
+  const [switching, setSwitching] = useState(false);
+  const switchCategory = async (name: string) => {
+    if (name === category.name || switching) return;
+    if (!window.confirm(`Tu categoría pasará a ser ${name}. Se aplica a tu perfil y a todas tus experiencias. ¿Continuar?`)) return;
+    setSwitching(true);
+    const result = await updateUser({ settings: { ...user.settings, category: name } });
+    setSwitching(false);
+    if (!result.ok) setError(result.error || 'No se pudo cambiar la categoría');
+  };
+  const lastCategory = useRef(category.id);
+  useEffect(() => {
+    if (lastCategory.current === category.id) return;
+    lastCategory.current = category.id;
+    const first = experienceTypesFor(category)[0];
+    if (first) pickType(first.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category.id]);
 
   const lines = (text: string) => text.split('\n').map((x) => x.trim()).filter(Boolean);
   const current = (): VipExperienceInput => ({ ...input, details: { ...d, includes: lines(includes), excludes: lines(excludes) } });
@@ -211,7 +236,27 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category, availability
 
       {step === 0 && (
         <div>
-          <p className="mb-3 text-sm text-ink/70">Solo aparecen las experiencias permitidas para <strong>{category.name}</strong>. Puedes cambiar tu categoría en Configuración.</p>
+          {!editing && (
+            <div className="mb-4">
+              <p className="mb-2 text-sm font-semibold text-ink">Categoría</p>
+              <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Categoría" data-testid="wizard-categories">
+                {CREATOR_CATEGORIES.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={c.id === category.id}
+                    disabled={switching}
+                    onClick={() => switchCategory(c.name)}
+                    className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition disabled:opacity-60 ${c.id === category.id ? 'border-ink bg-ink text-white' : 'border-line text-ink/70 hover:border-ink/30'}`}
+                  >
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <p className="mb-3 text-sm text-ink/70">Actividades permitidas para <strong>{category.name}</strong>:</p>
           <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Tipo de experiencia" data-testid="allowed-types">
             {allowedTypes.map((t) => (
               <button key={t.id} type="button" role="radio" aria-checked={input.type === t.id} onClick={() => pickType(t.id)} className={option(input.type === t.id)} data-type={t.id}>
