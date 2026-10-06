@@ -59,13 +59,15 @@ const PresentationCover: React.FC = () => {
         <h2 id="pcover-title">
           Deja de comentar. <em>Empieza a hablar con los creadores de contenido que sigues.</em>
         </h2>
-        <p className="pc-lead">
-          Pregúntales en su Live para suscriptores o habla cara a cara en una videollamada 1:1. Todo dentro de Fans Reserve.
-        </p>
-        <div className="pc-ctas">
-          <Link to="/register" className="v-btn v-pri">
-            Crear cuenta gratis <ArrowRight />
-          </Link>
+        <div className="pc-row">
+          <p className="pc-lead">
+            Pregúntales en su Live para suscriptores o habla cara a cara en una videollamada 1:1. Todo dentro de Fans Reserve.
+          </p>
+          <div className="pc-ctas">
+            <Link to="/register" className="v-btn v-pri">
+              Crear cuenta gratis <ArrowRight />
+            </Link>
+          </div>
         </div>
 
         <div className="pc-stage">
