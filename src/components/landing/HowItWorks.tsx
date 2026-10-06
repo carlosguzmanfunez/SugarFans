@@ -129,7 +129,7 @@ const EventDemo: React.FC = () => {
         ))}
       </div>
       <div className="total">
-        <div><small>Por participante</small><strong>$15</strong></div>
+        <div><small>Por participante</small><strong>$15.99</strong></div>
         <button type="button" className="v-btn v-gold v-sm" aria-pressed={mine} onClick={() => setTaken(mine ? 14 : 15)}>
           {mine ? 'Plaza reservada' : 'Reservar plaza'}
         </button>
@@ -167,7 +167,7 @@ const ReserveDemo: React.FC = () => {
         ))}
       </div>
       <div className="total">
-        <div><small>Total</small><strong>$90</strong></div>
+        <div><small>Total</small><strong>$19.99</strong></div>
         <button type="button" className="v-btn v-gold v-sm" onClick={() => setSent(true)}>{sent ? 'Solicitud enviada' : 'Reservar sesión privada'}</button>
       </div>
     </div>
@@ -200,13 +200,13 @@ const HowItWorks: React.FC = () => {
         follow,
         sub,
         { key: 'live', cls: 'p-live', label: 'Live', price: 'Gratis', title: 'En vivo, con su comunidad', sub: 'Lives gratis para todos. Reacciona con un regalo y aparece en pantalla.', icon: <><circle cx="12" cy="12" r="2.5" /><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2" /></> },
-        { key: 'res', cls: 'p-res', label: 'Reserve', price: 'Desde $39.99', title: 'Experiencias con fecha y precio', sub: 'Cada creador define qué ofrece. Tú eliges, el creador aprueba y queda confirmada.', icon: TICKET },
+        { key: 'res', cls: 'p-res', label: 'Reserve', price: 'Desde $15.99', title: 'Experiencias con fecha y precio', sub: 'Cada creador define qué ofrece. Tú eliges, el creador aprueba y queda confirmada.', icon: TICKET },
       ]
     : [
         follow,
         sub,
-        { key: 'event', cls: 'p-event', label: 'Reserve Event', price: 'Desde $15 la plaza', title: 'Eventos en grupo, con plazas', sub: 'Q&A, masterclass, workshops o gaming con fecha, duración y plazas limitadas. Reservas y pagas tu plaza.', icon: <><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2.4" /><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5M15 14c3 0 6 1.7 6 5" /></> },
-        { key: 'res', cls: 'p-res', label: 'Reserve 1:1', price: 'Desde $39.99', title: 'Una sesión privada, solo para ti', sub: 'Videollamada privada con hora, duración y precio definidos. Solo tú y el creador en la sala.', icon: TICKET },
+        { key: 'event', cls: 'p-event', label: 'Reserve Event', price: 'Desde $15.99 la plaza', title: 'Eventos en grupo, con plazas', sub: 'Q&A, masterclass, workshops o gaming con fecha, duración y plazas limitadas. Reservas y pagas tu plaza.', icon: <><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2.4" /><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5M15 14c3 0 6 1.7 6 5" /></> },
+        { key: 'res', cls: 'p-res', label: 'Reserve 1:1', price: 'Desde $15.99', title: 'Una sesión privada, solo para ti', sub: 'Videollamada privada con hora, duración y precio definidos. Solo tú y el creador en la sala.', icon: TICKET },
       ];
   const faceWho = [byId('1').avatar, byId('2').avatar, byId('5').avatar, byId('3').avatar];
   const { hash } = useLocation();

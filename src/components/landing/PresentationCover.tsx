@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, prefersReducedMotion } from './landingBits';
 
-// Sign-up entrance for visitors: a 20 s film (made with HyperFrames) that presents
+// Sign-up entrance for visitors: a short film (made with HyperFrames) that presents
 // Fans Reserve as a whole. It opens the sign-up page (JoinPage) that visitors get at "/".
 // Desktop: headline, CTAs and the 16:9 film on a flat screen.
 // Phone: only the vertical 9:16 film, large, with the sign-up button under it.
@@ -22,7 +22,6 @@ const COMMUNITIES = [
 
 const PresentationCover: React.FC = () => {
   const video = useRef<HTMLVideoElement>(null);
-  const screen = useRef<HTMLDivElement>(null);
   const bar = useRef<HTMLDivElement>(null);
   const [paused, setPaused] = useState(false);
   const [phone, setPhone] = useState(isPhone);
@@ -53,21 +52,10 @@ const PresentationCover: React.FC = () => {
     if (v.paused) v.play().catch(() => {});
     else v.pause();
   };
-  const replay = () => {
-    const v = video.current;
-    if (!v) return;
-    v.currentTime = 0;
-    v.play().catch(() => {});
-    screen.current?.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'center' });
-  };
 
   return (
     <section className="pcover" aria-labelledby="pcover-title">
       <div className="wrap pcover-in">
-        <span className="pc-kick">
-          <i aria-hidden="true" />
-          Fans Reserve en 20 segundos
-        </span>
         <h2 id="pcover-title">
           Tus creadores, <em>más allá del feed.</em>
         </h2>
@@ -78,16 +66,10 @@ const PresentationCover: React.FC = () => {
           <Link to="/register" className="v-btn v-pri">
             Crear cuenta gratis <ArrowRight />
           </Link>
-          <button type="button" className="v-btn pc-sec" onClick={replay}>
-            <svg className="ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-            Ver la presentación
-          </button>
         </div>
 
         <div className="pc-stage">
-          <div className="pc-screen" ref={screen}>
+          <div className="pc-screen">
             <video
               ref={video}
               key={phone ? 'v' : 'h'}
