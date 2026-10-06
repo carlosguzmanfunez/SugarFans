@@ -4,7 +4,7 @@ import { ArrowRight, prefersReducedMotion } from './landingBits';
 
 // Sign-up entrance for visitors: a 20 s film (made with HyperFrames) that presents
 // Fans Reserve as a whole. It opens the sign-up page (JoinPage) that visitors get at "/".
-// Desktop: headline, CTAs and the 16:9 film on a screen that straightens as it scrolls in.
+// Desktop: headline, CTAs and the 16:9 film on a flat screen.
 // Phone: only the vertical 9:16 film, large, with the sign-up button under it.
 const PHONE = '(max-width: 760px)';
 const isPhone = () => typeof window !== 'undefined' && window.matchMedia(PHONE).matches;
@@ -43,26 +43,8 @@ const PresentationCover: React.FC = () => {
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    if (prefersReducedMotion()) {
-      v.pause();
-      return () => cancelAnimationFrame(raf);
-    }
-    const tilt = () => {
-      const el = screen.current;
-      if (!el || isPhone()) return;
-      const r = el.getBoundingClientRect();
-      const p = Math.min(1, Math.max(0, (window.innerHeight - r.top) / (window.innerHeight * 0.75)));
-      el.style.setProperty('--tilt', `${(1 - p) * 22}deg`);
-      el.style.setProperty('--sc', `${0.92 + p * 0.08}`);
-    };
-    window.addEventListener('scroll', tilt, { passive: true });
-    window.addEventListener('resize', tilt);
-    tilt();
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener('scroll', tilt);
-      window.removeEventListener('resize', tilt);
-    };
+    if (prefersReducedMotion()) v.pause();
+    return () => cancelAnimationFrame(raf);
   }, [phone]);
 
   const toggle = () => {
