@@ -15,7 +15,7 @@ const CREATOR_BENEFITS = [
   'Tú fijas el precio de tu suscripción mensual',
   'Recibes el 80% de lo que llega de cada pago después de PayPal (83% en Diamante) y el 60% de los regalos',
   'Tu enlace de invitación: te quedas con el 85% de lo que paguen los fans que traigas durante 60 días',
-  'Niveles Plata, Oro y Diamante que desbloquean visibilidad, retiros desde $25, filtros avanzados y eventos más grandes',
+  'Niveles Plata, Oro y Diamante que desbloquean visibilidad, retiros desde $25 y eventos más grandes',
   'Medallas que te ponen destacado en Explorar, y una Meta de experiencia que tus fans llenan con regalos y propinas',
   'Invita a creadores: cuando 2 se verifican y venden sus primeros $100, ganas un 5% extra de lo que vendan durante un mes',
   'Publica fotos y videos, gratis o solo para suscriptores',

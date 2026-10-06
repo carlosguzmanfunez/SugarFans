@@ -31,7 +31,7 @@ interface Deps {
   // net) and the processor's fee it was taken after.
   shareFor(fanId: string, creatorProfileId: string, at: Date, amount: number): { share: number; gatewayFee: number };
   // Smallest withdrawal and whether Fans Reserve pays PayPal's fee, by the creator's level.
-  payoutTerms(user: User): { min: number; feeWaived: boolean };
+  payoutTerms(user: User): { min: number };
   // Adds (and keeps in step) the 5% bonus rows for creators who invited the seller.
   withInviteBonuses(transactions: Store['transactions']): Store['transactions'];
   notify(): void;
@@ -388,7 +388,7 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
       if (!account) return fail('Añade el email de tu cuenta PayPal para retiros');
       const { available } = earningsOf(s, user);
       const terms = deps.payoutTerms(user);
-      const fee = terms.feeWaived ? 0 : payoutFee(available);
+      const fee = payoutFee(available);
       if (available < terms.min)
         return fail(`Necesitas al menos ${money(terms.min)} USD acreditados para retirar; tu saldo disponible es ${money(available)}`);
       const result = commit((data) => ({

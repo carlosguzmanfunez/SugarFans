@@ -60,7 +60,7 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
   recordReferral(userId: string, role: 'fan' | 'creator', creatorProfileId: string): void;
   withInviteBonuses(transactions: Row[]): Row[];
   shareFor(fanId: string, creatorProfileId: string, at: Date, amount: number): { share: number; gatewayFee: number };
-  payoutTermsFor(user: User): { min: number; feeWaived: boolean };
+  payoutTermsFor(user: User): { min: number };
   eventSeatCap(creatorProfileId: string): number;
   // Keeps a ticket in step with its booking (confirmed: used; rejected, cancelled or expired: free again).
   syncTicket(bookingId: string, ticketId: string, status: string): void;
@@ -163,7 +163,7 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
 
     payoutTermsFor(user) {
       const level = levelAt(user.creatorProfileId ?? user.id);
-      return { min: level.payoutMin, feeWaived: level.payoutFeeWaived };
+      return { min: level.payoutMin };
     },
 
     eventSeatCap: (creatorProfileId) => levelAt(creatorProfileId).eventSeats,
@@ -289,7 +289,7 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
 
     async payoutTerms(user) {
       const level = levelAt(user.creatorProfileId ?? user.id);
-      return { min: level.payoutMin, feeWaived: level.payoutFeeWaived };
+      return { min: level.payoutMin };
     },
 
     // ---------------------------------------------------------------

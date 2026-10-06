@@ -66,8 +66,8 @@ const CreatorPayouts: React.FC = () => {
       payoutAccount: Awaited<ReturnType<typeof platformApi.payoutAccount>>;
     }
   );
-  // Oro and Diamante withdraw from $25; for Diamante the platform pays PayPal's fee.
-  const { data: terms } = usePlatformQuery(() => (user ? rewardsApi.payoutTerms(user) : Promise.resolve({ min: MIN_PAYOUT, feeWaived: false })), [userId], { min: MIN_PAYOUT, feeWaived: false });
+  // Oro and Diamante withdraw from $25.
+  const { data: terms } = usePlatformQuery(() => (user ? rewardsApi.payoutTerms(user) : Promise.resolve({ min: MIN_PAYOUT })), [userId], { min: MIN_PAYOUT });
   const [paypalEmail, setPaypalEmail] = useState('');
   const [editingAccount, setEditingAccount] = useState(false);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
@@ -78,7 +78,7 @@ const CreatorPayouts: React.FC = () => {
   const paid = data.payouts;
   const creditDay = fmtDate(nextCreditDate());
   const canWithdraw = earnings.available >= terms.min;
-  const fee = terms.feeWaived ? 0 : payoutFee(earnings.available);
+  const fee = payoutFee(earnings.available);
   const verified = !!user.isVerified;
 
   const saveAccount = async () => {
@@ -135,9 +135,7 @@ const CreatorPayouts: React.FC = () => {
         <p className="text-sm text-gray-500 mb-4">
           Tus ingresos se acreditan el día 1 de cada mes y se acumulan si no los retiras. Puedes retirar en cualquier momento del mes, siempre el
           saldo completo, a partir de {money(terms.min)} USD, a tu cuenta PayPal (desde ahí puedes pasarlo a tu banco). Todo se paga en dólares (USD).
-          {terms.feeWaived
-            ? ` Por ser Diamante, ${BRAND.name} paga la comisión de PayPal por enviar el retiro: recibes el monto completo.`
-            : ` PayPal cobra ${PAYOUT_FEE_RATE * 100}% (máximo ${money(PAYOUT_FEE_MAX)}) por enviar el retiro, y esa comisión se descuenta del monto retirado.`}
+          PayPal cobra {PAYOUT_FEE_RATE * 100}% (máximo {money(PAYOUT_FEE_MAX)}) por enviar el retiro, y esa comisión se descuenta del monto retirado.
         </p>
         {!verified && (
           <p className="text-sm bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl p-3 mb-4">
@@ -179,7 +177,7 @@ const CreatorPayouts: React.FC = () => {
           </button>
           {canWithdraw && (
             <p className="text-xs text-gray-500">
-              Recibirás {money(earnings.available - fee)} {terms.feeWaived ? '(sin comisión)' : `(comisión de PayPal ${money(fee)})`}.
+              Recibirás {money(earnings.available - fee)} (comisión de PayPal {money(fee)}).
             </p>
           )}
           {!canWithdraw && (

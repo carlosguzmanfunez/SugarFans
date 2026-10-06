@@ -98,7 +98,7 @@ export const createSupabaseRewards = (sb: SupabaseClient): RewardsBackend => ({
   async payoutTerms() {
     const { data } = await sb.rpc('my_payout_terms');
     const r = (data ?? null) as Row | null;
-    return { min: r ? Number(r.min) : 50, feeWaived: !!r?.fee_waived };
+    return { min: r ? Number(r.min) : 50 };
   },
 
   async goal(creatorProfileId) {

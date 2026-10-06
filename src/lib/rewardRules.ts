@@ -23,26 +23,25 @@ export interface Level {
   share: number; // creator's cut of the net
   eventSeats: number; // most seats a new Reserve Event can have
   payoutMin: number; // smallest withdrawal (USD)
-  payoutFeeWaived: boolean; // Fans Reserve pays PayPal's withdrawal fee
   perks: string[]; // what the level unlocks, as the creator reads it
 }
 
 export const LEVELS: Level[] = [
   {
-    id: 'bronce', name: 'Bronce', icon: '🥉', minFans: 0, minSales: 0, reliable: false, share: 0.8, eventSeats: 10, payoutMin: 50, payoutFeeWaived: false,
+    id: 'bronce', name: 'Bronce', icon: '🥉', minFans: 0, minSales: 0, reliable: false, share: 0.8, eventSeats: 10, payoutMin: 50,
     perks: ['Perfil, Suscribirse, Reserve 1:1 y regalos', 'Reserve Event de hasta 10 plazas'],
   },
   {
-    id: 'plata', name: 'Plata', icon: '🥈', minFans: 10, minSales: 250, reliable: false, share: 0.8, eventSeats: 20, payoutMin: 50, payoutFeeWaived: false,
+    id: 'plata', name: 'Plata', icon: '🥈', minFans: 10, minSales: 250, reliable: false, share: 0.8, eventSeats: 20, payoutMin: 50,
     perks: ['Sales en "En ascenso" en Explorar', 'Reserve Event de hasta 20 plazas', 'Insignia Plata en tu perfil'],
   },
   {
-    id: 'oro', name: 'Oro', icon: '🥇', minFans: 50, minSales: 1000, reliable: true, share: 0.8, eventSeats: 50, payoutMin: 25, payoutFeeWaived: false,
-    perks: ['Destacado en Explorar y en tu categoría', 'Retiras desde $25', 'Filtros de video avanzados (Studio y fondo desenfocado)', 'Reserve Event de hasta 50 plazas'],
+    id: 'oro', name: 'Oro', icon: '🥇', minFans: 50, minSales: 1000, reliable: true, share: 0.8, eventSeats: 50, payoutMin: 25,
+    perks: ['Destacado en Explorar y en tu categoría', 'Retiras desde $25', 'Reserve Event de hasta 50 plazas'],
   },
   {
-    id: 'diamante', name: 'Diamante', icon: '💎', minFans: 200, minSales: 5000, reliable: true, share: 0.83, eventSeats: 50, payoutMin: 25, payoutFeeWaived: true,
-    perks: ['83% de lo que te pagan', 'Tu tarjeta va primero en la portada, en tu categoría', 'Fans Reserve paga la comisión de tus retiros', 'Todo lo de Oro'],
+    id: 'diamante', name: 'Diamante', icon: '💎', minFans: 200, minSales: 5000, reliable: true, share: 0.83, eventSeats: 50, payoutMin: 25,
+    perks: ['83% de lo que te pagan', 'Tu tarjeta va primero en la portada, en tu categoría', 'Todo lo de Oro'],
   },
 ];
 
