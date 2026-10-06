@@ -1,7 +1,8 @@
 // Defaults and validation shared by every backend.
 import { isValidEmail } from '../storage';
 import { MIN_SUBSCRIPTION } from '../platformRules';
-import type { AuthResult, ProfilePatch, UserRole, UserSettings } from './types';
+import type { AuthResult, ProfilePatch, SignupExtras, UserRole, UserSettings } from './types';
+import { isCountryCode, isValidPhone } from '../../config/countries';
 
 export { DEMO_PASSWORD } from '../../config/demoAccounts';
 
@@ -42,6 +43,13 @@ export const validateRegistration = (name: string, email: string, password: stri
   return { ok: true };
 };
 
+// Country is required for a new account; the phone is optional (already in +… format).
+export const validateSignupExtras = (extras?: SignupExtras): AuthResult => {
+  if (!isCountryCode(extras?.country)) return { ok: false, error: 'Elige tu país' };
+  if (extras?.phone && !isValidPhone(extras.phone)) return { ok: false, error: 'Revisa tu número de teléfono' };
+  return { ok: true };
+};
+
 // Returns a cleaned patch, or an error.
 export const cleanPatch = (patch: ProfilePatch): { patch?: ProfilePatch; error?: string } => {
   const next: ProfilePatch = { ...patch };
@@ -52,6 +60,12 @@ export const cleanPatch = (patch: ProfilePatch): { patch?: ProfilePatch; error?:
   if (next.name !== undefined) {
     next.name = next.name.trim();
     if (!next.name) return { error: 'El nombre es obligatorio' };
+  }
+  // '' clears the field.
+  if (next.country !== undefined && next.country !== '' && !isCountryCode(next.country)) return { error: 'Elige tu país' };
+  if (next.phone !== undefined) {
+    next.phone = next.phone.trim();
+    if (next.phone && !isValidPhone(next.phone)) return { error: 'Revisa tu número de teléfono' };
   }
   if (next.subscriptionPrice !== undefined && !(next.subscriptionPrice >= MIN_SUBSCRIPTION && next.subscriptionPrice <= 999)) {
     return { error: `El precio debe estar entre $${MIN_SUBSCRIPTION} y $999` };

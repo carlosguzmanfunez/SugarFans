@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { categories, posts } from '../data/mockData';
-import { useCreatorCatalog, useVipCreatorIds } from '../lib/catalog';
+import { useCreatorCatalog, useCreatorCountries, useVipCreatorIds } from '../lib/catalog';
 import CreatorCard from '../components/CreatorCard';
 import Avatar from '../components/Avatar';
 import { CoverImage } from '../components/CoverArt';
@@ -13,6 +13,8 @@ import { usePlatformQuery, platformApi, isCutOff } from '../lib/platform';
 import { useLiveCreatorIds } from '../lib/live';
 import { LiveRail, ReserveRail, RailHeading } from '../components/AppRails';
 import { ENABLE_OPEN_LIVE } from '../config/features';
+import { useLanguage } from '../context/LanguageContext';
+import { countryFlag, countryName } from '../config/countries';
 
 const Explore: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
@@ -41,29 +43,39 @@ const Explore: React.FC = () => {
     const match = categories.find((c) => c.name === requested || (isKnownCategory(requested) && categoryFor(requested).id === c.id));
     return match?.name ?? '';
   });
+  const { t, language } = useLanguage();
+  const creatorCountries = useCreatorCountries();
+  // ?country=HN preselects a country.
+  const [selectedCountry, setSelectedCountry] = useState(() => (params.get('country') ?? '').toUpperCase());
+  const nameOf = (code: string) => countryName(code, language, t('country.other'));
+  // Only countries that have creators, sorted by name.
+  const countryOptions = [...new Set(Object.values(creatorCountries))].sort((a, b) => nameOf(a).localeCompare(nameOf(b), language));
   const [viewMode, setViewMode] = useState<'creators' | 'posts'>('creators');
   // ?live=1 (the Live tab) shows only the creators in an Open Live right now. Without
   // Open Live there is no public Live directory: the parameter is ignored.
   const liveOnly = ENABLE_OPEN_LIVE && params.has('live');
   const visibleCreators = creators.filter((c) => !hidden(c.id));
   const liveIds = useLiveCreatorIds(visibleCreators.map((c) => c.id));
-  const browsing = !searchQuery && !selectedCategory && !liveOnly;
+  const browsing = !searchQuery && !selectedCategory && !selectedCountry && !liveOnly;
 
   const filteredCreators = featuredFirst(creators, featured).filter(c => {
     if (hidden(c.id)) return false;
     const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.username.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = !selectedCategory || (!!c.category && categoryFor(c.category).id === categoryFor(selectedCategory).id);
-    return matchesSearch && matchesCategory && (!liveOnly || liveIds.has(c.id));
+    const matchesCountry = !selectedCountry || creatorCountries[c.id] === selectedCountry;
+    return matchesSearch && matchesCategory && matchesCountry && (!liveOnly || liveIds.has(c.id));
   });
 
-  // Top 3 of the selected category by new paying fans this month.
-  const topOfMonth = selectedCategory
+  // Top 3 of the selected category and/or country by new paying fans this month.
+  const topOfMonth = selectedCategory || selectedCountry
     ? filteredCreators
         .filter((c) => (newFans[c.id] ?? 0) > 0)
         .sort((a, b) => (newFans[b.id] ?? 0) - (newFans[a.id] ?? 0))
         .slice(0, 3)
     : [];
+
+  const topPlace = [selectedCategory, selectedCountry && `${countryFlag(selectedCountry)} ${nameOf(selectedCountry)}`].filter(Boolean).join(' · ');
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -118,6 +130,29 @@ const Explore: React.FC = () => {
               </button>
             ))}
           </div>
+
+          {countryOptions.length > 0 && (
+            <div className="mt-3 flex justify-center">
+              <label className="relative inline-flex items-center">
+                <span className="sr-only">{t('register.country')}</span>
+                <i className="fas fa-earth-americas pointer-events-none absolute left-4 text-xs text-brand-600" aria-hidden="true"></i>
+                <select
+                  value={selectedCountry}
+                  onChange={(e) => setSelectedCountry(e.target.value)}
+                  className={`appearance-none rounded-full border py-2 pl-9 pr-9 text-sm font-medium outline-none transition focus:ring-2 focus:ring-brand-500 ${
+                    selectedCountry ? 'border-ink bg-ink text-white' : 'border-line bg-white text-ink/70'
+                  }`}
+                  data-testid="explore-country"
+                >
+                  <option value="">{t('explore.allCountries')}</option>
+                  {countryOptions.map((code) => (
+                    <option key={code} value={code}>{countryFlag(code)} {nameOf(code)}</option>
+                  ))}
+                </select>
+                <i className={`fas fa-chevron-down pointer-events-none absolute right-4 text-[10px] ${selectedCountry ? 'text-white/70' : 'text-ink/40'}`} aria-hidden="true"></i>
+              </label>
+            </div>
+          )}
         </div>
 
         {browsing && (
@@ -164,7 +199,7 @@ const Explore: React.FC = () => {
         {viewMode === 'creators' && topOfMonth.length > 0 && (
           <section aria-labelledby="top-month-title" className="mb-8 rounded-3xl border border-gold-200 bg-gold-50/60 p-5" data-testid="top-month">
             <h2 id="top-month-title" className="font-semibold text-ink">
-              <i aria-hidden="true" className="fas fa-trophy mr-2 text-gold-600"></i>Top del mes en {selectedCategory}
+              <i aria-hidden="true" className="fas fa-trophy mr-2 text-gold-600"></i>{t('explore.topIn').replace('{place}', topPlace)}
             </h2>
             <ol className="mt-3 grid gap-3 sm:grid-cols-3">
               {topOfMonth.map((c, i) => (

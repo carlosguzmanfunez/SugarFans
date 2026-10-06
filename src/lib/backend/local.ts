@@ -33,6 +33,7 @@ import {
   mergeSettings,
   normalizeEmail,
   validateRegistration,
+  validateSignupExtras,
 } from './shared';
 import type { AuthResult, Availability, Backend, BookingInput, BookingStatus, User, VipBooking, VipExperience } from './types';
 import { createLocalPlatform } from './localPlatform';
@@ -419,11 +420,13 @@ export const localBackend: Backend = {
     return ok;
   },
 
-  async register(name, email, password, role, ref) {
+  async register(name, email, password, role, ref, extras) {
     await seedPromise;
     const cleanEmail = normalizeEmail(email);
     const valid = validateRegistration(name, cleanEmail, password, role);
     if (!valid.ok) return valid;
+    const validExtras = validateSignupExtras(extras);
+    if (!validExtras.ok) return validExtras;
     const accounts = loadAccounts();
     if (accounts.some((a) => a.email === cleanEmail)) return fail('Ya existe una cuenta con este email');
     const salt = newId();
@@ -437,6 +440,8 @@ export const localBackend: Backend = {
         avatar: avatarFor(name.trim()),
         // Registration requires confirming the user is 18+ (terms checkbox).
         ageVerified: true,
+        country: extras?.country,
+        ...(extras?.phone ? { phone: extras.phone } : {}),
         ...(role === 'creator' ? { subscriptionPrice: 9.99, followers: 0, following: 0, posts: 0, bio: '', creatorProfileId: id } : {}),
       }),
       salt,
