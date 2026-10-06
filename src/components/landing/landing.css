@@ -427,11 +427,17 @@
 .lv2 .pc-login b{color:#fff}
 /* Phone: only the vertical film, as large as the screen allows, and the sign-up button. */
 @media (max-width:760px){
-  .lv2 .pcover{padding-block:76px 40px}
-  .lv2 .pc-kick,.lv2 .pcover h2,.lv2 .pc-lead,.lv2 .pc-ctas,.lv2 .pc-ribbon,.lv2 .pc-trust{display:none}
-  .lv2 .pc-stage{margin-top:0}
-  .lv2 .pc-screen{aspect-ratio:9/16;width:min(100%,calc((100svh - 300px) * 9 / 16));border-radius:22px;box-shadow:0 18px 44px rgb(0 0 0 / .45)}
-  .lv2 .pc-join{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:22px}
+  .lv2 .pcover{padding-block:56px 0;overflow:clip}
+  .lv2 .pc-kick,.lv2 .pcover h2,.lv2 .pc-lead,.lv2 .pc-ctas,.lv2 .pc-ribbon,.lv2 .pc-trust,.lv2 .pc-login{display:none}
+  .lv2 .pc-stage{margin-top:0;width:100vw;margin-left:calc(50% - 50vw)}
+  /* No phone frame: the film takes the full width and the height left under the header. On short
+     screens it crops at most ~7% top/bottom and the page scrolls a little; the sign-up button
+     stays pinned at the bottom. Edges fade into the background instead of showing a border. */
+  .lv2 .pc-screen{height:min(calc(100vw * 16 / 9),max(calc(100svh - 72px),calc(100vw * 16 / 9 * .93)));width:100%;max-width:none;aspect-ratio:auto;border:0;border-radius:0;box-shadow:none;background:transparent;
+    -webkit-mask-image:linear-gradient(transparent,#000 4%,#000 96%,transparent);mask-image:linear-gradient(transparent,#000 4%,#000 96%,transparent)}
+  .lv2 .pc-pp{right:14px;top:14px;bottom:auto;width:38px;height:38px}
+  .lv2 .pc-bar{display:none}
+  .lv2 .pc-join{position:sticky;bottom:0;z-index:2;display:flex;flex-direction:column;align-items:center;gap:12px;margin:-8px -16px 0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgb(22 13 31 / .55) 45%)}
   .lv2 .pc-join .v-pri{width:min(100%,360px);padding-block:16px;font-size:16px}
 }
 @media (prefers-reduced-motion:reduce){.lv2 .pcover::before,.lv2 .pcover::after{animation:none}}
