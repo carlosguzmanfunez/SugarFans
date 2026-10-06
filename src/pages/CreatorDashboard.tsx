@@ -264,24 +264,36 @@ const CreatorDashboard: React.FC = () => {
           })}
         </div>
         {MONEY_TABS.includes(activeTab) ? (
-          <div className="flex gap-2 mb-8" role="tablist" aria-label="Dinero">
+          // Big colored cards so the creator spots their money sections at once.
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-8" role="tablist" aria-label="Dinero">
             {[
-              { id: 'earnings', label: 'Ingresos' },
-              { id: 'gifts', label: 'Regalos' },
-              { id: 'rewards', label: 'Recompensas' },
-            ].map((sub) => (
-              <button
-                key={sub.id}
-                role="tab"
-                aria-selected={activeTab === sub.id}
-                onClick={() => { setActiveTab(sub.id); setNotice(null); }}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                  activeTab === sub.id ? 'border-ink text-ink bg-white' : 'border-transparent text-ink/55 hover:text-ink'
-                }`}
-              >
-                {sub.label}
-              </button>
-            ))}
+              { id: 'earnings', label: 'Ingresos', hint: 'Saldo y retiros', icon: 'fa-wallet', on: 'from-emerald-500 to-teal-600 shadow-emerald-500/30', chip: 'bg-emerald-50 text-emerald-600' },
+              { id: 'gifts', label: 'Regalos', hint: 'Lo que te regalan', icon: 'fa-gift', on: 'from-brand-500 to-brand-700 shadow-brand-500/30', chip: 'bg-brand-50 text-brand-600' },
+              { id: 'rewards', label: 'Recompensas', hint: 'Nivel y medallas', icon: 'fa-trophy', on: 'from-iris-500 to-iris-700 shadow-iris-500/30', chip: 'bg-iris-50 text-iris-600' },
+            ].map((sub) => {
+              const on = activeTab === sub.id;
+              return (
+                <button
+                  key={sub.id}
+                  role="tab"
+                  aria-selected={on}
+                  onClick={() => { setActiveTab(sub.id); setNotice(null); }}
+                  className={`group flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 rounded-2xl p-3 sm:p-4 text-center sm:text-left transition-all active:scale-[0.98] ${
+                    on
+                      ? `bg-gradient-to-br ${sub.on} text-white shadow-lg -translate-y-0.5`
+                      : 'bg-white border border-line text-ink hover:-translate-y-0.5 hover:shadow-md'
+                  }`}
+                >
+                  <span className={`flex h-10 w-10 sm:h-11 sm:w-11 flex-none items-center justify-center rounded-xl text-xl ${on ? 'bg-white/20 text-white' : sub.chip}`}>
+                    <Icon name={sub.icon} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm sm:text-base font-bold leading-tight">{sub.label}</span>
+                    <span className={`hidden sm:block text-xs mt-0.5 ${on ? 'text-white/80' : 'text-ink/50'}`}>{sub.hint}</span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
         ) : (
           <div className="mb-8" />
