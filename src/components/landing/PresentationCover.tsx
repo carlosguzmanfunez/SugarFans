@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, prefersReducedMotion } from './landingBits';
 
 // Sign-up entrance for visitors: a 20 s film (made with HyperFrames) that presents
-// Fans Reserve as a whole. Members never see it; they land straight on the hero below.
+// Fans Reserve as a whole. It opens the sign-up page (JoinPage) that visitors get at "/".
 // Desktop: headline, CTAs and the 16:9 film on a screen that straightens as it scrolls in.
 // Phone: only the vertical 9:16 film, large, with the sign-up button under it.
 const PHONE = '(max-width: 760px)';

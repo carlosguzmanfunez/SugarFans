@@ -400,7 +400,7 @@
 .lv2 section[id]{scroll-margin-top:96px}
 
 /* Presentation cover (visitors without a session only): dark stage with the 20 s film. */
-.lv2 .pcover{position:relative;isolation:isolate;overflow:hidden;margin-top:-90px;padding-block:130px 72px;background:var(--night);color:#fff;text-align:center}
+.lv2 .pcover{position:relative;isolation:isolate;overflow:hidden;padding-block:110px 72px;background:var(--night);color:#fff;text-align:center}
 .lv2 .pcover::before,.lv2 .pcover::after{content:"";position:absolute;width:900px;height:900px;border-radius:50%;filter:blur(120px);z-index:-1;pointer-events:none}
 .lv2 .pcover::before{left:-320px;top:-360px;background:var(--brand);opacity:.42;animation:pc-drift 18s ease-in-out infinite alternate}
 .lv2 .pcover::after{right:-360px;top:260px;background:var(--iris);opacity:.45;animation:pc-drift 22s ease-in-out infinite alternate-reverse}
@@ -427,7 +427,7 @@
 .lv2 .pc-login b{color:#fff}
 /* Phone: only the vertical film, as large as the screen allows, and the sign-up button. */
 @media (max-width:760px){
-  .lv2 .pcover{padding-block:98px 40px}
+  .lv2 .pcover{padding-block:76px 40px}
   .lv2 .pc-kick,.lv2 .pcover h2,.lv2 .pc-lead,.lv2 .pc-ctas,.lv2 .pc-ribbon,.lv2 .pc-trust{display:none}
   .lv2 .pc-stage{margin-top:0;perspective:none}
   .lv2 .pc-screen{aspect-ratio:9/16;width:min(100%,calc((100svh - 300px) * 9 / 16));border-radius:22px;transform:none;box-shadow:0 18px 44px rgb(0 0 0 / .45)}
@@ -435,3 +435,14 @@
   .lv2 .pc-join .v-pri{width:min(100%,360px);padding-block:16px;font-size:16px}
 }
 @media (prefers-reduced-motion:reduce){.lv2 .pcover::before,.lv2 .pcover::after{animation:none}}
+
+/* Sign-up page ("/" without a session): own top bar over the film, closing call. */
+.lv2.join{background:var(--canvas)}
+.lv2 .join-top{position:absolute;inset:0 0 auto 0;z-index:5;padding-top:calc(14px + env(safe-area-inset-top))}
+.lv2 .join-bar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.lv2 .join-login{padding:10px 18px;border-radius:999px;font-weight:600;font-size:14px;color:#fff;background:rgb(255 255 255 / .1);border:1px solid rgb(255 255 255 / .2)}
+.lv2 .join-end{padding-block:72px 84px;background:var(--night);color:#fff;text-align:center}
+.lv2 .join-end h2{font-size:clamp(30px,4.4vw,54px);line-height:1.05;letter-spacing:-.035em}
+.lv2 .join-end h2 em{font-style:normal;background:linear-gradient(90deg,#ff9cc0,var(--gold-2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.lv2 .join-end p{margin-top:14px;color:rgb(255 255 255 / .74)}
+.lv2 .join-end-ctas{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:26px}

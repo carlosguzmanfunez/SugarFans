@@ -86,7 +86,8 @@ const Register: React.FC = () => {
       setConfirmNotice(result.notice || 'Revisa tu correo para confirmar la cuenta.');
       return;
     }
-    navigate(role === 'creator' ? '/creator/dashboard' : '/explore', { replace: true });
+    // Fans land on the main page; creators on their panel, where identity verification starts.
+    navigate(role === 'creator' ? '/creator/dashboard' : '/', { replace: true });
   };
 
   return (

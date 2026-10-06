@@ -6,8 +6,6 @@ export type { SocialProvider, User, UserRole, UserSettings, Subscription, Creato
 export { defaultSettings } from '../lib/backend';
 
 const AGE_KEY = 'age_verified';
-// Set once anyone signs in on this device; the home page then skips the visitor presentation for good.
-export const MEMBER_DEVICE_KEY = 'member_device';
 
 interface AuthContextType {
   user: User | null;
@@ -49,7 +47,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const refreshUser = useCallback(async () => {
     const current = await backend.getCurrentUser();
     setUser(current);
-    if (current) writeJSON(MEMBER_DEVICE_KEY, true);
     if (current?.ageVerified) {
       writeJSON(AGE_KEY, true);
       setDeviceAgeVerified(true);
