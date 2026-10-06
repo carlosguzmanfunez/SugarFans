@@ -23,6 +23,8 @@ import {
   type VipExperience,
 } from '../../lib/vip';
 import type { User } from '../../context/AuthContext';
+import { rewardsApi, type ExperienceTicket } from '../../lib/rewards';
+import { bonusInfo } from '../../lib/experienceGoalRules';
 import { RESERVE_COPY, RESERVE_FLOW, RESERVE_RESPONSE_HOURS, isHomeService } from '../../config/reserve';
 
 interface Props {
@@ -34,12 +36,14 @@ interface Props {
   onClose: () => void;
   // Reserve Event: seats already held.
   seatsTaken?: number;
+  // Meta de experiencia: books with a ticket, choosing only day and time, at no charge.
+  ticket?: ExperienceTicket;
 }
 
 // One experience, two steps: its full definition ("Ver detalles"), then day,
 // time, participants and a note. Manual approval sends a request; automatic
 // approval books it and leaves it waiting for payment.
-const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeedLogin, onClose, seatsTaken = 0 }) => {
+const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeedLogin, onClose, seatsTaken = 0, ticket }) => {
   const d = detailsOf(exp);
   const type = typeOf(exp.type);
   // A Reserve Event has its own day and time: the fan books a seat, not a slot.
@@ -87,7 +91,9 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
     const check = moderate(message, 'request', { homeAllowed: isHomeService(d.locationTypes ?? []) });
     if (!check.ok) return setError(check.error!);
     setSending(true);
-    const result = isEvent
+    const result = ticket
+      ? await rewardsApi.bookWithTicket(user, ticket.id, date, time, message.trim())
+      : isEvent
       ? await backend.bookEventSeat(user, exp.id, message.trim())
       : await backend.createBooking(user, { experienceId: exp.id, date, time, message: message.trim(), participants });
     setSending(false);
@@ -114,7 +120,11 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
             <span className="first-letter:uppercase">{formatLongDate(date)}</span> · {time}
           </p>
           <p className="mt-4 text-sm text-ink/70">
-            {approval
+            {ticket
+              ? approval
+                ? `${exp.creatorName} revisará tu solicitud y tiene ${RESERVE_RESPONSE_HOURS} horas para responder. Si no puede, tu ticket sigue activo para otra fecha.`
+                : 'Tu experiencia quedó confirmada con tu ticket. No pagas nada.'
+              : approval
               ? `${exp.creatorName} revisará tu solicitud y tiene ${RESERVE_RESPONSE_HOURS} horas para responder. Te avisaremos cuando la vea y cuando responda. Si la acepta, pagas desde Mis reservas; si no responde a tiempo, se cierra sola y no se te cobra nada.`
               : 'Esta experiencia se confirma al pagar. Completa el pago desde Mis reservas.'}
           </p>
@@ -149,7 +159,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
               Volver a los detalles
             </button>
             <button type="button" onClick={submit} disabled={sending} className="h-11 rounded-full bg-gradient-to-r from-brand-600 to-iris-600 px-6 text-sm font-semibold text-white disabled:opacity-60">
-              {isEvent ? (approval ? 'Solicitar plaza' : 'Reservar plaza') : approval ? 'Enviar solicitud' : 'Confirmar reserva'} · {money(price)}
+              {ticket ? 'Reservar con mi ticket' : <>{isEvent ? (approval ? 'Solicitar plaza' : 'Reservar plaza') : approval ? 'Enviar solicitud' : 'Confirmar reserva'} · {money(price)}</>}
             </button>
           </div>
         )
@@ -197,7 +207,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
             )}
           </div>
           )}
-          {d.maxParticipants > 1 && !isEvent && (
+          {d.maxParticipants > 1 && !isEvent && !ticket && (
             <label className="block text-sm">
               <span className="font-semibold text-ink">Participantes</span>
               <select name="participants" value={participants} onChange={(e) => setParticipants(Number(e.target.value))} className="mt-1 block w-full rounded-xl border border-line px-3 py-2.5">
@@ -219,6 +229,18 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
               className="mt-1 block w-full rounded-xl border border-line px-3 py-2.5"
             />
           </label>
+          {ticket ? (
+          <div className="rounded-2xl bg-pink-50 p-4 text-sm" data-testid="ticket-summary">
+            <div className="flex items-center justify-between">
+              <span className="text-ink/70">Con tu ticket</span>
+              <span className="text-lg font-bold text-ink">Sin costo</span>
+            </div>
+            <p className="mt-1 text-xs text-pink-700">Extra de la ruleta: {bonusInfo(ticket.bonus).label}.</p>
+            <p className="mt-2 text-xs text-ink/70">
+              {approval ? `${exp.creatorName} acepta o rechaza la fecha; si la rechaza, tu ticket sigue activo para elegir otra.` : 'Confirmación inmediata.'}
+            </p>
+          </div>
+          ) : (
           <div className="rounded-2xl bg-gray-50 p-4 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-ink/70">Total</span>
@@ -229,7 +251,8 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
               {approval ? `${exp.creatorName} acepta o rechaza tu solicitud. Solo pagas si la acepta.` : 'Confirmación inmediata: pagas desde Mis reservas para confirmarla.'}
             </p>
           </div>
-          <ReserveNotice kind="payments" />
+          )}
+          {!ticket && <ReserveNotice kind="payments" />}
           {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
           <p className="sr-only">{RESERVE_COPY.principle}</p>
         </div>

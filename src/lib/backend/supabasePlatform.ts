@@ -86,6 +86,7 @@ const toTransaction = (r: Row): Transaction => ({
   createdAt: r.created_at,
   note: r.note ?? undefined,
   share: r.creator_share == null ? undefined : Number(r.creator_share),
+  ...(r.gateway_fee == null ? {} : { gatewayFee: Number(r.gateway_fee) }),
   giftId: r.gift_id ?? undefined,
 });
 

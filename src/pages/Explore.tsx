@@ -7,7 +7,7 @@ import Avatar from '../components/Avatar';
 import { CoverImage } from '../components/CoverArt';
 import { categoryVisual } from '../config/theme';
 import { categoryFor, isKnownCategory } from '../config/reserve';
-import { featuredFirst, useFeatured } from '../lib/rewards';
+import { featuredFirst, rewardsApi, useFeatured } from '../lib/rewards';
 import { useAuth } from '../context/AuthContext';
 import { usePlatformQuery, platformApi, isCutOff } from '../lib/platform';
 import { useLiveCreatorIds } from '../lib/live';
@@ -19,6 +19,8 @@ const Explore: React.FC = () => {
   const { creators } = useCreatorCatalog();
   const featured = useFeatured();
   const featuredIds = new Map(featured.map((f) => [f.creatorProfileId, f.level]));
+  const rising = new Set(featured.filter((f) => f.reason === 'rising').map((f) => f.creatorProfileId));
+  const { data: newFans } = usePlatformQuery(() => rewardsApi.monthlyNewFans(), [], {} as Record<string, number>);
   const vipIds = useVipCreatorIds();
   const [params] = useSearchParams();
   const { data: platform } = usePlatformQuery(
@@ -54,6 +56,14 @@ const Explore: React.FC = () => {
     const matchesCategory = !selectedCategory || (!!c.category && categoryFor(c.category).id === categoryFor(selectedCategory).id);
     return matchesSearch && matchesCategory && (!liveOnly || liveIds.has(c.id));
   });
+
+  // Top 3 of the selected category by new paying fans this month.
+  const topOfMonth = selectedCategory
+    ? filteredCreators
+        .filter((c) => (newFans[c.id] ?? 0) > 0)
+        .sort((a, b) => (newFans[b.id] ?? 0) - (newFans[a.id] ?? 0))
+        .slice(0, 3)
+    : [];
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -151,6 +161,28 @@ const Explore: React.FC = () => {
           <span className="whitespace-nowrap text-xs text-muted sm:text-sm">{filteredCreators.length} resultados</span>
         </div>}
 
+        {viewMode === 'creators' && topOfMonth.length > 0 && (
+          <section aria-labelledby="top-month-title" className="mb-8 rounded-3xl border border-gold-200 bg-gold-50/60 p-5" data-testid="top-month">
+            <h2 id="top-month-title" className="font-semibold text-ink">
+              <i aria-hidden="true" className="fas fa-trophy mr-2 text-gold-600"></i>Top del mes en {selectedCategory}
+            </h2>
+            <ol className="mt-3 grid gap-3 sm:grid-cols-3">
+              {topOfMonth.map((c, i) => (
+                <li key={c.id}>
+                  <Link to={`/creator/${c.id}`} className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm" data-testid="top-month-item">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold-100 text-sm font-bold text-gold-700">{i + 1}</span>
+                    <Avatar src={c.avatar} name={c.name} size={40} decorative />
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold text-ink">{c.name}</span>
+                      <span className="block text-xs text-muted">{newFans[c.id]} {newFans[c.id] === 1 ? 'fan nuevo' : 'fans nuevos'} este mes</span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
+
         {/* Creators Grid */}
         {viewMode === 'creators' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -160,6 +192,7 @@ const Explore: React.FC = () => {
                 creator={creator}
                 level={featuredIds.get(creator.id)}
                 featured={featuredIds.has(creator.id)}
+                featuredLabel={rising.has(creator.id) ? 'En ascenso' : 'Destacado'}
                 vip={vipIds.has(creator.id)}
               />
             ))}

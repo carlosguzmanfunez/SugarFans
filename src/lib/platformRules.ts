@@ -14,6 +14,8 @@ import type {
 
 export const CREATOR_SHARE = 0.8;
 export const MIN_PAYOUT = 50;
+// Lowest monthly subscription price (database constraint profiles_subscription_price_check).
+export const MIN_SUBSCRIPTION = 4.99;
 // PayPal's fee for sending a withdrawal, paid by the creator (same rule as public.payout_fee).
 export const PAYOUT_FEE_RATE = 0.02;
 export const PAYOUT_FEE_MAX = 20;
@@ -85,7 +87,7 @@ export const buildManagedProfile = (
   if (!/^[a-z0-9_]{3,30}$/.test(username)) return { error: 'El usuario debe tener de 3 a 30 letras minúsculas, números o _' };
   if (takenUsernames.includes(username)) return { error: 'Ese nombre de usuario ya existe' };
   if (input.bio.trim().length > 500) return { error: 'La biografía admite hasta 500 caracteres' };
-  if (!(input.subscriptionPrice >= 0.99 && input.subscriptionPrice <= 999)) return { error: 'El precio debe estar entre $0.99 y $999' };
+  if (!(input.subscriptionPrice >= MIN_SUBSCRIPTION && input.subscriptionPrice <= 999)) return { error: `El precio debe estar entre $${MIN_SUBSCRIPTION} y $999` };
   return {
     profile: {
       name,
@@ -228,9 +230,10 @@ export const readImageFile = (file: File, maxSize = 900): Promise<string> =>
     reader.readAsDataURL(file);
   });
 
-// Tips: fixed amounts or a custom one between $1 and $500.
-export const TIP_PRESETS = [2, 5, 10, 20];
-export const MIN_TIP = 1;
+// Tips: fixed amounts or a custom one between $3 and $500 (below $3 PayPal's
+// fixed fee eats most of the payment). Mirrors send_tip in the database.
+export const TIP_PRESETS = [3, 5, 10, 20];
+export const MIN_TIP = 3;
 export const MAX_TIP = 500;
 export const validateTip = (amount: number): { ok: boolean; error?: string } =>
   Number.isFinite(amount) && amount >= MIN_TIP && amount <= MAX_TIP

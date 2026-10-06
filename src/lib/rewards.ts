@@ -2,7 +2,7 @@
 // featured list. Reloads with the platform, since every payment can change them.
 import { backend } from './backend';
 import { usePlatformQuery } from './platform';
-import type { FeaturedCreator, LevelId } from './backend/rewardTypes';
+import type { CreatorBadges, FeaturedCreator, LevelId } from './backend/rewardTypes';
 
 export * from './rewardRules';
 export type * from './backend/rewardTypes';
@@ -15,6 +15,10 @@ export const useFeatured = () =>
 
 export const useLevels = (ids: string[]) =>
   usePlatformQuery(() => rewardsApi.levels(ids), [ids.join(',')], {} as Record<string, LevelId>).data;
+
+// Level plus the Puntual and Constante medals fans see on a profile.
+export const useBadges = (ids: string[]) =>
+  usePlatformQuery(() => rewardsApi.badges(ids), [ids.join(',')], {} as Record<string, CreatorBadges>).data;
 
 export const featuredFirst = <T extends { id: string }>(list: T[], featured: FeaturedCreator[]) => {
   const rank = new Map(featured.map((f, i) => [f.creatorProfileId, i]));

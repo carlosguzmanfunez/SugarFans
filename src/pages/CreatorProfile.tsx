@@ -6,10 +6,11 @@ import { useCreatorCatalog, fromPublic } from '../lib/catalog';
 import ManagedBadge from '../components/ManagedBadge';
 import Avatar from '../components/Avatar';
 import { CoverImage, isPlaceholderImage } from '../components/CoverArt';
-import LevelBadge from '../components/LevelBadge';
+import LevelBadge, { MedalBadges } from '../components/LevelBadge';
 import GiftCelebration from '../components/GiftCelebration';
 import type { Gift } from '../lib/gifts';
-import { useLevels } from '../lib/rewards';
+import { useBadges } from '../lib/rewards';
+import ExperienceGoalCard from '../components/ExperienceGoalCard';
 import { useAuth } from '../context/AuthContext';
 import CheckoutDialog from '../components/CheckoutDialog';
 import ReportDialog from '../components/ReportDialog';
@@ -78,7 +79,7 @@ const CreatorProfile: React.FC = () => {
     null as PublicCreator | null
   );
   const creator: Creator | undefined = catalogCreator ?? (signedUp ? fromPublic(signedUp) : undefined);
-  const levels = useLevels(id ? [id] : []);
+  const badges = useBadges(id ? [id] : []);
   const follow = useFollow(id, user);
   const currentLive = useCurrentLive(id);
   const { data: experiences } = usePlatformQuery(
@@ -277,7 +278,8 @@ const CreatorProfile: React.FC = () => {
                   </span>
                 )}
                 <ManagedBadge creator={creator} size="md" />
-                <LevelBadge level={levels[creator.id]} />
+                <LevelBadge level={badges[creator.id]?.level} />
+                <MedalBadges badges={badges[creator.id]} />
               </div>
               <p className="text-gray-500">@{creator.username}</p>
 
@@ -436,6 +438,7 @@ const CreatorProfile: React.FC = () => {
               onNeedLogin={goLogin}
             />
             <CreatorReserveSection creator={creator} experiences={experiences} user={user} isOwner={isOwner} onNeedLogin={goLogin} />
+            {!isOwner && <ExperienceGoalCard creatorProfileId={creator.id} creatorName={creator.name} experiences={experiences} user={user} onNeedLogin={goLogin} onGift={() => openGift()} />}
             <UpcomingAccess creatorId={creator.id} experiences={experiences} liveTitle={currentLive?.mode === 'subscriber' ? currentLive.title : null} />
           </>
         )}

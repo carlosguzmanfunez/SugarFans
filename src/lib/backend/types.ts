@@ -138,6 +138,9 @@ export interface BookingDetails {
   counter?: CounterOffer;
   // Moderation flags for the creator's review (never blocking ones).
   flags?: string[];
+  // Booked with a Meta de experiencia ticket (no payment), and the wheel's extra.
+  ticketId?: string;
+  ticketBonus?: string;
 }
 
 export interface VipBooking {

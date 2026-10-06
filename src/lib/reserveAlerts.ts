@@ -26,6 +26,12 @@ export const bookingAlert = (prev: VipBooking | undefined, b: VipBooking): Booki
 
   if (!prev) return forCreator(b.status === 'pending' ? 'Nueva solicitud de Reserve' : 'Nueva reserva', `${fan} · ${b.title} · ${when}`);
   if (prev.status === b.status) return null;
+  // A booking made with a Meta de experiencia ticket needs no payment.
+  const ticket = !!b.details?.ticketId;
+  if (ticket && b.status === 'confirmed')
+    return prev.status === 'pending' ? forFan(`${creator} confirmó tu experiencia`, `${b.title} · ${when}. Usaste tu ticket de la Meta de experiencia.`) : null;
+  if (ticket && b.status === 'rejected') return forFan(`${creator} no puede aceptar tu solicitud`, `${b.title}. Tu ticket sigue activo: elige otra fecha.`);
+  if (ticket && b.status === 'expired' && prev.status === 'pending') return forFan('Tu solicitud expiró sin respuesta', `${b.title} con ${creator}. Tu ticket sigue activo.`);
   switch (b.status) {
     case 'accepted':
       if (prev.status === 'pending') return forFan(`${creator} aceptó tu solicitud`, `${b.title} · ${when}. Paga para confirmarla.`);

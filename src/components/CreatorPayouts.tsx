@@ -21,6 +21,7 @@ import {
   type Payout,
 } from '../lib/platform';
 import { GIFT_SHARE } from '../lib/giftRules';
+import { rewardsApi } from '../lib/rewards';
 import { BRAND, displayPayer } from '../config/brand';
 import { displayGiftNote } from '../config/gifts';
 
@@ -65,6 +66,8 @@ const CreatorPayouts: React.FC = () => {
       payoutAccount: Awaited<ReturnType<typeof platformApi.payoutAccount>>;
     }
   );
+  // Oro and Diamante withdraw from $25; for Diamante the platform pays PayPal's fee.
+  const { data: terms } = usePlatformQuery(() => (user ? rewardsApi.payoutTerms(user) : Promise.resolve({ min: MIN_PAYOUT, feeWaived: false })), [userId], { min: MIN_PAYOUT, feeWaived: false });
   const [paypalEmail, setPaypalEmail] = useState('');
   const [editingAccount, setEditingAccount] = useState(false);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
@@ -74,7 +77,8 @@ const CreatorPayouts: React.FC = () => {
   const earnings = computeEarnings(sales, data.payouts);
   const paid = data.payouts;
   const creditDay = fmtDate(nextCreditDate());
-  const canWithdraw = earnings.available >= MIN_PAYOUT;
+  const canWithdraw = earnings.available >= terms.min;
+  const fee = terms.feeWaived ? 0 : payoutFee(earnings.available);
   const verified = !!user.isVerified;
 
   const saveAccount = async () => {
@@ -109,7 +113,7 @@ const CreatorPayouts: React.FC = () => {
       )}
       <div className="bg-white rounded-2xl shadow-sm p-6">
         <h3 className="font-bold text-gray-900 mb-1">Resumen de ingresos</h3>
-        <p className="text-sm text-gray-500 mb-4">Recibes del {CREATOR_SHARE * 100}% al 90% de lo que pagan tus fans según tu nivel, tus metas y tus invitados ({GIFT_SHARE * 100}% de los regalos); el resto queda para la plataforma.</p>
+        <p className="text-sm text-gray-500 mb-4">Recibes el {CREATOR_SHARE * 100}% de lo que llega de cada pago después de la comisión de PayPal (más en Diamante y con los fans de tu enlace; {GIFT_SHARE * 100}% de los regalos). Los detalles están en Recompensas.</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-green-50 rounded-xl p-4">
             <p className="text-sm text-green-700">Saldo disponible</p>
@@ -130,8 +134,10 @@ const CreatorPayouts: React.FC = () => {
         <h3 className="font-bold text-gray-900 mb-1">Retirar saldo</h3>
         <p className="text-sm text-gray-500 mb-4">
           Tus ingresos se acreditan el día 1 de cada mes y se acumulan si no los retiras. Puedes retirar en cualquier momento del mes, siempre el
-          saldo completo, a partir de {money(MIN_PAYOUT)} USD, a tu cuenta PayPal (desde ahí puedes pasarlo a tu banco). Todo se paga en dólares (USD).
-          PayPal cobra {PAYOUT_FEE_RATE * 100}% (máximo {money(PAYOUT_FEE_MAX)}) por enviar el retiro, y esa comisión se descuenta del monto retirado.
+          saldo completo, a partir de {money(terms.min)} USD, a tu cuenta PayPal (desde ahí puedes pasarlo a tu banco). Todo se paga en dólares (USD).
+          {terms.feeWaived
+            ? ` Por ser Diamante, ${BRAND.name} paga la comisión de PayPal por enviar el retiro: recibes el monto completo.`
+            : ` PayPal cobra ${PAYOUT_FEE_RATE * 100}% (máximo ${money(PAYOUT_FEE_MAX)}) por enviar el retiro, y esa comisión se descuenta del monto retirado.`}
         </p>
         {!verified && (
           <p className="text-sm bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl p-3 mb-4">
@@ -173,11 +179,11 @@ const CreatorPayouts: React.FC = () => {
           </button>
           {canWithdraw && (
             <p className="text-xs text-gray-500">
-              Recibirás {money(earnings.available - payoutFee(earnings.available))} (comisión de PayPal {money(payoutFee(earnings.available))}).
+              Recibirás {money(earnings.available - fee)} {terms.feeWaived ? '(sin comisión)' : `(comisión de PayPal ${money(fee)})`}.
             </p>
           )}
           {!canWithdraw && (
-            <p className="text-xs text-gray-500">Podrás retirar cuando tu saldo disponible llegue a {money(MIN_PAYOUT)}.</p>
+            <p className="text-xs text-gray-500">Podrás retirar cuando tu saldo disponible llegue a {money(terms.min)}.</p>
           )}
         </div>
         {paid.length > 0 && (

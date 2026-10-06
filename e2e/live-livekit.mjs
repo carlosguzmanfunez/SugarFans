@@ -227,13 +227,15 @@ const run = async () => {
       await c.getByTestId('looks-button').click();
       await c.getByRole('radio', { name: /Natural/ }).click();
       await waitFor(async () => (await warmth(fanVideo)) < warm - 8, `el video del fan no cambió al quitar Warm (antes ${warm.toFixed(1)})`);
-      await c.getByRole('radio', { name: /Background Blur/ }).click();
+      // Studio and Background Blur unlock at Oro: a Bronce creator sees them locked.
+      expect(await c.getByRole('radio', { name: /Background Blur/ }).isDisabled(), 'Background Blur no está bloqueado para una creadora Bronce');
+      await c.getByRole('radio', { name: /Pure/ }).click();
       await c.getByTestId('enhance-toggle').click();
       await c.waitForTimeout(3000);
       await shot(c, 'live-filtros-en-vivo');
-      expect((await c.getByRole('radio', { name: /Background Blur/ }).getAttribute('aria-checked')) === 'true', 'Background Blur volvió a Natural');
+      expect((await c.getByRole('radio', { name: /Pure/ }).getAttribute('aria-checked')) === 'true', 'Pure volvió a Natural');
       expect((await c.getByTestId('enhance-toggle').getAttribute('aria-pressed')) === 'true', 'Mejorar apariencia no quedó activado');
-      await waitFor(() => playing(f), 'el fan dejó de recibir video con Background Blur');
+      await waitFor(() => playing(f), 'el fan dejó de recibir video con Pure');
       await c.getByRole('radio', { name: /Natural/ }).click();
       await c.getByTestId('enhance-toggle').click();
     });
@@ -366,7 +368,8 @@ const run = async () => {
     await check('Fan y creator entran a la videollamada y se ven por LiveKit', async () => {
       await f.goto(`${BASE}/live/${CALL.id}`);
       await f.getByRole('button', { name: 'Ver cómo me veo' }).click();
-      await f.getByRole('radio', { name: /Studio/ }).click();
+      // Fans use every look, Background Blur included.
+      await f.getByRole('radio', { name: /Background Blur/ }).click();
       await waitFor(() => f.getByTestId('camera-preview').locator('video').evaluate((v) => v.videoWidth > 0 && !v.paused), 'la vista previa con filtro no se ve');
       await shot(f, 'reserve-sala-de-espera');
       await f.getByRole('button', { name: 'Entrar a la sala' }).click();

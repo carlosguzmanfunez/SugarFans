@@ -46,6 +46,19 @@ const loadReserveRules = async () => {
 };
 
 // Special-account rules (Reserve al neto), bundled from the sources the app uses.
+const loadRewardRules = async () => {
+  const out = join(mkdtempSync(join(tmpdir(), 'reward-rules-')), 'rules.mjs');
+  await build({
+    stdin: { contents: "export * from './src/lib/rewardRules.ts';", resolveDir: new URL('..', import.meta.url).pathname, loader: 'ts' },
+    bundle: true,
+    format: 'esm',
+    platform: 'node',
+    outfile: out,
+    logLevel: 'silent',
+  });
+  return import(pathToFileURL(out).href);
+};
+
 const loadSpecialRules = async () => {
   const out = join(mkdtempSync(join(tmpdir(), 'special-rules-')), 'rules.mjs');
   await build({
@@ -982,18 +995,19 @@ const run = async () => {
       await page.getByText(/Podrás retirar cuando tu saldo disponible llegue a \$50\.00/).waitFor();
       expect((await page.locator('input[name=payoutAmount]').count()) === 0, 'no debe poder elegir el monto');
     });
-    await check('Creadora demo: 80% de los pagos; lo de este mes se acredita el día 1', async () => {
+    await check('Creadora demo: 80% de lo que llega después de PayPal; lo de este mes se acredita el día 1', async () => {
       await logoutViaMenu(page);
       await login(page, 'creator@sugarfans.com', 'demo1234');
       await waitPath(page, '/explore');
       await page.goto(`${BASE}/creator/dashboard?tab=earnings`);
-      // 80% of (9.99 subscription + 2 x 9.99 renewals) = 23.98 in total, no demo money.
+      // 80% of the net of each $9.99 payment (minus PayPal's 5.4% + $0.30) is $7.32:
+      // subscription + 2 renewals = 21.96 in total, no demo money.
       // The renewal from last month is credited; this month's payments wait for the 1st.
       const available = (await readAmount(page, 'available-balance'));
       const pending = (await readAmount(page, 'pending-balance'));
-      expect(Math.abs(available + pending - 23.98) < 0.02, `total inesperado: ${available} + ${pending}`);
-      expect(pending >= 7.99, 'el pago de este mes debería estar por acreditar');
-      await page.getByText('+$7.99').first().waitFor();
+      expect(Math.abs(available + pending - 21.96) < 0.02, `total inesperado: ${available} + ${pending}`);
+      expect(pending >= 7.32, 'el pago de este mes debería estar por acreditar');
+      await page.getByText('+$7.32').first().waitFor();
     });
     await check('Con sesión de creadora la portada lleva a su panel en lugar del registro', async () => {
       await page.goto(`${BASE}/`);
@@ -1400,9 +1414,9 @@ const run = async () => {
       await fp.getByRole('button', { name: 'Más opciones' }).click();
       await fp.getByRole('menuitem', { name: 'Enviar propina' }).click();
       const dialog = fp.getByRole('dialog', { name: /Propina para/ });
-      await dialog.getByLabel('Otro monto (USD)').fill('0.5');
+      await dialog.getByLabel('Otro monto (USD)').fill('2');
       await dialog.getByRole('button', { name: /Continuar/ }).click();
-      await dialog.getByText('La propina debe estar entre $1 y $500').waitFor();
+      await dialog.getByText('La propina debe estar entre $3 y $500').waitFor();
       await dialog.getByRole('button', { name: 'Cerrar' }).click();
     });
     await check('El creador ve la propina en su panel y puede borrar comentarios', async () => {
@@ -1658,15 +1672,22 @@ const run = async () => {
       return rc.getByTestId('rewards-panel');
     };
 
-    console.log('\nRecompensas para creadores: enlace, niveles, metas y destacados');
-    await check('El creador ve su nivel, su comisión, su enlace de invitación y sus metas', async () => {
+    console.log('\nRecompensas para creadores: niveles, medallas, enlace, invitaciones y Meta de experiencia');
+    const W = await loadRewardRules();
+    await check('El creador ve su nivel, su parte, lo que desbloquea cada nivel, sus medallas y su enlace', async () => {
       const panel = await openRewards();
       await panel.getByTestId('rewards-level').getByText('Bronce').waitFor();
       await panel.getByTestId('rewards-share').getByText('80%').waitFor();
+      await panel.getByText(/después de la comisión de PayPal/).first().waitFor();
+      expect((await panel.getByTestId('level-card').count()) === 4, 'no se ven los 4 niveles');
+      await panel.getByTestId('level-card').filter({ hasText: 'Oro' }).getByText(/Retiras desde \$25/).waitFor();
+      await panel.getByTestId('level-next').getByText(/Para Plata: 10 fans activos más/).waitFor();
+      for (const m of ['primer-reserve', 'iman', 'puntual', 'constante', 'embajador']) await panel.getByTestId(`medal-${m}`).waitFor();
+      expect((await panel.getByTestId('medal-iman').getAttribute('data-earned')) === 'false', 'Imán ganado sin fans');
       expect((await panel.getByTestId('referral-link').inputValue()).endsWith('/r/1'), 'el enlace no apunta a /r/1');
-      await panel.getByTestId('goal-summary').getByText('Te faltan 10 fans para la primera meta.').waitFor();
+      await panel.getByText(/85% de lo que te pague durante 60 días/).waitFor();
     });
-    await check('Un fan que llega con el enlace queda invitado y el creador cobra el 90% de su suscripción', async () => {
+    await check('Un fan que llega con el enlace queda invitado y el creador cobra el 85% del neto de su suscripción', async () => {
       await rf.goto(`${BASE}/r/1`);
       await waitPath(rf, '/creator/1');
       await register(rf, { name: 'Lucía Invitada', email: 'lucia.invitada@test.com', password: 'password123' });
@@ -1679,9 +1700,10 @@ const run = async () => {
       await dialog.getByRole('button', { name: /Suscribirme y pagar/ }).click();
       await rf.getByRole('button', { name: /Suscrito/ }).waitFor();
       const sub = (await platformData(rf)).transactions.find((t) => t.payerName === 'Lucía Invitada');
-      expect(sub?.share === 0.9, `la suscripción del invitado no paga 90% (${sub?.share})`);
+      const want = W.netShare(0.85, sub.amount);
+      expect(sub?.share === want && sub.gatewayFee === W.processorFee(sub.amount), `la suscripción del invitado no paga 85% del neto (${sub?.share} ≠ ${want})`);
       const panel = await openRewards();
-      await panel.getByTestId('referred-fan').filter({ hasText: 'Lucía Invitada' }).getByText(/90% hasta el/).waitFor();
+      await panel.getByTestId('referred-fan').filter({ hasText: 'Lucía Invitada' }).getByText(/85% hasta el/).waitFor();
       await panel.getByTestId('rewards-attracted').getByText('1', { exact: true }).waitFor();
     });
     await check('Un fan que se registra sin enlace no cuenta como invitado', async () => {
@@ -1693,26 +1715,27 @@ const run = async () => {
       expect(refs.length === 1, `se registró un invitado de más (${refs.length})`);
       await logoutViaMenu(rf);
     });
-    await check('Cumplir la meta de 10 fans el mes pasado sube la comisión y destaca al creador', async () => {
-      const lastMonth = new Date();
-      lastMonth.setUTCDate(1);
-      lastMonth.setUTCMonth(lastMonth.getUTCMonth() - 1);
-      lastMonth.setUTCHours(12, 0, 0, 0);
-      await seedFans(rc, 10, lastMonth.toISOString(), true);
-      const panel = await openRewards();
-      await panel.getByTestId('rewards-share').getByText('82%').waitFor();
-      await panel.getByText(/\+ 2% por la meta del mes pasado/).waitFor();
-      await rc.goto(`${BASE}/explore`);
-      const first = rc.locator('a[href^="/creator/"]').filter({ has: rc.getByTestId('featured-tag') }).first();
-      await first.getByText('Valentina Rose').waitFor();
-    });
-    await check('Con 10 fans activos sube a Plata: insignia en el perfil y más comisión en los nuevos pagos', async () => {
-      await seedFans(rc, 10, new Date(Date.now() - 86400000).toISOString(), false);
+    await check('Los fans del enlace cuentan doble: con 5 sube a Plata, insignia y "En ascenso" en Explorar, sin subir el porcentaje', async () => {
+      await seedFans(rc, 4, new Date(Date.now() - 86400000).toISOString(), true);
       const panel = await openRewards();
       await panel.getByTestId('rewards-level').getByText('Plata').waitFor();
-      await panel.getByTestId('rewards-share').getByText('84%').waitFor();
+      await panel.getByTestId('rewards-share').getByText('80%').waitFor();
       await rf.goto(`${BASE}/creator/1`);
       await rf.getByTestId('level-badge').getByText('Plata').waitFor();
+      await rc.goto(`${BASE}/explore`);
+      const card = rc.locator('a[href="/creator/1"]').filter({ has: rc.getByTestId('featured-tag') }).first();
+      await card.getByTestId('featured-tag').getByText('En ascenso').waitFor();
+    });
+    await check('Con 10 fans nuevos del enlace en el mes gana la medalla Imán y sale destacado', async () => {
+      await seedFans(rc, 5, new Date(Date.now() - 3600000).toISOString(), true);
+      const panel = await openRewards();
+      await panel.locator('[data-testid=medal-iman][data-earned=true]').waitFor();
+      await panel.getByTestId('medal-boost').waitFor();
+      await rc.goto(`${BASE}/explore`);
+      const card = rc.locator('a[href="/creator/1"]').filter({ has: rc.getByTestId('featured-tag') }).first();
+      await card.getByTestId('featured-tag').getByText('Destacado').waitFor();
+    });
+    await check('Un fan sin enlace paga el 80% del neto aunque el creador sea Plata', async () => {
       await login(rf, 'fan@sugarfans.com', 'demo1234');
       await waitPath(rf, '/explore');
       await rf.goto(`${BASE}/creator/1`);
@@ -1721,7 +1744,7 @@ const run = async () => {
       await rf.getByRole('button', { name: /Suscribirme y pagar/ }).click();
       await rf.getByRole('button', { name: /Suscrito/ }).waitFor();
       const sub = (await platformData(rf)).transactions.find((t) => t.payerId === 'demo-fan' && t.kind === 'subscription');
-      expect(sub?.share === 0.84, `la suscripción no se registró al 84% (${sub?.share})`);
+      expect(sub?.share === W.netShare(0.8, sub.amount), `la suscripción no se registró al 80% del neto (${sub?.share})`);
     });
     // Signs a creator up through Valentina's creator link and returns their profile id.
     const inviteCreator = async (name, email) => {
@@ -1732,6 +1755,20 @@ const run = async () => {
       await waitPath(rf, '/creator/dashboard');
       return rf.evaluate((e) => JSON.parse(localStorage.getItem('fansreserve_accounts')).find((a) => a.email === e).creatorProfileId, email);
     };
+    // The invited creator is verified and has sold their first $100.
+    const qualify = (creatorId) =>
+      rf.evaluate((id) => {
+        const accounts = JSON.parse(localStorage.getItem('fansreserve_accounts'));
+        accounts.find((a) => a.creatorProfileId === id).isVerified = true;
+        localStorage.setItem('fansreserve_accounts', JSON.stringify(accounts));
+        const p = JSON.parse(localStorage.getItem('fansreserve_platform') || '{}');
+        const at = new Date(Date.now() - 86400000).toISOString();
+        p.transactions = [...(p.transactions || []), {
+          id: `sale-${id}`, key: `sale-${id}`, payerId: `buyer-${id}`, payerName: 'Comprador', creatorProfileId: id, creatorName: 'Invitado',
+          kind: 'tip', amount: 100, share: 0.75, methodLabel: 'Visa •••• 4242', status: 'paid', createdAt: at,
+        }];
+        localStorage.setItem('fansreserve_platform', JSON.stringify(p));
+      }, creatorId);
     const tipAsDemoFan = async (creatorId, name) => {
       await logoutViaMenu(rf);
       await login(rf, 'fan@sugarfans.com', 'demo1234');
@@ -1749,26 +1786,95 @@ const run = async () => {
       return { tip, bonus: txs.find((t) => t.kind === 'referral' && t.key === `bonus:${tip?.id}`) };
     };
     let maraId = '';
-    await check('Con un solo creador invitado todavía no hay bono', async () => {
+    let nicoId = '';
+    await check('Un creador invitado sin verificar ni vender sus primeros $100 todavía no da bono', async () => {
       const panel = await openRewards();
       expect((await panel.getByTestId('creator-invite-link').inputValue()).endsWith('/r/1?as=creator'), 'el enlace de creadores no es /r/1?as=creator');
       maraId = await inviteCreator('Mara Invitada', 'mara.invitada@test.com');
+      nicoId = await inviteCreator('Nico Invitado', 'nico.invitado@test.com');
       const { tip, bonus } = await tipAsDemoFan(maraId, 'Mara Invitada');
-      expect(tip?.share === 0.8, `a la creadora invitada se le descontó (${tip?.share})`);
-      expect(!bonus, 'hubo bono con un solo creador invitado');
-      const again = await openRewards();
-      await again.getByTestId('invited-creator').filter({ hasText: 'Mara Invitada' }).getByText('se activa con 2 creadores invitados').waitFor();
+      expect(tip?.share === W.netShare(0.8, 10), `a la creadora invitada se le descontó (${tip?.share})`);
+      expect(!bonus, 'hubo bono con creadores sin verificar ni vender');
     });
-    await check('Desde el segundo creador invitado, quien invita gana un 5% extra durante un mes, sin descontarles nada', async () => {
-      const nicoId = await inviteCreator('Nico Invitado', 'nico.invitado@test.com');
+    await check('Con 2 invitados verificados y $100 vendidos, quien invita gana 5% del neto un mes, sin descontarles nada', async () => {
+      await qualify(maraId);
+      await qualify(nicoId);
       const nico = await tipAsDemoFan(nicoId, 'Nico Invitado');
-      expect(nico.tip?.share === 0.8, `al creador invitado se le descontó (${nico.tip?.share})`);
-      expect(nico.bonus?.creatorProfileId === '1' && nico.bonus.amount === 0.5 && nico.bonus.share === 1, 'no se generó el bono de $0.50 por Nico');
-      const mara = await tipAsDemoFan(maraId, 'Mara Invitada');
-      expect(mara.bonus?.amount === 0.5, 'no se generó el bono por Mara tras activarse');
+      expect(nico.tip?.share === W.netShare(0.8, 10), `al creador invitado se le descontó (${nico.tip?.share})`);
+      const want = W.inviteBonusFor(nico.tip);
+      expect(nico.bonus?.creatorProfileId === '1' && nico.bonus.amount === want && nico.bonus.share === 1, `no se generó el bono de $${want} por Nico (${JSON.stringify(nico.bonus)})`);
+      // Local mode can also credit sales made after qualifying but before this tip: show what was paid.
+      const earned = (await platformData(rf)).transactions
+        .filter((t) => t.kind === 'referral' && t.creatorProfileId === '1' && t.note === 'Por Nico Invitado')
+        .reduce((sum, t) => sum + t.amount, 0);
       const panel = await openRewards();
-      await panel.getByTestId('invited-creator').filter({ hasText: 'Nico Invitado' }).getByText('$0.50 ganados').waitFor();
+      await panel.getByTestId('invited-creator').filter({ hasText: 'Nico Invitado' }).getByText(`$${earned.toFixed(2)} ganados`).waitFor();
       await panel.getByTestId('invited-creator').filter({ hasText: 'Mara Invitada' }).getByText(/bono hasta el/).waitFor();
+      await panel.locator('[data-testid=medal-embajador][data-earned=true]').waitFor();
+    });
+    await check('Las propinas de menos de $3 no se aceptan', async () => {
+      await rf.goto(`${BASE}/creator/1`);
+      await rf.getByRole('button', { name: 'Más opciones' }).click();
+      await rf.getByRole('menuitem', { name: 'Enviar propina' }).click();
+      const dialog = rf.getByRole('dialog', { name: /Propina para/ });
+      expect(!(await dialog.getByRole('button', { name: '$2', exact: true }).count()), 'sigue el botón de $2');
+      await dialog.getByRole('button', { name: '$3', exact: true }).waitFor();
+      await rf.keyboard.press('Escape');
+    });
+
+    console.log('\nMeta de experiencia: regalos y propinas, ruleta y ticket');
+    await check('El creador activa su Meta de experiencia con una de sus experiencias', async () => {
+      const panel = await openRewards();
+      const goal = panel.getByTestId('goal-settings');
+      await goal.getByTestId('goal-enabled').check();
+      await goal.getByTestId('goal-target').fill('20');
+      await goal.locator('label').filter({ hasText: 'Videollamada 1:1' }).getByTestId('goal-experience').check();
+      await goal.getByTestId('goal-save').click();
+      await goal.getByTestId('goal-saved').waitFor();
+    });
+    await check('El fan ve su meta en el perfil y la llena con propinas', async () => {
+      await rf.goto(`${BASE}/creator/1`);
+      const card = rf.getByTestId('goal-card');
+      await card.getByTestId('goal-progress').getByText('$0.00 de $20.00').waitFor();
+      await card.getByText(/Videollamada 1:1/).waitFor();
+      await tipAsDemoFan('1', 'Valentina Rose');
+      await tipAsDemoFan('1', 'Valentina Rose');
+      await rf.goto(`${BASE}/creator/1`);
+      await rf.getByTestId('goal-progress').getByText('$20.00 de $20.00').waitFor();
+    });
+    await check('Al llenarla elige la experiencia, gira la ruleta (siempre gana un extra) y recibe su ticket', async () => {
+      await rf.getByTestId('goal-claim').click();
+      const dialog = rf.getByTestId('goal-dialog');
+      await dialog.locator('label').filter({ hasText: 'Videollamada 1:1' }).getByTestId('goal-choice').check();
+      await dialog.getByTestId('goal-spin').click();
+      await dialog.getByTestId('goal-wheel').waitFor();
+      const won = dialog.getByTestId('goal-won');
+      await won.waitFor({ timeout: 10000 });
+      await won.getByText(/10 minutos más|Saludo en su próximo Live|Mensaje de agradecimiento|Foto de recuerdo/).waitFor();
+      await won.getByText(/vence el/).waitFor();
+      await won.getByTestId('goal-won-book').click();
+    });
+    await check('Reserva con el ticket eligiendo solo día y hora, sin pagar', async () => {
+      const dialog = rf.getByTestId('reserve-dialog');
+      await dialog.getByTestId('ticket-summary').getByText('Sin costo').waitFor();
+      await pickFirstDate(rf);
+      await rf.getByTestId('time-slots').locator('button:not([disabled])').first().click();
+      await dialog.getByRole('button', { name: 'Reservar con mi ticket' }).click();
+      await rf.getByText('¡Solicitud enviada!').waitFor();
+      await rf.keyboard.press('Escape');
+      await rf.getByTestId('goal-ticket').getByText('Reserva enviada').waitFor();
+      await rf.getByTestId('goal-progress').getByText('$0.00 de $20.00').waitFor();
+    });
+    await check('El creador ve el ticket y el extra en la solicitud, y al aceptarla queda confirmada sin pago', async () => {
+      await rc.goto(`${BASE}/creator/dashboard?tab=vip`);
+      await openReserveSection(rc, 'Solicitudes');
+      const req = rc.getByTestId('vip-requests').getByTestId('vip-request').filter({ has: rc.getByTestId('booking-ticket') });
+      await req.getByTestId('booking-ticket-bonus').waitFor();
+      expect(!(await req.getByRole('button', { name: 'Contraoferta' }).count()), 'deja hacer contraoferta a un ticket');
+      await req.getByRole('button', { name: 'Aceptar' }).click();
+      await rf.goto(`${BASE}/profile`);
+      await rf.getByTestId('bookings').getByTestId('booking').filter({ has: rf.getByTestId('booking-ticket') }).getByText('Confirmada').waitFor();
+      await rf.getByTestId('my-tickets').getByText(/usado/).waitFor();
     });
     await rewardsCtx.close();
 
@@ -1846,7 +1952,7 @@ const run = async () => {
       await sc.getByTestId('special-claim-notice').getByText('Tu cuenta ya tiene el plan especial «Gimnasio de Juan».').waitFor();
       await sc.goto(`${BASE}/creator/dashboard?tab=rewards`);
       const plan = sc.getByTestId('special-plan');
-      await plan.getByText(/menos la comisión que cobra PayPal por ese pago y el 10% de impuesto/).waitFor();
+      await plan.getByText(/menos la comisión que cobra PayPal por ese pago, el 5% de servicio de Fans Reserve y el 10% de impuesto/).waitFor();
       await plan.getByText(/apareces primero entre los creadores destacados/).waitFor();
     });
     await check('El link de un solo uso ya no sirve para otra cuenta', async () => {
@@ -1880,12 +1986,12 @@ const run = async () => {
       await sc.getByTestId('rewards-panel').waitFor();
       expect((await sc.getByTestId('special-plan').count()) === 0, 'sigue mostrando el plan');
     });
-    await check('Reserve al neto: monto menos comisión real (o estimada) y menos impuesto', async () => {
+    await check('Reserve al neto: monto menos comisión real (o estimada), 5% de servicio e impuesto', async () => {
       const S = await loadSpecialRules();
       const real = S.netReserve(100, 0.15, 5.7);
-      expect(real.share === 0.793 && real.gatewayFee === 5.7 && real.tax === 15, JSON.stringify(real));
+      expect(real.share === 0.743 && real.gatewayFee === 5.7 && real.service === 5 && real.tax === 15, JSON.stringify(real));
       const est = S.netReserve(50, 0);
-      expect(est.share === 0.94 && est.gatewayFee === 3, JSON.stringify(est));
+      expect(est.share === 0.89 && est.gatewayFee === 3 && est.service === 2.5, JSON.stringify(est));
     });
     await specialCtx.close();
 
@@ -2141,7 +2247,7 @@ const run = async () => {
       await resF.goto(`${BASE}/creator/1`);
       const section = resF.getByTestId('creator-reserve');
       await section.getByTestId('notice-subscription').getByText(/No incluye Reserve Events, sesiones privadas ni otras experiencias de Reserve/).waitFor();
-      await section.getByTestId('notice-gift').getByText(/No garantizan respuesta, conversación, acceso ni experiencias de Reserve/).waitFor();
+      await section.getByTestId('notice-gift').getByText(/No garantizan respuesta, conversación ni acceso\. Si el creador tiene una Meta de experiencia/).waitFor();
       await resF.getByRole('button', { name: 'Enviar regalo' }).click();
       const dialog = resF.getByRole('dialog', { name: /Regalo para Valentina Rose/ });
       await dialog.getByRole('button', { name: /Corona/ }).first().click();

@@ -183,19 +183,19 @@ Este Contrato para Creadores y Afiliados ("Contrato") constituye un acuerdo lega
 - Bonos del programa de Recompensas
 
 6.1.2. **Su parte de cada venta**:
-- **Suscripciones, renovaciones y propinas**: según su nivel por fans activos: Bronce 80%, Plata (10+) 82%, Oro (50+) 84%, Diamante (200+) 85%
-- **Metas mensuales**: si atrae con su enlace 10, 25 o 50 fans que le paguen en un mes, su parte sube 2, 5 o 10 puntos todo el mes siguiente
-- **Fans de su enlace de invitación**: recibe el 90% de lo que le paguen durante 90 días
-- **Invitar Creadores**: cuando al menos 2 Creadores se registran con su enlace de creadores, recibe un 5% extra de sus ventas durante un mes, sin que a ellos se les descuente nada
-- **Reservas de Reserve**: 80%
+Todas las partes se calculan sobre el **neto** de cada pago: lo que paga el fan menos la comisión que cobra el procesador de pagos (PayPal) por ese pago.
+- **Suscripciones, renovaciones, propinas y reservas de Reserve**: 80% del neto; 83% en el nivel Diamante
+- **Fans de su enlace de invitación**: 85% del neto de lo que le paguen durante 60 días (o su parte de nivel, si es mayor)
+- **Invitar Creadores**: cuando al menos 2 Creadores que invitó con su enlace de creadores estén verificados y hayan vendido sus primeros $100 USD, recibe un 5% extra del neto de lo que venda cada uno (suscripciones, renovaciones y propinas) durante un mes, hasta $100 USD por Creador invitado, sin que a ellos se les descuente nada
 - **Regalos**: 60%
-- **Tope**: sumando todos los beneficios, nunca recibe más del 90% de una venta; la Plataforma conserva siempre al menos el 10%
+- **Tope**: sumando todos los beneficios, nunca recibe más del 90% del neto de una venta
+- **Precios mínimos**: suscripción $4.99 USD al mes; propina $3 USD
 
 ### 6.2. Cálculo de Pagos
 
 6.2.1. **Fórmula**:
 ```
-Pago al Creador = Precio pagado por el fan × su parte (según 6.1.2)
+Pago al Creador = (Precio pagado por el fan − comisión del procesador por ese pago) × su parte (según 6.1.2)
 ```
 
 6.2.2. **Ejemplo**: una suscripción de $10 USD de un Creador Bronce le deja $8 USD.
@@ -208,10 +208,10 @@ Pago al Creador = Precio pagado por el fan × su parte (según 6.1.2)
 
 6.3.2. **Retiros**:
 - Un solo botón: se retira siempre el saldo acreditado completo
-- Mínimo: $50 USD; si no lo alcanza, el saldo se acumula
+- Mínimo: $50 USD ($25 USD en los niveles Oro y Diamante); si no lo alcanza, el saldo se acumula
 - Cualquier día del mes, sin aprobación previa
 - A cuenta bancaria
-- La comisión que cobre el procesador de pagos por enviar el retiro se descuenta del monto retirado (ver 6.4)
+- La comisión que cobre el procesador de pagos por enviar el retiro se descuenta del monto retirado (ver 6.4), salvo en el nivel Diamante, donde la paga la Plataforma
 
 ### 6.4. Moneda y Comisiones de Pago
 
@@ -548,14 +548,14 @@ Este Contrato está sujeto a las siguientes políticas adicionales:
 
 ## ANEXO B: NIVELES
 
-| Nivel | Fans activos | Su parte (suscripciones, renovaciones y propinas) |
-|-------|--------------|---------------------------------------------------|
-| Bronce | 0+ | 80% |
-| Plata | 10+ | 82% |
-| Oro | 50+ | 84% |
-| Diamante | 200+ | 85% |
+| Nivel | Requisito (fans activos o ventas en 30 días) | Su parte del neto | Beneficios |
+|-------|----------------------------------------------|-------------------|------------|
+| Bronce | Al empezar | 80% | Reserve Event de hasta 10 plazas |
+| Plata | 10+ fans o $250, sin reportes confirmados en 90 días | 80% | "En ascenso" en Explorar, Reserve Event de hasta 20 plazas |
+| Oro | 50+ fans o $1,000, sin reportes y respondiendo a tiempo el 95% de las solicitudes | 80% | Destacado en Explorar, retiros desde $25, filtros de video avanzados, Reserve Event de hasta 50 plazas |
+| Diamante | 200+ fans o $5,000, mismas condiciones que Oro | 83% | Todo lo de Oro, primero en la portada de su categoría, retiros sin comisión |
 
-Oro, Diamante y quienes cumplen una meta mensual aparecen en Creadores destacados. Tope de cualquier combinación de beneficios: 90%.
+Los fans que llegan con su enlace cuentan doble para el nivel. Las medallas (Primer Reserve, Imán de fans, Puntual, Constante y Embajador) dan días destacado en Explorar o una insignia visible. Tope de cualquier combinación de beneficios: 90% del neto.
 
 ---
 
@@ -564,7 +564,7 @@ Oro, Diamante y quienes cumplen una meta mensual aparecen en Creadores destacado
 | Qué | Cuándo |
 |-----|--------|
 | Acreditación | Día 1 de cada mes, por lo pagado antes de esa fecha |
-| Retiro | Cualquier día, saldo completo, desde $50 USD; la comisión de envío del retiro se descuenta del monto |
+| Retiro | Cualquier día, saldo completo, desde $50 USD ($25 en Oro y Diamante); la comisión de envío del retiro se descuenta del monto, salvo en Diamante |
 
 ---
 **AL REGISTRARSE COMO CREADOR, USTED RECONOCE QUE HA LEÍDO, ENTENDIDO Y ACEPTA ESTAR VINCULADO POR ESTE CONTRATO.**
