@@ -1,0 +1,4 @@
+Fans Reserve presentation film (landing cover for visitors without a session).
+Made with HyperFrames; source in the project files (presentacion-global/proyecto-hyperframes).
+Uses the approved brand kit, the demo creators' AI portraits and four Reserve example clips
+(Pexels License, see ../reserve-clips/LICENSE.txt). The people in those clips are not Fans Reserve creators.

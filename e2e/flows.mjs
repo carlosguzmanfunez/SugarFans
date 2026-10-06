@@ -2489,6 +2489,18 @@ const run = async () => {
       expect(!(await d.getByTestId('tab-bar').isVisible()), 'la barra de pestañas se ve en escritorio');
       await desk.close();
     });
+    await check('La presentación en video solo la ven visitantes sin sesión', async () => {
+      const ctx = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });
+      const p = await newPage(ctx);
+      await p.goto(`${BASE}/`);
+      await p.locator('.pcover video').waitFor();
+      await login(p, 'fan@sugarfans.com', 'demo1234');
+      await p.waitForURL((u) => new URL(u).pathname !== '/login');
+      await p.goto(`${BASE}/`);
+      await p.locator('#hero-title').waitFor();
+      expect((await p.locator('.pcover').count()) === 0, 'un fan con sesión ve la presentación en video');
+      await ctx.close();
+    });
     await mobile.close();
   } finally {
     await browser.close();
