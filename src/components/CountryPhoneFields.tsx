@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { OTHER_COUNTRY, countryFlag, dialCode, normalizePhone, sortedCountries } from '../config/countries';
+import { OTHER_COUNTRY, dialCode, normalizePhone, sortedCountries } from '../config/countries';
 
 // Country (required) and phone (optional) for the sign-up forms and Settings.
 // The phone is typed without the country code, which is shown next to it.
@@ -23,7 +23,7 @@ const CountryPhoneFields: React.FC<{
           <option value="" disabled>{t('register.chooseCountry')}</option>
           {options.map((c) => (
             <option key={c.code} value={c.code}>
-              {countryFlag(c.code)} {c.name}{c.dial ? ` (+${c.dial})` : ''}
+              {c.name}{c.dial ? ` (+${c.dial})` : ''}
             </option>
           ))}
         </select>

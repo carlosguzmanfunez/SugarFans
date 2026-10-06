@@ -33,12 +33,6 @@ export const isCountryCode = (code: string | undefined | null): code is string =
 
 export const dialCode = (code: string): string => COUNTRIES.find((c) => c.code === code)?.dial ?? '';
 
-// 🇭🇳 from 'HN' (regional indicator letters).
-export const countryFlag = (code: string): string =>
-  code === OTHER_COUNTRY || !/^[A-Z]{2}$/.test(code)
-    ? '🌐'
-    : String.fromCodePoint(...[...code].map((ch) => 0x1f1e6 + ch.charCodeAt(0) - 65));
-
 const displayNames = new Map<string, Intl.DisplayNames | null>();
 export const countryName = (code: string, language: string, otherLabel: string): string => {
   if (code === OTHER_COUNTRY) return otherLabel;

@@ -20,7 +20,7 @@ import ExperienceGoalSettings from './ExperienceGoalSettings';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { useCreatorCountries } from '../lib/catalog';
-import { OTHER_COUNTRY, countryFlag, countryName } from '../config/countries';
+import { OTHER_COUNTRY, countryName } from '../config/countries';
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 const EMPTY: CreatorRewards = {
@@ -72,7 +72,7 @@ const CountryRankCard: React.FC = () => {
   if (!user?.creatorProfileId) return null;
   const myId = user.creatorProfileId;
   const country = user.country && user.country !== OTHER_COUNTRY ? user.country : '';
-  const place = country ? `${countryFlag(country)} ${countryName(country, language, t('country.other'))}` : '';
+  const place = country ? countryName(country, language, t('country.other')) : '';
   const mine = newFans[myId] ?? 0;
   const peers = new Set([myId, ...Object.keys(countries).filter((id) => countries[id] === country)]);
   const rank = 1 + [...peers].filter((id) => id !== myId && (newFans[id] ?? 0) > mine).length;

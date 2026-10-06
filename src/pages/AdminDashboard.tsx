@@ -14,9 +14,9 @@ import {
   type VerificationRequest,
 } from '../lib/platform';
 import { displayEmail } from '../config/demoAccounts';
-import { countryFlag, countryName } from '../config/countries';
+import { countryName } from '../config/countries';
 
-const countryLabel = (code: string) => (code ? `${countryFlag(code)} ${countryName(code, 'es', 'Otro país')}` : 'Sin país');
+const countryLabel = (code: string) => (code ? countryName(code, 'es', 'Otro país') : 'Sin país');
 
 const ago = (iso: string) => {
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);

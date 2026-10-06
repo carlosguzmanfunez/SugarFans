@@ -14,7 +14,7 @@ import { useLiveCreatorIds } from '../lib/live';
 import { LiveRail, ReserveRail, RailHeading } from '../components/AppRails';
 import { ENABLE_OPEN_LIVE } from '../config/features';
 import { useLanguage } from '../context/LanguageContext';
-import { countryFlag, countryName } from '../config/countries';
+import { countryName } from '../config/countries';
 
 const Explore: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
@@ -75,7 +75,7 @@ const Explore: React.FC = () => {
         .slice(0, 3)
     : [];
 
-  const topPlace = [selectedCategory, selectedCountry && `${countryFlag(selectedCountry)} ${nameOf(selectedCountry)}`].filter(Boolean).join(' · ');
+  const topPlace = [selectedCategory, selectedCountry && nameOf(selectedCountry)].filter(Boolean).join(' · ');
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -146,7 +146,7 @@ const Explore: React.FC = () => {
                 >
                   <option value="">{t('explore.allCountries')}</option>
                   {countryOptions.map((code) => (
-                    <option key={code} value={code}>{countryFlag(code)} {nameOf(code)}</option>
+                    <option key={code} value={code}>{nameOf(code)}</option>
                   ))}
                 </select>
                 <i className={`fas fa-chevron-down pointer-events-none absolute right-4 text-[10px] ${selectedCountry ? 'text-white/70' : 'text-ink/40'}`} aria-hidden="true"></i>
