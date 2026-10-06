@@ -417,10 +417,21 @@
 .lv2 .pc-screen video{display:block;width:100%;height:100%;object-fit:cover}
 .lv2 .pc-pp{position:absolute;right:16px;bottom:16px;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;background:rgb(22 13 31 / .7);border:1px solid rgb(255 255 255 / .25)}
 .lv2 .pc-bar{position:absolute;left:0;bottom:0;width:100%;height:3px;background:linear-gradient(90deg,#ff9cc0,var(--gold-2));transform-origin:0 50%;transform:scaleX(0)}
-.lv2 .pc-ribbon{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:34px}
+.lv2 .pc-ribbon{position:relative;z-index:1;display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:34px}
 .lv2 .pc-ribbon span{display:inline-flex;align-items:center;gap:9px;padding:6px 14px 6px 6px;border-radius:999px;background:rgb(255 255 255 / .07);border:1px solid rgb(255 255 255 / .14);font-size:14px;font-weight:600}
 .lv2 .pc-ribbon img{width:30px;height:30px;border-radius:50%;border:2px solid var(--c);object-fit:cover}
-.lv2 .pc-trust{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 22px;margin-top:26px;font-size:14px;color:rgb(255 255 255 / .74)}
+.lv2 .pc-trust{position:relative;z-index:1;display:flex;flex-wrap:wrap;justify-content:center;gap:8px 22px;margin-top:26px;font-size:14px;color:rgb(255 255 255 / .74)}
 .lv2 .pc-trust b{color:#fff;font-weight:600}
-@media (max-width:760px){.lv2 .pcover{padding-block:112px 52px}.lv2 .pc-screen{border-radius:18px}.lv2 .pc-stage{margin-top:32px}}
+.lv2 .pc-join{display:none}
+.lv2 .pc-login{font-size:15px;color:rgb(255 255 255 / .74)}
+.lv2 .pc-login b{color:#fff}
+/* Phone: only the vertical film, as large as the screen allows, and the sign-up button. */
+@media (max-width:760px){
+  .lv2 .pcover{padding-block:98px 40px}
+  .lv2 .pc-kick,.lv2 .pcover h2,.lv2 .pc-lead,.lv2 .pc-ctas,.lv2 .pc-ribbon,.lv2 .pc-trust{display:none}
+  .lv2 .pc-stage{margin-top:0;perspective:none}
+  .lv2 .pc-screen{aspect-ratio:9/16;width:min(100%,calc((100svh - 300px) * 9 / 16));border-radius:22px;transform:none;box-shadow:0 18px 44px rgb(0 0 0 / .45)}
+  .lv2 .pc-join{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:22px}
+  .lv2 .pc-join .v-pri{width:min(100%,360px);padding-block:16px;font-size:16px}
+}
 @media (prefers-reduced-motion:reduce){.lv2 .pcover::before,.lv2 .pcover::after{animation:none}}

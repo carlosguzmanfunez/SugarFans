@@ -2,9 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, prefersReducedMotion } from './landingBits';
 
-// First image for visitors without a session: a 20 s film (made with HyperFrames)
-// that presents Fans Reserve as a whole. Members never see it; they land straight
-// on the hero below. The screen starts tilted back and straightens as it scrolls in.
+// Sign-up entrance for visitors: a 20 s film (made with HyperFrames) that presents
+// Fans Reserve as a whole. Members never see it; they land straight on the hero below.
+// Desktop: headline, CTAs and the 16:9 film on a screen that straightens as it scrolls in.
+// Phone: only the vertical 9:16 film, large, with the sign-up button under it.
+const PHONE = '(max-width: 760px)';
+const isPhone = () => typeof window !== 'undefined' && window.matchMedia(PHONE).matches;
 const COMMUNITIES = [
   { name: 'Tu gente', photo: 'valentina', c: '#ff9cc0' },
   { name: 'Fitness', photo: 'diego', c: '#6ee7b7' },
@@ -22,6 +25,14 @@ const PresentationCover: React.FC = () => {
   const screen = useRef<HTMLDivElement>(null);
   const bar = useRef<HTMLDivElement>(null);
   const [paused, setPaused] = useState(false);
+  const [phone, setPhone] = useState(isPhone);
+
+  useEffect(() => {
+    const mq = window.matchMedia(PHONE);
+    const on = () => setPhone(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
 
   useEffect(() => {
     const v = video.current;
@@ -38,7 +49,7 @@ const PresentationCover: React.FC = () => {
     }
     const tilt = () => {
       const el = screen.current;
-      if (!el) return;
+      if (!el || isPhone()) return;
       const r = el.getBoundingClientRect();
       const p = Math.min(1, Math.max(0, (window.innerHeight - r.top) / (window.innerHeight * 0.75)));
       el.style.setProperty('--tilt', `${(1 - p) * 22}deg`);
@@ -52,7 +63,7 @@ const PresentationCover: React.FC = () => {
       window.removeEventListener('scroll', tilt);
       window.removeEventListener('resize', tilt);
     };
-  }, []);
+  }, [phone]);
 
   const toggle = () => {
     const v = video.current;
@@ -82,8 +93,8 @@ const PresentationCover: React.FC = () => {
           Sigue a quienes te inspiran, suscríbete a sus Lives exclusivos y reserva eventos o sesiones privadas con fecha, precio y reglas claras.
         </p>
         <div className="pc-ctas">
-          <Link to="/explore" className="v-btn v-pri">
-            Explorar creadores <ArrowRight />
+          <Link to="/register" className="v-btn v-pri">
+            Crear cuenta gratis <ArrowRight />
           </Link>
           <button type="button" className="v-btn pc-sec" onClick={replay}>
             <svg className="ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -97,8 +108,9 @@ const PresentationCover: React.FC = () => {
           <div className="pc-screen" ref={screen}>
             <video
               ref={video}
-              src="/presentacion/fans-reserve-presentacion.mp4"
-              poster="/presentacion/poster.jpg"
+              key={phone ? 'v' : 'h'}
+              src={phone ? '/presentacion/fans-reserve-presentacion-vertical.mp4' : '/presentacion/fans-reserve-presentacion.mp4'}
+              poster={phone ? '/presentacion/poster-vertical.jpg' : '/presentacion/poster.jpg'}
               autoPlay
               muted
               loop
@@ -115,6 +127,15 @@ const PresentationCover: React.FC = () => {
             </button>
             <div className="pc-bar" ref={bar} />
           </div>
+        </div>
+
+        <div className="pc-join">
+          <Link to="/register" className="v-btn v-pri">
+            Crear cuenta gratis <ArrowRight />
+          </Link>
+          <Link to="/login" className="pc-login">
+            ¿Ya tienes cuenta? <b>Inicia sesión</b>
+          </Link>
         </div>
 
         <div className="pc-ribbon" aria-label="Comunidades">
