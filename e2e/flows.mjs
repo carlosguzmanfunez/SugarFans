@@ -2161,7 +2161,8 @@ const run = async () => {
       await resF.locator('#categories-title').getByText('influencers y creadores').waitFor();
       await resF.locator('#comunidades').getByRole('link', { name: /Tu gente/ }).waitFor();
       const how = resF.locator('section[aria-labelledby=how-title]');
-      for (const p of ['Seguir', 'Suscribirse', 'Reserve Event', 'Reserve 1:1']) await how.getByText(p, { exact: true }).first().waitFor();
+      for (const p of ['Sigue', 'Suscríbete', 'Reserva', 'Reserve Event', 'Reserve 1:1']) await how.getByText(p, { exact: true }).first().waitFor({ state: 'attached' });
+      expect((await how.locator('article.ap').count()) === 3, 'Cómo funciona no tiene los 3 pasos del video');
       await resF.locator('#reserve video').first().waitFor({ state: 'attached' });
     });
     await check('Jerarquía: el menú no tiene un pilar Live y el Open Live está oculto', async () => {

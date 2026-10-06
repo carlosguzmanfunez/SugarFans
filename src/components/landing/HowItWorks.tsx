@@ -174,6 +174,20 @@ const ReserveDemo: React.FC = () => {
   );
 };
 
+// Step 3 holds both ways to reserve: a group event or a private 1:1 call.
+const ReserveBothDemo: React.FC = () => {
+  const [mode, setMode] = useState<'event' | 'one'>('one');
+  return (
+    <>
+      <div className="res-modes" role="group" aria-label="Tipo de Reserve">
+        <button type="button" aria-pressed={mode === 'event'} className={mode === 'event' ? 'on' : ''} onClick={() => setMode('event')}>Reserve Event</button>
+        <button type="button" aria-pressed={mode === 'one'} className={mode === 'one' ? 'on' : ''} onClick={() => setMode('one')}>Reserve 1:1</button>
+      </div>
+      {mode === 'event' ? <EventDemo /> : <ReserveDemo />}
+    </>
+  );
+};
+
 type Panel = {
   key: string;
   cls: string;
@@ -187,14 +201,14 @@ type Panel = {
 
 const TICKET = <><path d="M3 9a2 2 0 0 0 0 6v3a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-3a2 2 0 0 0 0-6V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1z" /><path d="M14 5v14" strokeDasharray="2 2.5" /></>;
 
-// "Cuatro formas de acercarte": four panels in the brand colours. The open one is
-// a working demo and advances to the next on its own while the section is in view
-// (it waits while you are trying it). The steps follow the product's funnel:
-// Seguir → Suscribirse (with Subscriber Live) → Reserve Event → Reserve 1:1.
+// "Cada paso te acerca más": panels in the brand colours, the same three steps as the
+// presentation film (Sigue → Suscríbete → Reserva). The open one is a working demo and
+// advances to the next on its own while the section is in view (it waits while you are
+// trying it). Reserva offers both Reserve Event and Reserve 1:1.
 // The free public Live panel only comes back with ENABLE_OPEN_LIVE.
 const HowItWorks: React.FC = () => {
-  const follow: Panel = { key: 'follow', cls: 'p-follow', label: 'Seguir', price: 'Gratis', title: 'Te enteras de todo', sub: 'Ves sus publicaciones públicas y sus novedades, gratis.', who: byId('1').avatar, icon: <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" /> };
-  const sub: Panel = { key: 'sub', cls: 'p-sub', label: 'Suscribirse', price: `${formatPrice(byId('2').subscriptionPrice)} al mes`, title: 'Le hablas en su Live', sub: 'Contenido exclusivo y Lives solo para suscriptores, donde le escribes y le preguntas en directo. Cancelas cuando quieras.', who: byId('2').avatar, icon: <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" /> };
+  const follow: Panel = { key: 'follow', cls: 'p-follow', label: 'Sigue', price: 'Gratis', title: 'Te enteras de todo', sub: 'Ves sus publicaciones públicas y sus novedades, gratis.', who: byId('1').avatar, icon: <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" /> };
+  const sub: Panel = { key: 'sub', cls: 'p-sub', label: 'Suscríbete', price: `${formatPrice(byId('2').subscriptionPrice)} al mes`, title: 'Le hablas en su Live', sub: 'Contenido exclusivo y Lives solo para suscriptores, donde le escribes y le preguntas en directo. Cancelas cuando quieras.', who: byId('2').avatar, icon: <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" /> };
   const panels: Panel[] = ENABLE_OPEN_LIVE
     ? [
         follow,
@@ -205,10 +219,10 @@ const HowItWorks: React.FC = () => {
     : [
         follow,
         sub,
-        { key: 'event', cls: 'p-event', label: 'Reserve Event', price: 'Desde $15.99 la plaza', title: 'Le preguntas en grupo', sub: 'Q&A, masterclass, workshops o gaming con fecha, duración y plazas limitadas. Reservas y pagas tu plaza.', icon: <><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2.4" /><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5M15 14c3 0 6 1.7 6 5" /></> },
-        { key: 'res', cls: 'p-res', label: 'Reserve 1:1', price: 'Desde $15.99', title: 'Habla contigo, cara a cara', sub: 'Videollamada privada con hora, duración y precio definidos. Solo tú y el creador en la sala.', icon: TICKET },
+        { key: 'both', cls: 'p-res p-both', label: 'Reserva', price: 'Desde $15.99', title: 'Habla contigo, cara a cara', sub: 'Elige cómo: un evento en grupo con plazas o una videollamada privada, solo tú y el creador.', icon: TICKET },
       ];
-  const faceWho = [byId('1').avatar, byId('2').avatar, byId('5').avatar, byId('3').avatar];
+  const faceWho = ENABLE_OPEN_LIVE ? [byId('1').avatar, byId('2').avatar, byId('5').avatar, byId('3').avatar] : [byId('1').avatar, byId('2').avatar, byId('3').avatar];
+  const count = panels.length;
   const { hash } = useLocation();
 
   const [cur, setCur] = useState(0);
@@ -228,9 +242,9 @@ const HowItWorks: React.FC = () => {
   }, []);
 
   const open = useCallback((i: number) => {
-    setCur((i + 4) % 4);
+    setCur((i + count) % count);
     setCycle((c) => c + 1);
-  }, []);
+  }, [count]);
 
   // "Suscribirse" in the menu lands here with that step open.
   useEffect(() => {
@@ -309,8 +323,8 @@ const HowItWorks: React.FC = () => {
                   {p.key === 'follow' && <FollowDemo />}
                   {p.key === 'sub' && <SubscribeDemo />}
                   {p.key === 'live' && <LiveDemo panel={livePanel} />}
-                  {p.key === 'event' && <EventDemo />}
                   {p.key === 'res' && <ReserveDemo />}
+                  {p.key === 'both' && <ReserveBothDemo />}
                 </div>
                 <span className="jbar" aria-hidden="true">
                   <i key={on ? cycle : -1} onAnimationEnd={() => on && !reduce && open(cur + 1)}></i>
