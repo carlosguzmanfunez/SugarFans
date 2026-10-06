@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import CreatorPayouts from '../components/CreatorPayouts';
 import CreatorGiftsPanel from '../components/CreatorGiftsPanel';
 import CreatorRewardsPanel from '../components/CreatorRewardsPanel';
+import CreatorGoalsPanel from '../components/CreatorGoalsPanel';
 import Avatar from '../components/Avatar';
 import CreatorLivePanel from '../components/CreatorLivePanel';
 import { usePlatformQuery, platformApi, computeEarnings, iBlocked, blockUser, unblockUser, money, CREATOR_SHARE, creatorCut, transactionLabel } from '../lib/platform';
@@ -231,7 +232,7 @@ const CreatorDashboard: React.FC = () => {
 
         {user?.creatorProfileId && <CreatorLivePanel user={user} />}
 
-        {/* Tabs: six sections. "Dinero" groups income, gifts and rewards (their
+        {/* Tabs: seven sections. "Dinero" groups income, gifts and rewards (their
             old ?tab= addresses still work and pick the sub-section). */}
         <div className="flex gap-1 bg-white border border-line rounded-full p-1 mb-3 overflow-x-auto scrollbar-hide">
           {[
@@ -239,6 +240,7 @@ const CreatorDashboard: React.FC = () => {
             { id: 'content', label: 'Contenido', icon: 'fa-images' },
             { id: 'subscribers', label: 'Suscriptores', icon: 'fa-users' },
             { id: 'earnings', label: 'Dinero', icon: 'fa-wallet', group: MONEY_TABS },
+            { id: 'goals', label: 'Metas', icon: 'fa-bullseye', goal: true },
             { id: 'vip', label: 'Reservas', icon: 'fa-ticket', badge: pendingVip },
             { id: 'settings', label: 'Configuración', icon: 'fa-cog' },
           ].map((tab) => {
@@ -248,11 +250,22 @@ const CreatorDashboard: React.FC = () => {
                 key={tab.id}
                 onClick={() => { setActiveTab(tab.id); setNotice(null); }}
                 aria-current={on ? 'page' : undefined}
-                className={`flex-none px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors active:scale-[0.97] ${
-                  on ? 'bg-ink text-white' : 'text-ink/60 hover:text-ink hover:bg-canvas'
+                className={`flex-none px-4 py-2 rounded-full text-sm whitespace-nowrap transition-colors active:scale-[0.97] ${
+                  'goal' in tab
+                    ? on
+                      ? 'font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-orange-500/30'
+                      : 'font-bold text-orange-600 bg-orange-50 hover:bg-orange-100'
+                    : on ? 'font-medium bg-ink text-white' : 'font-medium text-ink/60 hover:text-ink hover:bg-canvas'
                 }`}
               >
-                <Icon name={tab.icon} className={`mr-1.5 ${on ? '' : 'text-ink/40'}`} />{tab.label}
+                {/* Metas always stands out, with a soft pulse, so the creator keeps an eye on it */}
+                {'goal' in tab && !on && (
+                  <span className="relative mr-1.5 inline-flex h-2 w-2 align-[2px]" aria-hidden="true">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75 motion-safe:animate-ping"></span>
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-orange-500"></span>
+                  </span>
+                )}
+                <Icon name={tab.icon} className={`mr-1.5 ${on || 'goal' in tab ? '' : 'text-ink/40'}`} />{tab.label}
                 {'badge' in tab && !!tab.badge && (
                   <>
                     <RedDot count={tab.badge} className="ml-1.5 inline-flex align-[1px]" />
@@ -264,24 +277,36 @@ const CreatorDashboard: React.FC = () => {
           })}
         </div>
         {MONEY_TABS.includes(activeTab) ? (
-          <div className="flex gap-2 mb-8" role="tablist" aria-label="Dinero">
+          // Big colored cards so the creator spots their money sections at once.
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-8" role="tablist" aria-label="Dinero">
             {[
-              { id: 'earnings', label: 'Ingresos' },
-              { id: 'gifts', label: 'Regalos' },
-              { id: 'rewards', label: 'Recompensas' },
-            ].map((sub) => (
-              <button
-                key={sub.id}
-                role="tab"
-                aria-selected={activeTab === sub.id}
-                onClick={() => { setActiveTab(sub.id); setNotice(null); }}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                  activeTab === sub.id ? 'border-ink text-ink bg-white' : 'border-transparent text-ink/55 hover:text-ink'
-                }`}
-              >
-                {sub.label}
-              </button>
-            ))}
+              { id: 'earnings', label: 'Ingresos', hint: 'Saldo y retiros', icon: 'fa-wallet', on: 'from-emerald-500 to-teal-600 shadow-emerald-500/30', chip: 'bg-emerald-50 text-emerald-600' },
+              { id: 'gifts', label: 'Regalos', hint: 'Lo que te regalan', icon: 'fa-gift', on: 'from-brand-500 to-brand-700 shadow-brand-500/30', chip: 'bg-brand-50 text-brand-600' },
+              { id: 'rewards', label: 'Recompensas', hint: 'Nivel e invitaciones', icon: 'fa-trophy', on: 'from-iris-500 to-iris-700 shadow-iris-500/30', chip: 'bg-iris-50 text-iris-600' },
+            ].map((sub) => {
+              const on = activeTab === sub.id;
+              return (
+                <button
+                  key={sub.id}
+                  role="tab"
+                  aria-selected={on}
+                  onClick={() => { setActiveTab(sub.id); setNotice(null); }}
+                  className={`group flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 rounded-2xl p-3 sm:p-4 text-center sm:text-left transition-all active:scale-[0.98] ${
+                    on
+                      ? `bg-gradient-to-br ${sub.on} text-white shadow-lg -translate-y-0.5`
+                      : 'bg-white border border-line text-ink hover:-translate-y-0.5 hover:shadow-md'
+                  }`}
+                >
+                  <span className={`flex h-10 w-10 sm:h-11 sm:w-11 flex-none items-center justify-center rounded-xl text-xl ${on ? 'bg-white/20 text-white' : sub.chip}`}>
+                    <Icon name={sub.icon} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm sm:text-base font-bold leading-tight">{sub.label}</span>
+                    <span className={`hidden sm:block text-xs mt-0.5 ${on ? 'text-white/80' : 'text-ink/50'}`}>{sub.hint}</span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
         ) : (
           <div className="mb-8" />
@@ -478,6 +503,7 @@ const CreatorDashboard: React.FC = () => {
 
         {activeTab === 'gifts' && <CreatorGiftsPanel />}
         {activeTab === 'rewards' && <CreatorRewardsPanel />}
+        {activeTab === 'goals' && <CreatorGoalsPanel />}
 
         {activeTab === 'vip' && (
           <CreatorReservePanel

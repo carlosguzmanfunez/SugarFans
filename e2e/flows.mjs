@@ -1671,6 +1671,10 @@ const run = async () => {
       await rc.goto(`${BASE}/creator/dashboard?tab=rewards`);
       return rc.getByTestId('rewards-panel');
     };
+    const openGoals = async () => {
+      await rc.goto(`${BASE}/creator/dashboard?tab=goals`);
+      return rc.getByTestId('goals-panel');
+    };
 
     console.log('\nRecompensas para creadores: niveles, medallas, enlace, invitaciones y Meta de experiencia');
     const W = await loadRewardRules();
@@ -1682,10 +1686,13 @@ const run = async () => {
       expect((await panel.getByTestId('level-card').count()) === 4, 'no se ven los 4 niveles');
       await panel.getByTestId('level-card').filter({ hasText: 'Oro' }).getByText(/Retiras desde \$25/).waitFor();
       await panel.getByTestId('level-next').getByText(/Para Plata: 10 fans activos más/).waitFor();
-      for (const m of ['primer-reserve', 'iman', 'puntual', 'constante', 'embajador']) await panel.getByTestId(`medal-${m}`).waitFor();
-      expect((await panel.getByTestId('medal-iman').getAttribute('data-earned')) === 'false', 'Imán ganado sin fans');
       expect((await panel.getByTestId('referral-link').inputValue()).endsWith('/r/1'), 'el enlace no apunta a /r/1');
       await panel.getByText(/85% de lo que te pague durante 60 días/).waitFor();
+      const goals = await openGoals();
+      await goals.getByTestId('next-goal').getByText('Llegar a Plata').waitFor();
+      await goals.getByRole('progressbar', { name: 'Fans activos' }).waitFor();
+      for (const m of ['primer-reserve', 'iman', 'puntual', 'constante', 'embajador']) await goals.getByTestId(`medal-${m}`).waitFor();
+      expect((await goals.getByTestId('medal-iman').getAttribute('data-earned')) === 'false', 'Imán ganado sin fans');
     });
     await check('Un fan que llega con el enlace queda invitado y el creador cobra el 85% del neto de su suscripción', async () => {
       await rf.goto(`${BASE}/r/1`);
@@ -1728,7 +1735,7 @@ const run = async () => {
     });
     await check('Con 10 fans nuevos del enlace en el mes gana la medalla Imán y sale destacado', async () => {
       await seedFans(rc, 5, new Date(Date.now() - 3600000).toISOString(), true);
-      const panel = await openRewards();
+      const panel = await openGoals();
       await panel.locator('[data-testid=medal-iman][data-earned=true]').waitFor();
       await panel.getByTestId('medal-boost').waitFor();
       await rc.goto(`${BASE}/explore`);
@@ -1810,7 +1817,7 @@ const run = async () => {
       const panel = await openRewards();
       await panel.getByTestId('invited-creator').filter({ hasText: 'Nico Invitado' }).getByText(`$${earned.toFixed(2)} ganados`).waitFor();
       await panel.getByTestId('invited-creator').filter({ hasText: 'Mara Invitada' }).getByText(/bono hasta el/).waitFor();
-      await panel.locator('[data-testid=medal-embajador][data-earned=true]').waitFor();
+      await (await openGoals()).locator('[data-testid=medal-embajador][data-earned=true]').waitFor();
     });
     await check('Las propinas de menos de $3 no se aceptan', async () => {
       await rf.goto(`${BASE}/creator/1`);
@@ -1824,7 +1831,7 @@ const run = async () => {
 
     console.log('\nMeta de experiencia: regalos y propinas, ruleta y ticket');
     await check('El creador activa su Meta de experiencia con una de sus experiencias', async () => {
-      const panel = await openRewards();
+      const panel = await openGoals();
       const goal = panel.getByTestId('goal-settings');
       await goal.getByTestId('goal-enabled').check();
       await goal.getByTestId('goal-target').fill('20');
@@ -1850,7 +1857,7 @@ const run = async () => {
       await dialog.getByTestId('goal-wheel').waitFor();
       const won = dialog.getByTestId('goal-won');
       await won.waitFor({ timeout: 10000 });
-      await won.getByText(/10 minutos más|Saludo en su próximo Live|Mensaje de agradecimiento|Foto de recuerdo/).waitFor();
+      await won.getByText(/10 minutos más|Saludo en su próximo Live|Mensaje de agradecimiento|Foto de recuerdo/).first().waitFor();
       await won.getByText(/vence el/).waitFor();
       await won.getByTestId('goal-won-book').click();
     });
@@ -2308,6 +2315,20 @@ const run = async () => {
       await mine.getByRole('button', { name: 'Aceptar contraoferta' }).click();
       await mine.getByText('Aceptada · pendiente de pago').waitFor();
       await mine.getByRole('button', { name: 'Pagar $220.00' }).waitFor();
+    });
+    await check('Al crear una experiencia el creador puede cambiar de categoría ahí mismo', async () => {
+      await resC.goto(`${BASE}/creator/dashboard?tab=vip`);
+      await resC.getByRole('button', { name: /Crear experiencia/ }).click();
+      const form = resC.getByTestId('experience-form');
+      const cats = form.getByTestId('wizard-categories');
+      const types = form.getByTestId('allowed-types');
+      await types.locator('[data-type=photo-session]').waitFor();
+      await cats.getByRole('radio', { name: 'Cocina' }).click();
+      await types.locator('[data-type=cooking-class]').waitFor();
+      expect((await cats.getByRole('radio', { name: 'Cocina' }).getAttribute('aria-checked')) === 'true', 'Cocina no quedó elegida');
+      await cats.getByRole('radio', { name: 'Tu gente' }).click();
+      await types.locator('[data-type=photo-session]').waitFor();
+      await form.getByRole('button', { name: 'Cancelar' }).first().click();
     });
     await check('El creator solo puede crear experiencias permitidas para su categoría', async () => {
       await resC.goto(`${BASE}/creator/dashboard?tab=vip`);

@@ -7,24 +7,17 @@ import {
   CREATOR_INVITE_MIN,
   CREATOR_INVITE_QUALIFY,
   EMPTY_MEDALS,
-  IMAN_TIERS,
   LEVELS,
-  MEDALS,
-  PUNTUAL_REQUESTS,
-  CONSTANTE_WEEKS,
   REFERRAL_DAYS,
   REFERRAL_SHARE,
-  earnedMedals,
   levelById,
   nextLevel,
   pct,
   rewardsApi,
   type CreatorRewards,
-  type MedalId,
 } from '../lib/rewards';
 import { BRAND } from '../config/brand';
 import { ratePct, specialApi } from '../lib/special';
-import ExperienceGoalSettings from './ExperienceGoalSettings';
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 const EMPTY: CreatorRewards = {
@@ -32,27 +25,8 @@ const EMPTY: CreatorRewards = {
   medals: EMPTY_MEDALS, referrals: [], invitedCreators: [],
 };
 
-// Progress line under each medal.
-const medalProgress = (id: MedalId, data: CreatorRewards): string => {
-  const m = data.medals;
-  switch (id) {
-    case 'primer-reserve':
-      return m.firstReserveAt ? `Ganada el ${fmtDate(m.firstReserveAt)}` : 'Aún no completas tu primera experiencia';
-    case 'iman': {
-      const next = IMAN_TIERS.find((t) => data.attractedThisMonth < t.fans);
-      return next ? `${data.attractedThisMonth}/${next.fans} fans nuevos este mes` : '¡Nivel máximo este mes!';
-    }
-    case 'puntual':
-      return m.puntual ? 'Activa' : `${m.puntualCount}/${PUNTUAL_REQUESTS} solicitudes respondidas a tiempo`;
-    case 'constante':
-      return m.constante ? 'Racha activa' : `${m.liveWeeks}/${CONSTANTE_WEEKS} semanas seguidas con Live`;
-    case 'embajador':
-      return m.embajador ? 'Bono de invitación activo' : `${m.qualifiedInvites}/${CREATOR_INVITE_MIN} creadores invitados listos`;
-  }
-};
-
-// Creator panel > Recompensas: level and what it unlocks, medals, the Meta de
-// experiencia, the invitation links and the fans and creators they brought.
+// Creator panel > Recompensas: level and what it unlocks, the invitation links
+// and the fans and creators they brought. Medals and goals live in Metas.
 const CreatorRewardsPanel: React.FC = () => {
   const { user } = useAuth();
   const { data } = usePlatformQuery(() => (user ? rewardsApi.myRewards(user) : Promise.resolve(EMPTY)), [user?.id], EMPTY);
@@ -64,7 +38,6 @@ const CreatorRewardsPanel: React.FC = () => {
   const creatorLink = `${link}?as=creator`;
   const level = levelById(data.level);
   const next = nextLevel(level);
-  const earned = new Set(earnedMedals(data.medals));
 
   const copy = async (text: string) => {
     try {
@@ -149,35 +122,6 @@ const CreatorRewardsPanel: React.FC = () => {
         </p>
       </div>
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm" data-testid="medals">
-        <h3 className="font-bold text-gray-900 mb-1"><i aria-hidden="true" className="fas fa-award text-pink-500 mr-2"></i>Medallas</h3>
-        <p className="text-sm text-gray-500 mb-4">Cada medalla te da visibilidad o una insignia. Se ganan con lo que ya haces en {BRAND.name}.</p>
-        <div className="grid sm:grid-cols-2 gap-3">
-          {MEDALS.map((m) => {
-            const has = earned.has(m.id);
-            return (
-              <div key={m.id} data-testid={`medal-${m.id}`} data-earned={has ? 'true' : 'false'} className={`flex gap-3 rounded-xl border p-4 ${has ? 'border-amber-300 bg-amber-50' : 'border-gray-100'}`}>
-                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${has ? 'bg-amber-400 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                  <i aria-hidden="true" className={`fas ${m.icon}`}></i>
-                </span>
-                <div className="text-sm">
-                  <p className="font-semibold text-gray-900">{m.name}{has ? ' ✓' : ''}</p>
-                  <p className="text-gray-600 text-xs mt-0.5">{m.how}</p>
-                  <p className="text-xs mt-1"><span className="font-medium text-gray-900">Desbloquea:</span> <span className="text-gray-600">{m.unlocks}</span></p>
-                  <p className="text-xs text-pink-600 mt-1">{medalProgress(m.id, data)}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        {data.medals.boostUntil && (
-          <p className="text-sm text-gray-700 mt-4" data-testid="medal-boost">
-            <i aria-hidden="true" className="fas fa-bolt text-amber-500 mr-1"></i>Estás destacado en Explorar hasta el {fmtDate(data.medals.boostUntil)}.
-          </p>
-        )}
-      </div>
-
-      <ExperienceGoalSettings />
 
       <div className="bg-gradient-to-br from-pink-500 to-purple-600 text-white rounded-2xl p-6">
         <h3 className="font-bold text-lg"><i aria-hidden="true" className="fas fa-link mr-2"></i>Tu enlace de invitación</h3>
