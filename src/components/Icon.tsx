@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   ArrowRight, Ban, Bell, BellOff, Check, ChartLine, ChartPie, ChevronDown, CircleCheck, CircleHelp, CircleUser, Coins, Compass, DollarSign, Ellipsis,
-  Flag, Gift, HandCoins, Heart, House, Image, Images, Link, LogOut, Menu, Pen, Plus, Settings, ShieldHalf, Star, Ticket, Trophy, Unlock, User, Users,
+  Flag, Gift, HandCoins, Heart, House, Image, Images, Link, LogOut, Menu, Pen, Plus, Settings, ShieldHalf, Star, Target, Ticket, Trophy, Unlock, User, Users,
   Wallet, X, type LucideIcon,
 } from 'lucide-react';
 
@@ -41,6 +41,7 @@ const ICONS: Record<string, LucideIcon> = {
   'fa-plus': Plus,
   'fa-shield-halved': ShieldHalf,
   'fa-star': Star,
+  'fa-bullseye': Target,
   'fa-ticket': Ticket,
   'fa-trophy': Trophy,
   'fa-unlock': Unlock,

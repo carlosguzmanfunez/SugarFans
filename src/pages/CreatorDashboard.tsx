@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import CreatorPayouts from '../components/CreatorPayouts';
 import CreatorGiftsPanel from '../components/CreatorGiftsPanel';
 import CreatorRewardsPanel from '../components/CreatorRewardsPanel';
+import CreatorGoalsPanel from '../components/CreatorGoalsPanel';
 import Avatar from '../components/Avatar';
 import CreatorLivePanel from '../components/CreatorLivePanel';
 import { usePlatformQuery, platformApi, computeEarnings, iBlocked, blockUser, unblockUser, money, CREATOR_SHARE, creatorCut, transactionLabel } from '../lib/platform';
@@ -231,7 +232,7 @@ const CreatorDashboard: React.FC = () => {
 
         {user?.creatorProfileId && <CreatorLivePanel user={user} />}
 
-        {/* Tabs: six sections. "Dinero" groups income, gifts and rewards (their
+        {/* Tabs: seven sections. "Dinero" groups income, gifts and rewards (their
             old ?tab= addresses still work and pick the sub-section). */}
         <div className="flex gap-1 bg-white border border-line rounded-full p-1 mb-3 overflow-x-auto scrollbar-hide">
           {[
@@ -239,6 +240,7 @@ const CreatorDashboard: React.FC = () => {
             { id: 'content', label: 'Contenido', icon: 'fa-images' },
             { id: 'subscribers', label: 'Suscriptores', icon: 'fa-users' },
             { id: 'earnings', label: 'Dinero', icon: 'fa-wallet', group: MONEY_TABS },
+            { id: 'goals', label: 'Metas', icon: 'fa-bullseye', goal: true },
             { id: 'vip', label: 'Reservas', icon: 'fa-ticket', badge: pendingVip },
             { id: 'settings', label: 'Configuración', icon: 'fa-cog' },
           ].map((tab) => {
@@ -248,11 +250,22 @@ const CreatorDashboard: React.FC = () => {
                 key={tab.id}
                 onClick={() => { setActiveTab(tab.id); setNotice(null); }}
                 aria-current={on ? 'page' : undefined}
-                className={`flex-none px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors active:scale-[0.97] ${
-                  on ? 'bg-ink text-white' : 'text-ink/60 hover:text-ink hover:bg-canvas'
+                className={`flex-none px-4 py-2 rounded-full text-sm whitespace-nowrap transition-colors active:scale-[0.97] ${
+                  'goal' in tab
+                    ? on
+                      ? 'font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-orange-500/30'
+                      : 'font-bold text-orange-600 bg-orange-50 hover:bg-orange-100'
+                    : on ? 'font-medium bg-ink text-white' : 'font-medium text-ink/60 hover:text-ink hover:bg-canvas'
                 }`}
               >
-                <Icon name={tab.icon} className={`mr-1.5 ${on ? '' : 'text-ink/40'}`} />{tab.label}
+                {/* Metas always stands out, with a soft pulse, so the creator keeps an eye on it */}
+                {'goal' in tab && !on && (
+                  <span className="relative mr-1.5 inline-flex h-2 w-2 align-[2px]" aria-hidden="true">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75 motion-safe:animate-ping"></span>
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-orange-500"></span>
+                  </span>
+                )}
+                <Icon name={tab.icon} className={`mr-1.5 ${on || 'goal' in tab ? '' : 'text-ink/40'}`} />{tab.label}
                 {'badge' in tab && !!tab.badge && (
                   <>
                     <RedDot count={tab.badge} className="ml-1.5 inline-flex align-[1px]" />
@@ -269,7 +282,7 @@ const CreatorDashboard: React.FC = () => {
             {[
               { id: 'earnings', label: 'Ingresos', hint: 'Saldo y retiros', icon: 'fa-wallet', on: 'from-emerald-500 to-teal-600 shadow-emerald-500/30', chip: 'bg-emerald-50 text-emerald-600' },
               { id: 'gifts', label: 'Regalos', hint: 'Lo que te regalan', icon: 'fa-gift', on: 'from-brand-500 to-brand-700 shadow-brand-500/30', chip: 'bg-brand-50 text-brand-600' },
-              { id: 'rewards', label: 'Recompensas', hint: 'Nivel y medallas', icon: 'fa-trophy', on: 'from-iris-500 to-iris-700 shadow-iris-500/30', chip: 'bg-iris-50 text-iris-600' },
+              { id: 'rewards', label: 'Recompensas', hint: 'Nivel e invitaciones', icon: 'fa-trophy', on: 'from-iris-500 to-iris-700 shadow-iris-500/30', chip: 'bg-iris-50 text-iris-600' },
             ].map((sub) => {
               const on = activeTab === sub.id;
               return (
@@ -490,6 +503,7 @@ const CreatorDashboard: React.FC = () => {
 
         {activeTab === 'gifts' && <CreatorGiftsPanel />}
         {activeTab === 'rewards' && <CreatorRewardsPanel />}
+        {activeTab === 'goals' && <CreatorGoalsPanel />}
 
         {activeTab === 'vip' && (
           <CreatorReservePanel
