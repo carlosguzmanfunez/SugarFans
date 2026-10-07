@@ -149,6 +149,9 @@ const planFor = async (e: Env, token: string, amount: number) => {
   return catalogSave(e, planKey, plan.data.id);
 };
 
+// The database's refusal for a demo profile without an owner (assert_creator_accepts_payments).
+const DEMO_REFUSAL = /perfil es de demostración/;
+
 const rpc = (e: Env, name: string, body: unknown) => supabase(`/rest/v1/rpc/${name}`, asServer(e.serviceKey), body);
 
 // Records every completed payment of a subscription (idempotent). Returns how many it saw.
@@ -307,7 +310,10 @@ const webhook = async (request: Request, e: Env): Promise<Response> => {
     const subId = String(res.billing_agreement_id);
     // The payment can arrive before the fan's browser confirmed the subscription.
     await rpc(e, 'paypal_subscription_activate', { p_id: subId });
-    const saved = must(await rpc(e, 'paypal_subscription_payment', { p_id: subId, p_sale_id: String(res.id), p_amount: Number(res.amount?.total) }));
+    const payment = await rpc(e, 'paypal_subscription_payment', { p_id: subId, p_sale_id: String(res.id), p_amount: Number(res.amount?.total) });
+    // A demo profile without an owner refuses money (guard_demo_creator_money): treat it like an
+    // orphan instead of answering 500, or PayPal would retry forever with the fan already charged.
+    const saved = !payment.ok && DEMO_REFUSAL.test(payment.error) ? { ...payment, data: 'orphan' } : must(payment);
     if (saved.data === 'orphan') {
       // It no longer gives access here (deleted account or subscription): stop it and give the money back.
       await cancelAtPaypal(e, token, subId, 'La suscripción ya no existe en Fans Reserve');
