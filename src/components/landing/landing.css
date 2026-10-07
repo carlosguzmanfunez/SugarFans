@@ -448,6 +448,15 @@
   .lv2 .pc-ribbon{grid-area:ribbon}
   .lv2 .pc-trust{grid-area:trust}
 }
+/* Wide screens: the headline starts level with the top of the sign-up card (no empty band above it),
+   and the film fills the whole column beside the card. */
+@media (min-width:1100px){
+  .lv2 .pcover-in{grid-template-columns:minmax(0,1fr) 380px;align-items:start}
+  .lv2 .pc-main{align-self:start}
+  .lv2 .pc-main > h2{font-size:clamp(32px,3vw,46px)}
+  .lv2 .pc-lead{max-width:none;font-size:17px;text-wrap:pretty}
+  .lv2 .pc-screen{width:100%}
+}
 /* Phone: only the vertical film, as large as the screen allows, and the sign-up button. */
 @media (max-width:760px){
   .lv2 .pcover{padding-block:56px 0;overflow:clip}
