@@ -62,8 +62,8 @@ const PresentationCover: React.FC = () => {
       <div className="wrap pcover-in">
         <div className="pc-main">
           <h2 id="pcover-title">
-            Más que un comentario.{" "}
-            <em>Habla de verdad con los creadores de contenido que sigues.</em>
+            Conecta más allá del feed.{" "}
+            <em>Empieza a hablar con los creadores de contenido que sigues.</em>
           </h2>
           <div className="pc-row">
             <p className="pc-lead">
