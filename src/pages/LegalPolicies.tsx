@@ -62,7 +62,7 @@ const LegalPolicies: React.FC = () => {
               {!reserveDoc(activePolicy) && (
                 <p role="note" className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                   <i aria-hidden="true" className="fas fa-scale-balanced mr-2"></i>
-                  <strong>Borrador.</strong> {LEGAL_REVIEW_NOTICE} Requiere revisión legal antes del lanzamiento a producción. La plataforma está en modo de prueba: los pagos son simulados.
+                  <strong>Borrador.</strong> {LEGAL_REVIEW_NOTICE} Requiere revisión legal antes del lanzamiento a producción. La plataforma está en modo de prueba: los pagos se procesan con PayPal en su entorno de pruebas (sandbox).
                 </p>
               )}
 

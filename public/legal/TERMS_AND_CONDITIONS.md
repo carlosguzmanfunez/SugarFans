@@ -4,7 +4,7 @@
 **Versión:** 1.1.0  
 **Jurisdicción aplicable:** Ver sección 13
 
-> **Borrador.** Requires legal review before production launch. Requiere revisión legal antes del lanzamiento a producción. La Plataforma está en modo de prueba: los pagos son simulados.
+> **Borrador.** Requires legal review before production launch. Requiere revisión legal antes del lanzamiento a producción. La Plataforma está en modo de prueba: los pagos se procesan con PayPal en su entorno de pruebas (sandbox).
 
 ---
 
