@@ -191,11 +191,9 @@ const CreatorProfile: React.FC = () => {
     }
     if (isSubscribed) {
       if (mySub?.cancelAt) {
-        // Still inside the paid month: keep it going, no new charge.
-        platformApi.subscribeAndPay(user!, creator.id, creator.name, creator.subscriptionPrice, '').then(async (r) => {
-          await refreshUser();
-          setTipSent(r.ok ? 'Tu suscripción vuelve a renovarse cada mes.' : r.error || 'No se pudo reactivar');
-        });
+        // Still inside the paid month: a new PayPal subscription whose first
+        // charge waits until the paid month ends.
+        setCheckout(true);
         return;
       }
       if (!window.confirm(`¿Cancelar tu suscripción a ${creator.name}? Seguirás viendo su contenido hasta el final del mes que ya pagaste.`)) return;

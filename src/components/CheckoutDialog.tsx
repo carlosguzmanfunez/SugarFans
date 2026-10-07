@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { User } from '../context/AuthContext';
 import { usePlatformQuery, platformApi, money } from '../lib/platform';
+import { backend } from '../lib/backend';
 import PaymentMethodForm, { paymentKindIcon } from './PaymentMethodForm';
 import {
   PAID_WITH_PAYPAL,
@@ -218,6 +219,11 @@ const CheckoutDialog: React.FC<Props> = ({ user, title, amount, note, confirmLab
           />
         ) : !pp ? (
           <p className="text-sm text-gray-500 py-3"><i aria-hidden="true" className="fas fa-spinner fa-spin mr-2"></i>Preparando el pago…</p>
+        ) : backend.mode === 'supabase' ? (
+          // Real site: money only moves through PayPal, never through simulated methods.
+          <p role="alert" className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            Los pagos no están disponibles en este momento. Inténtalo de nuevo en unos minutos.
+          </p>
         ) : (
           <>
             <h4 className="text-sm font-medium text-gray-700 mb-2">Método de pago</h4>

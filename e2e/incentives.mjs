@@ -138,9 +138,9 @@ const run = async () => {
     raises(() => psql(DB, `update public.profiles set subscription_price = 2.99 where id = '${vale}'`), /subscription_price_check/, 'precio bajo');
   });
   await check('La propina es de al menos $3', async () => {
-    const method = psql(DB, `insert into public.payment_methods (user_id, kind, label) values ('${fan}', 'card', 'Visa •••• 4242') returning id`);
-    raises(() => as(fan, `select public.send_tip('${vale}', 'Vale', 2, '${method}', null, '')`), /entre \$3 y \$500/, 'propina de $2');
-    as(fan, `select public.send_tip('${vale}', 'Vale', 3, '${method}', null, '')`);
+    // The tip itself runs from paypal_fulfill (service role) after PayPal charges it.
+    psql(DB, `select public.paypal_register('tip-3', '${fan}', 'tip', '{"creatorProfileId":"${vale}"}', 3);
+              select public.paypal_fulfill('tip-3', '${fan}', 'cap-3', 3);`);
     raises(() => as(fan, `select public.paypal_quote('tip', '{"creatorProfileId":"${vale}","amount":2}')`), /entre \$3 y \$500/, 'PayPal');
   });
 
