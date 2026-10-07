@@ -84,8 +84,8 @@ const PresentationCover: React.FC = () => {
                 key={phone ? "v" : "h"}
                 src={
                   phone
-                    ? "/presentacion/fans-reserve-presentacion-vertical.mp4"
-                    : "/presentacion/fans-reserve-presentacion.mp4"
+                    ? "/presentacion/fans-reserve-presentacion-vertical.mp4?v=3"
+                    : "/presentacion/fans-reserve-presentacion.mp4?v=3"
                 }
                 poster={
                   phone
