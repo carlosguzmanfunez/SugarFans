@@ -62,7 +62,7 @@ const PresentationCover: React.FC = () => {
       <div className="wrap pcover-in">
         <div className="pc-main">
           <h2 id="pcover-title">
-            Deja de comentar.{" "}
+            Conecta más allá del feed.{" "}
             <em>Empieza a hablar con los creadores de contenido que sigues.</em>
           </h2>
           <div className="pc-row">
@@ -84,8 +84,8 @@ const PresentationCover: React.FC = () => {
                 key={phone ? "v" : "h"}
                 src={
                   phone
-                    ? "/presentacion/fans-reserve-presentacion-vertical.mp4"
-                    : "/presentacion/fans-reserve-presentacion.mp4"
+                    ? "/presentacion/fans-reserve-presentacion-vertical.mp4?v=3"
+                    : "/presentacion/fans-reserve-presentacion.mp4?v=3"
                 }
                 poster={
                   phone
