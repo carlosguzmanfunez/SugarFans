@@ -27,6 +27,10 @@ export const createDbTest = (DB) => {
   // Runs as a signed-in user through row security, like the app does.
   const as = (uid, query) =>
     psql(DB, `begin;\nset local role authenticated;\nselect set_config('request.jwt.claim.sub', '${uid}', true) \\g /dev/null\n${query};\ncommit;`);
+  // Runs as the server after PayPal confirmed a payment (paypal_fulfill calls the
+  // purchase functions as the fan, which the browser itself can no longer do).
+  const asServer = (uid, query) =>
+    psql(DB, `begin;\nselect set_config('request.jwt.claim.sub', '${uid}', true) \\g /dev/null\n${query};\ncommit;`);
   const raises = (fn, pattern, what) => {
     try {
       fn();
@@ -94,5 +98,5 @@ export const createDbTest = (DB) => {
         process.exit(failed ? 1 : 0);
       });
 
-  return { check, expect, psql, as, raises, setup, user, finish };
+  return { check, expect, psql, as, asServer, raises, setup, user, finish };
 };

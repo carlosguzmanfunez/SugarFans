@@ -307,7 +307,10 @@ const webhook = async (request: Request, e: Env): Promise<Response> => {
     const subId = String(res.billing_agreement_id);
     // The payment can arrive before the fan's browser confirmed the subscription.
     await rpc(e, 'paypal_subscription_activate', { p_id: subId });
-    const saved = must(await rpc(e, 'paypal_subscription_payment', { p_id: subId, p_sale_id: String(res.id), p_amount: Number(res.amount?.total) }));
+    const payment = await rpc(e, 'paypal_subscription_payment', { p_id: subId, p_sale_id: String(res.id), p_amount: Number(res.amount?.total) });
+    // A demo profile nobody owns takes no money (it can't serve the fan or withdraw):
+    // treated like a subscription that no longer exists.
+    const saved = !payment.ok && /de demostración/.test(payment.error) ? { ...payment, data: 'orphan' } : must(payment);
     if (saved.data === 'orphan') {
       // It no longer gives access here (deleted account or subscription): stop it and give the money back.
       await cancelAtPaypal(e, token, subId, 'La suscripción ya no existe en Fans Reserve');

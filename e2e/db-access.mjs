@@ -12,7 +12,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { createDbTest } from './db-harness.mjs';
 
 const DB = 'fr_access_test';
-const { check, expect, psql, as, raises, setup, user, finish } = createDbTest(DB);
+const { check, expect, psql, as, asServer, raises, setup, user, finish } = createDbTest(DB);
 
 const run = async () => {
   setup();
@@ -98,7 +98,7 @@ const run = async () => {
   await check('La plaza se paga como cualquier Reserve y queda confirmada', async () => {
     const method = psql(DB, `insert into public.payment_methods (user_id, kind, label) values ('${fanA}', 'card', 'Visa 4242') returning id`);
     const seat = psql(DB, `select id from public.vip_bookings where fan_id = '${fanA}'`);
-    as(fanA, `select public.vip_pay_booking('${seat}', '${method}')`);
+    asServer(fanA, `select public.vip_pay_booking('${seat}', '${method}')`);
     expect(psql(DB, `select status from public.vip_bookings where id = '${seat}'`) === 'confirmed', 'no quedó confirmada');
   });
   await check('Un Reserve Event no se reserva como 1:1, y su fecha no se cambia por participante', async () => {

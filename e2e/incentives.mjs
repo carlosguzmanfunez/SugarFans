@@ -11,7 +11,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { createDbTest } from './db-harness.mjs';
 
 const DB = 'fr_incentives_test';
-const { check, expect, psql, as, raises, setup, user, finish } = createDbTest(DB);
+const { check, expect, psql, as, asServer, raises, setup, user, finish } = createDbTest(DB);
 
 // The incentives migration and the ones after it.
 const MIGRATIONS_DIR = new URL('../supabase/migrations/', import.meta.url);
@@ -139,8 +139,8 @@ const run = async () => {
   });
   await check('La propina es de al menos $3', async () => {
     const method = psql(DB, `insert into public.payment_methods (user_id, kind, label) values ('${fan}', 'card', 'Visa •••• 4242') returning id`);
-    raises(() => as(fan, `select public.send_tip('${vale}', 'Vale', 2, '${method}', null, '')`), /entre \$3 y \$500/, 'propina de $2');
-    as(fan, `select public.send_tip('${vale}', 'Vale', 3, '${method}', null, '')`);
+    raises(() => asServer(fan, `select public.send_tip('${vale}', 'Vale', 2, '${method}', null, '')`), /entre \$3 y \$500/, 'propina de $2');
+    asServer(fan, `select public.send_tip('${vale}', 'Vale', 3, '${method}', null, '')`);
     raises(() => as(fan, `select public.paypal_quote('tip', '{"creatorProfileId":"${vale}","amount":2}')`), /entre \$3 y \$500/, 'PayPal');
   });
 
