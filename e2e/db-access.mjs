@@ -7,7 +7,8 @@
 // Subscriber Live alerts only active subscribers; Reserve Event seats (capacity, one
 // per fan, several fans at the same time, payment); Reserve 1:1 keeps one booking per
 // slot; guards on event seats; Reserve alerts, read receipts and the answer deadline;
-// subscriptions and gifts create no access.
+// subscriptions and gifts create no access; money only through PayPal and never to
+// demo profiles without an owner.
 import { readdirSync, readFileSync } from 'node:fs';
 import { createDbTest } from './db-harness.mjs';
 
@@ -95,10 +96,11 @@ const run = async () => {
     expect(psql(DB, `select status from public.vip_bookings where id = '${a}'`) === 'accepted', 'aprobación automática debería dejarla aceptada');
     expect(psql(DB, `select taken from public.reserve_event_seats(array['${ev}'])`) === '2', 'conteo de plazas');
   });
-  await check('La plaza se paga como cualquier Reserve y queda confirmada', async () => {
-    const method = psql(DB, `insert into public.payment_methods (user_id, kind, label) values ('${fanA}', 'card', 'Visa 4242') returning id`);
+  await check('La plaza se paga como cualquier Reserve (con PayPal) y queda confirmada', async () => {
     const seat = psql(DB, `select id from public.vip_bookings where fan_id = '${fanA}'`);
-    as(fanA, `select public.vip_pay_booking('${seat}', '${method}')`);
+    // What api/paypal.ts does with the service role once PayPal confirms the capture.
+    psql(DB, `select public.paypal_register('seat-1', '${fanA}', 'booking', '{"bookingId":"${seat}"}', 15);
+              select public.paypal_fulfill('seat-1', '${fanA}', 'cap-1', 15);`);
     expect(psql(DB, `select status from public.vip_bookings where id = '${seat}'`) === 'confirmed', 'no quedó confirmada');
   });
   await check('Un Reserve Event no se reserva como 1:1, y su fecha no se cambia por participante', async () => {
@@ -166,6 +168,41 @@ const run = async () => {
     expect(as(fanB, `select count(*) from public.push_subscriptions`) === '0', 'otro usuario ve la suscripción');
     expect(as(fanA, `select count(*) from public.push_subscriptions`) === '1', 'no se guardó');
     raises(() => as(fanA, `select count(*) from public.app_secrets`), /permission denied/, 'leer app_secrets');
+  });
+
+  console.log('Cobros');
+  await check('Un fan no puede cobrar sin PayPal: las funciones de cobro directo están cerradas', async () => {
+    const method = psql(DB, `insert into public.payment_methods (user_id, kind, label) values ('${fanB}', 'card', 'Visa 4242') returning id`);
+    raises(() => as(fanB, `select public.buy_coins('starter', '${method}')`), /permission denied/, 'buy_coins');
+    raises(() => as(fanB, `select public.send_tip('${cp}', 'Vale', 10, '${method}', null, '')`), /permission denied/, 'send_tip');
+    raises(() => as(fanB, `select public.subscribe_and_pay('${cp}', 'Vale', 9.99, '${method}')`), /permission denied/, 'subscribe_and_pay');
+    const seat = psql(DB, `select id from public.vip_bookings where fan_id = '${fanB}' limit 1`);
+    raises(() => as(fanB, `select public.vip_pay_booking('${seat}', '${method}')`), /permission denied/, 'vip_pay_booking');
+    expect(psql(DB, `select count(*) from public.transactions where payer_id = '${fanB}'`) === '0', 'se registró un cobro');
+  });
+  await check('Una suscripción vieja sin PayPal termina en su fecha de renovación, sin cobro simulado', async () => {
+    const old = user('old-sub@test.local', 'fan');
+    psql(DB, `insert into public.payment_methods (user_id, kind, label) values ('${old}', 'card', 'Visa 4242');
+              insert into public.subscriptions (fan_id, creator_id, price, since, cancel_at) values ('${old}', '${cp}', 9.99, now() - interval '40 days', null);
+              select public.bill_all_renewals();`);
+    expect(psql(DB, `select count(*) from public.transactions where payer_id = '${old}'`) === '0', 'cobró una renovación simulada');
+    expect(psql(DB, `select cancel_at > now() and cancel_at < now() + interval '1 month' from public.subscriptions where fan_id = '${old}'`) === 't', 'no quedó con fecha de fin');
+  });
+  await check('Los perfiles demo sin dueño no aceptan propinas, suscripciones, regalos ni reservas', async () => {
+    expect(psql(DB, `select public.creator_accepts_payments('${cp}') || '|' || public.creator_accepts_payments('2')`) === 'true|false', 'dueños');
+    raises(() => as(fanB, `select public.paypal_quote('tip', '{"creatorProfileId":"2","amount":5}')`), /demostración/, 'propina a demo');
+    raises(() => as(fanB, `select public.paypal_subscription_quote('2')`), /demostración/, 'suscripción a demo');
+    raises(
+      () => psql(DB, `insert into public.transactions (key, payer_id, payer_name, creator_profile_id, creator_name, kind, amount, method_label, status) values ('demo-1', '${fanB}', 'B', '2', 'Diego', 'gift', 5, 'Créditos', 'paid')`),
+      /demostración/,
+      'pago a demo'
+    );
+    raises(
+      () => psql(DB, `insert into public.vip_bookings (experience_id, creator_profile_id, title, creator_name, price, fan_id, fan_name, fan_email, date, time) values ('x', '2', 'x', 'Diego', 20, '${fanB}', 'B', 'b@x', current_date + 3, '10:00')`),
+      /demostración/,
+      'reserva a demo'
+    );
+    expect(as(fanB, `select (public.paypal_quote('tip', '{"creatorProfileId":"${cp}","amount":5}'))->>'amount'`) === '5.00', 'propina a un creador real');
   });
 
   console.log('Regalos');

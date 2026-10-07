@@ -95,6 +95,7 @@ globalThis.fetch = async (url, init = {}) => {
     const o = db.subs.get(body.p_id);
     if (!o) return res(200, 'unknown');
     if (db.access.get(`${o.user}:${o.creator}`) !== body.p_id) return res(200, 'orphan');
+    if (o.creator === 'demo-2') return res(400, { message: 'Este perfil es de demostración: todavía no acepta pagos ni reservas.' });
     db.payments.set(body.p_sale_id, body);
     return res(200, 'recorded');
   }
@@ -367,6 +368,13 @@ await check('Un cobro de una suscripción que ya no existe aquí se cancela y se
   db.access.delete('fan-1:3'); // the fan deleted their account
   const r = await hook({ event_type: 'PAYMENT.SALE.COMPLETED', resource: { id: 'SALE-R3', billing_agreement_id: 'I-SUB2', amount: { total: '9.99' } } });
   expect(r.status === 200 && pp.cancels.some((c) => c.id === 'I-SUB2') && pp.saleRefunds.includes('SALE-R3'), JSON.stringify(pp.saleRefunds));
+});
+
+await check('Un cobro de una suscripción a un perfil demo sin dueño se cancela y se devuelve (sin reintentos)', async () => {
+  db.subs.set('I-DEMO', { user: 'fan-1', creator: 'demo-2', status: 'active' });
+  db.access.set('fan-1:demo-2', 'I-DEMO');
+  const r = await hook({ event_type: 'PAYMENT.SALE.COMPLETED', resource: { id: 'SALE-DEMO', billing_agreement_id: 'I-DEMO', amount: { total: '6.99' } } });
+  expect(r.status === 200 && pp.cancels.some((c) => c.id === 'I-DEMO') && pp.saleRefunds.includes('SALE-DEMO') && !db.payments.has('SALE-DEMO'), `status ${r.status}`);
 });
 
 await check('Un pago fallido (suspendida) quita el acceso al momento', async () => {

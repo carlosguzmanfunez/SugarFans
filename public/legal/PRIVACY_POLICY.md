@@ -121,8 +121,8 @@ Para Usuarios en la UE, procesamos datos bajo las siguientes bases legales:
 Compartimos información con terceros que nos ayudan a operar:
 
 **a) Procesadores de Pago:**
-- Mientras la Plataforma está en modo de prueba los pagos son simulados y no se comparten datos con procesadores
-- Cuando se integren (previsto: Stripe y PayPal), solo recibirán la información necesaria para procesar transacciones
+- PayPal procesa los pagos de los fans y los retiros de los creadores; recibe solo la información necesaria para cada transacción (monto, concepto y la cuenta PayPal o tarjeta que la persona usa en PayPal). No guardamos números de tarjeta
+- Previsto: Stripe, que recibirá la misma información mínima cuando se integre
 
 **b) Proveedores de Servicios:**
 - Supabase: base de datos, cuentas y almacenamiento de archivos
