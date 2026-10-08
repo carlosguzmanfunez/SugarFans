@@ -13,7 +13,7 @@ const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce
 // The account tab adapts to who is signed in. There is no Live tab: Live is not a
 // pillar of Fans Reserve (it comes back only with ENABLE_OPEN_LIVE). A creator gets
 // "Reservas" (their requests, with a red dot while some wait for an answer)
-// instead of the fans' Reserve catalogue, plus "Contenido", with "Mi panel" centred.
+// instead of the fans' Reserve catalogue.
 // The red dot with how many items wait (shared with the top bar and the panel).
 export const RedDot: React.FC<{ count: number; className?: string }> = ({ count, className = '' }) => (
   <span
@@ -33,26 +33,24 @@ const MobileTabBar: React.FC = () => {
   const waiting = useReserveInbox(isCreator ? user : null);
   const dashTab = pathname.startsWith('/creator/dashboard') ? new URLSearchParams(search).get('tab') : null;
   const onReservas = dashTab === 'vip';
-  const onContent = dashTab === 'content';
 
   const account = !isAuthenticated
     ? { to: '/login', label: 'Entrar', icon: 'fa-circle-user', active: pathname === '/login' || pathname === '/register' }
     : user?.role === 'creator'
-      ? { to: '/creator/dashboard', label: 'Mi panel', icon: 'fa-chart-line', active: pathname.startsWith('/creator/dashboard') && !onReservas && !onContent }
+      ? { to: '/creator/dashboard', label: 'Mi panel', icon: 'fa-chart-line', active: pathname.startsWith('/creator/dashboard') && !onReservas }
       : user?.role === 'admin'
         ? { to: '/admin', label: 'Admin', icon: 'fa-shield-halved', active: pathname === '/admin' }
         : { to: '/profile', label: 'Perfil', icon: 'fa-user', active: pathname === '/profile' || pathname === '/settings' };
 
   const home = { to: '/', label: 'Inicio', icon: 'fa-house', active: pathname === '/' };
   const explore = { to: '/explore', label: 'Explorar', icon: 'fa-compass', active: pathname === '/explore' && !liveTab };
-  // A creator's bar: their panel in the middle, flanked by their content (to keep them
-  // posting) and their Reserve requests.
+  // A creator's bar: their panel, then their Reserve requests (posting is one tap away
+  // from their home).
   const tabs = isCreator
     ? [
         home,
         explore,
         account,
-        { to: '/creator/dashboard?tab=content#panel-tabs', label: 'Contenido', icon: 'fa-images', active: onContent },
         { to: CREATOR_RESERVE_LINK, label: 'Reservas', icon: 'fa-ticket', active: onReservas, badge: waiting },
       ]
     : [

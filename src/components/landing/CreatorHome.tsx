@@ -1,18 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Icon from '../Icon';
-import CoinIcon from '../CoinIcon';
 import { useAuth } from '../../context/AuthContext';
 import { usePlatformQuery, platformApi, computeEarnings, money } from '../../lib/platform';
 import { socialApi } from '../../lib/social';
-import { formatCoins, giftsApi } from '../../lib/gifts';
+import { levelById, nextLevel, rewardsApi } from '../../lib/rewards';
 import { useReserveInbox } from '../../lib/live';
 import { CREATOR_RESERVE_LINK } from '../../lib/reserveAlerts';
-import { VIRTUAL_CURRENCY } from '../../config/currency';
 
 // A creator's home: instead of the fans' hero (which sells creators to fans), the top
-// of the page is about their own day: requests waiting, money this month, Créditos,
-// and a nudge to post when their fans haven't seen anything new for a while.
+// of the page is about their own day: requests waiting, money this month, how close
+// the next level is, and a nudge to post when their fans haven't seen anything new for a while.
 // The rest of the landing stays the same below.
 export const STALE_DAYS = 7;
 const CONTENT_LINK = '/creator/dashboard?tab=content#panel-tabs';
@@ -25,14 +23,14 @@ const CreatorHome: React.FC = () => {
   const { data } = usePlatformQuery(
     async () => {
       if (!user) return null;
-      const [sales, payouts, posts, wallet] = await Promise.all([
+      const [sales, payouts, posts, rewards] = await Promise.all([
         platformApi.creatorSales(profileId),
         platformApi.myPayouts(user.id),
         socialApi.postsByCreator(profileId),
-        giftsApi.wallet(user),
+        rewardsApi.myRewards(user),
       ]);
       const last = posts.reduce((max, p) => Math.max(max, Date.parse(p.createdAt) || 0), 0);
-      return { earnings: computeEarnings(sales, payouts), lastPost: last || null, coins: wallet.coins };
+      return { earnings: computeEarnings(sales, payouts), lastPost: last || null, rewards };
     },
     [user?.id, profileId],
     null
@@ -41,6 +39,12 @@ const CreatorHome: React.FC = () => {
   const first = (user?.name ?? '').split(' ')[0];
   const days = data?.lastPost ? Math.floor((Date.now() - data.lastPost) / DAY) : null;
   const stale = !!data && (days === null || days >= STALE_DAYS);
+  // Metas: how far along the closer of the two ways up (active fans or 30-day sales) is.
+  const level = data ? levelById(data.rewards.level) : null;
+  const next = level ? nextLevel(level) : null;
+  const pct = data && next
+    ? Math.min(99, Math.floor(100 * Math.max(data.rewards.activeFans / next.minFans, data.rewards.sales / next.minSales)))
+    : null;
 
   const tiles = [
     {
@@ -59,11 +63,11 @@ const CreatorHome: React.FC = () => {
       testid: 'ch-ganado',
     },
     {
-      to: '/settings?section=wallet',
-      label: `Tus ${VIRTUAL_CURRENCY.displayName}`,
-      value: data ? formatCoins(data.coins) : '…',
-      icon: <CoinIcon size={22} />,
-      testid: 'ch-creditos',
+      to: '/creator/dashboard?tab=goals#panel-tabs',
+      label: next ? `Metas: camino a ${next.name}` : level ? 'Metas: nivel más alto' : 'Metas',
+      value: pct !== null ? `${pct}%` : level ? level.name : '…',
+      icon: <Icon name="fa-bullseye" />,
+      testid: 'ch-metas',
     },
   ];
 
@@ -113,6 +117,9 @@ const CreatorHome: React.FC = () => {
             <div className="grid gap-2 sm:flex sm:flex-none">
               <Link to={CONTENT_LINK} className="v-btn v-pri" data-testid="ch-subir">
                 <Icon name="fa-upload" /> Subir foto o video
+              </Link>
+              <Link to={`/creator/${profileId}`} className="v-btn v-ghost" data-testid="ch-perfil">
+                <Icon name="fa-user" /> Mi perfil
               </Link>
               <Link to="/creator/dashboard" className="v-btn v-ghost">
                 <span aria-hidden="true" className="h-2 w-2 rounded-full bg-red-500" /> Iniciar Live
