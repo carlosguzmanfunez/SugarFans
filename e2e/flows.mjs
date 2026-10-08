@@ -2158,7 +2158,7 @@ const run = async () => {
       await resF.getByTestId('creator-card').filter({ hasText: 'Valentina Rose' }).waitFor();
       await resF.goto(`${BASE}/`);
       await resF.getByText('Suscríbete a tus creadores y reserva eventos y sesiones privadas con fecha, precio y reglas claras.').waitFor();
-      await resF.locator('#categories-title').getByText('influencers y creadores').waitFor();
+      await resF.locator('#categories-title').getByText('sea cual sea su contenido').waitFor();
       await resF.locator('#comunidades').getByRole('link', { name: /Tu gente/ }).waitFor();
       const how = resF.locator('section[aria-labelledby=how-title]');
       for (const p of ['Sigue', 'Suscríbete', 'Reserva', 'Reserve Event', 'Reserve 1:1']) await how.getByText(p, { exact: true }).first().waitFor({ state: 'attached' });

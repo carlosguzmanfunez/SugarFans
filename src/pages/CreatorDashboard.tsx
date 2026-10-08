@@ -579,7 +579,7 @@ const CreatorDashboard: React.FC = () => {
                     <option key={c.id} value={c.name}>{c.name}</option>
                   ))}
                 </select>
-                <p className="mt-1 text-xs text-gray-500">Define qué experiencias puedes ofrecer en Reserve.</p>
+                <p className="mt-1 text-xs text-gray-500">No te encasilla: es dónde te encuentran los fans en Explorar y qué experiencias puedes ofrecer en Reserve.</p>
               </div>
               <button onClick={handleSaveSettings} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition">
                 Guardar cambios
