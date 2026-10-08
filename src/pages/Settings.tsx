@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Notice from '../components/Notice';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth, defaultSettings, UserSettings } from '../context/AuthContext';
 import { useCreatorCatalog } from '../lib/catalog';
@@ -74,10 +75,10 @@ const Settings: React.FC = () => {
   const [addingMethod, setAddingMethod] = useState(false);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialSection = searchParams.get('section');
-  const [activeSection, setActiveSectionState] = useState(
-    initialSection && sections.includes(initialSection) ? initialSection : 'profile'
-  );
+  // The section lives in the address, so the coin pill or "Créditos" in the menu
+  // switch it even while Settings is already open.
+  const requestedSection = searchParams.get('section');
+  const activeSection = requestedSection && sections.includes(requestedSection) ? requestedSection : 'profile';
   const [saved, setSaved] = useState('');
   const [error, setError] = useState('');
 
@@ -110,7 +111,6 @@ const Settings: React.FC = () => {
   }, [saved]);
 
   const setActiveSection = (id: string) => {
-    setActiveSectionState(id);
     setError('');
     setSearchParams({ section: id }, { replace: true });
   };
@@ -195,16 +195,8 @@ const Settings: React.FC = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-8">Configuración</h1>
 
-        {saved && (
-          <div role="status" className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl mb-6 flex items-center">
-            <i aria-hidden="true" className="fas fa-check-circle mr-2"></i> {saved}
-          </div>
-        )}
-        {error && (
-          <div role="alert" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 flex items-center">
-            <i aria-hidden="true" className="fas fa-exclamation-circle mr-2"></i> {error}
-          </div>
-        )}
+        {saved && <Notice ok text={saved} onClose={() => setSaved('')} />}
+        {error && <Notice ok={false} text={error} onClose={() => setError('')} />}
 
         <div className="flex flex-col md:flex-row gap-6">
           {/* Sidebar */}

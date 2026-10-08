@@ -142,7 +142,7 @@ const Profile: React.FC = () => {
                         <p className="text-xs text-gray-500">+ {bonusInfo(t.bonus).label} · {expired ? 'venció' : t.status === 'used' ? 'usado' : t.status === 'reserved' ? 'reserva enviada' : `vence el ${formatDate(t.expiresAt)}`}</p>
                       </div>
                       {t.status === 'active' && !expired && (
-                        <Link to={`/creator/${t.creatorProfileId}`} className="text-sm font-semibold text-pink-600">Reservar</Link>
+                        <Link to={`/creator/${t.creatorProfileId}#reserve`} className="text-sm font-semibold text-pink-600">Reservar</Link>
                       )}
                     </li>
                   );

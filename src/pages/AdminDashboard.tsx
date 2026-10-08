@@ -176,7 +176,6 @@ const AdminDashboard: React.FC = () => {
             { id: 'managed', label: 'Perfiles gestionados', icon: 'fa-robot' },
             { id: 'special', label: 'Cuentas especiales', icon: 'fa-star' },
             { id: 'users', label: 'Usuarios', icon: 'fa-users' },
-            { id: 'content', label: 'Contenido', icon: 'fa-images' },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -474,9 +473,6 @@ const AdminDashboard: React.FC = () => {
                     }`}>
                       {u.status === 'active' ? 'Activo' : u.status === 'verified' ? 'Verificado' : 'Pendiente'}
                     </span>
-                    <button className="text-gray-400 hover:text-red-500 transition">
-                      <i aria-hidden="true" className="fas fa-ellipsis-v"></i>
-                    </button>
                   </div>
                 </div>
               ))}
@@ -485,47 +481,6 @@ const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Content Review */}
-        {activeTab === 'content' && (
-          <div className="bg-white rounded-2xl shadow-sm p-6">
-            <h3 className="font-bold text-gray-900 mb-4">Revisión de contenido</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="border border-gray-200 rounded-xl p-4">
-                <div className="bg-gray-200 rounded-lg h-32 mb-3 flex items-center justify-center">
-                  <i aria-hidden="true" className="fas fa-image text-gray-400 text-2xl"></i>
-                </div>
-                <p className="text-sm font-medium text-gray-900">Post #1234</p>
-                <p className="text-xs text-gray-500">Por: Valentina Rose</p>
-                <div className="flex space-x-2 mt-3">
-                  <button className="flex-1 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">Aprobar</button>
-                  <button className="flex-1 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">Rechazar</button>
-                </div>
-              </div>
-              <div className="border border-gray-200 rounded-xl p-4">
-                <div className="bg-gray-200 rounded-lg h-32 mb-3 flex items-center justify-center">
-                  <i aria-hidden="true" className="fas fa-video text-gray-400 text-2xl"></i>
-                </div>
-                <p className="text-sm font-medium text-gray-900">Video #567</p>
-                <p className="text-xs text-gray-500">Por: Diego Torres</p>
-                <div className="flex space-x-2 mt-3">
-                  <button className="flex-1 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">Aprobar</button>
-                  <button className="flex-1 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">Rechazar</button>
-                </div>
-              </div>
-              <div className="border border-yellow-200 rounded-xl p-4 bg-yellow-50">
-                <div className="bg-gray-200 rounded-lg h-32 mb-3 flex items-center justify-center">
-                  <i aria-hidden="true" className="fas fa-exclamation-triangle text-yellow-400 text-2xl"></i>
-                </div>
-                <p className="text-sm font-medium text-gray-900">Post #890 ⚠️</p>
-                <p className="text-xs text-gray-500">Reportado - Revisión urgente</p>
-                <div className="flex space-x-2 mt-3">
-                  <button className="flex-1 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">Aprobar</button>
-                  <button className="flex-1 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">Eliminar</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

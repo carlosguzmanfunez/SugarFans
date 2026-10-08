@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Notice from './Notice';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -106,11 +107,7 @@ const CreatorPayouts: React.FC = () => {
 
   return (
     <div className="space-y-6" data-testid="earnings" aria-busy={loading}>
-      {notice && (
-        <div role={notice.ok ? 'status' : 'alert'} className={`px-4 py-3 rounded-xl border ${notice.ok ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
-          {notice.text}
-        </div>
-      )}
+      {notice && <Notice ok={notice.ok} text={notice.text} onClose={() => setNotice(null)} />}
       <div className="bg-white rounded-2xl shadow-sm p-6">
         <h3 className="font-bold text-gray-900 mb-1">Resumen de ingresos</h3>
         <p className="text-sm text-gray-500 mb-4">Recibes el {CREATOR_SHARE * 100}% de lo que llega de cada pago después de la comisión de PayPal (más en Diamante y con los fans de tu enlace; {GIFT_SHARE * 100}% de los regalos). Los detalles están en Recompensas.</p>

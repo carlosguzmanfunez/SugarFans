@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import Notice from '../components/Notice';
 import Icon from '../components/Icon';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -39,7 +40,19 @@ const CreatorDashboard: React.FC = () => {
   useEffect(() => {
     if (hash === '#panel-tabs') document.getElementById('panel-tabs')?.scrollIntoView({ block: 'start' });
   }, [hash, activeTab]);
-  const [showNewPost, setShowNewPost] = useState(false);
+  // "#nuevo" (the creator home's "Subir foto o video") opens the new-post form directly.
+  const [showNewPost, setShowNewPost] = useState(hash === '#nuevo');
+  useEffect(() => {
+    if (hash === '#nuevo') setShowNewPost(true);
+  }, [hash]);
+  // The form sits above the tabs: when it opens from further down (Contenido's
+  // "Subir foto o video"), bring it into view so the tap visibly does something.
+  const newPostRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!showNewPost) return;
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    newPostRef.current?.scrollIntoView({ block: 'start', behavior: reduced ? 'auto' : 'smooth' });
+  }, [showNewPost]);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
 
   const [displayName, setDisplayName] = useState(user?.name ?? '');
@@ -163,7 +176,8 @@ const CreatorDashboard: React.FC = () => {
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2000);
     } catch {
-      // Clipboard blocked: nothing to do, the link is in the profile.
+      // Clipboard blocked: say where to find the link instead of doing nothing.
+      setNotice({ ok: false, text: `No se pudo copiar. Tu enlace es ${window.location.origin}/creator/${profileId}` });
     }
   };
 
@@ -225,16 +239,12 @@ const CreatorDashboard: React.FC = () => {
 
         {/* New post: text + photo or video */}
         {showNewPost && (
-          <div className="mb-8">
+          <div ref={newPostRef} id="nuevo" className="mb-8 scroll-mt-28" data-testid="new-post">
             <NewPostForm verified={verified} onPublished={handlePublished} onCancel={() => setShowNewPost(false)} />
           </div>
         )}
 
-        {notice && (
-          <div role={notice.ok ? 'status' : 'alert'} className={`px-4 py-3 rounded-xl mb-6 border ${notice.ok ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
-            {notice.text}
-          </div>
-        )}
+        {notice && <Notice ok={notice.ok} text={notice.text} onClose={() => setNotice(null)} />}
 
         {user?.creatorProfileId && <CreatorLivePanel user={user} />}
 
@@ -466,9 +476,6 @@ const CreatorDashboard: React.FC = () => {
           <div className="bg-white rounded-2xl border border-line overflow-hidden">
             <div className="p-5 border-b border-gray-100 flex justify-between items-center">
               <h3 className="font-bold text-gray-900">Suscriptores ({subscribers.length})</h3>
-              <button className="text-sm text-pink-600 hover:text-pink-700">
-                <i aria-hidden="true" className="fas fa-envelope mr-1"></i> Enviar mensaje a todos
-              </button>
             </div>
             <div className="divide-y divide-gray-100">
               {subscribers.length === 0 && <p className="p-6 text-center text-sm text-gray-500">Aún no tienes suscriptores</p>}
