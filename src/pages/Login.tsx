@@ -12,7 +12,7 @@ const Login: React.FC = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: string } | null)?.from || '/explore';
+  const from = (location.state as { from?: string } | null)?.from || '/';
   const [remember, setRemember] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [email, setEmail] = useState('');

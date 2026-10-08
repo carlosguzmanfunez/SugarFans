@@ -412,7 +412,7 @@ const run = async () => {
       await check(`El botón ${label} inicia sesión con la cuenta demo`, async () => {
         await page.goto(`${BASE}/login`);
         await page.getByTestId(`demo-${role}`).click();
-        await waitPath(page, '/explore');
+        await waitPath(page, '/');
         await page.click('button[aria-label="Menú de cuenta"]');
         await page.getByText(`Cuenta ${label}`).first().waitFor();
         expect(!/sugarfans/i.test(await page.locator('body').innerText()), 'el menú muestra el correo interno');
@@ -431,7 +431,7 @@ const run = async () => {
     });
     await check('Login demo fan funciona y lleva a Explorar', async () => {
       await login(page, 'fan@sugarfans.com', 'demo1234');
-      await waitPath(page, '/explore');
+      await waitPath(page, '/');
     });
     await check('La sesión persiste tras recargar', async () => {
       await page.reload();
@@ -440,9 +440,9 @@ const run = async () => {
       await page.getByText('Cuenta Demo Fan').first().waitFor();
       expect(!/sugarfans/i.test(await page.locator('body').innerText()), 'el perfil muestra el correo interno de la cuenta demo');
     });
-    await check('Con sesión, /login redirige a Explorar', async () => {
+    await check('Con sesión, /login redirige a Inicio', async () => {
       await page.goto(`${BASE}/login`);
-      await waitPath(page, '/explore');
+      await waitPath(page, '/');
     });
     await check('El menú de cuenta se cierra al navegar', async () => {
       await page.click('button[aria-label="Menú de cuenta"]');
@@ -561,7 +561,7 @@ const run = async () => {
       await page.getByText('Ana Prueba').first().waitFor();
       await logoutViaMenu(page);
       await login(page, fanEmail, 'clave-segura-1');
-      await waitPath(page, '/explore');
+      await waitPath(page, '/');
       await page.goto(`${BASE}/profile`);
       await page.getByText('Ana Prueba').first().waitFor();
     });
@@ -637,7 +637,7 @@ const run = async () => {
       await login(page, fanEmail, 'clave-segura-1');
       expect((await errorText(page))?.includes('incorrectos'), 'la contraseña vieja aún funciona');
       await login(page, fanEmail, 'nueva-clave-2');
-      await waitPath(page, '/explore');
+      await waitPath(page, '/');
     });
 
     console.log('\nSuscripciones y Reserve');
@@ -875,7 +875,7 @@ const run = async () => {
     await check('Admin ve los documentos, rechaza la del fan con motivo y aprueba la del creador', async () => {
       await logoutViaMenu(page);
       await login(page, 'admin@sugarfans.com', 'demo1234');
-      await waitPath(page, '/explore');
+      await waitPath(page, '/');
       await page.goto(`${BASE}/admin`);
       await page.getByRole('button', { name: /Verificaciones \(2\)/ }).click();
       const list = page.getByTestId('admin-verifications');
@@ -963,7 +963,7 @@ const run = async () => {
       expect(remaining === 1, `se esperaba 1 publicación visible, hay ${remaining}`);
       await logoutViaMenu(page);
       await login(page, creatorEmail, 'clave-creadora-1');
-      await waitPath(page, '/explore');
+      await waitPath(page, '/');
       await page.goto(`${BASE}/creator/dashboard`);
     });
     await check('Nueva publicación se guarda y persiste', async () => {
@@ -1024,7 +1024,7 @@ const run = async () => {
     await check('Creadora demo: 80% de lo que llega después de PayPal; lo de este mes se acredita el día 1', async () => {
       await logoutViaMenu(page);
       await login(page, 'creator@sugarfans.com', 'demo1234');
-      await waitPath(page, '/explore');
+      await waitPath(page, '/');
       await page.goto(`${BASE}/creator/dashboard?tab=earnings`);
       // 80% of the net of each $9.99 payment (minus PayPal's 5.4% + $0.30) is $7.32:
       // subscription + 2 renewals = 21.96 in total, no demo money.
@@ -1098,7 +1098,7 @@ const run = async () => {
     await check('La creadora ve a un suscriptor real, lo bloquea y él deja de ver su perfil', async () => {
       await logoutViaMenu(page);
       await login(page, 'fan@sugarfans.com', 'demo1234');
-      await waitPath(page, '/explore');
+      await waitPath(page, '/');
       await page.goto(`${BASE}/creator/1`);
       await page.getByRole('button', { name: /Suscribirse \$/ }).first().click();
       await page.getByRole('dialog').getByText('Visa •••• 4242').waitFor();
@@ -1106,7 +1106,7 @@ const run = async () => {
       await page.getByRole('button', { name: /Suscrito/ }).waitFor();
       await logoutViaMenu(page);
       await login(page, 'creator@sugarfans.com', 'demo1234');
-      await waitPath(page, '/explore');
+      await waitPath(page, '/');
       await page.goto(`${BASE}/creator/dashboard`);
       await page.getByRole('button', { name: /Suscriptores/ }).click();
       await page.getByText('Carlos M.').waitFor();
@@ -1114,7 +1114,8 @@ const run = async () => {
       await page.getByRole('button', { name: 'Desbloquear' }).waitFor();
       await logoutViaMenu(page);
       await login(page, 'fan@sugarfans.com', 'demo1234');
-      await waitPath(page, '/explore');
+      await waitPath(page, '/');
+      await page.goto(`${BASE}/explore`);
       await page.getByText('Diego Torres').first().waitFor();
       expect((await page.getByText('Valentina Rose').count()) === 0, 'la creadora que lo bloqueó sigue visible');
       await page.goto(`${BASE}/creator/1`);
@@ -1125,7 +1126,7 @@ const run = async () => {
     await check('Admin solo consulta los retiros: sin botones de pagar o rechazar', async () => {
       await logoutViaMenu(page);
       await login(page, 'admin@sugarfans.com', 'demo1234');
-      await waitPath(page, '/explore');
+      await waitPath(page, '/');
       await page.goto(`${BASE}/admin`);
       await page.getByRole('button', { name: 'Retiros', exact: true }).click();
       const box = page.getByTestId('admin-payouts');
@@ -1136,7 +1137,7 @@ const run = async () => {
     await check('Admin ve las cuentas reales y puede buscarlas', async () => {
       await logoutViaMenu(page);
       await login(page, 'admin@sugarfans.com', 'demo1234');
-      await waitPath(page, '/explore');
+      await waitPath(page, '/');
       await page.goto(`${BASE}/admin`);
       await page.getByRole('button', { name: /Usuarios/ }).click();
       await page.getByText(creatorEmail).waitFor();
@@ -1152,7 +1153,7 @@ const run = async () => {
     console.log('\nReserve: creador acepta, fan paga, correo de confirmación');
     await check('El creador configura sus horarios y persisten', async () => {
       await login(page, 'creator@sugarfans.com', 'demo1234');
-      await waitPath(page, '/explore');
+      await waitPath(page, '/');
       await page.goto(`${BASE}/creator/dashboard`);
       await openReserveSection(page, 'Disponibilidad');
       const panel = page.getByTestId('vip-availability');
@@ -1199,7 +1200,7 @@ const run = async () => {
     });
     await check('El fan paga y solo entonces recibe el correo de confirmación', async () => {
       await login(page, fanEmail, 'nueva-clave-2');
-      await waitPath(page, '/explore');
+      await waitPath(page, '/');
       await page.goto(`${BASE}/profile`);
       const booking = page.getByTestId('booking').filter({ hasText: '12:00' });
       await booking.getByText('Aceptada · pendiente de pago').waitFor();
@@ -1272,14 +1273,14 @@ const run = async () => {
       };
       await resetTo('clave-recuperada-3');
       await login(page, fanEmail, 'clave-recuperada-3');
-      await waitPath(page, '/explore');
+      await waitPath(page, '/');
       await logoutViaMenu(page);
       await resetTo('nueva-clave-2');
     });
     console.log('\nCierre (eliminación) de cuenta');
     await check('Eliminar cuenta exige contraseña correcta', async () => {
       await login(page, fanEmail, 'nueva-clave-2');
-      await waitPath(page, '/explore');
+      await waitPath(page, '/');
       await page.goto(`${BASE}/settings?section=privacy`);
       await page.getByRole('button', { name: 'Eliminar mi cuenta' }).click();
       await page.fill('input[placeholder="Tu contraseña"]', 'incorrecta');
@@ -1318,7 +1319,7 @@ const run = async () => {
     });
     await check('Sin "Recordarme" la sesión no sobrevive a una pestaña nueva', async () => {
       await login(page, 'fan@sugarfans.com', 'demo1234', { remember: false });
-      await waitPath(page, '/explore');
+      await waitPath(page, '/');
       await page.reload();
       await page.locator('button[aria-label="Menú de cuenta"]').waitFor();
       const other = await newPage(context);
@@ -1344,9 +1345,9 @@ const run = async () => {
       await pg.getByRole('button', { name: /Soy mayor|18/ }).first().click();
     }
     await login(cp, 'creator@sugarfans.com', 'demo1234', { remember: false });
-    await waitPath(cp, '/explore');
+    await waitPath(cp, '/');
     await login(fp, 'fan@sugarfans.com', 'demo1234', { remember: false });
-    await waitPath(fp, '/explore');
+    await waitPath(fp, '/');
     const firstPost = (pg) => pg.getByTestId('post').first();
 
     console.log('\nPublicaciones: fotos, videos, me gusta, comentarios y propinas');
@@ -1510,9 +1511,9 @@ const run = async () => {
       await pg.getByRole('button', { name: /Soy mayor|18/ }).first().click();
     }
     await login(gc, 'creator@sugarfans.com', 'demo1234', { remember: false });
-    await waitPath(gc, '/explore');
+    await waitPath(gc, '/');
     await login(gf, 'fan@sugarfans.com', 'demo1234', { remember: false });
-    await waitPath(gf, '/explore');
+    await waitPath(gf, '/');
     const giftsData = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('fansreserve_gifts') || '{}'));
     const balanceText = (page) => page.getByTestId('wallet-balance').textContent();
     const buyPack = async (page, name, price) => {
@@ -1679,7 +1680,7 @@ const run = async () => {
       await pg.getByRole('button', { name: /Soy mayor|18/ }).first().click();
     }
     await login(rc, 'creator@sugarfans.com', 'demo1234', { remember: false });
-    await waitPath(rc, '/explore');
+    await waitPath(rc, '/');
     // Paid fans for creator profile 1: `count` payers on `at`, optionally joined through the link.
     const seedFans = (page, count, at, referred) =>
       page.evaluate(({ count, at, referred }) => {
@@ -1773,7 +1774,7 @@ const run = async () => {
     });
     await check('Un fan sin enlace paga el 80% del neto aunque el creador sea Plata', async () => {
       await login(rf, 'fan@sugarfans.com', 'demo1234');
-      await waitPath(rf, '/explore');
+      await waitPath(rf, '/');
       await rf.goto(`${BASE}/creator/1`);
       await rf.getByRole('button', { name: /Suscribirse \$/ }).first().click();
       await rf.getByRole('dialog').getByText('Visa •••• 4242').waitFor();
@@ -1808,7 +1809,7 @@ const run = async () => {
     const tipAsDemoFan = async (creatorId, name) => {
       await logoutViaMenu(rf);
       await login(rf, 'fan@sugarfans.com', 'demo1234');
-      await waitPath(rf, '/explore');
+      await waitPath(rf, '/');
       await rf.goto(`${BASE}/creator/${creatorId}`);
       await rf.getByRole('button', { name: 'Más opciones' }).click();
       await rf.getByRole('menuitem', { name: 'Enviar propina' }).click();
@@ -1918,7 +1919,7 @@ const run = async () => {
     const pp = await newPage(priceCtx);
     await check('El precio que la creadora demo pone en su panel es el que ven y pagan los fans', async () => {
       await login(pp, 'creator@sugarfans.com', 'demo1234');
-      await waitPath(pp, '/explore');
+      await waitPath(pp, '/');
       await pp.goto(`${BASE}/creator/dashboard`);
       await pp.getByRole('button', { name: /Configuración/ }).last().click();
       await pp.fill('input[name=price]', '12.5');
@@ -1926,7 +1927,8 @@ const run = async () => {
       await pp.getByText('Cambios guardados exitosamente').waitFor();
       await logoutViaMenu(pp);
       await login(pp, 'fan@sugarfans.com', 'demo1234');
-      await waitPath(pp, '/explore');
+      await waitPath(pp, '/');
+      await pp.goto(`${BASE}/explore`);
       await pp.getByText('$12.50/mes').first().waitFor();
       await pp.goto(`${BASE}/creator/1`);
       await pp.getByRole('button', { name: /Suscribirse \$12\.5\/mes|Suscrito/ }).first().waitFor();
@@ -1964,7 +1966,7 @@ const run = async () => {
     let specialUrl = '';
     await check('El admin crea un link de cuenta especial y lo puede copiar', async () => {
       await login(sa, 'admin@sugarfans.com', 'demo1234', { remember: false });
-      await waitPath(sa, '/explore');
+      await waitPath(sa, '/');
       await sa.goto(`${BASE}/admin`);
       await sa.getByRole('button', { name: 'Cuentas especiales' }).click();
       const box = sa.getByTestId('special-admin');
@@ -2017,7 +2019,7 @@ const run = async () => {
       await acc.getByText('Plan quitado').waitFor();
       await logoutViaMenu(sc);
       await login(sc, `juan.gym.${stamp}@test.com`, 'password123', { remember: false });
-      await waitPath(sc, '/explore');
+      await waitPath(sc, '/');
       await sc.goto(`${BASE}/creator/dashboard?tab=rewards`);
       await sc.getByTestId('rewards-panel').waitFor();
       expect((await sc.getByTestId('special-plan').count()) === 0, 'sigue mostrando el plan');
@@ -2145,9 +2147,9 @@ const run = async () => {
       await pg.getByRole('button', { name: /Soy mayor|18/ }).first().click();
     }
     await login(resC, 'creator@sugarfans.com', 'demo1234', { remember: false });
-    await waitPath(resC, '/explore');
+    await waitPath(resC, '/');
     await login(resF, 'fan@sugarfans.com', 'demo1234', { remember: false });
-    await waitPath(resF, '/explore');
+    await waitPath(resF, '/');
 
     await check('Explorar y la portada muestran Tu gente y ninguna categoría +18', async () => {
       await resF.goto(`${BASE}/explore`);
@@ -2443,7 +2445,7 @@ const run = async () => {
       await n.goto(`${BASE}/age-verification`);
       await n.getByRole('button', { name: /Soy mayor|18/ }).first().click();
       await login(n, 'fan@sugarfans.com', 'demo1234');
-      await waitPath(n, '/explore');
+      await waitPath(n, '/');
       const overflow = () => n.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       for (const p of ['/', '/reserve', '/creator/1', '/profile']) {
         await n.goto(`${BASE}${p}`);
@@ -2470,7 +2472,7 @@ const run = async () => {
       await m.goto(`${BASE}/age-verification`);
       await m.getByRole('button', { name: /Soy mayor|18/ }).first().click();
       await login(m, 'creator@sugarfans.com', 'demo1234');
-      await waitPath(m, '/explore');
+      await waitPath(m, '/');
       await m.locator('button[aria-label="Menú de cuenta"]').tap();
       await m.getByRole('button', { name: /Cerrar sesión/ }).first().waitFor();
       await m.touchscreen.tap(195, 600);

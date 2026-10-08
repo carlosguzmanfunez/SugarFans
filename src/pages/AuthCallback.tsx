@@ -20,7 +20,8 @@ const providerError = (): string => {
   return 'No se pudo iniciar sesión con esa cuenta. Inténtalo de nuevo o usa tu email.';
 };
 
-const homeFor = (role: UserRole) => (role === 'creator' ? '/creator/dashboard' : role === 'admin' ? '/admin' : '/explore');
+// Signing in lands on Inicio (fans and creators each get their own); admins on their panel.
+const homeFor = (role: UserRole) => (role === 'admin' ? '/admin' : '/');
 
 // Landing page after Google/Microsoft. Existing accounts go straight in; a new
 // account first picks fan or creator and accepts the terms (18+).
