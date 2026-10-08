@@ -52,11 +52,11 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; roles?: string[] }> 
   return <>{children}</>;
 };
 
-// Login/register are pointless once signed in.
+// Login/register are pointless once signed in: back to Inicio.
 const GuestOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
   if (loading) return <LoadingScreen />;
-  if (isAuthenticated) return <Navigate to="/explore" replace />;
+  if (isAuthenticated) return <Navigate to="/" replace />;
   return <>{children}</>;
 };
 
