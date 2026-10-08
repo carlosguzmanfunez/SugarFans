@@ -2571,8 +2571,12 @@ const run = async () => {
       expect((await p.getByTestId('ch-creditos').count()) === 0, 'sigue la tarjeta de Créditos');
       const buttons = (await p.getByTestId('ch-nudge').getByRole('link').allTextContents()).map((t) => t.trim());
       expect(JSON.stringify(buttons) === JSON.stringify(['Subir foto o video', 'Mi perfil', 'Iniciar Live']), `botones: ${buttons.join(' | ')}`);
+      await p.getByTestId('ch-metas').getByText(/^Avance a /).waitFor();
+      await p.getByTestId('ch-metas').getByRole('progressbar').waitFor();
       await p.getByTestId('ch-metas').tap();
       await p.getByTestId('goals-panel').waitFor();
+      await p.getByTestId('goals-share').getByText('80%').waitFor();
+      await p.getByTestId('goals-share').getByText('Tu ganancia actual:').waitFor();
       await p.goto(`${BASE}/`);
       await p.getByTestId('ch-perfil').tap();
       await p.waitForURL((u) => /^\/creator\/(?!dashboard)/.test(new URL(u).pathname));

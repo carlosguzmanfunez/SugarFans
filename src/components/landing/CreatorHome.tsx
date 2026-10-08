@@ -64,9 +64,11 @@ const CreatorHome: React.FC = () => {
     },
     {
       to: '/creator/dashboard?tab=goals#panel-tabs',
-      label: next ? `Metas: camino a ${next.name}` : level ? 'Metas: nivel más alto' : 'Metas',
+      // Labelled as progress (with a bar) so it never reads as the creator's cut of a payment.
+      label: next ? `Avance a ${next.name}` : level ? 'Nivel más alto' : 'Tu meta',
       value: pct !== null ? `${pct}%` : level ? level.name : '…',
       icon: <Icon name="fa-bullseye" />,
+      bar: pct,
       testid: 'ch-metas',
     },
   ];
@@ -140,6 +142,11 @@ const CreatorHome: React.FC = () => {
             >
               <span className={`text-lg ${t.alert ? 'text-red-600' : 'text-ink/45'}`}>{t.icon}</span>
               <span className={`font-display text-xl font-semibold tabular-nums sm:text-2xl ${t.alert ? 'text-red-600' : 'text-ink'}`}>{t.value}</span>
+              {'bar' in t && t.bar !== null && (
+                <span className="h-1.5 overflow-hidden rounded-full bg-ink/10" role="progressbar" aria-label={t.label} aria-valuenow={t.bar} aria-valuemin={0} aria-valuemax={100}>
+                  <span className="block h-full rounded-full bg-gradient-to-r from-amber-500 to-brand-500" style={{ width: `${Math.max(t.bar ?? 0, 3)}%` }} />
+                </span>
+              )}
               <span className="text-[12px] leading-tight text-ink/60 sm:text-sm">{t.label}</span>
             </Link>
           ))}

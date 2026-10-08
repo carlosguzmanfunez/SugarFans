@@ -6,11 +6,13 @@ import {
   CREATOR_INVITE_MIN,
   EMPTY_MEDALS,
   IMAN_TIERS,
+  LEVELS,
   MEDALS,
   PUNTUAL_REQUESTS,
   earnedMedals,
   levelById,
   nextLevel,
+  pct,
   rewardsApi,
   type CreatorRewards,
   type MedalId,
@@ -103,6 +105,8 @@ const CreatorGoalsPanel: React.FC = () => {
   const level = levelById(data.level);
   const next = nextLevel(level);
   const earned = new Set(earnedMedals(data.medals));
+  // The best cut a higher level offers, to show what climbing changes.
+  const better = LEVELS.find((l) => l.share > data.share);
 
   return (
     <div className="space-y-6" data-testid="goals-panel">
@@ -127,6 +131,14 @@ const CreatorGoalsPanel: React.FC = () => {
         ) : (
           <p className="font-display text-3xl font-bold mt-1">{level.icon} Estás en {level.name}, el nivel más alto</p>
         )}
+
+        <div className="mt-4 inline-flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-2xl bg-white/20 px-4 py-2.5 ring-1 ring-white/30" data-testid="goals-share">
+          <span className="text-sm font-semibold">Tu ganancia actual:</span>
+          <span className="font-display text-2xl font-bold tabular-nums">{pct(data.share)}</span>
+          <span className="text-xs text-white/85">
+            de cada pago, después de la comisión de PayPal{better ? `. En ${better.name} sube a ${pct(better.share)}` : ''}.
+          </span>
+        </div>
       </div>
 
       <CountryRankCard />
