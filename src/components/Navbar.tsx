@@ -47,11 +47,12 @@ const Navbar: React.FC = () => {
   const menuRef = useDismiss<HTMLDivElement>(showMenu, () => setShowMenu(false));
   const navRef = useDismiss<HTMLElement>(showMobile, () => setShowMobile(false));
 
-  // Close menus whenever the route changes.
+  // Close menus whenever the address changes (also ?section= / #anchor links to the
+  // page already open).
   useEffect(() => {
     setShowMenu(false);
     setShowMobile(false);
-  }, [location.pathname]);
+  }, [location.pathname, location.search, location.hash, location.key]);
 
   const handleLogout = async () => {
     setShowMenu(false);
@@ -216,7 +217,8 @@ const Navbar: React.FC = () => {
                 <Icon name="fa-ticket" className="w-5 text-gold-600" /> Reserve
               </Link>
               {showCreators && (
-                <Link to="/#creadores" className={mobileLinkCls('/#creadores')} onClick={() => setShowMobile(false)}>
+                // Visitors have no landing with this section ("/" is the sign-up page): go to the creator sign-up.
+                <Link to={isAuthenticated ? '/#creadores' : '/register?role=creator'} className={mobileLinkCls('/#creadores')} onClick={() => setShowMobile(false)}>
                   <Icon name="fa-star" className="w-5 text-iris-600" /> Para creadores
                 </Link>
               )}

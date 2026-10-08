@@ -54,6 +54,7 @@ const CreatorProfile: React.FC = () => {
     { removedPosts: [] as string[], blocks: [] as Awaited<ReturnType<typeof platformApi.blocks>> }
   );
   const [checkout, setCheckout] = useState(false);
+  const [shared, setShared] = useState(false);
   const [reporting, setReporting] = useState<{ kind: 'post' | 'creator'; targetId: string; label: string } | null>(null);
   const [tipping, setTipping] = useState<{ postId?: string } | null>(null);
   const [tipSent, setTipSent] = useState('');
@@ -216,6 +217,21 @@ const CreatorProfile: React.FC = () => {
     return result;
   };
 
+  // Share sheet on phones; elsewhere copy the link and say so on the button.
+  const shareProfile = async () => {
+    const url = `${window.location.origin}/creator/${creator.id}`;
+    try {
+      if (navigator.share) await navigator.share({ title: creator.name, url });
+      else {
+        await navigator.clipboard.writeText(url);
+        setShared(true);
+        setTimeout(() => setShared(false), 2000);
+      }
+    } catch {
+      // share sheet dismissed
+    }
+  };
+
   const handleReport = (kind: 'post' | 'creator', targetId: string, label: string) => {
     if (!isAuthenticated) {
       navigate('/login', { state: { from: location.pathname } });
@@ -343,7 +359,7 @@ const CreatorProfile: React.FC = () => {
                 </button>
               )}
               {isOwner && !managesProfile && (
-                <Link to="/creator/dashboard?tab=content" className="btn btn-lg btn-primary col-span-3">
+                <Link to="/creator/dashboard?tab=content#nuevo" className="btn btn-lg btn-primary col-span-3">
                   <Icon name="fa-plus" className="mr-2" />Nueva publicación
                 </Link>
               )}
@@ -573,8 +589,8 @@ const CreatorProfile: React.FC = () => {
               <button onClick={() => handleReport('creator', creator.id, `Perfil de ${creator.name}`)} className="text-gray-500 hover:text-pink-500 transition">
                 <Icon name="fa-flag" className="text-sm" /> Reportar perfil
               </button>
-              <button className="text-gray-500 hover:text-pink-500 transition">
-                <i aria-hidden="true" className="fas fa-share text-sm"></i> Compartir perfil
+              <button onClick={shareProfile} className="text-gray-500 hover:text-pink-500 transition" data-testid="share-profile">
+                <i aria-hidden="true" className="fas fa-share text-sm"></i> {shared ? 'Enlace copiado' : 'Compartir perfil'}
               </button>
             </div>
           </div>

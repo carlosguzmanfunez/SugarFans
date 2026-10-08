@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Notice from './Notice';
 import Avatar from './Avatar';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -122,11 +123,7 @@ const ManagedProfilesAdmin: React.FC<{ transactions: Transaction[] }> = ({ trans
         )}
       </div>
 
-      {notice && (
-        <div role={notice.ok ? 'status' : 'alert'} className={`px-4 py-3 rounded-xl border text-sm ${notice.ok ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
-          {notice.text}
-        </div>
-      )}
+      {notice && <Notice ok={notice.ok} text={notice.text} onClose={() => setNotice(null)} />}
 
       {editing && (
         <div className="bg-white rounded-2xl shadow-sm p-5 space-y-3" data-testid="managed-profile-form">

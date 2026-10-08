@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { BRAND } from '../config/brand';
@@ -19,10 +19,20 @@ const LegalPolicies: React.FC = () => {
     ...RESERVE_POLICIES.map(({ id, name, icon }) => ({ id, name, icon })),
   ];
   const reserveDoc = (id: string) => RESERVE_POLICIES.find((d) => d.id === id);
-  // ?doc=<id> opens a document directly (footer links).
-  const [params] = useSearchParams();
+  // The open document lives in the address (?doc=<id>), so footer links switch it
+  // even while /legal is already open, and back/forward move between documents.
+  const [params, setParams] = useSearchParams();
   const requested = params.get('doc');
-  const [activePolicy, setActivePolicy] = useState(policies.some((p) => p.id === requested) ? requested! : 'terms');
+  const activePolicy = policies.some((p) => p.id === requested) ? requested! : 'terms';
+  // On phones the list sits above the text: after picking a document, show it.
+  const contentRef = useRef<HTMLDivElement>(null);
+  const setActivePolicy = (id: string) => {
+    setParams({ doc: id }, { replace: true });
+    if (window.matchMedia('(max-width: 1023px)').matches) {
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      requestAnimationFrame(() => contentRef.current?.scrollIntoView({ block: 'start', behavior: reduced ? 'auto' : 'smooth' }));
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -57,7 +67,7 @@ const LegalPolicies: React.FC = () => {
           </div>
 
           {/* Content */}
-          <div className="lg:col-span-3">
+          <div ref={contentRef} className="lg:col-span-3 scroll-mt-28" data-testid="legal-content">
             <div className="bg-white rounded-2xl shadow-sm p-8">
               {!reserveDoc(activePolicy) && (
                 <p role="note" className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">

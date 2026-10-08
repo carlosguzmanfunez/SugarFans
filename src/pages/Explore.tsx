@@ -261,16 +261,23 @@ const Explore: React.FC = () => {
                 </div>
                 <div className="p-4">
                   <p className="text-sm text-gray-700">{post.content}</p>
+                  {/* Likes, comments and tips happen on the post itself, in the creator's
+                      profile (where they are wired): each action opens it there. */}
                   <div className="flex items-center space-x-6 mt-3 text-gray-500">
-                    <button className="flex items-center text-sm hover:text-pink-500 transition">
+                    <Link to={`/creator/${post.creatorId}#post-${post.id}`} aria-label={`Me gusta (${post.likes})`} className="flex items-center text-sm hover:text-pink-500 transition">
                       <i aria-hidden="true" className="fas fa-heart mr-1"></i> {post.likes}
-                    </button>
-                    <button className="flex items-center text-sm hover:text-pink-500 transition">
+                    </Link>
+                    <Link to={`/creator/${post.creatorId}#post-${post.id}`} aria-label={`Comentarios (${post.comments})`} className="flex items-center text-sm hover:text-pink-500 transition">
                       <i aria-hidden="true" className="fas fa-comment mr-1"></i> {post.comments}
-                    </button>
-                    <button className="flex items-center text-sm hover:text-pink-500 transition">
+                    </Link>
+                    <Link to={`/creator/${post.creatorId}#post-${post.id}`} className="flex items-center text-sm hover:text-pink-500 transition">
                       <i aria-hidden="true" className="fas fa-gift mr-1"></i> Propina
-                    </button>
+                    </Link>
+                    {post.isLocked && (
+                      <Link to={isAuthenticated ? `/creator/${post.creatorId}` : '/login'} className="ml-auto text-sm font-semibold text-pink-600 hover:underline">
+                        {isAuthenticated ? 'Ver perfil' : 'Iniciar sesión'}
+                      </Link>
+                    )}
                   </div>
                 </div>
               </div>

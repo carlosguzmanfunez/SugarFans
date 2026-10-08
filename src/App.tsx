@@ -89,7 +89,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; hideNav?: boolean }> = ({
 // (#reserve) scroll there themselves, and a page that only rewrites its own
 // query (Settings sections) stays where it is.
 const ScrollToTop: React.FC = () => {
-  const { pathname, search, hash } = useLocation();
+  const { pathname, search, hash, key } = useLocation();
   const navigationType = useNavigationType();
   const last = React.useRef({ pathname, search });
   // Before paint, so the old page's spot never flashes on the new one.
@@ -101,8 +101,39 @@ const ScrollToTop: React.FC = () => {
     // 'instant' overrides the smooth scrolling the page uses for anchor links.
     if (changed) window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [pathname, search, hash, navigationType]);
+
+  // Links to a section (/#journey, /creator/1#post-3): the target often renders a
+  // moment after the route changes, so wait for it, then scroll to it.
+  useEffect(() => {
+    if (!hash || navigationType === 'POP') return;
+    const id = decodeURIComponent(hash.slice(1));
+    let tries = 0;
+    const timer = setInterval(() => {
+      const el = document.getElementById(id);
+      if (el || ++tries > 40) clearInterval(timer);
+      el?.scrollIntoView({ block: 'start', behavior: reducedMotion() ? 'auto' : 'smooth' });
+    }, 50);
+    return () => clearInterval(timer);
+  }, [hash, key, navigationType]);
+
+  // A link to the page already open (the logo on Inicio, "Explorar" on Explorar)
+  // changes nothing, so it would feel dead: take it back to the top instead.
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = (e.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null;
+      if (!a || a.target === '_blank' || a.origin !== window.location.origin || a.hash) return;
+      if (a.pathname === window.location.pathname && a.search === window.location.search) {
+        window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' });
+      }
+    };
+    document.addEventListener('click', onClick);
+    return () => document.removeEventListener('click', onClick);
+  }, []);
   return null;
 };
+
+const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 // The "new password" email link may land on any page: take the user to the form.
 const RecoveryRedirect: React.FC = () => {

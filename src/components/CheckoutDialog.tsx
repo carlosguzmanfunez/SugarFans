@@ -251,6 +251,7 @@ const CheckoutDialog: React.FC<Props> = ({ user, title, amount, note, confirmLab
             )}
 
             {error && <p role="alert" className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+            {!selected && !adding && <p className="mt-4 text-xs text-gray-500">Elige un método de pago para continuar.</p>}
 
             <button
               type="button"

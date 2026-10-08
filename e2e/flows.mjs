@@ -2597,6 +2597,39 @@ const run = async () => {
       await inView();
       await ctx.close();
     });
+    await check('Móvil: los botones que actuaban fuera de pantalla ahora se ven', async () => {
+      const ctx = await newContext(browser, { viewport: { width: 390, height: 844 }, locale: 'es-ES', hasTouch: true });
+      const p = await newPage(ctx);
+      const visible = (sel) => p.waitForFunction((s) => {
+        const r = document.querySelector(s)?.getBoundingClientRect();
+        return !!r && r.top < window.innerHeight && r.bottom > 0;
+      }, sel);
+      // Legal: tapping a document shows its text, and footer ?doc= links switch it.
+      await p.goto(`${BASE}/legal`);
+      await p.getByRole('button', { name: /Política de Cookies/ }).tap();
+      await visible('[data-testid=legal-content]');
+      await p.goto(`${BASE}/legal?doc=dmca`);
+      await p.getByTestId('legal-content').getByText(/DMCA/).first().waitFor();
+      await login(p, 'fan@sugarfans.com', 'demo1234');
+      await waitPath(p, '/');
+      // Settings: the coin pill switches to Créditos even with Settings open.
+      await p.goto(`${BASE}/settings?section=security`);
+      await p.getByRole('link', { name: /Créditos/ }).first().tap();
+      await p.getByTestId('wallet-balance').waitFor();
+      // Saving far down the page shows its result on screen.
+      await p.goto(`${BASE}/settings`);
+      await p.getByRole('button', { name: 'Guardar cambios' }).tap();
+      await visible('[data-testid=notice]');
+      // Explore posts: the like button opens the post in the creator's profile.
+      await p.goto(`${BASE}/explore`);
+      const postsBtn = p.getByRole('button', { name: /Publicaciones/ });
+      if (await postsBtn.count()) {
+        await postsBtn.first().tap();
+        await p.getByRole('link', { name: /Me gusta/ }).first().tap();
+        await p.waitForURL((u) => new URL(u).pathname.startsWith('/creator/') && new URL(u).hash.startsWith('#post-'));
+      }
+      await ctx.close();
+    });
     await check('La presentación en video solo la ven visitantes sin sesión', async () => {
       const ctx = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });
       const p = await newPage(ctx);
