@@ -2543,6 +2543,24 @@ const run = async () => {
       expect(!(await d.getByTestId('tab-bar').isVisible()), 'la barra de pestañas se ve en escritorio');
       await desk.close();
     });
+    await check('Móvil: el creador tiene Mi panel al centro, Contenido en la barra y una guía bajo sus pestañas', async () => {
+      const ctx = await newContext(browser, { viewport: { width: 390, height: 844 }, locale: 'es-ES', hasTouch: true });
+      const p = await newPage(ctx);
+      await login(p, 'creator@sugarfans.com', 'demo1234');
+      await p.waitForURL((u) => new URL(u).pathname !== '/login');
+      await p.goto(`${BASE}/explore`);
+      const labels = (await p.getByTestId('tab-bar').getByRole('link').allTextContents()).map((t) => t.replace(/,.*$/, '').trim());
+      expect(JSON.stringify(labels) === JSON.stringify(['Inicio', 'Explorar', 'Mi panel', 'Contenido', 'Reservas']), `barra del creador: ${labels.join(' | ')}`);
+      await p.getByTestId('tab-bar').getByRole('link', { name: 'Contenido', exact: true }).tap();
+      await p.getByRole('heading', { name: 'Gestión de contenido' }).waitFor();
+      expect((await p.getByTestId('tab-bar').getByRole('link', { name: 'Contenido', exact: true }).getAttribute('aria-current')) === 'page', 'Contenido no queda marcado');
+      const rail = p.getByTestId('scroll-rail');
+      await rail.waitFor();
+      const before = await rail.locator('div').evaluate((el) => el.style.marginLeft);
+      await p.locator('#panel-tabs > div > div').first().evaluate((el) => el.scrollTo({ left: el.scrollWidth }));
+      await p.waitForFunction((b) => document.querySelector('[data-testid=scroll-rail] div')?.style.marginLeft !== b, before);
+      await ctx.close();
+    });
     await check('La presentación en video solo la ven visitantes sin sesión', async () => {
       const ctx = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });
       const p = await newPage(ctx);
