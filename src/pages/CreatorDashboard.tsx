@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Icon from '../components/Icon';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -39,7 +39,19 @@ const CreatorDashboard: React.FC = () => {
   useEffect(() => {
     if (hash === '#panel-tabs') document.getElementById('panel-tabs')?.scrollIntoView({ block: 'start' });
   }, [hash, activeTab]);
-  const [showNewPost, setShowNewPost] = useState(false);
+  // "#nuevo" (the creator home's "Subir foto o video") opens the new-post form directly.
+  const [showNewPost, setShowNewPost] = useState(hash === '#nuevo');
+  useEffect(() => {
+    if (hash === '#nuevo') setShowNewPost(true);
+  }, [hash]);
+  // The form sits above the tabs: when it opens from further down (Contenido's
+  // "Subir foto o video"), bring it into view so the tap visibly does something.
+  const newPostRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!showNewPost) return;
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    newPostRef.current?.scrollIntoView({ block: 'start', behavior: reduced ? 'auto' : 'smooth' });
+  }, [showNewPost]);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
 
   const [displayName, setDisplayName] = useState(user?.name ?? '');
@@ -225,7 +237,7 @@ const CreatorDashboard: React.FC = () => {
 
         {/* New post: text + photo or video */}
         {showNewPost && (
-          <div className="mb-8">
+          <div ref={newPostRef} id="nuevo" className="mb-8 scroll-mt-28" data-testid="new-post">
             <NewPostForm verified={verified} onPublished={handlePublished} onCancel={() => setShowNewPost(false)} />
           </div>
         )}

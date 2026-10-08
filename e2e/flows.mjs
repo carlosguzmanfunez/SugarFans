@@ -2585,6 +2585,16 @@ const run = async () => {
       await p.goto(`${BASE}/`);
       await p.getByTestId('ch-subir').tap();
       await p.getByRole('heading', { name: 'Gestión de contenido' }).waitFor();
+      const inView = () => p.waitForFunction(() => {
+        const r = document.querySelector('[data-testid=new-post]')?.getBoundingClientRect();
+        return !!r && r.top >= 0 && r.top < window.innerHeight / 2;
+      });
+      await inView();
+      // From Contenido, further down, the same button brings the form into view.
+      await p.getByRole('button', { name: 'Cancelar' }).first().tap();
+      await p.getByRole('heading', { name: 'Gestión de contenido' }).scrollIntoViewIfNeeded();
+      await p.getByRole('button', { name: /Subir foto o video/ }).tap();
+      await inView();
       await ctx.close();
     });
     await check('La presentación en video solo la ven visitantes sin sesión', async () => {

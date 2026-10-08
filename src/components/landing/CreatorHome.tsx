@@ -13,7 +13,8 @@ import { CREATOR_RESERVE_LINK } from '../../lib/reserveAlerts';
 // the next level is, and a nudge to post when their fans haven't seen anything new for a while.
 // The rest of the landing stays the same below.
 export const STALE_DAYS = 7;
-const CONTENT_LINK = '/creator/dashboard?tab=content#panel-tabs';
+// Opens the panel's Contenido tab with the new-post form already open and in view.
+const CONTENT_LINK = '/creator/dashboard?tab=content#nuevo';
 const DAY = 86_400_000;
 
 const CreatorHome: React.FC = () => {
