@@ -117,7 +117,7 @@ const Hero: React.FC<{ creators: Creator[] }> = ({ creators }) => {
       zIndex: 10 - abs,
       opacity: abs > 2 ? 0 : 1,
       filter: off === 0 ? 'none' : `brightness(${1 - abs * 0.18})`,
-      transform: `translateX(${off * 112}px) translateZ(${-abs * 170}px) rotateY(${-off * 20}deg)`,
+      transform: `translateX(calc(${off} * var(--deck-step, 112px))) translateZ(${-abs * 170}px) rotateY(${-off * 20}deg)`,
       pointerEvents: abs > 1 ? 'none' : 'auto',
     };
     if (off !== 0) return base;
