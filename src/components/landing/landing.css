@@ -384,8 +384,19 @@
   .lv2 .cat .txt>span:not(.meta){display:none}
   .lv2 .cat .meta{margin-top:6px}
   .lv2 .cat .go{display:none}
-  .lv2 .pass{width:290px;height:420px;margin:-210px 0 0 -145px}
-  .lv2 .pass .fig{width:210px;height:210px;margin-left:-105px;bottom:140px}
+  /* Phones: less air under the buttons and a smaller deck, so the front card and the
+     two side cards fit the width of the screen. */
+  .lv2 .hero{padding-bottom:24px}
+  .lv2 .hero-grid{gap:18px}
+  .lv2 .deck{height:392px;--deck-step:76px}
+  .lv2 .pass{width:252px;height:360px;margin:-188px 0 0 -126px;border-radius:24px}
+  .lv2 .pass .fig{width:172px;height:172px;margin-left:-86px;bottom:128px}
+  .lv2 .pass .top{top:14px;left:14px;right:14px}
+  .lv2 .pass .info{padding:16px 18px 18px}
+  .lv2 .pass h3{font-size:21px}
+  .lv2 .pass .meta{font-size:12.5px}
+  .lv2 .pass .slot{margin-top:10px;padding-top:10px}
+  .lv2 .pass .slot strong{font-size:16px}
   .lv2 .perks{grid-template-columns:1fr}
   .lv2 .scene{height:560px}
   .lv2 .clip{width:300px;height:510px;margin-left:-140px;top:40px}
@@ -396,6 +407,11 @@
   .lv2 .info .tags span:nth-child(3){display:none}
   .lv2 .t1{right:0;bottom:auto;top:0;min-width:0}
   .lv2 .seal{display:none}
+}
+/* Narrow phones (360px): both hero buttons on one row. */
+@media (max-width: 380px){
+  .lv2 .ctas{gap:8px}
+  .lv2 .ctas .v-btn{padding-inline:16px}
 }
 @media (prefers-reduced-motion: reduce){
   .lv2 *,

@@ -102,7 +102,7 @@ const PaypalCheckout: React.FC<{ purchase: PaypalPurchase; config: PaypalConfig;
     <div>
       <h4 className="text-sm font-medium text-gray-700 mb-2">{purchase.kind === 'subscription' ? 'Suscríbete con PayPal' : 'Paga con PayPal o con tarjeta'}</h4>
       {purchase.kind === 'subscription' && (
-        <p className="text-xs text-gray-500 mb-3">PayPal cobra este monto cada mes de forma automática. Cancela cuando quieras desde Mi perfil; sigues con acceso hasta el final del mes pagado.</p>
+        <p className="text-xs text-gray-500 mb-3">PayPal cobra este monto cada mes de forma automática. Cancela cuando quieras desde Mi cuenta; sigues con acceso hasta el final del mes pagado.</p>
       )}
       {status === 'loading' && <p className="text-sm text-gray-500 py-3"><i aria-hidden="true" className="fas fa-spinner fa-spin mr-2"></i>Cargando PayPal…</p>}
       {status === 'paying' && <p className="text-sm text-gray-600 py-3"><i aria-hidden="true" className="fas fa-spinner fa-spin mr-2"></i>Confirmando tu pago…</p>}
@@ -131,7 +131,7 @@ const PaymentReceipt: React.FC<{ title: string; amount: number; operation: strin
     </div>
     <h3 className="text-xl font-bold text-gray-900">Pago exitoso</h3>
     <p className="mt-1 text-sm text-gray-500">
-      {subscription ? 'Tu suscripción está activa. PayPal la renueva cada mes; puedes cancelarla cuando quieras desde Mi perfil.' : 'Tu pago con PayPal se completó.'}
+      {subscription ? 'Tu suscripción está activa. PayPal la renueva cada mes; puedes cancelarla cuando quieras desde Mi cuenta.' : 'Tu pago con PayPal se completó.'}
     </p>
     <dl className="mt-5 space-y-2 rounded-xl bg-gray-50 p-4 text-left text-sm">
       <div className="flex justify-between gap-4"><dt className="text-gray-500">Concepto</dt><dd className="text-right font-medium text-gray-900">{title.replace(/^Pagar:\s*/, '')}</dd></div>

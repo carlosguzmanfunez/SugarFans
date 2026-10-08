@@ -19,7 +19,8 @@ import { useReserveInbox } from '../lib/live';
 import { CREATOR_RESERVE_LINK } from '../lib/reserveAlerts';
 import { RedDot } from './MobileTabBar';
 
-// Fan's Créditos balance, always in sight, in the champagne tone of the coin.
+// Créditos balance (fans and creators), always in sight on every screen size, in the
+// champagne tone of the coin. Compact on phones so it fits between the bell and the avatar.
 const CreditsPill: React.FC<{ user: User }> = ({ user }) => {
   const { data: coins } = usePlatformQuery(async () => (await giftsApi.wallet(user)).coins, [user.id], 0);
   return (
@@ -27,10 +28,11 @@ const CreditsPill: React.FC<{ user: User }> = ({ user }) => {
       to="/settings?section=wallet"
       aria-label={`Tus ${VIRTUAL_CURRENCY.displayName}: ${formatCoins(coins)}`}
       data-testid="credits-pill"
-      className="hidden h-9 items-center gap-1.5 rounded-full border border-gold-200 sm:inline-flex bg-gold-50 pl-1.5 pr-3 text-sm font-semibold text-night-900 transition-colors hover:border-gold-300"
+      className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-gold-200 bg-gold-50 pl-1 pr-2.5 text-xs font-semibold tabular-nums text-night-900 transition-colors hover:border-gold-300 sm:h-9 sm:gap-1.5 sm:pl-1.5 sm:pr-3 sm:text-sm"
     >
-      <CoinIcon size={22} />
-      {formatCoins(coins)}
+      <CoinIcon size={20} />
+      <span className="sm:hidden">{coins >= 10_000 ? `${Math.floor(coins / 100) / 10}k` : formatCoins(coins)}</span>
+      <span className="max-sm:hidden">{formatCoins(coins)}</span>
     </Link>
   );
 };
@@ -84,7 +86,7 @@ const Navbar: React.FC = () => {
 
   return (
     // Floating glass pill.
-    <nav ref={navRef} aria-label="Principal" className="sticky top-3 z-50 mx-auto mt-3.5 w-full max-w-[1240px] px-2.5 sm:px-6 lg:px-10">
+    <nav ref={navRef} aria-label="Principal" className="sticky top-3 z-50 mx-auto mt-3.5 w-full max-w-[1240px] px-2 min-[400px]:px-2.5 sm:px-6 lg:px-10">
       <div
         className={`border border-white/80 bg-white/75 pl-3 pr-2 shadow-[0_10px_40px_-18px_rgba(70,20,60,0.25),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl backdrop-saturate-150 sm:pl-[18px] sm:pr-2.5 ${
           showMobile ? 'rounded-[28px]' : 'rounded-full'
@@ -92,7 +94,11 @@ const Navbar: React.FC = () => {
       >
         <div className="flex h-16 items-center justify-between gap-2 sm:gap-4">
           {/* Logo */}
-          <BrandLogo size="sm" />
+          {/* A touch smaller on narrow phones so the Créditos pill fits next to the bell. */}
+          <BrandLogo
+            size="sm"
+            className="shrink-0 max-[400px]:gap-2! max-[400px]:[&>svg:first-child]:size-[30px] max-[400px]:[&>svg:last-child]:h-[10px] max-[400px]:[&>svg:last-child]:w-[89px]"
+          />
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-1 lg:ml-auto">
@@ -132,10 +138,10 @@ const Navbar: React.FC = () => {
           </div>
 
           {/* Right side */}
-          <div className="flex items-center gap-1.5 sm:gap-3">
+          <div className="flex items-center gap-1 min-[400px]:gap-1.5 sm:gap-3 max-[400px]:[&_.h-10]:size-9">
             <LanguageSelector />
-            {isAuthenticated && user?.role === 'fan' && <CreditsPill user={user} />}
             {isAuthenticated && user && <NotificationBell user={user} />}
+            {isAuthenticated && user && (user.role === 'fan' || user.role === 'creator') && <CreditsPill user={user} />}
 
             {isAuthenticated ? (
               <div ref={menuRef} className="relative">

@@ -23,9 +23,9 @@ export const HERO = {
 };
 
 export const CATEGORIES = {
-  titleLead: 'Encuentra tu comunidad de',
-  titleAccent: 'influencers y creadores',
-  subtitle: 'Desde entrenamientos y recetas hasta estrenos musicales y mentorías.',
+  titleLead: 'Cada creador trae a su comunidad,',
+  titleAccent: 'sea cual sea su contenido',
+  subtitle: 'Entrenamientos, recetas, música, gaming o un poco de todo. Las categorías solo te ayudan a encontrarlos.',
 };
 
 export const HOW = {
@@ -59,7 +59,7 @@ export const VIP = {
 };
 
 export const CREATOR_CTA = {
-  title: '¿Creas contenido o experiencias?',
+  title: 'Trae a tu comunidad, sea cual sea tu contenido.',
   subtitle: `Sigue construyendo tu audiencia en TikTok, Instagram o YouTube. En ${BRAND.name} monetizas a la parte de esa audiencia que quiere más acceso a ti: membresías, eventos y sesiones privadas con tus precios.`,
   cta: 'Empezar como creador',
   memberCta: 'Ir a mi panel',

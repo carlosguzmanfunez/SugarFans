@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Icon from '../components/Icon';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import CreatorPayouts from '../components/CreatorPayouts';
 import CreatorGiftsPanel from '../components/CreatorGiftsPanel';
@@ -15,6 +15,7 @@ import { useBackendData } from '../lib/useBackendData';
 import NewPostForm from '../components/NewPostForm';
 import CreatorReservePanel from '../components/reserve/CreatorReservePanel';
 import { RedDot } from '../components/MobileTabBar';
+import ScrollStrip from '../components/ScrollStrip';
 import { onNewNotification } from '../lib/live';
 import { needsCreatorAnswer } from '../lib/reserveAlerts';
 import { CREATOR_CATEGORIES, categoryFor } from '../config/reserve';
@@ -33,6 +34,11 @@ const CreatorDashboard: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'overview';
   const setActiveTab = (id: string) => setSearchParams(id === 'overview' ? {} : { tab: id }, { replace: true });
+  // "Contenido" in the phone tab bar links to #panel-tabs: jump past the Live box to the tabs.
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (hash === '#panel-tabs') document.getElementById('panel-tabs')?.scrollIntoView({ block: 'start' });
+  }, [hash, activeTab]);
   const [showNewPost, setShowNewPost] = useState(false);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -234,7 +240,7 @@ const CreatorDashboard: React.FC = () => {
 
         {/* Tabs: seven sections. "Dinero" groups income, gifts and rewards (their
             old ?tab= addresses still work and pick the sub-section). */}
-        <div className="flex gap-1 bg-white border border-line rounded-full p-1 mb-3 overflow-x-auto scrollbar-hide">
+        <ScrollStrip id="panel-tabs" outerClassName="mb-3 scroll-mt-28" className="flex gap-1 bg-white border border-line rounded-full p-1">
           {[
             { id: 'overview', label: 'Resumen', icon: 'fa-chart-pie' },
             { id: 'content', label: 'Contenido', icon: 'fa-images' },
@@ -275,7 +281,7 @@ const CreatorDashboard: React.FC = () => {
               </button>
             );
           })}
-        </div>
+        </ScrollStrip>
         {MONEY_TABS.includes(activeTab) ? (
           // Big colored cards so the creator spots their money sections at once.
           <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-8" role="tablist" aria-label="Dinero">
@@ -579,7 +585,7 @@ const CreatorDashboard: React.FC = () => {
                     <option key={c.id} value={c.name}>{c.name}</option>
                   ))}
                 </select>
-                <p className="mt-1 text-xs text-gray-500">Define qué experiencias puedes ofrecer en Reserve.</p>
+                <p className="mt-1 text-xs text-gray-500">No te encasilla: es dónde te encuentran los fans en Explorar y qué experiencias puedes ofrecer en Reserve.</p>
               </div>
               <button onClick={handleSaveSettings} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition">
                 Guardar cambios

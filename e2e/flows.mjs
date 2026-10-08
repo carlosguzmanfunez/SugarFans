@@ -446,7 +446,7 @@ const run = async () => {
     });
     await check('El menú de cuenta se cierra al navegar', async () => {
       await page.click('button[aria-label="Menú de cuenta"]');
-      await page.getByRole('link', { name: /Mi perfil/ }).last().click();
+      await page.getByRole('link', { name: /Mi cuenta/ }).last().click();
       await waitPath(page, '/profile');
       expect((await page.getByRole('button', { name: /Cerrar sesión/ }).count()) === 0, 'el menú siguió abierto');
     });
@@ -1037,9 +1037,9 @@ const run = async () => {
     });
     await check('Con sesión de creadora la portada lleva a su panel en lugar del registro', async () => {
       await page.goto(`${BASE}/`);
-      await page.locator('#hero-title').waitFor();
+      await page.locator('#creator-home-title').waitFor();
       expect(await page.locator('a[href^="/register"]').count() === 0, 'la portada enlaza al registro con sesión iniciada');
-      await page.locator('#hero-title').locator('..').getByRole('link', { name: /Ir a mi panel/ }).waitFor();
+      await page.getByTestId('creator-home').getByRole('link', { name: /Ir a mi panel/ }).waitFor();
       await page.locator('#creator-cta-title').locator('..').getByRole('link', { name: /Ir a mi panel/ }).waitFor();
       await page.locator('footer').getByRole('link', { name: 'Mi panel de creador' }).waitFor();
       await page.goto(`${BASE}/creator/dashboard?tab=earnings`);
@@ -1543,7 +1543,7 @@ const run = async () => {
       expect((await balanceText(gf)).includes('1,000'), 'no se acreditaron 1,000 créditos');
       await gf.getByTestId('coin-purchase').filter({ hasText: '$9.99' }).waitFor();
     });
-    await check('El fan encuentra sus Créditos en Mi perfil y en el menú de su cuenta', async () => {
+    await check('El fan encuentra sus Créditos en Mi cuenta y en el menú de su cuenta', async () => {
       await gf.goto(`${BASE}/profile`);
       const link = gf.getByTestId('profile-wallet');
       await link.getByText('Créditos: 1,000').waitFor();
@@ -2158,7 +2158,7 @@ const run = async () => {
       await resF.getByTestId('creator-card').filter({ hasText: 'Valentina Rose' }).waitFor();
       await resF.goto(`${BASE}/`);
       await resF.getByText('Suscríbete a tus creadores y reserva eventos y sesiones privadas con fecha, precio y reglas claras.').waitFor();
-      await resF.locator('#categories-title').getByText('influencers y creadores').waitFor();
+      await resF.locator('#categories-title').getByText('sea cual sea su contenido').waitFor();
       await resF.locator('#comunidades').getByRole('link', { name: /Tu gente/ }).waitFor();
       const how = resF.locator('section[aria-labelledby=how-title]');
       for (const p of ['Sigue', 'Suscríbete', 'Reserva', 'Reserve Event', 'Reserve 1:1']) await how.getByText(p, { exact: true }).first().waitFor({ state: 'attached' });
@@ -2542,6 +2542,48 @@ const run = async () => {
       await d.getByTestId('live-rail').waitFor();
       expect(!(await d.getByTestId('tab-bar').isVisible()), 'la barra de pestañas se ve en escritorio');
       await desk.close();
+    });
+    await check('Móvil: la barra del creador lleva Mi panel y Reservas, y hay una guía bajo sus pestañas', async () => {
+      const ctx = await newContext(browser, { viewport: { width: 390, height: 844 }, locale: 'es-ES', hasTouch: true });
+      const p = await newPage(ctx);
+      await login(p, 'creator@sugarfans.com', 'demo1234');
+      await p.waitForURL((u) => new URL(u).pathname !== '/login');
+      await p.goto(`${BASE}/explore`);
+      const labels = (await p.getByTestId('tab-bar').getByRole('link').allTextContents()).map((t) => t.replace(/,.*$/, '').trim());
+      expect(JSON.stringify(labels) === JSON.stringify(['Inicio', 'Explorar', 'Mi panel', 'Reservas']), `barra del creador: ${labels.join(' | ')}`);
+      await p.getByTestId('tab-bar').getByRole('link', { name: 'Mi panel', exact: true }).tap();
+      const rail = p.getByTestId('scroll-rail');
+      await rail.waitFor();
+      const before = await rail.locator('div').evaluate((el) => el.style.marginLeft);
+      await p.locator('#panel-tabs > div > div').first().evaluate((el) => el.scrollTo({ left: el.scrollWidth }));
+      await p.waitForFunction((b) => document.querySelector('[data-testid=scroll-rail] div')?.style.marginLeft !== b, before);
+      await ctx.close();
+    });
+    await check('El creador ve su propio inicio (su día) en vez del hero de fans', async () => {
+      const ctx = await newContext(browser, { viewport: { width: 390, height: 844 }, locale: 'es-ES', hasTouch: true });
+      const p = await newPage(ctx);
+      await login(p, 'creator@sugarfans.com', 'demo1234');
+      await p.waitForURL((u) => new URL(u).pathname !== '/login');
+      await p.goto(`${BASE}/`);
+      await p.getByTestId('creator-home').getByRole('heading', { name: /Hola, Valentina/ }).waitFor();
+      expect((await p.locator('#hero-title').count()) === 0, 'el creador ve el hero de fans');
+      for (const id of ['ch-reservas', 'ch-ganado', 'ch-metas', 'ch-nudge']) await p.getByTestId(id).waitFor();
+      expect((await p.getByTestId('ch-creditos').count()) === 0, 'sigue la tarjeta de Créditos');
+      const buttons = (await p.getByTestId('ch-nudge').getByRole('link').allTextContents()).map((t) => t.trim());
+      expect(JSON.stringify(buttons) === JSON.stringify(['Subir foto o video', 'Mi perfil', 'Iniciar Live']), `botones: ${buttons.join(' | ')}`);
+      await p.getByTestId('ch-metas').getByText(/^Avance a /).waitFor();
+      await p.getByTestId('ch-metas').getByRole('progressbar').waitFor();
+      await p.getByTestId('ch-metas').tap();
+      await p.getByTestId('goals-panel').waitFor();
+      await p.getByTestId('goals-share').getByText('80%').waitFor();
+      await p.getByTestId('goals-share').getByText('Tu ganancia actual:').waitFor();
+      await p.goto(`${BASE}/`);
+      await p.getByTestId('ch-perfil').tap();
+      await p.waitForURL((u) => /^\/creator\/(?!dashboard)/.test(new URL(u).pathname));
+      await p.goto(`${BASE}/`);
+      await p.getByTestId('ch-subir').tap();
+      await p.getByRole('heading', { name: 'Gestión de contenido' }).waitFor();
+      await ctx.close();
     });
     await check('La presentación en video solo la ven visitantes sin sesión', async () => {
       const ctx = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });

@@ -8,9 +8,9 @@ import type { UserRole } from '../lib/backend/types';
 // Signup links only make sense to visitors; members get their own shortcut.
 const accountLinks = (role: UserRole | undefined) => {
   if (!role) return { platform: { label: 'Crear cuenta', to: '/register' }, creators: { label: 'Empezar como creador', to: '/register?role=creator' } };
-  if (role === 'creator') return { platform: { label: 'Mi perfil', to: '/profile' }, creators: { label: 'Mi panel de creador', to: '/creator/dashboard' } };
-  if (role === 'admin') return { platform: { label: 'Mi perfil', to: '/profile' }, creators: { label: 'Panel de administración', to: '/admin' } };
-  return { platform: { label: 'Mi perfil', to: '/profile' }, creators: null };
+  if (role === 'creator') return { platform: { label: 'Mi cuenta', to: '/profile' }, creators: { label: 'Mi panel de creador', to: '/creator/dashboard' } };
+  if (role === 'admin') return { platform: { label: 'Mi cuenta', to: '/profile' }, creators: { label: 'Panel de administración', to: '/admin' } };
+  return { platform: { label: 'Mi cuenta', to: '/profile' }, creators: null };
 };
 
 const columnsFor = (role: UserRole | undefined): { title: string; links: { label: string; to: string }[] }[] => {
