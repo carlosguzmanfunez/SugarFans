@@ -1037,9 +1037,9 @@ const run = async () => {
     });
     await check('Con sesión de creadora la portada lleva a su panel en lugar del registro', async () => {
       await page.goto(`${BASE}/`);
-      await page.locator('#hero-title').waitFor();
+      await page.locator('#creator-home-title').waitFor();
       expect(await page.locator('a[href^="/register"]').count() === 0, 'la portada enlaza al registro con sesión iniciada');
-      await page.locator('#hero-title').locator('..').getByRole('link', { name: /Ir a mi panel/ }).waitFor();
+      await page.getByTestId('creator-home').getByRole('link', { name: /Ir a mi panel/ }).waitFor();
       await page.locator('#creator-cta-title').locator('..').getByRole('link', { name: /Ir a mi panel/ }).waitFor();
       await page.locator('footer').getByRole('link', { name: 'Mi panel de creador' }).waitFor();
       await page.goto(`${BASE}/creator/dashboard?tab=earnings`);
@@ -2559,6 +2559,19 @@ const run = async () => {
       const before = await rail.locator('div').evaluate((el) => el.style.marginLeft);
       await p.locator('#panel-tabs > div > div').first().evaluate((el) => el.scrollTo({ left: el.scrollWidth }));
       await p.waitForFunction((b) => document.querySelector('[data-testid=scroll-rail] div')?.style.marginLeft !== b, before);
+      await ctx.close();
+    });
+    await check('El creador ve su propio inicio (su día) en vez del hero de fans', async () => {
+      const ctx = await newContext(browser, { viewport: { width: 390, height: 844 }, locale: 'es-ES', hasTouch: true });
+      const p = await newPage(ctx);
+      await login(p, 'creator@sugarfans.com', 'demo1234');
+      await p.waitForURL((u) => new URL(u).pathname !== '/login');
+      await p.goto(`${BASE}/`);
+      await p.getByTestId('creator-home').getByRole('heading', { name: /Hola, Valentina/ }).waitFor();
+      expect((await p.locator('#hero-title').count()) === 0, 'el creador ve el hero de fans');
+      for (const id of ['ch-reservas', 'ch-ganado', 'ch-creditos', 'ch-nudge']) await p.getByTestId(id).waitFor();
+      await p.getByTestId('ch-subir').tap();
+      await p.getByRole('heading', { name: 'Gestión de contenido' }).waitFor();
       await ctx.close();
     });
     await check('La presentación en video solo la ven visitantes sin sesión', async () => {
