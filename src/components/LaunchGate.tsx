@@ -75,12 +75,8 @@ const LaunchGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <div className="absolute -bottom-48 -right-32 h-[520px] w-[520px] rounded-full bg-[radial-gradient(closest-side,rgba(109,60,230,0.3),transparent)]" />
       </div>
       <div className="relative z-10 flex max-w-xl flex-col items-center">
-        <BrandLogo tone="dark" to={null} />
-        <p className="mt-10 text-sm font-semibold uppercase tracking-[0.2em] text-gold-200">Muy pronto</p>
-        <h1 className="mt-4 text-display-md text-white">Conecta más allá del feed.</h1>
-        <p className="mt-4 text-lg text-white/75">
-          Estamos preparando todo para que empieces a hablar con los creadores de contenido que sigues. Vuelve pronto.
-        </p>
+        <BrandLogo size="lg" tone="dark" to={null} />
+        <h1 className="mt-8 text-sm font-semibold uppercase tracking-[0.3em] text-gold-200">Muy pronto</h1>
       </div>
     </main>
   );
