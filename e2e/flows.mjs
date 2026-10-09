@@ -2647,6 +2647,23 @@ const run = async () => {
         await ctx.close();
       }
     });
+    await check('Escritorio: "Reserve" y "Cómo funciona" bajan hasta que la sección llena la pantalla, sin franja arriba', async () => {
+      const ctx = await newContext(browser, { viewport: { width: 1440, height: 900 }, locale: 'es-ES' });
+      const p = await newPage(ctx);
+      await login(p, 'fan@sugarfans.com', 'demo1234');
+      await waitPath(p, '/');
+      const nav = p.getByRole('navigation', { name: 'Principal' });
+      for (const [name, id] of [['Reserve', 'reserve'], ['Cómo funciona', 'journey']]) {
+        await nav.getByRole('link', { name, exact: true }).click();
+        await p.waitForFunction((sid) => Math.abs(document.getElementById(sid).getBoundingClientRect().top) <= 2, id, { timeout: 5000 });
+        const { title, navBottom } = await p.evaluate((sid) => ({
+          title: document.getElementById(sid).querySelector('h2').getBoundingClientRect().top,
+          navBottom: document.querySelector('nav[aria-label="Principal"]').getBoundingClientRect().bottom,
+        }), id);
+        expect(title > navBottom, `el título de ${name} queda debajo de la cápsula`);
+      }
+      await ctx.close();
+    });
     await check('La presentación en video solo la ven visitantes sin sesión', async () => {
       const ctx = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });
       const p = await newPage(ctx);
