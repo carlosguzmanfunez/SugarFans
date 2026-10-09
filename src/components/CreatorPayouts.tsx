@@ -159,7 +159,12 @@ const CreatorPayouts: React.FC = () => {
               value={paypalEmail}
               onChange={(e) => setPaypalEmail(e.target.value)}
             />
-            <p className="text-xs text-gray-500">Usa el email con el que entras a PayPal; si aún no tienes cuenta, puedes crearla gratis en paypal.com.</p>
+            <p className="text-xs text-gray-500">
+              Usa el email con el que entras a PayPal. ¿Aún no tienes cuenta?{' '}
+              <a href="https://www.paypal.com/signup" target="_blank" rel="noopener noreferrer" className="font-medium text-blue-700 underline hover:text-blue-800">
+                Crea tu cuenta PayPal gratis<i aria-hidden="true" className="fas fa-arrow-up-right-from-square ml-1 text-[10px]"></i>
+              </a>
+            </p>
             <button type="button" onClick={saveAccount} className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium">Guardar cuenta</button>
           </div>
         )}

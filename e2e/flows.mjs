@@ -849,6 +849,20 @@ const run = async () => {
       await register(page, { name: 'Lola Creadora', email: creatorEmail, password: 'clave-creadora-1', role: 'creator' });
       await waitPath(page, '/creator/dashboard');
     });
+    await check('Al registrarse, el creador ve el último paso: verificar identidad (ahora o más tarde)', async () => {
+      const welcome = page.getByTestId('verify-welcome');
+      await welcome.getByText('Último paso: verifica tu identidad').waitFor();
+      await welcome.getByText('¡Ya eres parte de Fans Reserve, Lola!').waitFor();
+      await welcome.getByRole('button', { name: 'Verificar ahora' }).click();
+      await page.waitForURL((u) => new URL(u).searchParams.get('section') === 'verification', { timeout: 5000 });
+      await page.goBack();
+      await welcome.getByRole('button', { name: 'Más tarde' }).click();
+      await welcome.waitFor({ state: 'detached' });
+      expect(!page.url().includes('bienvenida'), `la dirección conserva bienvenida: ${page.url()}`);
+      await page.reload();
+      await page.getByTestId('verification-banner').waitFor();
+      expect((await welcome.count()) === 0, 'la bienvenida vuelve a salir');
+    });
     await check('Un creador sin verificar no puede publicar', async () => {
       await page.getByTestId('verification-banner').waitFor();
       await page.getByRole('button', { name: /Nueva publicación/ }).click();
@@ -871,6 +885,12 @@ const run = async () => {
       await page.getByText('Solicitud en revisión').waitFor();
       await page.goto(`${BASE}/creator/dashboard`);
       await page.getByTestId('verification-banner').getByText(/en revisión/).waitFor();
+    });
+    await check('Al volver de Didit con la solicitud en revisión: se cierra el aviso y se ve el estado', async () => {
+      await page.goto(`${BASE}/settings?section=verification&didit=1`);
+      await page.getByText('Solicitud en revisión').waitFor();
+      expect((await page.getByTestId('didit-return').count()) === 0, 'sigue el aviso de Didit');
+      expect(!page.url().includes('didit='), `la dirección conserva didit: ${page.url()}`);
     });
     await check('Admin ve los documentos, rechaza la del fan con motivo y aprueba la del creador', async () => {
       await logoutViaMenu(page);
@@ -963,6 +983,13 @@ const run = async () => {
       expect(remaining === 1, `se esperaba 1 publicación visible, hay ${remaining}`);
       await logoutViaMenu(page);
       await login(page, creatorEmail, 'clave-creadora-1');
+      await waitPath(page, '/');
+      await page.goto(`${BASE}/creator/dashboard`);
+    });
+    await check('Al volver de Didit ya aprobado: check verde de Verificado y luego al Inicio', async () => {
+      await page.goto(`${BASE}/settings?section=verification&didit=1`);
+      const done = page.getByTestId('didit-return');
+      await done.getByText('¡Identidad verificada!').waitFor();
       await waitPath(page, '/');
       await page.goto(`${BASE}/creator/dashboard`);
     });
@@ -1070,6 +1097,8 @@ const run = async () => {
       await page.getByRole('button', { name: label }).click();
       await page.getByText('Añade el email de tu cuenta PayPal para retiros').waitFor();
       await page.getByPlaceholder('Email de tu cuenta PayPal').fill('no-es-email');
+      const signup = page.getByRole('link', { name: /Crea tu cuenta PayPal gratis/ });
+      expect((await signup.getAttribute('href')) === 'https://www.paypal.com/signup' && (await signup.getAttribute('target')) === '_blank', 'falta el enlace para crear cuenta PayPal');
       await page.getByRole('button', { name: 'Guardar cuenta' }).click();
       await page.getByText('Escribe el email de tu cuenta PayPal').waitFor();
       await page.getByPlaceholder('Email de tu cuenta PayPal').fill('Valentina.Rose@Example.com');
@@ -1790,6 +1819,7 @@ const run = async () => {
       await waitPath(rf, '/register');
       await register(rf, { name, email, password: 'password123', role: 'creator' });
       await waitPath(rf, '/creator/dashboard');
+      await rf.getByTestId('verify-welcome').getByRole('button', { name: 'Más tarde' }).click();
       return rf.evaluate((e) => JSON.parse(localStorage.getItem('fansreserve_accounts')).find((a) => a.email === e).creatorProfileId, email);
     };
     // The invited creator is verified and has sold their first $100.

@@ -82,7 +82,7 @@ const AuthCallback: React.FC = () => {
     clearRefCode();
     // Creators land on their panel, where identity verification starts.
     removeKey(SOCIAL_INTENT_KEY);
-    navigate(role === 'creator' ? '/creator/dashboard' : intent.from || '/', { replace: true });
+    navigate(role === 'creator' ? '/creator/dashboard?bienvenida=1' : intent.from || '/', { replace: true });
   };
 
   const cancel = async () => {

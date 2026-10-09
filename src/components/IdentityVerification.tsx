@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usePlatformQuery, platformApi, submitVerification, readImageFile, docTypeLabel, type DocType } from '../lib/platform';
+import { useSearchParams } from 'react-router-dom';
 import { diditEnabled, startDidit } from '../lib/didit';
+import DiditReturn, { returnedFromDidit } from './DiditReturn';
 
 const field = 'w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-sm';
 
@@ -49,7 +51,10 @@ const PhotoInput: React.FC<{
 // Settings > Verificación: upload an ID document + selfie, then follow the review status.
 const IdentityVerification: React.FC = () => {
   const { user } = useAuth();
-  const { data: request, loading } = usePlatformQuery(
+  const [searchParams] = useSearchParams();
+  // Back from Didit: wait for its decision, then celebrate or show the status.
+  const [returning, setReturning] = useState(() => returnedFromDidit(searchParams));
+  const { data: request, loading, reload } = usePlatformQuery(
     () => (user ? platformApi.myVerification(user.id) : Promise.resolve(null)),
     [user?.id, user?.isVerified],
     null
@@ -74,6 +79,7 @@ const IdentityVerification: React.FC = () => {
     };
   }, []);
 
+  if (returning) return <DiditReturn onDone={() => { setReturning(false); reload(); }} />;
   if (!user || loading || didit === null) return null;
   const verified = !!user.isVerified || request?.status === 'approved';
 
