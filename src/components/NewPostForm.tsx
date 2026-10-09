@@ -47,7 +47,6 @@ const NewPostForm: React.FC<Props> = ({ verified, asProfileId, onPublished, onCa
 
   const publish = async () => {
     if (!user) return;
-    if (!verified) return setError('Verifica tu identidad antes de publicar contenido');
     if (!text.trim() && !file) return setError('Escribe algo o añade una foto o video');
     setError('');
     let media;
@@ -80,6 +79,12 @@ const NewPostForm: React.FC<Props> = ({ verified, asProfileId, onPublished, onCa
       <p className="text-sm text-gray-500 mb-4">
         Sube una foto (hasta {MAX_IMAGE_MB} MB) o un video (hasta {MAX_VIDEO_MB} MB). Aparecerá en tu perfil público.
       </p>
+      {!verified && (
+        <p className="text-sm text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2 mb-4" data-testid="draft-hint">
+          <i aria-hidden="true" className="fas fa-id-card mr-1"></i>
+          Se guardará como borrador: solo tú lo ves y se publica solo cuando verifiques tu identidad.
+        </p>
+      )}
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -134,7 +139,7 @@ const NewPostForm: React.FC<Props> = ({ verified, asProfileId, onPublished, onCa
             disabled={!!busy}
             className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-2 rounded-xl font-medium hover:opacity-90 disabled:opacity-50"
           >
-            {busy === 'upload' ? 'Subiendo archivo…' : busy === 'save' ? 'Publicando…' : 'Publicar'}
+            {busy === 'upload' ? 'Subiendo archivo…' : busy === 'save' ? (verified ? 'Publicando…' : 'Guardando…') : verified ? 'Publicar' : 'Guardar borrador'}
           </button>
         </div>
       </div>

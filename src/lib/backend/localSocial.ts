@@ -16,6 +16,7 @@ interface Store {
 
 interface Deps {
   listAccounts(): User[];
+  viewer(): Pick<User, 'id' | 'role'> | undefined;
   notify(): void;
 }
 
@@ -29,7 +30,7 @@ const toPublicCreator = (a: User): PublicCreator => ({
   bio: a.bio ?? '',
   isVerified: !!a.isVerified,
   subscriptionPrice: a.subscriptionPrice ?? 9.99,
-  posts: a.createdPosts.length,
+  posts: a.createdPosts.filter((p) => !p.isDraft).length,
   createdAt: a.createdAt,
   category: a.settings.category ?? '',
 });
@@ -74,10 +75,13 @@ export const createLocalSocial = (deps: Deps): SocialBackend => {
   return {
     async postsByCreator(creatorProfileId) {
       // A post belongs to its author's profile, or to the managed profile an admin posted as.
+      // Drafts only reach their author and admins.
+      const viewer = deps.viewer();
       const posts: FeedPost[] = await Promise.all(
         deps.listAccounts().flatMap((a) =>
           a.createdPosts
             .filter((p) => (p.creatorProfileId ?? a.creatorProfileId) === creatorProfileId)
+            .filter((p) => !p.isDraft || viewer?.id === a.id || viewer?.role === 'admin')
             .map(async (p) => ({
             id: p.id,
             creatorProfileId,
@@ -88,6 +92,7 @@ export const createLocalSocial = (deps: Deps): SocialBackend => {
             mediaType: p.mediaType,
             mediaPath: p.mediaPath,
             mediaUrl: p.mediaPath ? await fileUrl(p.mediaPath) : undefined,
+            ...(p.isDraft ? { isDraft: true } : {}),
           }))
         )
       );

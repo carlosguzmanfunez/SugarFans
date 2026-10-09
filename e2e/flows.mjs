@@ -853,6 +853,7 @@ const run = async () => {
       const welcome = page.getByTestId('verify-welcome');
       await welcome.getByText('Último paso: verifica tu identidad').waitFor();
       await welcome.getByText('¡Ya eres parte de Fans Reserve, Lola!').waitFor();
+      await welcome.getByTestId('verify-qr-hint').getByText(/código QR/).waitFor();
       await welcome.getByRole('button', { name: 'Verificar ahora' }).click();
       await page.waitForURL((u) => new URL(u).searchParams.get('section') === 'verification', { timeout: 5000 });
       await page.goBack();
@@ -863,12 +864,17 @@ const run = async () => {
       await page.getByTestId('verification-banner').waitFor();
       expect((await welcome.count()) === 0, 'la bienvenida vuelve a salir');
     });
-    await check('Un creador sin verificar no puede publicar', async () => {
-      await page.getByTestId('verification-banner').waitFor();
+    await check('Sin verificar: lo que sube queda como borrador que solo ve el creador', async () => {
+      await page.getByTestId('verification-banner').getByText(/queda como borrador/).waitFor();
       await page.getByRole('button', { name: /Nueva publicación/ }).click();
+      await page.getByTestId('draft-hint').waitFor();
       await page.fill('textarea', 'Intento sin verificar');
-      await page.getByRole('button', { name: 'Publicar' }).click();
-      await page.getByText('Verifica tu identidad antes de publicar contenido').waitFor();
+      await page.getByRole('button', { name: 'Guardar borrador' }).click();
+      await page.getByText('Guardado como borrador. Se publicará solo cuando verifiques tu identidad.').waitFor();
+      await page.getByTestId('created-post').filter({ hasText: 'Intento sin verificar' }).getByTestId('draft-badge').waitFor();
+      await page.getByRole('link', { name: /Ver mi perfil/ }).click();
+      await page.getByTestId('post').filter({ hasText: 'Intento sin verificar' }).getByText('Borrador: solo tú lo ves').waitFor();
+      await page.goto(`${BASE}/creator/dashboard`);
     });
     await check('Verificación: exige las fotos del documento', async () => {
       await page.goto(`${BASE}/settings?section=verification`);
@@ -992,6 +998,14 @@ const run = async () => {
       await done.getByText('¡Identidad verificada!').waitFor();
       await waitPath(page, '/');
       await page.goto(`${BASE}/creator/dashboard`);
+    });
+    await check('Al verificarse, su borrador se publica solo', async () => {
+      await page.getByRole('button', { name: /Contenido/ }).click();
+      const draft = page.getByTestId('created-post').filter({ hasText: 'Intento sin verificar' });
+      await draft.getByText('Público').waitFor();
+      expect((await draft.getByTestId('draft-badge').count()) === 0, 'sigue como borrador');
+      await draft.getByRole('button', { name: /Eliminar/ }).click();
+      await draft.waitFor({ state: 'detached' });
     });
     await check('Nueva publicación se guarda y persiste', async () => {
       expect((await page.getByTestId('verification-banner').count()) === 0, 'sigue el aviso de verificación');

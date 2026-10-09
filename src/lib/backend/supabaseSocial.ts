@@ -41,7 +41,7 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
   async postsByCreator(creatorProfileId) {
     const { data } = await sb
       .from('creator_posts')
-      .select('id, creator_id, creator_profile_id, content, is_locked, created_at, media_path, media_type')
+      .select('id, creator_id, creator_profile_id, content, is_locked, created_at, media_path, media_type, is_draft')
       .eq('creator_profile_id', creatorProfileId)
       .order('created_at', { ascending: false });
     const rows = data ?? [];
@@ -63,6 +63,7 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
         mediaType: r.media_type ?? undefined,
         mediaPath: r.media_path ?? undefined,
         mediaUrl: r.media_path ? signed.get(r.media_path) : undefined,
+        isDraft: !!r.is_draft,
       })
     );
   },

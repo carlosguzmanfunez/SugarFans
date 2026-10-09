@@ -22,6 +22,8 @@ export interface FeedPost {
   mediaPath?: string;
   // Missing when the viewer may not see the file (locked post, not subscribed).
   mediaUrl?: string;
+  // Only its author (and admins) get drafts: they go public once the creator is verified.
+  isDraft?: boolean;
 }
 
 export interface Engagement {
