@@ -176,8 +176,12 @@ const IdentityVerification: React.FC = () => {
           <li><i aria-hidden="true" className="fas fa-id-card w-5 text-pink-500"></i> Ten a mano tu documento original (no una copia).</li>
           <li><i aria-hidden="true" className="fas fa-camera w-5 text-pink-500"></i> Busca buena luz y quítate gorra o gafas de sol.</li>
           <li><i aria-hidden="true" className="fas fa-shield-alt w-5 text-pink-500"></i> Lo hace Didit, nuestro proveedor de verificación. Al terminar vuelves aquí.</li>
-          <li data-testid="verify-qr-hint"><i aria-hidden="true" className="fas fa-mobile-alt w-5 text-pink-500"></i> ¿Tu computadora no tiene cámara? Didit te muestra un código QR para terminar desde tu celular.</li>
         </ul>
+        {/* Desktop only: on a phone the camera is right there. */}
+        <p className="hidden md:flex items-center gap-3 text-base text-gray-800 bg-pink-50 border border-pink-100 rounded-2xl px-4 py-3 mb-5" data-testid="verify-qr-hint">
+          <i aria-hidden="true" className="fas fa-mobile-alt text-2xl text-pink-500 shrink-0"></i>
+          <span>¿Tu computadora no tiene cámara? Didit te muestra un <span className="font-semibold">código QR</span> para terminar desde tu celular.</span>
+        </p>
         {error && <p role="alert" className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">{error}</p>}
         <button type="button" onClick={openDidit} disabled={sending} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition disabled:opacity-60">
           {sending ? 'Abriendo…' : 'Verificar mi identidad'}
