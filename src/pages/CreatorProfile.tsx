@@ -294,8 +294,9 @@ const CreatorProfile: React.FC = () => {
       <CoverImage src={creator.cover || null} seed={creator.id + creator.name} className="h-48 md:h-72">
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
         {editsImages && (
-          <div className="absolute inset-x-0 bottom-0">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-3 flex justify-end">
+          // Top corner: the profile header overlaps the bottom of the cover and would cover it.
+          <div className="absolute inset-x-0 top-0 z-10">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 flex justify-end">
               <ProfileImageButton kind="cover" onDone={notify} className="h-10 w-10 sm:w-auto sm:px-4 rounded-full sm:rounded-xl" />
             </div>
           </div>

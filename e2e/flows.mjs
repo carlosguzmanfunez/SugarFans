@@ -875,10 +875,21 @@ const run = async () => {
       await page.getByRole('link', { name: /Ver mi perfil/ }).click();
       await page.getByTestId('post').filter({ hasText: 'Intento sin verificar' }).getByText('Borrador: solo tú lo ves').waitFor();
       // Like Facebook: camera buttons on the cover and on the profile photo.
-      await page.getByTestId('cover-input').setInputFiles(photo('portada.png'));
+      // A real click on each button (nothing on top of it may swallow the tap).
+      const pickWith = async (button, file) => {
+        const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.getByTestId(button).click({ timeout: 3000 })]);
+        await chooser.setFiles(photo(file));
+      };
+      await pickWith('cover-button', 'portada.png');
       await page.getByText('Portada actualizada').waitFor();
-      await page.getByTestId('avatar-input').setInputFiles(photo('yo.png'));
+      await pickWith('avatar-button', 'yo.png');
       await page.getByText('Foto de perfil actualizada').waitFor();
+      // Same on a phone.
+      const size = page.viewportSize();
+      await page.setViewportSize({ width: 390, height: 844 });
+      await pickWith('cover-button', 'portada.png');
+      await pickWith('avatar-button', 'yo.png');
+      await page.setViewportSize(size);
       await page.reload();
       await page.locator('img[src^="data:image/jpeg"]').first().waitFor();
       await page.goto(`${BASE}/creator/dashboard`);
