@@ -4,6 +4,7 @@ import type { Creator } from '../../data/mockData';
 import { CREATOR_CATEGORIES, categoryFor, type CreatorCategoryId } from '../../config/reserve';
 import { CATEGORIES } from '../../content/landing';
 import { ArrowRight, trackSpot } from './landingBits';
+import { useAuth } from '../../context/AuthContext';
 
 // Each community has its own colour (soft gradient + accent) and line icon.
 const LOOK: Record<CreatorCategoryId, { tint: string; ink: string; icon: React.ReactNode }> = {
@@ -22,6 +23,8 @@ const LOOK: Record<CreatorCategoryId, { tint: string; ink: string; icon: React.R
 // Every community at a glance: the hovered one lights up in its colour, the rest
 // step back. Each opens Explorar filtered by that category.
 const CategoryGrid: React.FC<{ creators: Creator[] }> = ({ creators }) => {
+  const { user } = useAuth();
+  const copy = user?.role === 'creator' ? CATEGORIES.creator : CATEGORIES;
   const byCategory = new Map<string, Creator[]>();
   creators.forEach((c) => {
     const id = categoryFor(c.category).id;
@@ -32,9 +35,9 @@ const CategoryGrid: React.FC<{ creators: Creator[] }> = ({ creators }) => {
       <div className="wrap">
         <div className="sec-head v-reveal">
           <h2 id="categories-title">
-            {CATEGORIES.titleLead} <em className="grad">{CATEGORIES.titleAccent}</em>
+            {copy.titleLead} <em className="grad">{copy.titleAccent}</em>
           </h2>
-          <p>{CATEGORIES.subtitle}</p>
+          <p>{copy.subtitle}</p>
         </div>
         <div className="cats v-reveal">
           {CREATOR_CATEGORIES.map((cat) => {

@@ -2160,7 +2160,12 @@ const run = async () => {
       await resF.getByTestId('creator-card').filter({ hasText: 'Valentina Rose' }).waitFor();
       await resF.goto(`${BASE}/`);
       await resF.getByText('Suscríbete a tus creadores y reserva eventos y sesiones privadas con fecha, precio y reglas claras.').waitFor();
-      await resF.locator('#categories-title').getByText('sea cual sea su contenido').waitFor();
+      // Fans get a message for fans; creators keep "Cada creador trae a su comunidad".
+      await resF.locator('#categories-title').getByText('Encuentra a los creadores que sigues').waitFor();
+      await resF.locator('#categories-title').getByText('y a los que vas a seguir').waitFor();
+      expect((await resF.getByText('Trae a tu comunidad de TikTok o Instagram').count()) === 0, 'el fan ve el texto para creadores en Tu gente');
+      await resC.goto(`${BASE}/`);
+      await resC.locator('#categories-title').getByText('sea cual sea su contenido').waitFor();
       await resF.locator('#comunidades').getByRole('link', { name: /Tu gente/ }).waitFor();
       const how = resF.locator('section[aria-labelledby=how-title]');
       for (const p of ['Sigue', 'Suscríbete', 'Reserva', 'Reserve Event', 'Reserve 1:1']) await how.getByText(p, { exact: true }).first().waitFor({ state: 'attached' });
