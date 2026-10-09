@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import TermsConsent from '../components/TermsConsent';
 import { useAuth, UserRole } from '../context/AuthContext';
 import { isValidEmail } from '../lib/storage';
 import { clearRefCode, readRefCode } from '../lib/rewardRules';
@@ -260,14 +261,7 @@ const Register: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
             </div>
           )}
 
-          <label className="flex items-start space-x-2">
-            <input type="checkbox" checked={agreeTerms} onChange={(e) => setAgreeTerms(e.target.checked)} className="mt-1 w-4 h-4 text-pink-600 rounded" />
-            <span className="text-sm text-gray-600">
-              {t('register.terms')} <Link to="/legal" target="_blank" className="text-pink-600">{t('register.termsLink')}</Link>,{' '}
-              {t('register.and')} <Link to="/legal" target="_blank" className="text-pink-600">{t('register.privacyLink')}</Link>{' '}
-              {t('register.ageConfirm')}
-            </span>
-          </label>
+          <TermsConsent checked={agreeTerms} onChange={setAgreeTerms} />
 
           <div className="flex space-x-3">
             <button onClick={() => { setError(''); setStep(2); }} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-200 transition">

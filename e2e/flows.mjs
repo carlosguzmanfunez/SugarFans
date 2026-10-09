@@ -2709,6 +2709,30 @@ const run = async () => {
       await p.getByText('No encontramos experiencias para "zzzz".').waitFor();
       await ctx.close();
     });
+    await check('Registro: la casilla acepta Términos, Privacidad y las demás políticas, cada una con su documento', async () => {
+      const ctx = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });
+      const p = await newPage(ctx);
+      await p.goto(`${BASE}/register`);
+      await p.fill('input[type=text]', 'Fan Términos');
+      await p.fill('input[type=email]', `terminos${Date.now()}@test.com`);
+      await p.selectOption('[data-testid=signup-country]', 'ES');
+      await p.getByRole('button', { name: 'Continuar', exact: true }).click();
+      const pw = p.locator('input[type=password]');
+      await pw.nth(0).fill('secreta123');
+      await pw.nth(1).fill('secreta123');
+      await p.getByRole('button', { name: 'Continuar', exact: true }).click();
+      const consent = p.getByTestId('terms-consent');
+      await consent.waitFor();
+      const consentText = 'Acepto los Términos y Condiciones, la Política de Privacidad y las demás políticas de Fans Reserve, y confirmo que soy mayor de 18 años.';
+      expect((await consent.innerText()).replace(/\s+/g, ' ').trim() === consentText, `texto: ${await consent.innerText()}`);
+      expect((await consent.getByRole('link', { name: 'Términos y Condiciones' }).getAttribute('href')) === '/legal?doc=terms', 'Términos no abre su documento');
+      expect((await consent.getByRole('link', { name: 'Política de Privacidad' }).getAttribute('href')) === '/legal?doc=privacy', 'Privacidad no abre su documento');
+      expect((await consent.getByRole('link', { name: 'las demás políticas de Fans Reserve' }).getAttribute('href')) === '/legal', 'las demás políticas no abren /legal');
+      // Without the box ticked there is no account.
+      await p.getByRole('button', { name: /Crear cuenta|Registrarse/ }).last().click();
+      await p.getByText('Debes aceptar los términos y condiciones').waitFor();
+      await ctx.close();
+    });
     await check('La presentación en video solo la ven visitantes sin sesión', async () => {
       const ctx = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });
       const p = await newPage(ctx);
