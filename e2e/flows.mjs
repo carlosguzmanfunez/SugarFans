@@ -2692,6 +2692,23 @@ const run = async () => {
         await ctx.close();
       }
     });
+    await check('Reserve: la barra de búsqueda encuentra experiencias por creador o por título', async () => {
+      const ctx = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });
+      const p = await newPage(ctx);
+      await p.goto(`${BASE}/reserve`);
+      const search = p.getByRole('searchbox', { name: 'Buscar en Reserve' });
+      await search.waitFor();
+      await p.getByText('Diego Torres').first().waitFor();
+      await search.fill('valentina');
+      await p.getByText('Valentina Rose').first().waitFor();
+      expect((await p.getByText('Diego Torres').count()) === 0, 'la búsqueda por creador sigue mostrando a Diego');
+      await search.fill('entrenamiento');
+      await p.getByText('Coaching y plan de entrenamiento').waitFor();
+      expect((await p.getByText('Valentina Rose').count()) === 0, 'la búsqueda por título sigue mostrando a Valentina');
+      await search.fill('zzzz');
+      await p.getByText('No encontramos experiencias para "zzzz".').waitFor();
+      await ctx.close();
+    });
     await check('La presentación en video solo la ven visitantes sin sesión', async () => {
       const ctx = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });
       const p = await newPage(ctx);
