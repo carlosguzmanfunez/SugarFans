@@ -30,6 +30,7 @@ const detectLanguage = (): Language => {
 const translations: Record<Language, Record<string, string>> = {
   es: {
     // Navbar
+    'nav.home': 'Inicio',
     'nav.explore': 'Explorar',
     'nav.dashboard': 'Panel',
     'nav.admin': 'Admin',
@@ -131,6 +132,7 @@ const translations: Record<Language, Record<string, string>> = {
   
   en: {
     // Navbar
+    'nav.home': 'Home',
     'nav.explore': 'Explore',
     'nav.dashboard': 'Dashboard',
     'nav.admin': 'Admin',
@@ -232,6 +234,7 @@ const translations: Record<Language, Record<string, string>> = {
   
   pt: {
     // Navbar
+    'nav.home': 'Início',
     'nav.explore': 'Explorar',
     'nav.dashboard': 'Painel',
     'nav.admin': 'Admin',
@@ -333,6 +336,7 @@ const translations: Record<Language, Record<string, string>> = {
   
   fr: {
     // Navbar
+    'nav.home': 'Accueil',
     'nav.explore': 'Explorer',
     'nav.dashboard': 'Tableau de bord',
     'nav.admin': 'Admin',
@@ -434,6 +438,7 @@ const translations: Record<Language, Record<string, string>> = {
   
   it: {
     // Navbar
+    'nav.home': 'Home',
     'nav.explore': 'Esplora',
     'nav.dashboard': 'Pannello',
     'nav.admin': 'Admin',

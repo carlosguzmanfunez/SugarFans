@@ -71,6 +71,8 @@ const Navbar: React.FC = () => {
   const onReservas = location.pathname === '/creator/dashboard' && new URLSearchParams(location.search).get('tab') === 'vip';
   const showCreators = !isAuthenticated || user?.role === 'creator';
   const sections = [
+    // Inicio, so the way home is in the menu and not only in the logo.
+    { href: '/', label: t('nav.home') },
     // Explorar is a page (all the creators), not the communities section of Inicio.
     { href: '/explore', label: 'Explorar' },
     { href: '#reserve', label: 'Reserve' },
@@ -107,7 +109,7 @@ const Navbar: React.FC = () => {
             {onLanding &&
               sections.map((sct) =>
                 sct.href.startsWith('/') ? (
-                  <Link key={sct.href} to={sct.href} className="rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-ink/5">
+                  <Link key={sct.href} to={sct.href} className={linkCls(sct.href)}>
                     {sct.label}
                   </Link>
                 ) : (
@@ -118,6 +120,9 @@ const Navbar: React.FC = () => {
               )}
             {!onLanding && (
               <>
+            <Link to="/" className={linkCls('/')}>
+              {t('nav.home')}
+            </Link>
             <Link to="/explore" className={linkCls('/explore')}>
               {t('nav.explore')}
             </Link>

@@ -2630,14 +2630,20 @@ const run = async () => {
       }
       await ctx.close();
     });
-    await check('Escritorio: "Explorar" en la barra de Inicio abre la página Explorar (fan y creador)', async () => {
+    await check('Escritorio: la cápsula de arriba tiene "Inicio" a la izquierda de "Explorar", y "Explorar" abre la página Explorar (fan y creador)', async () => {
       for (const email of ['fan@sugarfans.com', 'creator@sugarfans.com']) {
         const ctx = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });
         const p = await newPage(ctx);
         await login(p, email, 'demo1234');
         await waitPath(p, '/');
-        await p.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Explorar', exact: true }).click();
+        const nav = p.getByRole('navigation', { name: 'Principal' });
+        const order = await nav.locator('a').allInnerTexts();
+        expect(order.indexOf('Inicio') >= 0 && order.indexOf('Inicio') + 1 === order.indexOf('Explorar'), `Inicio no va antes de Explorar: ${order.join(' | ')}`);
+        await nav.getByRole('link', { name: 'Explorar', exact: true }).click();
         await waitPath(p, '/explore');
+        // On the other pages Inicio stays in the pill, to the left of Explorar, and leads home.
+        await nav.getByRole('link', { name: 'Inicio', exact: true }).click();
+        await waitPath(p, '/');
         await ctx.close();
       }
     });
