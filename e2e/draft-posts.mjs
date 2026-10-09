@@ -66,6 +66,17 @@ finish(async () => {
     }
     expect(!/verificando su identidad/.test(msg), msg);
   });
+  await check('Portada: solo un enlace https, y cualquiera la ve en el perfil público', async () => {
+    raises(() => as(lola, `update public.profiles set cover = 'javascript:alert(1)' where id = '${lola}'`), /profiles_cover_url/, 'enlace raro');
+    as(lola, `update public.profiles set cover = 'https://x.supabase.co/storage/v1/object/public/profile-images/${lola}/cover-1.jpg' where id = '${lola}'`);
+    expect(psql(DB, `set role anon; select public.creator_cover('${profileOf(lola)}')`).endsWith('/cover-1.jpg'), 'no se ve la portada');
+  });
+  await check('Fotos de perfil: cada quien sube solo a su carpeta', async () => {
+    // Supabase grants the table to signed-in users; row security decides the folder.
+    psql(DB, 'grant usage on schema storage to authenticated; grant all on storage.objects to authenticated');
+    raises(() => as(fan, `insert into storage.objects (bucket_id, name) values ('profile-images', '${lola}/avatar-1.jpg')`), /row-level security/, 'carpeta ajena');
+    as(fan, `insert into storage.objects (bucket_id, name) values ('profile-images', '${fan}/avatar-1.jpg')`);
+  });
   await check('Un admin publica al instante', async () => {
     expect(post(admin, 'aviso') === 'f', 'quedó en borrador');
   });

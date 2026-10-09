@@ -286,6 +286,8 @@ export interface Backend {
   completeSocialSignup(role: UserRole, ref?: string, extras?: SignupExtras): Promise<AuthResult>;
   logout(): Promise<void>;
   updateProfile(user: User, patch: ProfilePatch): Promise<AuthResult>;
+  // Profile photo or cover photo, already shrunk to a JPEG by the browser.
+  setProfileImage(user: User, kind: 'avatar' | 'cover', image: Blob): Promise<AuthResult>;
   changePassword(user: User, current: string, next: string): Promise<AuthResult>;
   // `password` is ignored for Google/Microsoft accounts, which have none.
   deleteAccount(user: User, password: string): Promise<AuthResult>;

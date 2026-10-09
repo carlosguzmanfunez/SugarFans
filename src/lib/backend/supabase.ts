@@ -50,6 +50,7 @@ interface ProfileRow {
   email: string;
   role: UserRole;
   avatar: string;
+  cover?: string | null;
   bio: string | null;
   is_verified: boolean;
   subscription_price: number | string | null;
@@ -131,6 +132,7 @@ const toUser = (p: ProfileRow, extra?: Pick<User, 'subscriptions' | 'createdPost
   email: p.email,
   role: p.role,
   avatar: p.avatar,
+  cover: p.cover || undefined,
   bio: p.bio ?? undefined,
   isVerified: p.is_verified,
   subscriptionPrice: p.subscription_price == null ? undefined : Number(p.subscription_price),
@@ -342,6 +344,24 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
 
     async logout() {
       await sb.auth.signOut();
+    },
+
+    async setProfileImage(user, kind, image) {
+      const bucket = sb.storage.from('profile-images');
+      const path = `${user.id}/${kind}-${Date.now()}.jpg`;
+      const { error } = await bucket.upload(path, image, { contentType: 'image/jpeg', upsert: false });
+      if (error) return fail(/size|large|payload/i.test(error.message) ? 'La foto es demasiado grande' : 'No se pudo subir la foto. Inténtalo de nuevo.');
+      const url = bucket.getPublicUrl(path).data.publicUrl;
+      const { error: saveError } = await sb.from('profiles').update({ [kind]: url }).eq('id', user.id);
+      if (saveError) {
+        await bucket.remove([path]);
+        return dbError(saveError, 'No se pudo guardar la foto');
+      }
+      // The previous photo of the same kind is no longer used.
+      const { data: files } = await bucket.list(user.id);
+      const old = (files ?? []).map((f) => `${user.id}/${f.name}`).filter((p) => p !== path && p.startsWith(`${user.id}/${kind}-`));
+      if (old.length) await bucket.remove(old);
+      return ok;
     },
 
     async updateProfile(user, patch) {

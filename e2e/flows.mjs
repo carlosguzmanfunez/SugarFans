@@ -864,7 +864,7 @@ const run = async () => {
       await page.getByTestId('verification-banner').waitFor();
       expect((await welcome.count()) === 0, 'la bienvenida vuelve a salir');
     });
-    await check('Sin verificar: lo que sube queda como borrador que solo ve el creador', async () => {
+    await check('Sin verificar: lo que sube queda como borrador que solo ve el creador; cambia su foto y portada', async () => {
       await page.getByTestId('verification-banner').getByText(/queda como borrador/).waitFor();
       await page.getByRole('button', { name: /Nueva publicación/ }).click();
       await page.getByTestId('draft-hint').waitFor();
@@ -874,6 +874,13 @@ const run = async () => {
       await page.getByTestId('created-post').filter({ hasText: 'Intento sin verificar' }).getByTestId('draft-badge').waitFor();
       await page.getByRole('link', { name: /Ver mi perfil/ }).click();
       await page.getByTestId('post').filter({ hasText: 'Intento sin verificar' }).getByText('Borrador: solo tú lo ves').waitFor();
+      // Like Facebook: camera buttons on the cover and on the profile photo.
+      await page.getByTestId('cover-input').setInputFiles(photo('portada.png'));
+      await page.getByText('Portada actualizada').waitFor();
+      await page.getByTestId('avatar-input').setInputFiles(photo('yo.png'));
+      await page.getByText('Foto de perfil actualizada').waitFor();
+      await page.reload();
+      await page.locator('img[src^="data:image/jpeg"]').first().waitFor();
       await page.goto(`${BASE}/creator/dashboard`);
     });
     await check('Verificación: exige las fotos del documento', async () => {

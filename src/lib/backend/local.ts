@@ -38,6 +38,7 @@ import {
 import type { AuthResult, Availability, Backend, BookingInput, BookingStatus, User, VipBooking, VipExperience } from './types';
 import { createLocalPlatform } from './localPlatform';
 import { createLocalSocial } from './localSocial';
+import { blobToDataUrl } from '../profileImage';
 import { createLocalGifts } from './localGifts';
 import { createLocalRewards } from './localRewards';
 import { createLocalSpecial } from './localSpecial';
@@ -466,6 +467,12 @@ export const localBackend: Backend = {
 
   async logout() {
     writeSession(null);
+  },
+
+  // Offline there is no file server: the (already small) photo is kept as a data URL.
+  async setProfileImage(user, kind, image) {
+    const url = await blobToDataUrl(image);
+    return mutate(user.id, (a) => ({ ...a, [kind]: url })) ? ok : fail('Cuenta no encontrada');
   },
 
   async updateProfile(user, patch) {
