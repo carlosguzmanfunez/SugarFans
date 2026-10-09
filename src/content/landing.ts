@@ -22,10 +22,17 @@ export const HERO = {
   },
 };
 
+// Fans read an invitation to find creators; creators keep the "bring your
+// community" message, which is about them.
 export const CATEGORIES = {
-  titleLead: 'Cada creador trae a su comunidad,',
-  titleAccent: 'sea cual sea su contenido',
-  subtitle: 'Entrenamientos, recetas, música, gaming o un poco de todo. Las categorías solo te ayudan a encontrarlos.',
+  titleLead: 'Encuentra a los creadores que sigues,',
+  titleAccent: 'y a los que vas a seguir',
+  subtitle: 'Entra a una categoría y conecta con ellos: síguelos, suscríbete o reserva una experiencia.',
+  creator: {
+    titleLead: 'Cada creador trae a su comunidad,',
+    titleAccent: 'sea cual sea su contenido',
+    subtitle: 'Entrenamientos, recetas, música, gaming o un poco de todo. Las categorías solo te ayudan a encontrarlos.',
+  },
 };
 
 export const HOW = {

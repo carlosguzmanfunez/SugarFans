@@ -2160,7 +2160,12 @@ const run = async () => {
       await resF.getByTestId('creator-card').filter({ hasText: 'Valentina Rose' }).waitFor();
       await resF.goto(`${BASE}/`);
       await resF.getByText('Suscríbete a tus creadores y reserva eventos y sesiones privadas con fecha, precio y reglas claras.').waitFor();
-      await resF.locator('#categories-title').getByText('sea cual sea su contenido').waitFor();
+      // Fans get a message for fans; creators keep "Cada creador trae a su comunidad".
+      await resF.locator('#categories-title').getByText('Encuentra a los creadores que sigues').waitFor();
+      await resF.locator('#categories-title').getByText('y a los que vas a seguir').waitFor();
+      expect((await resF.getByText('Trae a tu comunidad de TikTok o Instagram').count()) === 0, 'el fan ve el texto para creadores en Tu gente');
+      await resC.goto(`${BASE}/`);
+      await resC.locator('#categories-title').getByText('sea cual sea su contenido').waitFor();
       await resF.locator('#comunidades').getByRole('link', { name: /Tu gente/ }).waitFor();
       const how = resF.locator('section[aria-labelledby=how-title]');
       for (const p of ['Sigue', 'Suscríbete', 'Reserva', 'Reserve Event', 'Reserve 1:1']) await how.getByText(p, { exact: true }).first().waitFor({ state: 'attached' });
@@ -2499,7 +2504,7 @@ const run = async () => {
       expect((await tabs.getByRole('link', { name: 'Live', exact: true }).count()) === 0, 'la barra tiene una pestaña Live');
       await tabs.getByRole('link', { name: 'Explorar', exact: true }).tap();
       await waitPath(m, '/explore');
-      await m.getByTestId('live-rail').waitFor();
+      await m.getByTestId('category-rail').waitFor();
       await m.getByTestId('reserve-rail').waitFor();
       expect((await tabs.getByRole('link', { name: 'Explorar', exact: true }).getAttribute('aria-current')) === 'page', 'Explorar no queda marcada');
       await tabs.getByRole('link', { name: 'Reserve', exact: true }).tap();
@@ -2541,7 +2546,7 @@ const run = async () => {
       const desk = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });
       const d = await newPage(desk);
       await d.goto(`${BASE}/explore`);
-      await d.getByTestId('live-rail').waitFor();
+      await d.getByTestId('category-rail').waitFor();
       expect(!(await d.getByTestId('tab-bar').isVisible()), 'la barra de pestañas se ve en escritorio');
       await desk.close();
     });
@@ -2662,6 +2667,93 @@ const run = async () => {
         }), id);
         expect(title > navBottom, `el título de ${name} queda debajo de la cápsula`);
       }
+      await ctx.close();
+    });
+    await check('Explorar: las categorías son círculos donde estaban los creadores, filtran la lista y el selector de países sigue', async () => {
+      for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
+        const ctx = await newContext(browser, { viewport, locale: 'es-ES' });
+        const p = await newPage(ctx);
+        await p.goto(`${BASE}/explore`);
+        const rail = p.getByTestId('category-rail');
+        await rail.waitFor();
+        expect((await p.getByTestId('live-rail').count()) === 0, 'la fila de avatares de creadores sigue en Explorar');
+        const labels = await rail.getByRole('button').allInnerTexts();
+        expect(labels[0] === 'Todos' && labels.includes('Fitness') && labels.includes('Cocina'), `círculos: ${labels.join(' | ')}`);
+        // No second row of category pills.
+        expect((await p.getByRole('button', { name: 'Fitness', exact: true }).count()) === 1, 'las pastillas de categorías siguen debajo');
+        await p.getByTestId('explore-country').waitFor();
+        await rail.getByRole('button', { name: 'Fitness', exact: true }).click();
+        expect((await rail.getByRole('button', { name: 'Fitness', exact: true }).getAttribute('aria-pressed')) === 'true', 'Fitness no queda marcada');
+        await p.getByText('Diego', { exact: false }).first().waitFor();
+        expect((await p.getByRole('link', { name: /Valentina Rose/ }).count()) === 0, 'el filtro Fitness sigue mostrando a Valentina');
+        await rail.getByRole('button', { name: 'Todos', exact: true }).click();
+        await p.getByRole('link', { name: /Valentina Rose/ }).first().waitFor();
+        expect(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Explorar desborda');
+        await ctx.close();
+      }
+    });
+    await check('Reserve: la barra de búsqueda encuentra experiencias por creador o por título', async () => {
+      const ctx = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });
+      const p = await newPage(ctx);
+      await p.goto(`${BASE}/reserve`);
+      const search = p.getByRole('searchbox', { name: 'Buscar en Reserve' });
+      await search.waitFor();
+      await p.getByText('Diego Torres').first().waitFor();
+      await search.fill('valentina');
+      await p.getByText('Valentina Rose').first().waitFor();
+      expect((await p.getByText('Diego Torres').count()) === 0, 'la búsqueda por creador sigue mostrando a Diego');
+      await search.fill('entrenamiento');
+      await p.getByText('Coaching y plan de entrenamiento').waitFor();
+      expect((await p.getByText('Valentina Rose').count()) === 0, 'la búsqueda por título sigue mostrando a Valentina');
+      await search.fill('zzzz');
+      await p.getByText('No encontramos experiencias para "zzzz".').waitFor();
+      await ctx.close();
+    });
+    await check('Registro: la casilla acepta Términos, Privacidad y las demás políticas, cada una con su documento', async () => {
+      const ctx = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });
+      const p = await newPage(ctx);
+      await p.goto(`${BASE}/register`);
+      await p.fill('input[type=text]', 'Fan Términos');
+      await p.fill('input[type=email]', `terminos${Date.now()}@test.com`);
+      await p.selectOption('[data-testid=signup-country]', 'ES');
+      await p.getByRole('button', { name: 'Continuar', exact: true }).click();
+      const pw = p.locator('input[type=password]');
+      await pw.nth(0).fill('secreta123');
+      await pw.nth(1).fill('secreta123');
+      await p.getByRole('button', { name: 'Continuar', exact: true }).click();
+      const consent = p.getByTestId('terms-consent');
+      await consent.waitFor();
+      const consentText = 'Acepto los Términos y Condiciones, la Política de Privacidad y las demás políticas de Fans Reserve, y confirmo que soy mayor de 18 años.';
+      expect((await consent.innerText()).replace(/\s+/g, ' ').trim() === consentText, `texto: ${await consent.innerText()}`);
+      expect((await consent.getByRole('link', { name: 'Términos y Condiciones' }).getAttribute('href')) === '/legal?doc=terms', 'Términos no abre su documento');
+      expect((await consent.getByRole('link', { name: 'Política de Privacidad' }).getAttribute('href')) === '/legal?doc=privacy', 'Privacidad no abre su documento');
+      expect((await consent.getByRole('link', { name: 'las demás políticas de Fans Reserve' }).getAttribute('href')) === '/legal', 'las demás políticas no abren /legal');
+      // Without the box ticked there is no account.
+      await p.getByRole('button', { name: /Crear cuenta|Registrarse/ }).last().click();
+      await p.getByText('Debes aceptar los términos y condiciones').waitFor();
+      await ctx.close();
+    });
+    await check('Antes del lanzamiento: fansreserve.com muestra "Muy pronto" y solo el enlace privado abre la web', async () => {
+      const ctx = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });
+      const p = await newPage(ctx);
+      // The gate only runs on fansreserve.com; here it is forced on for the test.
+      await p.addInitScript(() => localStorage.setItem('fansreserve_forceLaunchGate', 'true'));
+      await p.goto(`${BASE}/`);
+      await p.getByTestId('coming-soon').getByText('Muy pronto').waitFor();
+      expect((await p.locator('meta[name=robots]').getAttribute('content')) === 'noindex, nofollow', 'los buscadores pueden indexar la página oculta');
+      await p.goto(`${BASE}/explore`);
+      await p.getByTestId('coming-soon').waitFor();
+      // A wrong code changes nothing; the legal pages stay public.
+      await p.goto(`${BASE}/?acceso=equivocado`);
+      await p.getByTestId('coming-soon').waitFor();
+      await p.goto(`${BASE}/legal?doc=terms`);
+      expect((await p.getByTestId('coming-soon').count()) === 0, 'la página legal quedó oculta');
+      // The private link opens the site on this device, and the code leaves the address bar.
+      await p.goto(`${BASE}/explore?acceso=prueba-e2e`);
+      await p.getByTestId('category-rail').waitFor();
+      await p.waitForURL((u) => !new URL(u).searchParams.has('acceso'));
+      await p.goto(`${BASE}/`);
+      expect((await p.getByTestId('coming-soon').count()) === 0, 'el acceso no se recordó');
       await ctx.close();
     });
     await check('La presentación en video solo la ven visitantes sin sesión', async () => {

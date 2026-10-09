@@ -5,13 +5,12 @@ import { useCreatorCatalog, useCreatorCountries, useVipCreatorIds } from '../lib
 import CreatorCard from '../components/CreatorCard';
 import Avatar from '../components/Avatar';
 import { CoverImage } from '../components/CoverArt';
-import { categoryVisual } from '../config/theme';
 import { categoryFor, isKnownCategory } from '../config/reserve';
 import { featuredFirst, rewardsApi, useFeatured } from '../lib/rewards';
 import { useAuth } from '../context/AuthContext';
 import { usePlatformQuery, platformApi, isCutOff } from '../lib/platform';
 import { useLiveCreatorIds } from '../lib/live';
-import { LiveRail, ReserveRail, RailHeading } from '../components/AppRails';
+import { CategoryRail, LiveRail, ReserveRail, RailHeading } from '../components/AppRails';
 import { ENABLE_OPEN_LIVE } from '../config/features';
 import { useLanguage } from '../context/LanguageContext';
 import { countryName } from '../config/countries';
@@ -99,37 +98,17 @@ const Explore: React.FC = () => {
             />
           </div>
 
-          {!liveOnly && (
-            <section aria-label={ENABLE_OPEN_LIVE ? 'Creadores y Live' : 'Creadores'} className="mx-auto mt-6 max-w-5xl">
+          {/* With Open Live the creators row returns, with their LIVE rings. */}
+          {ENABLE_OPEN_LIVE && !liveOnly && (
+            <section aria-label="Creadores y Live" className="mx-auto mt-6 max-w-5xl">
               <LiveRail creators={visibleCreators} liveIds={liveIds} className="md:justify-center" />
             </section>
           )}
 
-          {/* Categories */}
-          <div className="-mx-4 mt-6 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-hide md:mx-0 md:flex-wrap md:justify-center md:px-0">
-            <button
-              onClick={() => setSelectedCategory('')}
-              aria-pressed={!selectedCategory}
-              className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition ${
-                !selectedCategory ? 'bg-ink text-white' : 'bg-white text-ink/70 hover:bg-white hover:text-ink border border-line'
-              }`}
-            >
-              Todos
-            </button>
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.name)}
-                aria-pressed={selectedCategory === cat.name}
-                className={`shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition ${
-                  selectedCategory === cat.name ? 'bg-ink text-white' : 'bg-white text-ink/70 hover:text-ink border border-line'
-                }`}
-              >
-                <i className={`fas ${categoryVisual(cat.name).icon} text-xs ${selectedCategory === cat.name ? 'text-gold-200' : 'text-brand-600'}`} aria-hidden="true"></i>
-                {cat.name}
-              </button>
-            ))}
-          </div>
+          {/* Categories, as round icons (they replaced the creator avatars and the pills). */}
+          <nav aria-label="Categorías" className="mx-auto mt-6 max-w-5xl">
+            <CategoryRail categories={categories} selected={selectedCategory} onSelect={setSelectedCategory} className="md:justify-center" />
+          </nav>
 
           {countryOptions.length > 0 && (
             <div className="mt-3 flex justify-center">

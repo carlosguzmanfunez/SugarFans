@@ -6,6 +6,7 @@ import { clearRefCode, readRefCode } from '../lib/rewardRules';
 import BrandLogo from '../components/BrandLogo';
 import { BRAND } from '../config/brand';
 import { SOCIAL_INTENT_KEY, type SocialIntent } from '../components/SocialLoginButtons';
+import TermsConsent from '../components/TermsConsent';
 import CountryPhoneFields, { phoneFromForm } from '../components/CountryPhoneFields';
 import { detectCountry } from '../config/countries';
 import { useLanguage } from '../context/LanguageContext';
@@ -150,13 +151,7 @@ const AuthCallback: React.FC = () => {
                 <CountryPhoneFields country={country} phone={phone} onCountry={setCountry} onPhone={setPhone} />
               </div>
 
-              <label className="flex items-start space-x-2 mb-6">
-                <input type="checkbox" checked={agreeTerms} onChange={(e) => setAgreeTerms(e.target.checked)} className="mt-1 w-4 h-4 text-pink-600 rounded" />
-                <span className="text-sm text-gray-600">
-                  Acepto los <Link to="/legal" target="_blank" className="text-pink-600">términos de servicio</Link> y la{' '}
-                  <Link to="/legal" target="_blank" className="text-pink-600">política de privacidad</Link>, y confirmo que soy mayor de 18 años.
-                </span>
-              </label>
+              <TermsConsent checked={agreeTerms} onChange={setAgreeTerms} className="mb-6" />
 
               <div className="flex space-x-3">
                 <button type="button" onClick={cancel} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-200 transition">

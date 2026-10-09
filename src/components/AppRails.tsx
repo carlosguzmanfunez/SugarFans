@@ -45,6 +45,50 @@ export const LiveRail: React.FC<{ creators: Creator[]; liveIds: Set<string>; cla
   );
 };
 
+// The categories as round icons in one swipeable row, where the creator avatars used
+// to be: "Todos" first, then each category in its own color. Tapping one filters the
+// list below; the selected one gets a ring in its color.
+export const CategoryRail: React.FC<{
+  categories: { id: string; name: string }[];
+  selected: string;
+  onSelect: (name: string) => void;
+  className?: string;
+}> = ({ categories, selected, onSelect, className = '' }) => {
+  const items = [
+    { key: 'todos', name: '', label: 'Todos', icon: 'fa-border-all', tint: '#f1edf3', ink: '#1c1324' },
+    ...categories.map((c) => {
+      const { icon, tint, ink } = categoryFor(c.name);
+      return { key: c.id, name: c.name, label: c.name, icon, tint, ink };
+    }),
+  ];
+  return (
+    <ul className={`rail -mx-4 gap-3 px-4 py-1 sm:mx-0 sm:px-0 ${className}`} aria-label="Categorías" data-testid="category-rail">
+      {items.map((it) => {
+        const on = selected === it.name;
+        return (
+          <li key={it.key} className="w-[76px] shrink-0">
+            <button
+              type="button"
+              onClick={() => onSelect(it.name)}
+              aria-pressed={on}
+              className="tab-press flex w-full flex-col items-center gap-1.5 text-center"
+            >
+              <span className="rounded-full p-[3px] transition" style={{ background: on ? it.ink : 'var(--color-line)' }}>
+                <span className="block rounded-full bg-canvas p-[2px]">
+                  <span className="flex size-[60px] items-center justify-center rounded-full text-xl" style={{ background: it.tint, color: it.ink }}>
+                    <i className={`fas ${it.icon}`} aria-hidden="true"></i>
+                  </span>
+                </span>
+              </span>
+              <span className={`line-clamp-2 w-full text-[11.5px] leading-tight ${on ? 'font-semibold text-ink' : 'font-medium text-ink/75'}`}>{it.label}</span>
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+};
+
 // Active Reserve experiences in one row of compact cards: who, what, how long and
 // for how much, so a fan sees something bookable without leaving the page.
 export const ReserveRail: React.FC<{ creators: Creator[]; limit?: number }> = ({ creators, limit = 8 }) => {

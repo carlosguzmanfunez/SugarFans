@@ -30,11 +30,17 @@ const ReservePage: React.FC = () => {
   const [modality, setModality] = useState<ReserveModality | 'all'>('all');
   const [category, setCategory] = useState('all');
   const [product, setProduct] = useState<ReserveProduct | 'all'>('all');
+  const [search, setSearch] = useState('');
   const [open, setOpen] = useState<{ exp: VipExperience; book: boolean } | null>(null);
   const { data: experiences, loading } = usePlatformQuery(() => backend.listExperiences(), [], [] as VipExperience[]);
   const { creators } = useCreatorCatalog();
   const creatorOf = (exp: VipExperience) => creators.find((c) => c.id === exp.creatorProfileId);
   const goLogin = () => navigate('/login', { state: { from: location.pathname } });
+
+  // Search by creator (name or @username) or by the experience's title, like Explorar.
+  const query = search.trim().toLowerCase();
+  const matchesSearch = (e: VipExperience) =>
+    !query || [e.creatorName, creatorOf(e)?.username ?? '', e.title].some((text) => text.toLowerCase().includes(query));
 
   const visible = experiences
     .filter((e) => e.active)
@@ -42,7 +48,8 @@ const ReservePage: React.FC = () => {
     .filter((e) => reserveProductOf(e) !== 'event' || isUpcomingEvent(e))
     .filter((e) => product === 'all' || reserveProductOf(e) === product)
     .filter((e) => modality === 'all' || detailsOf(e).modality === modality)
-    .filter((e) => category === 'all' || categoryFor(creatorOf(e)?.category).id === category);
+    .filter((e) => category === 'all' || categoryFor(creatorOf(e)?.category).id === category)
+    .filter((e) => matchesSearch(e));
 
   const seats = useEventSeats(visible);
   const chip = (active: boolean) =>
@@ -68,6 +75,17 @@ const ReservePage: React.FC = () => {
       </div>
 
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="relative mx-auto mb-6 max-w-2xl">
+          <i className="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-ink/35" aria-hidden="true"></i>
+          <input
+            type="search"
+            aria-label="Buscar en Reserve"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-2xl border border-line bg-white py-3.5 pl-12 pr-4 text-base shadow-[var(--shadow-card)] outline-none focus:border-transparent focus:ring-2 focus:ring-brand-500 md:py-4 md:text-lg"
+            placeholder="Buscar creadores o experiencias..."
+          />
+        </div>
         <div className="mb-8 space-y-3">
           <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0" role="group" aria-label="Tipo de Reserve" data-testid="reserve-products">
             {PRODUCTS.map((p) => (
@@ -114,7 +132,7 @@ const ReservePage: React.FC = () => {
             );
           })}
         </div>
-        {!loading && visible.length === 0 && <p className="py-12 text-center text-muted">Todavía no hay experiencias con estos filtros.</p>}
+        {!loading && visible.length === 0 && <p className="py-12 text-center text-muted">{query ? `No encontramos experiencias para "${search.trim()}".` : 'Todavía no hay experiencias con estos filtros.'}</p>}
 
         <section className="mt-14 grid gap-6 rounded-3xl bg-white p-6 shadow-sm md:grid-cols-2 md:p-10" aria-labelledby="how-title">
           <div>

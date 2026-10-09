@@ -14,6 +14,7 @@ import Explore from './pages/Explore';
 import PlatformSync from './components/PlatformSync';
 import SpecialInviteClaimer from './components/SpecialInviteClaimer';
 import { openedFromRecoveryLink } from './lib/backend';
+import LaunchGate from './components/LaunchGate';
 
 // Less visited pages load on demand, so the first visit downloads less.
 const CreatorProfile = lazy(() => import('./pages/CreatorProfile'));
@@ -275,10 +276,12 @@ function App() {
   return (
     <Router>
       <LanguageProvider>
-        <AuthProvider>
-          <PlatformSync />
-          <AppRoutes />
-        </AuthProvider>
+        <LaunchGate>
+          <AuthProvider>
+            <PlatformSync />
+            <AppRoutes />
+          </AuthProvider>
+        </LaunchGate>
       </LanguageProvider>
     </Router>
   );

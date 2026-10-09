@@ -266,7 +266,7 @@ const BASE_CATEGORIES: CreatorCategory[] = [
     id: 'modelaje-glamour',
     name: 'Tu gente',
     icon: 'fa-user-group',
-    blurb: 'Trae a tu comunidad de TikTok o Instagram',
+    blurb: 'Los creadores que ya sigues en TikTok o Instagram',
     tint: '#fff1f6',
     ink: '#c81b63',
     aliases: ['Modelos', 'Modelaje & Glamour', 'Modelaje', 'Modelaje y Glamour'],
