@@ -1431,12 +1431,32 @@ const run = async () => {
       await cp.getByTestId('post').filter({ hasText: 'Video solo para suscriptores' }).getByTestId('post-video').waitFor();
       expect((await cp.getByRole('button', { name: 'Más opciones' }).count()) === 0, 'el creador puede darse propina');
     });
+    await check('Al tocar una foto se abre en grande y se pasa a la siguiente con las flechas', async () => {
+      await cp.getByTestId('post').filter({ hasText: 'Foto nueva desde la playa' }).getByTestId('open-media').click();
+      const viewer = cp.getByTestId('media-viewer');
+      await viewer.getByTestId('media-viewer-caption').getByText('Foto nueva desde la playa').waitFor();
+      await viewer.getByTestId('media-viewer-image').waitFor();
+      await viewer.getByRole('button', { name: 'Publicación anterior' }).click();
+      await viewer.getByTestId('media-viewer-caption').getByText('Video solo para suscriptores').waitFor();
+      await viewer.getByTestId('media-viewer-video').waitFor();
+      await cp.keyboard.press('ArrowRight');
+      await viewer.getByTestId('media-viewer-caption').getByText('Foto nueva desde la playa').waitFor();
+      await cp.keyboard.press('Escape');
+      await viewer.waitFor({ state: 'detached' });
+      expect(new URL(cp.url()).pathname === '/creator/1', `cerrar el visor cambió de página: ${cp.url()}`);
+    });
     await check('Un fan sin suscripción ve la foto pero no el video exclusivo', async () => {
       await fp.goto(`${BASE}/creator/1`);
       await fp.getByTestId('post').filter({ hasText: 'Foto nueva desde la playa' }).getByTestId('post-image').waitFor();
       const locked = fp.getByTestId('post').filter({ hasText: 'Video solo para suscriptores' });
       await locked.getByText('Contenido exclusivo para suscriptores').waitFor();
       expect((await locked.getByTestId('post-video').count()) === 0, 'el video exclusivo se ve sin suscripción');
+      await fp.getByTestId('post').filter({ hasText: 'Foto nueva desde la playa' }).getByTestId('open-media').click();
+      const viewer = fp.getByTestId('media-viewer');
+      await viewer.getByTestId('media-viewer-caption').getByText('Foto nueva desde la playa').waitFor();
+      expect((await viewer.getByText('Video solo para suscriptores').count()) === 0, 'el visor muestra el video exclusivo');
+      await viewer.getByRole('button', { name: 'Cerrar' }).click();
+      await viewer.waitFor({ state: 'detached' });
     });
     await check('Me gusta (corazón) suma, se guarda y se puede quitar', async () => {
       const post = fp.getByTestId('post').filter({ hasText: 'Foto nueva desde la playa' });

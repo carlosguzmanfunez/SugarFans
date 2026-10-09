@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Icon from '../components/Icon';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { posts, type Creator } from '../data/mockData';
@@ -15,6 +15,7 @@ import { useAuth } from '../context/AuthContext';
 import CheckoutDialog from '../components/CheckoutDialog';
 import ReportDialog from '../components/ReportDialog';
 import PostCard, { type DisplayPost } from '../components/PostCard';
+import MediaViewer from '../components/MediaViewer';
 import TipDialog from '../components/TipDialog';
 import GiftDialog from '../components/GiftDialog';
 import NewPostForm from '../components/NewPostForm';
@@ -62,6 +63,8 @@ const CreatorProfile: React.FC = () => {
   const [celebrating, setCelebrating] = useState<Gift | null>(null);
   const [composing, setComposing] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [viewing, setViewing] = useState<string | null>(null);
+  const closeViewer = useCallback(() => setViewing(null), []);
   const [toast, setToast] = useState('');
   useEffect(() => {
     if (!toast) return;
@@ -177,6 +180,8 @@ const CreatorProfile: React.FC = () => {
   const isSubscribed = hasSubscription(creator.id) && !iBlocked && !blockedMe;
   const mySub = subscriptionOf(creator.id);
   const canView = (p: DisplayPost) => !p.isLocked || isSubscribed || isOwner;
+  // What the full-screen viewer swipes through: photos and videos this visitor may see.
+  const viewable = creatorPosts.filter((p) => p.mediaUrl && canView(p));
   const totalLikes = creator.likes + Object.values(feed.engagement).reduce((sum, e) => sum + e.likes, 0);
   const removePost = async (postId: string) => {
     if (!window.confirm('¿Eliminar esta publicación? También se borrará su foto o video.')) return;
@@ -269,6 +274,9 @@ const CreatorProfile: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-canvas">
+      {viewing && viewable.some((p) => p.id === viewing) && (
+        <MediaViewer posts={viewable} startId={viewing} onClose={closeViewer} />
+      )}
       {toast && (
         <div role="status" className="toast-in fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-ink px-5 py-3 text-sm font-medium text-white shadow-xl md:bottom-8" data-testid="toast">
           <Icon name="fa-check" className="mr-2 text-emerald-400" />{toast}
@@ -534,6 +542,7 @@ const CreatorProfile: React.FC = () => {
                 onGift={() => openGift(post.id)}
                 onDelete={feed.own.some((p) => p.id === post.id) && isOwner ? () => removePost(post.id) : undefined}
                 onReport={() => handleReport('post', post.id, `Publicación de ${creator.name}: "${post.content.slice(0, 40)}"`)}
+                onOpen={() => setViewing(post.id)}
               />
             )) : (
               <div className="text-center py-12 bg-white rounded-2xl">
@@ -547,7 +556,17 @@ const CreatorProfile: React.FC = () => {
         {!iBlocked && activeTab === 'media' && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {creatorPosts.filter(p => p.mediaUrl || p.mediaType).map((post) => (
-              <a key={post.id} href={`#post-${post.id}`} onClick={() => setActiveTab('posts')} className="relative aspect-square rounded-xl overflow-hidden group cursor-pointer">
+              <a
+                key={post.id}
+                href={`#post-${post.id}`}
+                onClick={(e) => {
+                  if (post.mediaUrl && canView(post)) {
+                    e.preventDefault();
+                    setViewing(post.id);
+                  } else setActiveTab('posts');
+                }}
+                data-testid="media-tile"
+                className="relative aspect-square rounded-xl overflow-hidden group cursor-pointer">
                 {post.mediaType === 'video' && post.mediaUrl && canView(post) ? (
                   <video src={post.mediaUrl} muted playsInline preload="metadata" className="w-full h-full object-cover" />
                 ) : (

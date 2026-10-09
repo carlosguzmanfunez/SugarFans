@@ -38,9 +38,10 @@ interface Props {
   onGift?: () => void;
   onReport: () => void;
   onDelete?: () => void; // the author, or an admin on a platform-run profile
+  onOpen?: () => void; // full-screen viewer for the photo or video
 }
 
-const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner, subscribeLabel, onSubscribe, onNeedLogin, onTip, onGift, onReport, onDelete }) => {
+const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner, subscribeLabel, onSubscribe, onNeedLogin, onTip, onGift, onReport, onDelete, onOpen }) => {
   const [showComments, setShowComments] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
@@ -73,8 +74,19 @@ const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner,
     }
   };
 
-  const media = post.mediaUrl && canView
-    ? post.mediaType === 'video'
+  const opens = !!onOpen && canView && !!post.mediaUrl;
+  const shown = post.mediaUrl && canView
+    ? opens && post.mediaType === 'video'
+      // A still preview: tapping it opens the viewer, where it plays.
+      ? <span className="relative block bg-black">
+          <video src={`${post.mediaUrl}#t=0.1`} muted playsInline preload="metadata" className="w-full max-h-[32rem] object-contain pointer-events-none" data-testid="post-video" />
+          <span className="absolute inset-0 flex items-center justify-center">
+            <span className="w-16 h-16 rounded-full bg-black/55 text-white flex items-center justify-center text-2xl">
+              <i aria-hidden="true" className="fas fa-play ml-1"></i>
+            </span>
+          </span>
+        </span>
+      : post.mediaType === 'video'
       ? <video src={post.mediaUrl} controls playsInline preload="metadata" className="w-full max-h-[32rem] bg-black" data-testid="post-video" />
       : isPlaceholderImage(post.mediaUrl)
         ? <CoverImage seed={`post-${post.id}`} className="w-full h-72" />
@@ -82,6 +94,11 @@ const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner,
     : post.mediaUrl || post.mediaType
       ? <CoverImage seed={`post-${post.id}`} className="w-full h-72" />
       : null;
+  const media = opens && shown ? (
+    <button type="button" onClick={onOpen} aria-label={post.mediaType === 'video' ? 'Ver video en pantalla completa' : 'Ver foto en pantalla completa'} className="block w-full cursor-zoom-in" data-testid="open-media">
+      {shown}
+    </button>
+  ) : shown;
 
   return (
     <div id={`post-${post.id}`} data-testid="post" className="bg-white rounded-2xl shadow-sm overflow-hidden">
