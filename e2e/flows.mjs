@@ -2499,7 +2499,7 @@ const run = async () => {
       expect((await tabs.getByRole('link', { name: 'Live', exact: true }).count()) === 0, 'la barra tiene una pestaña Live');
       await tabs.getByRole('link', { name: 'Explorar', exact: true }).tap();
       await waitPath(m, '/explore');
-      await m.getByTestId('live-rail').waitFor();
+      await m.getByTestId('category-rail').waitFor();
       await m.getByTestId('reserve-rail').waitFor();
       expect((await tabs.getByRole('link', { name: 'Explorar', exact: true }).getAttribute('aria-current')) === 'page', 'Explorar no queda marcada');
       await tabs.getByRole('link', { name: 'Reserve', exact: true }).tap();
@@ -2541,7 +2541,7 @@ const run = async () => {
       const desk = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });
       const d = await newPage(desk);
       await d.goto(`${BASE}/explore`);
-      await d.getByTestId('live-rail').waitFor();
+      await d.getByTestId('category-rail').waitFor();
       expect(!(await d.getByTestId('tab-bar').isVisible()), 'la barra de pestañas se ve en escritorio');
       await desk.close();
     });
@@ -2663,6 +2663,29 @@ const run = async () => {
         expect(title > navBottom, `el título de ${name} queda debajo de la cápsula`);
       }
       await ctx.close();
+    });
+    await check('Explorar: las categorías son círculos donde estaban los creadores, filtran la lista y el selector de países sigue', async () => {
+      for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
+        const ctx = await newContext(browser, { viewport, locale: 'es-ES' });
+        const p = await newPage(ctx);
+        await p.goto(`${BASE}/explore`);
+        const rail = p.getByTestId('category-rail');
+        await rail.waitFor();
+        expect((await p.getByTestId('live-rail').count()) === 0, 'la fila de avatares de creadores sigue en Explorar');
+        const labels = await rail.getByRole('button').allInnerTexts();
+        expect(labels[0] === 'Todos' && labels.includes('Fitness') && labels.includes('Cocina'), `círculos: ${labels.join(' | ')}`);
+        // No second row of category pills.
+        expect((await p.getByRole('button', { name: 'Fitness', exact: true }).count()) === 1, 'las pastillas de categorías siguen debajo');
+        await p.getByTestId('explore-country').waitFor();
+        await rail.getByRole('button', { name: 'Fitness', exact: true }).click();
+        expect((await rail.getByRole('button', { name: 'Fitness', exact: true }).getAttribute('aria-pressed')) === 'true', 'Fitness no queda marcada');
+        await p.getByText('Diego', { exact: false }).first().waitFor();
+        expect((await p.getByRole('link', { name: /Valentina Rose/ }).count()) === 0, 'el filtro Fitness sigue mostrando a Valentina');
+        await rail.getByRole('button', { name: 'Todos', exact: true }).click();
+        await p.getByRole('link', { name: /Valentina Rose/ }).first().waitFor();
+        expect(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Explorar desborda');
+        await ctx.close();
+      }
     });
     await check('La presentación en video solo la ven visitantes sin sesión', async () => {
       const ctx = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });
