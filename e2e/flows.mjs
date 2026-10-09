@@ -2733,6 +2733,29 @@ const run = async () => {
       await p.getByText('Debes aceptar los términos y condiciones').waitFor();
       await ctx.close();
     });
+    await check('Antes del lanzamiento: fansreserve.com muestra "Muy pronto" y solo el enlace privado abre la web', async () => {
+      const ctx = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });
+      const p = await newPage(ctx);
+      // The gate only runs on fansreserve.com; here it is forced on for the test.
+      await p.addInitScript(() => localStorage.setItem('fansreserve_forceLaunchGate', 'true'));
+      await p.goto(`${BASE}/`);
+      await p.getByTestId('coming-soon').getByText('Muy pronto').waitFor();
+      expect((await p.locator('meta[name=robots]').getAttribute('content')) === 'noindex, nofollow', 'los buscadores pueden indexar la página oculta');
+      await p.goto(`${BASE}/explore`);
+      await p.getByTestId('coming-soon').waitFor();
+      // A wrong code changes nothing; the legal pages stay public.
+      await p.goto(`${BASE}/?acceso=equivocado`);
+      await p.getByTestId('coming-soon').waitFor();
+      await p.goto(`${BASE}/legal?doc=terms`);
+      expect((await p.getByTestId('coming-soon').count()) === 0, 'la página legal quedó oculta');
+      // The private link opens the site on this device, and the code leaves the address bar.
+      await p.goto(`${BASE}/explore?acceso=prueba-e2e`);
+      await p.getByTestId('category-rail').waitFor();
+      await p.waitForURL((u) => !new URL(u).searchParams.has('acceso'));
+      await p.goto(`${BASE}/`);
+      expect((await p.getByTestId('coming-soon').count()) === 0, 'el acceso no se recordó');
+      await ctx.close();
+    });
     await check('La presentación en video solo la ven visitantes sin sesión', async () => {
       const ctx = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });
       const p = await newPage(ctx);
