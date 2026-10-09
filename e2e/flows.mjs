@@ -2630,16 +2630,39 @@ const run = async () => {
       }
       await ctx.close();
     });
-    await check('Escritorio: "Explorar" en la barra de Inicio abre la página Explorar (fan y creador)', async () => {
+    await check('Escritorio: la cápsula de arriba tiene "Inicio" a la izquierda de "Explorar", y "Explorar" abre la página Explorar (fan y creador)', async () => {
       for (const email of ['fan@sugarfans.com', 'creator@sugarfans.com']) {
         const ctx = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });
         const p = await newPage(ctx);
         await login(p, email, 'demo1234');
         await waitPath(p, '/');
-        await p.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Explorar', exact: true }).click();
+        const nav = p.getByRole('navigation', { name: 'Principal' });
+        const order = await nav.locator('a').allInnerTexts();
+        expect(order.indexOf('Inicio') >= 0 && order.indexOf('Inicio') + 1 === order.indexOf('Explorar'), `Inicio no va antes de Explorar: ${order.join(' | ')}`);
+        await nav.getByRole('link', { name: 'Explorar', exact: true }).click();
         await waitPath(p, '/explore');
+        // On the other pages Inicio stays in the pill, to the left of Explorar, and leads home.
+        await nav.getByRole('link', { name: 'Inicio', exact: true }).click();
+        await waitPath(p, '/');
         await ctx.close();
       }
+    });
+    await check('Escritorio: "Reserve" y "Cómo funciona" bajan hasta que la sección llena la pantalla, sin franja arriba', async () => {
+      const ctx = await newContext(browser, { viewport: { width: 1440, height: 900 }, locale: 'es-ES' });
+      const p = await newPage(ctx);
+      await login(p, 'fan@sugarfans.com', 'demo1234');
+      await waitPath(p, '/');
+      const nav = p.getByRole('navigation', { name: 'Principal' });
+      for (const [name, id] of [['Reserve', 'reserve'], ['Cómo funciona', 'journey']]) {
+        await nav.getByRole('link', { name, exact: true }).click();
+        await p.waitForFunction((sid) => Math.abs(document.getElementById(sid).getBoundingClientRect().top) <= 2, id, { timeout: 5000 });
+        const { title, navBottom } = await p.evaluate((sid) => ({
+          title: document.getElementById(sid).querySelector('h2').getBoundingClientRect().top,
+          navBottom: document.querySelector('nav[aria-label="Principal"]').getBoundingClientRect().bottom,
+        }), id);
+        expect(title > navBottom, `el título de ${name} queda debajo de la cápsula`);
+      }
+      await ctx.close();
     });
     await check('La presentación en video solo la ven visitantes sin sesión', async () => {
       const ctx = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });

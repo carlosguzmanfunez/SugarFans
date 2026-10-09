@@ -422,7 +422,12 @@
   .lv2 .rise img{display:none}
 }
 .lv2{position:relative;isolation:isolate;overflow-x:clip;background:var(--canvas);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
-.lv2 section[id]{scroll-margin-top:96px}
+/* A menu jump lands the section flush with the top of the screen, behind the floating
+   pill, so it fills the screen with no strip of the previous section above it. Sections
+   whose top padding is shorter than the pill get a small margin so the title clears it. */
+.lv2 section[id]{scroll-margin-top:0}
+.lv2 #comunidades{scroll-margin-top:28px}
+@media (max-width:767px){.lv2 #reserve{scroll-margin-top:20px}}
 
 /* Presentation cover (visitors without a session only): dark stage with the 20 s film. */
 .lv2 .pcover{position:relative;isolation:isolate;overflow:hidden;padding-block:78px 64px;background:var(--night);color:#fff;text-align:center}
