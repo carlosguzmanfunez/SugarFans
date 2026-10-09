@@ -10,6 +10,8 @@
     "e2e:supabase": "vite build && node e2e/flows.mjs",
     "e2e:live": "node e2e/live-livekit.mjs",
     "e2e:paypal": "node e2e/paypal-api.mjs",
+    "test:didit": "node e2e/didit-api.mjs",
+    "test:didit-db": "node e2e/didit-kyc.mjs",
     "test:access": "node e2e/live-access.mjs",
     "test:db": "node e2e/db-access.mjs",
     "test:push": "node e2e/push-api.mjs",

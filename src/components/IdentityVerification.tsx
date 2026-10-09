@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usePlatformQuery, platformApi, submitVerification, readImageFile, docTypeLabel, type DocType } from '../lib/platform';
+import { diditEnabled, startDidit } from '../lib/didit';
 
 const field = 'w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-sm';
 
@@ -63,8 +64,17 @@ const IdentityVerification: React.FC = () => {
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(false);
   const [sending, setSending] = useState(false);
+  // With Didit set up, Didit checks the document, liveness and face match instead of the manual form.
+  const [didit, setDidit] = useState<boolean | null>(null);
+  useEffect(() => {
+    let alive = true;
+    diditEnabled().then((on) => alive && setDidit(on));
+    return () => {
+      alive = false;
+    };
+  }, []);
 
-  if (!user || loading) return null;
+  if (!user || loading || didit === null) return null;
   const verified = !!user.isVerified || request?.status === 'approved';
 
   const submit = async () => {
@@ -78,12 +88,24 @@ const IdentityVerification: React.FC = () => {
     setSelfie('');
   };
 
+  const openDidit = async () => {
+    setSending(true);
+    try {
+      await startDidit();
+    } catch (err) {
+      setError((err as Error).message);
+      setSending(false);
+    }
+  };
+
   const header = (
     <>
       <h2 className="text-lg font-bold text-gray-900 mb-2">Verificación de identidad</h2>
       <p className="text-sm text-gray-600 mb-6">
-        Solo necesitamos dos fotos: el frente de tu documento oficial y un selfie de frente. Comprobamos que eres mayor de edad y que
-        la cara del selfie coincide con la del documento. Es obligatoria para que los creadores publiquen y cobren, y añade la insignia <span className="text-blue-700 font-medium">Verificado</span> a tu perfil.
+        {didit
+          ? 'Toma unos 2 minutos con tu documento oficial y la cámara de tu celular o computadora. Comprobamos que el documento es real, que eres mayor de edad y que eres tú. '
+          : 'Solo necesitamos dos fotos: el frente de tu documento oficial y un selfie de frente. Comprobamos que eres mayor de edad y que la cara del selfie coincide con la del documento. '}
+        Es obligatoria para que los creadores publiquen y cobren, y añade la insignia <span className="text-blue-700 font-medium">Verificado</span> a tu perfil.
       </p>
     </>
   );
@@ -98,7 +120,7 @@ const IdentityVerification: React.FC = () => {
             <p className="font-medium text-blue-900">Identidad verificada</p>
             <p className="text-xs text-blue-700">
               {request?.reviewedAt ? `Aprobada el ${new Date(request.reviewedAt).toLocaleDateString('es')}. ` : ''}
-              Tus documentos se eliminaron tras la revisión.
+              {request?.provider === 'didit' ? 'Verificada con Didit.' : 'Tus documentos se eliminaron tras la revisión.'}
             </p>
           </div>
         </div>
@@ -115,7 +137,9 @@ const IdentityVerification: React.FC = () => {
           <div>
             <p className="font-medium text-yellow-900">Solicitud en revisión</p>
             <p className="text-xs text-yellow-700">
-              Enviada el {new Date(request.submittedAt).toLocaleString('es')} · {docTypeLabel[request.docType]}. Te avisaremos aquí cuando se revise.
+              {request.provider === 'didit'
+                ? 'Didit necesita que nuestro equipo revise tu verificación. Te avisaremos aquí cuando esté lista.'
+                : `Enviada el ${new Date(request.submittedAt).toLocaleString('es')} · ${docTypeLabel[request.docType]}. Te avisaremos aquí cuando se revise.`}
             </p>
           </div>
         </div>
@@ -134,6 +158,23 @@ const IdentityVerification: React.FC = () => {
             Enviar de nuevo
           </button>
         </div>
+      </div>
+    );
+  }
+
+  if (didit) {
+    return (
+      <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="verification">
+        {header}
+        <ul className="text-sm text-gray-700 space-y-2 mb-5">
+          <li><i aria-hidden="true" className="fas fa-id-card w-5 text-pink-500"></i> Ten a mano tu documento original (no una copia).</li>
+          <li><i aria-hidden="true" className="fas fa-camera w-5 text-pink-500"></i> Busca buena luz y quítate gorra o gafas de sol.</li>
+          <li><i aria-hidden="true" className="fas fa-shield-alt w-5 text-pink-500"></i> Lo hace Didit, nuestro proveedor de verificación. Al terminar vuelves aquí.</li>
+        </ul>
+        {error && <p role="alert" className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">{error}</p>}
+        <button type="button" onClick={openDidit} disabled={sending} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition disabled:opacity-60">
+          {sending ? 'Abriendo…' : 'Verificar mi identidad'}
+        </button>
       </div>
     );
   }
