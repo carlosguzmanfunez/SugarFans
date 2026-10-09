@@ -849,6 +849,20 @@ const run = async () => {
       await register(page, { name: 'Lola Creadora', email: creatorEmail, password: 'clave-creadora-1', role: 'creator' });
       await waitPath(page, '/creator/dashboard');
     });
+    await check('Al registrarse, el creador ve el último paso: verificar identidad (ahora o más tarde)', async () => {
+      const welcome = page.getByTestId('verify-welcome');
+      await welcome.getByText('Último paso: verifica tu identidad').waitFor();
+      await welcome.getByText('¡Ya eres parte de Fans Reserve, Lola!').waitFor();
+      await welcome.getByRole('button', { name: 'Verificar ahora' }).click();
+      await page.waitForURL((u) => new URL(u).searchParams.get('section') === 'verification', { timeout: 5000 });
+      await page.goBack();
+      await welcome.getByRole('button', { name: 'Más tarde' }).click();
+      await welcome.waitFor({ state: 'detached' });
+      expect(!page.url().includes('bienvenida'), `la dirección conserva bienvenida: ${page.url()}`);
+      await page.reload();
+      await page.getByTestId('verification-banner').waitFor();
+      expect((await welcome.count()) === 0, 'la bienvenida vuelve a salir');
+    });
     await check('Un creador sin verificar no puede publicar', async () => {
       await page.getByTestId('verification-banner').waitFor();
       await page.getByRole('button', { name: /Nueva publicación/ }).click();
@@ -1805,6 +1819,7 @@ const run = async () => {
       await waitPath(rf, '/register');
       await register(rf, { name, email, password: 'password123', role: 'creator' });
       await waitPath(rf, '/creator/dashboard');
+      await rf.getByTestId('verify-welcome').getByRole('button', { name: 'Más tarde' }).click();
       return rf.evaluate((e) => JSON.parse(localStorage.getItem('fansreserve_accounts')).find((a) => a.email === e).creatorProfileId, email);
     };
     // The invited creator is verified and has sold their first $100.

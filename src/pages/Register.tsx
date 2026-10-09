@@ -103,8 +103,8 @@ const Register: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
       setConfirmNotice(result.notice || 'Revisa tu correo para confirmar la cuenta.');
       return;
     }
-    // Fans land on the main page; creators on their panel, where identity verification starts.
-    navigate(role === 'creator' ? '/creator/dashboard' : '/', { replace: true });
+    // Fans land on the main page; creators on their panel, which opens with the identity verification step.
+    navigate(role === 'creator' ? '/creator/dashboard?bienvenida=1' : '/', { replace: true });
   };
 
   const card = (

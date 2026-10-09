@@ -4,6 +4,7 @@ import Icon from '../components/Icon';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import CreatorPayouts from '../components/CreatorPayouts';
+import VerifyWelcome from '../components/VerifyWelcome';
 import CreatorGiftsPanel from '../components/CreatorGiftsPanel';
 import CreatorRewardsPanel from '../components/CreatorRewardsPanel';
 import CreatorGoalsPanel from '../components/CreatorGoalsPanel';
@@ -218,6 +219,11 @@ const CreatorDashboard: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Just signed up: identity verification as the last step (now or later). */}
+        {!verified && searchParams.has('bienvenida') && (
+          <VerifyWelcome name={user?.name ?? ''} onLater={() => setSearchParams({}, { replace: true })} />
+        )}
 
         {!verified && live && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3" data-testid="verification-banner">
