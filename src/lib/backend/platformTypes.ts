@@ -26,6 +26,7 @@ export interface VerificationRequest extends VerificationInput {
   rejectionReason?: string;
   submittedAt: string;
   reviewedAt?: string;
+  provider?: 'manual' | 'didit'; // 'didit': checked by Didit (document, liveness, face match)
 }
 
 export type PaymentKind = 'card' | 'paypal' | 'google_pay';

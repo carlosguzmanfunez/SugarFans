@@ -51,7 +51,7 @@ const toVerification = (r: Row): VerificationRequest => ({
   email: r.email,
   role: r.role,
   legalName: r.legal_name,
-  birthDate: r.birth_date,
+  birthDate: r.birth_date ?? '',
   country: r.country,
   docType: r.doc_type,
   docNumber: r.doc_number,
@@ -61,6 +61,7 @@ const toVerification = (r: Row): VerificationRequest => ({
   rejectionReason: r.rejection_reason ?? undefined,
   submittedAt: r.submitted_at,
   reviewedAt: r.reviewed_at ?? undefined,
+  provider: r.provider === 'didit' ? 'didit' : 'manual',
 });
 
 const toMethod = (r: Row): PaymentMethod => ({

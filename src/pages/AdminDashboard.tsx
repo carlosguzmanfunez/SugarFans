@@ -368,10 +368,15 @@ const AdminDashboard: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm mb-4">
                 <p><span className="text-gray-500">Nombre legal:</span> {viewing.legalName}</p>
-                <p><span className="text-gray-500">Nacimiento:</span> {new Date(viewing.birthDate + 'T00:00:00').toLocaleDateString('es')} ({ageFrom(viewing.birthDate)} años)</p>
+                <p><span className="text-gray-500">Nacimiento:</span> {viewing.birthDate ? `${new Date(viewing.birthDate + 'T00:00:00').toLocaleDateString('es')} (${ageFrom(viewing.birthDate)} años)` : 'Sin leer'}</p>
                 <p><span className="text-gray-500">Documento:</span> {docTypeLabel[viewing.docType]}</p>
                 <p><span className="text-gray-500">Número:</span> {viewing.docNumber} ({viewing.country})</p>
               </div>
+              {viewing.provider === 'didit' && (
+                <p className="text-sm text-blue-800 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mb-2">
+                  Didit la dejó en revisión manual: las fotos, el video de vida y el detalle están en tu panel de Didit (busca a este usuario por su nombre o correo).
+                </p>
+              )}
               <p className="text-sm text-gray-600 mb-2">
                 Comprueba que la cara del selfie es la misma que la de la foto del documento y que la fecha de nacimiento del documento coincide.
               </p>
