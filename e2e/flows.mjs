@@ -1083,6 +1083,8 @@ const run = async () => {
       await page.getByRole('button', { name: label }).click();
       await page.getByText('Añade el email de tu cuenta PayPal para retiros').waitFor();
       await page.getByPlaceholder('Email de tu cuenta PayPal').fill('no-es-email');
+      const signup = page.getByRole('link', { name: /Crea tu cuenta PayPal gratis/ });
+      expect((await signup.getAttribute('href')) === 'https://www.paypal.com/signup' && (await signup.getAttribute('target')) === '_blank', 'falta el enlace para crear cuenta PayPal');
       await page.getByRole('button', { name: 'Guardar cuenta' }).click();
       await page.getByText('Escribe el email de tu cuenta PayPal').waitFor();
       await page.getByPlaceholder('Email de tu cuenta PayPal').fill('Valentina.Rose@Example.com');
