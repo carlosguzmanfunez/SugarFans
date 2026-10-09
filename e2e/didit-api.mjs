@@ -78,7 +78,7 @@ r = await post('/api/didit', {}, { authorization: 'Bearer user-token' });
 assert.equal(r.status, 200);
 assert.equal((await r.json()).url, 'https://verify.didit.me/session/abc');
 const create = calls.find((c) => c.u.endsWith('/v3/session/'));
-assert.deepEqual(create.body, { workflow_id: 'wf-1', vendor_data: USER, callback: 'https://fansreserve.com/settings?section=verification' });
+assert.deepEqual(create.body, { workflow_id: 'wf-1', vendor_data: USER, callback: 'https://fansreserve.com/settings?section=verification&didit=1' });
 ok('sesión de Didit para el usuario con sesión iniciada');
 
 // Webhook: bad, old or missing signatures are refused.

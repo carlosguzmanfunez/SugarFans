@@ -872,6 +872,12 @@ const run = async () => {
       await page.goto(`${BASE}/creator/dashboard`);
       await page.getByTestId('verification-banner').getByText(/en revisión/).waitFor();
     });
+    await check('Al volver de Didit con la solicitud en revisión: se cierra el aviso y se ve el estado', async () => {
+      await page.goto(`${BASE}/settings?section=verification&didit=1`);
+      await page.getByText('Solicitud en revisión').waitFor();
+      expect((await page.getByTestId('didit-return').count()) === 0, 'sigue el aviso de Didit');
+      expect(!page.url().includes('didit='), `la dirección conserva didit: ${page.url()}`);
+    });
     await check('Admin ve los documentos, rechaza la del fan con motivo y aprueba la del creador', async () => {
       await logoutViaMenu(page);
       await login(page, 'admin@sugarfans.com', 'demo1234');
@@ -963,6 +969,13 @@ const run = async () => {
       expect(remaining === 1, `se esperaba 1 publicación visible, hay ${remaining}`);
       await logoutViaMenu(page);
       await login(page, creatorEmail, 'clave-creadora-1');
+      await waitPath(page, '/');
+      await page.goto(`${BASE}/creator/dashboard`);
+    });
+    await check('Al volver de Didit ya aprobado: check verde de Verificado y luego al Inicio', async () => {
+      await page.goto(`${BASE}/settings?section=verification&didit=1`);
+      const done = page.getByTestId('didit-return');
+      await done.getByText('¡Identidad verificada!').waitFor();
       await waitPath(page, '/');
       await page.goto(`${BASE}/creator/dashboard`);
     });

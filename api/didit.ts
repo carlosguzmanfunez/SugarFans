@@ -165,7 +165,7 @@ export async function POST(request: Request): Promise<Response> {
   const session = await call(`${DIDIT_API}/v3/session/`, { 'x-api-key': e.apiKey }, {
     workflow_id: e.workflowId,
     vendor_data: userId,
-    callback: `${url.origin}/settings?section=verification`,
+    callback: `${url.origin}/settings?section=verification&didit=1`,
   });
   const link = session.data?.url ?? session.data?.verification_url;
   if (!session.ok || typeof link !== 'string') return json(502, { error: 'Didit no pudo abrir la verificación. Inténtalo de nuevo en unos minutos.' });
