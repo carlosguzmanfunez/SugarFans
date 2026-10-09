@@ -124,7 +124,7 @@ const CreatorDashboard: React.FC = () => {
   const handlePublished = () => {
     setShowNewPost(false);
     setActiveTab('content');
-    show({ ok: true }, 'Publicación creada. Ya aparece en tu perfil público.');
+    show({ ok: true }, verified ? 'Publicación creada. Ya aparece en tu perfil público.' : 'Guardado como borrador. Se publicará solo cuando verifiques tu identidad.');
   };
 
   const handleDeletePost = async (id: string) => {
@@ -230,10 +230,10 @@ const CreatorDashboard: React.FC = () => {
             <p className="text-sm text-yellow-800">
               <i aria-hidden="true" className="fas fa-id-card mr-2"></i>
               {verificationStatus === 'pending'
-                ? 'Tu verificación de identidad está en revisión. Podrás publicar y cobrar en cuanto se apruebe.'
+                ? 'Tu verificación de identidad está en revisión. Tus borradores se publicarán y podrás cobrar en cuanto se apruebe.'
                 : verificationStatus === 'rejected'
-                  ? 'Tu verificación fue rechazada. Revisa el motivo y envíala de nuevo para poder publicar.'
-                  : 'Verifica tu identidad para publicar contenido y recibir pagos.'}
+                  ? 'Tu verificación fue rechazada. Revisa el motivo y envíala de nuevo para publicar tus borradores y cobrar.'
+                  : 'Ya puedes subir contenido: queda como borrador y se publica solo cuando verifiques tu identidad. Sin verificar no puedes recibir pagos.'}
             </p>
             {verificationStatus !== 'pending' && (
               <Link to="/settings?section=verification" className="bg-yellow-500 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-yellow-600">
@@ -455,9 +455,15 @@ const CreatorDashboard: React.FC = () => {
                       <div className="p-4 flex-1 flex flex-col">
                         <div className="flex items-start justify-between mb-2 gap-2">
                           <span className="text-sm font-medium text-gray-900 break-words">{post.content || (post.mediaType === 'video' ? 'Video' : 'Foto')}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${post.isLocked ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
-                            {post.isLocked ? 'Exclusivo' : 'Público'}
-                          </span>
+                          {post.isDraft ? (
+                            <span data-testid="draft-badge" className="text-xs px-2 py-0.5 rounded-full whitespace-nowrap bg-gray-100 text-gray-600">
+                              Borrador
+                            </span>
+                          ) : (
+                            <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${post.isLocked ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
+                              {post.isLocked ? 'Exclusivo' : 'Público'}
+                            </span>
+                          )}
                         </div>
                         <div className="mt-auto flex items-center justify-between text-xs text-gray-500">
                           <span className="flex gap-3">

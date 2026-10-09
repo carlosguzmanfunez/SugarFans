@@ -73,8 +73,12 @@ export const createDbTest = (DB) => {
       psql(DB, readFileSync(new URL(f, dir), 'utf8').replace(/^create extension if not exists pg_cron;$/m, ''));
   };
 
-  const user = (email, role) =>
-    psql(DB, `insert into auth.users (email, raw_user_meta_data) values ('${email}', '{"role":"${role}","name":"${email.split('@')[0]}","age_verified":true}') returning id`);
+  // Creators come verified (an unverified one can't be paid); pass verified: false to test that.
+  const user = (email, role, { verified = role === 'creator' } = {}) => {
+    const id = psql(DB, `insert into auth.users (email, raw_user_meta_data) values ('${email}', '{"role":"${role}","name":"${email.split('@')[0]}","age_verified":true}') returning id`);
+    if (verified) psql(DB, `update public.profiles set is_verified = true where id = '${id}'`);
+    return id;
+  };
 
   // Prints the summary, drops the database and exits with the result.
   const finish = (run) =>

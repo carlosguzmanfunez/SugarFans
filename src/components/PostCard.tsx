@@ -21,6 +21,8 @@ export interface DisplayPost {
   // Counts the demo catalogue ships with; real likes/comments add to them.
   baseLikes: number;
   baseComments: number;
+  // Only its author sees it until they verify their identity.
+  isDraft?: boolean;
 }
 
 interface Props {
@@ -91,7 +93,11 @@ const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner,
             <p className="text-xs text-gray-500">{new Date(post.createdAt).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
           </div>
         </div>
-        {post.isLocked && (canView ? (
+        {post.isDraft ? (
+          <span data-testid="draft-badge" className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-medium" title="Se publica cuando verifiques tu identidad">
+            <i aria-hidden="true" className="fas fa-eye-slash mr-1"></i>Borrador: solo tú lo ves
+          </span>
+        ) : post.isLocked && (canView ? (
           <span className="bg-pink-50 text-pink-600 px-3 py-1 rounded-full text-xs font-medium"><i aria-hidden="true" className="fas fa-star mr-1"></i>Exclusivo</span>
         ) : (
           <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-medium">

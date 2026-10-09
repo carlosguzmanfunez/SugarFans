@@ -226,7 +226,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       const [profile, subs, posts] = await Promise.all([
         sb.from('profiles').select('*').eq('id', uid).maybeSingle(),
         sb.from('subscriptions').select('creator_id, price, since, cancel_at').eq('fan_id', uid),
-        sb.from('creator_posts').select('id, content, is_locked, created_at, media_path, media_type').eq('creator_id', uid).order('created_at', { ascending: false }),
+        sb.from('creator_posts').select('id, content, is_locked, created_at, media_path, media_type, is_draft').eq('creator_id', uid).order('created_at', { ascending: false }),
       ]);
       if (!profile.data) return null;
       return toUser(profile.data as ProfileRow, {
@@ -242,6 +242,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
           createdAt: p.created_at,
           mediaPath: p.media_path ?? undefined,
           mediaType: p.media_type ?? undefined,
+          isDraft: !!p.is_draft,
         })),
       });
     },

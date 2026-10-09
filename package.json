@@ -17,7 +17,8 @@
     "test:push": "node e2e/push-api.mjs",
     "test:special": "node e2e/special-accounts.mjs",
     "test:incentives": "node e2e/incentives.mjs",
-    "test:country": "node e2e/country-phone.mjs"
+    "test:country": "node e2e/country-phone.mjs",
+    "test:drafts-db": "node e2e/draft-posts.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",

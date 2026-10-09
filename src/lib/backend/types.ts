@@ -46,6 +46,8 @@ export interface CreatorPost {
   mediaType?: MediaUpload['type'];
   // Set when an admin published it as a platform-run profile.
   creatorProfileId?: string;
+  // Saved while the creator isn't verified yet; only they see it until then.
+  isDraft?: boolean;
 }
 
 export interface User {

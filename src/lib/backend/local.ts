@@ -183,6 +183,13 @@ const mutate = (id: string, fn: (a: StoredAccount) => StoredAccount) => {
   return true;
 };
 
+// Verified: their drafts go public, dated now so they show up as new.
+const publishDrafts = (a: StoredAccount): StoredAccount => {
+  const now = new Date().toISOString();
+  const createdPosts = a.createdPosts.map((p) => (p.isDraft ? { ...p, isDraft: undefined, createdAt: now } : p));
+  return { ...a, isVerified: true, createdPosts, posts: (a.posts ?? 0) + a.createdPosts.filter((p) => p.isDraft).length };
+};
+
 const checkPassword = async (id: string, password: string) => {
   const account = loadAccounts().find((a) => a.id === id);
   return !!account && (await hashPassword(password, account.salt)) === account.passwordHash;
@@ -303,7 +310,7 @@ const platform = createLocalPlatform({
       subscriptions: a.subscriptions.map((s) => (s.creatorId === creatorId ? { ...s, cancelAt: at } : s)),
     })),
   creatorPrice: (creatorProfileId) => creatorAccount(creatorProfileId)?.subscriptionPrice ?? null,
-  setVerified: (userId) => mutate(userId, (a) => ({ ...a, isVerified: true })),
+  setVerified: (userId) => mutate(userId, publishDrafts),
   shareFor: (fanId, creatorProfileId, at, amount) => rewards.shareFor(fanId, creatorProfileId, at, amount),
   payoutTerms: (user) => rewards.payoutTermsFor(user),
   withInviteBonuses: (transactions) => rewards.withInviteBonuses(transactions),
@@ -352,6 +359,7 @@ const special = createLocalSpecial({
 
 const social = createLocalSocial({
   listAccounts: () => loadAccounts().map(toPublic),
+  viewer: () => loadAccounts().find((a) => a.id === readSession()),
   notify,
 });
 
@@ -564,8 +572,10 @@ export const localBackend: Backend = {
       createdAt: new Date().toISOString(),
       ...(media ? { mediaPath: media.path, mediaType: media.type } : {}),
       ...(asProfileId ? { creatorProfileId: asProfileId } : {}),
+      // Same rule as the server: an unverified creator's post waits as a draft.
+      ...(user.role === 'creator' && !user.isVerified ? { isDraft: true } : {}),
     };
-    mutate(user.id, (a) => ({ ...a, posts: (a.posts ?? 0) + 1, createdPosts: [post, ...a.createdPosts] }));
+    mutate(user.id, (a) => ({ ...a, posts: (a.posts ?? 0) + (post.isDraft ? 0 : 1), createdPosts: [post, ...a.createdPosts] }));
     return ok;
   },
 
@@ -579,7 +589,7 @@ export const localBackend: Backend = {
     if (post.mediaPath) await social.removeMedia(user, post.mediaPath);
     mutate(author.id, (a) => ({
       ...a,
-      posts: Math.max(0, (a.posts ?? 0) - 1),
+      posts: Math.max(0, (a.posts ?? 0) - (post.isDraft ? 0 : 1)),
       createdPosts: a.createdPosts.filter((p) => p.id !== postId),
     }));
     return ok;

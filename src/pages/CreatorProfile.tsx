@@ -109,6 +109,7 @@ const CreatorProfile: React.FC = () => {
         mediaType: p.mediaType,
         isLocked: p.isLocked,
         createdAt: p.createdAt,
+        isDraft: p.isDraft,
         baseLikes: 0,
         baseComments: 0,
       }));
@@ -298,6 +299,13 @@ const CreatorProfile: React.FC = () => {
               <p className="text-gray-500">@{creator.username}</p>
 
             </div>
+            {/* Nobody can pay a creator who hasn't verified yet (the server refuses it). */}
+            {!isOwner && !catalogCreator && signedUp && !signedUp.isVerified && (
+              <p className="mb-3 text-sm text-ink/60 bg-ink/5 rounded-xl px-3 py-2" data-testid="unverified-creator-note">
+                <i aria-hidden="true" className="fas fa-id-card mr-1"></i>
+                {creator.name.split(' ')[0]} está verificando su identidad. Pronto podrás suscribirte y reservar.
+              </p>
+            )}
             {/* The access ladder in one row: Seguir → Suscribirse, then the gift and
                 a "⋯" menu with the less frequent actions (propina, bloquear). */}
             <div className="grid grid-cols-[1fr_auto_auto] gap-2 md:flex md:flex-wrap md:items-center">

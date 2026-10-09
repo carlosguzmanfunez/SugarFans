@@ -106,14 +106,16 @@ const run = async () => {
 
   console.log('Invitar creadores');
   const inviter = user('inviter@test.local', 'creator');
-  const inv1 = user('inv1@test.local', 'creator');
+  const inv1 = user('inv1@test.local', 'creator', { verified: false });
   const inv2 = user('inv2@test.local', 'creator');
   psql(DB, `insert into public.creator_invites (creator_id, creator_profile_id, referrer_profile_id) values ('${inv1}', '${inv1}', '${inviter}'), ('${inv2}', '${inv2}', '${inviter}')`);
   const bonuses = () => psql(DB, `select coalesce(sum(amount), 0) from public.transactions where kind = 'referral' and creator_profile_id = '${inviter}'`);
   await check('Sin 2 creadores invitados verificados con $100 vendidos no hay bono', async () => {
     psql(DB, `update public.profiles set is_verified = true where id = '${inv1}'`);
     sale(inv1, fan, 120, 'tip');
-    sale(inv2, fan, 120, 'tip'); // inv2 sold $100 but isn't verified
+    sale(inv2, fan, 120, 'tip');
+    // inv2 sold $100 but isn't verified (any more)
+    psql(DB, `update public.profiles set is_verified = false where id = '${inv2}'`);
     sale(inv1, fan, 10);
     expect(bonuses() === '0', `bono antes de tiempo: ${bonuses()}`);
   });
