@@ -2630,6 +2630,17 @@ const run = async () => {
       }
       await ctx.close();
     });
+    await check('Escritorio: "Explorar" en la barra de Inicio abre la página Explorar (fan y creador)', async () => {
+      for (const email of ['fan@sugarfans.com', 'creator@sugarfans.com']) {
+        const ctx = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });
+        const p = await newPage(ctx);
+        await login(p, email, 'demo1234');
+        await waitPath(p, '/');
+        await p.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Explorar', exact: true }).click();
+        await waitPath(p, '/explore');
+        await ctx.close();
+      }
+    });
     await check('La presentación en video solo la ven visitantes sin sesión', async () => {
       const ctx = await newContext(browser, { viewport: { width: 1280, height: 800 }, locale: 'es-ES' });
       const p = await newPage(ctx);

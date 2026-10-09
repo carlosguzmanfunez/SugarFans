@@ -71,7 +71,8 @@ const Navbar: React.FC = () => {
   const onReservas = location.pathname === '/creator/dashboard' && new URLSearchParams(location.search).get('tab') === 'vip';
   const showCreators = !isAuthenticated || user?.role === 'creator';
   const sections = [
-    { href: '#comunidades', label: 'Explorar' },
+    // Explorar is a page (all the creators), not the communities section of Inicio.
+    { href: '/explore', label: 'Explorar' },
     { href: '#reserve', label: 'Reserve' },
     ...(ENABLE_OPEN_LIVE && ENABLE_HAPPENING_NOW ? [{ href: '#live', label: 'Live' }] : []),
     ...(showCreators ? [{ href: '#creadores', label: 'Para creadores' }] : []),
@@ -104,11 +105,17 @@ const Navbar: React.FC = () => {
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-1 lg:ml-auto">
             {onLanding &&
-              sections.map((sct) => (
-                <a key={sct.href} href={sct.href} className="rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-ink/5">
-                  {sct.label}
-                </a>
-              ))}
+              sections.map((sct) =>
+                sct.href.startsWith('/') ? (
+                  <Link key={sct.href} to={sct.href} className="rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-ink/5">
+                    {sct.label}
+                  </Link>
+                ) : (
+                  <a key={sct.href} href={sct.href} className="rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-ink/5">
+                    {sct.label}
+                  </a>
+                )
+              )}
             {!onLanding && (
               <>
             <Link to="/explore" className={linkCls('/explore')}>
