@@ -477,6 +477,12 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
       return commit((s) => ({ ...s, removedPosts: s.removedPosts.filter((p) => p !== postId) }));
     },
 
+    async coverRefund(transactionId, cover) {
+      const t = load().transactions.find((x) => x.id === transactionId);
+      if (!t || (t.status !== 'refunded' && t.status !== 'disputed') || t.kind === 'referral') return fail('Solo se cubre una venta reembolsada o en disputa');
+      return commit((s) => ({ ...s, transactions: s.transactions.map((x) => (x.id === transactionId ? { ...x, platformCovers: cover } : x)) }));
+    },
+
     async blocks(user) {
       return load().blocks.filter((b) => b.blockerId === user.id || b.targetId === user.id);
     },

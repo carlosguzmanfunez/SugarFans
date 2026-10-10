@@ -76,6 +76,21 @@ finish(async () => {
     expect(balance(fan2) === 0, `saldo ${balance(fan2)}`);
     expect(status(`payer_id = '${fan2}' and kind = 'gift'`) === 'paid,paid,paid,paid,paid,refunded,refunded', status(`payer_id = '${fan2}' and kind = 'gift'`));
   });
+  await check('Si no fue culpa del creador, un admin lo cubre y el creador conserva su parte', async () => {
+    const admin = user('admin@test.com', 'fan');
+    psql(DB, `update public.profiles set role = 'admin' where id = '${admin}';
+              update public.transactions set created_at = now() - interval '40 days' where kind = 'tip' and creator_profile_id = '${cp}'`);
+    const avail = () => Number(psql(DB, `select public.creator_available_balance('${lola}')`));
+    const before = avail();
+    const tip = psql(DB, `select id from public.transactions where paypal_ref = 'CAP-TIP'`);
+    raises(() => as(lola, `select public.admin_cover_refund('${tip}', true)`), /no está permitida/, 'el creador se lo cubre solo');
+    as(admin, `select public.admin_cover_refund('${tip}', true)`);
+    expect(avail() > before, `saldo ${before} → ${avail()}`);
+    as(admin, `select public.admin_cover_refund('${tip}', false)`);
+    expect(avail() === before, 'quitar la cobertura no lo descontó');
+    const paid = psql(DB, `select id from public.transactions where status = 'paid' and kind = 'renewal' limit 1`) || psql(DB, `select id from public.transactions where status = 'paid' and kind <> 'referral' limit 1`);
+    raises(() => as(admin, `select public.admin_cover_refund('${paid}', true)`), /reembolsada o en disputa/, 'una venta pagada');
+  });
   await check('Solo el servidor marca reembolsos', async () => {
     raises(() => as(fan, `select public.paypal_money_back('CAP-VIP', 'release')`), /permission denied/, 'un fan');
   });

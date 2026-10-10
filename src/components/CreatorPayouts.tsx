@@ -231,7 +231,12 @@ const CreatorPayouts: React.FC = () => {
                     {(t.kind === 'gift' || t.kind === 'referral') && t.note ? ` · ${displayGiftNote(t.note, t.giftId)}` : ''}
                   </p>
                 </div>
-                {t.status === 'refunded' ? (
+                {t.platformCovers && t.status !== 'paid' ? (
+                  <span className="text-right">
+                    <span className="block font-bold text-green-700">+{money(creatorCut(t))}</span>
+                    <span className="block text-xs text-gray-500">Reembolsado al fan, lo cubre Fans Reserve</span>
+                  </span>
+                ) : t.status === 'refunded' ? (
                   <span className="text-xs font-medium text-gray-500">Devuelto al fan</span>
                 ) : t.status === 'disputed' ? (
                   <span className="text-xs font-medium text-amber-600" title="El fan abrió una disputa en PayPal. Si PayPal te da la razón, vuelve a contar.">En disputa con PayPal</span>

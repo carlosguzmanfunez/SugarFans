@@ -60,6 +60,7 @@ export interface Transaction {
   giftId?: string;
   methodLabel: string;
   status: 'paid' | 'failed' | 'refunded' | 'disputed'; // disputed: frozen while PayPal decides a dispute
+  platformCovers?: boolean; // refunded or disputed, not the creator's fault: they keep their part (Agreement 6.2.3)
   createdAt: string;
 }
 
@@ -180,6 +181,8 @@ export interface PlatformBackend {
   resolveReport(id: string, action: 'remove' | 'resolve' | 'dismiss'): Promise<AuthResult>; // admin
   removedPosts(): Promise<string[]>;
   restorePost(postId: string): Promise<AuthResult>; // admin
+  // The creator keeps (cover) or loses their part of a refunded or disputed sale.
+  coverRefund(transactionId: string, cover: boolean): Promise<AuthResult>; // admin
 
   // Blocks the user made and blocks that target them.
   blocks(user: User): Promise<Block[]>;

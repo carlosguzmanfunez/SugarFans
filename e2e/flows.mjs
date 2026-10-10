@@ -1204,6 +1204,25 @@ const run = async () => {
       await box.getByText('Pagado', { exact: true }).waitFor();
       expect((await box.getByRole('button').count()) === 0, 'el admin aún tiene acciones sobre retiros');
     });
+    await check('Reembolso que no fue culpa del creador: el admin lo cubre y el creador conserva su parte', async () => {
+      // A paid sale to Valentina that PayPal gave back to the fan.
+      const id = await page.evaluate(() => {
+        const data = JSON.parse(localStorage.getItem('fansreserve_platform'));
+        const t = data.transactions.find((x) => x.creatorProfileId === '1' && x.status === 'paid' && x.kind !== 'referral');
+        t.status = 'refunded';
+        localStorage.setItem('fansreserve_platform', JSON.stringify(data));
+        return t.id;
+      });
+      await page.reload();
+      await page.getByRole('button', { name: 'Retiros', exact: true }).click();
+      const box = page.getByTestId('admin-money-back');
+      await box.getByText(/Reembolsado al fan/).first().waitFor();
+      await box.getByRole('button', { name: 'No fue culpa del creador' }).first().click();
+      await page.getByText(/el creador conserva su parte/).waitFor();
+      await box.getByRole('button', { name: /Lo cubre Fans Reserve/ }).first().waitFor();
+      const covered = await page.evaluate((tid) => JSON.parse(localStorage.getItem('fansreserve_platform')).transactions.find((x) => x.id === tid).platformCovers, id);
+      expect(covered === true, 'no quedó cubierta');
+    });
     await check('Admin ve las cuentas reales y puede buscarlas', async () => {
       await logoutViaMenu(page);
       await login(page, 'admin@sugarfans.com', 'demo1234');
