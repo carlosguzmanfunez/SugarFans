@@ -36,7 +36,7 @@ const WAYS = [
 const STEPS = [
   { title: 'Crea tu cuenta gratis', body: 'Tu foto, tu bio y tus redes. Te toma unos minutos.' },
   { title: 'Verifica tu identidad', body: 'Una sola vez, desde el celular. Así tus fans saben que eres tú.' },
-  { title: 'Comparte tu enlace', body: 'Pon fansreserve.com/@tu_usuario en tu bio de TikTok o Instagram.' },
+  { title: 'Comparte tu enlace', body: 'Pon fansreserve.com/@tu_usuario en la bio de tus redes sociales.' },
 ];
 
 const PERKS = [
