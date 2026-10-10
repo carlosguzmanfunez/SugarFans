@@ -17,6 +17,9 @@ import {
   type VerificationRequest,
 } from '../lib/platform';
 import { displayEmail } from '../config/demoAccounts';
+import { giftsApi, type CoinPurchase } from '../lib/gifts';
+import AdminOverview from '../components/AdminOverview';
+import AdminLedger from '../components/AdminLedger';
 import { countryName } from '../config/countries';
 
 const countryLabel = (code: string) => (code ? countryName(code, 'es', 'Otro país') : 'Sin país');
@@ -37,14 +40,15 @@ const AdminDashboard: React.FC = () => {
   const { data: accounts, reload: reloadAccounts } = usePlatformQuery(listAccounts, [], []);
   const { data: platform } = usePlatformQuery(
     async () => {
-      const [verifications, reports, payouts, transactions, removedPosts] = await Promise.all([
+      const [verifications, reports, payouts, transactions, removedPosts, coins] = await Promise.all([
         platformApi.listVerifications(),
         platformApi.listReports(),
         platformApi.listPayouts(),
         platformApi.allPayments(),
         platformApi.removedPosts(),
+        giftsApi.allCoinPurchases(),
       ]);
-      return { verifications, reports, payouts, transactions, removedPosts };
+      return { verifications, reports, payouts, transactions, removedPosts, coins };
     },
     [],
     {
@@ -53,6 +57,7 @@ const AdminDashboard: React.FC = () => {
       payouts: [] as Awaited<ReturnType<typeof platformApi.listPayouts>>,
       transactions: [] as Awaited<ReturnType<typeof platformApi.allPayments>>,
       removedPosts: [] as string[],
+      coins: [] as CoinPurchase[],
     }
   );
   const [activeTab, setActiveTab] = useState('overview');
@@ -65,10 +70,6 @@ const AdminDashboard: React.FC = () => {
   const reports = [...platform.reports].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const pendingReports = reports.filter((r) => r.status === 'pending');
   const payouts = [...platform.payouts].sort((a, b) => b.requestedAt.localeCompare(a.requestedAt));
-  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-  const monthRevenue = platform.transactions
-    .filter((t) => t.status === 'paid' && t.createdAt >= monthStart)
-    .reduce((s, t) => s + t.amount, 0);
   const pendingTotal = pendingVerifications.length + pendingReports.length;
   // Sales PayPal gave back to the fan (refund, chargeback) or froze (dispute).
   const moneyBack = platform.transactions.filter((t) => (t.status === 'refunded' || t.status === 'disputed') && t.kind !== 'referral');
@@ -76,13 +77,6 @@ const AdminDashboard: React.FC = () => {
     const r = await coverRefund(id, cover);
     setNotice(r.ok ? { ok: true, text: cover ? 'Listo: el creador conserva su parte; la pérdida la asume Fans Reserve' : 'Listo: se le descuenta al creador' } : { ok: false, text: r.error ?? 'No se pudo actualizar la venta' });
   };
-
-  const stats = [
-    { label: 'Usuarios registrados', value: String(accounts.length), icon: 'fa-users', color: 'blue' },
-    { label: 'Creadores', value: String(accounts.filter((a) => a.role === 'creator').length), icon: 'fa-star', color: 'purple' },
-    { label: 'Cobrado este mes', value: money(monthRevenue), icon: 'fa-dollar-sign', color: 'green' },
-    { label: 'Reportes pendientes', value: String(pendingReports.length), icon: 'fa-flag', color: 'red' },
-  ];
 
   const recentUsers = [...accounts]
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -160,25 +154,11 @@ const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {stats.map((stat, i) => (
-            <div key={i} className="bg-white rounded-2xl p-5 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <div className={`w-10 h-10 rounded-xl bg-${stat.color}-100 flex items-center justify-center`}>
-                  <i aria-hidden="true" className={`fas ${stat.icon} text-${stat.color}-600`}></i>
-                </div>
-              </div>
-              <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-              <p className="text-sm text-gray-500 mt-1">{stat.label}</p>
-            </div>
-          ))}
-        </div>
-
         {/* Tabs */}
         <div className="flex space-x-1 bg-white rounded-xl p-1 shadow-sm mb-8 overflow-x-auto">
           {[
             { id: 'overview', label: 'Resumen', icon: 'fa-chart-pie' },
+            { id: 'ledger', label: 'Libro', icon: 'fa-book' },
             { id: 'verifications', label: `Verificaciones (${pendingVerifications.length})`, icon: 'fa-id-card' },
             { id: 'reports', label: `Reportes (${pendingReports.length})`, icon: 'fa-flag' },
             { id: 'payouts', label: 'Retiros', icon: 'fa-money-check-alt' },
@@ -200,38 +180,17 @@ const AdminDashboard: React.FC = () => {
 
         {/* Overview */}
         {activeTab === 'overview' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-              <div className="p-5 border-b border-gray-100 flex justify-between items-center">
-                <h3 className="font-bold text-gray-900">Verificaciones pendientes</h3>
-                <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs font-medium">{pendingVerifications.length}</span>
-              </div>
-              <div className="divide-y divide-gray-100">
-                {pendingVerifications.length === 0 && <p className="p-6 text-center text-sm text-gray-500">No hay solicitudes pendientes</p>}
-                {pendingVerifications.slice(0, 4).map((v) => verificationRow(v, true))}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-              <div className="p-5 border-b border-gray-100 flex justify-between items-center">
-                <h3 className="font-bold text-gray-900">Reportes recientes</h3>
-                <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs font-medium">{pendingReports.length}</span>
-              </div>
-              <div className="divide-y divide-gray-100">
-                {pendingReports.length === 0 && <p className="p-6 text-center text-sm text-gray-500">No hay reportes pendientes</p>}
-                {pendingReports.slice(0, 4).map((r) => (
-                  <div key={r.id} className="p-4 hover:bg-gray-50">
-                    <div className="flex items-center justify-between">
-                      <p className="font-medium text-gray-900 text-sm">{r.reason}</p>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">Pendiente</span>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">{r.targetLabel} • Reportado por: {r.reporterName} • {ago(r.createdAt)}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <AdminOverview
+            accounts={accounts}
+            transactions={platform.transactions}
+            coins={platform.coins}
+            payouts={platform.payouts}
+            pending={{ verifications: pendingVerifications.length, reports: pendingReports.length, disputes: moneyBack.filter((t) => !t.platformCovers).length }}
+            onOpen={(tab) => { setActiveTab(tab); setNotice(null); }}
+          />
         )}
+
+        {activeTab === 'ledger' && <AdminLedger transactions={platform.transactions} coins={platform.coins.map((c) => ({ ...c, userName: accounts.find((a) => a.id === c.userId)?.name }))} payouts={platform.payouts} />}
 
         {/* Verifications */}
         {activeTab === 'verifications' && (

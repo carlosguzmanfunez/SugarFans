@@ -7,7 +7,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { DEFAULT_GIFT_SETTINGS, validateCircleMin } from '../giftRules';
 import type { AuthResult } from './types';
 import { currencyWord } from '../../config/currency';
-import type { GiftsBackend, PerkRequest } from './giftTypes';
+import type { CoinPurchase, GiftsBackend, PerkRequest } from './giftTypes';
 
 type Row = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -41,6 +41,17 @@ const toPerk = (r: Row): PerkRequest => ({
   bookingId: r.booking_id ?? undefined,
 });
 
+const toPurchase = (r: Row): CoinPurchase => ({
+  id: r.id,
+  userId: r.user_id,
+  packId: r.pack_id,
+  coins: r.coins,
+  price: Number(r.price),
+  methodLabel: r.method_label,
+  createdAt: r.created_at,
+  ...(r.status && r.status !== 'paid' ? { status: r.status } : {}),
+});
+
 export const createSupabaseGifts = (sb: SupabaseClient): GiftsBackend => {
   // Storage signs only the files this viewer may open (the fan a video was made for, and its creator).
   const sign = async <T extends { mediaPath?: string }>(items: T[]): Promise<(T & { mediaUrl?: string })[]> => {
@@ -60,15 +71,7 @@ export const createSupabaseGifts = (sb: SupabaseClient): GiftsBackend => {
         sb.rpc('my_coin_balance'),
         sb.from('coin_purchases').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
       ]);
-      const purchases = (rows ?? []).map((r) => ({
-        id: r.id,
-        userId: r.user_id,
-        packId: r.pack_id,
-        coins: r.coins,
-        price: Number(r.price),
-        methodLabel: r.method_label,
-        createdAt: r.created_at,
-      }));
+      const purchases = (rows ?? []).map(toPurchase);
       return {
         coins: Number(coins ?? 0),
         purchases,
@@ -149,6 +152,11 @@ export const createSupabaseGifts = (sb: SupabaseClient): GiftsBackend => {
       const at = new Date(`${date}T${time}:00`);
       const { error } = await sb.rpc('schedule_perk_call', { p_id: perkId, p_date: date, p_time: time, p_at: at.toISOString() });
       return done(error, 'No se pudo agendar la videollamada');
+    },
+
+    async allCoinPurchases() {
+      const { data } = await sb.from('coin_purchases').select('*').order('created_at', { ascending: false });
+      return (data ?? []).map(toPurchase);
     },
   };
 };

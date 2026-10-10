@@ -29,6 +29,8 @@ export interface CoinPurchase {
   price: number;
   methodLabel: string;
   createdAt: string;
+  status?: 'paid' | 'disputed' | 'refunded'; // refunded or disputed through PayPal: the Créditos don't count
+  userName?: string; // filled in by the admin view
 }
 
 export interface Wallet {
@@ -96,4 +98,5 @@ export interface GiftsBackend {
   perkRequests(user: User): Promise<PerkRequest[]>;
   deliverVideo(user: User, perkId: string, media: MediaUpload): Promise<AuthResult>;
   scheduleCall(user: User, perkId: string, date: string, time: string): Promise<AuthResult>;
+  allCoinPurchases(): Promise<CoinPurchase[]>; // admin
 }

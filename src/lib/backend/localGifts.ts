@@ -235,6 +235,10 @@ export const createLocalGifts = (deps: Deps): GiftsBackend & { purgeUser(userId:
       }));
     },
 
+    async allCoinPurchases() {
+      return [...load().purchases].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    },
+
     async purgeUser(userId) {
       commit((s) => ({
         ...s,

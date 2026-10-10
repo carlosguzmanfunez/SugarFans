@@ -1223,6 +1223,22 @@ const run = async () => {
       const covered = await page.evaluate((tid) => JSON.parse(localStorage.getItem('fansreserve_platform')).transactions.find((x) => x.id === tid).platformCovers, id);
       expect(covered === true, 'no quedó cubierta');
     });
+    await check('Admin: el resumen muestra el dinero del periodo y el libro se descarga', async () => {
+      await page.goto(`${BASE}/admin`);
+      const money = page.getByTestId('admin-money');
+      await money.getByText('Entró de fans').waitFor();
+      await money.getByText('Ganancia de Fans Reserve').waitFor();
+      await page.getByTestId('admin-owed').getByText('Disponible para retirar').waitFor();
+      await page.getByRole('button', { name: 'Todo', exact: true }).click();
+      expect(!(await money.innerText()).includes('$0.00\nEntró de fans'), 'no cuenta ningún pago');
+      await page.getByRole('button', { name: 'Libro', exact: true }).click();
+      await page.getByRole('group', { name: 'Periodo del libro' }).getByRole('button', { name: 'Todo', exact: true }).click();
+      const rows = page.getByTestId('ledger-row');
+      await rows.first().waitFor();
+      expect((await rows.count()) > 0, 'el libro está vacío');
+      const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: /Descargar Excel/ }).click()]);
+      expect(/fans-reserve-libro-todo-.*\.csv$/.test(download.suggestedFilename()), download.suggestedFilename());
+    });
     await check('Admin ve las cuentas reales y puede buscarlas', async () => {
       await logoutViaMenu(page);
       await login(page, 'admin@sugarfans.com', 'demo1234');
