@@ -1223,6 +1223,22 @@ const run = async () => {
       const covered = await page.evaluate((tid) => JSON.parse(localStorage.getItem('fansreserve_platform')).transactions.find((x) => x.id === tid).platformCovers, id);
       expect(covered === true, 'no quedó cubierta');
     });
+    await check('Admin: el resumen muestra el dinero del periodo y el libro se descarga', async () => {
+      await page.goto(`${BASE}/admin`);
+      const money = page.getByTestId('admin-money');
+      await money.getByText('Entró de fans').waitFor();
+      await money.getByText('Ganancia de Fans Reserve').waitFor();
+      await page.getByTestId('admin-owed').getByText('Disponible para retirar').waitFor();
+      await page.getByRole('button', { name: 'Todo', exact: true }).click();
+      expect(!(await money.innerText()).includes('$0.00\nEntró de fans'), 'no cuenta ningún pago');
+      await page.getByRole('button', { name: 'Libro', exact: true }).click();
+      await page.getByRole('group', { name: 'Periodo del libro' }).getByRole('button', { name: 'Todo', exact: true }).click();
+      const rows = page.getByTestId('ledger-row');
+      await rows.first().waitFor();
+      expect((await rows.count()) > 0, 'el libro está vacío');
+      const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: /Descargar Excel/ }).click()]);
+      expect(/fans-reserve-libro-todo-.*\.csv$/.test(download.suggestedFilename()), download.suggestedFilename());
+    });
     await check('Admin ve las cuentas reales y puede buscarlas', async () => {
       await logoutViaMenu(page);
       await login(page, 'admin@sugarfans.com', 'demo1234');
@@ -1236,6 +1252,37 @@ const run = async () => {
       await page.fill('input[placeholder="Buscar usuario..."]', 'lola');
       await page.getByText(creatorEmail).waitFor();
       expect((await page.getByText(fanEmail).count()) === 0, 'el filtro no funciona');
+      await logoutViaMenu(page);
+    });
+    await check('Admin suspende una cuenta: no puede entrar hasta que se la quita, y queda en el historial', async () => {
+      await login(page, 'admin@sugarfans.com', 'demo1234');
+      await waitPath(page, '/');
+      await page.goto(`${BASE}/admin`);
+      await page.getByRole('button', { name: /Usuarios/ }).click();
+      await page.fill('input[placeholder="Buscar usuario..."]', fanEmail);
+      await page.getByTestId('admin-user-row').getByRole('button', { name: /Gestionar/ }).click();
+      const sheet = page.getByTestId('admin-user-sheet');
+      expect(await sheet.getByRole('button', { name: 'Suspender', exact: true }).isDisabled(), 'deja suspender sin motivo');
+      await sheet.getByLabel('Motivo').fill('Prueba de suspensión');
+      await sheet.getByLabel('Duración').selectOption('1');
+      await sheet.getByRole('button', { name: 'Suspender', exact: true }).click();
+      await page.getByText(/suspendida$/).first().waitFor();
+      await page.getByTestId('admin-user-row').getByText('Suspendida').waitFor();
+      await logoutViaMenu(page);
+      await login(page, fanEmail, 'nueva-clave-2');
+      await page.getByText(/Tu cuenta está suspendida/).waitFor();
+      await login(page, 'admin@sugarfans.com', 'demo1234');
+      await waitPath(page, '/');
+      await page.goto(`${BASE}/admin`);
+      await page.getByRole('button', { name: /Usuarios/ }).click();
+      await page.fill('input[placeholder="Buscar usuario..."]', fanEmail);
+      await page.getByTestId('admin-user-row').getByRole('button', { name: /Gestionar/ }).click();
+      await page.getByTestId('admin-user-history').getByText('Prueba de suspensión').waitFor();
+      await sheet.getByRole('button', { name: 'Quitar suspensión' }).click();
+      await page.getByText(/ya puede volver a entrar/).waitFor();
+      await logoutViaMenu(page);
+      await login(page, fanEmail, 'nueva-clave-2');
+      await waitPath(page, '/');
       await logoutViaMenu(page);
     });
 

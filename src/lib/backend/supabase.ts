@@ -2,7 +2,7 @@
 // Security. Rules that span users (booking lifecycle, account deletion) run in
 // SECURITY DEFINER functions, see supabase/migrations.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { PAID_WITH_PAYPAL, WRONG_CREDENTIALS, cleanPatch, mergeSettings, normalizeEmail, validateRegistration, validateSignupExtras } from './shared';
+import { PAID_WITH_PAYPAL, WRONG_CREDENTIALS, ACCOUNT_SUSPENDED, cleanPatch, mergeSettings, normalizeEmail, validateRegistration, validateSignupExtras } from './shared';
 import { DEFAULT_AVAILABILITY, cleanDetails, customTitle, normalizeAvailability, validateCounter, validateCustomRequest, validateExperience } from '../vip';
 import type { Backend, BookingDetails, BookingStatus, ExperienceType, ReserveDetails, SocialProvider, User, UserRole, VipBooking, VipExperience } from './types';
 import { creators as demoCreators } from '../../data/mockData';
@@ -186,6 +186,7 @@ const dbError = (error: { message?: string } | null, fallback: string) => {
 
 const translateAuthError = (message: string): string => {
   if (/invalid login credentials/i.test(message)) return WRONG_CREDENTIALS;
+  if (/banned/i.test(message)) return ACCOUNT_SUSPENDED;
   if (/already registered|already exists/i.test(message)) return 'Ya existe una cuenta con este email';
   if (/email address .* is invalid|invalid email|email_address_invalid/i.test(message)) return 'Introduce un email válido';
   if (/email not confirmed/i.test(message)) return 'Confirma tu email antes de iniciar sesión (revisa tu bandeja de entrada)';

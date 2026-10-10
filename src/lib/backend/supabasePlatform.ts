@@ -6,6 +6,8 @@ import { buildManagedProfile, validateReport, validateTip, validateVerification 
 import { creators as catalogue } from '../../data/mockData';
 import type { AuthResult } from './types';
 import type {
+  AccountRestriction,
+  AdminActionLog,
   Block,
   ManagedProfile,
   PaymentMethod,
@@ -24,7 +26,7 @@ const fail = (error: string): AuthResult => ({ ok: false, error });
 // Our functions raise Spanish messages meant for the user; hide anything else.
 const dbError = (error: { message?: string } | null, fallback: string) => {
   const msg = error?.message ?? '';
-  return fail(/[áéíóúñ¿$]|Debes|Esta acción|Elige|Indica|Faltan|Deja|Solo|Tu |Tienes|Ya |No puedes|Añade|Verifica|La solicitud|Reporte|Este perfil|Ese nombre/.test(msg) ? msg : fallback);
+  return fail(/[áéíóúñ¿$]|Debes|Esta acción|Elige|Indica|Faltan|Deja|Solo|Tu |Tienes|Ya |No puedes|Añade|Verifica|La solicitud|Reporte|Este perfil|Ese nombre|Escribe|Las cuentas|Cuenta no/.test(msg) ? msg : fallback);
 };
 const done = (error: { message?: string } | null, fallback: string) => (error ? dbError(error, fallback) : ok);
 
@@ -350,6 +352,40 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
 
   async coverRefund(transactionId, cover) {
     return done((await sb.rpc('admin_cover_refund', { p_transaction: transactionId, p_cover: cover })).error, 'No se pudo actualizar la venta');
+  },
+
+  async accountRestrictions() {
+    const { data } = await sb.from('account_restrictions').select('*');
+    return (data ?? []).map(
+      (r): AccountRestriction => ({
+        userId: r.user_id,
+        suspendedUntil: r.suspended_until,
+        suspensionReason: r.suspension_reason,
+        payoutsFrozen: r.payouts_frozen,
+        updatedAt: r.updated_at,
+      })
+    );
+  },
+
+  async adminActions() {
+    const { data } = await sb.from('admin_actions').select('*').order('created_at', { ascending: false }).limit(500);
+    return (data ?? []).map(
+      (r): AdminActionLog => ({
+        id: r.id,
+        adminName: r.admin_name,
+        userId: r.user_id,
+        userName: r.user_name,
+        action: r.action,
+        reason: r.reason,
+        until: r.until,
+        createdAt: r.created_at,
+      })
+    );
+  },
+
+  async adminAccountAction(_admin, userId, action, reason, days) {
+    const { error } = await sb.rpc('admin_account_action', { p_user: userId, p_action: action, p_reason: reason, p_days: days ?? null });
+    return done(error, 'No se pudo aplicar la acción');
   },
 
   async blocks(user) {

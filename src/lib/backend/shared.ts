@@ -74,6 +74,7 @@ export const cleanPatch = (patch: ProfilePatch): { patch?: ProfilePatch; error?:
 };
 
 export const WRONG_CREDENTIALS = 'Email o contraseña incorrectos';
+export const ACCOUNT_SUSPENDED = 'Tu cuenta está suspendida. Escríbenos a support@fansreserve.com';
 
 // Passed as the payment method once api/paypal.ts has charged and fulfilled a
 // purchase: the client only refreshes, it doesn't call the purchase RPC again.

@@ -5,7 +5,7 @@ import { readJSON, writeJSONChecked, newId } from '../storage';
 import { addMonths, round2, validateReport, validateTip, validateVerification, computeEarnings, payoutFee, payoutAccountLabel, money, buildManagedProfile } from '../platformRules';
 import { creators as catalogue } from '../../data/mockData';
 import type { AuthResult, User } from './types';
-import type { Block, ManagedProfile, PaymentMethod, Payout, PayoutAccount, PlatformBackend, Report, Transaction, VerificationRequest } from './platformTypes';
+import type { AccountRestriction, AdminActionLog, Block, ManagedProfile, PaymentMethod, Payout, PayoutAccount, PlatformBackend, Report, Transaction, VerificationRequest } from './platformTypes';
 
 interface Store {
   verifications: VerificationRequest[];
@@ -17,6 +17,8 @@ interface Store {
   blocks: Block[];
   removedPosts: string[];
   managedProfiles: ManagedProfile[];
+  restrictions: AccountRestriction[];
+  adminActions: AdminActionLog[];
 }
 
 interface Deps {
@@ -27,6 +29,9 @@ interface Deps {
   // Monthly price of a creator account's profile, or null when no account owns it.
   creatorPrice(creatorProfileId: string): number | null;
   setVerified(userId: string): void;
+  setUnverified(userId: string): void;
+  // Deletes the account and everything personal (admin cancelling an account).
+  deleteAccount(userId: string): Promise<void>;
   // Creator's cut of a subscription, renewal or tip (rewards: level and referral, from the
   // net) and the processor's fee it was taken after.
   shareFor(fanId: string, creatorProfileId: string, at: Date, amount: number): { share: number; gatewayFee: number };
@@ -50,6 +55,8 @@ const empty = (): Store => ({
   blocks: [],
   removedPosts: [],
   managedProfiles: [],
+  restrictions: [],
+  adminActions: [],
 });
 
 const now = () => new Date().toISOString();
@@ -72,7 +79,9 @@ export interface LocalLedger {
   refund(transactionId: string): void;
 }
 
-export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(userId: string): Promise<void>; ledger: LocalLedger } => {
+export const createLocalPlatform = (
+  deps: Deps
+): PlatformBackend & { purgeUser(userId: string): Promise<void>; isSuspended(userId: string): boolean; ledger: LocalLedger } => {
   const load = (): Store => {
     const store = { ...empty(), ...readJSON<Partial<Store>>(KEY, {}) };
     if (!readJSON<boolean>(SEEDED_KEY, false)) {
@@ -99,6 +108,9 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
     return ok;
   };
 
+  const suspended = (s: Store, userId: string) => s.restrictions.some((r) => r.userId === userId && !!r.suspendedUntil && r.suspendedUntil > now());
+  const ownerOf = (creatorProfileId: string) => deps.listAccounts().find((a) => a.role === 'creator' && a.creatorProfileId === creatorProfileId);
+
   const creatorBlockedFan = (s: Store, fanId: string, creatorProfileId: string) =>
     s.blocks.some((b) => b.targetId === fanId && b.blockerProfileId === creatorProfileId);
   const cutOff = (s: Store, fanId: string, creatorProfileId: string) =>
@@ -124,7 +136,11 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
   const ledger: LocalLedger = {
     methodLabel: (userId, methodId) => load().paymentMethods.find((m) => m.id === methodId && m.userId === userId)?.label ?? null,
     cutOff: (fanId, creatorProfileId) => cutOff(load(), fanId, creatorProfileId),
-    acceptsPayments: (creatorProfileId) => priceOf(load(), creatorProfileId) !== null,
+    acceptsPayments: (creatorProfileId) => {
+      const s = load();
+      const owner = ownerOf(creatorProfileId);
+      return priceOf(s, creatorProfileId) !== null && !(owner && suspended(s, owner.id));
+    },
     transactions: () => load().transactions,
     reports: () => load().reports,
     addTransaction(t) {
@@ -384,6 +400,8 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
       const s = load();
       if (user.role !== 'creator') return fail('Solo los creadores pueden retirar');
       if (!user.isVerified) return fail('Verifica tu identidad antes de solicitar un retiro');
+      if (suspended(s, user.id) || s.restrictions.some((r) => r.userId === user.id && r.payoutsFrozen))
+        return fail('Tus retiros están en revisión. Escríbenos a support@fansreserve.com');
       const account = s.payoutAccounts[user.id];
       if (!account) return fail('Añade el email de tu cuenta PayPal para retiros');
       const { available } = earningsOf(s, user);
@@ -483,6 +501,47 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
       return commit((s) => ({ ...s, transactions: s.transactions.map((x) => (x.id === transactionId ? { ...x, platformCovers: cover } : x)) }));
     },
 
+    async accountRestrictions() {
+      return load().restrictions;
+    },
+
+    async adminActions() {
+      return [...load().adminActions].sort(byNewest('createdAt'));
+    },
+
+    async adminAccountAction(admin, userId, action, reason, days) {
+      if (admin.role !== 'admin') return fail('Esta acción no está permitida');
+      const target = deps.listAccounts().find((a) => a.id === userId);
+      if (!target) return fail('Cuenta no encontrada');
+      if (target.role === 'admin') return fail('Las cuentas de administrador no se gestionan desde aquí');
+      const why = reason.trim().slice(0, 500);
+      if (action !== 'unsuspend' && action !== 'unfreeze_payouts' && !why) return fail('Escribe el motivo');
+      const until = action === 'suspend' ? new Date(Date.now() + (days ?? 36_500) * 86_400_000).toISOString() : null;
+      const log: AdminActionLog = { id: newId(), adminName: admin.name, userId, userName: target.name, action, reason: why, until, createdAt: now() };
+      const restrict = (s: Store, patch: Partial<AccountRestriction>) => {
+        const current = s.restrictions.find((r) => r.userId === userId) ?? { userId, suspendedUntil: null, suspensionReason: null, payoutsFrozen: false, updatedAt: now() };
+        return [...s.restrictions.filter((r) => r.userId !== userId), { ...current, ...patch, updatedAt: now() }];
+      };
+      const result = commit((s) => ({
+        ...s,
+        adminActions: [...s.adminActions, log],
+        restrictions:
+          action === 'suspend'
+            ? restrict(s, { suspendedUntil: until, suspensionReason: why })
+            : action === 'unsuspend'
+              ? restrict(s, { suspendedUntil: null, suspensionReason: null })
+              : action === 'freeze_payouts' || action === 'unfreeze_payouts'
+                ? restrict(s, { payoutsFrozen: action === 'freeze_payouts' })
+                : s.restrictions,
+      }));
+      if (!result.ok) return result;
+      if (action === 'unverify') deps.setUnverified(userId);
+      if (action === 'delete') await deps.deleteAccount(userId);
+      return ok;
+    },
+
+    isSuspended: (userId) => suspended(load(), userId),
+
     async blocks(user) {
       return load().blocks.filter((b) => b.blockerId === user.id || b.targetId === user.id);
     },
@@ -505,6 +564,7 @@ export const createLocalPlatform = (deps: Deps): PlatformBackend & { purgeUser(u
         return {
           ...s,
           verifications: s.verifications.filter((v) => v.userId !== userId),
+          restrictions: s.restrictions.filter((r) => r.userId !== userId),
           paymentMethods: s.paymentMethods.filter((m) => m.userId !== userId),
           transactions: s.transactions.map((t) => (t.payerId === userId ? { ...t, payerId: null, payerName: 'Cuenta eliminada' } : t)),
           payoutAccounts,
