@@ -46,7 +46,7 @@ const SalesTour: React.FC = () => {
   const cta = user ? (
     user.role === 'creator' ? <Link to="/creator/dashboard" className="btn btn-primary btn-lg">Ir a mi panel</Link> : null
   ) : (
-    <Link to="/register?role=creator" className="btn btn-primary btn-lg" data-testid="pitch-cta">Abrir mi cuenta de creador</Link>
+    <Link to="/register?role=creator" className="btn btn-primary btn-lg" data-testid="pitch-cta">Crear mi cuenta gratis</Link>
   );
 
   return (
