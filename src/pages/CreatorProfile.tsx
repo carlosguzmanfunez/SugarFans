@@ -29,6 +29,7 @@ import { backend } from '../lib/backend';
 import type { VipExperience } from '../lib/vip';
 import { socialApi, compactCount, setFollow, type PublicCreator } from '../lib/social';
 import { useDismiss } from '../hooks/useDismiss';
+import { socialLinkList } from '../lib/creatorLinks';
 import {
   usePlatformQuery,
   platformApi,
@@ -93,6 +94,13 @@ const CreatorProfile: React.FC = () => {
   );
   const creator: Creator | undefined = catalogCreator ?? (signedUp ? fromPublic(signedUp) : undefined);
   const badges = useBadges(id ? [id] : []);
+  // The creator's own @usuario and social networks (accounts only; the demo catalogue has none).
+  const { data: links } = usePlatformQuery(
+    (): ReturnType<typeof socialApi.creatorLinks> => (id ? socialApi.creatorLinks(id) : Promise.resolve({ socials: {} })),
+    [id],
+    { socials: {} } as Awaited<ReturnType<typeof socialApi.creatorLinks>>
+  );
+  const socials = socialLinkList(links.socials);
   const follow = useFollow(id, user);
   const currentLive = useCurrentLive(id);
   const { data: experiences } = usePlatformQuery(
@@ -354,7 +362,23 @@ const CreatorProfile: React.FC = () => {
                 <LevelBadge level={badges[creator.id]?.level} />
                 <MedalBadges badges={badges[creator.id]} />
               </div>
-              <p className="text-gray-500">@{creator.username}</p>
+              <p className="text-gray-500">@{links.username || creator.username}</p>
+              {socials.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2" data-testid="creator-socials" aria-label={`Redes de ${creator.name}`}>
+                  {socials.map((s) => (
+                    <a
+                      key={s.key}
+                      href={s.href}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-3 py-1 text-sm text-ink/80 hover:border-ink/25"
+                    >
+                      <i aria-hidden="true" className={s.icon}></i>
+                      <span>{s.label}</span>
+                    </a>
+                  ))}
+                </div>
+              )}
 
             </div>
             {/* Nobody can pay a creator who hasn't verified yet (the server refuses it). */}

@@ -15,6 +15,7 @@ import PlatformSync from './components/PlatformSync';
 import SpecialInviteClaimer from './components/SpecialInviteClaimer';
 import { openedFromRecoveryLink } from './lib/backend';
 import LaunchGate from './components/LaunchGate';
+import HandleLink from './pages/HandleLink';
 
 // Less visited pages load on demand, so the first visit downloads less.
 const CreatorProfile = lazy(() => import('./pages/CreatorProfile'));
@@ -253,20 +254,8 @@ const AppRoutes: React.FC = () => {
         </AppLayout>
       } />
 
-      {/* 404 */}
-      <Route path="*" element={
-        <AppLayout>
-          <div className="min-h-screen flex items-center justify-center">
-            <div className="text-center">
-              <h1 className="text-6xl font-bold text-gray-300 mb-4">404</h1>
-              <p className="text-gray-600 mb-6">Página no encontrada</p>
-              <Link to="/" className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium">
-                Volver al inicio
-              </Link>
-            </div>
-          </div>
-        </AppLayout>
-      } />
+      {/* fansreserve.com/@usuario, otherwise 404 */}
+      <Route path="*" element={<AppLayout><HandleLink /></AppLayout>} />
     </Routes>
     </Suspense>
   );

@@ -5,6 +5,7 @@ import type { GiftsBackend } from './giftTypes';
 import type { RewardsBackend } from './rewardTypes';
 import type { LiveBackend } from './liveTypes';
 import type { SpecialBackend } from './specialTypes';
+import type { SocialLinks } from '../creatorLinks';
 import type { ApprovalMode, CancellationPolicyId, LocationType, PurposeId, ReserveModality } from '../../config/reserve';
 export type * from './platformTypes';
 export type * from './socialTypes';
@@ -27,6 +28,8 @@ export interface UserSettings {
   };
   twoFactor: boolean;
   category?: string;
+  // A creator's social networks (handles only), shown on their profile.
+  socials?: SocialLinks;
 }
 
 export interface Subscription {
@@ -69,6 +72,8 @@ export interface User {
   subscriptions: Subscription[];
   // Links a creator account to its public creator profile / VIP experiences.
   creatorProfileId?: string;
+  // A creator's own @usuario (fansreserve.com/@usuario); unique.
+  username?: string;
   createdPosts: CreatorPost[];
   // How the user signs in: 'email' (password), 'google' or 'azure' (Microsoft).
   authProvider?: string;
@@ -269,7 +274,7 @@ export interface VipExperience extends VipExperienceInput {
   createdAt: string;
 }
 
-export type ProfilePatch = Partial<Pick<User, 'name' | 'email' | 'avatar' | 'bio' | 'subscriptionPrice' | 'settings' | 'ageVerified' | 'country' | 'phone'>>;
+export type ProfilePatch = Partial<Pick<User, 'name' | 'email' | 'avatar' | 'bio' | 'subscriptionPrice' | 'settings' | 'ageVerified' | 'country' | 'phone' | 'username'>>;
 
 export interface Backend {
   mode: 'supabase' | 'local';

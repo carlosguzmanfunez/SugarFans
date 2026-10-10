@@ -5,6 +5,7 @@ import { usePlatformQuery, platformApi, type ManagedProfile } from './platform';
 import { backend } from './backend';
 import type { PublicCreator } from './backend/socialTypes';
 import { BRAND } from '../config/brand';
+import { usernameFrom } from './creatorLinks';
 
 
 export const fromManaged = (m: ManagedProfile): Creator => ({
@@ -27,7 +28,7 @@ export const fromManaged = (m: ManagedProfile): Creator => ({
 export const fromPublic = (c: PublicCreator): Creator => ({
   id: c.id,
   name: c.name,
-  username: c.name.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''),
+  username: c.username || usernameFrom(c.name),
   avatar: c.avatar,
   cover: c.cover ?? '', // empty: generated cover art
   bio: c.bio || `Creador en ${BRAND.name}.`,

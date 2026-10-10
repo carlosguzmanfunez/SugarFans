@@ -49,6 +49,7 @@ import { creators as demoCreators } from '../../data/mockData';
 import { moderate } from '../moderation';
 import { demoAccount } from '../../config/demoAccounts';
 import { BRAND } from '../../config/brand';
+import { usernameFrom } from '../creatorLinks';
 
 interface StoredAccount extends User {
   passwordHash: string;
@@ -147,9 +148,24 @@ const writeSession = (id: string | null, remember = true) => {
 // A cancelled subscription counts until its end date, then it is gone.
 const isActiveSub = (s: User['subscriptions'][number], at = new Date().toISOString()) => !s.cancelAt || s.cancelAt > at;
 
+// Handles nobody else can take: the demo creators' (the demo creator account owns '1').
+const demoHandles = (exceptProfileId?: string) => demoCreators.filter((c) => c.id !== exceptProfileId).map((c) => c.username);
+const handleTaken = (username: string, exceptId: string, exceptProfileId?: string) =>
+  demoHandles(exceptProfileId).includes(username) || loadAccounts().some((a) => a.id !== exceptId && handleOf(a) === username);
+// Accounts saved before @usuario existed get one from their name (Supabase backfills the same way).
+const handleOf = (a: StoredAccount): string | undefined =>
+  a.role !== 'creator' ? undefined : a.username ?? demoCreators.find((c) => c.id === a.creatorProfileId)?.username ?? usernameFrom(a.name);
+const freeHandle = (name: string, exceptId: string) => {
+  const base = usernameFrom(name);
+  let n = 1;
+  let handle = base;
+  while (handleTaken(handle, exceptId)) handle = `${base}${++n}`;
+  return handle;
+};
+
 const toPublic = (account: StoredAccount): User => {
   const { passwordHash: _h, salt: _s, ...user } = account;
-  return { ...user, subscriptions: user.subscriptions.filter((s) => isActiveSub(s)) };
+  return { ...user, username: handleOf(account), subscriptions: user.subscriptions.filter((s) => isActiveSub(s)) };
 };
 
 const listExperiences = (): VipExperience[] => {
@@ -464,7 +480,7 @@ export const localBackend: Backend = {
         ageVerified: true,
         country: extras?.country,
         ...(extras?.phone ? { phone: extras.phone } : {}),
-        ...(role === 'creator' ? { subscriptionPrice: 9.99, followers: 0, following: 0, posts: 0, bio: '', creatorProfileId: id } : {}),
+        ...(role === 'creator' ? { subscriptionPrice: 9.99, followers: 0, following: 0, posts: 0, bio: '', creatorProfileId: id, username: freeHandle(name, id) } : {}),
       }),
       salt,
       passwordHash: await hashPassword(password, salt),
@@ -494,6 +510,10 @@ export const localBackend: Backend = {
     const next = cleaned.patch;
     if (next.email !== undefined && loadAccounts().some((a) => a.email === next.email && a.id !== user.id)) {
       return fail('Ese email ya está en uso por otra cuenta');
+    }
+    if (next.username !== undefined) {
+      if (user.role !== 'creator') delete next.username;
+      else if (next.username !== user.username && handleTaken(next.username, user.id, user.creatorProfileId)) return fail('Ese @usuario ya está en uso. Prueba con otro');
     }
     return mutate(user.id, (a) => ({ ...a, ...next })) ? ok : fail('Cuenta no encontrada');
   },

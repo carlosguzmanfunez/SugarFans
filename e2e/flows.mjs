@@ -1067,6 +1067,36 @@ const run = async () => {
       await page.getByRole('button', { name: 'Guardar cambios' }).click();
       await page.getByText(/precio debe estar/).waitFor();
     });
+    await check('Primeros pasos, @usuario propio y redes: fansreserve.com/@usuario abre su perfil con sus redes', async () => {
+      await page.goto(`${BASE}/creator/dashboard`);
+      const steps = page.getByTestId('first-steps');
+      await steps.getByText('Primeros pasos').waitFor();
+      expect((await steps.getByTestId('first-step-socials').getAttribute('data-done')) === 'false', 'redes ya marcadas');
+      await page.goto(`${BASE}/settings?section=profile`);
+      expect(/^lola_creadora/.test(await page.inputValue('input[name=username]')), await page.inputValue('input[name=username]'));
+      await page.fill('input[name=username]', 'admin');
+      await page.getByRole('button', { name: 'Guardar cambios' }).click();
+      await page.getByText('Ese @usuario está reservado').waitFor();
+      await page.fill('input[name=username]', 'lola_baila');
+      await page.getByLabel('Instagram').fill('https://www.instagram.com/lola.baila/');
+      await page.getByLabel('TikTok').fill('@lolabaila');
+      await page.getByLabel('YouTube').fill('https://example.com/lola');
+      await page.getByRole('button', { name: 'Guardar cambios' }).click();
+      await page.getByText(/no es de YouTube/).waitFor();
+      await page.getByLabel('YouTube').fill('');
+      await page.getByRole('button', { name: 'Guardar cambios' }).click();
+      await page.getByText('Cambios guardados exitosamente').waitFor();
+      await page.goto(`${BASE}/@lola_baila`);
+      await page.waitForURL(/\/creator\//);
+      const socials = page.getByTestId('creator-socials');
+      expect((await socials.getByRole('link', { name: 'Instagram' }).getAttribute('href')) === 'https://www.instagram.com/lola.baila', 'enlace de Instagram');
+      expect((await socials.getByRole('link', { name: 'TikTok' }).getAttribute('href')) === 'https://www.tiktok.com/@lolabaila', 'enlace de TikTok');
+      await page.getByText('@lola_baila').first().waitFor();
+      await page.goto(`${BASE}/@nadie_tiene_este`);
+      await page.getByText('No encontramos a @nadie_tiene_este').waitFor();
+      await page.goto(`${BASE}/creator/dashboard`);
+      expect((await page.getByTestId('first-step-socials').getAttribute('data-done')) === 'true', 'el paso de redes no se marcó');
+    });
     await check('Una creadora nueva crea su experiencia con el asistente y aparece en Reserve', async () => {
       await page.goto(`${BASE}/creator/dashboard?tab=vip`);
       await createExperience(page, { title: 'Clase privada de baile', description: 'Una clase uno a uno por videollamada.', price: 40 });

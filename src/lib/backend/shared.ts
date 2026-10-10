@@ -3,6 +3,7 @@ import { isValidEmail } from '../storage';
 import { MIN_SUBSCRIPTION } from '../platformRules';
 import type { AuthResult, ProfilePatch, SignupExtras, UserRole, UserSettings } from './types';
 import { isCountryCode, isValidPhone } from '../../config/countries';
+import { cleanSocials, normalizeUsername, usernameError } from '../creatorLinks';
 
 export { DEMO_PASSWORD } from '../../config/demoAccounts';
 
@@ -67,6 +68,12 @@ export const cleanPatch = (patch: ProfilePatch): { patch?: ProfilePatch; error?:
     next.phone = next.phone.trim();
     if (next.phone && !isValidPhone(next.phone)) return { error: 'Revisa tu número de teléfono' };
   }
+  if (next.username !== undefined) {
+    next.username = normalizeUsername(next.username);
+    const bad = usernameError(next.username);
+    if (bad) return { error: bad };
+  }
+  if (next.settings?.socials) next.settings = { ...next.settings, socials: cleanSocials(next.settings.socials) };
   if (next.subscriptionPrice !== undefined && !(next.subscriptionPrice >= MIN_SUBSCRIPTION && next.subscriptionPrice <= 999)) {
     return { error: `El precio debe estar entre $${MIN_SUBSCRIPTION} y $999` };
   }
