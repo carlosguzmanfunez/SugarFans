@@ -43,7 +43,7 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
   const action = 'mt-3 inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition';
 
   return (
-    <section aria-labelledby="access-title" className="mb-6" data-testid="access-ladder">
+    <section id="acceso" aria-labelledby="access-title" className="mb-6 scroll-mt-24" data-testid="access-ladder">
       <h2 id="access-title" className="sr-only">Formas de acceso</h2>
       <ol className="grid grid-cols-2 gap-3 lg:grid-cols-3 [&>li:last-child]:col-span-2 lg:[&>li:last-child]:col-span-1">
         <li className={step}>

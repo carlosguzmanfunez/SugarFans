@@ -325,9 +325,26 @@ const run = async () => {
         const ext = await page.evaluate(() => [...document.images].map((i) => i.currentSrc || i.src).filter((src) => src && !src.startsWith(location.origin) && !src.startsWith('data:')));
         expect(ext.length === 0, `${path} carga imágenes externas: ${ext.join(', ')}`);
       }
+      // The example creators say so, and don't claim to be verified people.
       await page.goto(`${BASE}/creator/1`);
-      await page.getByText('Verificado', { exact: true }).waitFor();
+      await page.getByTestId('demo-profile-note').getByText(/no son reales, y no acepta pagos/).waitFor();
+      await page.getByTestId('demo-badge').getByText('Perfil de ejemplo').waitFor();
+      expect((await page.getByText('Verificado', { exact: true }).count()) === 0, 'un perfil de ejemplo no debe llevar Verificado');
+      await page.goto(`${BASE}/explore`);
+      await page.getByTestId('creator-card').filter({ hasText: 'Valentina' }).first().getByTestId('demo-badge').waitFor();
       expect((await fetch(`${BASE}/brand/coin.png`)).ok, 'falta el icono de créditos');
+    });
+    await check('Recorrido de ventas: 5 pasos con Valentina y cada botón lleva a su pantalla', async () => {
+      await page.goto(`${BASE}/recorrido`);
+      await page.getByTestId('sales-tour').getByText('perfil de ejemplo').waitFor();
+      expect((await page.getByTestId('tour-step').count()) === 5, 'no hay 5 pasos');
+      await page.getByRole('link', { name: 'Ver la suscripción' }).click();
+      await page.waitForURL(/\/creator\/1#acceso/);
+      await page.waitForTimeout(600);
+      expect(await page.getByTestId('access-ladder').evaluate((el) => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.top < innerHeight / 2; }), 'no bajó hasta la suscripción');
+      await page.goto(`${BASE}/recorrido`);
+      await page.getByRole('link', { name: 'Ver las experiencias de Valentina' }).click();
+      await page.getByTestId('creator-reserve').waitFor();
     });
     await check('Favicon, iconos PWA y preview social existen', async () => {
       const manifest = await (await fetch(`${BASE}/manifest.webmanifest`)).json();
@@ -971,8 +988,8 @@ const run = async () => {
       await page.getByTestId('managed-badge').getByText('P-IA', { exact: true }).waitFor();
       expect((await page.getByText('Verificado', { exact: true }).count()) === 0, 'un perfil IA no debe llevar Verificado');
       await page.goto(`${BASE}/creator/1`);
-      await page.getByText('Verificado', { exact: true }).waitFor();
-      expect((await page.getByTestId('managed-badge').count()) === 0, 'una creadora humana no debe llevar P-IA');
+      await page.getByTestId('demo-badge').waitFor();
+      expect((await page.getByTestId('managed-badge').count()) === 0, 'un perfil de ejemplo no debe llevar P-IA');
     });
     await check('Admin publica una foto como el perfil IA y la puede borrar', async () => {
       await page.goto(`${BASE}/explore`);

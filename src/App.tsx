@@ -24,6 +24,7 @@ const SpecialInviteLink = lazy(() => import('./pages/SpecialInviteLink'));
 const CreatorDashboard = lazy(() => import('./pages/CreatorDashboard'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const Help = lazy(() => import('./pages/Help'));
+const SalesTour = lazy(() => import('./pages/SalesTour'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Profile = lazy(() => import('./pages/Profile'));
 const VIPExperiences = lazy(() => import('./pages/VIPExperiences'));
@@ -206,6 +207,9 @@ const AppRoutes: React.FC = () => {
       <Route path="/r/:id" element={<ReferralLink />} />
       <Route path="/especial/:code" element={<AppLayout><SpecialInviteLink /></AppLayout>} />
       <Route path="/pricing" element={<Navigate to="/register?role=creator" replace />} />
+      <Route path="/recorrido" element={
+        <AppLayout><SalesTour /></AppLayout>
+      } />
       <Route path="/help" element={
         <AppLayout><Help /></AppLayout>
       } />
