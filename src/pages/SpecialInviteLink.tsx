@@ -69,7 +69,7 @@ const SpecialInviteLink: React.FC = () => {
       <p className="text-gray-600 mb-6">Crea tu cuenta de creador o inicia sesión con la que ya tienes. El plan se activa solo.</p>
       <div className="space-y-3">
         <Link to="/register?role=creator" className="block bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-bold">
-          Crear mi cuenta de creador
+          Abrir mi cuenta de creador
         </Link>
         <Link to="/login" state={{ from: `/especial/${code}` }} className="block border border-gray-200 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-50">
           Ya tengo cuenta: iniciar sesión

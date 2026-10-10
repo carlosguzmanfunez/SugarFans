@@ -2211,7 +2211,7 @@ const run = async () => {
     await check('Quien abre el link se registra como creador y el plan se activa solo', async () => {
       await sc.goto(specialUrl);
       await sc.getByText('Te invitaron con un plan especial').waitFor();
-      await sc.getByRole('link', { name: 'Crear mi cuenta de creador' }).click();
+      await sc.getByRole('link', { name: 'Abrir mi cuenta de creador' }).click();
       await waitPath(sc, '/register');
       await register(sc, { name: 'Juan Gimnasio', email: `juan.gym.${stamp}@test.com`, password: 'password123', role: 'creator' });
       await waitPath(sc, '/creator/dashboard');
