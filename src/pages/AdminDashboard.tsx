@@ -132,7 +132,12 @@ const AdminDashboard: React.FC = () => {
   const verificationRow = (v: VerificationRequest, compact = false) => (
     <div key={v.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-gray-50">
       <div>
-        <p className="font-medium text-gray-900 text-sm">{v.userName}</p>
+        <p className="font-medium text-gray-900 text-sm">
+          {v.userName}
+          <span className={`ml-2 text-xs px-2 py-0.5 rounded-full font-normal ${v.provider === 'didit' ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+            {v.provider === 'didit' ? 'Didit pidió revisión' : 'Formulario manual'}
+          </span>
+        </p>
         <p className="text-xs text-gray-500">{displayEmail(v.email)} • {roleName[v.role]} • {ago(v.submittedAt)}</p>
         {!compact && <p className="text-xs text-gray-400">{docTypeLabel[v.docType]} • {v.country}</p>}
       </div>
@@ -207,7 +212,7 @@ const AdminDashboard: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden" data-testid="admin-verifications">
             <div className="p-5 border-b border-gray-100">
               <h3 className="font-bold text-gray-900">Gestión de verificaciones</h3>
-              <p className="text-sm text-gray-600 mt-1">Compara la cara del selfie con la foto del documento y confirma que es mayor de edad antes de aprobar.</p>
+              <p className="text-sm text-gray-600 mt-1">Didit aprueba solo a los creadores mayores de edad. Aquí llegan únicamente los casos que Didit deja en revisión o los del formulario manual de respaldo: compara la cara del selfie con la foto del documento y confirma que es mayor de edad antes de aprobar.</p>
             </div>
             <div className="divide-y divide-gray-100">
               {pendingVerifications.length === 0 && <p className="p-6 text-center text-sm text-gray-500">No hay solicitudes pendientes</p>}
@@ -218,8 +223,13 @@ const AdminDashboard: React.FC = () => {
                 <h4 className="text-sm font-bold text-gray-700 mb-3">Revisadas</h4>
                 <div className="space-y-2">
                   {platform.verifications.filter((v) => v.status !== 'pending').map((v) => (
-                    <div key={v.id} className="flex justify-between text-sm">
-                      <span className="text-gray-700">{v.userName} · {displayEmail(v.email)}</span>
+                    <div key={v.id} className="flex flex-col sm:flex-row sm:justify-between gap-1 text-sm" data-testid="reviewed-verification">
+                      <span className="text-gray-700">
+                        {v.userName} · {displayEmail(v.email)}
+                        <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${v.provider === 'didit' ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                          {v.provider === 'didit' ? 'Con Didit (automático)' : 'Formulario manual (revisado a mano)'}
+                        </span>
+                      </span>
                       <span className={v.status === 'approved' ? 'text-green-600' : 'text-red-600'}>
                         {v.status === 'approved' ? 'Aprobada' : `Rechazada: ${v.rejectionReason}`}
                       </span>
