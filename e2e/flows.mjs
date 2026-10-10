@@ -334,10 +334,10 @@ const run = async () => {
       await page.getByTestId('creator-card').filter({ hasText: 'Valentina' }).first().getByTestId('demo-badge').waitFor();
       expect((await fetch(`${BASE}/brand/coin.png`)).ok, 'falta el icono de créditos');
     });
-    await check('Recorrido para captar creadores: 3 formas de ganar, 3 pasos y el perfil de ejemplo', async () => {
+    await check('Recorrido para captar creadores: 4 formas de ganar, 3 pasos y el perfil de ejemplo', async () => {
       await page.goto(`${BASE}/recorrido`);
       await page.getByTestId('sales-tour').getByText('Invitación para creadores').waitFor();
-      expect((await page.getByTestId('pitch-way').count()) === 3, 'no hay 3 formas de ganar');
+      expect((await page.getByTestId('pitch-way').count()) === 4, 'no hay 4 formas de ganar');
       expect((await page.getByTestId('pitch-step').count()) === 3, 'no hay 3 pasos');
       expect((await page.getByTestId('pitch-cta').count()) === 2, 'sin sesión falta el botón de crear cuenta');
       expect((await page.getByTestId('sales-tour').getByText(/\d+ ?%/).count()) === 0, 'el recorrido no debe mostrar porcentajes');

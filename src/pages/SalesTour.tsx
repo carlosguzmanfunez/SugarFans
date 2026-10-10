@@ -26,6 +26,11 @@ const WAYS = [
     title: 'Videollamadas 1:1',
     body: 'Tus fans reservan un rato contigo en la Sala 1:1 de la plataforma, en los horarios que tú abres y con tus reglas.',
   },
+  {
+    icon: 'fa-handshake',
+    title: 'Meet & Greet',
+    body: 'Saludo, foto y firma en persona, en un evento o lugar público. Tú pones la fecha, los cupos y las reglas.',
+  },
 ];
 
 const STEPS = [
@@ -75,8 +80,8 @@ const SalesTour: React.FC = () => {
 
       <div className="mx-auto max-w-4xl px-4 py-12 sm:py-16">
         <section>
-          <h2 className="text-center text-2xl font-semibold text-ink">Tres formas de ganar</h2>
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          <h2 className="text-center text-2xl font-semibold text-ink">Cuatro formas de ganar</h2>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {WAYS.map((w) => (
               <div key={w.title} className="card p-5" data-testid="pitch-way">
                 <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-50 text-brand-700">
