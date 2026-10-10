@@ -29,6 +29,7 @@ import {
   WRONG_CREDENTIALS,
   ACCOUNT_SUSPENDED,
   avatarFor,
+  avatarOrEmpty,
   cleanPatch,
   defaultSettings,
   mergeSettings,
@@ -165,7 +166,7 @@ const freeHandle = (name: string, exceptId: string) => {
 
 const toPublic = (account: StoredAccount): User => {
   const { passwordHash: _h, salt: _s, ...user } = account;
-  return { ...user, username: handleOf(account), subscriptions: user.subscriptions.filter((s) => isActiveSub(s)) };
+  return { ...user, avatar: avatarOrEmpty(user.avatar), username: handleOf(account), subscriptions: user.subscriptions.filter((s) => isActiveSub(s)) };
 };
 
 const listExperiences = (): VipExperience[] => {

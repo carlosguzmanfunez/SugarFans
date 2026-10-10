@@ -25,6 +25,8 @@ import CountryPhoneFields, { phoneFromForm } from '../components/CountryPhoneFie
 import { nationalPart } from '../config/countries';
 import { useLanguage } from '../context/LanguageContext';
 import { SOCIALS, normalizeUsername, parseSocial, profileLink, type SocialKey, type SocialLinks } from '../lib/creatorLinks';
+import ProfileImageButton from '../components/ProfileImageButton';
+import { EMPTY_AVATAR, avatarOrEmpty } from '../lib/backend/shared';
 
 const notificationItems: { key: string; label: string }[] = [
   { key: 'newPosts', label: 'Nuevas publicaciones de creadores que sigues' },
@@ -88,7 +90,6 @@ const Settings: React.FC = () => {
   const [email, setEmail] = useState(user?.email ?? '');
   const [bio, setBio] = useState(user?.bio ?? '');
   const [price, setPrice] = useState(String(user?.subscriptionPrice ?? 9.99));
-  const [avatarSeed, setAvatarSeed] = useState('');
   const { t } = useLanguage();
   const [country, setCountry] = useState(user?.country ?? '');
   const [phone, setPhone] = useState(nationalPart(user?.country ?? '', user?.phone));
@@ -140,7 +141,6 @@ const Settings: React.FC = () => {
       if (country !== (user?.country ?? '')) data.country = country;
       if (checked.phone !== (user?.phone ?? '')) data.phone = checked.phone;
     }
-    if (avatarSeed) data.avatar = `https://api.dicebear.com/7.0/adventurer/svg?seed=${encodeURIComponent(avatarSeed)}`;
     if (user?.role === 'creator') {
       data.bio = bio;
       const handle = normalizeUsername(username);
@@ -158,7 +158,7 @@ const Settings: React.FC = () => {
       data.subscriptionPrice = Math.round(parsed * 100) / 100;
     }
     const result = await updateUser(data);
-    if (showResult(result, result.notice || undefined)) setAvatarSeed('');
+    showResult(result, result.notice || undefined);
   };
 
   const handleSaveSecurity = async () => {
@@ -249,19 +249,22 @@ const Settings: React.FC = () => {
                 <h2 className="text-lg font-bold text-gray-900 mb-6">Editar perfil</h2>
                 <div className="flex items-center space-x-4 mb-6">
                   <img
-                    src={avatarSeed ? `https://api.dicebear.com/7.0/adventurer/svg?seed=${encodeURIComponent(avatarSeed)}` : user?.avatar}
-                    alt=""
-                    className="w-20 h-20 rounded-full"
+                    src={avatarOrEmpty(user?.avatar)}
+                    onError={(e) => {
+                      if (!e.currentTarget.src.endsWith(EMPTY_AVATAR)) e.currentTarget.src = EMPTY_AVATAR;
+                    }}
+                    alt="Tu foto de perfil"
+                    data-testid="settings-avatar"
+                    className="w-20 h-20 rounded-full object-cover bg-gray-100"
                   />
                   <div>
-                    <button
-                      type="button"
-                      onClick={() => setAvatarSeed(Math.random().toString(36).slice(2, 10))}
-                      className="text-sm text-pink-600 font-medium hover:text-pink-700"
-                    >
-                      Cambiar foto de perfil
-                    </button>
-                    <p className="text-xs text-gray-500 mt-1">Genera un nuevo avatar; se aplica al guardar</p>
+                    <ProfileImageButton
+                      kind="avatar"
+                      withLabel
+                      onDone={(text, ok) => showResult(ok ? { ok } : { ok, error: text }, text)}
+                      className="px-4 py-2 rounded-full border border-gray-200 !shadow-none"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Sube una foto desde tu galería o tu computadora; se guarda al instante</p>
                   </div>
                 </div>
                 <div className="space-y-4">

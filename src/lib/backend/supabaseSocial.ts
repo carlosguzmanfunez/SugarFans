@@ -2,6 +2,7 @@
 // the "post-media" bucket and the Realtime policies live in
 // supabase/migrations/20260930000002_engagement_media_live.sql.
 import { cleanSocials } from '../creatorLinks';
+import { avatarOrEmpty } from './shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { newId } from '../storage';
 import { extensionOf, validateMedia } from '../media';
@@ -22,7 +23,7 @@ const toComment = (r: Row): PostComment => ({
   creatorProfileId: r.creator_profile_id,
   userId: r.user_id,
   userName: r.user_name,
-  userAvatar: r.user_avatar,
+  userAvatar: avatarOrEmpty(r.user_avatar),
   body: r.body,
   createdAt: r.created_at,
 });
@@ -30,7 +31,7 @@ const toComment = (r: Row): PostComment => ({
 const toPublicCreator = (r: Row): PublicCreator => ({
   id: r.id,
   name: r.name,
-  avatar: r.avatar,
+  avatar: avatarOrEmpty(r.avatar),
   bio: r.bio ?? '',
   isVerified: r.is_verified,
   subscriptionPrice: Number(r.subscription_price ?? 9.99),

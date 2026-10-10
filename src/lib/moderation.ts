@@ -107,7 +107,7 @@ export const MODERATION_RULES: ModerationRule[] = [
     severity: 'block',
     message: 'Mantén la conversación y los pagos dentro de Fans Reserve: no compartas teléfonos, correos ni pagos por fuera.',
     test: (text) =>
-      /\b(whatsapp|whats app|wsp|telegram|signal|snapchat|kik|onlyfans|zelle|cashapp|cash app|venmo|bizum)\b/.test(text) ||
+      /\b(whatsapp|whats app|wsp|telegram|signal|snapchat|kik|onlyfans|fansly|manyvids|chaturbate|linktree|linktr|allmylinks|zelle|cashapp|cash app|venmo|bizum)\b/.test(text) ||
       /\b(pago|pagar|pagame|pagarte|te pago) (por fuera|en efectivo|en cash|directo|aparte)\b/.test(text) ||
       /\bfuera de (la app|la plataforma|fans reserve)\b/.test(text),
   },

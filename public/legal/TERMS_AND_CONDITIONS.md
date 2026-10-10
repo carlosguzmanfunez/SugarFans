@@ -132,6 +132,8 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 
 4.2.7. **Servicios Prohibidos**: Los descritos en la política de Servicios Prohibidos (citas remuneradas, escort, vender compañía o tiempo personal sin un servicio definido, hoteles o lugares discretos como lugar de una experiencia, entre otros).
 
+4.2.8. **Enlaces a contenido explícito**: Enlazar, promocionar o redirigir a los Usuarios hacia plataformas o páginas de contenido sexual explícito, ya sea en el perfil, las publicaciones, los Lives, las experiencias o las redes sociales enlazadas desde la Plataforma. En el perfil solo se pueden enlazar las redes sociales que la Plataforma ofrece; no se admiten agregadores de enlaces ni enlaces libres. Incumplir esta norma puede suponer la retirada del contenido y la suspensión o el cierre de la cuenta.
+
 ### 4.3. Monitoreo y Moderación
 
 4.3.1. Nos reservamos el derecho, pero no la obligación, de:

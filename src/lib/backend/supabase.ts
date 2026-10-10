@@ -2,7 +2,7 @@
 // Security. Rules that span users (booking lifecycle, account deletion) run in
 // SECURITY DEFINER functions, see supabase/migrations.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { PAID_WITH_PAYPAL, WRONG_CREDENTIALS, ACCOUNT_SUSPENDED, cleanPatch, mergeSettings, normalizeEmail, validateRegistration, validateSignupExtras } from './shared';
+import { PAID_WITH_PAYPAL, WRONG_CREDENTIALS, ACCOUNT_SUSPENDED, avatarOrEmpty, cleanPatch, mergeSettings, normalizeEmail, validateRegistration, validateSignupExtras } from './shared';
 import { DEFAULT_AVAILABILITY, cleanDetails, customTitle, normalizeAvailability, validateCounter, validateCustomRequest, validateExperience } from '../vip';
 import type { Backend, BookingDetails, BookingStatus, ExperienceType, ReserveDetails, SocialProvider, User, UserRole, VipBooking, VipExperience } from './types';
 import { creators as demoCreators } from '../../data/mockData';
@@ -133,7 +133,7 @@ const toUser = (p: ProfileRow, extra?: Pick<User, 'subscriptions' | 'createdPost
   name: p.name,
   email: p.email,
   role: p.role,
-  avatar: p.avatar,
+  avatar: avatarOrEmpty(p.avatar),
   cover: p.cover || undefined,
   bio: p.bio ?? undefined,
   isVerified: p.is_verified,

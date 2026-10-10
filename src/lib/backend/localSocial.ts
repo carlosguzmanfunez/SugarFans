@@ -2,6 +2,7 @@
 // and offline tests). Files go to IndexedDB (too big for localStorage); live
 // rooms signal over a BroadcastChannel, so both people must use the same browser.
 import { cleanSocials } from '../creatorLinks';
+import { avatarOrEmpty } from './shared';
 import { readJSON, writeJSONChecked, newId } from '../storage';
 import { extensionOf, validateMedia } from '../media';
 import type { AuthResult, User } from './types';
@@ -27,7 +28,7 @@ const DEMO_IDS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
 const toPublicCreator = (a: User): PublicCreator => ({
   id: a.creatorProfileId!,
   name: a.name,
-  avatar: a.avatar,
+  avatar: avatarOrEmpty(a.avatar),
   bio: a.bio ?? '',
   isVerified: !!a.isVerified,
   subscriptionPrice: a.subscriptionPrice ?? 9.99,

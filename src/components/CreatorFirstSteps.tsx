@@ -7,6 +7,7 @@ import { socialApi } from '../lib/social';
 import { readJSON, writeJSON } from '../lib/storage';
 import { profileLink } from '../lib/creatorLinks';
 import { isPlaceholderImage } from './CoverArt';
+import { hasOwnAvatar } from '../lib/backend/shared';
 
 interface Props {
   user: User;
@@ -56,7 +57,7 @@ const CreatorFirstSteps: React.FC<Props> = ({ user, onOpenTab, onNewPost }) => {
       id: 'photo',
       title: 'Foto de perfil y portada',
       hint: 'Toca tu foto o tu portada en tu perfil para cambiarlas.',
-      done: !isPlaceholderImage(user.avatar) && !/dicebear\.com/.test(user.avatar) && !isPlaceholderImage(user.cover),
+      done: hasOwnAvatar(user.avatar) && !isPlaceholderImage(user.avatar) && !isPlaceholderImage(user.cover),
       to: `/creator/${profileId}`,
     },
     {

@@ -593,13 +593,15 @@ const run = async () => {
       expect((await errorText(page))?.includes('ya está en uso'), 'permitió email duplicado');
       await page.fill('input[name=email]', fanEmail);
     });
-    await check('Cambiar foto de perfil se guarda', async () => {
-      const before = await page.locator('img.w-20').getAttribute('src');
-      await page.getByRole('button', { name: 'Cambiar foto de perfil' }).click();
-      await page.getByRole('button', { name: 'Guardar cambios' }).click();
+    await check('Cambiar foto de perfil sube una foto (sin foto: avatar vacío)', async () => {
+      const before = await page.getByTestId('settings-avatar').getAttribute('src');
+      expect(before === '/avatar-vacio.svg', `sin foto debería verse el avatar vacío, se ve ${before}`);
+      const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.getByRole('button', { name: 'Cambiar foto de perfil' }).click()]);
+      await chooser.setFiles(photo('yo.png'));
+      await page.getByText('Foto de perfil actualizada').waitFor();
       await page.reload();
-      const after = await page.locator('img.w-20').getAttribute('src');
-      expect(before !== after, 'el avatar no cambió');
+      const after = await page.getByTestId('settings-avatar').getAttribute('src');
+      expect(after !== before && after.startsWith('data:image'), 'el avatar no cambió');
     });
     await check('Interruptores de notificaciones persisten', async () => {
       await page.goto(`${BASE}/settings?section=notifications`);

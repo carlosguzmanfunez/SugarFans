@@ -34,7 +34,13 @@ export const mergeSettings = (settings?: Partial<UserSettings> | null): UserSett
 
 export const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
-export const avatarFor = (seed: string) => `https://api.dicebear.com/7.0/adventurer/svg?seed=${encodeURIComponent(seed)}`;
+// Someone without their own photo shows an empty grey avatar (just a silhouette).
+// Old accounts still have a generated dicebear link, which no longer loads.
+export const EMPTY_AVATAR = '/avatar-vacio.svg';
+export const avatarOrEmpty = (url?: string | null) => (!url || /dicebear\.com/.test(url) ? EMPTY_AVATAR : url);
+export const hasOwnAvatar = (url?: string | null) => avatarOrEmpty(url) !== EMPTY_AVATAR;
+
+export const avatarFor = (_seed: string) => EMPTY_AVATAR;
 
 export const validateRegistration = (name: string, email: string, password: string, role: UserRole): AuthResult => {
   if (!name.trim()) return { ok: false, error: 'El nombre es obligatorio' };
