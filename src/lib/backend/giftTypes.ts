@@ -44,7 +44,7 @@ export interface SentGift {
   creatorName: string;
   giftId: string;
   coins: number;
-  status: 'paid' | 'refunded';
+  status: 'paid' | 'refunded' | 'disputed';
   createdAt: string;
 }
 

@@ -78,7 +78,7 @@ const WalletPanel: React.FC<{ user: User }> = ({ user }) => {
               return (
                 <div key={g.id} className="py-2 flex items-center justify-between text-sm" data-testid="sent-gift">
                   <span className="flex items-center gap-2">{gift && <GiftArt gift={gift} size={28} />}{gift?.name ?? 'Regalo'} · <Link to={`/creator/${g.creatorProfileId}`} className="text-pink-600">{g.creatorName}</Link></span>
-                  <span className="text-gray-500">{g.status === 'refunded' ? 'Devuelto' : <><CoinIcon size={14} /> {formatCoins(g.coins)}</>}</span>
+                  <span className="text-gray-500">{g.status === 'refunded' ? 'Devuelto' : g.status === 'disputed' ? 'En disputa' : <><CoinIcon size={14} /> {formatCoins(g.coins)}</>}</span>
                 </div>
               );
             })}

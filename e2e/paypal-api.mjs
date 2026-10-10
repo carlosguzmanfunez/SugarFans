@@ -19,8 +19,8 @@ Object.assign(process.env, { PAYPAL_CLIENT_ID: 'AXclient', PAYPAL_CLIENT_SECRET:
 const api = await import(pathToFileURL(join(dir, 'paypal.mjs')).href);
 
 // --- fakes ------------------------------------------------------------------
-const db = { orders: new Map(), fulfilled: [], marks: [], fulfillError: '', catalog: new Map(), subs: new Map(), payments: new Map(), ended: [], access: new Map(), payouts: new Map(), payoutError: '' };
-const pp = { orders: new Map(), refunds: [], captureStatus: 'COMPLETED', products: 0, plans: [], subs: new Map(), cancels: [], saleRefunds: [], payoutBatches: new Map(), payoutStatus: 'SUCCESS', payoutFail: '' };
+const db = { orders: new Map(), fulfilled: [], marks: [], fulfillError: '', catalog: new Map(), subs: new Map(), payments: new Map(), ended: [], access: new Map(), payouts: new Map(), payoutError: '', moneyBack: [] };
+const pp = { orders: new Map(), refunds: [], captureStatus: 'COMPLETED', products: 0, plans: [], subs: new Map(), cancels: [], saleRefunds: [], payoutBatches: new Map(), payoutStatus: 'SUCCESS', payoutFail: '', payerEmail: 'fan@paypal.test' };
 const calls = [];
 const res = (status, body) =>
   status === 204 ? new Response(null, { status }) : new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
@@ -37,8 +37,18 @@ globalThis.fetch = async (url, init = {}) => {
   }
   if (u.endsWith('/rest/v1/rpc/paypal_register')) {
     if (h.apikey !== 'sb_secret_test') return res(401, {});
-    db.orders.set(body.p_order_id, { status: 'created', amount: body.p_amount, user: body.p_user });
+    db.orders.set(body.p_order_id, { status: 'created', amount: body.p_amount, user: body.p_user, kind: body.p_kind, params: body.p_params });
     return res(204, null);
+  }
+  // The creator 'self' is the fan's own creator account; so is the PayPal account creator@paypal.test.
+  if (u.endsWith('/rest/v1/rpc/paypal_self_pay')) {
+    if (h.apikey !== 'sb_secret_test') return res(401, {});
+    return res(200, body.p_params?.creatorProfileId === 'self' || body.p_payer_email === 'creator@paypal.test');
+  }
+  if (u.endsWith('/rest/v1/rpc/paypal_money_back')) {
+    if (h.apikey !== 'sb_secret_test') return res(401, {});
+    db.moneyBack.push(body);
+    return res(200, { matched: 1, subscription: body.p_action === 'refund' && body.p_ref === 'SALE-R2' ? 'I-SUB2' : null });
   }
   if (u.includes('/rest/v1/paypal_orders?id=eq.')) {
     const id = decodeURIComponent(u.split('id=eq.')[1].split('&')[0]);
@@ -48,6 +58,7 @@ globalThis.fetch = async (url, init = {}) => {
       if (o.status === 'created') o.fee = body.fee;
       return res(204, null);
     }
+    if (u.includes('select=kind,params')) return h.apikey === 'sb_secret_test' && o ? res(200, [{ kind: o.kind, params: o.params }]) : res(401, {});
     return res(200, o && o.user === 'fan-1' ? [{ status: o.status, amount: o.amount }] : []);
   }
   if (u.endsWith('/rest/v1/rpc/paypal_fulfill')) {
@@ -95,6 +106,7 @@ globalThis.fetch = async (url, init = {}) => {
     const o = db.subs.get(body.p_id);
     if (!o) return res(200, 'unknown');
     if (db.access.get(`${o.user}:${o.creator}`) !== body.p_id) return res(200, 'orphan');
+    if (o.creator === 'self-2') return res(400, { message: 'No puedes pagarte a ti mismo: esta cuenta y la del creador son de la misma persona.' });
     if (o.creator === 'demo-2') return res(400, { message: 'Este perfil es de demostración: todavía no acepta pagos ni reservas.' });
     db.payments.set(body.p_sale_id, body);
     return res(200, 'recorded');
@@ -166,7 +178,7 @@ globalThis.fetch = async (url, init = {}) => {
   const subGet = u.match(/\/v1\/billing\/subscriptions\/([\w-]+)$/);
   if (subGet) {
     const sub = pp.subs.get(subGet[1]);
-    return sub ? res(200, { id: subGet[1], status: sub.status, custom_id: sub.custom_id, plan_id: sub.plan_id }) : res(404, {});
+    return sub ? res(200, { id: subGet[1], status: sub.status, custom_id: sub.custom_id, plan_id: sub.plan_id, subscriber: { email_address: sub.payer ?? 'fan@paypal.test' } }) : res(404, {});
   }
   if (u.endsWith('/v1/notifications/verify-webhook-signature')) {
     const v = JSON.parse(init.body);
@@ -188,7 +200,7 @@ globalThis.fetch = async (url, init = {}) => {
     const o = pp.orders.get(cap[1]);
     if (o.captured) return res(422, { name: 'UNPROCESSABLE_ENTITY', details: [{ issue: 'ORDER_ALREADY_CAPTURED' }] });
     o.captured = true;
-    return res(201, { id: cap[1], status: pp.captureStatus, purchase_units: [{ payments: { captures: [{ id: `CAP-${cap[1]}`, status: pp.captureStatus, amount: o.amount, seller_receivable_breakdown: { paypal_fee: { currency_code: 'USD', value: '0.57' } } }] } }] });
+    return res(201, { id: cap[1], status: pp.captureStatus, payer: { email_address: pp.payerEmail }, purchase_units: [{ payments: { captures: [{ id: `CAP-${cap[1]}`, status: pp.captureStatus, amount: o.amount, seller_receivable_breakdown: { paypal_fee: { currency_code: 'USD', value: '0.57' } } }] } }] });
   }
   const get = u.match(/\/v2\/checkout\/orders\/(\w+)$/);
   if (get) {
@@ -302,6 +314,23 @@ await check('Si la compra ya no es válida, se devuelve el dinero', async () => 
   expect(db.marks.at(-1).p_status === 'refunded' && db.orders.get(data.orderId).status === 'refunded', 'no marcó el pedido');
 });
 
+await check('Pagarle a su propia cuenta de creador no llega a PayPal', async () => {
+  const before = pp.orders.size;
+  const r = await post({ action: 'create', kind: 'tip', params: { creatorProfileId: 'self', amount: 5 } });
+  expect(r.status === 403 && /pagarte a ti mismo/.test(r.data.error) && pp.orders.size === before, JSON.stringify(r.data));
+});
+
+await check('Pagar con el PayPal del propio creador se devuelve y no cuenta', async () => {
+  const { data } = await post({ action: 'create', kind: 'tip', params: { creatorProfileId: '4', amount: 5 } });
+  const n = db.fulfilled.length;
+  pp.payerEmail = 'creator@paypal.test';
+  const r = await post({ action: 'capture', orderId: data.orderId });
+  pp.payerEmail = 'fan@paypal.test';
+  expect(r.status === 409 && /pagarte a ti mismo.*devolvimos/.test(r.data.error), JSON.stringify(r.data));
+  expect(db.fulfilled.length === n && pp.refunds.includes(`CAP-${data.orderId}`), 'contó o no reembolsó');
+  expect(db.orders.get(data.orderId).status === 'refunded', 'no marcó el pedido');
+});
+
 await check('Suscribirse crea un solo plan por precio y la suscripción lleva al fan y al perfil', async () => {
   const a = await post({ action: 'subscribe', creatorProfileId: '2' });
   const b = await post({ action: 'subscribe', creatorProfileId: '3' });
@@ -326,6 +355,21 @@ await check('Activar da acceso y registra el primer pago una sola vez', async ()
   expect(db.access.get('fan-1:2') === id && db.payments.has(`SALE-${id}`), 'sin acceso o sin pago');
   const again = await post({ action: 'activate', subscriptionId: id });
   expect(again.status === 200 && db.payments.size === 1, 'pago doble');
+});
+
+await check('No se puede suscribir a su propia cuenta de creador', async () => {
+  const before = pp.subs.size;
+  const r = await post({ action: 'subscribe', creatorProfileId: 'self' });
+  expect(r.status === 403 && /pagarte a ti mismo/.test(r.data.error) && pp.subs.size === before, JSON.stringify(r.data));
+});
+
+await check('Suscrita con el PayPal del creador: se cancela en PayPal antes del primer cobro', async () => {
+  const { data } = await post({ action: 'subscribe', creatorProfileId: '5' });
+  pp.subs.get(data.subscriptionId).payer = 'creator@paypal.test';
+  const r = await post({ action: 'activate', subscriptionId: data.subscriptionId });
+  expect(r.status === 409 && /pagarte a ti mismo/.test(r.data.error), JSON.stringify(r.data));
+  expect(pp.cancels.some((c) => c.id === data.subscriptionId) && !db.access.has('fan-1:5'), 'sigue activa');
+  expect(db.ended.at(-1).p_id === data.subscriptionId && db.ended.at(-1).p_now === true, JSON.stringify(db.ended.at(-1)));
 });
 
 await check('Sin ACTIVE en PayPal no hay acceso', async () => {
@@ -375,6 +419,38 @@ await check('Un cobro de una suscripción a un perfil demo sin dueño se cancela
   db.access.set('fan-1:demo-2', 'I-DEMO');
   const r = await hook({ event_type: 'PAYMENT.SALE.COMPLETED', resource: { id: 'SALE-DEMO', billing_agreement_id: 'I-DEMO', amount: { total: '6.99' } } });
   expect(r.status === 200 && pp.cancels.some((c) => c.id === 'I-DEMO') && pp.saleRefunds.includes('SALE-DEMO') && !db.payments.has('SALE-DEMO'), `status ${r.status}`);
+});
+
+await check('Un cobro a la propia cuenta de creador se cancela, se devuelve y quita el acceso', async () => {
+  db.subs.set('I-SELF', { user: 'fan-1', creator: 'self-2', status: 'active' });
+  db.access.set('fan-1:self-2', 'I-SELF');
+  const r = await hook({ event_type: 'PAYMENT.SALE.COMPLETED', resource: { id: 'SALE-SELF', billing_agreement_id: 'I-SELF', amount: { total: '6.99' } } });
+  expect(r.status === 200 && pp.cancels.some((c) => c.id === 'I-SELF') && pp.saleRefunds.includes('SALE-SELF'), `status ${r.status}`);
+  expect(db.ended.at(-1).p_id === 'I-SELF' && db.ended.at(-1).p_now === true, 'sigue con acceso');
+});
+
+await check('Reembolso de un pago único: se descuenta de su cobro', async () => {
+  const r = await hook({ event_type: 'PAYMENT.CAPTURE.REFUNDED', resource: { id: 'REF-1', links: [{ rel: 'self', href: 'https://api-m.paypal.com/v2/payments/refunds/REF-1' }, { rel: 'up', href: 'https://api-m.paypal.com/v2/payments/captures/CAP-ORDER2' }] } });
+  expect(r.status === 200 && JSON.stringify(db.moneyBack.at(-1)) === JSON.stringify({ p_ref: 'CAP-ORDER2', p_action: 'refund' }), JSON.stringify(db.moneyBack.at(-1)));
+  await hook({ event_type: 'PAYMENT.CAPTURE.REVERSED', resource: { id: 'CAP-ORDER3' } });
+  expect(db.moneyBack.at(-1).p_ref === 'CAP-ORDER3' && db.moneyBack.at(-1).p_action === 'refund', 'contracargo');
+});
+
+await check('Reembolso de una mensualidad: se descuenta y la suscripción se cancela en PayPal', async () => {
+  const r = await hook({ event_type: 'PAYMENT.SALE.REFUNDED', resource: { id: 'RF-9', sale_id: 'SALE-R2' } });
+  expect(r.status === 200 && db.moneyBack.at(-1).p_ref === 'SALE-R2' && db.moneyBack.at(-1).p_action === 'refund', JSON.stringify(db.moneyBack.at(-1)));
+  expect(pp.cancels.at(-1).id === 'I-SUB2', 'no la canceló');
+});
+
+await check('Disputa: se congela; según PayPal se devuelve al fan o se libera', async () => {
+  const dispute = (type, outcome) =>
+    hook({ event_type: type, resource: { dispute_id: 'PP-D-1', disputed_transactions: [{ seller_transaction_id: 'CAP-ORDER4' }], ...(outcome ? { dispute_outcome: { outcome_code: outcome } } : {}) } });
+  await dispute('CUSTOMER.DISPUTE.CREATED');
+  expect(db.moneyBack.at(-1).p_ref === 'CAP-ORDER4' && db.moneyBack.at(-1).p_action === 'dispute', 'no congeló');
+  await dispute('CUSTOMER.DISPUTE.RESOLVED', 'RESOLVED_SELLER_FAVOUR');
+  expect(db.moneyBack.at(-1).p_action === 'release', 'no liberó');
+  await dispute('CUSTOMER.DISPUTE.RESOLVED', 'RESOLVED_BUYER_FAVOUR');
+  expect(db.moneyBack.at(-1).p_action === 'refund', 'no descontó');
 });
 
 await check('Un pago fallido (suspendida) quita el acceso al momento', async () => {
@@ -451,7 +527,7 @@ await check('Un retiro a un email sin cuenta PayPal se puede cancelar y vuelve a
 });
 
 await check('La service role solo se usa en llamadas del servidor', async () => {
-  const leaked = calls.filter((c) => c.h.apikey === 'sb_secret_test' && !/paypal_(register|fulfill|mark|catalog|subscription_(register|activate|payment|ended)|payout_(start|mark))|\/rest\/v1\/payouts\?|\/rest\/v1\/paypal_orders\?id=eq\.[^&]+&status=eq\.created$/.test(c.u));
+  const leaked = calls.filter((c) => c.h.apikey === 'sb_secret_test' && !/paypal_(register|fulfill|mark|catalog|self_pay|money_back|subscription_(register|activate|payment|ended)|payout_(start|mark))|\/rest\/v1\/payouts\?|\/rest\/v1\/paypal_orders\?id=eq\.[^&]+&(status=eq\.created|select=kind,params)$/.test(c.u));
   expect(leaked.length === 0, leaked.map((c) => c.u).join(', '));
 });
 

@@ -164,7 +164,7 @@ export const createLocalGifts = (deps: Deps): GiftsBackend & { purgeUser(userId:
           creatorName: t.creatorName,
           giftId: t.giftId ?? '',
           coins: Math.round(t.amount * 100),
-          status: t.status as 'paid' | 'refunded',
+          status: t.status as 'paid' | 'refunded' | 'disputed',
           createdAt: t.createdAt,
         }))
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt));

@@ -544,8 +544,8 @@ const Settings: React.FC = () => {
                             <p className="font-medium text-gray-900">{transactionLabel[t.kind]} · {t.creatorName}</p>
                             <p className="text-xs text-gray-500">{fmtDate(t.createdAt)} · {displayMethodLabel(t.methodLabel)}</p>
                           </div>
-                          <span className={t.status === 'paid' ? 'font-bold text-gray-900' : 'text-red-600 text-xs'}>
-                            {t.status === 'paid' ? money(t.amount) : 'Pago fallido'}
+                          <span className={t.status === 'paid' ? 'font-bold text-gray-900' : t.status === 'failed' ? 'text-red-600 text-xs' : 'text-gray-500 text-xs'}>
+                            {t.status === 'paid' ? money(t.amount) : t.status === 'refunded' ? `Reembolsado (${money(t.amount)})` : t.status === 'disputed' ? `En disputa (${money(t.amount)})` : 'Pago fallido'}
                           </span>
                         </div>
                       ))}

@@ -233,6 +233,10 @@ const CreatorPayouts: React.FC = () => {
                 </div>
                 {t.status === 'refunded' ? (
                   <span className="text-xs font-medium text-gray-500">Devuelto al fan</span>
+                ) : t.status === 'disputed' ? (
+                  <span className="text-xs font-medium text-amber-600" title="El fan abrió una disputa en PayPal. Si PayPal te da la razón, vuelve a contar.">En disputa con PayPal</span>
+                ) : t.status === 'failed' ? (
+                  <span className="text-xs font-medium text-gray-500">Pago fallido</span>
                 ) : (
                   <span className="font-bold text-green-700">+{money(creatorCut(t))}</span>
                 )}

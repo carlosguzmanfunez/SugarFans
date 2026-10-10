@@ -59,7 +59,7 @@ export interface Transaction {
   gatewayFee?: number; // what the payment processor kept (estimated when it didn't say)
   giftId?: string;
   methodLabel: string;
-  status: 'paid' | 'failed' | 'refunded';
+  status: 'paid' | 'failed' | 'refunded' | 'disputed'; // disputed: frozen while PayPal decides a dispute
   createdAt: string;
 }
 
