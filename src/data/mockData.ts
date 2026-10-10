@@ -325,7 +325,7 @@ export const vipExperiences: VIPExperience[] = [
     type: 'video-call',
     details: {
       ...online,
-      includes: ['Sala de videollamada de Fans Reserve', 'Tema acordado de antemano', 'Consejos de estilo personalizados'],
+      includes: ['Sala 1:1 de Fans Reserve', 'Tema acordado de antemano', 'Consejos de estilo personalizados'],
       excludes: [noRecording, offPlatform],
       requirements: { verifiedFans: false, subscribersOnly: false },
       minNoticeHours: 24,
@@ -489,7 +489,7 @@ export const vipExperiences: VIPExperience[] = [
     type: 'fashion-beauty-talk',
     details: {
       ...online,
-      includes: ['Sala de videollamada de Fans Reserve', 'Lista de recomendaciones después de la llamada'],
+      includes: ['Sala 1:1 de Fans Reserve', 'Lista de recomendaciones después de la llamada'],
       excludes: [noRecording, offPlatform],
       requirements: { verifiedFans: true, subscribersOnly: false },
       minNoticeHours: 48,

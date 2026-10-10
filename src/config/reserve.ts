@@ -17,7 +17,7 @@
 export type ReserveModality = 'virtual' | 'presencial' | 'evento' | 'profesional';
 
 export const RESERVE_MODALITIES: Record<ReserveModality, { label: string; icon: string; description: string }> = {
-  virtual: { label: 'Virtual', icon: 'fa-video', description: 'En la sala de videollamada de Fans Reserve o como contenido entregado en la app.' },
+  virtual: { label: 'Virtual', icon: 'fa-video', description: 'Online en Fans Reserve (Sala 1:1 o sala del evento) o como contenido entregado en la app.' },
   presencial: { label: 'Presencial', icon: 'fa-location-dot', description: 'En un venue, estudio o lugar público definido de antemano, o en el lugar del creador o del fan con aprobación manual (todas las categorías menos Tu gente).' },
   evento: { label: 'Evento', icon: 'fa-calendar-check', description: 'Convenciones, apariciones, firmas y eventos con público.' },
   profesional: { label: 'Profesional', icon: 'fa-briefcase', description: 'Colaboraciones, producciones y servicios profesionales.' },

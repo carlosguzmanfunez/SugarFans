@@ -147,7 +147,7 @@ const ReservePage: React.FC = () => {
                       'El creador la acepta, la rechaza o te hace una contraoferta.',
                       'Pagas solo cuando la acepta.',
                       'Recibes la confirmación con fecha, hora y lugar.',
-                      'Vives la experiencia: en la sala de videollamada de Fans Reserve o en el venue acordado.',
+                      'Vives la experiencia: en la Sala 1:1 o la sala del evento de Fans Reserve, o en el venue acordado.',
                     ][i]
                   }
                 </li>

@@ -208,7 +208,7 @@ const run = async () => {
     });
 
     console.log('Reserve 1:1');
-    await check('Solo el fan y el creator de la reserva entran a la sala de videollamada', async () => {
+    await check('Solo el fan y el creator de la reserva entran a la Sala 1:1', async () => {
       const fan = await ask('fan-call', { bookingId: 'call-1' });
       allowed(fan, 'fan de la reserva');
       expect(fan.mode === 'reserve_1to1' && fan.grant.room === 'booking-call-1' && fan.grant.canPublish && !fan.host, 'sala o permisos del fan');

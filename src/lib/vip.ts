@@ -209,7 +209,7 @@ export const priceFor = (exp: Pick<VipExperience, 'price' | 'details'>, isSubscr
 };
 
 export const locationSummary = (d: Pick<ReserveDetails, 'modality' | 'locationTypes' | 'city' | 'venue'>) => {
-  if (d.modality === 'virtual') return 'Online · sala de videollamada de Fans Reserve';
+  if (d.modality === 'virtual') return 'Online · Fans Reserve';
   const kinds = d.locationTypes.map((l) => LOCATION_TYPES[l]?.label).filter(Boolean).join(' o ');
   return [d.venue, kinds, d.city].filter(Boolean).join(' · ');
 };
