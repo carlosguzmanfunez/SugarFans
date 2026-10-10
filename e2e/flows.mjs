@@ -218,8 +218,7 @@ const submitVerification = async (page, { name = 'Nombre Apellido', birth = '199
   await page.goto(`${BASE}/settings?section=verification`);
   await page.fill('input[name=legalName]', name);
   await page.fill('input[name=birthDate]', birth);
-  await page.fill('input[name=country]', 'México');
-  await page.fill('input[name=docNumber]', 'ABC123456');
+  await page.selectOption('select[name=country]', 'MX');
   await page.setInputFiles('input[name=docFront]', photo('frente.png'));
   await page.setInputFiles('input[name=selfie]', photo('selfie.png'));
   await page.getByRole('button', { name: 'Enviar para verificación' }).click();
@@ -909,8 +908,7 @@ const run = async () => {
       await page.goto(`${BASE}/settings?section=verification`);
       await page.fill('input[name=legalName]', 'Lola Creadora');
       await page.fill('input[name=birthDate]', '1995-07-07');
-      await page.fill('input[name=country]', 'España');
-      await page.fill('input[name=docNumber]', 'X1234567');
+      await page.selectOption('select[name=country]', 'ES');
       await page.getByRole('button', { name: 'Enviar para verificación' }).click();
       await page.getByText('Sube la foto del frente de tu documento').waitFor();
       expect((await page.locator('input[type=file]').count()) === 2, 'la verificación debe pedir solo 2 fotos');
@@ -942,7 +940,7 @@ const run = async () => {
       await dialog.getByPlaceholder(/Motivo del rechazo/).fill('La foto del documento está borrosa');
       await dialog.getByRole('button', { name: /Rechazar/ }).click();
       await list.locator('div.p-4', { hasText: 'Lola Creadora' }).getByRole('button', { name: /Revisar documentos/ }).click();
-      await dialog.getByText('X1234567').or(dialog.getByText('ABC123456')).first().waitFor();
+      await dialog.getByText('España').or(dialog.getByText('México')).first().waitFor();
       await dialog.getByRole('button', { name: /Aprobar identidad/ }).click();
       await page.getByText('Identidad de Lola Creadora aprobada').waitFor();
       await list.getByText('No hay solicitudes pendientes').waitFor();

@@ -4,6 +4,8 @@ import { usePlatformQuery, platformApi, submitVerification, readImageFile, docTy
 import { useSearchParams } from 'react-router-dom';
 import { diditEnabled, startDidit } from '../lib/didit';
 import DiditReturn, { returnedFromDidit } from './DiditReturn';
+import { useLanguage } from '../context/LanguageContext';
+import { countryName, isCountryCode, sortedCountries } from '../config/countries';
 
 const field = 'w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-sm';
 
@@ -61,9 +63,10 @@ const IdentityVerification: React.FC = () => {
   );
   const [legalName, setLegalName] = useState('');
   const [birthDate, setBirthDate] = useState('');
-  const [country, setCountry] = useState('');
+  const { t, language } = useLanguage();
+  // The country of the document, from the list (starts on the one chosen at sign-up).
+  const [country, setCountry] = useState(() => (isCountryCode(user?.country) ? user!.country! : ''));
   const [docType, setDocType] = useState<DocType>('dni');
-  const [docNumber, setDocNumber] = useState('');
   const [docFront, setDocFront] = useState('');
   const [selfie, setSelfie] = useState('');
   const [error, setError] = useState('');
@@ -85,7 +88,17 @@ const IdentityVerification: React.FC = () => {
 
   const submit = async () => {
     setSending(true);
-    const result = await submitVerification(user, { legalName, birthDate, country, docType, docNumber, docFront, selfie });
+    const result = await submitVerification(user, {
+      legalName,
+      birthDate,
+      // Saved by name so the reviewer reads it at a glance.
+      country: country ? countryName(country, 'es', 'Otro país') : '',
+      docType,
+      // The number is on the photo of the document: no need to type it.
+      docNumber: '',
+      docFront,
+      selfie,
+    });
     setSending(false);
     if (!result.ok) return setError(result.error || 'No se pudo enviar la solicitud');
     setError('');
@@ -195,17 +208,21 @@ const IdentityVerification: React.FC = () => {
       {header}
       <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <input className={field} name="legalName" placeholder="Nombre completo (como en el documento)" value={legalName} onChange={(e) => setLegalName(e.target.value)} />
+          <input className={field} name="legalName" placeholder="Nombre y apellido (como en tu documento)" value={legalName} onChange={(e) => setLegalName(e.target.value)} />
           <div>
             <input className={field} type="date" name="birthDate" aria-label="Fecha de nacimiento" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
           </div>
-          <input className={field} name="country" placeholder="País que emitió el documento" value={country} onChange={(e) => setCountry(e.target.value)} />
+          <select className={field} name="country" aria-label="País que emitió el documento" value={country} onChange={(e) => setCountry(e.target.value)}>
+            <option value="" disabled>País que emitió el documento</option>
+            {sortedCountries(language, t('country.other')).map((c) => (
+              <option key={c.code} value={c.code}>{c.name}</option>
+            ))}
+          </select>
           <select className={field} name="docType" aria-label="Tipo de documento" value={docType} onChange={(e) => setDocType(e.target.value as DocType)}>
             {(Object.keys(docTypeLabel) as DocType[]).map((k) => (
               <option key={k} value={k}>{docTypeLabel[k]}</option>
             ))}
           </select>
-          <input className={`${field} sm:col-span-2`} name="docNumber" placeholder="Número de documento" value={docNumber} onChange={(e) => setDocNumber(e.target.value)} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <PhotoInput

@@ -370,7 +370,7 @@ const AdminDashboard: React.FC = () => {
                 <p><span className="text-gray-500">Nombre legal:</span> {viewing.legalName}</p>
                 <p><span className="text-gray-500">Nacimiento:</span> {viewing.birthDate ? `${new Date(viewing.birthDate + 'T00:00:00').toLocaleDateString('es')} (${ageFrom(viewing.birthDate)} años)` : 'Sin leer'}</p>
                 <p><span className="text-gray-500">Documento:</span> {docTypeLabel[viewing.docType]}</p>
-                <p><span className="text-gray-500">Número:</span> {viewing.docNumber} ({viewing.country})</p>
+                <p><span className="text-gray-500">País:</span> {viewing.country || 'Sin indicar'}{viewing.docNumber ? ` · Nº ${viewing.docNumber}` : ''}</p>
               </div>
               {viewing.provider === 'didit' && (
                 <p className="text-sm text-blue-800 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mb-2">
