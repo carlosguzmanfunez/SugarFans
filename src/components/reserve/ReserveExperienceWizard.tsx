@@ -324,7 +324,7 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category, availability
           <label className="block text-sm">
             <span className="font-semibold text-ink">Duración (minutos)</span>
             <input name="expMinutes" type="number" min={type.minutes[0]} max={type.minutes[1]} step={5} value={input.durationMinutes ?? ''} onChange={(e) => set({ durationMinutes: Number(e.target.value) || undefined })} className={field} />
-            <span className="mt-1 block text-xs text-muted">Entre {type.minutes[0]} y {type.minutes[1]} minutos para {type.name}.{d.modality === 'virtual' ? ' Se hace en la sala privada de Fans Reserve.' : ''}</span>
+            <span className="mt-1 block text-xs text-muted">Entre {type.minutes[0]} y {type.minutes[1]} minutos para {type.name}.{d.modality === 'virtual' ? ' Se hace en la sala de videollamada de Fans Reserve.' : ''}</span>
           </label>
         ) : (
           <p className="rounded-xl bg-gray-50 p-3 text-sm text-ink/70"><i aria-hidden="true" className="fas fa-box-open mr-2"></i>{type.name} se entrega en la app; no tiene sesión en vivo.</p>

@@ -214,7 +214,7 @@ export const createLocalGifts = (deps: Deps): GiftsBackend & { purgeUser(userId:
         id: bookingId,
         experienceId: 'gift-call',
         creatorProfileId: p.creatorProfileId,
-        title: 'Videollamada privada (regalo)',
+        title: 'Videollamada 1:1 (regalo)',
         creatorName: p.creatorName,
         price: 0,
         fanId: p.fanId,

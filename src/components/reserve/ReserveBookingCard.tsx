@@ -68,7 +68,7 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
   const flags = (d.flags ?? []).map((id) => MODERATION_RULES.find((r) => r.id === id)?.message).filter(Boolean);
   const where =
     modality === 'virtual'
-      ? 'Online · sala privada'
+      ? 'Online · sala de videollamada'
       : [d.venue, d.locationType ? LOCATION_TYPES[d.locationType]?.label : '', d.city].filter(Boolean).join(' · ');
 
   return (

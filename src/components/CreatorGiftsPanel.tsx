@@ -110,7 +110,7 @@ const CreatorGiftsPanel: React.FC = () => {
               <div key={p.id} className="py-3 text-sm space-y-2" data-testid="perk-request">
                 <div className="flex items-center justify-between">
                   <p className="font-medium text-gray-900">
-                    {p.kind === 'video' ? 'Video personalizado' : 'Videollamada privada'} · {p.fanName}
+                    {p.kind === 'video' ? 'Video personalizado' : 'Videollamada 1:1'} · {p.fanName}
                   </p>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${p.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : p.status === 'refunded' ? 'bg-gray-100 text-gray-600' : 'bg-green-100 text-green-700'}`}>
                     {perkStatus[p.status]}

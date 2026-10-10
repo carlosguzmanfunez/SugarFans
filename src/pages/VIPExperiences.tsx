@@ -68,7 +68,7 @@ const ReservePage: React.FC = () => {
           </span>
           <h1 className="text-display-lg mb-4">Reserve</h1>
           <p className="mx-auto max-w-2xl text-lg text-white/75 md:text-xl">
-            Reserve Events en grupo, sesiones privadas 1:1 y experiencias definidas por tus creadores. Cada una con su fecha, duración, precio, alcance y reglas.
+            Reserve Events en grupo, videollamadas 1:1 y experiencias definidas por tus creadores. Cada una con su fecha, duración, precio, alcance y reglas.
           </p>
           <p className="mt-4 text-sm font-semibold uppercase tracking-[0.18em] text-gold-200">{RESERVE_COPY.principle}</p>
         </div>
@@ -147,7 +147,7 @@ const ReservePage: React.FC = () => {
                       'El creador la acepta, la rechaza o te hace una contraoferta.',
                       'Pagas solo cuando la acepta.',
                       'Recibes la confirmación con fecha, hora y lugar.',
-                      'Vives la experiencia: en la sala privada de Fans Reserve o en el venue acordado.',
+                      'Vives la experiencia: en la sala de videollamada de Fans Reserve o en el venue acordado.',
                     ][i]
                   }
                 </li>
@@ -166,7 +166,7 @@ const ReservePage: React.FC = () => {
                 'Clases y talleres: cocina, música, arte, maquillaje',
                 'Coaching, entrenamiento y asesorías',
                 'Q&A, masterclasses y eventos en grupo',
-                'Sesiones privadas 1:1 con un propósito definido',
+                'Videollamadas 1:1 con un propósito definido',
               ].map((p) => (
                 <li key={p} className="flex gap-2">
                   <i aria-hidden="true" className="fas fa-check mt-1 text-xs text-emerald-600"></i>

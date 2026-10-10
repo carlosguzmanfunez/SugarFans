@@ -152,7 +152,7 @@ let vipDate = '';
 
 // Opens the Reserve request for the first experience (Valentina Rose's 1:1 video
 // call, creator profile 1: manual approval, 24 h minimum notice).
-const RESERVE_BUTTON = /^(Solicitar|Reservar)( sesión privada)?: /;
+const RESERVE_BUTTON = /^(Solicitar|Reservar)( videollamada 1:1)?: /;
 const openBooking = async (page) => {
   await page.goto(`${BASE}/reserve`);
   await page.getByRole('button', { name: RESERVE_BUTTON }).first().click();
@@ -2388,7 +2388,7 @@ const run = async () => {
       await resF.getByRole('button', { name: /Tu gente/ }).click();
       await resF.getByTestId('creator-card').filter({ hasText: 'Valentina Rose' }).waitFor();
       await resF.goto(`${BASE}/`);
-      await resF.getByText('Suscríbete a tus creadores y reserva eventos y sesiones privadas con fecha, precio y reglas claras.').waitFor();
+      await resF.getByText('Suscríbete a tus creadores y reserva eventos y videollamadas 1:1 con fecha, precio y reglas claras.').waitFor();
       // Fans get a message for fans; creators keep "Cada creador trae a su comunidad".
       await resF.locator('#categories-title').getByText('Encuentra a los creadores que sigues').waitFor();
       await resF.locator('#categories-title').getByText('y a los que vas a seguir').waitFor();
@@ -2514,7 +2514,7 @@ const run = async () => {
       await resF.getByTestId('access-ladder').waitFor();
       expect((await resF.getByTestId('live-now').count()) === 0, 'sigue en Live');
     });
-    await check('Reserve Event: el fan reserva su plaza y la sala de grupo no es la de una sesión privada', async () => {
+    await check('Reserve Event: el fan reserva su plaza y la sala de grupo no es la de una videollamada 1:1', async () => {
       await resF.goto(`${BASE}/creator/1`);
       const group = resF.getByTestId('reserve-group-event');
       const card = group.getByTestId('reserve-card').filter({ hasText: 'Beauty Q&A con Valentina' });
@@ -2534,7 +2534,7 @@ const run = async () => {
       await resF.keyboard.press('Escape');
       await resF.goto(`${BASE}/creator/1`);
       const section = resF.getByTestId('creator-reserve');
-      await section.getByTestId('notice-subscription').getByText(/No incluye Reserve Events, sesiones privadas ni otras experiencias de Reserve/).waitFor();
+      await section.getByTestId('notice-subscription').getByText(/No incluye Reserve Events, videollamadas 1:1 ni otras experiencias de Reserve/).waitFor();
       await section.getByTestId('notice-gift').getByText(/No garantizan respuesta, conversación ni acceso\. Si el creador tiene una Meta de experiencia/).waitFor();
       await resF.getByRole('button', { name: 'Enviar regalo' }).click();
       const dialog = resF.getByRole('dialog', { name: /Regalo para Valentina Rose/ });

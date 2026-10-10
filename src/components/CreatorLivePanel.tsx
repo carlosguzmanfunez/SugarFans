@@ -49,7 +49,7 @@ const CreatorLivePanel: React.FC<{ user: User }> = ({ user }) => {
             {live ? (
               <>Estás en Live{live.mode === 'open' ? ' abierto' : ' para suscriptores'}: <span className="font-medium">{live.title}</span></>
             ) : (
-              'Solo entran tus suscriptores activos y les llega un aviso. Es grupal: no es tiempo privado ni garantiza interacción individual.'
+              'Solo entran tus suscriptores activos y les llega un aviso. Es grupal: no es tiempo individual ni garantiza interacción individual.'
             )}
           </p>
         </div>

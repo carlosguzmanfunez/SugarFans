@@ -8,7 +8,7 @@ export const THESIS =
   'Fans Reserve no busca reemplazar las redes sociales donde los creadores construyen su audiencia. Fans Reserve existe para ayudarles a monetizar acceso, experiencias y relaciones estructuradas con esa audiencia.';
 
 export const HERO = {
-  subtitle: 'Suscríbete a tus creadores y reserva eventos y sesiones privadas con fecha, precio y reglas claras.',
+  subtitle: 'Suscríbete a tus creadores y reserva eventos y videollamadas 1:1 con fecha, precio y reglas claras.',
   primaryCta: 'Crear cuenta gratis',
   secondaryCta: 'Explorar Reserve',
   secondaryTo: '/reserve',
@@ -44,7 +44,7 @@ export const HOW = {
 
 export const LIVE_NOW = {
   title: 'Está pasando ahora',
-  subtitle: 'Creators con comunidad propia: suscríbete para sus Lives exclusivos o reserva un evento o una sesión privada.',
+  subtitle: 'Creators con comunidad propia: suscríbete para sus Lives exclusivos o reserva un evento o una videollamada 1:1.',
   // Only with ENABLE_OPEN_LIVE (src/config/features.ts).
   openLiveSubtitle: 'Lives gratis con su comunidad. Entra, comenta y envía un regalo sin salir de la página.',
 };
@@ -58,7 +58,7 @@ export const VIP = {
   cta: 'Explorar Reserve',
   perks: [
     { title: 'Reserve Events', text: 'Q&A, masterclass, workshops y gaming en grupo, con plazas.' },
-    { title: 'Reserve 1:1', text: 'Sesión privada solo con el creador, en la sala de Fans Reserve.' },
+    { title: 'Reserve 1:1', text: 'Videollamada solo con el creador, en la sala de Fans Reserve.' },
     { title: 'Clases y coaching', text: 'Cocina, fitness, música, arte y más.' },
     { title: 'A medida', text: 'Propón tu experiencia; el creador decide.' },
   ],
@@ -67,7 +67,7 @@ export const VIP = {
 
 export const CREATOR_CTA = {
   title: 'Trae a tu comunidad, sea cual sea tu contenido.',
-  subtitle: `Sigue construyendo tu audiencia en TikTok, Instagram o YouTube. En ${BRAND.name} monetizas a la parte de esa audiencia que quiere más acceso a ti: membresías, eventos y sesiones privadas con tus precios.`,
+  subtitle: `Sigue construyendo tu audiencia en TikTok, Instagram o YouTube. En ${BRAND.name} monetizas a la parte de esa audiencia que quiere más acceso a ti: membresías, eventos y videollamadas 1:1 con tus precios.`,
   cta: 'Empezar como creador',
   memberCta: 'Ir a mi panel',
   // Short muted loop of a person creating their account on the phone. Until the
