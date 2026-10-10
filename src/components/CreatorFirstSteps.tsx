@@ -73,7 +73,7 @@ const CreatorFirstSteps: React.FC<Props> = ({ user, onOpenTab, onNewPost }) => {
       title: 'Tu @usuario y tus redes',
       hint: 'Enlaza tu TikTok, Instagram o YouTube para que tus seguidores te reconozcan.',
       done: Object.keys(user.settings.socials ?? {}).length > 0,
-      to: '/settings?section=profile',
+      to: '/settings?section=profile&focus=redes',
     },
     {
       id: 'verify',

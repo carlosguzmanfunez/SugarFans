@@ -1074,7 +1074,12 @@ const run = async () => {
       const steps = page.getByTestId('first-steps');
       await steps.getByText('Primeros pasos').waitFor();
       expect((await steps.getByTestId('first-step-socials').getAttribute('data-done')) === 'false', 'redes ya marcadas');
-      await page.goto(`${BASE}/settings?section=profile`);
+      // "Ir" opens Ajustes right at the @usuario and social networks, highlighted.
+      await page.getByTestId('first-step-socials').getByRole('link', { name: 'Ir' }).click();
+      await page.waitForURL(/focus=redes/);
+      await page.waitForTimeout(600);
+      expect(await page.getByTestId('settings-links').isVisible(), 'no se ve la parte de enlace y redes');
+      expect(await page.getByTestId('settings-links').evaluate((el) => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.top < innerHeight / 2; }), 'no bajó hasta las redes');
       expect(/^lola_creadora/.test(await page.inputValue('input[name=username]')), await page.inputValue('input[name=username]'));
       await page.fill('input[name=username]', 'admin');
       await page.getByRole('button', { name: 'Guardar cambios' }).click();

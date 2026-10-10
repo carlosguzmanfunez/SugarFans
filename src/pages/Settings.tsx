@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Notice from '../components/Notice';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth, defaultSettings, UserSettings } from '../context/AuthContext';
@@ -98,6 +98,12 @@ const Settings: React.FC = () => {
     () => Object.fromEntries(SOCIALS.map((s) => [s.key, user?.settings.socials?.[s.key] ?? ''])) as Record<SocialKey, string>
   );
   const [copied, setCopied] = useState(false);
+  // "Primeros pasos" opens Ajustes right at the @usuario and social networks.
+  const linksRef = useRef<HTMLDivElement>(null);
+  const focusLinks = searchParams.get('focus') === 'redes';
+  useEffect(() => {
+    if (focusLinks && activeSection === 'profile') linksRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [focusLinks, activeSection]);
 
   // Security form
   const [currentPassword, setCurrentPassword] = useState('');
@@ -287,7 +293,14 @@ const Settings: React.FC = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">Biografía</label>
                         <textarea name="bio" value={bio} onChange={(e) => setBio(e.target.value)} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none h-24 resize-none" />
                       </div>
+                      <div
+                        id="mi-enlace"
+                        ref={linksRef}
+                        className={`scroll-mt-28 rounded-2xl border p-4 space-y-4 transition-colors ${focusLinks ? 'border-pink-400 bg-pink-50/60' : 'border-gray-100 bg-gray-50/40'}`}
+                        data-testid="settings-links"
+                      >
                       <div>
+                        <p className="font-semibold text-gray-900 mb-3">Tu enlace y tus redes</p>
                         <label htmlFor="settings-username" className="block text-sm font-medium text-gray-700 mb-1">Tu @usuario</label>
                         <div className="flex items-stretch border border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-pink-500 overflow-hidden">
                           <span className="px-3 flex items-center bg-gray-50 text-gray-500 text-sm border-r border-gray-200 whitespace-nowrap">fansreserve.com/@</span>
@@ -331,6 +344,7 @@ const Settings: React.FC = () => {
                           ))}
                         </div>
                       </fieldset>
+                      </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Precio de suscripción</label>
                         <div className="relative">
