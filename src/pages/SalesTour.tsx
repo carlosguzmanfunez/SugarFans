@@ -28,8 +28,8 @@ const WAYS = [
   },
   {
     icon: 'fa-handshake',
-    title: 'Meet & Greet',
-    body: 'Saludo, foto y firma en persona, en un evento o lugar público. Tú pones la fecha, los cupos y las reglas.',
+    title: 'Meet & Greet y apariciones',
+    body: 'Saludo, foto y firma en persona, en un evento o lugar público. O un fan te invita a su fiesta en un salón de eventos para hacerla más exclusiva. Tú pones la fecha, el precio y las reglas.',
   },
 ];
 
