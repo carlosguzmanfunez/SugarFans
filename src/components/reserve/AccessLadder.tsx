@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Icon from '../Icon';
 import type { User } from '../../context/AuthContext';
 import { socialApi, compactCount } from '../../lib/social';
@@ -6,6 +6,8 @@ import { usePlatformQuery } from '../../lib/platform';
 import { Link } from 'react-router-dom';
 import { useCurrentLive, useLiveAlerts, setLiveAlerts } from '../../lib/live';
 import { ENABLE_OPEN_LIVE } from '../../config/features';
+import { useAuth } from '../../context/AuthContext';
+import { MIN_SUBSCRIPTION } from '../../lib/platformRules';
 
 export const useFollow = (creatorProfileId: string | undefined, user: User | null) =>
   usePlatformQuery(
@@ -23,12 +25,14 @@ interface Props {
   experiences: number;
   onSubscribe: () => void;
   onNeedLogin: () => void;
+  // The creator viewing their own account's profile changes their price right here.
+  editsPrice?: boolean;
 }
 
 // How to get closer to a creator, from free to most personal:
 // Seguir → Suscribirse (includes Subscriber Live) → Reserve (Reserve Event, Reserve 1:1).
 // Each one says what it gives and what it doesn't. Live is not a step of its own.
-const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, following, experiences, onSubscribe }) => {
+const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, following, experiences, onSubscribe, editsPrice = false }) => {
   const current = useCurrentLive(creator.id);
   // An Open Live only counts while Open Live is enabled.
   const live = current && (current.mode === 'subscriber' || ENABLE_OPEN_LIVE) ? current : null;
@@ -67,7 +71,11 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
         </li>
         <li className={`${step} ${live ? 'border-iris-200 bg-iris-50/40' : ''}`} data-testid="ladder-subscribe">
           <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">2 · Suscribirse</span>
-          <span className="mt-1 text-sm font-semibold text-ink">${creator.subscriptionPrice}/mes</span>
+          {editsPrice && user ? (
+            <PriceEditor price={user.subscriptionPrice ?? creator.subscriptionPrice} />
+          ) : (
+            <span className="mt-1 text-sm font-semibold text-ink">${creator.subscriptionPrice}/mes</span>
+          )}
           <span className="text-xs text-ink/60">Contenido exclusivo, Lives para suscriptores y beneficios del creador.</span>
           {live && (
             <span className="mt-2 flex flex-col gap-0.5" data-testid="live-now">
@@ -108,6 +116,76 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
         </li>
       </ol>
     </section>
+  );
+};
+
+// The creator's monthly price, editable in place (Ajustes keeps the same field).
+const PriceEditor: React.FC<{ price: number }> = ({ price }) => {
+  const { updateUser } = useAuth();
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(String(price));
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsed = Math.round(parseFloat(value.replace(',', '.')) * 100) / 100;
+    if (!(parsed >= MIN_SUBSCRIPTION && parsed <= 999)) return setNote({ ok: false, text: `El precio debe estar entre $${MIN_SUBSCRIPTION} y $999` });
+    setBusy(true);
+    const r = await updateUser({ subscriptionPrice: parsed });
+    setBusy(false);
+    if (!r.ok) return setNote({ ok: false, text: r.error || 'No se pudo guardar el precio' });
+    setEditing(false);
+    setNote({ ok: true, text: 'Precio actualizado. Los suscriptores actuales mantienen el suyo.' });
+  };
+
+  if (!editing) {
+    return (
+      <span className="mt-1 flex flex-col items-start gap-0.5">
+        <span className="text-sm font-semibold text-ink">${price}/mes</span>
+        <button
+          type="button"
+          onClick={() => { setValue(String(price)); setNote(null); setEditing(true); }}
+          className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-800"
+          data-testid="edit-sub-price"
+        >
+          <Icon name="fa-pen" className="text-[10px]" />Cambiar precio
+        </button>
+        {note && <span className={`text-xs ${note.ok ? 'text-emerald-700' : 'text-red-600'}`} role="status">{note.text}</span>}
+      </span>
+    );
+  }
+  return (
+    <form onSubmit={save} noValidate className="mt-1 flex flex-col gap-1.5" data-testid="sub-price-form">
+      <div className="flex items-center gap-2">
+        <label className="flex h-9 flex-1 min-w-0 items-center rounded-lg border border-line bg-white focus-within:ring-2 focus-within:ring-brand-500">
+          <span className="pl-2.5 text-sm text-ink/50">$</span>
+          <input
+            type="number"
+            inputMode="decimal"
+            min={MIN_SUBSCRIPTION}
+            max={999}
+            step="0.01"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            aria-label="Precio mensual de tu suscripción"
+            autoFocus
+            className="w-full min-w-0 bg-transparent px-1.5 text-sm outline-none"
+          />
+          <span className="pr-2.5 text-xs text-ink/50">/mes</span>
+        </label>
+      </div>
+      <div className="flex gap-2">
+        <button type="submit" disabled={busy} className="h-8 rounded-full bg-ink px-3 text-xs font-semibold text-white disabled:opacity-60">
+          {busy ? 'Guardando…' : 'Guardar'}
+        </button>
+        <button type="button" onClick={() => setEditing(false)} className="h-8 rounded-full px-3 text-xs font-semibold text-ink/60 hover:text-ink">
+          Cancelar
+        </button>
+      </div>
+      <span className="text-[11px] text-ink/55">Mínimo ${MIN_SUBSCRIPTION}. Los suscriptores actuales mantienen su precio.</span>
+      {note && !note.ok && <span className="text-xs text-red-600" role="alert">{note.text}</span>}
+    </form>
   );
 };
 

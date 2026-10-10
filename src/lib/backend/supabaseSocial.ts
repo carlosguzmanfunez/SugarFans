@@ -1,6 +1,8 @@
 // Supabase implementation of likes, comments, uploads and live rooms. Tables,
 // the "post-media" bucket and the Realtime policies live in
 // supabase/migrations/20260930000002_engagement_media_live.sql.
+import { cleanSocials } from '../creatorLinks';
+import { avatarOrEmpty } from './shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { newId } from '../storage';
 import { extensionOf, validateMedia } from '../media';
@@ -21,7 +23,7 @@ const toComment = (r: Row): PostComment => ({
   creatorProfileId: r.creator_profile_id,
   userId: r.user_id,
   userName: r.user_name,
-  userAvatar: r.user_avatar,
+  userAvatar: avatarOrEmpty(r.user_avatar),
   body: r.body,
   createdAt: r.created_at,
 });
@@ -29,7 +31,7 @@ const toComment = (r: Row): PostComment => ({
 const toPublicCreator = (r: Row): PublicCreator => ({
   id: r.id,
   name: r.name,
-  avatar: r.avatar,
+  avatar: avatarOrEmpty(r.avatar),
   bio: r.bio ?? '',
   isVerified: r.is_verified,
   subscriptionPrice: Number(r.subscription_price ?? 9.99),
@@ -156,8 +158,16 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
   },
 
   async publicCreators() {
-    const { data } = await sb.rpc('public_creators');
-    return ((data as Row[] | null) ?? []).map(toPublicCreator);
+    // Usernames stay empty until migration 20261010000004_creator_username_socials is applied.
+    const [{ data }, names] = await Promise.all([sb.rpc('public_creators'), sb.rpc('creator_usernames')]);
+    const handles = new Map(((names.data as Row[] | null) ?? []).map((r) => [r.id as string, r.username as string]));
+    return ((data as Row[] | null) ?? []).map((r) => ({ ...toPublicCreator(r), username: handles.get(r.id) }));
+  },
+
+  async creatorLinks(creatorProfileId) {
+    const { data } = await sb.rpc('creator_links', { p_creator_profile_id: creatorProfileId });
+    const r = (data ?? {}) as Row;
+    return { username: typeof r.username === 'string' ? r.username : undefined, socials: cleanSocials(r.socials) };
   },
 
   async creatorCountries() {

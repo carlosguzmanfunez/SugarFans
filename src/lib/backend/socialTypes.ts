@@ -2,6 +2,7 @@
 // video uploads, public creator cards and live VIP rooms. Implemented by
 // localSocial.ts and supabaseSocial.ts.
 import type { AuthResult, User } from './types';
+import type { SocialLinks } from '../creatorLinks';
 
 export type MediaType = 'image' | 'video';
 
@@ -57,6 +58,8 @@ export interface PublicCreator {
   category?: string;
   // Cover photo; empty means the generated cover art.
   cover?: string;
+  // Their own @usuario (fansreserve.com/@usuario).
+  username?: string;
 }
 
 // Follow: free, public. Following a creator never grants paid content or Reserve.
@@ -78,6 +81,8 @@ export interface SocialBackend {
   publicCreator(creatorProfileId: string): Promise<PublicCreator | null>;
   // Every creator who signed up (the demo catalogue is listed by the app itself).
   publicCreators(): Promise<PublicCreator[]>;
+  // A creator's @usuario and social networks (empty for the demo catalogue).
+  creatorLinks(creatorProfileId: string): Promise<{ username?: string; socials: SocialLinks }>;
   // Creator profile id → country code, for creators who set one (demo creators
   // have a test country). Public: nothing else about the account is exposed.
   creatorCountries(): Promise<Record<string, string>>;

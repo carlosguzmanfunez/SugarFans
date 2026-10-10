@@ -1,6 +1,6 @@
 // Supabase implementation of the platform features. Tables and the functions
 // that enforce the rules live in supabase/migrations/20260930000001_platform.sql.
-import { PAID_WITH_PAYPAL } from './shared';
+import { PAID_WITH_PAYPAL, avatarOrEmpty } from './shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { buildManagedProfile, validateReport, validateTip, validateVerification } from '../platformRules';
 import { creators as catalogue } from '../../data/mockData';
@@ -35,7 +35,7 @@ const toManaged = (r: Row): ManagedProfile => ({
   name: r.name,
   username: r.username,
   bio: r.bio,
-  avatar: r.avatar,
+  avatar: avatarOrEmpty(r.avatar),
   cover: r.cover,
   category: r.category,
   subscriptionPrice: Number(r.subscription_price),
@@ -246,7 +246,7 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
 
   async mySubscribers() {
     const { data } = await sb.rpc('my_subscribers');
-    return ((data ?? []) as Row[]).map((r) => ({ id: r.id, name: r.name, avatar: r.avatar, since: r.since }));
+    return ((data ?? []) as Row[]).map((r) => ({ id: r.id, name: r.name, avatar: avatarOrEmpty(r.avatar), since: r.since }));
   },
 
   async payoutAccount(userId) {

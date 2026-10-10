@@ -194,6 +194,7 @@
   .btn:hover { transform: translateY(-1px); }
   /* Pressed: the button sinks a little, like a native control. */
   .btn:active { transform: scale(0.97); transition-duration: 0.08s; }
+  .btn-sm { padding: 0.4rem 0.9rem; font-size: 0.8125rem; }
   .btn-md { padding: 0.625rem 1.25rem; font-size: 0.9375rem; }
   .btn-lg { padding: 0.9rem 1.6rem; font-size: 1rem; }
   .btn-primary { color: #fff; background-image: linear-gradient(120deg, #e5337a 0%, #c81b63 55%, #9b2fb8 100%); box-shadow: var(--shadow-glow); }

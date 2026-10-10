@@ -593,13 +593,15 @@ const run = async () => {
       expect((await errorText(page))?.includes('ya está en uso'), 'permitió email duplicado');
       await page.fill('input[name=email]', fanEmail);
     });
-    await check('Cambiar foto de perfil se guarda', async () => {
-      const before = await page.locator('img.w-20').getAttribute('src');
-      await page.getByRole('button', { name: 'Cambiar foto de perfil' }).click();
-      await page.getByRole('button', { name: 'Guardar cambios' }).click();
+    await check('Cambiar foto de perfil sube una foto (sin foto: avatar vacío)', async () => {
+      const before = await page.getByTestId('settings-avatar').getAttribute('src');
+      expect(before === '/avatar-vacio.svg', `sin foto debería verse el avatar vacío, se ve ${before}`);
+      const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.getByRole('button', { name: 'Cambiar foto de perfil' }).click()]);
+      await chooser.setFiles(photo('yo.png'));
+      await page.getByText('Foto de perfil actualizada').waitFor();
       await page.reload();
-      const after = await page.locator('img.w-20').getAttribute('src');
-      expect(before !== after, 'el avatar no cambió');
+      const after = await page.getByTestId('settings-avatar').getAttribute('src');
+      expect(after !== before && after.startsWith('data:image'), 'el avatar no cambió');
     });
     await check('Interruptores de notificaciones persisten', async () => {
       await page.goto(`${BASE}/settings?section=notifications`);
@@ -1066,6 +1068,52 @@ const run = async () => {
       await page.fill('input[name=price]', '0');
       await page.getByRole('button', { name: 'Guardar cambios' }).click();
       await page.getByText(/precio debe estar/).waitFor();
+    });
+    await check('Primeros pasos, @usuario propio y redes: fansreserve.com/@usuario abre su perfil con sus redes', async () => {
+      await page.goto(`${BASE}/creator/dashboard`);
+      const steps = page.getByTestId('first-steps');
+      await steps.getByText('Primeros pasos').waitFor();
+      expect((await steps.getByTestId('first-step-socials').getAttribute('data-done')) === 'false', 'redes ya marcadas');
+      // "Ir" opens Ajustes right at the @usuario and social networks, highlighted.
+      await page.getByTestId('first-step-socials').getByRole('link', { name: 'Ir' }).click();
+      await page.waitForURL(/focus=redes/);
+      await page.waitForTimeout(600);
+      expect(await page.getByTestId('settings-links').isVisible(), 'no se ve la parte de enlace y redes');
+      expect(await page.getByTestId('settings-links').evaluate((el) => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.top < innerHeight / 2; }), 'no bajó hasta las redes');
+      expect(/^lola_creadora/.test(await page.inputValue('input[name=username]')), await page.inputValue('input[name=username]'));
+      await page.fill('input[name=username]', 'admin');
+      await page.getByRole('button', { name: 'Guardar cambios' }).click();
+      await page.getByText('Ese @usuario está reservado').waitFor();
+      await page.fill('input[name=username]', 'lola_baila');
+      await page.getByLabel('Instagram').fill('https://www.instagram.com/lola.baila/');
+      await page.getByLabel('TikTok').fill('@lolabaila');
+      await page.getByLabel('YouTube').fill('https://example.com/lola');
+      await page.getByRole('button', { name: 'Guardar cambios' }).click();
+      await page.getByText(/no es de YouTube/).waitFor();
+      await page.getByLabel('YouTube').fill('');
+      await page.getByRole('button', { name: 'Guardar cambios' }).click();
+      await page.getByText('Cambios guardados exitosamente').waitFor();
+      await page.goto(`${BASE}/@lola_baila`);
+      await page.waitForURL(/\/creator\//);
+      const socials = page.getByTestId('creator-socials');
+      expect((await socials.getByRole('link', { name: 'Instagram' }).getAttribute('href')) === 'https://www.instagram.com/lola.baila', 'enlace de Instagram');
+      expect((await socials.getByRole('link', { name: 'TikTok' }).getAttribute('href')) === 'https://www.tiktok.com/@lolabaila', 'enlace de TikTok');
+      await page.getByText('@lola_baila').first().waitFor();
+      // On their own profile the creator changes the subscription price right in "2 · Suscribirse".
+      const sub = page.getByTestId('ladder-subscribe');
+      await sub.getByTestId('edit-sub-price').click();
+      await sub.getByLabel('Precio mensual de tu suscripción').fill('2');
+      await sub.getByRole('button', { name: 'Guardar' }).click();
+      await sub.getByText(/entre \$4\.99 y \$999/).waitFor();
+      await sub.getByLabel('Precio mensual de tu suscripción').fill('12.5');
+      await sub.getByRole('button', { name: 'Guardar' }).click();
+      await sub.getByText('$12.5/mes').waitFor();
+      await page.goto(`${BASE}/settings?section=profile`);
+      expect((await page.inputValue('input[name=price]')) === '12.5', 'Ajustes no muestra el nuevo precio');
+      await page.goto(`${BASE}/@nadie_tiene_este`);
+      await page.getByText('No encontramos a @nadie_tiene_este').waitFor();
+      await page.goto(`${BASE}/creator/dashboard`);
+      expect((await page.getByTestId('first-step-socials').getAttribute('data-done')) === 'true', 'el paso de redes no se marcó');
     });
     await check('Una creadora nueva crea su experiencia con el asistente y aparece en Reserve', async () => {
       await page.goto(`${BASE}/creator/dashboard?tab=vip`);

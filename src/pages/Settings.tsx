@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Notice from '../components/Notice';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth, defaultSettings, UserSettings } from '../context/AuthContext';
@@ -24,6 +24,9 @@ import { displayEmail, isDemoEmail } from '../config/demoAccounts';
 import CountryPhoneFields, { phoneFromForm } from '../components/CountryPhoneFields';
 import { nationalPart } from '../config/countries';
 import { useLanguage } from '../context/LanguageContext';
+import { SOCIALS, normalizeUsername, parseSocial, profileLink, type SocialKey, type SocialLinks } from '../lib/creatorLinks';
+import ProfileImageButton from '../components/ProfileImageButton';
+import { EMPTY_AVATAR, avatarOrEmpty } from '../lib/backend/shared';
 
 const notificationItems: { key: string; label: string }[] = [
   { key: 'newPosts', label: 'Nuevas publicaciones de creadores que sigues' },
@@ -87,10 +90,20 @@ const Settings: React.FC = () => {
   const [email, setEmail] = useState(user?.email ?? '');
   const [bio, setBio] = useState(user?.bio ?? '');
   const [price, setPrice] = useState(String(user?.subscriptionPrice ?? 9.99));
-  const [avatarSeed, setAvatarSeed] = useState('');
   const { t } = useLanguage();
   const [country, setCountry] = useState(user?.country ?? '');
   const [phone, setPhone] = useState(nationalPart(user?.country ?? '', user?.phone));
+  const [username, setUsername] = useState(user?.username ?? '');
+  const [socials, setSocials] = useState<Record<SocialKey, string>>(
+    () => Object.fromEntries(SOCIALS.map((s) => [s.key, user?.settings.socials?.[s.key] ?? ''])) as Record<SocialKey, string>
+  );
+  const [copied, setCopied] = useState(false);
+  // "Primeros pasos" opens Ajustes right at the @usuario and social networks.
+  const linksRef = useRef<HTMLDivElement>(null);
+  const focusLinks = searchParams.get('focus') === 'redes';
+  useEffect(() => {
+    if (focusLinks && activeSection === 'profile') linksRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [focusLinks, activeSection]);
 
   // Security form
   const [currentPassword, setCurrentPassword] = useState('');
@@ -134,15 +147,24 @@ const Settings: React.FC = () => {
       if (country !== (user?.country ?? '')) data.country = country;
       if (checked.phone !== (user?.phone ?? '')) data.phone = checked.phone;
     }
-    if (avatarSeed) data.avatar = `https://api.dicebear.com/7.0/adventurer/svg?seed=${encodeURIComponent(avatarSeed)}`;
     if (user?.role === 'creator') {
       data.bio = bio;
+      const handle = normalizeUsername(username);
+      if (handle !== (user.username ?? '')) data.username = handle;
+      const links: SocialLinks = {};
+      for (const s of SOCIALS) {
+        const parsed = parseSocial(s.key, socials[s.key]);
+        if (parsed.error) return showResult({ ok: false, error: parsed.error });
+        if (parsed.handle) links[s.key] = parsed.handle;
+      }
+      data.settings = { ...settings, socials: links };
+      setSocials(Object.fromEntries(SOCIALS.map((s) => [s.key, links[s.key] ?? ''])) as Record<SocialKey, string>);
       const parsed = parseFloat(price);
       if (Number.isNaN(parsed)) return showResult({ ok: false, error: 'Introduce un precio válido' });
       data.subscriptionPrice = Math.round(parsed * 100) / 100;
     }
     const result = await updateUser(data);
-    if (showResult(result, result.notice || undefined)) setAvatarSeed('');
+    showResult(result, result.notice || undefined);
   };
 
   const handleSaveSecurity = async () => {
@@ -233,19 +255,22 @@ const Settings: React.FC = () => {
                 <h2 className="text-lg font-bold text-gray-900 mb-6">Editar perfil</h2>
                 <div className="flex items-center space-x-4 mb-6">
                   <img
-                    src={avatarSeed ? `https://api.dicebear.com/7.0/adventurer/svg?seed=${encodeURIComponent(avatarSeed)}` : user?.avatar}
-                    alt=""
-                    className="w-20 h-20 rounded-full"
+                    src={avatarOrEmpty(user?.avatar)}
+                    onError={(e) => {
+                      if (!e.currentTarget.src.endsWith(EMPTY_AVATAR)) e.currentTarget.src = EMPTY_AVATAR;
+                    }}
+                    alt="Tu foto de perfil"
+                    data-testid="settings-avatar"
+                    className="w-20 h-20 rounded-full object-cover bg-gray-100"
                   />
                   <div>
-                    <button
-                      type="button"
-                      onClick={() => setAvatarSeed(Math.random().toString(36).slice(2, 10))}
-                      className="text-sm text-pink-600 font-medium hover:text-pink-700"
-                    >
-                      Cambiar foto de perfil
-                    </button>
-                    <p className="text-xs text-gray-500 mt-1">Genera un nuevo avatar; se aplica al guardar</p>
+                    <ProfileImageButton
+                      kind="avatar"
+                      withLabel
+                      onDone={(text, ok) => showResult(ok ? { ok } : { ok, error: text }, text)}
+                      className="px-4 py-2 rounded-full border border-gray-200 !shadow-none"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Sube una foto desde tu galería o tu computadora; se guarda al instante</p>
                   </div>
                 </div>
                 <div className="space-y-4">
@@ -267,6 +292,58 @@ const Settings: React.FC = () => {
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Biografía</label>
                         <textarea name="bio" value={bio} onChange={(e) => setBio(e.target.value)} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none h-24 resize-none" />
+                      </div>
+                      <div
+                        id="mi-enlace"
+                        ref={linksRef}
+                        className={`scroll-mt-28 rounded-2xl border p-4 space-y-4 transition-colors ${focusLinks ? 'border-pink-400 bg-pink-50/60' : 'border-gray-100 bg-gray-50/40'}`}
+                        data-testid="settings-links"
+                      >
+                      <div>
+                        <p className="font-semibold text-gray-900 mb-3">Tu enlace y tus redes</p>
+                        <label htmlFor="settings-username" className="block text-sm font-medium text-gray-700 mb-1">Tu @usuario</label>
+                        <div className="flex items-stretch border border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-pink-500 overflow-hidden">
+                          <span className="px-3 flex items-center bg-gray-50 text-gray-500 text-sm border-r border-gray-200 whitespace-nowrap">fansreserve.com/@</span>
+                          <input id="settings-username" type="text" name="username" value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, '').toLowerCase())} maxLength={31} autoCapitalize="none" autoCorrect="off" spellCheck={false} className="flex-1 min-w-0 px-3 py-3 outline-none" />
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">Ponlo en tu bio de TikTok e Instagram: quien entre por tu enlace queda como fan tuyo.</p>
+                        {user.username && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard?.writeText(profileLink(user.username!)).then(() => setCopied(true), () => undefined);
+                              setTimeout(() => setCopied(false), 2000);
+                            }}
+                            className="mt-1 text-sm text-pink-600 font-medium hover:text-pink-700"
+                          >
+                            <i aria-hidden="true" className={`fas ${copied ? 'fa-check' : 'fa-link'} mr-1`}></i>
+                            {copied ? 'Enlace copiado' : 'Copiar mi enlace'}
+                          </button>
+                        )}
+                      </div>
+                      <fieldset>
+                        <legend className="block text-sm font-medium text-gray-700 mb-1">Tus redes sociales</legend>
+                        <p className="text-xs text-gray-500 mb-2">Aparecen en tu perfil para que tus fans te encuentren. Escribe tu usuario o pega el enlace.</p>
+                        <div className="grid sm:grid-cols-2 gap-2">
+                          {SOCIALS.map((s) => (
+                            <label key={s.key} className="flex items-center border border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-pink-500 overflow-hidden">
+                              <span className="w-10 flex justify-center text-gray-500"><i aria-hidden="true" className={s.icon}></i></span>
+                              <span className="sr-only">{s.label}</span>
+                              <input
+                                type="text"
+                                value={socials[s.key]}
+                                onChange={(e) => setSocials((prev) => ({ ...prev, [s.key]: e.target.value }))}
+                                placeholder={s.label}
+                                aria-label={s.label}
+                                autoCapitalize="none"
+                                autoCorrect="off"
+                                spellCheck={false}
+                                className="flex-1 min-w-0 py-2.5 pr-3 outline-none text-sm"
+                              />
+                            </label>
+                          ))}
+                        </div>
+                      </fieldset>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Precio de suscripción</label>

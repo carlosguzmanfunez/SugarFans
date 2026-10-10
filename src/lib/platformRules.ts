@@ -71,7 +71,7 @@ export const validateVerification = (input: VerificationInput): Check => {
 
 export const MANAGED_CATEGORIES = CREATOR_CATEGORIES.map((c) => c.name);
 
-export const managedAvatar = (username: string) => `https://api.dicebear.com/7.0/adventurer/svg?seed=${encodeURIComponent(username)}`;
+export const managedAvatar = (_username: string) => '';
 // No cover: profiles show their generated cover art (components/CoverArt).
 export const MANAGED_COVER = '';
 

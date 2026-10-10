@@ -103,6 +103,8 @@ Este Contrato para Creadores y Afiliados ("Contrato") constituye un acuerdo lega
 - Políticas de cancelación
 - Tiempos de respuesta
 
+3.4.4. **Enlaces externos**: El Creador solo puede enlazar desde su perfil las redes sociales que ofrece la Plataforma, y no puede enlazar, promocionar ni redirigir a sus fans hacia plataformas o páginas de contenido sexual explícito, por ningún medio dentro de la Plataforma. Incumplirlo puede suponer la retirada del contenido, la suspensión de la cuenta, el congelamiento de los retiros mientras se revisa el caso, o el cierre de la cuenta.
+
 ---
 
 ## 4. OBLIGACIONES DE LA PLATAFORMA

@@ -2,7 +2,7 @@
 // Security. Rules that span users (booking lifecycle, account deletion) run in
 // SECURITY DEFINER functions, see supabase/migrations.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { PAID_WITH_PAYPAL, WRONG_CREDENTIALS, ACCOUNT_SUSPENDED, cleanPatch, mergeSettings, normalizeEmail, validateRegistration, validateSignupExtras } from './shared';
+import { PAID_WITH_PAYPAL, WRONG_CREDENTIALS, ACCOUNT_SUSPENDED, avatarOrEmpty, cleanPatch, mergeSettings, normalizeEmail, validateRegistration, validateSignupExtras } from './shared';
 import { DEFAULT_AVAILABILITY, cleanDetails, customTitle, normalizeAvailability, validateCounter, validateCustomRequest, validateExperience } from '../vip';
 import type { Backend, BookingDetails, BookingStatus, ExperienceType, ReserveDetails, SocialProvider, User, UserRole, VipBooking, VipExperience } from './types';
 import { creators as demoCreators } from '../../data/mockData';
@@ -66,6 +66,8 @@ interface ProfileRow {
   // Missing until migration 20261006000003_country_phone is applied.
   country?: string | null;
   phone?: string | null;
+  // Missing until migration 20261010000004_creator_username_socials is applied.
+  username?: string | null;
 }
 
 interface BookingRow {
@@ -131,7 +133,7 @@ const toUser = (p: ProfileRow, extra?: Pick<User, 'subscriptions' | 'createdPost
   name: p.name,
   email: p.email,
   role: p.role,
-  avatar: p.avatar,
+  avatar: avatarOrEmpty(p.avatar),
   cover: p.cover || undefined,
   bio: p.bio ?? undefined,
   isVerified: p.is_verified,
@@ -149,6 +151,7 @@ const toUser = (p: ProfileRow, extra?: Pick<User, 'subscriptions' | 'createdPost
   signupCompleted: p.signup_completed !== false,
   country: p.country ?? undefined,
   phone: p.phone ?? undefined,
+  username: p.username ?? undefined,
 });
 
 const toBooking = (b: BookingRow): VipBooking => ({
@@ -368,7 +371,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
     async updateProfile(user, patch) {
       const cleaned = cleanPatch(patch);
       if (!cleaned.patch) return fail(cleaned.error!);
-      const { email, name, avatar, bio, subscriptionPrice, settings, ageVerified, country, phone } = cleaned.patch;
+      const { email, name, avatar, bio, subscriptionPrice, settings, ageVerified, country, phone, username } = cleaned.patch;
       const row: Record<string, unknown> = {};
       if (name !== undefined) row.name = name;
       if (avatar !== undefined) row.avatar = avatar;
@@ -378,6 +381,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       if (ageVerified !== undefined) row.age_verified = ageVerified;
       if (country !== undefined) row.country = country || null;
       if (phone !== undefined) row.phone = phone || null;
+      if (username !== undefined && username !== user.username) row.username = username;
       if (Object.keys(row).length) {
         const { error } = await sb.from('profiles').update(row).eq('id', user.id);
         if (error) return dbError(error, 'No se pudieron guardar los cambios');

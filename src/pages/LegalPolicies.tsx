@@ -101,6 +101,7 @@ const LegalPolicies: React.FC = () => {
                       <li>Contenido sin consentimiento verificable</li>
                       <li>Contenido ilegal, violento o que infrinja derechos de terceros</li>
                       <li>Spam, fraude o actividades engañosas</li>
+                      <li>Enlazar, promocionar o redirigir a plataformas o páginas de contenido explícito, en el perfil, las publicaciones, los Lives, las experiencias o las redes enlazadas</li>
                       <li>Los servicios descritos en <a href="/legal?doc=prohibited-services" className="underline">Servicios prohibidos</a></li>
                     </ul>
 

@@ -5,6 +5,7 @@ import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import CreatorPayouts from '../components/CreatorPayouts';
 import VerifyWelcome from '../components/VerifyWelcome';
+import CreatorFirstSteps from '../components/CreatorFirstSteps';
 import CreatorGiftsPanel from '../components/CreatorGiftsPanel';
 import CreatorRewardsPanel from '../components/CreatorRewardsPanel';
 import CreatorGoalsPanel from '../components/CreatorGoalsPanel';
@@ -338,6 +339,7 @@ const CreatorDashboard: React.FC = () => {
         {/* Stats Grid */}
         {activeTab === 'overview' && (
           <>
+            {user && <CreatorFirstSteps user={user} onOpenTab={(tab) => { setActiveTab(tab); setNotice(null); }} onNewPost={() => setShowNewPost(true)} />}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
               {stats.map((stat) => (
                 <div key={stat.label} className="bg-white rounded-2xl border border-line p-4 sm:p-5">
@@ -610,6 +612,10 @@ const CreatorDashboard: React.FC = () => {
               <button onClick={handleSaveSettings} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition">
                 Guardar cambios
               </button>
+              <p className="text-sm text-gray-600">
+                Tu @usuario y tus redes sociales se cambian en{' '}
+                <Link to="/settings?section=profile" className="text-pink-600 font-medium hover:text-pink-700">Mi cuenta → Editar perfil</Link>.
+              </p>
             </div>
           </div>
         )}

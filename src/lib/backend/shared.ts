@@ -3,6 +3,7 @@ import { isValidEmail } from '../storage';
 import { MIN_SUBSCRIPTION } from '../platformRules';
 import type { AuthResult, ProfilePatch, SignupExtras, UserRole, UserSettings } from './types';
 import { isCountryCode, isValidPhone } from '../../config/countries';
+import { cleanSocials, normalizeUsername, usernameError } from '../creatorLinks';
 
 export { DEMO_PASSWORD } from '../../config/demoAccounts';
 
@@ -33,7 +34,13 @@ export const mergeSettings = (settings?: Partial<UserSettings> | null): UserSett
 
 export const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
-export const avatarFor = (seed: string) => `https://api.dicebear.com/7.0/adventurer/svg?seed=${encodeURIComponent(seed)}`;
+// Someone without their own photo shows an empty grey avatar (just a silhouette).
+// Old accounts still have a generated dicebear link, which no longer loads.
+export const EMPTY_AVATAR = '/avatar-vacio.svg';
+export const avatarOrEmpty = (url?: string | null) => (!url || /dicebear\.com/.test(url) ? EMPTY_AVATAR : url);
+export const hasOwnAvatar = (url?: string | null) => avatarOrEmpty(url) !== EMPTY_AVATAR;
+
+export const avatarFor = (_seed: string) => EMPTY_AVATAR;
 
 export const validateRegistration = (name: string, email: string, password: string, role: UserRole): AuthResult => {
   if (!name.trim()) return { ok: false, error: 'El nombre es obligatorio' };
@@ -67,6 +74,12 @@ export const cleanPatch = (patch: ProfilePatch): { patch?: ProfilePatch; error?:
     next.phone = next.phone.trim();
     if (next.phone && !isValidPhone(next.phone)) return { error: 'Revisa tu número de teléfono' };
   }
+  if (next.username !== undefined) {
+    next.username = normalizeUsername(next.username);
+    const bad = usernameError(next.username);
+    if (bad) return { error: bad };
+  }
+  if (next.settings?.socials) next.settings = { ...next.settings, socials: cleanSocials(next.settings.socials) };
   if (next.subscriptionPrice !== undefined && !(next.subscriptionPrice >= MIN_SUBSCRIPTION && next.subscriptionPrice <= 999)) {
     return { error: `El precio debe estar entre $${MIN_SUBSCRIPTION} y $999` };
   }
