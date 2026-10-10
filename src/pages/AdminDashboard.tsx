@@ -8,6 +8,9 @@ import {
   reviewVerification,
   resolveReport,
   restorePost,
+  coverRefund,
+  creatorCut,
+  transactionLabel,
   docTypeLabel,
   ageFrom,
   money,
@@ -67,6 +70,12 @@ const AdminDashboard: React.FC = () => {
     .filter((t) => t.status === 'paid' && t.createdAt >= monthStart)
     .reduce((s, t) => s + t.amount, 0);
   const pendingTotal = pendingVerifications.length + pendingReports.length;
+  // Sales PayPal gave back to the fan (refund, chargeback) or froze (dispute).
+  const moneyBack = platform.transactions.filter((t) => (t.status === 'refunded' || t.status === 'disputed') && t.kind !== 'referral');
+  const toggleCover = async (id: string, cover: boolean) => {
+    const r = await coverRefund(id, cover);
+    setNotice(r.ok ? { ok: true, text: cover ? 'Listo: el creador conserva su parte; la pérdida la asume Fans Reserve' : 'Listo: se le descuenta al creador' } : { ok: false, text: r.error ?? 'No se pudo actualizar la venta' });
+  };
 
   const stats = [
     { label: 'Usuarios registrados', value: String(accounts.length), icon: 'fa-users', color: 'blue' },
@@ -323,6 +332,37 @@ const AdminDashboard: React.FC = () => {
 
         {/* Payouts */}
         {activeTab === 'payouts' && (
+          <>
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-6" data-testid="admin-money-back">
+            <div className="p-5 border-b border-gray-100">
+              <h3 className="font-bold text-gray-900">Reembolsos, contracargos y disputas</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                PayPal los descuenta solos al creador. Si no fue su culpa (fraude con tarjeta robada, un fallo nuestro), márcalo y conserva su parte: la pérdida la asume Fans Reserve.
+              </p>
+            </div>
+            <div className="divide-y divide-gray-100">
+              {moneyBack.length === 0 && <p className="p-6 text-center text-sm text-gray-500">No hay reembolsos ni disputas</p>}
+              {moneyBack.map((t) => (
+                <div key={t.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2" data-testid="money-back-row">
+                  <div>
+                    <p className="font-medium text-gray-900 text-sm">{transactionLabel[t.kind]} · {t.payerName} → {t.creatorName} · {money(t.amount)}</p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(t.createdAt).toLocaleDateString('es')} • {t.status === 'disputed' ? 'En disputa con PayPal' : 'Reembolsado al fan'} • Parte del creador {money(creatorCut(t))}
+                    </p>
+                  </div>
+                  {t.platformCovers ? (
+                    <button onClick={() => toggleCover(t.id, false)} className="text-xs px-3 py-1.5 rounded-full bg-green-100 text-green-700 font-medium">
+                      <i aria-hidden="true" className="fas fa-shield-alt mr-1"></i>Lo cubre Fans Reserve · Deshacer
+                    </button>
+                  ) : (
+                    <button onClick={() => toggleCover(t.id, true)} className="text-xs px-3 py-1.5 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium">
+                      No fue culpa del creador
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden" data-testid="admin-payouts">
             <div className="p-5 border-b border-gray-100">
               <h3 className="font-bold text-gray-900">Retiros de creadores</h3>
@@ -353,6 +393,7 @@ const AdminDashboard: React.FC = () => {
               ))}
             </div>
           </div>
+          </>
         )}
 
         {/* Document review */}

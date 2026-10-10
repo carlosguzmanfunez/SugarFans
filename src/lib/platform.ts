@@ -56,6 +56,7 @@ export const cancelPayout = (user: User, payoutId: string) => after(p.cancelPayo
 export const submitReport = (reporter: User | null, input: ReportInput) => after(p.submitReport(reporter, input));
 export const resolveReport = (id: string, action: 'remove' | 'resolve' | 'dismiss') => after(p.resolveReport(id, action));
 export const restorePost = (postId: string) => after(p.restorePost(postId));
+export const coverRefund = (transactionId: string, cover: boolean) => after(p.coverRefund(transactionId, cover));
 
 export const saveManagedProfile = (admin: User, input: ManagedProfileInput, id?: string) => after(p.saveManagedProfile(admin, input, id));
 export const setManagedProfileHidden = (admin: User, id: string, hidden: boolean) => after(p.setManagedProfileHidden(admin, id, hidden));

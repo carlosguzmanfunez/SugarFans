@@ -89,6 +89,7 @@ const toTransaction = (r: Row): Transaction => ({
   share: r.creator_share == null ? undefined : Number(r.creator_share),
   ...(r.gateway_fee == null ? {} : { gatewayFee: Number(r.gateway_fee) }),
   giftId: r.gift_id ?? undefined,
+  ...(r.platform_covers ? { platformCovers: true } : {}),
 });
 
 const toPayout = (r: Row): Payout => ({
@@ -345,6 +346,10 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
 
   async restorePost(postId) {
     return done((await sb.from('removed_posts').delete().eq('post_id', postId)).error, 'No se pudo restaurar la publicación');
+  },
+
+  async coverRefund(transactionId, cover) {
+    return done((await sb.rpc('admin_cover_refund', { p_transaction: transactionId, p_cover: cover })).error, 'No se pudo actualizar la venta');
   },
 
   async blocks(user) {

@@ -185,7 +185,8 @@ export const creatorCut = (t: Pick<Transaction, 'amount' | 'share'>) => t.amount
 // each month (everything paid before that day) and add up until withdrawn; a
 // withdrawal always takes the whole credited balance.
 export const computeEarnings = (sales: Transaction[], payouts: Payout[], at = new Date()) => {
-  const paid = sales.filter((t) => t.status === 'paid');
+  // A refund Fans Reserve covers (not the creator's fault) still counts for them.
+  const paid = sales.filter((t) => t.status === 'paid' || (t.platformCovers && (t.status === 'refunded' || t.status === 'disputed')));
   const cutoff = creditCutoff(at);
   const share = (list: Transaction[]) => round2(list.reduce((s, t) => s + creatorCut(t), 0));
   const credited = share(paid.filter((t) => t.createdAt < cutoff));

@@ -3,9 +3,10 @@
 // creates the order or subscription for the amount the database quotes and,
 // after the fan approves it, confirms it with PayPal and fulfills it. PayPal's
 // webhook (POST /api/paypal?webhook) reports each subscription renewal,
-// cancellation and failed payment. See the migrations
-// 20261003000005_paypal_payments.sql, 20261003000006_paypal_subscriptions.sql
-// and 20261003000007_paypal_payouts.sql.
+// cancellation and failed payment, and every refund, chargeback and dispute.
+// Nobody pays their own creator account. See the migrations
+// 20261003000005_paypal_payments.sql, 20261003000006_paypal_subscriptions.sql,
+// 20261003000007_paypal_payouts.sql and 20261010000001_refunds_disputes_self_pay.sql.
 //
 // Needs in the Vercel project settings: PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET,
 // PAYPAL_ENV ('sandbox' or 'live'), SUPABASE_SERVICE_ROLE_KEY and, for the
@@ -151,8 +152,32 @@ const planFor = async (e: Env, token: string, amount: number) => {
 
 // The database's refusal for a demo profile without an owner (assert_creator_accepts_payments).
 const DEMO_REFUSAL = /perfil es de demostración/;
+// Paying one's own creator account from a fan account (guard_self_payment).
+const SELF_PAY = 'No puedes pagarte a ti mismo: esta cuenta y la del creador son de la misma persona.';
+const SELF_REFUSAL = /No puedes pagarte a ti mismo/;
 
 const rpc = (e: Env, name: string, body: unknown) => supabase(`/rest/v1/rpc/${name}`, asServer(e.serviceKey), body);
+
+// True when this fan account and the creator being paid are the same person (paypal_self_pay):
+// the same account, phone or verified identity, or a PayPal email the creator signs in or withdraws with.
+const paysSelf = async (e: Env, userId: string, kind: string, params: unknown, payerEmail?: unknown) => {
+  const r = await rpc(e, 'paypal_self_pay', {
+    p_user: userId,
+    p_kind: kind,
+    p_params: params ?? {},
+    p_payer_email: typeof payerEmail === 'string' ? payerEmail : null,
+  });
+  return r.ok && r.data === true;
+};
+
+// A refund, chargeback or dispute PayPal reports (paypal_money_back). A refunded subscription
+// payment ends that subscription, so it is cancelled at PayPal too.
+const moneyBack = async (e: Env, token: string, ref: string, action: 'refund' | 'dispute' | 'release') => {
+  const r = await rpc(e, 'paypal_money_back', { p_ref: ref, p_action: action });
+  if (!r.ok) throw new Error(r.error);
+  const subId = r.data?.subscription;
+  if (typeof subId === 'string' && subId) await cancelAtPaypal(e, token, subId, 'Pago reembolsado en PayPal');
+};
 
 // Records every completed payment of a subscription (idempotent). Returns how many it saw.
 const syncPayments = async (e: Env, token: string, subscriptionId: string) => {
@@ -313,11 +338,30 @@ const webhook = async (request: Request, e: Env): Promise<Response> => {
     const payment = await rpc(e, 'paypal_subscription_payment', { p_id: subId, p_sale_id: String(res.id), p_amount: Number(res.amount?.total) });
     // A demo profile without an owner refuses money (guard_demo_creator_money): treat it like an
     // orphan instead of answering 500, or PayPal would retry forever with the fan already charged.
-    const saved = !payment.ok && DEMO_REFUSAL.test(payment.error) ? { ...payment, data: 'orphan' } : must(payment);
+    // Same for a payment to the subscriber's own creator account (guard_self_payment).
+    const refused = !payment.ok && (DEMO_REFUSAL.test(payment.error) || SELF_REFUSAL.test(payment.error));
+    const saved = refused ? { ...payment, data: 'orphan' } : must(payment);
     if (saved.data === 'orphan') {
       // It no longer gives access here (deleted account or subscription): stop it and give the money back.
       await cancelAtPaypal(e, token, subId, 'La suscripción ya no existe en Fans Reserve');
       await paypal(e, token, `/v1/payments/sale/${encodeURIComponent(String(res.id))}/refund`, {}, `refund-${res.id}`);
+      // Refused money gives no access, even if PayPal's activation arrived first.
+      if (refused) await rpc(e, 'paypal_subscription_ended', { p_id: subId, p_now: true });
+    }
+  } else if ((type === 'PAYMENT.SALE.REFUNDED' || type === 'PAYMENT.SALE.REVERSED') && (res.sale_id || res.id)) {
+    // A subscription payment given back (REVERSED: a chargeback). The refund carries the sale it undoes.
+    await moneyBack(e, token, String(res.sale_id ?? res.id), 'refund');
+  } else if (type === 'PAYMENT.CAPTURE.REFUNDED' || type === 'PAYMENT.CAPTURE.REVERSED') {
+    // A refund resource links up to its capture; a reversal is the capture itself.
+    const up = ((res.links ?? []) as any[]).find((l) => l?.rel === 'up')?.href;
+    const captureId = type === 'PAYMENT.CAPTURE.REFUNDED' && typeof up === 'string' ? up.split('/').filter(Boolean).pop() : res.id;
+    if (captureId) await moneyBack(e, token, String(captureId), 'refund');
+  } else if (type.startsWith('CUSTOMER.DISPUTE.')) {
+    // Frozen while PayPal decides; given back if the fan wins, released otherwise.
+    const resolved = type === 'CUSTOMER.DISPUTE.RESOLVED';
+    const action = !resolved ? 'dispute' : res.dispute_outcome?.outcome_code === 'RESOLVED_BUYER_FAVOUR' ? 'refund' : 'release';
+    for (const t of (res.disputed_transactions ?? []) as any[]) {
+      if (t?.seller_transaction_id) await moneyBack(e, token, String(t.seller_transaction_id), action);
     }
   } else if (type === 'BILLING.SUBSCRIPTION.ACTIVATED' && res.id) {
     await rpc(e, 'paypal_subscription_activate', { p_id: String(res.id) });
@@ -413,6 +457,7 @@ export async function POST(request: Request): Promise<Response> {
       if (!quote.ok) return json(400, { error: quote.error });
       const amount = Number(quote.data?.amount);
       if (!(amount > 0)) return json(400, { error: 'No se pudo calcular el monto.' });
+      if (await paysSelf(e, userId, kind, params)) return json(403, { error: SELF_PAY });
 
       const order = await paypal(e, ppToken, '/v2/checkout/orders', {
         intent: 'CAPTURE',
@@ -457,16 +502,23 @@ export async function POST(request: Request): Promise<Response> {
         return json(402, { error: declined ? 'PayPal rechazó el método de pago. Prueba con otro.' : 'PayPal no completó el pago.' });
       }
 
+      // Paid with the PayPal account of the creator being paid: give it back before it counts.
+      const order = await supabase(`/rest/v1/paypal_orders?id=eq.${encodeURIComponent(orderId)}&select=kind,params`, asServer(e.serviceKey));
+      const placed = Array.isArray(order.data) ? (order.data[0] as { kind: string; params: unknown } | undefined) : undefined;
+      const fanPaysSelf = placed && (await paysSelf(e, userId, placed.kind, placed.params, result.data?.payer?.email_address));
+
       // Saved first: a special account's Reserve payment deducts it (see set_special_share).
       if (capture.fee !== null) {
         await supabase(`/rest/v1/paypal_orders?id=eq.${encodeURIComponent(orderId)}&status=eq.created`, asServer(e.serviceKey), { fee: capture.fee }, 'PATCH');
       }
-      const done = await supabase('/rest/v1/rpc/paypal_fulfill', asServer(e.serviceKey), {
-        p_order_id: orderId,
-        p_user: userId,
-        p_capture_id: capture.id,
-        p_amount: capture.currency === 'USD' ? capture.value : -1,
-      });
+      const done = fanPaysSelf
+        ? { ok: false, error: SELF_PAY.replace(/\.$/, '') }
+        : await supabase('/rest/v1/rpc/paypal_fulfill', asServer(e.serviceKey), {
+            p_order_id: orderId,
+            p_user: userId,
+            p_capture_id: capture.id,
+            p_amount: capture.currency === 'USD' ? capture.value : -1,
+          });
       if (done.ok) return json(200, { ok: true, captureId: capture.id });
 
       // Charged but not fulfilled (e.g. the booking was cancelled meanwhile): give the money back.
@@ -492,6 +544,7 @@ export async function POST(request: Request): Promise<Response> {
       if (!quote.ok) return json(400, { error: quote.error });
       const amount = Number(quote.data?.amount);
       if (!(amount > 0)) return json(400, { error: 'No se pudo calcular el monto.' });
+      if (await paysSelf(e, userId, 'subscription', { creatorProfileId: creator })) return json(403, { error: SELF_PAY });
       const startTime = typeof quote.data?.startTime === 'string' ? new Date(quote.data.startTime).toISOString() : null;
       const planId = await planFor(e, ppToken, amount);
 
@@ -529,6 +582,12 @@ export async function POST(request: Request): Promise<Response> {
       }
       if (sub.data?.status !== 'ACTIVE') return json(402, { error: 'PayPal no activó la suscripción. No se te cobró nada.' });
       if (sub.data?.custom_id !== `${userId}:${row.creator_id}`) return json(409, { error: 'La suscripción no corresponde a esta cuenta.' });
+      // Subscribed with the PayPal account of the creator: stop it before the first payment counts.
+      if (await paysSelf(e, userId, 'subscription', { creatorProfileId: row.creator_id }, sub.data?.subscriber?.email_address)) {
+        await cancelAtPaypal(e, ppToken, subId, 'No se puede suscribir a su propia cuenta');
+        await rpc(e, 'paypal_subscription_ended', { p_id: subId, p_now: true });
+        return json(409, { error: `${SELF_PAY} Cancelamos la suscripción en PayPal.` });
+      }
 
       const active = await rpc(e, 'paypal_subscription_activate', { p_id: subId });
       if (!active.ok) return json(500, { error: 'PayPal activó la suscripción, pero no pudimos guardarla. Escríbenos y lo resolvemos.' });

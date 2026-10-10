@@ -155,6 +155,8 @@ const CreatorGiftsPanel: React.FC = () => {
                 </span>
                 {t.status === 'refunded' ? (
                   <span className="text-xs text-gray-500">Devuelto</span>
+                ) : t.status === 'disputed' ? (
+                  <span className="text-xs text-amber-600">En disputa con PayPal</span>
                 ) : (
                   <span className="font-semibold text-green-700">+{money(t.amount * GIFT_SHARE)}</span>
                 )}

@@ -165,6 +165,7 @@ const CreatorDashboard: React.FC = () => {
     day.setDate(day.getDate() - (6 - i));
     const next = day.getTime() + 86_400_000;
     const total = (live?.sales ?? [])
+      .filter((t) => t.status === 'paid')
       .filter((t) => { const at = new Date(t.createdAt).getTime(); return at >= day.getTime() && at < next; })
       .reduce((sum, t) => sum + creatorCut(t), 0);
     return { label: day.toLocaleDateString('es', { weekday: 'short' }).replace('.', ''), total };
@@ -186,7 +187,7 @@ const CreatorDashboard: React.FC = () => {
     id: t.id,
     type: transactionLabel[t.kind],
     user: displayPayer(t.payerName),
-    amount: `+${money(creatorCut(t))}`,
+    amount: t.status === 'paid' ? `+${money(creatorCut(t))}` : t.status === 'disputed' ? 'En disputa' : t.status === 'refunded' ? 'Devuelto' : 'Fallido',
     date: new Date(t.createdAt).toLocaleString('es'),
     status: 'completed',
   }));
