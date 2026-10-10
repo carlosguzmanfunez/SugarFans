@@ -17,6 +17,7 @@ import ReportDialog from '../components/ReportDialog';
 import PostCard, { type DisplayPost } from '../components/PostCard';
 import MediaViewer from '../components/MediaViewer';
 import ProfileImageButton from '../components/ProfileImageButton';
+import ProfileImageViewer from '../components/ProfileImageViewer';
 import TipDialog from '../components/TipDialog';
 import GiftDialog from '../components/GiftDialog';
 import NewPostForm from '../components/NewPostForm';
@@ -65,6 +66,8 @@ const CreatorProfile: React.FC = () => {
   const [composing, setComposing] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [viewing, setViewing] = useState<string | null>(null);
+  const [enlarged, setEnlarged] = useState<'avatar' | 'cover' | null>(null);
+  const closeEnlarged = useCallback(() => setEnlarged(null), []);
   const closeViewer = useCallback(() => setViewing(null), []);
   const [toast, setToast] = useState('');
   const [toastOk, setToastOk] = useState(true);
@@ -286,13 +289,33 @@ const CreatorProfile: React.FC = () => {
         <MediaViewer posts={viewable} startId={viewing} onClose={closeViewer} />
       )}
       {toast && (
-        <div role="status" className="toast-in fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-ink px-5 py-3 text-sm font-medium text-white shadow-xl md:bottom-8" data-testid="toast">
+        <div role="status" className="toast-in fixed bottom-24 left-1/2 z-[90] -translate-x-1/2 rounded-full bg-ink px-5 py-3 text-sm font-medium text-white shadow-xl md:bottom-8" data-testid="toast">
           <Icon name={toastOk ? 'fa-check' : 'fa-exclamation-circle'} className={`mr-2 ${toastOk ? 'text-emerald-400' : 'text-red-400'}`} />{toast}
         </div>
+      )}
+      {enlarged && (
+        <ProfileImageViewer
+          kind={enlarged}
+          src={enlarged === 'avatar' ? creator.avatar : creator.cover}
+          name={creator.name}
+          seed={creator.id + creator.name}
+          canEdit={editsImages}
+          onDone={notify}
+          onClose={closeEnlarged}
+        />
       )}
       {/* Cover */}
       <CoverImage src={creator.cover || null} seed={creator.id + creator.name} className="h-48 md:h-72">
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+        {(editsImages || !isPlaceholderImage(creator.cover)) && (
+          <button
+            type="button"
+            onClick={() => setEnlarged('cover')}
+            aria-label="Ver portada"
+            data-testid="cover-open"
+            className="absolute inset-0 cursor-zoom-in"
+          />
+        )}
         {editsImages && (
           // Top corner: the profile header overlaps the bottom of the cover and would cover it.
           <div className="absolute inset-x-0 top-0 z-10">
@@ -307,7 +330,13 @@ const CreatorProfile: React.FC = () => {
         {/* Profile Header */}
         <div className="relative -mt-14 mb-6">
           <div className="relative w-fit">
-            <Avatar src={creator.avatar} name={creator.name} size={112} className="ring-4 ring-white shadow-lg" />
+            {editsImages || !isPlaceholderImage(creator.avatar) ? (
+              <button type="button" onClick={() => setEnlarged('avatar')} aria-label="Ver foto de perfil" data-testid="avatar-open" className="block rounded-full cursor-zoom-in">
+                <Avatar src={creator.avatar} name={creator.name} size={112} decorative className="ring-4 ring-white shadow-lg" />
+              </button>
+            ) : (
+              <Avatar src={creator.avatar} name={creator.name} size={112} className="ring-4 ring-white shadow-lg" />
+            )}
             {editsImages && (
               <ProfileImageButton kind="avatar" onDone={notify} className="absolute bottom-1 right-1 h-9 w-9 rounded-full border border-line" />
             )}

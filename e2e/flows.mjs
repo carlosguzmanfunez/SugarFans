@@ -890,6 +890,17 @@ const run = async () => {
       await pickWith('cover-button', 'portada.png');
       await pickWith('avatar-button', 'yo.png');
       await page.setViewportSize(size);
+      // Tapping the photo or the cover shows it big, with "change" right there.
+      for (const [kind, label, done] of [['avatar', 'Cambiar foto de perfil', 'Foto de perfil actualizada'], ['cover', 'Cambiar foto de portada', 'Portada actualizada']]) {
+        await page.getByTestId(`${kind}-open`).click();
+        const viewer = page.getByTestId('profile-image-viewer');
+        await viewer.getByTestId('profile-image-full').waitFor();
+        const [chooser] = await Promise.all([page.waitForEvent('filechooser'), viewer.getByRole('button', { name: label }).click({ timeout: 3000 })]);
+        await chooser.setFiles(photo(`${kind}-2.png`));
+        await page.getByText(done).last().waitFor();
+        await page.keyboard.press('Escape');
+        await viewer.waitFor({ state: 'detached' });
+      }
       await page.reload();
       await page.locator('img[src^="data:image/jpeg"]').first().waitFor();
       await page.goto(`${BASE}/creator/dashboard`);
@@ -1475,6 +1486,13 @@ const run = async () => {
       expect((await viewer.getByText('Video solo para suscriptores').count()) === 0, 'el visor muestra el video exclusivo');
       await viewer.getByRole('button', { name: 'Cerrar' }).click();
       await viewer.waitFor({ state: 'detached' });
+      // Someone else's photo opens big too, without the "change" button.
+      await fp.getByTestId('avatar-open').click();
+      const big = fp.getByTestId('profile-image-viewer');
+      await big.getByTestId('profile-image-full').waitFor();
+      expect((await big.getByRole('button', { name: /Cambiar/ }).count()) === 0, 'un fan puede cambiar la foto de otro');
+      await big.getByRole('button', { name: 'Cerrar' }).click();
+      await big.waitFor({ state: 'detached' });
     });
     await check('Me gusta (corazón) suma, se guarda y se puede quitar', async () => {
       const post = fp.getByTestId('post').filter({ hasText: 'Foto nueva desde la playa' });

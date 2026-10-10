@@ -8,10 +8,12 @@ interface Props {
   kind: ProfileImageKind;
   onDone: (message: string, ok: boolean) => void;
   className?: string;
+  // Shows the text next to the camera (the full-size viewer uses it).
+  withLabel?: boolean;
 }
 
 // Camera button that changes the profile photo or the cover photo, like Facebook's.
-const ProfileImageButton: React.FC<Props> = ({ kind, onDone, className = '' }) => {
+const ProfileImageButton: React.FC<Props> = ({ kind, onDone, className = '', withLabel = false }) => {
   const { user, refreshUser } = useAuth();
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -55,7 +57,11 @@ const ProfileImageButton: React.FC<Props> = ({ kind, onDone, className = '' }) =
         ) : (
           <i aria-hidden="true" className="fas fa-camera"></i>
         )}
-        {kind === 'cover' && <span className="hidden sm:inline text-sm font-semibold">{busy ? 'Subiendo…' : 'Editar portada'}</span>}
+        {withLabel ? (
+          <span className="text-sm font-semibold">{busy ? 'Subiendo…' : label}</span>
+        ) : (
+          kind === 'cover' && <span className="hidden sm:inline text-sm font-semibold">{busy ? 'Subiendo…' : 'Editar portada'}</span>
+        )}
       </button>
     </>
   );
