@@ -95,7 +95,7 @@ const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner,
       ? <CoverImage seed={`post-${post.id}`} className="w-full h-72" />
       : null;
   const media = opens && shown ? (
-    <button type="button" onClick={onOpen} aria-label={post.mediaType === 'video' ? 'Ver video en pantalla completa' : 'Ver foto en pantalla completa'} className="block w-full cursor-zoom-in" data-testid="open-media">
+    <button type="button" onClick={onOpen} aria-label={post.mediaType === 'video' ? 'Ver video en pantalla completa' : 'Ver foto en pantalla completa'} className="block w-full cursor-pointer" data-testid="open-media">
       {shown}
     </button>
   ) : shown;

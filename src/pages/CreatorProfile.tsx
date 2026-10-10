@@ -313,7 +313,7 @@ const CreatorProfile: React.FC = () => {
             onClick={() => setEnlarged('cover')}
             aria-label="Ver portada"
             data-testid="cover-open"
-            className="absolute inset-0 cursor-zoom-in"
+            className="absolute inset-0 cursor-pointer"
           />
         )}
         {editsImages && (
@@ -331,7 +331,7 @@ const CreatorProfile: React.FC = () => {
         <div className="relative -mt-14 mb-6">
           <div className="relative w-fit">
             {editsImages || !isPlaceholderImage(creator.avatar) ? (
-              <button type="button" onClick={() => setEnlarged('avatar')} aria-label="Ver foto de perfil" data-testid="avatar-open" className="block rounded-full cursor-zoom-in">
+              <button type="button" onClick={() => setEnlarged('avatar')} aria-label="Ver foto de perfil" data-testid="avatar-open" className="block rounded-full cursor-pointer">
                 <Avatar src={creator.avatar} name={creator.name} size={112} decorative className="ring-4 ring-white shadow-lg" />
               </button>
             ) : (
