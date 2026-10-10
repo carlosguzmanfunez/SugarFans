@@ -40,7 +40,7 @@ const STEPS = [
 ];
 
 const PERKS = [
-  { icon: 'fa-sliders', text: 'Tú pones los precios, los horarios y las reglas.' },
+  { icon: 'fa-sliders', text: 'Tú pones los precios, los horarios y las reglas. Y si un fan quiere algo distinto, te manda su propuesta de Reserve: tú la aceptas, la rechazas o le haces una contraoferta.' },
   { icon: 'fa-wallet', text: 'Cobras cada mes por PayPal, sin pedir permiso a nadie.' },
   { icon: 'fa-mobile-screen', text: 'Sigues en tus redes: no te pedimos exclusividad.' },
   { icon: 'fa-shield-halved', text: 'Reserva experiencias, no personas: reglas claras y un ambiente seguro.' },
