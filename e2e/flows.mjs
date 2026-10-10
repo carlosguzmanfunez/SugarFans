@@ -2535,7 +2535,7 @@ const run = async () => {
       await resF.goto(`${BASE}/creator/1`);
       const section = resF.getByTestId('creator-reserve');
       await section.getByTestId('notice-subscription').getByText(/No incluye Reserve Events, videollamadas 1:1 ni otras experiencias de Reserve/).waitFor();
-      await section.getByTestId('notice-gift').getByText(/No garantizan respuesta, conversación ni acceso\. Si el creador tiene una Meta de experiencia/).waitFor();
+      await section.getByTestId('notice-gift').getByText(/no garantizan respuesta, conversación ni acceso\. Si el creador tiene una Meta de experiencia, se van acumulando hasta que la completes/).waitFor();
       await resF.getByRole('button', { name: 'Enviar regalo' }).click();
       const dialog = resF.getByRole('dialog', { name: /Regalo para Valentina Rose/ });
       await dialog.getByRole('button', { name: /Corona/ }).first().click();
