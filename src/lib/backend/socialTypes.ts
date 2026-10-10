@@ -55,6 +55,8 @@ export interface PublicCreator {
   createdAt: string;
   // The creator's category (settings.category); empty when not set.
   category?: string;
+  // Cover photo; empty means the generated cover art.
+  cover?: string;
 }
 
 // Follow: free, public. Following a creator never grants paid content or Reserve.

@@ -33,6 +33,7 @@ const toPublicCreator = (a: User): PublicCreator => ({
   posts: a.createdPosts.filter((p) => !p.isDraft).length,
   createdAt: a.createdAt,
   category: a.settings.category ?? '',
+  cover: a.cover ?? '',
 });
 const ok: AuthResult = { ok: true };
 const fail = (error: string): AuthResult => ({ ok: false, error });

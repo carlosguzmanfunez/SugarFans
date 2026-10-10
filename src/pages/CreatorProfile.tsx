@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Icon from '../components/Icon';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
-import { posts, type Creator } from '../data/mockData';
+import { posts, creators as demoCreators, type Creator } from '../data/mockData';
 import { useCreatorCatalog, fromPublic } from '../lib/catalog';
 import ManagedBadge from '../components/ManagedBadge';
 import Avatar from '../components/Avatar';
@@ -15,6 +15,9 @@ import { useAuth } from '../context/AuthContext';
 import CheckoutDialog from '../components/CheckoutDialog';
 import ReportDialog from '../components/ReportDialog';
 import PostCard, { type DisplayPost } from '../components/PostCard';
+import MediaViewer from '../components/MediaViewer';
+import ProfileImageButton from '../components/ProfileImageButton';
+import ProfileImageViewer from '../components/ProfileImageViewer';
 import TipDialog from '../components/TipDialog';
 import GiftDialog from '../components/GiftDialog';
 import NewPostForm from '../components/NewPostForm';
@@ -62,7 +65,16 @@ const CreatorProfile: React.FC = () => {
   const [celebrating, setCelebrating] = useState<Gift | null>(null);
   const [composing, setComposing] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [viewing, setViewing] = useState<string | null>(null);
+  const [enlarged, setEnlarged] = useState<'avatar' | 'cover' | null>(null);
+  const closeEnlarged = useCallback(() => setEnlarged(null), []);
+  const closeViewer = useCallback(() => setViewing(null), []);
   const [toast, setToast] = useState('');
+  const [toastOk, setToastOk] = useState(true);
+  const notify = (message: string, ok = true) => {
+    setToastOk(ok);
+    setToast(message);
+  };
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(''), 2200);
@@ -174,9 +186,13 @@ const CreatorProfile: React.FC = () => {
   // Admins run the platform's own profiles (e.g. "Perfil IA") and publish for them.
   const managesProfile = user?.role === 'admin' && !!creator.managed;
   const isOwner = managesProfile || (!!user?.creatorProfileId && user.creatorProfileId === creator.id);
+  // The creator changes their own photo and cover here (demo and platform-run profiles keep theirs).
+  const editsImages = isOwner && !managesProfile && !demoCreators.some((c) => c.id === creator.id);
   const isSubscribed = hasSubscription(creator.id) && !iBlocked && !blockedMe;
   const mySub = subscriptionOf(creator.id);
   const canView = (p: DisplayPost) => !p.isLocked || isSubscribed || isOwner;
+  // What the full-screen viewer swipes through: photos and videos this visitor may see.
+  const viewable = creatorPosts.filter((p) => p.mediaUrl && canView(p));
   const totalLikes = creator.likes + Object.values(feed.engagement).reduce((sum, e) => sum + e.likes, 0);
   const removePost = async (postId: string) => {
     if (!window.confirm('¿Eliminar esta publicación? También se borrará su foto o video.')) return;
@@ -269,20 +285,62 @@ const CreatorProfile: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-canvas">
+      {viewing && viewable.some((p) => p.id === viewing) && (
+        <MediaViewer posts={viewable} startId={viewing} onClose={closeViewer} />
+      )}
       {toast && (
-        <div role="status" className="toast-in fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-ink px-5 py-3 text-sm font-medium text-white shadow-xl md:bottom-8" data-testid="toast">
-          <Icon name="fa-check" className="mr-2 text-emerald-400" />{toast}
+        <div role="status" className="toast-in fixed bottom-24 left-1/2 z-[90] -translate-x-1/2 rounded-full bg-ink px-5 py-3 text-sm font-medium text-white shadow-xl md:bottom-8" data-testid="toast">
+          <Icon name={toastOk ? 'fa-check' : 'fa-exclamation-circle'} className={`mr-2 ${toastOk ? 'text-emerald-400' : 'text-red-400'}`} />{toast}
         </div>
       )}
+      {enlarged && (
+        <ProfileImageViewer
+          kind={enlarged}
+          src={enlarged === 'avatar' ? creator.avatar : creator.cover}
+          name={creator.name}
+          seed={creator.id + creator.name}
+          canEdit={editsImages}
+          onDone={notify}
+          onClose={closeEnlarged}
+        />
+      )}
       {/* Cover */}
-      <CoverImage src={creator.cover} seed={creator.id + creator.name} className="h-48 md:h-72">
+      <CoverImage src={creator.cover || null} seed={creator.id + creator.name} className="h-48 md:h-72">
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+        {(editsImages || !isPlaceholderImage(creator.cover)) && (
+          <button
+            type="button"
+            onClick={() => setEnlarged('cover')}
+            aria-label="Ver portada"
+            data-testid="cover-open"
+            className="absolute inset-0 cursor-pointer"
+          />
+        )}
+        {editsImages && (
+          // Top corner: the profile header overlaps the bottom of the cover and would cover it.
+          <div className="absolute inset-x-0 top-0 z-10">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 flex justify-end">
+              <ProfileImageButton kind="cover" onDone={notify} className="h-10 w-10 sm:w-auto sm:px-4 rounded-full sm:rounded-xl" />
+            </div>
+          </div>
+        )}
       </CoverImage>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Profile Header */}
         <div className="relative -mt-14 mb-6">
-          <Avatar src={creator.avatar} name={creator.name} size={112} className="ring-4 ring-white shadow-lg" />
+          <div className="relative w-fit">
+            {editsImages || !isPlaceholderImage(creator.avatar) ? (
+              <button type="button" onClick={() => setEnlarged('avatar')} aria-label="Ver foto de perfil" data-testid="avatar-open" className="block rounded-full cursor-pointer">
+                <Avatar src={creator.avatar} name={creator.name} size={112} decorative className="ring-4 ring-white shadow-lg" />
+              </button>
+            ) : (
+              <Avatar src={creator.avatar} name={creator.name} size={112} className="ring-4 ring-white shadow-lg" />
+            )}
+            {editsImages && (
+              <ProfileImageButton kind="avatar" onDone={notify} className="absolute bottom-1 right-1 h-9 w-9 rounded-full border border-line" />
+            )}
+          </div>
           <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -316,7 +374,7 @@ const CreatorProfile: React.FC = () => {
                     if (!user) return goLogin();
                     const now = !follow.following;
                     setFollow(user, creator.id, now);
-                    setToast(now ? `Ahora sigues a ${creator.name.split(' ')[0]}` : `Dejaste de seguir a ${creator.name.split(' ')[0]}`);
+                    notify(now ? `Ahora sigues a ${creator.name.split(' ')[0]}` : `Dejaste de seguir a ${creator.name.split(' ')[0]}`);
                   }}
                   aria-pressed={follow.following}
                   data-testid="follow-button"
@@ -534,6 +592,7 @@ const CreatorProfile: React.FC = () => {
                 onGift={() => openGift(post.id)}
                 onDelete={feed.own.some((p) => p.id === post.id) && isOwner ? () => removePost(post.id) : undefined}
                 onReport={() => handleReport('post', post.id, `Publicación de ${creator.name}: "${post.content.slice(0, 40)}"`)}
+                onOpen={() => setViewing(post.id)}
               />
             )) : (
               <div className="text-center py-12 bg-white rounded-2xl">
@@ -547,7 +606,17 @@ const CreatorProfile: React.FC = () => {
         {!iBlocked && activeTab === 'media' && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {creatorPosts.filter(p => p.mediaUrl || p.mediaType).map((post) => (
-              <a key={post.id} href={`#post-${post.id}`} onClick={() => setActiveTab('posts')} className="relative aspect-square rounded-xl overflow-hidden group cursor-pointer">
+              <a
+                key={post.id}
+                href={`#post-${post.id}`}
+                onClick={(e) => {
+                  if (post.mediaUrl && canView(post)) {
+                    e.preventDefault();
+                    setViewing(post.id);
+                  } else setActiveTab('posts');
+                }}
+                data-testid="media-tile"
+                className="relative aspect-square rounded-xl overflow-hidden group cursor-pointer">
                 {post.mediaType === 'video' && post.mediaUrl && canView(post) ? (
                   <video src={post.mediaUrl} muted playsInline preload="metadata" className="w-full h-full object-cover" />
                 ) : (

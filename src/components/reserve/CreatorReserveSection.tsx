@@ -52,7 +52,12 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, use
           <p className="mt-1 text-sm text-ink/70">Reserve Events en grupo, sesiones privadas 1:1 y experiencias con fecha, duración, precio y reglas definidas por {first}. Reservas experiencias, no personas.</p>
         </div>
         {isOwner && (
-          <Link to="/creator/dashboard?tab=vip" className="inline-flex h-10 items-center rounded-full border border-line px-4 text-sm font-semibold text-ink">
+          <Link
+            to="/creator/dashboard?tab=vip"
+            data-testid="manage-reserve"
+            className="inline-flex h-11 items-center gap-2 rounded-full bg-gradient-to-r from-gold-300 to-gold-500 px-5 text-sm font-bold text-night-900 shadow-md shadow-gold-400/30 transition hover:from-gold-400 hover:to-gold-600 hover:shadow-lg"
+          >
+            <i aria-hidden="true" className="fas fa-calendar-check"></i>
             Gestionar Reserve
           </Link>
         )}
@@ -84,9 +89,22 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, use
           );
         })
       ) : (
-        <p className="mt-5 rounded-2xl border border-dashed border-line p-5 text-center text-sm text-muted">
-          {isOwner ? 'Aún no publicas experiencias. Créalas desde tu panel.' : `${first} aún no publica experiencias. Puedes enviar una solicitud personalizada.`}
-        </p>
+        isOwner ? (
+          <div className="mt-5 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-gold-300 bg-gold-50 p-5 text-center">
+            <p className="text-sm text-ink/80">Aún no publicas experiencias. Crea tu primer evento en grupo o tu videollamada 1:1 y empieza a recibir reservas.</p>
+            <Link
+              to="/creator/dashboard?tab=vip"
+              className="inline-flex h-11 items-center gap-2 rounded-full bg-gradient-to-r from-gold-300 to-gold-500 px-5 text-sm font-bold text-night-900 shadow-md shadow-gold-400/30 transition hover:from-gold-400 hover:to-gold-600"
+            >
+              <i aria-hidden="true" className="fas fa-plus"></i>
+              Crear mi primera experiencia
+            </Link>
+          </div>
+        ) : (
+          <p className="mt-5 rounded-2xl border border-dashed border-line p-5 text-center text-sm text-muted">
+            {`${first} aún no publica experiencias. Puedes enviar una solicitud personalizada.`}
+          </p>
+        )
       )}
 
       {canRequest && (

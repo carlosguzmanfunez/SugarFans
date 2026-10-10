@@ -29,7 +29,7 @@ export const fromPublic = (c: PublicCreator): Creator => ({
   name: c.name,
   username: c.name.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''),
   avatar: c.avatar,
-  cover: '', // generated cover art
+  cover: c.cover ?? '', // empty: generated cover art
   bio: c.bio || `Creador en ${BRAND.name}.`,
   isVerified: c.isVerified,
   subscriptionPrice: c.subscriptionPrice,

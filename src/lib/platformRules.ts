@@ -60,11 +60,10 @@ const bad = (error: string): Check => ({ ok: false, error });
 const good: Check = { ok: true };
 
 export const validateVerification = (input: VerificationInput): Check => {
-  if (input.legalName.trim().split(/\s+/).length < 2) return bad('Escribe tu nombre completo como aparece en el documento');
+  if (input.legalName.trim().split(/\s+/).length < 2) return bad('Escribe tu nombre y apellido como aparecen en tu documento');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.birthDate)) return bad('Indica tu fecha de nacimiento');
   if (ageFrom(input.birthDate) < 18) return bad('Debes ser mayor de 18 años');
   if (!input.country.trim()) return bad('Indica el país que emitió el documento');
-  if (!/^[A-Za-z0-9-]{5,20}$/.test(input.docNumber.trim())) return bad('El número de documento no es válido');
   if (!input.docFront) return bad('Sube la foto del frente de tu documento');
   if (!input.selfie) return bad('Sube un selfie de frente');
   return good;

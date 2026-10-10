@@ -121,12 +121,20 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
   },
 
   async publicCreator(creatorProfileId) {
-    const [{ data }, category] = await Promise.all([
+    const [{ data }, category, cover] = await Promise.all([
       sb.rpc('public_creator', { p_creator_profile_id: creatorProfileId }),
       sb.rpc('creator_category', { p_creator_profile_id: creatorProfileId }),
+      // Empty until migration 20261009000003_profile_images is applied.
+      sb.rpc('creator_cover', { p_creator_profile_id: creatorProfileId }),
     ]);
     const r = (data as Row[] | null)?.[0];
-    return r ? { ...toPublicCreator(r), category: typeof category.data === 'string' ? category.data : '' } : null;
+    return r
+      ? {
+          ...toPublicCreator(r),
+          category: typeof category.data === 'string' ? category.data : '',
+          cover: typeof cover.data === 'string' ? cover.data : '',
+        }
+      : null;
   },
 
   async followState(creatorProfileId, viewer) {

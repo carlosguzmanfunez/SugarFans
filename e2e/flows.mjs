@@ -218,8 +218,7 @@ const submitVerification = async (page, { name = 'Nombre Apellido', birth = '199
   await page.goto(`${BASE}/settings?section=verification`);
   await page.fill('input[name=legalName]', name);
   await page.fill('input[name=birthDate]', birth);
-  await page.fill('input[name=country]', 'México');
-  await page.fill('input[name=docNumber]', 'ABC123456');
+  await page.selectOption('select[name=country]', 'MX');
   await page.setInputFiles('input[name=docFront]', photo('frente.png'));
   await page.setInputFiles('input[name=selfie]', photo('selfie.png'));
   await page.getByRole('button', { name: 'Enviar para verificación' }).click();
@@ -864,7 +863,7 @@ const run = async () => {
       await page.getByTestId('verification-banner').waitFor();
       expect((await welcome.count()) === 0, 'la bienvenida vuelve a salir');
     });
-    await check('Sin verificar: lo que sube queda como borrador que solo ve el creador', async () => {
+    await check('Sin verificar: lo que sube queda como borrador que solo ve el creador; cambia su foto y portada', async () => {
       await page.getByTestId('verification-banner').getByText(/queda como borrador/).waitFor();
       await page.getByRole('button', { name: /Nueva publicación/ }).click();
       await page.getByTestId('draft-hint').waitFor();
@@ -874,14 +873,42 @@ const run = async () => {
       await page.getByTestId('created-post').filter({ hasText: 'Intento sin verificar' }).getByTestId('draft-badge').waitFor();
       await page.getByRole('link', { name: /Ver mi perfil/ }).click();
       await page.getByTestId('post').filter({ hasText: 'Intento sin verificar' }).getByText('Borrador: solo tú lo ves').waitFor();
+      // Like Facebook: camera buttons on the cover and on the profile photo.
+      // A real click on each button (nothing on top of it may swallow the tap).
+      const pickWith = async (button, file) => {
+        const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.getByTestId(button).click({ timeout: 3000 })]);
+        await chooser.setFiles(photo(file));
+      };
+      await pickWith('cover-button', 'portada.png');
+      await page.getByText('Portada actualizada').waitFor();
+      await pickWith('avatar-button', 'yo.png');
+      await page.getByText('Foto de perfil actualizada').waitFor();
+      // Same on a phone.
+      const size = page.viewportSize();
+      await page.setViewportSize({ width: 390, height: 844 });
+      await pickWith('cover-button', 'portada.png');
+      await pickWith('avatar-button', 'yo.png');
+      await page.setViewportSize(size);
+      // Tapping the photo or the cover shows it big, with "change" right there.
+      for (const [kind, label, done] of [['avatar', 'Cambiar foto de perfil', 'Foto de perfil actualizada'], ['cover', 'Cambiar foto de portada', 'Portada actualizada']]) {
+        await page.getByTestId(`${kind}-open`).click();
+        const viewer = page.getByTestId('profile-image-viewer');
+        await viewer.getByTestId('profile-image-full').waitFor();
+        const [chooser] = await Promise.all([page.waitForEvent('filechooser'), viewer.getByRole('button', { name: label }).click({ timeout: 3000 })]);
+        await chooser.setFiles(photo(`${kind}-2.png`));
+        await page.getByText(done).last().waitFor();
+        await page.keyboard.press('Escape');
+        await viewer.waitFor({ state: 'detached' });
+      }
+      await page.reload();
+      await page.locator('img[src^="data:image/jpeg"]').first().waitFor();
       await page.goto(`${BASE}/creator/dashboard`);
     });
     await check('Verificación: exige las fotos del documento', async () => {
       await page.goto(`${BASE}/settings?section=verification`);
       await page.fill('input[name=legalName]', 'Lola Creadora');
       await page.fill('input[name=birthDate]', '1995-07-07');
-      await page.fill('input[name=country]', 'España');
-      await page.fill('input[name=docNumber]', 'X1234567');
+      await page.selectOption('select[name=country]', 'ES');
       await page.getByRole('button', { name: 'Enviar para verificación' }).click();
       await page.getByText('Sube la foto del frente de tu documento').waitFor();
       expect((await page.locator('input[type=file]').count()) === 2, 'la verificación debe pedir solo 2 fotos');
@@ -913,7 +940,7 @@ const run = async () => {
       await dialog.getByPlaceholder(/Motivo del rechazo/).fill('La foto del documento está borrosa');
       await dialog.getByRole('button', { name: /Rechazar/ }).click();
       await list.locator('div.p-4', { hasText: 'Lola Creadora' }).getByRole('button', { name: /Revisar documentos/ }).click();
-      await dialog.getByText('X1234567').or(dialog.getByText('ABC123456')).first().waitFor();
+      await dialog.getByText('España').or(dialog.getByText('México')).first().waitFor();
       await dialog.getByRole('button', { name: /Aprobar identidad/ }).click();
       await page.getByText('Identidad de Lola Creadora aprobada').waitFor();
       await list.getByText('No hay solicitudes pendientes').waitFor();
@@ -1431,12 +1458,39 @@ const run = async () => {
       await cp.getByTestId('post').filter({ hasText: 'Video solo para suscriptores' }).getByTestId('post-video').waitFor();
       expect((await cp.getByRole('button', { name: 'Más opciones' }).count()) === 0, 'el creador puede darse propina');
     });
+    await check('Al tocar una foto se abre en grande y se pasa a la siguiente con las flechas', async () => {
+      await cp.getByTestId('post').filter({ hasText: 'Foto nueva desde la playa' }).getByTestId('open-media').click();
+      const viewer = cp.getByTestId('media-viewer');
+      await viewer.getByTestId('media-viewer-caption').getByText('Foto nueva desde la playa').waitFor();
+      await viewer.getByTestId('media-viewer-image').waitFor();
+      await viewer.getByRole('button', { name: 'Publicación anterior' }).click();
+      await viewer.getByTestId('media-viewer-caption').getByText('Video solo para suscriptores').waitFor();
+      await viewer.getByTestId('media-viewer-video').waitFor();
+      await cp.keyboard.press('ArrowRight');
+      await viewer.getByTestId('media-viewer-caption').getByText('Foto nueva desde la playa').waitFor();
+      await cp.keyboard.press('Escape');
+      await viewer.waitFor({ state: 'detached' });
+      expect(new URL(cp.url()).pathname === '/creator/1', `cerrar el visor cambió de página: ${cp.url()}`);
+    });
     await check('Un fan sin suscripción ve la foto pero no el video exclusivo', async () => {
       await fp.goto(`${BASE}/creator/1`);
       await fp.getByTestId('post').filter({ hasText: 'Foto nueva desde la playa' }).getByTestId('post-image').waitFor();
       const locked = fp.getByTestId('post').filter({ hasText: 'Video solo para suscriptores' });
       await locked.getByText('Contenido exclusivo para suscriptores').waitFor();
       expect((await locked.getByTestId('post-video').count()) === 0, 'el video exclusivo se ve sin suscripción');
+      await fp.getByTestId('post').filter({ hasText: 'Foto nueva desde la playa' }).getByTestId('open-media').click();
+      const viewer = fp.getByTestId('media-viewer');
+      await viewer.getByTestId('media-viewer-caption').getByText('Foto nueva desde la playa').waitFor();
+      expect((await viewer.getByText('Video solo para suscriptores').count()) === 0, 'el visor muestra el video exclusivo');
+      await viewer.getByRole('button', { name: 'Cerrar' }).click();
+      await viewer.waitFor({ state: 'detached' });
+      // Someone else's photo opens big too, without the "change" button.
+      await fp.getByTestId('avatar-open').click();
+      const big = fp.getByTestId('profile-image-viewer');
+      await big.getByTestId('profile-image-full').waitFor();
+      expect((await big.getByRole('button', { name: /Cambiar/ }).count()) === 0, 'un fan puede cambiar la foto de otro');
+      await big.getByRole('button', { name: 'Cerrar' }).click();
+      await big.waitFor({ state: 'detached' });
     });
     await check('Me gusta (corazón) suma, se guarda y se puede quitar', async () => {
       const post = fp.getByTestId('post').filter({ hasText: 'Foto nueva desde la playa' });
