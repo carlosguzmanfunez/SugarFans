@@ -334,17 +334,16 @@ const run = async () => {
       await page.getByTestId('creator-card').filter({ hasText: 'Valentina' }).first().getByTestId('demo-badge').waitFor();
       expect((await fetch(`${BASE}/brand/coin.png`)).ok, 'falta el icono de créditos');
     });
-    await check('Recorrido de ventas: 5 pasos con Valentina y cada botón lleva a su pantalla', async () => {
+    await check('Recorrido para captar creadores: 3 formas de ganar, 3 pasos y el perfil de ejemplo', async () => {
       await page.goto(`${BASE}/recorrido`);
-      await page.getByTestId('sales-tour').getByText('perfil de ejemplo').waitFor();
-      expect((await page.getByTestId('tour-step').count()) === 5, 'no hay 5 pasos');
-      await page.getByRole('link', { name: 'Ver la suscripción' }).click();
-      await page.waitForURL(/\/creator\/1#acceso/);
-      await page.waitForTimeout(600);
-      expect(await page.getByTestId('access-ladder').evaluate((el) => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.top < innerHeight / 2; }), 'no bajó hasta la suscripción');
-      await page.goto(`${BASE}/recorrido`);
-      await page.getByRole('link', { name: 'Ver las experiencias de Valentina' }).click();
-      await page.getByTestId('creator-reserve').waitFor();
+      await page.getByTestId('sales-tour').getByText('Invitación para creadores').waitFor();
+      expect((await page.getByTestId('pitch-way').count()) === 3, 'no hay 3 formas de ganar');
+      expect((await page.getByTestId('pitch-step').count()) === 3, 'no hay 3 pasos');
+      expect((await page.getByTestId('pitch-cta').count()) === 2, 'sin sesión falta el botón de crear cuenta');
+      expect((await page.getByTestId('sales-tour').getByText(/\d+ ?%/).count()) === 0, 'el recorrido no debe mostrar porcentajes');
+      await page.getByTestId('pitch-example').click();
+      await page.waitForURL(/\/creator\/1$/);
+      await page.getByTestId('demo-profile-note').waitFor();
     });
     await check('Favicon, iconos PWA y preview social existen', async () => {
       const manifest = await (await fetch(`${BASE}/manifest.webmanifest`)).json();
