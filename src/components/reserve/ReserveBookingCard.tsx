@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { backend } from '../../lib/backend';
 import { money } from '../../lib/platform';
-import { bonusInfo } from '../../lib/experienceGoalRules';
 import { formatLongDate, reserveStatusOf, typeOf, CUSTOM_EXPERIENCE, MIN_SESSION_MINUTES, MAX_SESSION_MINUTES, type VipBooking } from '../../lib/vip';
 import { LOCATION_TYPES, PURPOSES, RESERVE_MODALITIES } from '../../config/reserve';
 import { MODERATION_RULES } from '../../lib/moderation';
@@ -103,9 +102,9 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
         {isCustom && d.purpose && <span><i aria-hidden="true" className={`fas ${PURPOSES[d.purpose].icon} mr-1 text-brand-600`}></i>{PURPOSES[d.purpose].label}</span>}
       </div>
 
-      {d.ticketId && d.ticketBonus && (
+      {d.ticketId && (
         <p className="mt-2 rounded-xl bg-pink-50 px-3 py-2 text-xs text-pink-800" data-testid="booking-ticket-bonus">
-          <i aria-hidden="true" className="fas fa-trophy mr-1"></i>Meta de experiencia: sin costo para el fan. Extra que ganó en la ruleta: {bonusInfo(d.ticketBonus).label}.
+          <i aria-hidden="true" className="fas fa-trophy mr-1"></i>Meta de experiencia: sin costo para el fan.
         </p>
       )}
       {b.message && <p className="mt-2 text-sm italic text-ink/70">“{b.message}”</p>}

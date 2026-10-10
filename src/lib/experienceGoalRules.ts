@@ -1,7 +1,7 @@
 // Meta de experiencia: each fan fills a creator's goal with gifts and tips; a full
-// goal gives a ticket for one of the creator's experiences (the fan picks it) plus a
-// free extra from a wheel where every slot wins. The fan books it choosing only the
-// date and time; nothing is charged. Tickets last 60 days. Mirrors section 10 of
+// goal gives a ticket for one of the creator's experiences (the fan picks it). The
+// fan books it choosing only the date and time; there is no wheel or extra (Carlos,
+// 2026-10-10; the database still stores a bonus value nobody sees); nothing is charged. Tickets last 60 days. Mirrors section 10 of
 // supabase/migrations/20261006000001_creator_incentives_v2.sql: keep both in sync.
 import type { Transaction } from './backend/platformTypes';
 import type { ExperienceGoalSettings, TicketBonus } from './backend/rewardTypes';
@@ -26,7 +26,6 @@ export const TICKET_BONUSES: BonusInfo[] = [
   { id: 'photo', label: 'Foto de recuerdo', hint: 'Una foto o captura de recuerdo al final de la experiencia.', icon: 'fa-camera' },
 ];
 
-export const bonusInfo = (id: string) => TICKET_BONUSES.find((b) => b.id === id) ?? TICKET_BONUSES[0];
 export const pickBonus = (): TicketBonus => TICKET_BONUSES[Math.floor(Math.random() * TICKET_BONUSES.length)].id;
 
 export const validateGoal = (input: ExperienceGoalSettings): { ok: boolean; error?: string } => {

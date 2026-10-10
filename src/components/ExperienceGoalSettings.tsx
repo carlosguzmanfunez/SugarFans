@@ -4,7 +4,7 @@ import { backend } from '../lib/backend';
 import { usePlatformQuery, money } from '../lib/platform';
 import { rewardsApi } from '../lib/rewards';
 import { isEventExperience, type VipExperience } from '../lib/vip';
-import { GOAL_MAX, GOAL_MIN, TICKET_BONUSES, TICKET_DAYS, validateGoal } from '../lib/experienceGoalRules';
+import { GOAL_MAX, GOAL_MIN, TICKET_DAYS, validateGoal } from '../lib/experienceGoalRules';
 
 const DEFAULT_TARGET = 100;
 
@@ -59,8 +59,7 @@ const ExperienceGoalSettings: React.FC = () => {
     <div className="bg-white rounded-2xl p-6 shadow-sm" data-testid="goal-settings">
       <h3 className="font-bold text-gray-900 mb-1"><i aria-hidden="true" className="fas fa-piggy-bank text-pink-500 mr-2"></i>Meta de experiencia</h3>
       <p className="text-sm text-gray-500 mb-4">
-        Cada fan llena su propia meta con regalos y propinas. Al completarla elige una de las experiencias que marques aquí, gira una ruleta
-        donde todo premio es un extra que tú das ({TICKET_BONUSES.map((b) => b.label.toLowerCase()).join(', ')}) y recibe un ticket para
+        Cada fan llena su propia meta con regalos y propinas. Al completarla elige una de las experiencias que marques aquí y recibe un ticket para
         reservarla eligiendo solo día y hora. No paga nada más. El ticket dura {TICKET_DAYS} días.
       </p>
       <label className="flex items-center gap-3 text-sm font-medium text-gray-900">

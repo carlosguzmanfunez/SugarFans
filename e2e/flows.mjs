@@ -2088,7 +2088,7 @@ const run = async () => {
       await rf.keyboard.press('Escape');
     });
 
-    console.log('\nMeta de experiencia: regalos y propinas, ruleta y ticket');
+    console.log('\nMeta de experiencia: regalos y propinas, y ticket');
     await check('El creador activa su Meta de experiencia con una de sus experiencias', async () => {
       const panel = await openGoals();
       const goal = panel.getByTestId('goal-settings');
@@ -2108,16 +2108,16 @@ const run = async () => {
       await rf.goto(`${BASE}/creator/1`);
       await rf.getByTestId('goal-progress').getByText('$20.00 de $20.00').waitFor();
     });
-    await check('Al llenarla elige la experiencia, gira la ruleta (siempre gana un extra) y recibe su ticket', async () => {
+    await check('Al llenarla elige la experiencia y recibe su ticket (sin ruleta ni extra)', async () => {
       await rf.getByTestId('goal-claim').click();
       const dialog = rf.getByTestId('goal-dialog');
       await dialog.locator('label').filter({ hasText: 'Videollamada 1:1' }).getByTestId('goal-choice').check();
-      await dialog.getByTestId('goal-spin').click();
-      await dialog.getByTestId('goal-wheel').waitFor();
+      await dialog.getByTestId('goal-pick').click();
       const won = dialog.getByTestId('goal-won');
-      await won.waitFor({ timeout: 10000 });
-      await won.getByText(/10 minutos más|Saludo en su próximo Live|Mensaje de agradecimiento|Foto de recuerdo/).first().waitFor();
+      await won.waitFor();
+      await won.getByText('Videollamada 1:1').waitFor();
       await won.getByText(/vence el/).waitFor();
+      expect(!/ruleta|extra/i.test(await dialog.innerText()), 'todavía habla de ruleta o extra');
       await won.getByTestId('goal-won-book').click();
     });
     await check('Reserva con el ticket eligiendo solo día y hora, sin pagar', async () => {
@@ -2131,7 +2131,7 @@ const run = async () => {
       await rf.getByTestId('goal-ticket').getByText('Reserva enviada').waitFor();
       await rf.getByTestId('goal-progress').getByText('$0.00 de $20.00').waitFor();
     });
-    await check('El creador ve el ticket y el extra en la solicitud, y al aceptarla queda confirmada sin pago', async () => {
+    await check('El creador ve el ticket en la solicitud, y al aceptarla queda confirmada sin pago', async () => {
       await rc.goto(`${BASE}/creator/dashboard?tab=vip`);
       await openReserveSection(rc, 'Solicitudes');
       const req = rc.getByTestId('vip-requests').getByTestId('vip-request').filter({ has: rc.getByTestId('booking-ticket') });
@@ -2140,7 +2140,7 @@ const run = async () => {
       await req.getByRole('button', { name: 'Aceptar' }).click();
       await rf.goto(`${BASE}/profile`);
       await rf.getByTestId('bookings').getByTestId('booking').filter({ has: rf.getByTestId('booking-ticket') }).getByText('Confirmada').waitFor();
-      await rf.getByTestId('my-tickets').getByText(/usado/).waitFor();
+      await rf.getByTestId('my-tickets').getByText(/Usado/).waitFor();
     });
     await rewardsCtx.close();
 

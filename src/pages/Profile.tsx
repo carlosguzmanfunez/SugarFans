@@ -16,7 +16,6 @@ import { VIRTUAL_CURRENCY } from '../config/currency';
 import { formatCoins, giftsApi } from '../lib/gifts';
 import Avatar from '../components/Avatar';
 import { rewardsApi, type ExperienceTicket } from '../lib/rewards';
-import { bonusInfo } from '../lib/experienceGoalRules';
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -139,7 +138,7 @@ const Profile: React.FC = () => {
                     <li key={t.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-dashed border-pink-200 p-3 text-sm">
                       <div>
                         <p className="font-semibold text-ink">{t.experienceTitle} · {t.creatorName}</p>
-                        <p className="text-xs text-gray-500">+ {bonusInfo(t.bonus).label} · {expired ? 'venció' : t.status === 'used' ? 'usado' : t.status === 'reserved' ? 'reserva enviada' : `vence el ${formatDate(t.expiresAt)}`}</p>
+                        <p className="text-xs text-gray-500">{expired ? 'Venció' : t.status === 'used' ? 'Usado' : t.status === 'reserved' ? 'Reserva enviada' : `Vence el ${formatDate(t.expiresAt)}`}</p>
                       </div>
                       {t.status === 'active' && !expired && (
                         <Link to={`/creator/${t.creatorProfileId}#reserve`} className="text-sm font-semibold text-pink-600">Reservar</Link>

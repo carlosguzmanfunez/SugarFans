@@ -24,7 +24,6 @@ import {
 } from '../../lib/vip';
 import type { User } from '../../context/AuthContext';
 import { rewardsApi, type ExperienceTicket } from '../../lib/rewards';
-import { bonusInfo } from '../../lib/experienceGoalRules';
 import { RESERVE_COPY, RESERVE_FLOW, RESERVE_RESPONSE_HOURS, isHomeService } from '../../config/reserve';
 
 interface Props {
@@ -235,7 +234,6 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
               <span className="text-ink/70">Con tu ticket</span>
               <span className="text-lg font-bold text-ink">Sin costo</span>
             </div>
-            <p className="mt-1 text-xs text-pink-700">Extra de la ruleta: {bonusInfo(ticket.bonus).label}.</p>
             <p className="mt-2 text-xs text-ink/70">
               {approval ? `${exp.creatorName} acepta o rechaza la fecha; si la rechaza, tu ticket sigue activo para elegir otra.` : 'Confirmación inmediata.'}
             </p>
