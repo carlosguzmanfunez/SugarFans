@@ -27,6 +27,7 @@ import { nextRenewal, round2 } from '../platformRules';
 import {
   DEMO_PASSWORD,
   WRONG_CREDENTIALS,
+  ACCOUNT_SUSPENDED,
   avatarFor,
   cleanPatch,
   defaultSettings,
@@ -298,6 +299,15 @@ const createBooking = async (user: User, input: BookingInput): Promise<AuthResul
   return { ok: true, bookingId: id };
 };
 
+// Deleting an account (by its owner or by an admin) removes everything personal.
+const removeAccount = async (userId: string) => {
+  saveAccounts(loadAccounts().filter((a) => a.id !== userId));
+  saveBookings(listBookings().filter((b) => b.fanId !== userId));
+  await platform.purgeUser(userId);
+  await gifts.purgeUser(userId);
+  await rewards.purgeUser(userId);
+};
+
 const platform = createLocalPlatform({
   listAccounts: () => loadAccounts().map(toPublic),
   setSubscription: (userId, creatorId, price) =>
@@ -312,6 +322,8 @@ const platform = createLocalPlatform({
     })),
   creatorPrice: (creatorProfileId) => creatorAccount(creatorProfileId)?.subscriptionPrice ?? null,
   setVerified: (userId) => mutate(userId, publishDrafts),
+  setUnverified: (userId) => mutate(userId, (a) => ({ ...a, isVerified: false })),
+  deleteAccount: (userId) => removeAccount(userId),
   shareFor: (fanId, creatorProfileId, at, amount) => rewards.shareFor(fanId, creatorProfileId, at, amount),
   payoutTerms: (user) => rewards.payoutTermsFor(user),
   withInviteBonuses: (transactions) => rewards.withInviteBonuses(transactions),
@@ -425,6 +437,7 @@ export const localBackend: Backend = {
     await seedPromise;
     const account = loadAccounts().find((a) => a.email === normalizeEmail(email));
     if (!account || (await hashPassword(password, account.salt)) !== account.passwordHash) return fail(WRONG_CREDENTIALS);
+    if (platform.isSuspended(account.id)) return fail(ACCOUNT_SUSPENDED);
     writeSession(account.id, remember);
     return ok;
   },
@@ -505,11 +518,7 @@ export const localBackend: Backend = {
 
   async deleteAccount(user, password) {
     if (!(await checkPassword(user.id, password))) return fail('La contraseña no es correcta');
-    saveAccounts(loadAccounts().filter((a) => a.id !== user.id));
-    saveBookings(listBookings().filter((b) => b.fanId !== user.id));
-    await platform.purgeUser(user.id);
-    await gifts.purgeUser(user.id);
-    await rewards.purgeUser(user.id);
+    await removeAccount(user.id);
     writeSession(null);
     return ok;
   },

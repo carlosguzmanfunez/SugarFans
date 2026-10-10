@@ -1254,6 +1254,37 @@ const run = async () => {
       expect((await page.getByText(fanEmail).count()) === 0, 'el filtro no funciona');
       await logoutViaMenu(page);
     });
+    await check('Admin suspende una cuenta: no puede entrar hasta que se la quita, y queda en el historial', async () => {
+      await login(page, 'admin@sugarfans.com', 'demo1234');
+      await waitPath(page, '/');
+      await page.goto(`${BASE}/admin`);
+      await page.getByRole('button', { name: /Usuarios/ }).click();
+      await page.fill('input[placeholder="Buscar usuario..."]', fanEmail);
+      await page.getByTestId('admin-user-row').getByRole('button', { name: /Gestionar/ }).click();
+      const sheet = page.getByTestId('admin-user-sheet');
+      expect(await sheet.getByRole('button', { name: 'Suspender', exact: true }).isDisabled(), 'deja suspender sin motivo');
+      await sheet.getByLabel('Motivo').fill('Prueba de suspensión');
+      await sheet.getByLabel('Duración').selectOption('1');
+      await sheet.getByRole('button', { name: 'Suspender', exact: true }).click();
+      await page.getByText(/suspendida$/).first().waitFor();
+      await page.getByTestId('admin-user-row').getByText('Suspendida').waitFor();
+      await logoutViaMenu(page);
+      await login(page, fanEmail, 'nueva-clave-2');
+      await page.getByText(/Tu cuenta está suspendida/).waitFor();
+      await login(page, 'admin@sugarfans.com', 'demo1234');
+      await waitPath(page, '/');
+      await page.goto(`${BASE}/admin`);
+      await page.getByRole('button', { name: /Usuarios/ }).click();
+      await page.fill('input[placeholder="Buscar usuario..."]', fanEmail);
+      await page.getByTestId('admin-user-row').getByRole('button', { name: /Gestionar/ }).click();
+      await page.getByTestId('admin-user-history').getByText('Prueba de suspensión').waitFor();
+      await sheet.getByRole('button', { name: 'Quitar suspensión' }).click();
+      await page.getByText(/ya puede volver a entrar/).waitFor();
+      await logoutViaMenu(page);
+      await login(page, fanEmail, 'nueva-clave-2');
+      await waitPath(page, '/');
+      await logoutViaMenu(page);
+    });
 
     console.log('\nReserve: creador acepta, fan paga, correo de confirmación');
     await check('El creador configura sus horarios y persisten', async () => {

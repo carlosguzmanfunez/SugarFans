@@ -145,6 +145,26 @@ export interface ManagedProfile extends ManagedProfileInput {
   updatedAt: string;
 }
 
+// Admin account management (supabase/migrations/20261010000003_admin_account_actions.sql).
+export type AdminAccountAction = 'suspend' | 'unsuspend' | 'freeze_payouts' | 'unfreeze_payouts' | 'unverify' | 'delete';
+export interface AccountRestriction {
+  userId: string;
+  suspendedUntil: string | null; // in the past = no longer suspended
+  suspensionReason: string | null;
+  payoutsFrozen: boolean;
+  updatedAt: string;
+}
+export interface AdminActionLog {
+  id: string;
+  adminName: string;
+  userId: string | null;
+  userName: string;
+  action: AdminAccountAction;
+  reason: string;
+  until: string | null;
+  createdAt: string;
+}
+
 export interface PlatformBackend {
   myVerification(userId: string): Promise<VerificationRequest | null>;
   submitVerification(user: User, input: VerificationInput): Promise<AuthResult>;
@@ -183,6 +203,10 @@ export interface PlatformBackend {
   restorePost(postId: string): Promise<AuthResult>; // admin
   // The creator keeps (cover) or loses their part of a refunded or disputed sale.
   coverRefund(transactionId: string, cover: boolean): Promise<AuthResult>; // admin
+  accountRestrictions(): Promise<AccountRestriction[]>; // admin
+  adminActions(): Promise<AdminActionLog[]>; // admin
+  // days: how long a suspension lasts (undefined = indefinitely).
+  adminAccountAction(admin: User, userId: string, action: AdminAccountAction, reason: string, days?: number): Promise<AuthResult>; // admin
 
   // Blocks the user made and blocks that target them.
   blocks(user: User): Promise<Block[]>;

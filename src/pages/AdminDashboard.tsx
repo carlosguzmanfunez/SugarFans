@@ -20,6 +20,7 @@ import { displayEmail } from '../config/demoAccounts';
 import { giftsApi, type CoinPurchase } from '../lib/gifts';
 import AdminOverview from '../components/AdminOverview';
 import AdminLedger from '../components/AdminLedger';
+import AdminUserSheet, { isSuspendedNow } from '../components/AdminUserSheet';
 import { countryName } from '../config/countries';
 
 const countryLabel = (code: string) => (code ? countryName(code, 'es', 'Otro país') : 'Sin país');
@@ -40,15 +41,17 @@ const AdminDashboard: React.FC = () => {
   const { data: accounts, reload: reloadAccounts } = usePlatformQuery(listAccounts, [], []);
   const { data: platform } = usePlatformQuery(
     async () => {
-      const [verifications, reports, payouts, transactions, removedPosts, coins] = await Promise.all([
+      const [verifications, reports, payouts, transactions, removedPosts, coins, restrictions, adminActions] = await Promise.all([
         platformApi.listVerifications(),
         platformApi.listReports(),
         platformApi.listPayouts(),
         platformApi.allPayments(),
         platformApi.removedPosts(),
         giftsApi.allCoinPurchases(),
+        platformApi.accountRestrictions(),
+        platformApi.adminActions(),
       ]);
-      return { verifications, reports, payouts, transactions, removedPosts, coins };
+      return { verifications, reports, payouts, transactions, removedPosts, coins, restrictions, adminActions };
     },
     [],
     {
@@ -58,11 +61,14 @@ const AdminDashboard: React.FC = () => {
       transactions: [] as Awaited<ReturnType<typeof platformApi.allPayments>>,
       removedPosts: [] as string[],
       coins: [] as CoinPurchase[],
+      restrictions: [] as Awaited<ReturnType<typeof platformApi.accountRestrictions>>,
+      adminActions: [] as Awaited<ReturnType<typeof platformApi.adminActions>>,
     }
   );
   const [activeTab, setActiveTab] = useState('overview');
   const [userQuery, setUserQuery] = useState('');
   const [viewing, setViewing] = useState<VerificationRequest | null>(null);
+  const [managing, setManaging] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -93,7 +99,11 @@ const AdminDashboard: React.FC = () => {
       date: new Date(u.createdAt).toLocaleDateString('es'),
       country: u.country ?? '',
       phone: u.phone ?? '',
+      isAdmin: u.role === 'admin',
+      suspended: isSuspendedNow(platform.restrictions.find((r) => r.userId === u.id)),
+      frozen: !!platform.restrictions.find((r) => r.userId === u.id)?.payoutsFrozen,
     }));
+  const managed = accounts.find((a) => a.id === managing);
 
   // Sign-ups per country (fans and creators), most first. Accounts from before
   // the country question count as "Sin país".
@@ -446,7 +456,7 @@ const AdminDashboard: React.FC = () => {
             </div>
           </div>
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-            <div className="p-5 border-b border-gray-100 flex justify-between items-center">
+            <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
               <h3 className="font-bold text-gray-900">Gestión de usuarios</h3>
               <div className="relative">
                 <i aria-hidden="true" className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
@@ -458,7 +468,7 @@ const AdminDashboard: React.FC = () => {
                 <p className="p-6 text-center text-sm text-gray-500">No hay usuarios que coincidan con la búsqueda</p>
               )}
               {recentUsers.map((u) => (
-                <div key={u.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
+                <div key={u.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-gray-50" data-testid="admin-user-row">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
                       <i aria-hidden="true" className="fas fa-user text-gray-400"></i>
@@ -470,7 +480,9 @@ const AdminDashboard: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-3">
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    {u.suspended && <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-700">Suspendida</span>}
+                    {u.frozen && <span className="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-700">Retiros congelados</span>}
                     <span className={`text-xs px-2 py-1 rounded-full ${
                       u.status === 'active' ? 'bg-green-100 text-green-700' :
                       u.status === 'verified' ? 'bg-blue-100 text-blue-700' :
@@ -478,12 +490,33 @@ const AdminDashboard: React.FC = () => {
                     }`}>
                       {u.status === 'active' ? 'Activo' : u.status === 'verified' ? 'Verificado' : 'Pendiente'}
                     </span>
+                    {!u.isAdmin && (
+                      <button onClick={() => setManaging(u.id)} className="px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-700">
+                        <i aria-hidden="true" className="fas fa-user-cog mr-1"></i> Gestionar
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
           </div>
           </div>
+        )}
+
+        {managed && user && (
+          <AdminUserSheet
+            admin={user}
+            target={managed}
+            restriction={platform.restrictions.find((r) => r.userId === managed.id)}
+            history={platform.adminActions.filter((a) => a.userId === managed.id)}
+            transactions={platform.transactions}
+            onClose={() => setManaging(null)}
+            onDone={(text) => {
+              reloadAccounts();
+              setNotice({ ok: true, text });
+              setManaging(null);
+            }}
+          />
         )}
 
       </div>

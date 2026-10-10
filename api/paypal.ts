@@ -150,8 +150,9 @@ const planFor = async (e: Env, token: string, amount: number) => {
   return catalogSave(e, planKey, plan.data.id);
 };
 
-// The database's refusal for a demo profile without an owner (assert_creator_accepts_payments).
-const DEMO_REFUSAL = /perfil es de demostración/;
+// The database's refusal for a demo profile without an owner or a creator an admin
+// suspended (assert_creator_accepts_payments).
+const DEMO_REFUSAL = /perfil es de demostración|creador no está disponible/;
 // Paying one's own creator account from a fan account (guard_self_payment).
 const SELF_PAY = 'No puedes pagarte a ti mismo: esta cuenta y la del creador son de la misma persona.';
 const SELF_REFUSAL = /No puedes pagarte a ti mismo/;
@@ -336,7 +337,7 @@ const webhook = async (request: Request, e: Env): Promise<Response> => {
     // The payment can arrive before the fan's browser confirmed the subscription.
     await rpc(e, 'paypal_subscription_activate', { p_id: subId });
     const payment = await rpc(e, 'paypal_subscription_payment', { p_id: subId, p_sale_id: String(res.id), p_amount: Number(res.amount?.total) });
-    // A demo profile without an owner refuses money (guard_demo_creator_money): treat it like an
+    // A demo profile without an owner or a suspended creator refuses money (guard_demo_creator_money): treat it like an
     // orphan instead of answering 500, or PayPal would retry forever with the fan already charged.
     // Same for a payment to the subscriber's own creator account (guard_self_payment).
     const refused = !payment.ok && (DEMO_REFUSAL.test(payment.error) || SELF_REFUSAL.test(payment.error));

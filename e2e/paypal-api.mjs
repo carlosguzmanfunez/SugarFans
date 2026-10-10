@@ -107,6 +107,7 @@ globalThis.fetch = async (url, init = {}) => {
     if (!o) return res(200, 'unknown');
     if (db.access.get(`${o.user}:${o.creator}`) !== body.p_id) return res(200, 'orphan');
     if (o.creator === 'self-2') return res(400, { message: 'No puedes pagarte a ti mismo: esta cuenta y la del creador son de la misma persona.' });
+    if (o.creator === 'banned-2') return res(400, { message: 'Este creador no está disponible en este momento: no acepta pagos ni reservas.' });
     if (o.creator === 'demo-2') return res(400, { message: 'Este perfil es de demostración: todavía no acepta pagos ni reservas.' });
     db.payments.set(body.p_sale_id, body);
     return res(200, 'recorded');
@@ -419,6 +420,14 @@ await check('Un cobro de una suscripción a un perfil demo sin dueño se cancela
   db.access.set('fan-1:demo-2', 'I-DEMO');
   const r = await hook({ event_type: 'PAYMENT.SALE.COMPLETED', resource: { id: 'SALE-DEMO', billing_agreement_id: 'I-DEMO', amount: { total: '6.99' } } });
   expect(r.status === 200 && pp.cancels.some((c) => c.id === 'I-DEMO') && pp.saleRefunds.includes('SALE-DEMO') && !db.payments.has('SALE-DEMO'), `status ${r.status}`);
+});
+
+await check('Un cobro a un creador suspendido se cancela, se devuelve y quita el acceso', async () => {
+  db.subs.set('I-BAN', { user: 'fan-1', creator: 'banned-2', status: 'active' });
+  db.access.set('fan-1:banned-2', 'I-BAN');
+  const r = await hook({ event_type: 'PAYMENT.SALE.COMPLETED', resource: { id: 'SALE-BAN', billing_agreement_id: 'I-BAN', amount: { total: '6.99' } } });
+  expect(r.status === 200 && pp.cancels.some((c) => c.id === 'I-BAN') && pp.saleRefunds.includes('SALE-BAN'), `status ${r.status}`);
+  expect(db.ended.at(-1).p_id === 'I-BAN' && db.ended.at(-1).p_now === true, 'sigue con acceso');
 });
 
 await check('Un cobro a la propia cuenta de creador se cancela, se devuelve y quita el acceso', async () => {
