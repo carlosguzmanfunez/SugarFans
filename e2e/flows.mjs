@@ -1099,6 +1099,17 @@ const run = async () => {
       expect((await socials.getByRole('link', { name: 'Instagram' }).getAttribute('href')) === 'https://www.instagram.com/lola.baila', 'enlace de Instagram');
       expect((await socials.getByRole('link', { name: 'TikTok' }).getAttribute('href')) === 'https://www.tiktok.com/@lolabaila', 'enlace de TikTok');
       await page.getByText('@lola_baila').first().waitFor();
+      // On their own profile the creator changes the subscription price right in "2 · Suscribirse".
+      const sub = page.getByTestId('ladder-subscribe');
+      await sub.getByTestId('edit-sub-price').click();
+      await sub.getByLabel('Precio mensual de tu suscripción').fill('2');
+      await sub.getByRole('button', { name: 'Guardar' }).click();
+      await sub.getByText(/entre \$4\.99 y \$999/).waitFor();
+      await sub.getByLabel('Precio mensual de tu suscripción').fill('12.5');
+      await sub.getByRole('button', { name: 'Guardar' }).click();
+      await sub.getByText('$12.5/mes').waitFor();
+      await page.goto(`${BASE}/settings?section=profile`);
+      expect((await page.inputValue('input[name=price]')) === '12.5', 'Ajustes no muestra el nuevo precio');
       await page.goto(`${BASE}/@nadie_tiene_este`);
       await page.getByText('No encontramos a @nadie_tiene_este').waitFor();
       await page.goto(`${BASE}/creator/dashboard`);

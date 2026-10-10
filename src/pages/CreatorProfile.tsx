@@ -551,6 +551,7 @@ const CreatorProfile: React.FC = () => {
               experiences={experiences.length}
               onSubscribe={handleSubscribe}
               onNeedLogin={goLogin}
+              editsPrice={isOwner && !managesProfile}
             />
             <CreatorReserveSection creator={creator} experiences={experiences} user={user} isOwner={isOwner} onNeedLogin={goLogin} />
             {!isOwner && <ExperienceGoalCard creatorProfileId={creator.id} creatorName={creator.name} experiences={experiences} user={user} onNeedLogin={goLogin} onGift={() => openGift()} />}
