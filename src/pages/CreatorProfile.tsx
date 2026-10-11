@@ -24,7 +24,7 @@ import TipDialog from '../components/TipDialog';
 import GiftDialog from '../components/GiftDialog';
 import NewPostForm from '../components/NewPostForm';
 import AccessLadder, { useFollow } from '../components/reserve/AccessLadder';
-import CreatorReserveSection, { UpcomingAccess } from '../components/reserve/CreatorReserveSection';
+import CreatorReserveSection, { UpcomingAccess, openReserve } from '../components/reserve/CreatorReserveSection';
 import { useCurrentLive } from '../lib/live';
 import { ReserveNotice } from '../components/reserve/ReserveBits';
 import { backend } from '../lib/backend';
@@ -44,6 +44,7 @@ import {
 } from '../lib/platform';
 
 const formatDay = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' });
+const formatShortDay = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' }).replace('.', '');
 
 const CreatorProfile: React.FC = () => {
   const { id } = useParams();
@@ -424,7 +425,11 @@ const CreatorProfile: React.FC = () => {
                   className={`btn btn-lg col-span-3 order-first md:order-none ${isSubscribed ? 'bg-ink/5 text-ink hover:bg-ink/10' : 'btn-primary'}`}
                 >
                   {isSubscribed && mySub?.cancelAt ? (
-                    <><i aria-hidden="true" className="fas fa-redo mr-2"></i>Activa hasta el {formatDay(mySub.cancelAt)} · Reactivar</>
+                    // Two short pieces that wrap onto a second line on narrow phones instead of overflowing.
+                    <span className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 whitespace-normal text-center leading-tight" data-testid="subscription-reactivate">
+                      <span><i aria-hidden="true" className="fas fa-redo mr-2"></i>Activa hasta el {formatShortDay(mySub.cancelAt)}</span>
+                      <span className="font-bold underline underline-offset-2">Reactivar</span>
+                    </span>
                   ) : isSubscribed ? (
                     <><Icon name="fa-check" className="mr-2" />Suscrito · Cancelar</>
                   ) : (
@@ -436,11 +441,11 @@ const CreatorProfile: React.FC = () => {
                   Suscribirse ${creator.subscriptionPrice}/mes
                 </Link>
               ) : null}
-              {/* "Habla con …": the shortest way to the creator's Reserve (1:1 calls and events). */}
+              {/* "Habla con …": straight to the creator's Reserve 1:1 video calls. */}
               {!isOwner && !iBlocked && experiences.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => document.getElementById('reserve')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  onClick={() => openReserve('one-to-one')}
                   data-testid="talk-button"
                   className="btn btn-lg col-span-3 border border-gold-300 bg-gold-50 text-ink hover:border-gold-400"
                 >
@@ -541,10 +546,10 @@ const CreatorProfile: React.FC = () => {
           )}
         </div>
 
-        {/* Bio */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm mb-6">
+        {/* Bio: a card on wider screens; on phones it sits right under the header, without the card. */}
+        <div className="mb-5 px-1 sm:mb-6 sm:rounded-2xl sm:bg-white sm:p-6 sm:shadow-sm" data-testid="creator-bio">
           <p className="text-gray-700">{creator.bio}</p>
-          <div className="flex flex-wrap gap-2 mt-4">
+          <div className="flex flex-wrap gap-2 mt-3 sm:mt-4">
             {creator.tags.map((tag) => (
               <span key={tag} className="bg-pink-50 text-pink-700 px-3 py-1 rounded-full text-sm">
                 #{tag}

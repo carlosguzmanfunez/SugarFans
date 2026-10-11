@@ -28,6 +28,13 @@ export const netReserve = (amount: number, taxRate: number, fee = estimatedFee(a
   return { gatewayFee, service, tax, share };
 };
 
+// Special accounts: the 5% service fee is taken on the full price, so a fan
+// discount comes out of the creator's part (same rule as the SQL trigger).
+export const absorbSpecialDiscount = (share: number, amount: number, listPrice?: number) =>
+  !listPrice || listPrice <= amount || amount <= 0
+    ? share
+    : Math.max(0, Math.round(((share * amount - round2(SERVICE_RATE * (listPrice - amount))) / amount) * 10000) / 10000);
+
 export const validateInvite = (input: SpecialInviteInput): AuthResult => {
   const label = input.label.trim();
   if (!label || label.length > 80) return { ok: false, error: 'Ponle un nombre al link (hasta 80 caracteres)' };

@@ -64,7 +64,7 @@ const SalesTour: React.FC = () => {
             ))}
           </div>
           <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-gold-300">Invitación para creadores</p>
-          <h1 className="mt-3 text-display-md">Sigue creando en tus redes. Aquí tu comunidad te apoya.</h1>
+          <h1 className="mt-3 text-display-md">Tus redes te dan seguidores. Aquí los conviertes en ingresos.</h1>
           <p className="mx-auto mt-4 max-w-xl text-white/75">
             {BRAND.name} no reemplaza tu TikTok ni tu Instagram. Les da a tus seguidores una forma de estar más cerca de ti, y a ti una forma
             de ganar con eso.

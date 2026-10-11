@@ -24,6 +24,8 @@ import {
   validateExperience,
 } from '../vip';
 import { nextRenewal, round2 } from '../platformRules';
+import { absorbDiscount } from '../rewardRules';
+import { absorbSpecialDiscount } from '../specialRules';
 import {
   DEMO_PASSWORD,
   WRONG_CREDENTIALS,
@@ -838,10 +840,15 @@ export const localBackend: Backend = {
       kind: 'vip',
       amount: round2(b.price),
       // Special accounts keep Reserve al neto; everyone else gets their rate of the net.
+      // A subscriber discount comes out of the creator's part, never Fans Reserve's.
       ...(() => {
-        const normal = rewards.shareFor(user.id, b.creatorProfileId, new Date(), round2(b.price));
-        const special_ = special.reserveShare(b.creatorProfileId, round2(b.price));
-        return special_ === undefined ? normal : { share: special_, gatewayFee: normal.gatewayFee };
+        const amount = round2(b.price);
+        const list = b.details?.listPrice;
+        const normal = rewards.shareFor(user.id, b.creatorProfileId, new Date(), amount);
+        const special_ = special.reserveShare(b.creatorProfileId, amount);
+        return special_ === undefined
+          ? { ...normal, share: absorbDiscount(normal.share, amount, normal.gatewayFee, list) }
+          : { share: absorbSpecialDiscount(special_, amount, list), gatewayFee: normal.gatewayFee };
       })(),
       note: b.title,
       methodLabel,

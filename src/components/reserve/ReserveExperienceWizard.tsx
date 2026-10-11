@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { BRAND } from '../../config/brand';
 import { useAuth } from '../../context/AuthContext';
 import { backend } from '../../lib/backend';
 import type { User } from '../../context/AuthContext';
@@ -337,13 +338,31 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category, availability
             <span className="font-semibold text-ink">Precio (USD)</span>
             <input name="expPrice" type="number" min={MIN_EXPERIENCE_PRICE} max={MAX_EXPERIENCE_PRICE} step="0.01" value={Number.isFinite(input.price) ? input.price : ''} onChange={(e) => set({ price: Number(e.target.value) })} className={field} />
           </label>
-          <label className="block text-sm">
-            <span className="font-semibold text-ink">Descuento para suscriptores</span>
-            <select name="expDiscount" value={d.subscriberDiscount ?? 0} onChange={(e) => setD({ subscriberDiscount: Number(e.target.value) || undefined })} className={field}>
-              {SUBSCRIBER_DISCOUNTS.map((p) => <option key={p} value={p}>{p ? `${p}%` : 'Sin descuento'}</option>)}
-            </select>
-            <span className="mt-1 block text-xs text-muted">Opcional y explícito: la suscripción no incluye Reserve.</span>
-          </label>
+          <div className="block text-sm sm:col-span-2" data-testid="discount-box">
+            <label className="flex cursor-pointer items-center justify-between gap-3">
+              <span className="font-semibold text-ink">Descuento para suscriptores</span>
+              <input
+                name="expDiscountOn"
+                type="checkbox"
+                role="switch"
+                checked={!!d.subscriberDiscount}
+                onChange={(e) => setD({ subscriberDiscount: e.target.checked ? 10 : undefined })}
+                className="h-5 w-5"
+              />
+            </label>
+            {d.subscriberDiscount ? (
+              <>
+                <select name="expDiscount" aria-label="Porcentaje de descuento" value={d.subscriberDiscount} onChange={(e) => setD({ subscriberDiscount: Number(e.target.value) || undefined })} className={field}>
+                  {SUBSCRIBER_DISCOUNTS.filter((p) => p > 0).map((p) => <option key={p} value={p}>{p}%</option>)}
+                </select>
+                <p className="mt-1 text-xs text-muted" data-testid="discount-note">
+                  Solo para tus suscriptores. El descuento sale de tu parte: la comisión de {BRAND.name} se calcula sobre el precio completo.
+                </p>
+              </>
+            ) : (
+              <span className="mt-1 block text-xs text-muted">Opcional. Si lo activas, tus suscriptores verán el precio rebajado; si no, nadie ve descuento.</span>
+            )}
+          </div>
         </div>
       )}
 
