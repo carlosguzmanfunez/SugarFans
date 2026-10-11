@@ -56,7 +56,7 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
           <span className={blurb}>Contenido público y novedades.</span>
           {!isOwner && following && (
             <span className="mt-3 inline-flex items-center text-xs font-semibold text-ink/70" data-testid="ladder-following">
-              <Icon name="fa-check" className="mr-1.5 text-emerald-600" />Ya lo sigues
+              <Icon name="fa-check" className="mr-1.5 text-emerald-600" /><span className="sm:hidden">Siguiendo</span><span className="max-sm:hidden">Ya lo sigues</span>
             </span>
           )}
           {isOwner && <span className="mt-3 text-xs text-muted">{compactCount(creator.followers)} seguidores</span>}
@@ -66,10 +66,11 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
               onClick={() => setLiveAlerts(user, creator.id, !alerts)}
               aria-pressed={alerts}
               data-testid="live-alerts"
-              className="mt-2 inline-flex items-center gap-1.5 self-start text-xs font-medium text-ink/70 hover:text-ink"
+              className="mt-2 inline-flex items-start gap-1.5 self-start text-left text-xs font-medium text-ink/70 hover:text-ink"
             >
-              <Icon name={alerts ? 'fa-bell' : 'fa-bell-slash'} className={alerts ? 'text-brand-600' : ''} />
-              {alerts ? 'Te avisaremos cuando esté en Live' : 'Avisos de Live desactivados'}
+              <Icon name={alerts ? 'fa-bell' : 'fa-bell-slash'} className={`mt-0.5 ${alerts ? 'text-brand-600' : ''}`} />
+              <span className="sm:hidden">{alerts ? 'Avisos de Live' : 'Avisos apagados'}</span>
+              <span className="max-sm:hidden">{alerts ? 'Te avisaremos cuando esté en Live' : 'Avisos de Live desactivados'}</span>
             </button>
           )}
         </li>
@@ -96,8 +97,8 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
             </Link>
           )}
           {!isOwner && user?.role !== 'creator' && (isSubscribed ? (
-            <span className="mt-3 inline-flex h-10 items-center justify-center rounded-full border border-line px-4 text-sm font-semibold text-ink/70">
-              <Icon name="fa-check" className="mr-1.5" />Tu suscripción está activa
+            <span className="mt-3 inline-flex items-center text-xs font-semibold text-ink/70 sm:text-sm" data-testid="ladder-subscribed">
+              <Icon name="fa-check" className="mr-1.5 text-emerald-600" /><span className="sm:hidden">Suscrito</span><span className="max-sm:hidden">Tu suscripción está activa</span>
             </span>
           ) : live && subscriberLive ? (
             // The main "Suscribirse" button lives in the profile header; here it only
