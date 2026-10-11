@@ -2436,7 +2436,10 @@ const run = async () => {
       await toggle.click();
       await resF.getByTestId('reserve-body').waitFor({ state: 'detached' });
       await resF.getByTestId('talk-button').click();
-      await resF.getByTestId('reserve-group-event').waitFor();
+      await resF.getByTestId('reserve-group-one-to-one').waitFor();
+      // Reserve 1:1 is always the first group on a profile.
+      const groups = await resF.locator('[data-testid^="reserve-group-"]').evaluateAll((els) => els.map((e) => e.dataset.testid));
+      expect(groups[0] === 'reserve-group-one-to-one', `el primer Reserve es ${groups[0]}`);
       await resF.getByTestId('follow-button').click();
       await resF.getByTestId('follow-button').getByText('Siguiendo').waitFor();
       await resF.reload();
@@ -2577,7 +2580,7 @@ const run = async () => {
     await check('"Habla con …" en el perfil lleva a su Reserve', async () => {
       await resF.evaluate(() => window.scrollTo(0, 0));
       await resF.getByTestId('talk-button').filter({ hasText: 'Habla con Valentina' }).click();
-      await resF.waitForFunction(() => Math.abs(document.getElementById('reserve').getBoundingClientRect().top) < 200);
+      await resF.waitForFunction(() => Math.abs(document.getElementById('reserve-one-to-one').getBoundingClientRect().top) < 200);
     });
     await check('Solicitar experiencia personalizada: 5 pasos estructurados y moderados', async () => {
       await resF.getByRole('button', { name: /Solicitar experiencia personalizada/ }).click();

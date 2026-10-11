@@ -19,10 +19,11 @@ interface Props {
   onNeedLogin: () => void;
 }
 
-// Reserve's products on a profile, in this order.
+// Reserve's products on a profile, in this order. The 1:1 video call always
+// comes first on every profile: it is where "Habla con …" lands.
 const GROUPS: { id: ReserveProduct; title: string; hint: string }[] = [
-  { id: 'event', title: RESERVE_FORMATS.event.product, hint: 'En grupo, con fecha fija y plazas limitadas. Reserva tu plaza.' },
   { id: 'one-to-one', title: RESERVE_FORMATS.private.product, hint: 'Videollamada por Fans Reserve: solo tú y el creador.' },
+  { id: 'event', title: RESERVE_FORMATS.event.product, hint: 'En grupo, con fecha fija y plazas limitadas. Reserva tu plaza.' },
   { id: 'other', title: 'Otras experiencias', hint: 'Presenciales, profesionales o entregadas en la app.' },
 ];
 
@@ -36,9 +37,13 @@ export const useEventSeats = (experiences: VipExperience[]) => {
 // that point at it ("Habla con …", "Ver experiencias", /creator/:id#reserve)
 // unfold it and scroll there.
 const OPEN_EVENT = 'reserve:open';
-export const openReserve = () => {
+// `to: 'one-to-one'` ("Habla con …") lands on the creator's 1:1 video calls when
+// they offer any, otherwise on the top of the section.
+export const openReserve = (to?: ReserveProduct) => {
   window.dispatchEvent(new Event(OPEN_EVENT));
-  requestAnimationFrame(() => document.getElementById('reserve')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  requestAnimationFrame(() =>
+    (document.getElementById(`reserve-${to}`) ?? document.getElementById('reserve'))?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  );
 };
 
 // "Reserve con {creator}": Reserve Events, Reserve 1:1 and the other experiences
@@ -111,7 +116,7 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, use
             .sort((a, b) => (g.id === 'event' ? (eventStart(a)?.getTime() ?? 0) - (eventStart(b)?.getTime() ?? 0) : 0));
           if (!items.length) return null;
           return (
-            <div key={g.id} className="mt-5" data-testid={`reserve-group-${g.id}`}>
+            <div key={g.id} id={`reserve-${g.id}`} className="mt-5 scroll-mt-24" data-testid={`reserve-group-${g.id}`}>
               <h3 className="text-sm font-bold text-ink">{g.title}</h3>
               <p className="text-xs text-ink/60">{g.hint}</p>
               <div className="mt-3 grid gap-4 sm:grid-cols-2">
@@ -214,7 +219,7 @@ export const UpcomingAccess: React.FC<{ creatorId: string; experiences: VipExper
                 </span>
                 <span className="block truncate text-sm font-semibold text-ink">{e.title}</span>
               </span>
-              <a href="#reserve" onClick={(ev) => { ev.preventDefault(); openReserve(); }} className="inline-flex h-9 items-center rounded-full border border-ink px-4 text-xs font-semibold text-ink">Reservar plaza</a>
+              <a href="#reserve" onClick={(ev) => { ev.preventDefault(); openReserve('event'); }} className="inline-flex h-9 items-center rounded-full border border-ink px-4 text-xs font-semibold text-ink">Reservar plaza</a>
             </li>
           );
         })}

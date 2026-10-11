@@ -441,11 +441,11 @@ const CreatorProfile: React.FC = () => {
                   Suscribirse ${creator.subscriptionPrice}/mes
                 </Link>
               ) : null}
-              {/* "Habla con …": the shortest way to the creator's Reserve (1:1 calls and events). */}
+              {/* "Habla con …": straight to the creator's Reserve 1:1 video calls. */}
               {!isOwner && !iBlocked && experiences.length > 0 && (
                 <button
                   type="button"
-                  onClick={openReserve}
+                  onClick={() => openReserve('one-to-one')}
                   data-testid="talk-button"
                   className="btn btn-lg col-span-3 border border-gold-300 bg-gold-50 text-ink hover:border-gold-400"
                 >
