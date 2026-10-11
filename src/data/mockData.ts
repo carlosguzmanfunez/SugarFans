@@ -333,7 +333,6 @@ export const vipExperiences: VIPExperience[] = [
       approval: 'manual',
       cancellationPolicy: 'moderate',
       subscriberDiscount: 10,
-      followerDiscount: 5,
     },
     price: 24.99,
     duration: '30 min',

@@ -1,18 +1,17 @@
-// Reserve fan discounts against a throwaway local Postgres with every migration.
-// Usage: PGHOST=/tmp PGPORT=5432 PGUSER=postgres npm run test:fan-discount-db
+// Reserve subscriber discount against a throwaway local Postgres with every migration.
+// Usage: PGHOST=/tmp PGPORT=5432 PGUSER=postgres npm run test:reserve-discount-db
 //
-// Checks: followers get the follower discount only after 7 days of following;
-// subscribers get theirs; with both, the larger wins; the booking records which
-// one applied; and the discount comes out of the creator's part (Fans Reserve's cut
-// and the special accounts' service fee use the full price).
+// Checks: the discount is optional; only subscribers get it (following doesn't
+// count); and it comes out of the creator's part (Fans Reserve's cut uses the
+// full price).
 import { createDbTest } from './db-harness.mjs';
 
-const DB = 'fr_fan_discount_test';
+const DB = 'fr_reserve_discount_test';
 const { check, expect, psql, as, raises, setup, user, finish } = createDbTest(DB);
 
 finish(async () => {
   setup();
-  console.log('\nDescuentos de Reserve para fans');
+  console.log('\nDescuento de Reserve para suscriptores');
   const vale = user('vale@test.local', 'creator');
   // Weekdays ahead, one booking per slot so no two bookings share a time.
   const slots = psql(DB, `select string_agg(to_char(d, 'YYYY-MM-DD'), ',' order by d) from generate_series(current_date + 3, current_date + 20, '1 day') d where extract(dow from d) between 1 and 5`)
@@ -32,37 +31,26 @@ finish(async () => {
   const subscribe = (fan) => psql(DB, `insert into public.subscriptions (fan_id, creator_id, price) values ('${fan}', '${vale}', 9.99)`);
 
   let exp;
-  await check('El creador pone un descuento para seguidores; valores fuera de la lista no se aceptan', async () => {
-    exp = experience(`,'subscriberDiscount',10,'followerDiscount',5`);
-    raises(() => experience(`,'followerDiscount',7`), /Descuento no válido/, 'descuento raro');
+  await check('El creador activa un descuento para suscriptores; valores fuera de la lista no se aceptan', async () => {
+    exp = experience(`,'subscriberDiscount',10`);
+    raises(() => experience(`,'subscriberDiscount',7`), /Descuento no válido/, 'descuento raro');
   });
-  await check('Sin seguir ni suscribirse paga el precio completo', async () => {
-    const r = book(user('nadie@test.local', 'fan'), exp);
-    expect(r === '40.00|||', r);
+  await check('Sin suscribirse paga el precio completo, aunque siga al creador', async () => {
+    const fan = user('seguidor@test.local', 'fan');
+    follow(fan, 30);
+    expect(book(fan, exp) === '40.00|||', 'el seguidor tuvo descuento');
   });
-  await check('Un seguidor de menos de 7 días todavía no tiene descuento', async () => {
-    const fan = user('nuevo@test.local', 'fan');
-    follow(fan, 2);
-    expect(book(fan, exp) === '40.00|||', 'ya tenía descuento');
-  });
-  await check('Un seguidor de 7 días o más paga 5% menos y queda anotado como de seguidor', async () => {
-    const fan = user('fiel@test.local', 'fan');
-    follow(fan, 8);
+  await check('Un suscriptor paga 10% menos y la reserva guarda el precio completo', async () => {
+    const fan = user('sub@test.local', 'fan');
+    subscribe(fan);
     const r = book(fan, exp);
-    expect(r === '38.00|40.00|5|follower', r);
+    expect(r === '36.00|40.00|10|', r);
   });
-  await check('Un suscriptor que además sigue recibe el mayor (suscriptor 10%)', async () => {
-    const fan = user('ambos@test.local', 'fan');
-    follow(fan, 30);
+  await check('Si el creador lo desactiva, el suscriptor paga el precio completo', async () => {
+    const off = experience('');
+    const fan = user('sub2@test.local', 'fan');
     subscribe(fan);
-    expect(book(fan, exp) === '36.00|40.00|10|subscriber', 'no ganó el mayor');
-  });
-  await check('Si el de seguidor es mayor, gana el de seguidor', async () => {
-    const big = experience(`,'subscriberDiscount',5,'followerDiscount',15`);
-    const fan = user('ambos2@test.local', 'fan');
-    follow(fan, 30);
-    subscribe(fan);
-    expect(book(fan, big) === '34.00|40.00|15|follower', 'no ganó el de seguidor');
+    expect(book(fan, off) === '40.00|||', 'hubo descuento sin activarlo');
   });
 
   console.log('El creador absorbe el descuento');
@@ -82,7 +70,7 @@ finish(async () => {
   });
   await check('Con 10% de descuento, Fans Reserve se queda lo mismo que a precio completo', async () => {
     // Paid $36 (list $40): fee 2.24 → net 33.76; Fans Reserve keeps 20% × (40 − 2.24) = 7.55; creator 33.76 − 7.55 = 26.21
-    const r = sale('{"kind":"custom","listPrice":40,"discountPercent":10,"discountKind":"subscriber"}', 36);
+    const r = sale('{"kind":"custom","listPrice":40,"discountPercent":10}', 36);
     expect(r === '26.21|2.24', r);
     const platform = psql(DB, `select round(amount - gateway_fee - amount * creator_share, 2) from public.transactions where key like 'vip:%' order by created_at desc limit 1`);
     expect(platform === '7.55', `Fans Reserve se quedó ${platform}`);

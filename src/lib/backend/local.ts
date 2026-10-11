@@ -19,8 +19,6 @@ import {
   needsApproval,
   normalizeAvailability,
   priceFor,
-  fanDiscount,
-  discountDetails,
   validateCounter,
   validateCustomRequest,
   validateExperience,
@@ -173,10 +171,6 @@ const toPublic = (account: StoredAccount): User => {
   return { ...user, avatar: avatarOrEmpty(user.avatar), username: handleOf(account), subscriptions: user.subscriptions.filter((s) => isActiveSub(s)) };
 };
 
-// When a fan started following a creator (local follows live in the 'social' store).
-const followSince = (userId: string, creatorProfileId: string) =>
-  readJSON<{ followSince?: Record<string, Record<string, string>> }>('social', {}).followSince?.[creatorProfileId]?.[userId];
-
 const listExperiences = (): VipExperience[] => {
   const stored = readJSON<VipExperience[] | null>(EXPERIENCES_KEY, null);
   const demo = demoExperiences();
@@ -288,8 +282,7 @@ const createBooking = async (user: User, input: BookingInput): Promise<AuthResul
   if (!freeHoursOn(availability, takenFor(exp.creatorProfileId), input.date).includes(input.time)) {
     return fail('Ese horario ya no está disponible. Elige otro.');
   }
-  const discount = fanDiscount(exp, { subscribed, followSince: followSince(user.id, exp.creatorProfileId) });
-  const price = priceFor(exp, discount);
+  const price = priceFor(exp, subscribed);
   const now = new Date().toISOString();
   const id = newId();
   saveBookings([
@@ -318,7 +311,7 @@ const createBooking = async (user: User, input: BookingInput): Promise<AuthResul
         modality: d.modality,
         participants,
         ...(d.modality !== 'virtual' ? { locationType: d.locationTypes[0], city: d.city, venue: d.venue } : {}),
-        ...discountDetails(exp, discount),
+        ...(price !== exp.price ? { listPrice: exp.price, discountPercent: d.subscriberDiscount } : {}),
       },
     },
   ]);
@@ -680,8 +673,7 @@ export const localBackend: Backend = {
     const seats = listBookings().filter((b) => b.experienceId === exp.id && b.details?.kind === 'event' && ACTIVE_STATUSES.includes(b.status));
     if (seats.some((b) => b.fanId === user.id)) return fail('Ya tienes una plaza en este evento');
     if (seats.length >= d.maxParticipants) return fail('No quedan plazas para este evento');
-    const discount = fanDiscount(exp, { subscribed, followSince: followSince(user.id, exp.creatorProfileId) });
-    const price = priceFor(exp, discount);
+    const price = priceFor(exp, subscribed);
     const now = new Date().toISOString();
     saveBookings([
       ...listBookings(),
@@ -708,7 +700,7 @@ export const localBackend: Backend = {
           modality: d.modality,
           participants: 1,
           ...(d.modality !== 'virtual' ? { locationType: d.locationTypes[0], city: d.city, venue: d.venue } : {}),
-          ...discountDetails(exp, discount),
+          ...(price !== exp.price ? { listPrice: exp.price, discountPercent: d.subscriberDiscount } : {}),
         },
       },
     ]);
@@ -848,7 +840,7 @@ export const localBackend: Backend = {
       kind: 'vip',
       amount: round2(b.price),
       // Special accounts keep Reserve al neto; everyone else gets their rate of the net.
-      // A fan discount comes out of the creator's part, never Fans Reserve's.
+      // A subscriber discount comes out of the creator's part, never Fans Reserve's.
       ...(() => {
         const amount = round2(b.price);
         const list = b.details?.listPrice;

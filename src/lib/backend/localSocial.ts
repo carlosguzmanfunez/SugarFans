@@ -14,7 +14,6 @@ interface Store {
   likes: Record<string, string[]>; // post id -> user ids
   comments: PostComment[];
   follows?: Record<string, string[]>; // creator profile id -> user ids
-  followSince?: Record<string, Record<string, string>>; // creator profile id -> user id -> ISO date
 }
 
 interface Deps {
@@ -206,26 +205,15 @@ export const createLocalSocial = (deps: Deps): SocialBackend => {
     },
 
     async followState(creatorProfileId, viewer) {
-      const st = load();
-      const ids = st.follows?.[creatorProfileId] ?? [];
-      const following = !!viewer && ids.includes(viewer.id);
-      const since = following ? st.followSince?.[creatorProfileId]?.[viewer!.id] : undefined;
-      return { following, count: ids.length, ...(since ? { since } : {}) };
+      const ids = load().follows?.[creatorProfileId] ?? [];
+      return { following: !!viewer && ids.includes(viewer.id), count: ids.length };
     },
 
     async setFollow(user, creatorProfileId, follow) {
       if (user.creatorProfileId === creatorProfileId) return fail('No puedes seguir tu propio perfil');
       return commit((st) => {
-        const was = (st.follows?.[creatorProfileId] ?? []).includes(user.id);
         const ids = (st.follows?.[creatorProfileId] ?? []).filter((id) => id !== user.id);
-        // Unfollowing resets the date: the follower discount counts from the latest follow.
-        const { [user.id]: _old, ...others } = st.followSince?.[creatorProfileId] ?? {};
-        const since = follow ? { ...others, [user.id]: (was && _old) || new Date().toISOString() } : others;
-        return {
-          ...st,
-          follows: { ...st.follows, [creatorProfileId]: follow ? [...ids, user.id] : ids },
-          followSince: { ...st.followSince, [creatorProfileId]: since },
-        };
+        return { ...st, follows: { ...st.follows, [creatorProfileId]: follow ? [...ids, user.id] : ids } };
       });
     },
   };

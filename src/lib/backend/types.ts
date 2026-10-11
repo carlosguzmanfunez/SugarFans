@@ -7,8 +7,6 @@ import type { LiveBackend } from './liveTypes';
 import type { SpecialBackend } from './specialTypes';
 import type { SocialLinks } from '../creatorLinks';
 import type { ApprovalMode, CancellationPolicyId, LocationType, PurposeId, ReserveModality } from '../../config/reserve';
-export type ReserveDiscountKind = 'subscriber' | 'follower';
-
 export type * from './platformTypes';
 export type * from './socialTypes';
 export type * from './giftTypes';
@@ -151,10 +149,9 @@ export interface BookingDetails {
   locationType?: LocationType;
   city?: string;
   venue?: string;
-  // Price before a fan discount, the discount applied and which one it was.
+  // Price before a subscriber discount, and the discount applied.
   listPrice?: number;
   discountPercent?: number;
-  discountKind?: ReserveDiscountKind;
   counter?: CounterOffer;
   // Moderation flags for the creator's review (never blocking ones).
   flags?: string[];
@@ -245,11 +242,8 @@ export interface ReserveDetails {
   approval: ApprovalMode;
   cancellationPolicy: CancellationPolicyId;
   conditions?: string;
-  // Explicit perks: % off this experience for subscribers, and for fans who have
-  // followed the creator at least FOLLOWER_DISCOUNT_DAYS. The fan gets the larger
-  // one, and the creator's share absorbs it (Fans Reserve's cut uses the full price).
+  // Explicit subscriber perk: % off this experience.
   subscriberDiscount?: number;
-  followerDiscount?: number;
   // Days (0–6) and hours this experience can be booked, within the creator's availability.
   days?: number[];
   hours?: string[];

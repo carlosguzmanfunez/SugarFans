@@ -17,7 +17,6 @@ import {
   reserveProductOf,
   seatsLeft,
   priceFor,
-  fanDiscount,
   typeOf,
   type Availability,
   type TakenSlot,
@@ -25,9 +24,6 @@ import {
 } from '../../lib/vip';
 import type { User } from '../../context/AuthContext';
 import { rewardsApi, type ExperienceTicket } from '../../lib/rewards';
-import { socialApi } from '../../lib/social';
-import { usePlatformQuery } from '../../lib/platform';
-import { FOLLOWER_DISCOUNT_DAYS } from '../../config/reserve';
 import { RESERVE_COPY, RESERVE_FLOW, RESERVE_RESPONSE_HOURS, isHomeService } from '../../config/reserve';
 
 interface Props {
@@ -56,10 +52,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
   const approval = isEvent ? d.approval !== 'automatic' : needsApproval(exp);
   const isOwn = !!user?.creatorProfileId && user.creatorProfileId === exp.creatorProfileId;
   const subscribed = !!user?.subscriptions.some((s) => s.creatorId === exp.creatorProfileId);
-  // The server applies the same discount when it creates the booking.
-  const follow = usePlatformQuery(() => socialApi.followState(exp.creatorProfileId, user), [exp.creatorProfileId, user?.id], { following: false, count: 0 }).data;
-  const discount = fanDiscount(exp, { subscribed, followSince: follow.since });
-  const price = priceFor(exp, discount);
+  const price = priceFor(exp, subscribed);
   const [step, setStep] = useState<'details' | 'book' | 'done'>(startBooking && user && !isOwn ? 'book' : 'details');
   const [availability, setAvailability] = useState<Availability>(DEFAULT_AVAILABILITY);
   const [taken, setTaken] = useState<TakenSlot[]>([]);
@@ -251,16 +244,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
               <span className="text-ink/70">Total</span>
               <span className="text-lg font-bold text-ink">{money(price)}</span>
             </div>
-            {discount.percent > 0 && (
-              <p className="mt-1 text-xs text-iris-700" data-testid="booking-discount">
-                Incluye tu descuento de {discount.kind === 'follower' ? 'seguidor' : 'suscriptor'} ({discount.percent}%).
-              </p>
-            )}
-            {!discount.percent && !!d.followerDiscount && (
-              <p className="mt-1 text-xs text-ink/60" data-testid="follower-discount-hint">
-                Quienes siguen a {exp.creatorName.split(' ')[0]} hace {FOLLOWER_DISCOUNT_DAYS} días o más pagan {d.followerDiscount}% menos.
-              </p>
-            )}
+            {price !== exp.price && <p className="mt-1 text-xs text-iris-700">Incluye tu descuento de suscriptor ({d.subscriberDiscount}%).</p>}
             <p className="mt-2 text-xs text-ink/70">
               {approval ? `${exp.creatorName} acepta o rechaza tu solicitud. Solo pagas si la acepta.` : 'Confirmación inmediata: pagas desde Mis reservas para confirmarla.'}
             </p>
