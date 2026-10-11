@@ -76,6 +76,13 @@ const expect = (cond, msg) => {
   if (!cond) throw new Error(msg);
 };
 
+// A creator's Reserve section starts folded on the profile: open it.
+const unfoldReserve = async (page) => {
+  const toggle = page.getByTestId('reserve-toggle');
+  if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
+  await page.getByTestId('reserve-body').waitFor();
+};
+
 const startServer = async () => {
   if (process.env.E2E_BASE_URL) return null;
   const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'pipe' });
@@ -2419,6 +2426,17 @@ const run = async () => {
       for (const s of ['1 · Seguir', '2 · Suscribirse', '3 · Reserve']) await ladder.getByText(s).waitFor();
       expect((await ladder.getByText(/· Live$/).count()) === 0, 'el perfil tiene un paso Live');
       await resF.getByTestId('creator-reserve').getByRole('heading', { name: 'Reserve con Valentina' }).waitFor();
+      // Reserve starts folded (one row with count and lowest price); "Ver experiencias" unfolds it.
+      await resF.getByTestId('reserve-summary').getByText(/\d+ experiencias · desde \$\d/).waitFor();
+      expect((await resF.getByTestId('reserve-body').count()) === 0, 'el Reserve empieza abierto');
+      await ladder.getByRole('link', { name: 'Ver experiencias' }).click();
+      await resF.getByTestId('reserve-group-event').waitFor();
+      const toggle = resF.getByTestId('reserve-toggle');
+      expect((await toggle.getAttribute('aria-expanded')) === 'true', 'el botón no dice que está abierto');
+      await toggle.click();
+      await resF.getByTestId('reserve-body').waitFor({ state: 'detached' });
+      await resF.getByTestId('talk-button').click();
+      await resF.getByTestId('reserve-group-event').waitFor();
       await resF.getByTestId('follow-button').click();
       await resF.getByTestId('follow-button').getByText('Siguiendo').waitFor();
       await resF.reload();
@@ -2511,11 +2529,13 @@ const run = async () => {
       await waitPath(resC, '/creator/dashboard');
       await panel.getByRole('button', { name: 'Iniciar Live' }).waitFor();
       await resF.goto(`${BASE}/creator/1`);
+      await unfoldReserve(resF);
       await resF.getByTestId('access-ladder').waitFor();
       expect((await resF.getByTestId('live-now').count()) === 0, 'sigue en Live');
     });
     await check('Reserve Event: el fan reserva su plaza y la sala de grupo no es la de una videollamada 1:1', async () => {
       await resF.goto(`${BASE}/creator/1`);
+      await unfoldReserve(resF);
       const group = resF.getByTestId('reserve-group-event');
       const card = group.getByTestId('reserve-card').filter({ hasText: 'Beauty Q&A con Valentina' });
       await card.getByTestId('event-facts').waitFor();
@@ -2533,6 +2553,7 @@ const run = async () => {
     await check('La suscripción y los regalos dicen que no incluyen Reserve', async () => {
       await resF.keyboard.press('Escape');
       await resF.goto(`${BASE}/creator/1`);
+      await unfoldReserve(resF);
       const section = resF.getByTestId('creator-reserve');
       await section.getByTestId('notice-subscription').getByText(/No incluye Reserve Events, videollamadas 1:1 ni otras experiencias de Reserve/).waitFor();
       await section.getByTestId('notice-gift').getByText(/no garantizan respuesta, conversación ni acceso\. Si el creador tiene una Meta de experiencia, se van acumulando hasta que la completes/).waitFor();
@@ -2544,6 +2565,7 @@ const run = async () => {
     });
     await check('Cada experiencia muestra modalidad, duración, lugar, reglas y quién aprueba', async () => {
       await resF.goto(`${BASE}/creator/1`);
+      await unfoldReserve(resF);
       const card = resF.getByTestId('reserve-card').filter({ hasText: 'Meet & Greet en Miami' });
       await card.getByText('Presencial').waitFor();
       await card.getByRole('button', { name: 'Ver detalles' }).click();
@@ -2653,6 +2675,7 @@ const run = async () => {
       await resC.getByText('Experiencia publicada.').waitFor();
       await resC.getByTestId('my-experience').filter({ hasText: 'Sesión de fotos en estudio' }).waitFor();
       await resF.goto(`${BASE}/creator/1`);
+      await unfoldReserve(resF);
       await resF.getByTestId('reserve-card').filter({ hasText: 'Sesión de fotos en estudio' }).getByText(/Estudio profesional/).waitFor();
     });
     await check('Políticas de Reserve publicadas como borrador con revisión legal', async () => {
@@ -2687,6 +2710,7 @@ const run = async () => {
         expect((await overflow()) <= 0, `${p} desborda ${await overflow()}px`);
       }
       await n.goto(`${BASE}/creator/1`);
+      await unfoldReserve(n);
       await n.getByRole('button', { name: /Solicitar experiencia personalizada/ }).click();
       await n.getByTestId('custom-step').waitFor();
       expect((await overflow()) <= 0, 'la solicitud desborda');

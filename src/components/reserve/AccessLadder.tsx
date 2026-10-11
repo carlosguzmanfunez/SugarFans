@@ -8,6 +8,7 @@ import { useCurrentLive, useLiveAlerts, setLiveAlerts } from '../../lib/live';
 import { ENABLE_OPEN_LIVE } from '../../config/features';
 import { useAuth } from '../../context/AuthContext';
 import { MIN_SUBSCRIPTION } from '../../lib/platformRules';
+import { openReserve } from './CreatorReserveSection';
 
 export const useFollow = (creatorProfileId: string | undefined, user: User | null) =>
   usePlatformQuery(
@@ -112,7 +113,7 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
           <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gold-700">3 · Reserve</span>
           <span className="mt-1 text-sm font-semibold text-ink">{experiences ? `${experiences} ${experiences === 1 ? 'experiencia' : 'experiencias'}` : 'A medida'}</span>
           <span className="text-xs text-ink/60">Reserve Events en grupo y videollamadas 1:1 con {creator.name.split(' ')[0]}, con fecha, precio y reglas.</span>
-          <a href="#reserve" className="mt-3 inline-flex items-center gap-1.5 self-start text-sm font-semibold text-ink hover:text-brand-700">Ver experiencias <Icon name="fa-arrow-right" className="text-xs" /></a>
+          <a href="#reserve" onClick={(e) => { e.preventDefault(); openReserve(); }} className="mt-3 inline-flex items-center gap-1.5 self-start text-sm font-semibold text-ink hover:text-brand-700">Ver experiencias <Icon name="fa-arrow-right" className="text-xs" /></a>
         </li>
       </ol>
     </section>

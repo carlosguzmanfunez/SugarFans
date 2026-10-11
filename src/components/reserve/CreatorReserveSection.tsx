@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { User } from '../../context/AuthContext';
 import { isUpcomingEvent, reserveProductOf, eventStart, type ReserveProduct, type VipExperience } from '../../lib/vip';
@@ -9,6 +9,7 @@ import ReserveExperienceCard from './ReserveExperienceCard';
 import ReserveBookingDialog from './ReserveBookingDialog';
 import CustomExperienceRequest from './CustomExperienceRequest';
 import { ReserveNotice } from './ReserveBits';
+import { money } from '../../lib/platformRules';
 
 interface Props {
   creator: { id: string; name: string; category?: string };
@@ -31,6 +32,15 @@ export const useEventSeats = (experiences: VipExperience[]) => {
   return usePlatformQuery(() => backend.eventSeats(ids), [ids.join(',')], {} as Record<string, number>).data;
 };
 
+// The section starts folded so the posts and media sit closer to the top. Links
+// that point at it ("Habla con …", "Ver experiencias", /creator/:id#reserve)
+// unfold it and scroll there.
+const OPEN_EVENT = 'reserve:open';
+export const openReserve = () => {
+  window.dispatchEvent(new Event(OPEN_EVENT));
+  requestAnimationFrame(() => document.getElementById('reserve')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+};
+
 // "Reserve con {creator}": Reserve Events, Reserve 1:1 and the other experiences
 // this creator offers, each fully defined, plus a structured request for something tailored.
 const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, user, isOwner, onNeedLogin }) => {
@@ -42,29 +52,57 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, use
   const first = creator.name.split(' ')[0];
   const category = categoryFor(creator.category);
   const canRequest = !isOwner && user?.role !== 'creator' && user?.role !== 'admin';
+  const [expanded, setExpanded] = useState(() => window.location.hash === '#reserve');
+  useEffect(() => {
+    const unfold = () => setExpanded(true);
+    const onHash = () => window.location.hash === '#reserve' && unfold();
+    window.addEventListener(OPEN_EVENT, unfold);
+    window.addEventListener('hashchange', onHash);
+    return () => { window.removeEventListener(OPEN_EVENT, unfold); window.removeEventListener('hashchange', onHash); };
+  }, []);
+  const from = experiences.length ? Math.min(...experiences.map((e) => e.price)) : 0;
+  const summary = experiences.length
+    ? `${experiences.length} ${experiences.length === 1 ? 'experiencia' : 'experiencias'} · desde ${money(from)}`
+    : isOwner ? 'Aún no publicas experiencias' : 'Envíale una propuesta personalizada';
 
   return (
     <section id="reserve" aria-labelledby="reserve-title" className="mb-6 scroll-mt-24 rounded-3xl bg-white p-5 shadow-sm sm:p-6" data-testid="creator-reserve">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gold-700">Reserve · {category.name}</p>
           <h2 id="reserve-title" className="mt-1 text-xl font-bold text-ink sm:text-2xl">Reserve con {first}</h2>
-          <p className="mt-1 text-sm text-ink/70">Reserve Events en grupo, videollamadas 1:1 por nuestra plataforma y experiencias con fecha, duración, precio y reglas definidas por {first}.</p>
-          <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-gold-50 px-3 py-1 text-sm font-semibold text-gold-700 ring-1 ring-gold-200" data-testid="reserve-principle">
-            <i aria-hidden="true" className="fas fa-shield-halved text-xs"></i>Reserva experiencias, no personas.
-          </p>
+          <p className="mt-0.5 text-sm font-semibold text-ink/70" data-testid="reserve-summary">{summary}</p>
         </div>
-        {isOwner && (
-          <Link
-            to="/creator/dashboard?tab=vip"
-            data-testid="manage-reserve"
-            className="inline-flex h-11 items-center gap-2 rounded-full bg-gradient-to-r from-gold-300 to-gold-500 px-5 text-sm font-bold text-night-900 shadow-md shadow-gold-400/30 transition hover:from-gold-400 hover:to-gold-600 hover:shadow-lg"
+        <div className="flex flex-wrap items-center gap-2">
+          {isOwner && (
+            <Link
+              to="/creator/dashboard?tab=vip"
+              data-testid="manage-reserve"
+              className="inline-flex h-11 items-center gap-2 rounded-full bg-gradient-to-r from-gold-300 to-gold-500 px-5 text-sm font-bold text-night-900 shadow-md shadow-gold-400/30 transition hover:from-gold-400 hover:to-gold-600 hover:shadow-lg"
+            >
+              <i aria-hidden="true" className="fas fa-calendar-check"></i>
+              Gestionar Reserve
+            </Link>
+          )}
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            aria-controls="reserve-body"
+            data-testid="reserve-toggle"
+            className="inline-flex h-11 items-center gap-2 rounded-full border border-gold-300 bg-gold-50 px-5 text-sm font-semibold text-ink transition hover:border-gold-400 hover:bg-gold-100"
           >
-            <i aria-hidden="true" className="fas fa-calendar-check"></i>
-            Gestionar Reserve
-          </Link>
-        )}
+            {expanded ? 'Ocultar' : 'Ver experiencias'}
+            <i aria-hidden="true" className={`fas fa-chevron-down text-xs transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}></i>
+          </button>
+        </div>
       </div>
+
+      {expanded && <div id="reserve-body" data-testid="reserve-body">
+      <p className="mt-4 text-sm text-ink/70">Reserve Events en grupo, videollamadas 1:1 por nuestra plataforma y experiencias con fecha, duración, precio y reglas definidas por {first}.</p>
+      <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-gold-50 px-3 py-1 text-sm font-semibold text-gold-700 ring-1 ring-gold-200" data-testid="reserve-principle">
+        <i aria-hidden="true" className="fas fa-shield-halved text-xs"></i>Reserva experiencias, no personas.
+      </p>
 
       {experiences.length > 0 ? (
         GROUPS.map((g) => {
@@ -130,6 +168,7 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, use
         <ReserveNotice kind="subscription" />
         <ReserveNotice kind="gift" />
       </div>
+      </div>}
 
       {open && (
         <ReserveBookingDialog exp={open.exp} user={user} startBooking={open.book} seatsTaken={seats[open.exp.id] ?? 0} onNeedLogin={onNeedLogin} onClose={() => setOpen(null)} />

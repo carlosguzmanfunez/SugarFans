@@ -24,7 +24,7 @@ import TipDialog from '../components/TipDialog';
 import GiftDialog from '../components/GiftDialog';
 import NewPostForm from '../components/NewPostForm';
 import AccessLadder, { useFollow } from '../components/reserve/AccessLadder';
-import CreatorReserveSection, { UpcomingAccess } from '../components/reserve/CreatorReserveSection';
+import CreatorReserveSection, { UpcomingAccess, openReserve } from '../components/reserve/CreatorReserveSection';
 import { useCurrentLive } from '../lib/live';
 import { ReserveNotice } from '../components/reserve/ReserveBits';
 import { backend } from '../lib/backend';
@@ -440,7 +440,7 @@ const CreatorProfile: React.FC = () => {
               {!isOwner && !iBlocked && experiences.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => document.getElementById('reserve')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  onClick={openReserve}
                   data-testid="talk-button"
                   className="btn btn-lg col-span-3 border border-gold-300 bg-gold-50 text-ink hover:border-gold-400"
                 >
