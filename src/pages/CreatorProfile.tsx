@@ -541,10 +541,10 @@ const CreatorProfile: React.FC = () => {
           )}
         </div>
 
-        {/* Bio */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm mb-6">
+        {/* Bio: a card on wider screens; on phones it sits right under the header, without the card. */}
+        <div className="mb-5 px-1 sm:mb-6 sm:rounded-2xl sm:bg-white sm:p-6 sm:shadow-sm" data-testid="creator-bio">
           <p className="text-gray-700">{creator.bio}</p>
-          <div className="flex flex-wrap gap-2 mt-4">
+          <div className="flex flex-wrap gap-2 mt-3 sm:mt-4">
             {creator.tags.map((tag) => (
               <span key={tag} className="bg-pink-50 text-pink-700 px-3 py-1 rounded-full text-sm">
                 #{tag}

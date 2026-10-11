@@ -188,8 +188,10 @@ export const UpcomingAccess: React.FC<{ creatorId: string; experiences: VipExper
     .sort((a, b) => (eventStart(a)?.getTime() ?? 0) - (eventStart(b)?.getTime() ?? 0))
     .slice(0, 3);
   if (!events.length && !liveTitle) return null;
+  // On phones the events already sit inside the Reserve section right above, so
+  // this card only shows there while a Subscriber Live is on.
   return (
-    <section aria-labelledby="upcoming-title" className="mb-6 rounded-3xl bg-white p-5 shadow-sm sm:p-6" data-testid="upcoming-access">
+    <section aria-labelledby="upcoming-title" className={`mb-6 rounded-3xl bg-white p-5 shadow-sm sm:p-6 ${liveTitle ? '' : 'max-sm:hidden'}`} data-testid="upcoming-access">
       <h2 id="upcoming-title" className="text-base font-bold text-ink">Próximos Lives para suscriptores y Reserve Events</h2>
       <ul className="mt-3 divide-y divide-line">
         {liveTitle && (
@@ -212,7 +214,7 @@ export const UpcomingAccess: React.FC<{ creatorId: string; experiences: VipExper
                 </span>
                 <span className="block truncate text-sm font-semibold text-ink">{e.title}</span>
               </span>
-              <a href="#reserve" className="inline-flex h-9 items-center rounded-full border border-ink px-4 text-xs font-semibold text-ink">Reservar plaza</a>
+              <a href="#reserve" onClick={(ev) => { ev.preventDefault(); openReserve(); }} className="inline-flex h-9 items-center rounded-full border border-ink px-4 text-xs font-semibold text-ink">Reservar plaza</a>
             </li>
           );
         })}

@@ -40,17 +40,20 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
   const subscriberLive = live?.mode === 'subscriber';
   const canEnter = !!live && (!subscriberLive || isSubscribed || isOwner);
   const alerts = useLiveAlerts(following ? creator.id : undefined, user);
-  const step = 'flex flex-col rounded-2xl border border-line bg-white p-4';
+  // Phones: three compact steps in one row (no descriptions); wider screens: full cards.
+  const step = 'flex min-w-0 flex-col rounded-2xl border border-line bg-white px-2.5 py-3 sm:p-4';
+  const eyebrow = 'whitespace-nowrap text-[10px] font-semibold uppercase tracking-normal sm:whitespace-normal sm:text-[11px] sm:tracking-[0.14em]';
+  const blurb = 'text-xs text-ink/60 max-sm:hidden';
   const action = 'mt-3 inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition';
 
   return (
     <section id="acceso" aria-labelledby="access-title" className="mb-6 scroll-mt-24" data-testid="access-ladder">
       <h2 id="access-title" className="sr-only">Formas de acceso</h2>
-      <ol className="grid grid-cols-2 gap-3 lg:grid-cols-3 [&>li:last-child]:col-span-2 lg:[&>li:last-child]:col-span-1">
+      <ol className="grid grid-cols-3 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 sm:[&>li:last-child]:col-span-2 lg:[&>li:last-child]:col-span-1">
         <li className={step}>
-          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">1 · Seguir</span>
+          <span className={`${eyebrow} text-muted`}>1 · Seguir</span>
           <span className="mt-1 text-sm font-semibold text-ink">Gratis</span>
-          <span className="text-xs text-ink/60">Contenido público y novedades.</span>
+          <span className={blurb}>Contenido público y novedades.</span>
           {!isOwner && following && (
             <span className="mt-3 inline-flex items-center text-xs font-semibold text-ink/70" data-testid="ladder-following">
               <Icon name="fa-check" className="mr-1.5 text-emerald-600" />Ya lo sigues
@@ -71,13 +74,13 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
           )}
         </li>
         <li className={`${step} ${live ? 'border-iris-200 bg-iris-50/40' : ''}`} data-testid="ladder-subscribe">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">2 · Suscribirse</span>
+          <span className={`${eyebrow} text-muted`}>2 · Suscribirse</span>
           {editsPrice && user ? (
             <PriceEditor price={user.subscriptionPrice ?? creator.subscriptionPrice} />
           ) : (
             <span className="mt-1 text-sm font-semibold text-ink">${creator.subscriptionPrice}/mes</span>
           )}
-          <span className="text-xs text-ink/60">Contenido exclusivo, Lives para suscriptores y beneficios del creador.</span>
+          <span className={blurb}>Contenido exclusivo, Lives para suscriptores y beneficios del creador.</span>
           {live && (
             <span className="mt-2 flex flex-col gap-0.5" data-testid="live-now">
               <span className="flex items-center text-sm font-semibold text-red-600">
@@ -110,10 +113,10 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
           )}
         </li>
         <li className={`${step} border-gold-300 bg-gradient-to-br from-white to-gold-50`}>
-          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gold-700">3 · Reserve</span>
+          <span className={`${eyebrow} text-gold-700`}>3 · Reserve</span>
           <span className="mt-1 text-sm font-semibold text-ink">{experiences ? `${experiences} ${experiences === 1 ? 'experiencia' : 'experiencias'}` : 'A medida'}</span>
-          <span className="text-xs text-ink/60">Reserve Events en grupo y videollamadas 1:1 con {creator.name.split(' ')[0]}, con fecha, precio y reglas.</span>
-          <a href="#reserve" onClick={(e) => { e.preventDefault(); openReserve(); }} className="mt-3 inline-flex items-center gap-1.5 self-start text-sm font-semibold text-ink hover:text-brand-700">Ver experiencias <Icon name="fa-arrow-right" className="text-xs" /></a>
+          <span className={blurb}>Reserve Events en grupo y videollamadas 1:1 con {creator.name.split(' ')[0]}, con fecha, precio y reglas.</span>
+          <a href="#reserve" onClick={(e) => { e.preventDefault(); openReserve(); }} className="mt-auto inline-flex items-center gap-1.5 self-start pt-2 text-xs font-semibold text-ink hover:text-brand-700 sm:pt-3 sm:text-sm">Ver<span className="max-sm:hidden"> experiencias</span> <Icon name="fa-arrow-right" className="text-xs" /></a>
         </li>
       </ol>
     </section>
