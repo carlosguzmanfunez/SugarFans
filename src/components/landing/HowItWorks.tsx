@@ -152,7 +152,7 @@ const ReserveDemo: React.FC = () => {
     <div className="mini">
       <div className="row">
         <div className="av"><img src={c.avatar} alt="" /></div>
-        <div className="v-grow"><b>Videollamada privada 1:1</b><span>{c.name}, 20 min, solo tú y {c.name.split(' ')[0]}</span></div>
+        <div className="v-grow"><b>Videollamada 1:1</b><span>{c.name}, 20 min, solo tú y {c.name.split(' ')[0]}</span></div>
       </div>
       <div className="calendar">
         {DAYS.map((d) => (
@@ -168,7 +168,7 @@ const ReserveDemo: React.FC = () => {
       </div>
       <div className="total">
         <div><small>Total</small><strong>$19.99</strong></div>
-        <button type="button" className="v-btn v-gold v-sm" onClick={() => setSent(true)}>{sent ? 'Solicitud enviada' : 'Reservar sesión privada'}</button>
+        <button type="button" className="v-btn v-gold v-sm" onClick={() => setSent(true)}>{sent ? 'Solicitud enviada' : 'Reservar videollamada'}</button>
       </div>
     </div>
   );
@@ -219,7 +219,7 @@ const HowItWorks: React.FC = () => {
     : [
         follow,
         sub,
-        { key: 'both', cls: 'p-res p-both', label: 'Reserva', price: 'Desde $15.99', title: 'Habla contigo, cara a cara', sub: 'Elige cómo: un evento en grupo con plazas o una videollamada privada, solo tú y el creador.', icon: TICKET },
+        { key: 'both', cls: 'p-res p-both', label: 'Reserva', price: 'Desde $15.99', title: 'Habla contigo, cara a cara', sub: 'Elige cómo: un evento en grupo con plazas o una videollamada 1:1, solo tú y el creador.', icon: TICKET },
       ];
   const faceWho = ENABLE_OPEN_LIVE ? [byId('1').avatar, byId('2').avatar, byId('5').avatar, byId('3').avatar] : [byId('1').avatar, byId('2').avatar, byId('3').avatar];
   const count = panels.length;

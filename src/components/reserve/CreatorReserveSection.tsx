@@ -21,7 +21,7 @@ interface Props {
 // Reserve's products on a profile, in this order.
 const GROUPS: { id: ReserveProduct; title: string; hint: string }[] = [
   { id: 'event', title: RESERVE_FORMATS.event.product, hint: 'En grupo, con fecha fija y plazas limitadas. Reserva tu plaza.' },
-  { id: 'one-to-one', title: RESERVE_FORMATS.private.product, hint: 'Sesión privada: solo tú y el creador en la sala.' },
+  { id: 'one-to-one', title: RESERVE_FORMATS.private.product, hint: 'Videollamada por Fans Reserve: solo tú y el creador.' },
   { id: 'other', title: 'Otras experiencias', hint: 'Presenciales, profesionales o entregadas en la app.' },
 ];
 
@@ -49,7 +49,10 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, use
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gold-700">Reserve · {category.name}</p>
           <h2 id="reserve-title" className="mt-1 text-xl font-bold text-ink sm:text-2xl">Reserve con {first}</h2>
-          <p className="mt-1 text-sm text-ink/70">Reserve Events en grupo, sesiones privadas 1:1 y experiencias con fecha, duración, precio y reglas definidas por {first}. Reservas experiencias, no personas.</p>
+          <p className="mt-1 text-sm text-ink/70">Reserve Events en grupo, videollamadas 1:1 por nuestra plataforma y experiencias con fecha, duración, precio y reglas definidas por {first}.</p>
+          <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-gold-50 px-3 py-1 text-sm font-semibold text-gold-700 ring-1 ring-gold-200" data-testid="reserve-principle">
+            <i aria-hidden="true" className="fas fa-shield-halved text-xs"></i>Reserva experiencias, no personas.
+          </p>
         </div>
         {isOwner && (
           <Link

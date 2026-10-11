@@ -291,7 +291,7 @@ const LiveRoom: React.FC = () => {
           <h1 className="text-xl font-bold text-gray-900">{booking.title}</h1>
           <p className="text-gray-600 mt-1">con {otherName}</p>
           <p className="text-sm text-gray-500 mt-1 first-letter:uppercase">{formatLongDate(booking.date)} · {booking.time} · {minutes} min</p>
-          <p className="text-sm text-gray-500 mt-4">Tu navegador te pedirá permiso para usar la cámara y el micrófono. La llamada es privada entre ustedes dos.</p>
+          <p className="text-sm text-gray-500 mt-4">Tu navegador te pedirá permiso para usar la cámara y el micrófono. Solo están ustedes dos en la llamada y no se graba.</p>
           {phase === 'lobby' && (
             <div className="mt-5">
               <CameraPreview cam={cam} />

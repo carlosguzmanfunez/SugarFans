@@ -156,6 +156,20 @@ const DEMO_REFUSAL = /perfil es de demostración|creador no está disponible/;
 // Paying one's own creator account from a fan account (guard_self_payment).
 const SELF_PAY = 'No puedes pagarte a ti mismo: esta cuenta y la del creador son de la misma persona.';
 const SELF_REFUSAL = /No puedes pagarte a ti mismo/;
+// Valentina ('1') is the demo creator@ account and shows "Perfil de ejemplo": it has an
+// owner, so the database accepts payments to it (Preview tests pay it in sandbox), but
+// with real money (PAYPAL_ENV=live) nobody can pay it.
+const EXAMPLE_PROFILES = new Set(['1']);
+const EXAMPLE_PAY = 'Este es un perfil de ejemplo: no acepta pagos.';
+const examplePaid = async (e: Env, userToken: string, kind: string, params: Record<string, unknown>) => {
+  if (e.mode !== 'live') return false;
+  let creator = typeof params.creatorProfileId === 'string' ? params.creatorProfileId : '';
+  if (kind === 'booking' && typeof params.bookingId === 'string') {
+    const r = await supabase(`/rest/v1/vip_bookings?id=eq.${encodeURIComponent(params.bookingId)}&select=creator_profile_id`, asUser(userToken));
+    creator = Array.isArray(r.data) ? String((r.data[0] as { creator_profile_id?: string } | undefined)?.creator_profile_id ?? '') : '';
+  }
+  return EXAMPLE_PROFILES.has(creator);
+};
 
 const rpc = (e: Env, name: string, body: unknown) => supabase(`/rest/v1/rpc/${name}`, asServer(e.serviceKey), body);
 
@@ -459,6 +473,7 @@ export async function POST(request: Request): Promise<Response> {
       const amount = Number(quote.data?.amount);
       if (!(amount > 0)) return json(400, { error: 'No se pudo calcular el monto.' });
       if (await paysSelf(e, userId, kind, params)) return json(403, { error: SELF_PAY });
+      if (await examplePaid(e, token, kind, params)) return json(403, { error: EXAMPLE_PAY });
 
       const order = await paypal(e, ppToken, '/v2/checkout/orders', {
         intent: 'CAPTURE',
@@ -546,6 +561,7 @@ export async function POST(request: Request): Promise<Response> {
       const amount = Number(quote.data?.amount);
       if (!(amount > 0)) return json(400, { error: 'No se pudo calcular el monto.' });
       if (await paysSelf(e, userId, 'subscription', { creatorProfileId: creator })) return json(403, { error: SELF_PAY });
+      if (await examplePaid(e, token, 'subscription', { creatorProfileId: creator })) return json(403, { error: EXAMPLE_PAY });
       const startTime = typeof quote.data?.startTime === 'string' ? new Date(quote.data.startTime).toISOString() : null;
       const planId = await planFor(e, ppToken, amount);
 

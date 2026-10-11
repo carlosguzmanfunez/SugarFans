@@ -152,7 +152,7 @@ let vipDate = '';
 
 // Opens the Reserve request for the first experience (Valentina Rose's 1:1 video
 // call, creator profile 1: manual approval, 24 h minimum notice).
-const RESERVE_BUTTON = /^(Solicitar|Reservar)( sesión privada)?: /;
+const RESERVE_BUTTON = /^(Solicitar|Reservar)( videollamada 1:1)?: /;
 const openBooking = async (page) => {
   await page.goto(`${BASE}/reserve`);
   await page.getByRole('button', { name: RESERVE_BUTTON }).first().click();
@@ -325,9 +325,26 @@ const run = async () => {
         const ext = await page.evaluate(() => [...document.images].map((i) => i.currentSrc || i.src).filter((src) => src && !src.startsWith(location.origin) && !src.startsWith('data:')));
         expect(ext.length === 0, `${path} carga imágenes externas: ${ext.join(', ')}`);
       }
+      // The example creators say so, and don't claim to be verified people.
       await page.goto(`${BASE}/creator/1`);
-      await page.getByText('Verificado', { exact: true }).waitFor();
+      await page.getByTestId('demo-profile-note').getByText(/no son reales, y no acepta pagos/).waitFor();
+      await page.getByTestId('demo-badge').getByText('Perfil de ejemplo').waitFor();
+      expect((await page.getByText('Verificado', { exact: true }).count()) === 0, 'un perfil de ejemplo no debe llevar Verificado');
+      await page.goto(`${BASE}/explore`);
+      await page.getByTestId('creator-card').filter({ hasText: 'Valentina' }).first().getByTestId('demo-badge').waitFor();
       expect((await fetch(`${BASE}/brand/coin.png`)).ok, 'falta el icono de créditos');
+    });
+    await check('Recorrido para captar creadores: 4 formas de ganar, 3 pasos y el perfil de ejemplo', async () => {
+      await page.goto(`${BASE}/recorrido`);
+      await page.getByTestId('sales-tour').getByText('Invitación para creadores').waitFor();
+      expect((await page.getByTestId('pitch-way').count()) === 4, 'no hay 4 formas de ganar');
+      expect((await page.getByTestId('pitch-step').count()) === 3, 'no hay 3 pasos');
+      await page.getByTestId('pitch-fan-proposal').getByText('Tus fans también te proponen.').waitFor();
+      expect((await page.getByTestId('pitch-cta').count()) === 2, 'sin sesión falta el botón de crear cuenta');
+      expect((await page.getByTestId('sales-tour').getByText(/\d+ ?%/).count()) === 0, 'el recorrido no debe mostrar porcentajes');
+      await page.getByTestId('pitch-example').click();
+      await page.waitForURL(/\/creator\/1$/);
+      await page.getByTestId('demo-profile-note').waitFor();
     });
     await check('Favicon, iconos PWA y preview social existen', async () => {
       const manifest = await (await fetch(`${BASE}/manifest.webmanifest`)).json();
@@ -971,8 +988,8 @@ const run = async () => {
       await page.getByTestId('managed-badge').getByText('P-IA', { exact: true }).waitFor();
       expect((await page.getByText('Verificado', { exact: true }).count()) === 0, 'un perfil IA no debe llevar Verificado');
       await page.goto(`${BASE}/creator/1`);
-      await page.getByText('Verificado', { exact: true }).waitFor();
-      expect((await page.getByTestId('managed-badge').count()) === 0, 'una creadora humana no debe llevar P-IA');
+      await page.getByTestId('demo-badge').waitFor();
+      expect((await page.getByTestId('managed-badge').count()) === 0, 'un perfil de ejemplo no debe llevar P-IA');
     });
     await check('Admin publica una foto como el perfil IA y la puede borrar', async () => {
       await page.goto(`${BASE}/explore`);
@@ -2071,7 +2088,7 @@ const run = async () => {
       await rf.keyboard.press('Escape');
     });
 
-    console.log('\nMeta de experiencia: regalos y propinas, ruleta y ticket');
+    console.log('\nMeta de experiencia: regalos y propinas, y ticket');
     await check('El creador activa su Meta de experiencia con una de sus experiencias', async () => {
       const panel = await openGoals();
       const goal = panel.getByTestId('goal-settings');
@@ -2091,16 +2108,16 @@ const run = async () => {
       await rf.goto(`${BASE}/creator/1`);
       await rf.getByTestId('goal-progress').getByText('$20.00 de $20.00').waitFor();
     });
-    await check('Al llenarla elige la experiencia, gira la ruleta (siempre gana un extra) y recibe su ticket', async () => {
+    await check('Al llenarla elige la experiencia y recibe su ticket (sin ruleta ni extra)', async () => {
       await rf.getByTestId('goal-claim').click();
       const dialog = rf.getByTestId('goal-dialog');
       await dialog.locator('label').filter({ hasText: 'Videollamada 1:1' }).getByTestId('goal-choice').check();
-      await dialog.getByTestId('goal-spin').click();
-      await dialog.getByTestId('goal-wheel').waitFor();
+      await dialog.getByTestId('goal-pick').click();
       const won = dialog.getByTestId('goal-won');
-      await won.waitFor({ timeout: 10000 });
-      await won.getByText(/10 minutos más|Saludo en su próximo Live|Mensaje de agradecimiento|Foto de recuerdo/).first().waitFor();
+      await won.waitFor();
+      await won.getByText('Videollamada 1:1').waitFor();
       await won.getByText(/vence el/).waitFor();
+      expect(!/ruleta|extra/i.test(await dialog.innerText()), 'todavía habla de ruleta o extra');
       await won.getByTestId('goal-won-book').click();
     });
     await check('Reserva con el ticket eligiendo solo día y hora, sin pagar', async () => {
@@ -2114,7 +2131,7 @@ const run = async () => {
       await rf.getByTestId('goal-ticket').getByText('Reserva enviada').waitFor();
       await rf.getByTestId('goal-progress').getByText('$0.00 de $20.00').waitFor();
     });
-    await check('El creador ve el ticket y el extra en la solicitud, y al aceptarla queda confirmada sin pago', async () => {
+    await check('El creador ve el ticket en la solicitud, y al aceptarla queda confirmada sin pago', async () => {
       await rc.goto(`${BASE}/creator/dashboard?tab=vip`);
       await openReserveSection(rc, 'Solicitudes');
       const req = rc.getByTestId('vip-requests').getByTestId('vip-request').filter({ has: rc.getByTestId('booking-ticket') });
@@ -2123,7 +2140,7 @@ const run = async () => {
       await req.getByRole('button', { name: 'Aceptar' }).click();
       await rf.goto(`${BASE}/profile`);
       await rf.getByTestId('bookings').getByTestId('booking').filter({ has: rf.getByTestId('booking-ticket') }).getByText('Confirmada').waitFor();
-      await rf.getByTestId('my-tickets').getByText(/usado/).waitFor();
+      await rf.getByTestId('my-tickets').getByText(/Usado/).waitFor();
     });
     await rewardsCtx.close();
 
@@ -2371,7 +2388,7 @@ const run = async () => {
       await resF.getByRole('button', { name: /Tu gente/ }).click();
       await resF.getByTestId('creator-card').filter({ hasText: 'Valentina Rose' }).waitFor();
       await resF.goto(`${BASE}/`);
-      await resF.getByText('Suscríbete a tus creadores y reserva eventos y sesiones privadas con fecha, precio y reglas claras.').waitFor();
+      await resF.getByText('Suscríbete a tus creadores y reserva eventos y videollamadas 1:1 con fecha, precio y reglas claras.').waitFor();
       // Fans get a message for fans; creators keep "Cada creador trae a su comunidad".
       await resF.locator('#categories-title').getByText('Encuentra a los creadores que sigues').waitFor();
       await resF.locator('#categories-title').getByText('y a los que vas a seguir').waitFor();
@@ -2497,7 +2514,7 @@ const run = async () => {
       await resF.getByTestId('access-ladder').waitFor();
       expect((await resF.getByTestId('live-now').count()) === 0, 'sigue en Live');
     });
-    await check('Reserve Event: el fan reserva su plaza y la sala de grupo no es la de una sesión privada', async () => {
+    await check('Reserve Event: el fan reserva su plaza y la sala de grupo no es la de una videollamada 1:1', async () => {
       await resF.goto(`${BASE}/creator/1`);
       const group = resF.getByTestId('reserve-group-event');
       const card = group.getByTestId('reserve-card').filter({ hasText: 'Beauty Q&A con Valentina' });
@@ -2517,8 +2534,8 @@ const run = async () => {
       await resF.keyboard.press('Escape');
       await resF.goto(`${BASE}/creator/1`);
       const section = resF.getByTestId('creator-reserve');
-      await section.getByTestId('notice-subscription').getByText(/No incluye Reserve Events, sesiones privadas ni otras experiencias de Reserve/).waitFor();
-      await section.getByTestId('notice-gift').getByText(/No garantizan respuesta, conversación ni acceso\. Si el creador tiene una Meta de experiencia/).waitFor();
+      await section.getByTestId('notice-subscription').getByText(/No incluye Reserve Events, videollamadas 1:1 ni otras experiencias de Reserve/).waitFor();
+      await section.getByTestId('notice-gift').getByText(/no garantizan respuesta, conversación ni acceso\. Si el creador tiene una Meta de experiencia, se van acumulando hasta que la completes/).waitFor();
       await resF.getByRole('button', { name: 'Enviar regalo' }).click();
       const dialog = resF.getByRole('dialog', { name: /Regalo para Valentina Rose/ });
       await dialog.getByRole('button', { name: /Corona/ }).first().click();

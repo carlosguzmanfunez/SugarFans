@@ -17,7 +17,7 @@
 export type ReserveModality = 'virtual' | 'presencial' | 'evento' | 'profesional';
 
 export const RESERVE_MODALITIES: Record<ReserveModality, { label: string; icon: string; description: string }> = {
-  virtual: { label: 'Virtual', icon: 'fa-video', description: 'En la sala privada de Fans Reserve o como contenido entregado en la app.' },
+  virtual: { label: 'Virtual', icon: 'fa-video', description: 'Online en Fans Reserve (Sala 1:1 o sala del evento) o como contenido entregado en la app.' },
   presencial: { label: 'Presencial', icon: 'fa-location-dot', description: 'En un venue, estudio o lugar público definido de antemano, o en el lugar del creador o del fan con aprobación manual (todas las categorías menos Tu gente).' },
   evento: { label: 'Evento', icon: 'fa-calendar-check', description: 'Convenciones, apariciones, firmas y eventos con público.' },
   profesional: { label: 'Profesional', icon: 'fa-briefcase', description: 'Colaboraciones, producciones y servicios profesionales.' },
@@ -48,7 +48,7 @@ export type LocationType =
   | 'fan-place';
 
 export const LOCATION_TYPES: Record<LocationType, { label: string; icon: string; hint: string }> = {
-  online: { label: 'Sala online de Fans Reserve', icon: 'fa-video', hint: 'Videollamada privada dentro de la app' },
+  online: { label: 'Sala online de Fans Reserve', icon: 'fa-video', hint: 'Videollamada dentro de la app' },
   'public-place': { label: 'Lugar público', icon: 'fa-tree-city', hint: 'Abierto y concurrido: plaza, centro comercial, espacio público' },
   restaurant: { label: 'Restaurante o cafetería', icon: 'fa-mug-saucer', hint: 'Establecimiento abierto al público' },
   'event-venue': { label: 'Venue de evento', icon: 'fa-building-flag', hint: 'Sala de eventos, auditorio o local' },
@@ -110,9 +110,9 @@ const t = (x: ReserveExperienceType) => x;
 
 export const RESERVE_EXPERIENCE_TYPES: ReserveExperienceType[] = [
   // Virtual, shared by several categories
-  t({ id: 'video-call', name: 'Videollamada 1:1', icon: 'fa-video', description: 'Sesión privada por video dentro de Fans Reserve.', modalities: ['virtual'], locations: [], minutes: [10, 60], defaultMinutes: 20, maxParticipants: 1 }),
+  t({ id: 'video-call', name: 'Videollamada 1:1', icon: 'fa-video', description: 'Videollamada dentro de Fans Reserve, solo tú y el creador.', modalities: ['virtual'], locations: [], minutes: [10, 60], defaultMinutes: 20, maxParticipants: 1 }),
   t({ id: 'live-1-1', name: 'Live 1:1', icon: 'fa-tower-broadcast', description: 'Un Live solo para ti, con chat y regalos.', modalities: ['virtual'], locations: [], minutes: [10, 60], defaultMinutes: 15, maxParticipants: 1 }),
-  t({ id: 'qa-session', name: 'Q&A privado', icon: 'fa-comments', description: 'Pregunta lo que quieras sobre su trabajo.', modalities: ['virtual'], locations: [], minutes: [10, 60], defaultMinutes: 20, maxParticipants: 3, legacy: true }),
+  t({ id: 'qa-session', name: 'Q&A en vivo', icon: 'fa-comments', description: 'Pregunta lo que quieras sobre su trabajo.', modalities: ['virtual'], locations: [], minutes: [10, 60], defaultMinutes: 20, maxParticipants: 3, legacy: true }),
   t({ id: 'personal-greeting', name: 'Saludo personalizado', icon: 'fa-hand-sparkles', description: 'Un video con tu nombre, entregado en la app.', modalities: ['virtual'], locations: [], minutes: null, maxParticipants: 1 }),
   t({ id: 'custom-content', name: 'Contenido personalizado', icon: 'fa-wand-magic-sparkles', description: 'Contenido hecho para ti, dentro de las políticas.', modalities: ['virtual'], locations: [], minutes: null, maxParticipants: 1, legacy: true }),
   t({ id: 'early-access', name: 'Acceso anticipado', icon: 'fa-bolt', description: 'Estrenos y lanzamientos antes que nadie.', modalities: ['virtual'], locations: [], minutes: null, maxParticipants: 1, legacy: true }),
@@ -149,13 +149,13 @@ export const RESERVE_EXPERIENCE_TYPES: ReserveExperienceType[] = [
 
   // Music
   t({ id: 'music-class', name: 'Clase privada de música', icon: 'fa-music', description: 'Técnica, instrumento o producción.', modalities: ['virtual'], locations: [], minutes: [30, 90], defaultMinutes: 60, maxParticipants: 1 }),
-  t({ id: 'listening-session', name: 'Escucha privada', icon: 'fa-headphones', description: 'Escucha un estreno antes que nadie, con comentarios del artista.', modalities: ['virtual'], locations: [], minutes: [15, 60], defaultMinutes: 30, maxParticipants: 4 }),
+  t({ id: 'listening-session', name: 'Escucha anticipada', icon: 'fa-headphones', description: 'Escucha un estreno antes que nadie, con comentarios del artista.', modalities: ['virtual'], locations: [], minutes: [15, 60], defaultMinutes: 30, maxParticipants: 4 }),
   t({ id: 'studio-session', name: 'Sesión de estudio', icon: 'fa-sliders', description: 'Grabación o producción en estudio.', modalities: ['presencial', 'profesional'], locations: ['studio'], minutes: [60, 180], defaultMinutes: 120, maxParticipants: 4, alwaysManual: true }),
 
   // Gaming
   t({ id: 'private-match', name: 'Partida privada', icon: 'fa-gamepad', description: 'Juega una partida con el creador.', modalities: ['virtual'], locations: [], minutes: [20, 120], defaultMinutes: 45, maxParticipants: 4 }),
   t({ id: 'gaming-session', name: 'Gaming session', icon: 'fa-headset', description: 'Sesión de juego con estrategia y charla.', modalities: ['virtual'], locations: [], minutes: [30, 180], defaultMinutes: 60, maxParticipants: 4 }),
-  t({ id: 'stream-1-1', name: 'Stream 1:1', icon: 'fa-display', description: 'Un stream privado solo para ti.', modalities: ['virtual'], locations: [], minutes: [15, 90], defaultMinutes: 30, maxParticipants: 1 }),
+  t({ id: 'stream-1-1', name: 'Stream 1:1', icon: 'fa-display', description: 'Un stream solo para ti.', modalities: ['virtual'], locations: [], minutes: [15, 90], defaultMinutes: 30, maxParticipants: 1 }),
   t({ id: 'tournament', name: 'Torneo', icon: 'fa-trophy', description: 'Torneo presencial organizado por el creador.', modalities: ['evento'], locations: ['gaming-venue', 'convention', 'event-venue'], minutes: [60, 180], defaultMinutes: 180, maxParticipants: 50 }),
 
   // Art
@@ -481,7 +481,7 @@ export const EVENT_TYPES = [
 ];
 export const MIN_EVENT_SEATS = 2;
 export const RESERVE_FORMATS = {
-  private: { label: 'Sesión privada', product: 'Reserve 1:1', icon: 'fa-user-lock', description: 'Solo tú y el fan, en el horario que el fan elige de tu calendario.', cta: 'Reservar sesión privada' },
+  private: { label: 'Videollamada 1:1', product: 'Reserve 1:1', icon: 'fa-video', description: 'Solo tú y el fan, en el horario que el fan elige de tu calendario.', cta: 'Reservar videollamada 1:1' },
   event: { label: 'Reserve Event', product: 'Reserve Event', icon: 'fa-people-group', description: 'Grupal, con fecha y hora fijas. Cada fan reserva y paga su plaza.', cta: 'Reserva tu plaza' },
 } as const;
 export const MAX_LIST_ITEMS = 6;
@@ -531,11 +531,11 @@ export const RESERVE_FLOW = ['Solicitud', 'Aceptación', 'Pago', 'Confirmación'
 
 export const RESERVE_COPY = {
   principle: 'Reservas experiencias, no personas.',
-  gift: 'Los regalos son apoyo voluntario. No garantizan respuesta, conversación ni acceso. Si el creador tiene una Meta de experiencia, tus regalos y propinas la van llenando.',
-  subscription: 'La suscripción da acceso al contenido, a los Lives para suscriptores y a los beneficios que el creador define. No incluye Reserve Events, sesiones privadas ni otras experiencias de Reserve.',
-  subscriberLive: 'Live grupal incluido en tu suscripción. No es tiempo privado con el creador ni garantiza interacción individual.',
-  event: 'Reserve Event: experiencia grupal con fecha, duración, precio y plazas definidas. Tu plaza garantiza el acceso al evento, no tiempo privado.',
-  oneToOne: 'Reserve 1:1: sesión privada solo entre tú y el creador, dentro de la reserva confirmada.',
+  gift: 'Los regalos son apoyo voluntario: no garantizan respuesta, conversación ni acceso. Si el creador tiene una Meta de experiencia, se van acumulando hasta que la completes.',
+  subscription: 'La suscripción da acceso al contenido, a los Lives para suscriptores y a los beneficios que el creador define. No incluye Reserve Events, videollamadas 1:1 ni otras experiencias de Reserve.',
+  subscriberLive: 'Live grupal incluido en tu suscripción. No es tiempo individual con el creador ni garantiza interacción individual.',
+  event: 'Reserve Event: experiencia grupal con fecha, duración, precio y plazas definidas. Tu plaza garantiza el acceso al evento, no tiempo individual.',
+  oneToOne: 'Reserve 1:1: videollamada solo entre tú y el creador, dentro de la reserva confirmada.',
   reserve: 'Una Reserve es una experiencia concreta, con fecha, duración, precio y condiciones definidas por el creador, que el creador acepta o rechaza.',
   testPayments: 'Pagos en modo de prueba: no se realiza ningún cargo real.',
   legalDraft: 'Borrador. Requiere revisión legal antes del lanzamiento a producción.',

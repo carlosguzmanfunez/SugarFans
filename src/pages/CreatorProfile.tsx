@@ -4,6 +4,8 @@ import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { posts, creators as demoCreators, type Creator } from '../data/mockData';
 import { useCreatorCatalog, fromPublic } from '../lib/catalog';
 import ManagedBadge from '../components/ManagedBadge';
+import { isDemoProfile } from '../lib/demoProfiles';
+import { BRAND } from '../config/brand';
 import Avatar from '../components/Avatar';
 import { CoverImage, isPlaceholderImage } from '../components/CoverArt';
 import LevelBadge, { MedalBadges } from '../components/LevelBadge';
@@ -112,6 +114,11 @@ const CreatorProfile: React.FC = () => {
   useEffect(() => {
     if (location.hash === '#reserve' && experiences.length) document.getElementById('reserve')?.scrollIntoView({ block: 'start' });
   }, [location.hash, experiences.length]);
+  // /creator/:id#acceso (the sales tour) lands on Seguir → Suscribirse → Reserve.
+  const profileReady = !!(catalogCreator || signedUp);
+  useEffect(() => {
+    if (location.hash === '#acceso' && profileReady) document.getElementById('acceso')?.scrollIntoView({ block: 'start' });
+  }, [location.hash, profileReady]);
 
   // Posts published from the creator panel, then like/comment totals for every post.
   const { data: feed } = usePlatformQuery(
@@ -353,7 +360,7 @@ const CreatorProfile: React.FC = () => {
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-display-md text-ink">{creator.name}</h1>
-                {creator.isVerified && (
+                {creator.isVerified && !isDemoProfile(creator) && (
                   <span className="flex items-center bg-iris-50 text-iris-700 px-2 py-0.5 rounded-full text-xs font-medium">
                     <Icon name="fa-check-circle" className="mr-1" /> Verificado
                   </span>
@@ -526,6 +533,12 @@ const CreatorProfile: React.FC = () => {
               <p className="text-gray-500">Me gusta</p>
             </div>
           </div>
+          {isDemoProfile(creator) && (
+            <p className="mt-4 text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2" data-testid="demo-profile-note">
+              <i aria-hidden="true" className="fas fa-circle-info mr-1"></i>
+              Perfil de ejemplo para mostrarte cómo funciona {BRAND.name}. Sus seguidores, publicaciones y me gusta no son reales, y no acepta pagos.
+            </p>
+          )}
         </div>
 
         {/* Bio */}

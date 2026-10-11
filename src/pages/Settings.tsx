@@ -306,7 +306,7 @@ const Settings: React.FC = () => {
                           <span className="px-3 flex items-center bg-gray-50 text-gray-500 text-sm border-r border-gray-200 whitespace-nowrap">fansreserve.com/@</span>
                           <input id="settings-username" type="text" name="username" value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, '').toLowerCase())} maxLength={31} autoCapitalize="none" autoCorrect="off" spellCheck={false} className="flex-1 min-w-0 px-3 py-3 outline-none" />
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">Ponlo en tu bio de TikTok e Instagram: quien entre por tu enlace queda como fan tuyo.</p>
+                        <p className="text-xs text-gray-500 mt-1">Ponlo en la bio de tus redes sociales: quien entre por tu enlace queda como fan tuyo.</p>
                         {user.username && (
                           <button
                             type="button"

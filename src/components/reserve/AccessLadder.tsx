@@ -43,7 +43,7 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
   const action = 'mt-3 inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition';
 
   return (
-    <section aria-labelledby="access-title" className="mb-6" data-testid="access-ladder">
+    <section id="acceso" aria-labelledby="access-title" className="mb-6 scroll-mt-24" data-testid="access-ladder">
       <h2 id="access-title" className="sr-only">Formas de acceso</h2>
       <ol className="grid grid-cols-2 gap-3 lg:grid-cols-3 [&>li:last-child]:col-span-2 lg:[&>li:last-child]:col-span-1">
         <li className={step}>
@@ -111,7 +111,7 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
         <li className={`${step} border-gold-300 bg-gradient-to-br from-white to-gold-50`}>
           <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gold-700">3 · Reserve</span>
           <span className="mt-1 text-sm font-semibold text-ink">{experiences ? `${experiences} ${experiences === 1 ? 'experiencia' : 'experiencias'}` : 'A medida'}</span>
-          <span className="text-xs text-ink/60">Reserve Events en grupo y sesiones privadas 1:1 con {creator.name.split(' ')[0]}, con fecha, precio y reglas.</span>
+          <span className="text-xs text-ink/60">Reserve Events en grupo y videollamadas 1:1 con {creator.name.split(' ')[0]}, con fecha, precio y reglas.</span>
           <a href="#reserve" className="mt-3 inline-flex items-center gap-1.5 self-start text-sm font-semibold text-ink hover:text-brand-700">Ver experiencias <Icon name="fa-arrow-right" className="text-xs" /></a>
         </li>
       </ol>

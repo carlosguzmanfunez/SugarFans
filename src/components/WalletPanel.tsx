@@ -55,7 +55,7 @@ const WalletPanel: React.FC<{ user: User }> = ({ user }) => {
           <div className="divide-y divide-gray-100">
             {data.perks.map((p) => (
               <div key={p.id} className="py-3 text-sm" data-testid="my-perk">
-                <p className="font-medium text-gray-900">{p.kind === 'video' ? 'Video personalizado' : 'Videollamada privada'} de {p.creatorName}</p>
+                <p className="font-medium text-gray-900">{p.kind === 'video' ? 'Video personalizado' : 'Videollamada 1:1'} de {p.creatorName}</p>
                 <p className="text-xs text-gray-500">{perkLabel(p)}</p>
                 {p.status === 'delivered' && p.mediaUrl && <video src={p.mediaUrl} controls playsInline className="mt-2 w-full max-w-sm rounded-xl" />}
                 {p.status === 'scheduled' && p.bookingId && (

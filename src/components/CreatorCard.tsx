@@ -8,6 +8,7 @@ import { categoryFor } from '../config/reserve';
 import { CoverImage } from './CoverArt';
 import Avatar from './Avatar';
 import ManagedBadge from './ManagedBadge';
+import { isDemoProfile } from '../lib/demoProfiles';
 import LevelBadge from './LevelBadge';
 
 export const formatPrice = (n: number) => `$${n.toFixed(2).replace(/\.00$/, '')}`;
@@ -66,7 +67,7 @@ const CreatorCard: React.FC<{
         </div>
         <div className="mt-3 flex min-w-0 flex-wrap items-center gap-x-1">
           <h3 className="truncate text-base font-semibold text-ink">{creator.name}</h3>
-          {creator.isVerified && (
+          {creator.isVerified && !isDemoProfile(creator) && (
             <i className="fas fa-circle-check text-[13px] text-iris-600" role="img" title="Identidad verificada" aria-label="Identidad verificada"></i>
           )}
           <ManagedBadge creator={creator} />

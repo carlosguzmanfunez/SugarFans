@@ -35,6 +35,10 @@ globalThis.fetch = async (url, init = {}) => {
     if (body.p_kind === 'tip' && body.p_params.amount > 500) return res(400, { message: 'La propina debe estar entre $1 y $500' });
     return res(200, { amount: body.p_kind === 'coins' ? 4.99 : body.p_params.amount, description: 'Prueba' });
   }
+  if (u.includes('/rest/v1/vip_bookings?id=eq.')) {
+    if (h.authorization !== 'Bearer fan-token') return res(401, {});
+    return res(200, [{ creator_profile_id: u.includes('b-ejemplo') ? '1' : '4' }]);
+  }
   if (u.endsWith('/rest/v1/rpc/paypal_register')) {
     if (h.apikey !== 'sb_secret_test') return res(401, {});
     db.orders.set(body.p_order_id, { status: 'created', amount: body.p_amount, user: body.p_user, kind: body.p_kind, params: body.p_params });
@@ -319,6 +323,24 @@ await check('Pagarle a su propia cuenta de creador no llega a PayPal', async () 
   const before = pp.orders.size;
   const r = await post({ action: 'create', kind: 'tip', params: { creatorProfileId: 'self', amount: 5 } });
   expect(r.status === 403 && /pagarte a ti mismo/.test(r.data.error) && pp.orders.size === before, JSON.stringify(r.data));
+});
+
+await check('Con dinero real nadie le paga al perfil de ejemplo de Valentina; en sandbox sí', async () => {
+  const before = pp.orders.size;
+  process.env.PAYPAL_ENV = 'live';
+  try {
+    const tip = await post({ action: 'create', kind: 'tip', params: { creatorProfileId: '1', amount: 5 } });
+    expect(tip.status === 403 && /perfil de ejemplo/.test(tip.data.error), JSON.stringify(tip.data));
+    const booking = await post({ action: 'create', kind: 'booking', params: { bookingId: 'b-ejemplo', amount: 20 } });
+    expect(booking.status === 403 && /perfil de ejemplo/.test(booking.data.error), JSON.stringify(booking.data));
+    const sub = await post({ action: 'subscribe', creatorProfileId: '1' });
+    expect(sub.status === 403 && /perfil de ejemplo/.test(sub.data.error), JSON.stringify(sub.data));
+    expect(pp.orders.size === before, 'llegó a PayPal');
+  } finally {
+    process.env.PAYPAL_ENV = 'sandbox';
+  }
+  const sandbox = await post({ action: 'create', kind: 'tip', params: { creatorProfileId: '1', amount: 5 } });
+  expect(sandbox.status === 200 && sandbox.data.orderId, JSON.stringify(sandbox.data));
 });
 
 await check('Pagar con el PayPal del propio creador se devuelve y no cuenta', async () => {

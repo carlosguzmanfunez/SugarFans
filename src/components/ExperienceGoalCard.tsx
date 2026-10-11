@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import ReserveModal from './reserve/ReserveModal';
 import ReserveBookingDialog from './reserve/ReserveBookingDialog';
 import { money, usePlatformQuery } from '../lib/platform';
 import { rewardsApi, type ExperienceTicket } from '../lib/rewards';
-import { TICKET_BONUSES, bonusInfo } from '../lib/experienceGoalRules';
 import type { VipExperience } from '../lib/vip';
 import type { User } from '../context/AuthContext';
 
@@ -17,55 +16,11 @@ interface Props {
   onGift: () => void;
 }
 
-const reducedMotion = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'long' });
-const SLOT_COLORS = ['#ec4899', '#8b5cf6', '#f59e0b', '#10b981'];
-const SLOT = 360 / TICKET_BONUSES.length;
-
-// The wheel: every slot is a free extra, so it always lands on a win. The server
-// draws the extra; the wheel only shows it.
-const Wheel: React.FC<{ result: ExperienceTicket['bonus'] | null; onDone: () => void }> = ({ result, onDone }) => {
-  const [angle, setAngle] = useState(0);
-  useEffect(() => {
-    if (!result) return;
-    const i = TICKET_BONUSES.findIndex((b) => b.id === result);
-    setAngle(360 * 6 + (360 - (i * SLOT + SLOT / 2)));
-    const t = setTimeout(onDone, reducedMotion() ? 50 : 3400);
-    return () => clearTimeout(t);
-  }, [result, onDone]);
-  const gradient = TICKET_BONUSES.map((_, i) => `${SLOT_COLORS[i % SLOT_COLORS.length]} ${i * SLOT}deg ${(i + 1) * SLOT}deg`).join(', ');
-  return (
-    <div className="relative mx-auto h-64 w-64" data-testid="goal-wheel">
-      <span aria-hidden="true" className="absolute left-1/2 top-[-6px] z-10 -translate-x-1/2 border-x-[12px] border-t-[20px] border-x-transparent border-t-gray-900"></span>
-      <div
-        className="h-full w-full rounded-full border-4 border-white shadow-xl"
-        style={{
-          background: `conic-gradient(${gradient})`,
-          transform: `rotate(${angle}deg)`,
-          transition: reducedMotion() ? 'none' : 'transform 3.2s cubic-bezier(0.17, 0.67, 0.21, 1)',
-        }}
-      >
-        {TICKET_BONUSES.map((b, i) => (
-          <span
-            key={b.id}
-            className="absolute left-1/2 top-1/2 flex w-24 -translate-x-1/2 flex-col items-center text-center text-[11px] font-semibold leading-tight text-white"
-            style={{ transform: `translate(-50%, -50%) rotate(${i * SLOT + SLOT / 2}deg) translateY(-72px)` }}
-          >
-            <i aria-hidden="true" className={`fas ${b.icon} mb-1 text-base`}></i>
-            {b.label}
-          </span>
-        ))}
-      </div>
-      <span className="absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-pink-500 shadow">
-        <i aria-hidden="true" className="fas fa-gift"></i>
-      </span>
-    </div>
-  );
-};
 
 // Creator profile: the fan's own Meta de experiencia. Gifts and tips fill it; a
-// full goal lets the fan pick an experience, spin for a free extra and book it
-// with a ticket choosing only the day and time.
+// full goal lets the fan pick one of the creator's experiences and book it with a
+// ticket choosing only the day and time.
 const ExperienceGoalCard: React.FC<Props> = ({ creatorProfileId, creatorName, experiences, user, onNeedLogin, onGift }) => {
   const { data: goal, reload } = usePlatformQuery(() => rewardsApi.goal(creatorProfileId, user), [creatorProfileId, user?.id], null);
   const { data: tickets, reload: reloadTickets } = usePlatformQuery(
@@ -75,7 +30,6 @@ const ExperienceGoalCard: React.FC<Props> = ({ creatorProfileId, creatorName, ex
   );
   const [claiming, setClaiming] = useState(false);
   const [choice, setChoice] = useState('');
-  const [spinning, setSpinning] = useState<ExperienceTicket | null>(null);
   const [won, setWon] = useState<ExperienceTicket | null>(null);
   const [booking, setBooking] = useState<ExperienceTicket | null>(null);
   const [error, setError] = useState('');
@@ -93,12 +47,11 @@ const ExperienceGoalCard: React.FC<Props> = ({ creatorProfileId, creatorName, ex
     setError('');
     const r = await rewardsApi.claimTicket(user, creatorProfileId, choice);
     if (!r.ok || !r.ticket) return setError(r.error || 'No se pudo crear tu ticket');
-    setSpinning(r.ticket);
+    setWon(r.ticket);
   };
 
   const closeClaim = () => {
     setClaiming(false);
-    setSpinning(null);
     setWon(null);
     setChoice('');
     setError('');
@@ -115,8 +68,8 @@ const ExperienceGoalCard: React.FC<Props> = ({ creatorProfileId, creatorName, ex
         <div className="min-w-0 flex-1">
           <h2 className="font-bold text-ink">Meta de experiencia con {first}</h2>
           <p className="mt-0.5 text-sm text-ink/70">
-            Llena tu meta con regalos y propinas para {first}. Al completarla eliges una experiencia, giras la ruleta para un extra gratis y la
-            reservas eligiendo solo día y hora.
+            Llena tu meta con regalos y propinas para {first}. Al completarla eliges una de sus experiencias y la reservas
+            eligiendo solo día y hora, sin pagar nada más.
           </p>
         </div>
       </div>
@@ -147,7 +100,7 @@ const ExperienceGoalCard: React.FC<Props> = ({ creatorProfileId, creatorName, ex
             <li key={t.id} data-testid="goal-ticket" className="flex flex-col gap-2 rounded-xl border border-dashed border-pink-300 bg-white p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="font-semibold text-ink"><i aria-hidden="true" className="fas fa-ticket mr-1.5 text-pink-500"></i>{t.experienceTitle}</p>
-                <p className="text-xs text-ink/60">+ {bonusInfo(t.bonus).label} · vence el {fmtDate(t.expiresAt)}</p>
+                <p className="text-xs text-ink/60">Vence el {fmtDate(t.expiresAt)}</p>
               </div>
               {t.status === 'active' ? (
                 <button type="button" onClick={() => setBooking(t)} data-testid="goal-ticket-book" className="h-9 rounded-full bg-ink px-4 text-xs font-semibold text-white">
@@ -162,15 +115,13 @@ const ExperienceGoalCard: React.FC<Props> = ({ creatorProfileId, creatorName, ex
       )}
 
       {claiming && (
-        <ReserveModal title={won ? '¡Tu ticket está listo!' : spinning ? 'Girando la ruleta…' : 'Elige tu experiencia'} onClose={closeClaim} size="md" testId="goal-dialog">
+        <ReserveModal title={won ? '¡Tu ticket está listo!' : 'Elige tu experiencia'} onClose={closeClaim} size="md" testId="goal-dialog">
           {won ? (
             <div className="text-center" data-testid="goal-won">
               <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 text-amber-600">
-                <i aria-hidden="true" className={`fas ${bonusInfo(won.bonus).icon} text-xl`}></i>
+                <i aria-hidden="true" className="fas fa-ticket text-xl"></i>
               </span>
               <p className="font-semibold text-ink">{won.experienceTitle}</p>
-              <p className="mt-1 text-sm text-pink-600 font-semibold">+ {bonusInfo(won.bonus).label}</p>
-              <p className="mt-1 text-sm text-ink/70">{bonusInfo(won.bonus).hint}</p>
               <p className="mt-3 text-xs text-ink/60">Tu ticket vence el {fmtDate(won.expiresAt)}. No pagas nada más.</p>
               <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-center">
                 <button type="button" onClick={closeClaim} className="h-11 rounded-full border border-line px-6 text-sm font-semibold text-ink">Más tarde</button>
@@ -188,14 +139,9 @@ const ExperienceGoalCard: React.FC<Props> = ({ creatorProfileId, creatorName, ex
                 </button>
               </div>
             </div>
-          ) : spinning ? (
-            <div className="py-2">
-              <Wheel result={spinning.bonus} onDone={() => setWon(spinning)} />
-              <p className="mt-4 text-center text-sm text-ink/70">Todos los premios ganan: es un extra gratis para tu experiencia.</p>
-            </div>
           ) : (
             <div className="space-y-3">
-              <p className="text-sm text-ink/70">Elige la experiencia que quieres con {first}. Después giras la ruleta para tu extra gratis.</p>
+              <p className="text-sm text-ink/70">Elige la experiencia que quieres con {first}. Luego eliges día y hora.</p>
               {goal.experiences.map((e) => (
                 <label key={e.id} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-sm ${choice === e.id ? 'border-pink-400 bg-pink-50' : 'border-line'}`}>
                   <input type="radio" name="goal-experience" value={e.id} checked={choice === e.id} onChange={() => setChoice(e.id)} data-testid="goal-choice" />
@@ -204,8 +150,8 @@ const ExperienceGoalCard: React.FC<Props> = ({ creatorProfileId, creatorName, ex
                 </label>
               ))}
               {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
-              <button type="button" onClick={claim} data-testid="goal-spin" className="h-11 w-full rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-sm font-semibold text-white">
-                Girar la ruleta
+              <button type="button" onClick={claim} data-testid="goal-pick" className="h-11 w-full rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-sm font-semibold text-white">
+                Quiero esta experiencia
               </button>
             </div>
           )}

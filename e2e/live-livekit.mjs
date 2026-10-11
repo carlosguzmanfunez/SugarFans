@@ -325,7 +325,7 @@ const run = async () => {
       await f.getByText('Este creador no está en Live ahora').waitFor();
     });
 
-    console.log('\nVideollamada privada de Reserve');
+    console.log('\nVideollamada 1:1 de Reserve');
     const askCall = async (who, bookingId) => {
       const res = await POST(new Request(`${BASE}/api/live-token`, { method: 'POST', headers: { authorization: `Bearer ${who}` }, body: JSON.stringify({ bookingId }) }));
       return { status: res.status, body: await res.json() };

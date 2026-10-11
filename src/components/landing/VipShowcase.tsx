@@ -7,11 +7,11 @@ import { ArrowRight, CheckIcon, prefersReducedMotion } from './landingBits';
 // public/reserve-clips/LICENSE.txt). The cards never name the people in the clips.
 const CLIPS = [
   { k: 'coach', cat: 'Fitness', title: 'Entrenamiento funcional', tags: ['Presencial', '60 min', 'Gimnasio'], price: '$26.99', when: 'Lun 18 · 07:00 · Gimnasio' },
-  { k: 'maquillaje', cat: 'Belleza', title: 'Clase de maquillaje 1:1', tags: ['Virtual', '60 min', 'Sala privada Fans Reserve'], price: '$24.99', when: 'Mié 20 · 19:00 · Virtual' },
-  { k: 'chef', cat: 'Cocina', title: 'Clase de cocina con chef', tags: ['Virtual', '90 min', 'Sala privada Fans Reserve'], price: '$27.99', when: 'Jue 14 · 18:00 · Virtual' },
-  { k: 'maestro', cat: 'Educación', title: 'Clase de ciencias 1:1', tags: ['Virtual', '45 min', 'Sala privada Fans Reserve'], price: '$19.99', when: 'Mar 19 · 16:00 · Virtual' },
-  { k: 'gamer', cat: 'Gaming', title: 'Coaching de gaming 1:1', tags: ['Virtual', '60 min', 'Sala privada Fans Reserve'], price: '$22.99', when: 'Vie 15 · 21:00 · Virtual' },
-  { k: 'creador', cat: 'Tu gente', title: 'Cómo grabo mis videos', tags: ['Virtual', '30 min', 'Sala privada Fans Reserve'], price: '$17.99', when: 'Sáb 16 · 11:00 · Virtual' },
+  { k: 'maquillaje', cat: 'Belleza', title: 'Clase de maquillaje 1:1', tags: ['Virtual', '60 min', 'Videollamada Fans Reserve'], price: '$24.99', when: 'Mié 20 · 19:00 · Virtual' },
+  { k: 'chef', cat: 'Cocina', title: 'Clase de cocina con chef', tags: ['Virtual', '90 min', 'Videollamada Fans Reserve'], price: '$27.99', when: 'Jue 14 · 18:00 · Virtual' },
+  { k: 'maestro', cat: 'Educación', title: 'Clase de ciencias 1:1', tags: ['Virtual', '45 min', 'Videollamada Fans Reserve'], price: '$19.99', when: 'Mar 19 · 16:00 · Virtual' },
+  { k: 'gamer', cat: 'Gaming', title: 'Coaching de gaming 1:1', tags: ['Virtual', '60 min', 'Videollamada Fans Reserve'], price: '$22.99', when: 'Vie 15 · 21:00 · Virtual' },
+  { k: 'creador', cat: 'Tu gente', title: 'Cómo grabo mis videos', tags: ['Virtual', '30 min', 'Videollamada Fans Reserve'], price: '$17.99', when: 'Sáb 16 · 11:00 · Virtual' },
   { k: 'artista', cat: 'Arte & Creatividad', title: 'Sesión de pintura en vivo', tags: ['Presencial', '90 min', 'Estudio de arte'], price: '$29.99', when: 'Dom 17 · 15:00 · Estudio' },
 ];
 const PERK_ICONS: React.ReactNode[] = [
