@@ -143,10 +143,11 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
     const [count, mine] = await Promise.all([
       sb.rpc('follower_count', { p_creator_profile_id: creatorProfileId }),
       viewer
-        ? sb.from('follows').select('creator_profile_id').eq('user_id', viewer.id).eq('creator_profile_id', creatorProfileId).maybeSingle()
+        ? sb.from('follows').select('created_at').eq('user_id', viewer.id).eq('creator_profile_id', creatorProfileId).maybeSingle()
         : Promise.resolve({ data: null }),
     ]);
-    return { following: !!mine.data, count: Number(count.data ?? 0) };
+    const since = (mine.data as { created_at?: string } | null)?.created_at;
+    return { following: !!mine.data, count: Number(count.data ?? 0), ...(since ? { since } : {}) };
   },
 
   async setFollow(user, creatorProfileId, follow) {

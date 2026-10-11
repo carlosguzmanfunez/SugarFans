@@ -65,6 +65,8 @@ export interface PublicCreator {
 // Follow: free, public. Following a creator never grants paid content or Reserve.
 export interface FollowState {
   following: boolean;
+  // When the viewer started following (Reserve's follower discount needs 7+ days).
+  since?: string;
   // People who follow through the app (demo profiles add their catalogue count).
   count: number;
 }

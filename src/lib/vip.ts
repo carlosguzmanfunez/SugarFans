@@ -2,6 +2,7 @@
 // Data access lives in the backend (src/lib/backend).
 import type {
   Availability,
+  ReserveDiscountKind,
   BookingStatus,
   CustomRequestInput,
   CounterInput,
@@ -27,6 +28,8 @@ import {
   RESERVE_MODALITIES,
   RESERVE_STATUSES,
   SUBSCRIBER_DISCOUNTS,
+  FOLLOWER_DISCOUNTS,
+  FOLLOWER_DISCOUNT_DAYS,
   categoryFor,
   experienceTypeById,
   isHomeService,
@@ -202,11 +205,32 @@ export const isLiveExperience = (exp: Pick<VipExperience, 'durationMinutes' | 'd
 export const isLiveBooking = (b: Pick<VipBooking, 'details' | 'experienceId' | 'durationMinutes'>) =>
   (b.details?.modality ?? 'virtual') === 'virtual';
 
-// Price a fan pays: the experience's, minus the explicit subscriber discount.
-export const priceFor = (exp: Pick<VipExperience, 'price' | 'details'>, isSubscriber: boolean) => {
-  const pct = isSubscriber ? exp.details?.subscriberDiscount ?? 0 : 0;
-  return Math.round(exp.price * (100 - pct)) / 100;
+// The fan's Reserve discount: the subscriber one if subscribed, the follower one
+// if they have followed the creator FOLLOWER_DISCOUNT_DAYS or more; the larger wins.
+export interface FanDiscount {
+  percent: number;
+  kind?: ReserveDiscountKind;
+}
+export const followsLongEnough = (followSince: string | null | undefined, now = new Date()) =>
+  !!followSince && now.getTime() - Date.parse(followSince) >= FOLLOWER_DISCOUNT_DAYS * 86_400_000;
+export const fanDiscount = (
+  exp: Pick<VipExperience, 'details'>,
+  fan: { subscribed: boolean; followSince?: string | null },
+  now = new Date()
+): FanDiscount => {
+  const sub = fan.subscribed ? exp.details?.subscriberDiscount ?? 0 : 0;
+  const follower = followsLongEnough(fan.followSince, now) ? exp.details?.followerDiscount ?? 0 : 0;
+  if (!sub && !follower) return { percent: 0 };
+  return sub >= follower ? { percent: sub, kind: 'subscriber' } : { percent: follower, kind: 'follower' };
 };
+
+// Price a fan pays: the experience's, minus their discount.
+export const priceFor = (exp: Pick<VipExperience, 'price'>, discount: FanDiscount) =>
+  Math.round(exp.price * (100 - discount.percent)) / 100;
+
+// Booking details that record a discount (none when the fan pays full price).
+export const discountDetails = (exp: Pick<VipExperience, 'price'>, discount: FanDiscount) =>
+  discount.percent ? { listPrice: exp.price, discountPercent: discount.percent, discountKind: discount.kind } : {};
 
 export const locationSummary = (d: Pick<ReserveDetails, 'modality' | 'locationTypes' | 'city' | 'venue'>) => {
   if (d.modality === 'virtual') return 'Online · Fans Reserve';
@@ -261,6 +285,7 @@ export const validateExperience = (input: VipExperienceInput, categoryName?: str
     if (!CANCELLATION_POLICIES[d.cancellationPolicy]) return { ok: false, error: 'Elige la política de cancelación' };
     if (d.approval !== 'manual' && d.approval !== 'automatic') return { ok: false, error: 'Elige cómo apruebas las reservas' };
     if (d.subscriberDiscount !== undefined && !SUBSCRIBER_DISCOUNTS.includes(d.subscriberDiscount)) return { ok: false, error: 'Descuento no válido' };
+    if (d.followerDiscount !== undefined && !FOLLOWER_DISCOUNTS.includes(d.followerDiscount)) return { ok: false, error: 'Descuento no válido' };
     if (type.minutes && input.durationMinutes === undefined) return { ok: false, error: 'Indica la duración' };
     if (d.days && d.days.some((x) => x < 0 || x > 6)) return { ok: false, error: 'Días no válidos' };
     if ((d.city ?? '').length > 60 || (d.venue ?? '').length > 80) return { ok: false, error: 'La ciudad o el venue son demasiado largos' };
@@ -295,6 +320,7 @@ export const cleanDetails = (d: ReserveDetails): ReserveDetails => ({
   cancellationPolicy: d.cancellationPolicy,
   ...(d.conditions?.trim() ? { conditions: d.conditions.trim() } : {}),
   ...(d.subscriberDiscount ? { subscriberDiscount: d.subscriberDiscount } : {}),
+  ...(d.followerDiscount ? { followerDiscount: d.followerDiscount } : {}),
   ...(d.format === 'event'
     ? { format: 'event' as const, eventDate: d.eventDate, eventTime: d.eventTime }
     : {

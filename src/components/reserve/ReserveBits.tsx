@@ -66,6 +66,11 @@ export const PriceTag: React.FC<{ exp: VipExperience; size?: 'md' | 'lg' }> = ({
     <div className="leading-tight">
       <span className={`${size === 'lg' ? 'text-2xl' : 'text-xl'} font-bold text-ink`}>{money(exp.price)}</span>
       <span className="ml-1 text-xs text-muted">USD{isEventExperience(exp) ? ' por plaza' : ''}</span>
+      {!!d.followerDiscount && (
+        <span className="mt-0.5 block text-xs font-medium text-brand-700" data-testid="follower-discount">
+          <i aria-hidden="true" className="fas fa-user-check mr-1 text-[10px]"></i>Seguidores: −{d.followerDiscount}%
+        </span>
+      )}
       {!!d.subscriberDiscount && (
         <span className="mt-0.5 block text-xs font-medium text-iris-700">
           <i aria-hidden="true" className="fas fa-star mr-1 text-[10px]"></i>Suscriptores: −{d.subscriberDiscount}%

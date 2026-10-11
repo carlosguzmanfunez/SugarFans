@@ -2440,6 +2440,10 @@ const run = async () => {
       // Reserve 1:1 is always the first group on a profile.
       const groups = await resF.locator('[data-testid^="reserve-group-"]').evaluateAll((els) => els.map((e) => e.dataset.testid));
       expect(groups[0] === 'reserve-group-one-to-one', `el primer Reserve es ${groups[0]}`);
+      // Valentina's 1:1 call shows both fan discounts.
+      const call = resF.getByTestId('reserve-group-one-to-one').getByTestId('reserve-card').first();
+      await call.getByTestId('follower-discount').getByText('Seguidores: −5%').waitFor();
+      await call.getByText('Suscriptores: −10%').waitFor();
       await resF.getByTestId('follow-button').click();
       await resF.getByTestId('follow-button').getByText('Siguiendo').waitFor();
       await resF.reload();

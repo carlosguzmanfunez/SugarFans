@@ -464,6 +464,10 @@ export const CANCELLATION_POLICIES: Record<CancellationPolicyId, { label: string
 
 export const MIN_NOTICE_OPTIONS = [24, 48, 72, 168];
 export const SUBSCRIBER_DISCOUNTS = [0, 5, 10, 15, 20, 25];
+// Reserve discount for followers: same steps, and it only counts once the fan
+// has followed the creator this many days (following takes one tap).
+export const FOLLOWER_DISCOUNTS = SUBSCRIBER_DISCOUNTS;
+export const FOLLOWER_DISCOUNT_DAYS = 7;
 export const MAX_PARTICIPANTS = 50;
 
 // --- Reserve Event vs Reserve 1:1 ---------------------------------------------------

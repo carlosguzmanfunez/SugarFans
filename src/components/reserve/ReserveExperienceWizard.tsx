@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { BRAND } from '../../config/brand';
 import { useAuth } from '../../context/AuthContext';
 import { backend } from '../../lib/backend';
 import type { User } from '../../context/AuthContext';
@@ -27,6 +28,8 @@ import {
   RESERVE_FORMATS,
   RESERVE_MODALITIES,
   SUBSCRIBER_DISCOUNTS,
+  FOLLOWER_DISCOUNTS,
+  FOLLOWER_DISCOUNT_DAYS,
   experienceTypeById,
   experienceTypesFor,
   isHomeService,
@@ -344,6 +347,16 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category, availability
             </select>
             <span className="mt-1 block text-xs text-muted">Opcional y explícito: la suscripción no incluye Reserve.</span>
           </label>
+          <label className="block text-sm">
+            <span className="font-semibold text-ink">Descuento para seguidores</span>
+            <select name="expFollowerDiscount" value={d.followerDiscount ?? 0} onChange={(e) => setD({ followerDiscount: Number(e.target.value) || undefined })} className={field}>
+              {FOLLOWER_DISCOUNTS.map((p) => <option key={p} value={p}>{p ? `${p}%` : 'Sin descuento'}</option>)}
+            </select>
+            <span className="mt-1 block text-xs text-muted">Para quien te sigue hace {FOLLOWER_DISCOUNT_DAYS} días o más.</span>
+          </label>
+          <p className="text-xs text-muted sm:col-span-2" data-testid="discount-note">
+            Si un fan tiene los dos, recibe el mayor. El descuento sale de tu parte: la comisión de {BRAND.name} se calcula sobre el precio completo.
+          </p>
         </div>
       )}
 

@@ -78,6 +78,15 @@ const round4 = (n: number) => Math.round(n * 10000) / 10000;
 export const netShare = (rate: number, amount: number, fee = processorFee(amount)) =>
   amount > 0 ? Math.max(0, round4((Math.min(rate, MAX_SHARE) * (amount - fee)) / amount)) : 0;
 
+// A Reserve fan discount comes out of the creator's part: Fans Reserve keeps
+// what it would have kept at the full price (same rule as the SQL trigger).
+export const absorbDiscount = (share: number, amount: number, fee: number, listPrice?: number) => {
+  const net = amount - fee;
+  if (!listPrice || listPrice <= amount || net <= 0) return share;
+  const rate = (share * amount) / net;
+  return Math.max(0, round4((net - (1 - rate) * (listPrice - fee)) / amount));
+};
+
 export interface LevelInput {
   fans: number;
   sales: number;

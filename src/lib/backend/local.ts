@@ -19,11 +19,15 @@ import {
   needsApproval,
   normalizeAvailability,
   priceFor,
+  fanDiscount,
+  discountDetails,
   validateCounter,
   validateCustomRequest,
   validateExperience,
 } from '../vip';
 import { nextRenewal, round2 } from '../platformRules';
+import { absorbDiscount } from '../rewardRules';
+import { absorbSpecialDiscount } from '../specialRules';
 import {
   DEMO_PASSWORD,
   WRONG_CREDENTIALS,
@@ -169,6 +173,10 @@ const toPublic = (account: StoredAccount): User => {
   return { ...user, avatar: avatarOrEmpty(user.avatar), username: handleOf(account), subscriptions: user.subscriptions.filter((s) => isActiveSub(s)) };
 };
 
+// When a fan started following a creator (local follows live in the 'social' store).
+const followSince = (userId: string, creatorProfileId: string) =>
+  readJSON<{ followSince?: Record<string, Record<string, string>> }>('social', {}).followSince?.[creatorProfileId]?.[userId];
+
 const listExperiences = (): VipExperience[] => {
   const stored = readJSON<VipExperience[] | null>(EXPERIENCES_KEY, null);
   const demo = demoExperiences();
@@ -280,7 +288,8 @@ const createBooking = async (user: User, input: BookingInput): Promise<AuthResul
   if (!freeHoursOn(availability, takenFor(exp.creatorProfileId), input.date).includes(input.time)) {
     return fail('Ese horario ya no está disponible. Elige otro.');
   }
-  const price = priceFor(exp, subscribed);
+  const discount = fanDiscount(exp, { subscribed, followSince: followSince(user.id, exp.creatorProfileId) });
+  const price = priceFor(exp, discount);
   const now = new Date().toISOString();
   const id = newId();
   saveBookings([
@@ -309,7 +318,7 @@ const createBooking = async (user: User, input: BookingInput): Promise<AuthResul
         modality: d.modality,
         participants,
         ...(d.modality !== 'virtual' ? { locationType: d.locationTypes[0], city: d.city, venue: d.venue } : {}),
-        ...(price !== exp.price ? { listPrice: exp.price, discountPercent: d.subscriberDiscount } : {}),
+        ...discountDetails(exp, discount),
       },
     },
   ]);
@@ -671,7 +680,8 @@ export const localBackend: Backend = {
     const seats = listBookings().filter((b) => b.experienceId === exp.id && b.details?.kind === 'event' && ACTIVE_STATUSES.includes(b.status));
     if (seats.some((b) => b.fanId === user.id)) return fail('Ya tienes una plaza en este evento');
     if (seats.length >= d.maxParticipants) return fail('No quedan plazas para este evento');
-    const price = priceFor(exp, subscribed);
+    const discount = fanDiscount(exp, { subscribed, followSince: followSince(user.id, exp.creatorProfileId) });
+    const price = priceFor(exp, discount);
     const now = new Date().toISOString();
     saveBookings([
       ...listBookings(),
@@ -698,7 +708,7 @@ export const localBackend: Backend = {
           modality: d.modality,
           participants: 1,
           ...(d.modality !== 'virtual' ? { locationType: d.locationTypes[0], city: d.city, venue: d.venue } : {}),
-          ...(price !== exp.price ? { listPrice: exp.price, discountPercent: d.subscriberDiscount } : {}),
+          ...discountDetails(exp, discount),
         },
       },
     ]);
@@ -838,10 +848,15 @@ export const localBackend: Backend = {
       kind: 'vip',
       amount: round2(b.price),
       // Special accounts keep Reserve al neto; everyone else gets their rate of the net.
+      // A fan discount comes out of the creator's part, never Fans Reserve's.
       ...(() => {
-        const normal = rewards.shareFor(user.id, b.creatorProfileId, new Date(), round2(b.price));
-        const special_ = special.reserveShare(b.creatorProfileId, round2(b.price));
-        return special_ === undefined ? normal : { share: special_, gatewayFee: normal.gatewayFee };
+        const amount = round2(b.price);
+        const list = b.details?.listPrice;
+        const normal = rewards.shareFor(user.id, b.creatorProfileId, new Date(), amount);
+        const special_ = special.reserveShare(b.creatorProfileId, amount);
+        return special_ === undefined
+          ? { ...normal, share: absorbDiscount(normal.share, amount, normal.gatewayFee, list) }
+          : { share: absorbSpecialDiscount(special_, amount, list), gatewayFee: normal.gatewayFee };
       })(),
       note: b.title,
       methodLabel,
