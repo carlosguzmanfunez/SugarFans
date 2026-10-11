@@ -44,6 +44,7 @@ import {
 } from '../lib/platform';
 
 const formatDay = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' });
+const formatShortDay = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' }).replace('.', '');
 
 const CreatorProfile: React.FC = () => {
   const { id } = useParams();
@@ -424,7 +425,11 @@ const CreatorProfile: React.FC = () => {
                   className={`btn btn-lg col-span-3 order-first md:order-none ${isSubscribed ? 'bg-ink/5 text-ink hover:bg-ink/10' : 'btn-primary'}`}
                 >
                   {isSubscribed && mySub?.cancelAt ? (
-                    <><i aria-hidden="true" className="fas fa-redo mr-2"></i>Activa hasta el {formatDay(mySub.cancelAt)} · Reactivar</>
+                    // Two short pieces that wrap onto a second line on narrow phones instead of overflowing.
+                    <span className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 whitespace-normal text-center leading-tight" data-testid="subscription-reactivate">
+                      <span><i aria-hidden="true" className="fas fa-redo mr-2"></i>Activa hasta el {formatShortDay(mySub.cancelAt)}</span>
+                      <span className="font-bold underline underline-offset-2">Reactivar</span>
+                    </span>
                   ) : isSubscribed ? (
                     <><Icon name="fa-check" className="mr-2" />Suscrito · Cancelar</>
                   ) : (
