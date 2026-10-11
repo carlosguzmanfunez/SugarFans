@@ -24,7 +24,7 @@ const WAYS = [
   {
     icon: 'fa-video',
     title: 'Videollamadas 1:1',
-    body: 'Tus fans reservan un rato contigo en la Sala 1:1 de la plataforma, en los horarios que tú abres y con tus reglas.',
+    body: 'Tus fans reservan un rato contigo en la Sala 1:1 de la plataforma, en los horarios que tú abres. O te proponen su propio día y tema, y tú decides.',
   },
   {
     icon: 'fa-handshake',
@@ -40,7 +40,7 @@ const STEPS = [
 ];
 
 const PERKS = [
-  { icon: 'fa-sliders', text: 'Tú pones los precios, los horarios y las reglas. Y si un fan quiere algo distinto, te manda su propuesta de Reserve: tú la aceptas, la rechazas o le haces una contraoferta.' },
+  { icon: 'fa-sliders', text: 'Tú pones los precios, los horarios y las reglas, y tienes la última palabra en cada propuesta.' },
   { icon: 'fa-wallet', text: 'Cobras cada mes por PayPal, sin pedir permiso a nadie.' },
   { icon: 'fa-mobile-screen', text: 'Sigues en tus redes: no te pedimos exclusividad.' },
   { icon: 'fa-shield-halved', text: 'Reserva experiencias, no personas: reglas claras y un ambiente seguro.' },
@@ -91,6 +91,13 @@ const SalesTour: React.FC = () => {
                 <p className="mt-1.5 text-sm leading-relaxed text-ink/70">{w.body}</p>
               </div>
             ))}
+          </div>
+          <div className="mx-auto mt-6 flex max-w-2xl items-start gap-3 rounded-2xl border border-gold-200 bg-gold-50 p-4 text-sm text-ink/80" data-testid="pitch-fan-proposal">
+            <i aria-hidden="true" className="fas fa-envelope-open-text mt-0.5 text-gold-700"></i>
+            <p>
+              <strong className="font-semibold text-ink">Tus fans también te proponen.</strong> Además de lo que tú publicas, cualquier fan puede
+              mandarte su propuesta de Reserve: qué quiere, cuándo y cuánto ofrece. Tú la aceptas, la rechazas o le haces una contraoferta.
+            </p>
           </div>
           <p className="mt-4 text-center text-sm text-ink/60">Y además, tus fans pueden enviarte regalos y propinas cuando quieran.</p>
         </section>

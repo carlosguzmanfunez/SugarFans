@@ -339,6 +339,7 @@ const run = async () => {
       await page.getByTestId('sales-tour').getByText('Invitación para creadores').waitFor();
       expect((await page.getByTestId('pitch-way').count()) === 4, 'no hay 4 formas de ganar');
       expect((await page.getByTestId('pitch-step').count()) === 3, 'no hay 3 pasos');
+      await page.getByTestId('pitch-fan-proposal').getByText('Tus fans también te proponen.').waitFor();
       expect((await page.getByTestId('pitch-cta').count()) === 2, 'sin sesión falta el botón de crear cuenta');
       expect((await page.getByTestId('sales-tour').getByText(/\d+ ?%/).count()) === 0, 'el recorrido no debe mostrar porcentajes');
       await page.getByTestId('pitch-example').click();
