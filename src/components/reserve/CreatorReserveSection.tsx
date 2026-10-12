@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import Icon from '../Icon';
 import type { User } from '../../context/AuthContext';
 import { isUpcomingEvent, reserveProductOf, eventStart, type ReserveProduct, type VipExperience } from '../../lib/vip';
 import { categoryFor, RESERVE_FORMATS } from '../../config/reserve';
@@ -71,10 +72,10 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, use
     : isOwner ? 'Aún no publicas experiencias' : 'Envíale una propuesta personalizada';
 
   return (
-    <section id="reserve" aria-labelledby="reserve-title" className="mb-6 scroll-mt-24 rounded-3xl bg-white p-5 shadow-sm sm:p-6" data-testid="creator-reserve">
+    <section id="reserve" aria-labelledby="reserve-title" className="mb-6 scroll-mt-24 rounded-3xl border border-gold-300 bg-gradient-to-br from-gold-100 via-gold-50 to-white p-5 shadow-lg shadow-gold-400/25 ring-1 ring-gold-200 sm:p-6" data-testid="creator-reserve">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gold-700">Reserve · {category.name}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gold-700"><Icon name="fa-crown" className="mr-1.5 text-gold-500" />Reserve · {category.name}</p>
           <h2 id="reserve-title" className="mt-1 text-xl font-bold text-ink sm:text-2xl">Reserve con {first}</h2>
           <p className="mt-0.5 text-sm font-semibold text-ink/70" data-testid="reserve-summary">{summary}</p>
         </div>
@@ -95,7 +96,7 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, use
             aria-expanded={expanded}
             aria-controls="reserve-body"
             data-testid="reserve-toggle"
-            className="inline-flex h-11 items-center gap-2 rounded-full border border-gold-300 bg-gold-50 px-5 text-sm font-semibold text-ink transition hover:border-gold-400 hover:bg-gold-100"
+            className="btn-gold inline-flex h-11 items-center gap-2 rounded-full px-5 text-sm font-bold transition"
           >
             {expanded ? 'Ocultar' : 'Ver experiencias'}
             <i aria-hidden="true" className={`fas fa-chevron-down text-xs transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}></i>
@@ -154,7 +155,7 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, use
       )}
 
       {canRequest && (
-        <div className="mt-5 flex flex-col gap-3 rounded-2xl bg-gray-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-5 flex flex-col gap-3 rounded-2xl bg-white/80 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-ink">¿Buscas algo diferente?</p>
             <p className="text-xs text-ink/70">Propón modalidad, propósito, fecha y presupuesto. {first} acepta, rechaza o te hace una contraoferta.</p>
