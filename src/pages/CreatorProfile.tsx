@@ -447,7 +447,7 @@ const CreatorProfile: React.FC = () => {
                   type="button"
                   onClick={() => openReserve('one-to-one')}
                   data-testid="talk-button"
-                  className="btn btn-lg col-span-3 border border-gold-300 bg-gold-50 text-ink hover:border-gold-400"
+                  className="btn btn-lg col-span-3 order-last border border-gold-300 bg-gold-50 text-ink hover:border-gold-400 md:order-none"
                 >
                   <Icon name="fa-video" className="mr-2" />Habla con {creator.name.split(' ')[0]}
                 </button>
@@ -487,7 +487,7 @@ const CreatorProfile: React.FC = () => {
                     <Icon name="fa-ellipsis" />
                   </button>
                   {moreOpen && (
-                    <div role="menu" className="menu-pop absolute right-0 top-12 z-30 w-56 overflow-hidden rounded-2xl border border-line bg-white py-1.5 shadow-xl">
+                    <div role="menu" className="menu-pop absolute right-0 top-12 z-50 w-56 overflow-hidden rounded-2xl border border-line bg-white py-1.5 shadow-xl">
                       <button
                         type="button"
                         role="menuitem"

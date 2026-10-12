@@ -141,7 +141,7 @@ const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner,
       </div>
       <div className="p-4">
         {post.content && <p className="text-gray-700 whitespace-pre-line">{post.content}</p>}
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-4 text-gray-500">
+        <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2 mt-4 text-gray-500 sm:gap-x-6">
           <button
             onClick={toggleLike}
             aria-pressed={liked}
@@ -163,17 +163,17 @@ const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner,
               <i aria-hidden="true" className="fas fa-gift mr-1"></i> Regalo
             </button>
           )}
-          <button onClick={share} className="flex items-center text-sm hover:text-pink-500 transition ml-auto">
-            <i aria-hidden="true" className="fas fa-share mr-1"></i> {copied ? 'Enlace copiado' : 'Compartir'}
+          <button onClick={share} aria-label={copied ? 'Enlace copiado' : 'Compartir'} className="flex items-center text-sm hover:text-pink-500 transition ml-auto">
+            <i aria-hidden="true" className="fas fa-share sm:mr-1"></i> <span className={copied ? '' : 'max-sm:hidden'}>{copied ? 'Enlace copiado' : 'Compartir'}</span>
           </button>
           {onDelete && (
             <button onClick={onDelete} className="flex items-center text-sm hover:text-red-500 transition" aria-label="Eliminar publicación">
-              <i aria-hidden="true" className="fas fa-trash mr-1"></i> Eliminar
+              <i aria-hidden="true" className="fas fa-trash sm:mr-1"></i> <span className="max-sm:hidden">Eliminar</span>
             </button>
           )}
           {!isOwner && (
             <button onClick={onReport} className="flex items-center text-sm hover:text-red-500 transition" aria-label="Reportar publicación">
-              <i aria-hidden="true" className="fas fa-flag mr-1"></i> Reportar
+              <i aria-hidden="true" className="fas fa-flag sm:mr-1"></i> <span className="max-sm:hidden">Reportar</span>
             </button>
           )}
         </div>

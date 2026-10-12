@@ -35,7 +35,7 @@ const NotificationBell: React.FC<{ user: User }> = ({ user }) => {
   };
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative max-sm:static">
       <button
         type="button"
         onClick={toggle}
@@ -56,7 +56,7 @@ const NotificationBell: React.FC<{ user: User }> = ({ user }) => {
           role="region"
           aria-label="Avisos"
           data-testid="notification-panel"
-          className="absolute right-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-line bg-white shadow-[var(--shadow-lift)]"
+          className="absolute right-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] max-sm:inset-x-2 max-sm:top-full max-sm:w-auto max-sm:max-w-none overflow-hidden rounded-2xl border border-line bg-white shadow-[var(--shadow-lift)]"
         >
           <p className="border-b border-line px-4 py-3 text-sm font-semibold text-ink">Avisos</p>
           {items.length === 0 ? (

@@ -530,7 +530,7 @@ export const RESERVE_FLOW = ['Solicitud', 'Aceptación', 'Pago', 'Confirmación'
 // --- Copy that keeps the systems apart ------------------------------------------------
 
 export const RESERVE_COPY = {
-  principle: 'Reservas experiencias, no personas.',
+  principle: 'Reserva experiencias, no personas.',
   gift: 'Los regalos son apoyo voluntario: no garantizan respuesta, conversación ni acceso. Si el creador tiene una Meta de experiencia, se van acumulando hasta que la completes.',
   subscription: 'La suscripción da acceso al contenido, a los Lives para suscriptores y a los beneficios que el creador define. No incluye Reserve Events, videollamadas 1:1 ni otras experiencias de Reserve.',
   subscriberLive: 'Live grupal incluido en tu suscripción. No es tiempo individual con el creador ni garantiza interacción individual.',

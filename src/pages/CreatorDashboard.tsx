@@ -419,18 +419,18 @@ const CreatorDashboard: React.FC = () => {
         )}
 
         {activeTab === 'content' && (
-          <div className="bg-white rounded-2xl border border-line p-6">
+          <div className="bg-white rounded-2xl border border-line p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div>
                 <h3 className="font-bold text-gray-900">Gestión de contenido</h3>
                 <p className="text-sm text-gray-500">Aquí subes fotos y videos. Lo que publiques aparece en tu perfil público.</p>
               </div>
-              <div className="flex gap-2">
-                <Link to={`/creator/${profileId}`} className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 hover:border-pink-300">
+              <div className="flex flex-col-reverse gap-2 text-center sm:flex-row">
+                <Link to={`/creator/${profileId}`} className="whitespace-nowrap px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-700 hover:border-pink-300">
                   <i aria-hidden="true" className="fas fa-eye mr-1"></i> Ver mi perfil
                 </Link>
                 {!showNewPost && (
-                  <button onClick={() => { setShowNewPost(true); setNotice(null); }} className="px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white text-sm font-medium">
+                  <button onClick={() => { setShowNewPost(true); setNotice(null); }} className="whitespace-nowrap px-4 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white text-sm font-medium">
                     <i aria-hidden="true" className="fas fa-upload mr-1"></i> Subir foto o video
                   </button>
                 )}
