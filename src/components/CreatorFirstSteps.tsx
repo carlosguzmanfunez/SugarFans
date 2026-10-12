@@ -109,7 +109,7 @@ const CreatorFirstSteps: React.FC<Props> = ({ user, onOpenTab, onNewPost }) => {
     {
       id: 'share',
       title: 'Comparte tu enlace',
-      hint: user.username ? `Pon fansreserve.com/@${user.username} en la bio de tus redes sociales.` : 'Pon tu enlace en la bio de tus redes sociales.',
+      hint: 'Ponlo en la bio de tus redes sociales.',
       done: shared,
       action: share,
       label: 'Copiar enlace',

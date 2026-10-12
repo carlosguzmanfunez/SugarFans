@@ -164,6 +164,7 @@
 .lv2 .v-grow{flex:1;min-width:0}
 .lv2 .v-grow b{display:block;font-family:var(--display);font-weight:600}
 .lv2 .v-grow span{font-size:13px;color:var(--muted)}
+.lv2 .p-follow .v-grow > *{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lv2 .p-live .v-grow span,
 .lv2 .p-event .v-grow span,
 .lv2 .p-res .v-grow span{color:rgb(255 255 255 / .6)}
@@ -367,6 +368,10 @@
   .lv2 .scene{height:600px;max-width:520px;margin-inline:auto;width:100%}
 }
 @media (max-width: 560px){
+  .lv2 .p-follow .mini{padding:14px}
+  .lv2 .p-follow .row{gap:10px}
+  .lv2 .p-follow .av{width:42px;height:42px}
+  .lv2 .follow-btn{min-width:0;padding:9px 14px}
   .lv2 .stage{grid-template-columns:1fr;grid-template-rows:none;grid-auto-rows:240px}
   .lv2 .cta-media{height:340px}
   .lv2 .cta-shot{width:180px}

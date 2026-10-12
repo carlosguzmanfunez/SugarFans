@@ -223,7 +223,8 @@ const Settings: React.FC = () => {
         <div className="flex flex-col md:flex-row gap-6">
           {/* Sidebar */}
           <div className="md:w-64 flex-shrink-0">
-            <div className="bg-white rounded-2xl shadow-sm p-4 space-y-1">
+            {/* Phones: one row of chips that scrolls sideways, so the section shows right below. */}
+            <div className="bg-white rounded-2xl shadow-sm p-2 flex gap-1 overflow-x-auto [scrollbar-width:none] md:block md:p-4 md:space-y-1" data-testid="settings-nav">
               {[
                 { id: 'profile', label: 'Perfil', icon: 'fa-user' },
                 { id: 'security', label: 'Seguridad', icon: 'fa-lock' },
@@ -236,8 +237,9 @@ const Settings: React.FC = () => {
               ].map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => setActiveSection(item.id)}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition ${
+                  onClick={(e) => { setActiveSection(item.id); e.currentTarget.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }); }}
+                  aria-current={activeSection === item.id ? 'page' : undefined}
+                  className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-medium transition md:w-full md:gap-3 md:px-4 md:py-3 ${
                     activeSection === item.id ? 'bg-pink-50 text-pink-700' : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
