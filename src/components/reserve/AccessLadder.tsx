@@ -113,11 +113,11 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
             </span>
           )}
         </li>
-        <li className={`${step} border-gold-300 bg-gradient-to-br from-white to-gold-50`}>
-          <span className={`${eyebrow} text-gold-700`}>3 · Reserve</span>
+        <li className={`${step.replace('border-line bg-white', '')} border-gold-300 bg-gradient-to-br from-gold-100 via-gold-50 to-white shadow-md shadow-gold-400/25 ring-1 ring-gold-300`} data-testid="ladder-reserve">
+          <span className={`${eyebrow} text-gold-700`}><Icon name="fa-crown" className="mr-1 text-[9px] text-gold-500 sm:text-[10px]" />3 · Reserve</span>
           <span className="mt-1 text-sm font-semibold text-ink">{experiences ? `${experiences} ${experiences === 1 ? 'experiencia' : 'experiencias'}` : 'A medida'}</span>
           <span className={blurb}>Reserve Events en grupo y videollamadas 1:1 con {creator.name.split(' ')[0]}, con fecha, precio y reglas.</span>
-          <a href="#reserve" onClick={(e) => { e.preventDefault(); openReserve(); }} className="mt-auto inline-flex items-center gap-1.5 self-start pt-2 text-xs font-semibold text-ink hover:text-brand-700 sm:pt-3 sm:text-sm">Ver<span className="max-sm:hidden"> experiencias</span> <Icon name="fa-arrow-right" className="text-xs" /></a>
+          <a href="#reserve" onClick={(e) => { e.preventDefault(); openReserve(); }} className="btn-gold mt-auto inline-flex items-center gap-1.5 self-start rounded-full px-3 py-1 text-xs font-bold max-sm:mt-2 sm:mt-3 sm:px-4 sm:py-1.5 sm:text-sm">Ver<span className="max-sm:hidden"> experiencias</span> <Icon name="fa-arrow-right" className="text-xs" /></a>
         </li>
       </ol>
     </section>
