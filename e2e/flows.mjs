@@ -2334,7 +2334,7 @@ const run = async () => {
       expect(!!mg, 'falta Tu gente');
       expect(R.categoryFor('Modelos').id === 'modelaje-glamour', 'Modelos ya no resuelve a Tu gente');
       expect(!R.CREATOR_CATEGORIES.some((c) => c.id === 'premium-stars'), 'PREMIUM STARS debería seguir oculta');
-      expect(mg.contentLine === 'Glamour permitido. Contenido sexual explícito no permitido.', `línea: ${mg.contentLine}`);
+      expect(mg.contentLine === 'Contenido sexual explícito no permitido.', `línea: ${mg.contentLine}`);
       expect(R.categoryFor('Modelaje').id === 'modelaje-glamour', 'el nombre antiguo "Modelaje" no se reconoce');
       expect(R.categoryFor('Modelaje & Glamour').id === 'modelaje-glamour', 'el nombre antiguo "Modelaje & Glamour" no se reconoce');
     });
@@ -2662,7 +2662,7 @@ const run = async () => {
       expect((await types.locator('[data-type=cooking-class]').count()) === 0, 'Modelos ofrece clase de cocina');
       const text = await types.innerText();
       expect(!notOffered.test(text), `tipos visibles: ${text}`);
-      await form.getByText('Glamour permitido. Contenido sexual explícito no permitido.').waitFor();
+      await form.getByText('Contenido sexual explícito no permitido.').waitFor();
       await types.locator('[data-type=photo-session]').click();
       const next = () => form.getByRole('button', { name: 'Siguiente' }).click();
       await next();

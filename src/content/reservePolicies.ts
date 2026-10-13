@@ -122,7 +122,7 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
       },
       {
         heading: 'Tu gente',
-        paragraphs: ['Glamour permitido. Contenido sexual explícito no permitido. Las experiencias de esta categoría son profesionales y se realizan online, en estudios, eventos o lugares públicos o comerciales.'],
+        paragraphs: ['Contenido sexual explícito no permitido. Las experiencias de esta categoría son profesionales y se realizan online, en estudios, eventos o lugares públicos o comerciales.'],
       },
     ],
   },
@@ -211,7 +211,7 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
       },
       {
         heading: 'Contenido',
-        paragraphs: ['Glamour permitido. Contenido sexual explícito no permitido. Sin contenido que involucre a menores, violencia o discriminación.'],
+        paragraphs: ['Contenido sexual explícito no permitido. Sin contenido que involucre a menores, violencia o discriminación.'],
       },
     ],
   },

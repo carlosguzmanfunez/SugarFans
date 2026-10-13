@@ -278,7 +278,7 @@ const BASE_CATEGORIES: CreatorCategory[] = [
     // Public and professional places only: no restaurants, no private spaces.
     locations: ['public-place', 'event-venue', 'convention', 'studio', 'commercial-space'],
     customPurposes: ['meet-greet', 'session', 'collaboration', 'photo-session', 'appearance', 'event', 'other'],
-    contentLine: 'Glamour permitido. Contenido sexual explícito no permitido.',
+    contentLine: 'Contenido sexual explícito no permitido.',
     restrictions: [
       'Presencial solo en lugares públicos, eventos, convenciones o estudios profesionales.',
       'No se ofrecen citas, compañía ni "pasar tiempo" sin un servicio profesional definido.',

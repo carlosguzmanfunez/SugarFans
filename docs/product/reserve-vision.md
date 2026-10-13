@@ -94,13 +94,13 @@ Todo es declarativo en `src/config/reserve.ts`:
 - `LOCATION_TYPES` y `PROHIBITED_LOCATIONS`.
 - `PURPOSES`, `RESERVE_STATUSES`, `CANCELLATION_POLICIES` y `RESERVE_COPY`.
 
-Categorías: Modelos, Fitness, Cocina, Música, Gaming, Arte & Creatividad, Belleza, Lifestyle y Educación. No existen "+18", "Adultos", "Adult Content" ni "Sexy Creators".
+Categorías visibles: Tu gente (id interno `modelaje-glamour`, se conserva por compatibilidad), Fitness, Cocina, Música, Gaming, Arte & Creatividad, Belleza, Lifestyle y Educación. PREMIUM STARS existe en el código pero está desactivada (`PREMIUM_STARS_ENABLED = false`). No existen "+18", "Adultos", "Adult Content" ni "Sexy Creators".
 
 La base de datos acepta exactamente la misma lista de tipos que la configuración. Un test e2e lo comprueba.
 
-## 6. Modelos
+## 6. Tu gente
 
-*Glamour permitido. Contenido sexual explícito no permitido.*
+*Contenido sexual explícito no permitido.*
 
 **Permitido:**
 
@@ -133,7 +133,7 @@ Los servicios profesionales con propósito definido sí se permiten, también 1:
 
 Tampoco se permiten:
 
-- lugares: habitaciones de hotel, cuartos privados ni vehículos; domicilios solo para servicios profesionales, en todas las categorías menos Modelos (lugar del creator o lugar que propone el fan, aprobación manual, decisiones de Carlos 2026-10-03);
+- lugares: habitaciones de hotel, cuartos privados ni vehículos; domicilios solo para servicios profesionales, en todas las categorías menos Tu gente (lugar del creator o lugar que propone el fan, aprobación manual, decisiones de Carlos 2026-10-03);
 - contacto o pagos fuera de la plataforma.
 
 **Cómo se aplica.** La moderación está en `src/lib/moderation.ts` (cliente) y en `reserve_text_blocked` (servidor):
@@ -174,7 +174,7 @@ Se reutilizan los estados de `vip_bookings`; los nuevos se añadieron a su `chec
 
 **Ya implementado:**
 
-- Las experiencias presenciales se hacen en venues y lugares públicos o profesionales; en el lugar del creator o del fan solo servicios profesionales, nunca en Modelos.
+- Las experiencias presenciales se hacen en venues y lugares públicos o profesionales; en el lugar del creator o del fan solo servicios profesionales, nunca en Tu gente.
 - Requisito opcional de fan verificado.
 - Anticipación mínima.
 - Aprobación manual para los tipos sensibles.
@@ -221,4 +221,4 @@ Solicitud → Aceptación → Pago → Confirmación → Experiencia → Liquida
 - Retención de fondos y reembolsos.
 - Verificación de identidad de los fans (KYC) para experiencias presenciales.
 - Tratamiento de datos de ubicación.
-- Política de Glamour frente a las normas de app stores y procesadores de pago.
+- Política de contenido de Tu gente frente a las normas de app stores y procesadores de pago.

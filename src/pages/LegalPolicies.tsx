@@ -97,7 +97,7 @@ const LegalPolicies: React.FC = () => {
                     <h3 className="text-xl font-bold text-gray-900 mt-6">5. Contenido y Servicios prohibidos</h3>
                     <ul className="list-disc pl-5 space-y-2">
                       <li>Contenido que involucre menores de 18 años</li>
-                      <li>Contenido sexual explícito y cualquier servicio o actividad sexual (glamour permitido)</li>
+                      <li>Contenido sexual explícito y cualquier servicio o actividad sexual</li>
                       <li>Contenido sin consentimiento verificable</li>
                       <li>Contenido ilegal, violento o que infrinja derechos de terceros</li>
                       <li>Spam, fraude o actividades engañosas</li>

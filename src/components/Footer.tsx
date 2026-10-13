@@ -69,7 +69,7 @@ const Footer: React.FC = () => {
             {[
               { icon: 'fa-id-card', label: 'Creadores verificados' },
               { icon: 'fa-lock', label: 'Pagos protegidos' },
-              { icon: 'fa-user-shield', label: '+18' },
+              { icon: 'fa-user-shield', label: 'Solo mayores de 18' },
             ].map((b) => (
               <li key={b.label} className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-white/70">
                 <i className={`fas ${b.icon} text-gold-300`} aria-hidden="true"></i> {b.label}

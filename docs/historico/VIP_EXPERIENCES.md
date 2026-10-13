@@ -1,3 +1,5 @@
+> **Documento histórico (septiembre 2026).** Describe una versión temprana del proyecto y NO refleja el producto, el modelo de negocio, las comisiones ni las políticas vigentes de Fans Reserve (por ejemplo, ya no existe pago por contenido individual ni categorías antiguas). Las fuentes vigentes son `README.md`, `docs/product/reserve-vision.md`, y `public/legal/`.
+
 # Experiencias VIP - Fans Reserve
 
 ## 🎯 Descripción General
