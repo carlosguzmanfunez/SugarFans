@@ -4,7 +4,7 @@
 **Versión:** 1.1.0  
 **Tipo:** Acuerdo Legal Vinculante
 
-> **Borrador.** Requires legal review before production launch. Requiere revisión legal antes del lanzamiento a producción. La Plataforma está en modo de prueba: los pagos se procesan con PayPal en su entorno de pruebas (sandbox).
+> **Borrador.** Requires legal review before production launch. Requiere revisión legal antes del lanzamiento a producción. Los pagos se procesan con PayPal. Mientras la plataforma está en fase de prelanzamiento, el acceso está restringido.
 
 ---
 
@@ -55,6 +55,14 @@ Este Contrato para Creadores y Afiliados ("Contrato") constituye un acuerdo lega
 - Promocionar otros servicios
 
 2.2.2. **Conflicto de Intereses**: No debe promover activamente plataformas competidoras dentro de Fans Reserve.
+
+### 2.3. Mandato de Cobro
+
+2.3.1. **Proveedor del servicio**: Usted es el proveedor de las suscripciones, contenidos y experiencias que publica, y responde de prestarlos tal como los publicó.
+
+2.3.2. **Autorización**: Usted autoriza a Fans Reserve a cobrar a los fans en su nombre los pagos por sus suscripciones, propinas, regalos y experiencias; a retener de cada pago la comisión de la Plataforma y los ajustes por reembolsos, contracargos o disputas previstos en este Contrato; y a pagarle su saldo mediante PayPal Payouts u otro medio autorizado por PayPal.
+
+2.3.3. **Saldo a su favor**: El importe que le corresponde se registra como saldo a su favor hasta que se liquida. La comisión de la Plataforma es ingreso propio de Fans Reserve.
 
 ---
 
@@ -202,7 +210,7 @@ Pago al Creador = (Precio pagado por el fan − comisión del procesador por ese
 
 6.2.2. **Ejemplo**: una suscripción de $10 USD de un Creador Bronce le deja $8 USD.
 
-6.2.3. **Reembolsos y contracargos**: Si una venta se reembolsa o un fan presenta un contracargo y el incumplimiento fue del Creador, su parte de esa venta se descuenta de su saldo. Si el fallo no fue suyo, no se le descuenta nada.
+6.2.3. **Reembolsos, contracargos y disputas**: Mientras PayPal resuelve una disputa, su parte de esa venta queda congelada. Si la venta se reembolsa o el fan gana el contracargo o la disputa, su parte se descuenta de su saldo; si ya la retiró, se descuenta de sus ingresos futuros. Si el equipo de Fans Reserve determina que el problema no fue culpa suya, la Plataforma asume ese importe y no se le descuenta nada. Si el fan pierde la disputa, su parte se libera.
 
 ### 6.3. Cronograma de Pagos
 
@@ -212,18 +220,18 @@ Pago al Creador = (Precio pagado por el fan − comisión del procesador por ese
 - Un solo botón: se retira siempre el saldo acreditado completo
 - Mínimo: $50 USD ($25 USD en los niveles Oro y Diamante); si no lo alcanza, el saldo se acumula
 - Cualquier día del mes, sin aprobación previa
-- A cuenta bancaria
+- A la cuenta PayPal del Creador, mediante PayPal Payouts
 - La comisión que cobre el procesador de pagos por enviar el retiro se descuenta del monto retirado (ver 6.4)
 
 ### 6.4. Moneda y Comisiones de Pago
 
 6.4.1. **Moneda**: Todos los precios, ingresos, saldos y retiros se expresan y se pagan en dólares estadounidenses (USD).
 
-6.4.2. **Cobro a los fans**: La comisión que cobra el procesador de pagos cuando un fan paga la asume la Plataforma. La parte del Creador (6.1.2) se calcula sobre el precio completo que pagó el fan.
+6.4.2. **Cobro a los fans**: La comisión que cobra el procesador de pagos cuando un fan paga se resta del pago antes del reparto: la parte del Creador (6.1.2) se calcula sobre el neto, es decir, lo que pagó el fan menos esa comisión.
 
-6.4.3. **Envío de retiros**: La comisión que cobre el procesador de pagos o el banco por enviar cada retiro al Creador corre por cuenta del Creador y se descuenta del monto retirado. Cuando los pagos sean reales, el panel mostrará el monto bruto, la comisión y el monto neto antes de confirmar el retiro.
+6.4.3. **Envío de retiros**: La comisión que cobre el procesador de pagos o el banco por enviar cada retiro al Creador corre por cuenta del Creador y se descuenta del monto retirado. Antes de confirmar el retiro, el panel muestra el monto que recibirá y la comisión de PayPal.
 
-6.4.4. **Modo de prueba**: Mientras la Plataforma está en modo de prueba no se realizan cargos ni envíos reales, y no se descuenta ninguna comisión.
+6.4.4. **Procesador de pagos**: Los cobros a los fans y los retiros se procesan con PayPal. Mientras la Plataforma está en fase de prelanzamiento, el acceso está restringido.
 
 ### 6.5. Impuestos
 

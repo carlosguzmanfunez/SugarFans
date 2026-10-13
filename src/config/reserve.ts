@@ -278,7 +278,7 @@ const BASE_CATEGORIES: CreatorCategory[] = [
     // Public and professional places only: no restaurants, no private spaces.
     locations: ['public-place', 'event-venue', 'convention', 'studio', 'commercial-space'],
     customPurposes: ['meet-greet', 'session', 'collaboration', 'photo-session', 'appearance', 'event', 'other'],
-    contentLine: 'Glamour permitido. Contenido sexual explícito no permitido.',
+    contentLine: 'Contenido sexual explícito no permitido.',
     restrictions: [
       'Presencial solo en lugares públicos, eventos, convenciones o estudios profesionales.',
       'No se ofrecen citas, compañía ni "pasar tiempo" sin un servicio profesional definido.',
@@ -537,6 +537,6 @@ export const RESERVE_COPY = {
   event: 'Reserve Event: experiencia grupal con fecha, duración, precio y plazas definidas. Tu plaza garantiza el acceso al evento, no tiempo individual.',
   oneToOne: 'Reserve 1:1: videollamada solo entre tú y el creador, dentro de la reserva confirmada.',
   reserve: 'Una Reserve es una experiencia concreta, con fecha, duración, precio y condiciones definidas por el creador, que el creador acepta o rechaza.',
-  testPayments: 'Pagos en modo de prueba: no se realiza ningún cargo real.',
+  payments: 'Pagas con PayPal cuando el creador acepta. Tu pago queda protegido hasta que vivas la experiencia.',
   legalDraft: 'Borrador. Requiere revisión legal antes del lanzamiento a producción.',
 };

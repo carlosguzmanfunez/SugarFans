@@ -27,6 +27,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { SOCIALS, normalizeUsername, parseSocial, profileLink, type SocialKey, type SocialLinks } from '../lib/creatorLinks';
 import ProfileImageButton from '../components/ProfileImageButton';
 import { EMPTY_AVATAR, avatarOrEmpty } from '../lib/backend/shared';
+import { backend } from '../lib/backend';
 
 const notificationItems: { key: string; label: string }[] = [
   { key: 'newPosts', label: 'Nuevas publicaciones de creadores que sigues' },
@@ -539,47 +540,55 @@ const Settings: React.FC = () => {
 
             {activeSection === 'payments' && user && (
               <div className="space-y-6">
-                <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="payment-methods">
-                  <h2 className="text-lg font-bold text-gray-900 mb-2">Métodos de pago</h2>
-                  <p className="text-sm text-gray-500 mb-6">Aceptamos tarjetas Visa y Mastercard, PayPal y Google Pay.</p>
-                  <div className="space-y-3">
-                    {myMethods.length === 0 && <p className="text-sm text-gray-500">Aún no tienes métodos de pago.</p>}
-                    {myMethods.map((m) => (
-                      <div key={m.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-xl">
-                        <div className="flex items-center space-x-3">
-                          <i className={`text-2xl text-gray-600 ${paymentKindIcon[m.kind]}`}></i>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">{m.label}</p>
-                            <p className="text-xs text-gray-500">{m.detail}</p>
+                {backend.mode === 'supabase' ? (
+                  // Real site: every charge goes through PayPal; no payment methods are stored here.
+                  <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="payment-methods">
+                    <h2 className="text-lg font-bold text-gray-900 mb-2">Métodos de pago</h2>
+                    <p className="text-sm text-gray-500">Pagas con PayPal: con tu cuenta PayPal o con tarjeta a través de PayPal, cuando esté disponible en tu país. No guardamos datos de tarjetas.</p>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="payment-methods">
+                    <h2 className="text-lg font-bold text-gray-900 mb-2">Métodos de pago</h2>
+                    <p className="text-sm text-gray-500 mb-6">Aceptamos tarjetas Visa y Mastercard, PayPal y Google Pay.</p>
+                    <div className="space-y-3">
+                      {myMethods.length === 0 && <p className="text-sm text-gray-500">Aún no tienes métodos de pago.</p>}
+                      {myMethods.map((m) => (
+                        <div key={m.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-xl">
+                          <div className="flex items-center space-x-3">
+                            <i className={`text-2xl text-gray-600 ${paymentKindIcon[m.kind]}`}></i>
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{m.label}</p>
+                              <p className="text-xs text-gray-500">{m.detail}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {m.isDefault ? (
+                              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Principal</span>
+                            ) : (
+                              <button type="button" onClick={() => setDefaultPaymentMethod(user, m.id)} className="text-xs text-pink-600 hover:text-pink-700">
+                                Hacer principal
+                              </button>
+                            )}
+                            <button type="button" aria-label={`Eliminar ${m.label}`} onClick={() => removePaymentMethod(user, m.id)} className="p-2 text-gray-400 hover:text-red-500">
+                              <i aria-hidden="true" className="fas fa-trash"></i>
+                            </button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          {m.isDefault ? (
-                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Principal</span>
-                          ) : (
-                            <button type="button" onClick={() => setDefaultPaymentMethod(user, m.id)} className="text-xs text-pink-600 hover:text-pink-700">
-                              Hacer principal
-                            </button>
-                          )}
-                          <button type="button" aria-label={`Eliminar ${m.label}`} onClick={() => removePaymentMethod(user, m.id)} className="p-2 text-gray-400 hover:text-red-500">
-                            <i aria-hidden="true" className="fas fa-trash"></i>
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                    {addingMethod ? (
-                      <PaymentMethodForm
-                        user={user}
-                        onAdded={() => { setAddingMethod(false); setSaved('Método de pago añadido'); }}
-                        onCancel={() => setAddingMethod(false)}
-                      />
-                    ) : (
-                      <button type="button" onClick={() => setAddingMethod(true)} className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-pink-300 hover:text-pink-500 transition">
-                        <i aria-hidden="true" className="fas fa-plus mr-2"></i> Añadir método de pago
-                      </button>
-                    )}
+                      ))}
+                      {addingMethod ? (
+                        <PaymentMethodForm
+                          user={user}
+                          onAdded={() => { setAddingMethod(false); setSaved('Método de pago añadido'); }}
+                          onCancel={() => setAddingMethod(false)}
+                        />
+                      ) : (
+                        <button type="button" onClick={() => setAddingMethod(true)} className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-pink-300 hover:text-pink-500 transition">
+                          <i aria-hidden="true" className="fas fa-plus mr-2"></i> Añadir método de pago
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="settings-subscriptions">
                   <h2 className="text-lg font-bold text-gray-900 mb-2">Suscripciones</h2>
