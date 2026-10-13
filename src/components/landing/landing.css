@@ -486,12 +486,13 @@
 /* Phone: only the vertical film, as large as the screen allows, and the sign-up button. */
 @media (max-width:760px){
   .lv2 .pcover{padding-block:56px 0;overflow:clip}
+  .lv2.join .pcover{padding-top:88px}
   .lv2 .pc-kick,.lv2 .pc-main > h2,.lv2 .pc-row,.lv2 .pc-ctas,.lv2 .pc-ribbon,.lv2 .pc-trust,.lv2 .pc-login{display:none}
   .lv2 .pc-stage{margin-top:0;width:100vw;margin-left:calc(50% - 50vw)}
   /* No phone frame: the film takes the full width and the height left under the header. On short
      screens it crops at most ~7% top/bottom and the page scrolls a little; the sign-up button
      stays pinned at the bottom. Edges fade into the background instead of showing a border. */
-  .lv2 .pc-screen{height:min(calc(100vw * 16 / 9),max(calc(100svh - 72px),calc(100vw * 16 / 9 * .93)));width:100%;max-width:none;aspect-ratio:auto;border:0;border-radius:0;box-shadow:none;background:transparent;
+  .lv2 .pc-screen{height:min(calc(100vw * 16 / 9),max(calc(100svh - 72px - var(--join-nav-h,0px)),calc(100vw * 16 / 9 * .93)));width:100%;max-width:none;aspect-ratio:auto;border:0;border-radius:0;box-shadow:none;background:transparent;
     -webkit-mask-image:linear-gradient(transparent,#000 4%,#000 96%,transparent);mask-image:linear-gradient(transparent,#000 4%,#000 96%,transparent)}
   .lv2 .pc-pp{right:14px;top:14px;bottom:auto;width:38px;height:38px}
   .lv2 .pc-bar{display:none}
@@ -501,9 +502,18 @@
 @media (prefers-reduced-motion:reduce){.lv2 .pcover::before,.lv2 .pcover::after{animation:none}}
 
 /* Sign-up page ("/" without a session): own top bar over the film, closing call. */
-.lv2.join{background:var(--canvas)}
+.lv2.join{background:var(--canvas);--join-nav-h:32px}
 .lv2 .join-top{position:absolute;inset:0 0 auto 0;z-index:5;padding-top:calc(14px + env(safe-area-inset-top))}
-.lv2 .join-bar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.lv2 .join-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+.lv2 .join-nav{display:flex;gap:28px;font-size:14px;font-weight:600}
+.lv2 .join-nav a{color:rgb(255 255 255 / .82);transition:color .2s}
+.lv2 .join-nav a:hover{color:#fff}
+.lv2 .join-nav .jn-short{display:none}
+@media (max-width:400px){.lv2 .join-nav .jn-long{display:none}.lv2 .join-nav .jn-short{display:inline}}
+@media (max-width:1000px){.lv2 .join-nav{gap:18px;font-size:13px}}
+@media (max-width:760px){
+  .lv2 .join-nav{order:3;flex-basis:100%;justify-content:safe center;gap:14px;margin-top:2px;font-size:12.5px;white-space:nowrap;overflow-x:auto;scrollbar-width:none}
+}
 .lv2 .join-login{padding:10px 18px;border-radius:999px;font-weight:600;font-size:14px;color:#fff;background:rgb(255 255 255 / .1);border:1px solid rgb(255 255 255 / .2)}
 .lv2 .join-end{padding-block:72px 84px;background:var(--night);color:#fff;text-align:center}
 .lv2 .join-end h2{font-size:clamp(30px,4.4vw,54px);line-height:1.05;letter-spacing:-.035em}
