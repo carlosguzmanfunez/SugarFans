@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, prefersReducedMotion } from "./landingBits";
 import Register from "../../pages/Register";
+import { useLanguage, type Language } from "../../context/LanguageContext";
 
 // Sign-up entrance for visitors: a short film (made with HyperFrames) that presents
 // Fans Reserve as a whole. It opens the sign-up page (JoinPage) that visitors get at "/".
@@ -11,6 +12,18 @@ import Register from "../../pages/Register";
 const PHONE = "(max-width: 760px)";
 const isPhone = () =>
   typeof window !== "undefined" && window.matchMedia(PHONE).matches;
+// The film has its on-screen text in the visitor's language: one render per language
+// (Spanish keeps the original file names). A language without its own render hides the
+// film instead of showing it in another language.
+const FILM_LANGS: Language[] = ["es", "en", "pt", "fr", "it"];
+const filmFiles = (lang: Language, phone: boolean) => {
+  const suffix = lang === "es" ? "" : `-${lang}`;
+  const shape = phone ? "-vertical" : "";
+  return {
+    src: `/presentacion/fans-reserve-presentacion${shape}${suffix}.mp4?v=5`,
+    poster: `/presentacion/poster${shape}${suffix}.jpg?v=5`,
+  };
+};
 const COMMUNITIES = [
   { name: "Tu gente", photo: "valentina", c: "#ff9cc0" },
   { name: "Fitness", photo: "diego", c: "#6ee7b7" },
@@ -28,6 +41,9 @@ const PresentationCover: React.FC = () => {
   const bar = useRef<HTMLDivElement>(null);
   const [paused, setPaused] = useState(false);
   const [phone, setPhone] = useState(isPhone);
+  const { language } = useLanguage();
+  const hasFilm = FILM_LANGS.includes(language);
+  const film = filmFiles(language, phone);
 
   useEffect(() => {
     const mq = window.matchMedia(PHONE);
@@ -48,7 +64,7 @@ const PresentationCover: React.FC = () => {
     raf = requestAnimationFrame(tick);
     if (prefersReducedMotion()) v.pause();
     return () => cancelAnimationFrame(raf);
-  }, [phone]);
+  }, [phone, hasFilm]);
 
   const toggle = () => {
     const v = video.current;
@@ -58,7 +74,10 @@ const PresentationCover: React.FC = () => {
   };
 
   return (
-    <section className="pcover" aria-labelledby="pcover-title">
+    <section
+      className={hasFilm ? "pcover" : "pcover pc-nofilm"}
+      aria-labelledby="pcover-title"
+    >
       <div className="wrap pcover-in">
         <div className="pc-main">
           <h2 id="pcover-title">
@@ -77,52 +96,46 @@ const PresentationCover: React.FC = () => {
             </div>
           </div>
 
-          <div className="pc-stage">
-            <div className="pc-screen">
-              <video
-                ref={video}
-                key={phone ? "v" : "h"}
-                src={
-                  phone
-                    ? "/presentacion/fans-reserve-presentacion-vertical.mp4?v=3"
-                    : "/presentacion/fans-reserve-presentacion.mp4?v=3"
-                }
-                poster={
-                  phone
-                    ? "/presentacion/poster-vertical.jpg"
-                    : "/presentacion/poster.jpg"
-                }
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="metadata"
-                onPlay={() => setPaused(false)}
-                onPause={() => setPaused(true)}
-                aria-label="Presentación de Fans Reserve: comunidades, cómo funciona y Reserve"
-              />
-              <button
-                type="button"
-                className="pc-pp"
-                onClick={toggle}
-                aria-label={paused ? "Reproducir" : "Pausar"}
-              >
-                <svg
-                  className="ico"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  aria-hidden="true"
+          {hasFilm && (
+            <div className="pc-stage">
+              <div className="pc-screen">
+                <video
+                  ref={video}
+                  key={film.src}
+                  src={film.src}
+                  poster={film.poster}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  onPlay={() => setPaused(false)}
+                  onPause={() => setPaused(true)}
+                  aria-label="Presentación de Fans Reserve: comunidades, cómo funciona y Reserve"
+                />
+                <button
+                  type="button"
+                  className="pc-pp"
+                  onClick={toggle}
+                  aria-label={paused ? "Reproducir" : "Pausar"}
                 >
-                  {paused ? (
-                    <path d="M8 5v14l11-7z" />
-                  ) : (
-                    <path d="M7 5h4v14H7zM13 5h4v14h-4z" />
-                  )}
-                </svg>
-              </button>
-              <div className="pc-bar" ref={bar} />
+                  <svg
+                    className="ico"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    {paused ? (
+                      <path d="M8 5v14l11-7z" />
+                    ) : (
+                      <path d="M7 5h4v14H7zM13 5h4v14h-4z" />
+                    )}
+                  </svg>
+                </button>
+                <div className="pc-bar" ref={bar} />
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {!phone && (
