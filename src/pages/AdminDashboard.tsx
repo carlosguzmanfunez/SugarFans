@@ -20,6 +20,8 @@ import { displayEmail } from '../config/demoAccounts';
 import { giftsApi, type CoinPurchase } from '../lib/gifts';
 import AdminOverview from '../components/AdminOverview';
 import AdminLedger from '../components/AdminLedger';
+import AdminModeration from '../components/AdminModeration';
+import { backend } from '../lib/backend';
 import AdminUserSheet, { isSuspendedNow } from '../components/AdminUserSheet';
 import { countryName } from '../config/countries';
 
@@ -65,6 +67,8 @@ const AdminDashboard: React.FC = () => {
       adminActions: [] as Awaited<ReturnType<typeof platformApi.adminActions>>,
     }
   );
+  const { data: moderation } = usePlatformQuery(() => backend.moderationQueue(), [], []);
+  const pendingMedia = moderation.filter((m) => m.status === 'pending' || m.status === 'review').length;
   const [activeTab, setActiveTab] = useState('overview');
   const [userQuery, setUserQuery] = useState('');
   const [viewing, setViewing] = useState<VerificationRequest | null>(null);
@@ -76,7 +80,7 @@ const AdminDashboard: React.FC = () => {
   const reports = [...platform.reports].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const pendingReports = reports.filter((r) => r.status === 'pending');
   const payouts = [...platform.payouts].sort((a, b) => b.requestedAt.localeCompare(a.requestedAt));
-  const pendingTotal = pendingVerifications.length + pendingReports.length;
+  const pendingTotal = pendingVerifications.length + pendingReports.length + pendingMedia;
   // Sales PayPal gave back to the fan (refund, chargeback) or froze (dispute).
   const moneyBack = platform.transactions.filter((t) => (t.status === 'refunded' || t.status === 'disputed') && t.kind !== 'referral');
   const toggleCover = async (id: string, cover: boolean) => {
@@ -176,6 +180,7 @@ const AdminDashboard: React.FC = () => {
             { id: 'ledger', label: 'Libro', icon: 'fa-book' },
             { id: 'verifications', label: `Verificaciones (${pendingVerifications.length})`, icon: 'fa-id-card' },
             { id: 'reports', label: `Reportes (${pendingReports.length})`, icon: 'fa-flag' },
+            { id: 'moderation', label: `Moderación (${pendingMedia})`, icon: 'fa-shield-alt' },
             { id: 'payouts', label: 'Retiros', icon: 'fa-money-check-alt' },
             { id: 'managed', label: 'Perfiles gestionados', icon: 'fa-robot' },
             { id: 'special', label: 'Cuentas especiales', icon: 'fa-star' },
@@ -204,6 +209,8 @@ const AdminDashboard: React.FC = () => {
             onOpen={(tab) => { setActiveTab(tab); setNotice(null); }}
           />
         )}
+
+        {activeTab === 'moderation' && <AdminModeration />}
 
         {activeTab === 'ledger' && <AdminLedger transactions={platform.transactions} coins={platform.coins.map((c) => ({ ...c, userName: accounts.find((a) => a.id === c.userId)?.name }))} payouts={platform.payouts} />}
 

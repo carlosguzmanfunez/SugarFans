@@ -138,6 +138,7 @@ const CreatorProfile: React.FC = () => {
         isLocked: p.isLocked,
         createdAt: p.createdAt,
         isDraft: p.isDraft,
+        moderation: p.moderation,
         baseLikes: 0,
         baseComments: 0,
       }));
@@ -613,7 +614,7 @@ const CreatorProfile: React.FC = () => {
               <NewPostForm
                 verified
                 asProfileId={creator.id}
-                onPublished={() => { setComposing(false); setTipSent('Publicación creada.'); }}
+                onPublished={(inReview) => { setComposing(false); setTipSent(inReview ? 'Publicación creada. Su archivo está en revisión.' : 'Publicación creada.'); }}
                 onCancel={() => setComposing(false)}
               />
             )}

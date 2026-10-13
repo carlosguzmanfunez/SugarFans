@@ -122,10 +122,17 @@ const CreatorDashboard: React.FC = () => {
     { mine: [] as Awaited<ReturnType<typeof socialApi.postsByCreator>>, engagement: {} as Awaited<ReturnType<typeof socialApi.engagement>>, likes: 0 }
   );
 
-  const handlePublished = () => {
+  const handlePublished = (inReview?: boolean) => {
     setShowNewPost(false);
     setActiveTab('content');
-    show({ ok: true }, verified ? 'Publicación creada. Ya aparece en tu perfil público.' : 'Guardado como borrador. Se publicará solo cuando verifiques tu identidad.');
+    show(
+      { ok: true },
+      !verified
+        ? 'Guardado como borrador. Se publicará solo cuando verifiques tu identidad.'
+        : inReview
+          ? 'Publicación creada. Su foto o video está en revisión: tus fans lo verán en cuanto se apruebe.'
+          : 'Publicación creada. Ya aparece en tu perfil público.'
+    );
   };
 
   const handleDeletePost = async (id: string) => {
@@ -458,7 +465,15 @@ const CreatorDashboard: React.FC = () => {
                       <div className="p-4 flex-1 flex flex-col">
                         <div className="flex items-start justify-between mb-2 gap-2">
                           <span className="text-sm font-medium text-gray-900 break-words">{post.content || (post.mediaType === 'video' ? 'Video' : 'Foto')}</span>
-                          {post.isDraft ? (
+                          {post.moderation === 'rejected' ? (
+                            <span data-testid="moderation-badge" className="text-xs px-2 py-0.5 rounded-full whitespace-nowrap bg-red-100 text-red-700" title="No cumple las normas de contenido">
+                              No publicado
+                            </span>
+                          ) : post.moderation ? (
+                            <span data-testid="moderation-badge" className="text-xs px-2 py-0.5 rounded-full whitespace-nowrap bg-amber-100 text-amber-800" title="Tus fans lo verán en cuanto se apruebe">
+                              En revisión
+                            </span>
+                          ) : post.isDraft ? (
                             <span data-testid="draft-badge" className="text-xs px-2 py-0.5 rounded-full whitespace-nowrap bg-gray-100 text-gray-600">
                               Borrador
                             </span>

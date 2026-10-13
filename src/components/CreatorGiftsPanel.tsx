@@ -48,10 +48,11 @@ const CreatorGiftsPanel: React.FC = () => {
 
   const sendVideo = async (perk: PerkRequest, file: File) => {
     setBusy(true);
-    const up = await socialApi.uploadMedia(user, file);
+    const up = await socialApi.uploadMedia(user, file, 'perk_video');
     const r = up.ok && up.media ? await deliverVideo(user, perk.id, up.media) : up;
     setBusy(false);
-    say(r, `Video entregado a ${perk.fanName}`);
+    const inReview = !!up.media?.moderation && up.media.moderation !== 'approved';
+    say(r, inReview ? `Video entregado a ${perk.fanName}. Está en revisión: lo verá en cuanto se apruebe.` : `Video entregado a ${perk.fanName}`);
   };
 
   const book = async (perk: PerkRequest) => {

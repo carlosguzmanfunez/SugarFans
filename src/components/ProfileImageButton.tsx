@@ -30,6 +30,8 @@ const ProfileImageButton: React.FC<Props> = ({ kind, onDone, className = '', wit
       const image = await prepareProfileImage(file, kind);
       const result = await backend.setProfileImage(user, kind, image);
       if (!result.ok) return onDone(result.error || 'No se pudo guardar la foto', false);
+      // Held for moderation: the current photo stays until it's approved.
+      if (result.notice) return onDone(result.notice, true);
       await refreshUser();
       platformChanged();
       onDone(kind === 'avatar' ? 'Foto de perfil actualizada' : 'Portada actualizada', true);

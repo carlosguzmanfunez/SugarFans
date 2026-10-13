@@ -7,7 +7,8 @@ import { IMAGE_TYPES, VIDEO_TYPES, MAX_IMAGE_MB, MAX_VIDEO_MB, validateMedia } f
 interface Props {
   verified: boolean;
   asProfileId?: string; // admins publishing as a platform-run profile
-  onPublished: () => void;
+  // inReview: its photo or video waits for moderation before anyone else sees it.
+  onPublished: (inReview?: boolean) => void;
   onCancel?: () => void;
 }
 
@@ -70,14 +71,14 @@ const NewPostForm: React.FC<Props> = ({ verified, asProfileId, onPublished, onCa
     setLocked(false);
     clearFile();
     platformChanged();
-    onPublished();
+    onPublished(!!media && media.moderation !== undefined && media.moderation !== 'approved');
   };
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6 border border-pink-100" data-testid="new-post">
       <h3 className="font-bold text-lg mb-1">Crear nueva publicación</h3>
       <p className="text-sm text-gray-500 mb-4">
-        Sube una foto (hasta {MAX_IMAGE_MB} MB) o un video (hasta {MAX_VIDEO_MB} MB). Aparecerá en tu perfil público.
+        Sube una foto (hasta {MAX_IMAGE_MB} MB) o un video (hasta {MAX_VIDEO_MB} MB). Aparecerá en tu perfil público. Revisamos cada archivo antes de mostrarlo: no se permite desnudez ni contenido sexual.
       </p>
       {!verified && (
         <p className="text-sm text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2 mb-4" data-testid="draft-hint">

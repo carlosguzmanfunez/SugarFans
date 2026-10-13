@@ -67,7 +67,10 @@ finish(async () => {
     expect(!/verificando su identidad/.test(msg), msg);
   });
   await check('Portada: solo un enlace https, y cualquiera la ve en el perfil público', async () => {
-    raises(() => as(lola, `update public.profiles set cover = 'javascript:alert(1)' where id = '${lola}'`), /profiles_cover_url/, 'enlace raro');
+    raises(() => as(lola, `update public.profiles set cover = 'javascript:alert(1)' where id = '${lola}'`), /profiles_cover_url|en revisión/, 'enlace raro');
+    // Only an approved photo goes on the profile (migration media_moderation).
+    psql(DB, `insert into storage.objects (bucket_id, name) values ('profile-images', '${lola}/cover-1.jpg');
+      insert into public.media_moderation (bucket, path, owner_id, kind, media_type, status) values ('profile-images', '${lola}/cover-1.jpg', '${lola}', 'cover', 'image', 'approved')`);
     as(lola, `update public.profiles set cover = 'https://x.supabase.co/storage/v1/object/public/profile-images/${lola}/cover-1.jpg' where id = '${lola}'`);
     expect(psql(DB, `set role anon; select public.creator_cover('${profileOf(lola)}')`).endsWith('/cover-1.jpg'), 'no se ve la portada');
   });
