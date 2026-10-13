@@ -29,7 +29,7 @@ const WAYS = [
   {
     icon: 'fa-handshake',
     title: 'Meet & Greet y apariciones',
-    body: 'Saludo, foto y firma en persona, en un evento o lugar público. O un fan te invita a su fiesta en un salón de eventos para hacerla más exclusiva.',
+    body: 'Saludo y fotos con tu creador de contenido, en persona, en un evento o lugar público. O un fan te invita a su fiesta en un salón de eventos para hacerla más exclusiva.',
   },
 ];
 
@@ -96,7 +96,7 @@ const SalesTour: React.FC = () => {
             <i aria-hidden="true" className="fas fa-envelope-open-text mt-0.5 text-gold-700"></i>
             <p>
               <strong className="font-semibold text-ink">Tus fans también te proponen.</strong> Además de lo que tú publicas, cualquier fan puede
-              mandarte su propuesta de Reserve: qué quiere, cuándo y cuánto ofrece. Tú la aceptas, la rechazas o le haces una contraoferta.
+              mandarte su propuesta de Reserve: la idea que propone, la fecha y el valor que ofrece por la experiencia. Tú la aceptas, la rechazas o le haces una contraoferta.
             </p>
           </div>
           <p className="mt-4 text-center text-sm text-ink/60">Y además, tus fans pueden enviarte regalos y propinas cuando quieran.</p>

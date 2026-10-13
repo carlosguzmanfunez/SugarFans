@@ -158,7 +158,7 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, use
         <div className="mt-5 flex flex-col gap-3 rounded-2xl bg-white/80 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-ink">¿Buscas algo diferente?</p>
-            <p className="text-xs text-ink/70">Propón modalidad, propósito, fecha y presupuesto. {first} acepta, rechaza o te hace una contraoferta.</p>
+            <p className="text-xs text-ink/70">Propón tu idea, la fecha y el valor por la experiencia. {first} acepta, rechaza o te hace una contraoferta.</p>
           </div>
           <button
             type="button"

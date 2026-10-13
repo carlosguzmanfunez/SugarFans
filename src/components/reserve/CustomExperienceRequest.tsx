@@ -264,7 +264,7 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
       {step === 3 && (
         <div className="space-y-3">
           <label className="block text-sm">
-            <span className="font-semibold text-ink">Presupuesto que ofreces (USD)</span>
+            <span className="font-semibold text-ink">Valor que propones por la experiencia (USD)</span>
             <input name="budget" type="number" min={5} max={5000} step="1" value={form.budget} onChange={(e) => set({ budget: Number(e.target.value) })} className="mt-1 block w-full rounded-xl border border-line px-3 py-2.5 text-lg font-semibold" />
           </label>
           <p className="text-xs text-ink/60">
