@@ -4,7 +4,7 @@
 **Versión:** 1.1.0  
 **Jurisdicción aplicable:** Ver sección 13
 
-> **Borrador.** Requires legal review before production launch. Requiere revisión legal antes del lanzamiento a producción. La Plataforma está en modo de prueba: los pagos se procesan con PayPal en su entorno de pruebas (sandbox).
+> **Borrador.** Requires legal review before production launch. Requiere revisión legal antes del lanzamiento a producción. Los pagos se procesan con PayPal. Mientras la plataforma está en fase de prelanzamiento, el acceso está restringido.
 
 ---
 
@@ -169,13 +169,15 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 
 5.5. **Meta de experiencia**: Si un Creador la activa, los regalos y propinas que cada fan le envía llenan la meta de ese fan. Al completarla, el fan elige una de las experiencias que el Creador incluyó y recibe un ticket para reservarla sin pagar nada más, eligiendo día y hora según la disponibilidad del Creador. El ticket vence a los 60 días, no tiene valor en dinero, no es transferible ni reembolsable, y si el Creador rechaza la fecha o la solicitud vence, sigue activo para elegir otra.
 
-5.5. **Políticas aplicables**: Política de Reserve, Experiencias Aceptables, Servicios Prohibidos, Cancelación y No-show, Normas de la Comunidad y Acuerdo de Creator (Reserve).
+5.6. **Políticas aplicables**: Política de Reserve, Experiencias Aceptables, Servicios Prohibidos, Cancelación y No-show, Normas de la Comunidad y Acuerdo de Creator (Reserve).
 
 ---
 
 ## 6. PAGOS Y SUSCRIPCIONES
 
-6.1. **Métodos de Pago y Moneda**: Tarjetas de crédito o débito Visa y Mastercard, PayPal y Google Pay. Todos los precios y pagos se expresan y se cobran en dólares estadounidenses (USD); si su tarjeta o cuenta usa otra moneda, la conversión la hace su banco o proveedor. Mientras la Plataforma está en modo de prueba no se realizan cargos reales.
+6.0. **Papel de Fans Reserve**: Cada Creador es el proveedor de las suscripciones, contenidos y experiencias que publica y responde de prestarlos. Fans Reserve proporciona la Plataforma, facilita la contratación y procesa el pago en nombre del Creador, y retiene su comisión de intermediación, que es ingreso propio de Fans Reserve. El importe que corresponde al Creador se registra como saldo a su favor hasta que se liquida.
+
+6.1. **Métodos de Pago y Moneda**: PayPal (incluido el pago con tarjeta a través de PayPal, cuando esté disponible). Todos los precios y pagos se expresan y se cobran en dólares estadounidenses (USD); si su tarjeta o cuenta usa otra moneda, la conversión la hace su banco o proveedor.
 
 6.2. **Suscripciones**:
 - Se renuevan cada mes en la misma fecha en que se suscribió
@@ -199,7 +201,7 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 - Regalos: el Creador recibe el 60%
 - La Plataforma conserva siempre al menos el 10% de cada venta
 - Los ingresos se acreditan el día 1 de cada mes; lo cobrado a mitad de mes aparece como pendiente
-- Retiro del saldo completo a cuenta bancaria, cualquier día, desde $50 USD
+- Retiro del saldo completo a la cuenta PayPal del Creador, cualquier día, desde $50 USD ($25 USD en los niveles Oro y Diamante)
 - La comisión que cobre el procesador de pagos por enviar el retiro se descuenta del monto retirado
 - Los Creadores son responsables de sus obligaciones fiscales
 

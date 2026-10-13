@@ -124,12 +124,12 @@ export const ReserveNotice: React.FC<{ kind: NoticeKind; text?: string; classNam
       gift: RESERVE_COPY.gift,
       subscription: RESERVE_COPY.subscription,
       reserve: RESERVE_COPY.reserve,
-      payments: RESERVE_COPY.testPayments,
+      payments: RESERVE_COPY.payments,
       event: RESERVE_COPY.event,
       oneToOne: RESERVE_COPY.oneToOne,
       subscriberLive: RESERVE_COPY.subscriberLive,
     }[kind];
-  const icon = { gift: 'fa-gift', subscription: 'fa-star', reserve: 'fa-ticket', payments: 'fa-flask', event: 'fa-people-group', oneToOne: 'fa-user-lock', subscriberLive: 'fa-tower-broadcast' }[kind];
+  const icon = { gift: 'fa-gift', subscription: 'fa-star', reserve: 'fa-ticket', payments: 'fa-lock', event: 'fa-people-group', oneToOne: 'fa-user-lock', subscriberLive: 'fa-tower-broadcast' }[kind];
   return (
     <p data-testid={`notice-${kind}`} className={`flex gap-2 rounded-xl bg-gray-50 px-3 py-2 text-xs leading-relaxed text-ink/70 ${className}`}>
       <i aria-hidden="true" className={`fas ${icon} mt-0.5 text-[11px] text-muted`}></i>

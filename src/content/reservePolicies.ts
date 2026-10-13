@@ -55,7 +55,7 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
       {
         heading: '4. Pagos',
         paragraphs: [
-          'El flujo previsto es: solicitud, aceptación, pago, confirmación, experiencia y liquidación. Mientras la plataforma está en modo de prueba no se realizan cargos reales. La integración con un procesador de pagos, la retención de fondos y los reembolsos se definirán antes del lanzamiento.',
+          'El flujo es: solicitud, aceptación, pago, confirmación, experiencia y liquidación. El fan paga con PayPal cuando el creador acepta. Fans Reserve procesa el pago en nombre del creador, retiene su comisión y registra la parte del creador como saldo a su favor, que se acredita el día 1 de cada mes y se retira a su cuenta PayPal.',
         ],
       },
     ],
@@ -177,12 +177,13 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
         heading: 'Créditos, regalos y contracargos',
         bullets: [
           'Los Créditos y los regalos no son reembolsables, salvo cobro duplicado, error técnico o cuando la ley lo exija.',
-          'Si un fan abre un contracargo con su banco por una experiencia que sí se dio, la cuenta puede suspenderse mientras se revisa. El reembolso solo se descuenta al creador cuando el incumplimiento fue suyo.',
+          'Si un fan abre un contracargo con su banco por una experiencia que sí se dio, la cuenta puede suspenderse mientras se revisa.',
+          'Mientras PayPal resuelve una disputa, la parte del creador de esa venta queda congelada. Si el fan gana, se descuenta del saldo del creador (de sus ingresos futuros si ya la retiró); si el equipo determina que no fue culpa del creador, Fans Reserve asume el importe. Si el fan pierde, la parte del creador se libera.',
         ],
       },
       {
-        heading: 'Modo de prueba',
-        paragraphs: ['Mientras no haya un procesador de pagos real, no se realizan cargos ni reembolsos reales; los importes son de prueba y las revisiones se resuelven a mano.'],
+        heading: 'Cómo se devuelve el dinero',
+        paragraphs: ['Los reembolsos se hacen con PayPal al mismo medio con el que pagó el fan.'],
       },
     ],
   },

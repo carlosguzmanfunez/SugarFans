@@ -72,7 +72,7 @@ const LegalPolicies: React.FC = () => {
               {!reserveDoc(activePolicy) && (
                 <p role="note" className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                   <i aria-hidden="true" className="fas fa-scale-balanced mr-2"></i>
-                  <strong>Borrador.</strong> {LEGAL_REVIEW_NOTICE} Requiere revisión legal antes del lanzamiento a producción. La plataforma está en modo de prueba: los pagos se procesan con PayPal en su entorno de pruebas (sandbox).
+                  <strong>Borrador.</strong> {LEGAL_REVIEW_NOTICE} Requiere revisión legal antes del lanzamiento a producción. Los pagos se procesan con PayPal. Mientras la plataforma está en fase de prelanzamiento, el acceso está restringido.
                 </p>
               )}
 
@@ -109,7 +109,7 @@ const LegalPolicies: React.FC = () => {
                     <p>{BRAND.name} permite reservar experiencias, no personas. Los servicios profesionales con un propósito definido están permitidos; vender la compañía o la intimidad de una persona no. Si el creador no cumple lo publicado, el fan recibe el reembolso completo, previa verificación. Las videollamadas y los Lives no se graban y está prohibido grabarlos. Las reservas se rigen por la <a href="/legal?doc=reserve-policy" className="underline">Política de Reserve</a> y la de <a href="/legal?doc=cancellation" className="underline">Cancelación y No-show</a>.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">7. Pagos y Comisiones</h3>
-                    <p>Métodos de pago: tarjetas Visa y Mastercard, PayPal y Google Pay. Todos los precios y pagos son en dólares estadounidenses (USD). Los Creadores reciben el 80% del neto (lo pagado menos la comisión de PayPal por ese pago) de suscripciones, propinas y reservas de Reserve, más según su nivel y sus recompensas, nunca más del 90% del neto, y el 60% de los regalos. Suscripción mínima $4.99 USD al mes y propina mínima $3 USD. Los ingresos se acreditan el día 1 de cada mes y se retiran a la cuenta PayPal del Creador desde $50 USD ($25 en Oro y Diamante); la comisión de PayPal por enviar el retiro (2%, máximo $20) se descuenta del monto retirado.</p>
+                    <p>{BRAND.name} facilita la contratación y procesa el pago en nombre del Creador, que es el proveedor de cada suscripción, contenido o experiencia; la comisión de intermediación es ingreso propio de {BRAND.name} y la parte del Creador se registra como saldo a su favor hasta que se liquida. Métodos de pago: PayPal (incluido el pago con tarjeta a través de PayPal, cuando esté disponible). Todos los precios y pagos son en dólares estadounidenses (USD). Los Creadores reciben el 80% del neto (lo pagado menos la comisión de PayPal por ese pago) de suscripciones, propinas y reservas de Reserve, más según su nivel y sus recompensas, nunca más del 90% del neto, y el 60% de los regalos. Suscripción mínima $4.99 USD al mes y propina mínima $3 USD. Los ingresos se acreditan el día 1 de cada mes y se retiran a la cuenta PayPal del Creador desde $50 USD ($25 en Oro y Diamante); la comisión de PayPal por enviar el retiro (2%, máximo $20) se descuenta del monto retirado.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">8. Propiedad Intelectual</h3>
                     <p>Los Creadores conservan derechos de autor de su Contenido. La Plataforma posee derechos sobre el software, diseño y marcas.</p>
