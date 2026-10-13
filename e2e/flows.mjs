@@ -527,6 +527,18 @@ const run = async () => {
       await page.goto(`${BASE}/`);
       await page.getByRole('link', { name: /Crear cuenta gratis/ }).first().waitFor();
     });
+    await check('La portada sin sesión enlaza Cómo funciona, Para creadores y Preguntas frecuentes', async () => {
+      const nav = page.getByTestId('join-nav');
+      await nav.getByRole('link', { name: 'Cómo funciona' }).click();
+      await page.waitForFunction(() => scrollY > 200, null, { timeout: 5000 }).catch(() => {});
+      expect(await page.evaluate(() => scrollY) > 200, 'Cómo funciona no baja a los pasos');
+      await nav.getByRole('link', { name: 'Para creadores' }).click();
+      await waitPath(page, '/recorrido');
+      await page.goto(`${BASE}/`);
+      await page.getByTestId('join-nav').getByRole('link', { name: /Preguntas frecuentes/ }).click();
+      await waitPath(page, '/help');
+      await page.goto(`${BASE}/`);
+    });
     await check('Tras login desde una página protegida vuelve a esa página', async () => {
       await page.goto(`${BASE}/settings`);
       await waitPath(page, '/login');

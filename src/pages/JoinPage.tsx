@@ -7,7 +7,8 @@ import { ArrowRight, useLandingMotion } from '../components/landing/landingBits'
 import '../components/landing/landing.css';
 
 // Sign-up page: what visitors without a session get at "/". Only the presentation
-// film, how it works and the way in (create an account or sign in); no app menus.
+// film, how it works and the way in (create an account or sign in); no app menus,
+// just three top links (how it works, for creators, FAQ).
 // After signing up, fans land on the main page and creators on their panel.
 const JoinPage: React.FC = () => {
   const root = useRef<HTMLDivElement>(null);
@@ -18,6 +19,14 @@ const JoinPage: React.FC = () => {
       <header className="join-top">
         <div className="wrap join-bar">
           <BrandLogo size="sm" tone="dark" />
+          <nav className="join-nav" aria-label="Fans Reserve" data-testid="join-nav">
+            <a href="#journey">Cómo funciona</a>
+            <Link to="/recorrido">Para creadores</Link>
+            <Link to="/help">
+              <span className="jn-long">Preguntas frecuentes</span>
+              <span className="jn-short">Ayuda</span>
+            </Link>
+          </nav>
           <Link to="/login" className="join-login">
             Iniciar sesión
           </Link>
