@@ -9,12 +9,13 @@ export const checkProfileImage = (file: File): string | null => {
   return null;
 };
 
-const loadImage = (file: File) =>
+// keepUrl: the adjust screen still shows the picture, it frees the link when it closes.
+export const loadImage = (file: File, keepUrl = false) =>
   new Promise<HTMLImageElement>((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
-      URL.revokeObjectURL(url);
+      if (!keepUrl) URL.revokeObjectURL(url);
       resolve(img);
     };
     img.onerror = () => {
@@ -48,6 +49,22 @@ export const prepareProfileImage = async (file: File, kind: ProfileImageKind): P
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('No pudimos preparar la foto');
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
+  return new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('No pudimos preparar la foto'))), 'image/jpeg', 0.86)
+  );
+};
+
+// Avatar chosen by hand in the adjust screen: the square (in the photo's own pixels)
+// the person framed, saved at up to 512 px.
+export const cropAvatar = (img: HTMLImageElement, sx: number, sy: number, side: number): Promise<Blob> => {
+  const out = Math.max(1, Math.round(Math.min(512, side)));
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = out;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return Promise.reject(new Error('No pudimos preparar la foto'));
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, out, out);
+  ctx.drawImage(img, sx, sy, side, side, 0, 0, out, out);
   return new Promise<Blob>((resolve, reject) =>
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('No pudimos preparar la foto'))), 'image/jpeg', 0.86)
   );
