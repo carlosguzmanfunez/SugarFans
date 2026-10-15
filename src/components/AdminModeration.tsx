@@ -73,16 +73,18 @@ const AdminModeration: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 sm:p-6">
           {shown.map((item) => (
             <div key={`${item.bucket}/${item.path}`} className="border border-gray-200 rounded-xl overflow-hidden flex flex-col" data-testid="moderation-item">
-              {/* Blurred until the admin hovers or taps it. */}
-              <div className="relative bg-gray-900 h-48 group">
+              {/* Shown as is: only admins see this tab. */}
+              <div className="relative bg-gray-900 h-64">
                 {item.previewUrl ? (
                   item.mediaType === 'video' ? (
-                    <video src={item.previewUrl} controls playsInline preload="metadata" className="w-full h-48 object-contain blur-xl group-hover:blur-0 focus:blur-0 transition" />
+                    <video src={item.previewUrl} controls playsInline preload="metadata" className="w-full h-64 object-contain" />
                   ) : (
-                    <img src={item.previewUrl} alt="" tabIndex={0} className="w-full h-48 object-contain blur-xl group-hover:blur-0 focus:blur-0 transition" />
+                    <a href={item.previewUrl} target="_blank" rel="noopener noreferrer" title="Ver en grande">
+                      <img src={item.previewUrl} alt="" className="w-full h-64 object-contain" />
+                    </a>
                   )
                 ) : (
-                  <div className="w-full h-48 flex items-center justify-center text-gray-400 text-sm">Sin vista previa</div>
+                  <div className="w-full h-64 flex items-center justify-center text-gray-400 text-sm">Sin vista previa</div>
                 )}
               </div>
               <div className="p-4 flex-1 flex flex-col gap-2">
