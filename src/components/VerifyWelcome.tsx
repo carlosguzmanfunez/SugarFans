@@ -26,7 +26,7 @@ const VerifyWelcome: React.FC<{ name: string; onLater: () => void }> = ({ name, 
         <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center">
           <i aria-hidden="true" className="fas fa-id-card text-2xl text-white"></i>
         </div>
-        <p className="text-sm font-medium text-pink-600">¡Ya eres parte de Fans Reserve, {name.split(' ')[0]}!</p>
+        <p className="text-sm font-medium text-pink-600">¡Ya eres creador en Fans Reserve, {name.split(' ')[0]}!</p>
         <h2 id="verify-welcome-title" className="text-2xl font-bold text-gray-900 mt-1">Último paso: verifica tu identidad</h2>
         <p className="text-sm md:text-base text-gray-600 mt-3">
           Toma unos 2 minutos con tu documento oficial y la cámara. Mientras tanto ya puedes armar tu perfil y subir

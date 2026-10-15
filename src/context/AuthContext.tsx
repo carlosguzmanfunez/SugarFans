@@ -19,6 +19,8 @@ interface AuthContextType {
   // Leaves for Google/Microsoft; the user comes back to /auth/callback.
   signInWithProvider: (provider: SocialProvider) => Promise<AuthResult>;
   completeSocialSignup: (role: UserRole, ref?: string, extras?: SignupExtras) => Promise<AuthResult>;
+  // "Hazte creador": the signed-in fan's account becomes a creator account.
+  becomeCreator: () => Promise<AuthResult>;
   logout: () => Promise<void>;
   verifyAge: () => void;
   updateUser: (data: ProfilePatch) => Promise<AuthResult>;
@@ -101,6 +103,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return result;
   };
 
+  const becomeCreator = () => (user ? run(() => backend.becomeCreator(user)) : Promise.resolve(notSignedIn));
+
   const logout = async () => {
     await backend.logout();
     setUser(null);
@@ -157,6 +161,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         register,
         signInWithProvider,
         completeSocialSignup,
+        becomeCreator,
         logout,
         verifyAge,
         updateUser,
