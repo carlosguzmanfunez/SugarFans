@@ -900,7 +900,7 @@ const run = async () => {
     await check('Al registrarse, el creador ve el último paso: verificar identidad (ahora o más tarde)', async () => {
       const welcome = page.getByTestId('verify-welcome');
       await welcome.getByText('Último paso: verifica tu identidad').waitFor();
-      await welcome.getByText('¡Ya eres parte de Fans Reserve, Lola!').waitFor();
+      await welcome.getByText('¡Ya eres creador en Fans Reserve, Lola!').waitFor();
       await welcome.getByTestId('verify-qr-hint').getByText(/código QR/).waitFor();
       await welcome.getByRole('button', { name: 'Verificar ahora' }).click();
       await page.waitForURL((u) => new URL(u).searchParams.get('section') === 'verification', { timeout: 5000 });
@@ -2299,6 +2299,37 @@ const run = async () => {
       expect(est.share === 0.89 && est.gatewayFee === 3 && est.service === 2.5, JSON.stringify(est));
     });
     await specialCtx.close();
+
+    // ------------------------------------------------------------------
+    console.log('\nHazte creador (fan → creador)');
+    const switchCtx = await newContext(browser, { locale: 'es-ES' });
+    const sw = await newPage(switchCtx);
+    await check('Un fan pasa su cuenta a creador desde Ajustes y llega a verificar su identidad', async () => {
+      await register(sw, { name: 'Luz Cambio', email: 'luz.cambio@test.com', password: 'secret123' });
+      await waitPath(sw, '/');
+      await sw.goto(`${BASE}/recorrido`);
+      await sw.getByTestId('pitch-become-creator').first().click();
+      await waitPath(sw, '/settings');
+      await sw.getByTestId('become-creator-open').click();
+      const dialog = sw.getByTestId('become-creator-dialog');
+      await dialog.getByText('Conservas tus suscripciones').waitFor();
+      await dialog.getByTestId('become-creator-confirm').click();
+      await waitPath(sw, '/creator/dashboard');
+      await sw.getByTestId('verify-welcome').getByText('¡Ya eres creador en Fans Reserve, Luz!').waitFor();
+      await sw.getByTestId('verify-welcome').getByRole('button', { name: 'Más tarde' }).click();
+      await sw.goto(`${BASE}/settings?section=profile`);
+      expect((await sw.locator('#settings-username').inputValue()).startsWith('luz_cambio'), 'sin @usuario');
+      expect((await sw.getByTestId('become-creator').count()) === 0, 'un creador sigue viendo "Hazte creador"');
+    });
+    await check('La cuenta demo de fan no ve "Hazte creador"', async () => {
+      await logoutViaMenu(sw);
+      await login(sw, 'fan@sugarfans.com', 'demo1234');
+      await waitPath(sw, '/');
+      await sw.goto(`${BASE}/settings?section=profile`);
+      await sw.locator('#settings-username').or(sw.getByText('Editar perfil')).first().waitFor();
+      expect((await sw.getByTestId('become-creator').count()) === 0, 'la demo lo ve');
+    });
+    await switchCtx.close();
 
     // ------------------------------------------------------------------
     console.log('\nExplorar por país');

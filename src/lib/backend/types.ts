@@ -291,6 +291,8 @@ export interface Backend {
   signInWithProvider(provider: SocialProvider, redirectTo: string): Promise<AuthResult>;
   // Finishes a Google/Microsoft sign-up: account type, 18+ and terms.
   completeSocialSignup(role: UserRole, ref?: string, extras?: SignupExtras): Promise<AuthResult>;
+  // "Hazte creador": a fan account becomes a creator account, keeping everything.
+  becomeCreator(user: User): Promise<AuthResult>;
   logout(): Promise<void>;
   updateProfile(user: User, patch: ProfilePatch): Promise<AuthResult>;
   // Profile photo or cover photo, already shrunk to a JPEG by the browser.

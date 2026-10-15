@@ -50,7 +50,7 @@ import { createLocalLive, addLocalNotification } from './localLive';
 import { bookingAlert, isOverdue, respondByFrom } from '../reserveAlerts';
 import { creators as demoCreators } from '../../data/mockData';
 import { moderate } from '../moderation';
-import { demoAccount } from '../../config/demoAccounts';
+import { demoAccount, isDemoEmail } from '../../config/demoAccounts';
 import { BRAND } from '../../config/brand';
 import { usernameFrom } from '../creatorLinks';
 
@@ -537,6 +537,24 @@ export const localBackend: Backend = {
 
   async completeSocialSignup() {
     return fail('No hay ningún registro pendiente');
+  },
+
+  async becomeCreator(user) {
+    if (user.role !== 'fan') return fail('Esta cuenta no se puede convertir en creador');
+    if (isDemoEmail(user.email)) return fail('Las cuentas demo no se pueden convertir en creador');
+    if (platform.isSuspended(user.id)) return fail(ACCOUNT_SUSPENDED);
+    const done = mutate(user.id, (a) => ({
+      ...a,
+      role: 'creator',
+      creatorProfileId: a.id,
+      subscriptionPrice: a.subscriptionPrice ?? 9.99,
+      bio: a.bio ?? '',
+      followers: a.followers ?? 0,
+      following: a.following ?? 0,
+      posts: a.posts ?? 0,
+      username: freeHandle(a.name, a.id),
+    }));
+    return done ? ok : fail('Cuenta no encontrada');
   },
 
   async changePassword(user, current, next) {
