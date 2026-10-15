@@ -507,6 +507,15 @@ export const localBackend: Backend = {
     return mutate(user.id, (a) => ({ ...a, [kind]: url })) ? ok : fail('Cuenta no encontrada');
   },
 
+  // Offline (tests, local dev) there is no scan: every upload counts as approved.
+  async moderationQueue() {
+    return [];
+  },
+
+  async reviewMedia() {
+    return ok;
+  },
+
   async updateProfile(user, patch) {
     const cleaned = cleanPatch(patch);
     if (!cleaned.patch) return fail(cleaned.error!);

@@ -2,7 +2,8 @@ import React, { useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../lib/backend';
 import { platformChanged } from '../lib/platform';
-import { checkProfileImage, prepareProfileImage, type ProfileImageKind } from '../lib/profileImage';
+import { checkProfileImage, loadImage, prepareProfileImage, type ProfileImageKind } from '../lib/profileImage';
+import AvatarCropper from './AvatarCropper';
 
 interface Props {
   kind: ProfileImageKind;
@@ -19,17 +20,17 @@ const ProfileImageButton: React.FC<Props> = ({ kind, onDone, className = '', wit
   const [busy, setBusy] = useState(false);
   const label = kind === 'avatar' ? 'Cambiar foto de perfil' : 'Cambiar foto de portada';
 
-  const pick = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file || !user) return;
-    const problem = checkProfileImage(file);
-    if (problem) return onDone(problem, false);
+  // Profile photo: the adjust screen opens first; the cover goes straight up.
+  const [framing, setFraming] = useState<HTMLImageElement | null>(null);
+
+  const upload = async (image: Blob) => {
+    if (!user) return;
     setBusy(true);
     try {
-      const image = await prepareProfileImage(file, kind);
       const result = await backend.setProfileImage(user, kind, image);
       if (!result.ok) return onDone(result.error || 'No se pudo guardar la foto', false);
+      // Held for moderation: the current photo stays until it's approved.
+      if (result.notice) return onDone(result.notice, true);
       await refreshUser();
       platformChanged();
       onDone(kind === 'avatar' ? 'Foto de perfil actualizada' : 'Portada actualizada', true);
@@ -38,6 +39,25 @@ const ProfileImageButton: React.FC<Props> = ({ kind, onDone, className = '', wit
     } finally {
       setBusy(false);
     }
+  };
+
+  const pick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !user) return;
+    const problem = checkProfileImage(file);
+    if (problem) return onDone(problem, false);
+    try {
+      if (kind === 'avatar') return setFraming(await loadImage(file, true));
+      await upload(await prepareProfileImage(file, kind));
+    } catch (err) {
+      onDone(err instanceof Error ? err.message : 'No se pudo guardar la foto', false);
+    }
+  };
+
+  const closeFraming = () => {
+    if (framing) URL.revokeObjectURL(framing.src);
+    setFraming(null);
   };
 
   return (
@@ -63,6 +83,16 @@ const ProfileImageButton: React.FC<Props> = ({ kind, onDone, className = '', wit
           kind === 'cover' && <span className="hidden sm:inline text-sm font-semibold">{busy ? 'Subiendo…' : 'Editar portada'}</span>
         )}
       </button>
+      {framing && (
+        <AvatarCropper
+          image={framing}
+          onCancel={closeFraming}
+          onSave={(blob) => {
+            closeFraming();
+            upload(blob);
+          }}
+        />
+      )}
     </>
   );
 };

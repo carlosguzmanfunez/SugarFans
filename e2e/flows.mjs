@@ -634,7 +634,18 @@ const run = async () => {
       expect(before === '/avatar-vacio.svg', `sin foto debería verse el avatar vacío, se ve ${before}`);
       const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.getByRole('button', { name: 'Cambiar foto de perfil' }).click()]);
       await chooser.setFiles(photo('yo.png'));
+      // Adjust screen first, like Instagram: drag and zoom, then save.
+      const area = page.getByTestId('avatar-cropper-area');
+      await area.waitFor();
+      const b = await area.boundingBox();
+      await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(b.x + b.width / 2 + 40, b.y + b.height / 2 - 30, { steps: 5 });
+      await page.mouse.up();
+      await page.getByTestId('avatar-cropper-zoom').fill('2');
+      await page.getByTestId('avatar-cropper-save').click();
       await page.getByText('Foto de perfil actualizada').waitFor();
+      await page.getByTestId('avatar-cropper').waitFor({ state: 'detached' });
       await page.reload();
       const after = await page.getByTestId('settings-avatar').getAttribute('src');
       expect(after !== before && after.startsWith('data:image'), 'el avatar no cambió');
@@ -919,13 +930,20 @@ const run = async () => {
       };
       await pickWith('cover-button', 'portada.png');
       await page.getByText('Portada actualizada').waitFor();
+      // Cancelling the adjust screen leaves the photo as it was.
       await pickWith('avatar-button', 'yo.png');
+      await page.getByTestId('avatar-cropper').getByRole('button', { name: 'Cancelar' }).click();
+      await page.getByTestId('avatar-cropper').waitFor({ state: 'detached' });
+      await pickWith('avatar-button', 'yo.png');
+      await page.getByTestId('avatar-cropper-save').click();
       await page.getByText('Foto de perfil actualizada').waitFor();
       // Same on a phone.
       const size = page.viewportSize();
       await page.setViewportSize({ width: 390, height: 844 });
       await pickWith('cover-button', 'portada.png');
       await pickWith('avatar-button', 'yo.png');
+      await page.getByTestId('avatar-cropper-save').click({ timeout: 3000 });
+      await page.getByTestId('avatar-cropper').waitFor({ state: 'detached' });
       await page.setViewportSize(size);
       // Tapping the photo or the cover shows it big, with "change" right there.
       for (const [kind, label, done] of [['avatar', 'Cambiar foto de perfil', 'Foto de perfil actualizada'], ['cover', 'Cambiar foto de portada', 'Portada actualizada']]) {
@@ -934,6 +952,7 @@ const run = async () => {
         await viewer.getByTestId('profile-image-full').waitFor();
         const [chooser] = await Promise.all([page.waitForEvent('filechooser'), viewer.getByRole('button', { name: label }).click({ timeout: 3000 })]);
         await chooser.setFiles(photo(`${kind}-2.png`));
+        if (kind === 'avatar') await page.getByTestId('avatar-cropper-save').click();
         await page.getByText(done).last().waitFor();
         await page.keyboard.press('Escape');
         await viewer.waitFor({ state: 'detached' });

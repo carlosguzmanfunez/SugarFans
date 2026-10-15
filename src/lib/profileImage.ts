@@ -1,20 +1,23 @@
 // Profile photo and cover photo: the picture is shrunk in the browser before it is
-// uploaded (a phone photo can be 10 MB; a cover needs ~1600 px, an avatar 512 px).
+// uploaded (a phone photo can be 10 MB; a cover needs ~1600 px, an avatar 1024 px).
 export type ProfileImageKind = 'avatar' | 'cover';
 
 const MAX_INPUT_MB = 20;
+// Sharp when the photo is opened full size, not only in the small circle.
+const AVATAR_PX = 1024;
 export const checkProfileImage = (file: File): string | null => {
   if (!file.type.startsWith('image/')) return 'Elige una foto (JPG, PNG o WebP)';
   if (file.size > MAX_INPUT_MB * 1024 * 1024) return `La foto es demasiado grande (máximo ${MAX_INPUT_MB} MB)`;
   return null;
 };
 
-const loadImage = (file: File) =>
+// keepUrl: the adjust screen still shows the picture, it frees the link when it closes.
+export const loadImage = (file: File, keepUrl = false) =>
   new Promise<HTMLImageElement>((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
-      URL.revokeObjectURL(url);
+      if (!keepUrl) URL.revokeObjectURL(url);
       resolve(img);
     };
     img.onerror = () => {
@@ -24,7 +27,7 @@ const loadImage = (file: File) =>
     img.src = url;
   });
 
-// Avatar: centred square, 512 px. Cover: up to 1600 px wide, any proportion
+// Avatar: centred square, 1024 px. Cover: up to 1600 px wide, any proportion
 // (the profile shows it cropped like Facebook does).
 export const prepareProfileImage = async (file: File, kind: ProfileImageKind): Promise<Blob> => {
   const img = await loadImage(file);
@@ -36,7 +39,7 @@ export const prepareProfileImage = async (file: File, kind: ProfileImageKind): P
     sx = (w - side) / 2;
     sy = (h - side) / 2;
     sw = sh = side;
-    dw = dh = Math.min(512, side);
+    dw = dh = Math.min(AVATAR_PX, side);
   } else {
     const scale = Math.min(1, 1600 / w);
     dw = Math.round(w * scale);
@@ -48,6 +51,22 @@ export const prepareProfileImage = async (file: File, kind: ProfileImageKind): P
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('No pudimos preparar la foto');
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
+  return new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('No pudimos preparar la foto'))), 'image/jpeg', 0.86)
+  );
+};
+
+// Avatar chosen by hand in the adjust screen: the square (in the photo's own pixels)
+// the person framed, saved at up to 1024 px.
+export const cropAvatar = (img: HTMLImageElement, sx: number, sy: number, side: number): Promise<Blob> => {
+  const out = Math.max(1, Math.round(Math.min(AVATAR_PX, side)));
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = out;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return Promise.reject(new Error('No pudimos preparar la foto'));
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, out, out);
+  ctx.drawImage(img, sx, sy, side, side, 0, 0, out, out);
   return new Promise<Blob>((resolve, reject) =>
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('No pudimos preparar la foto'))), 'image/jpeg', 0.86)
   );

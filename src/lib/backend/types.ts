@@ -1,6 +1,6 @@
 // Shared domain types and the contract every data backend implements.
 import type { PlatformBackend } from './platformTypes';
-import type { MediaUpload, SocialBackend } from './socialTypes';
+import type { MediaUpload, ModerationItem, ModerationStatus, SocialBackend } from './socialTypes';
 import type { GiftsBackend } from './giftTypes';
 import type { RewardsBackend } from './rewardTypes';
 import type { LiveBackend } from './liveTypes';
@@ -51,6 +51,8 @@ export interface CreatorPost {
   creatorProfileId?: string;
   // Saved while the creator isn't verified yet; only they see it until then.
   isDraft?: boolean;
+  // Its photo or video is waiting for moderation (or was rejected): only they see it.
+  moderation?: ModerationStatus;
 }
 
 export interface User {
@@ -295,6 +297,9 @@ export interface Backend {
   updateProfile(user: User, patch: ProfilePatch): Promise<AuthResult>;
   // Profile photo or cover photo, already shrunk to a JPEG by the browser.
   setProfileImage(user: User, kind: 'avatar' | 'cover', image: Blob): Promise<AuthResult>;
+  // Admins: uploads waiting for (or blocked by) moderation, and their decision.
+  moderationQueue(): Promise<ModerationItem[]>;
+  reviewMedia(bucket: ModerationItem['bucket'], path: string, approve: boolean, reason?: string): Promise<AuthResult>;
   changePassword(user: User, current: string, next: string): Promise<AuthResult>;
   // `password` is ignored for Google/Microsoft accounts, which have none.
   deleteAccount(user: User, password: string): Promise<AuthResult>;

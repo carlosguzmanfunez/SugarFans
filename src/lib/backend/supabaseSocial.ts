@@ -7,6 +7,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { newId } from '../storage';
 import { extensionOf, validateMedia } from '../media';
 import type { AuthResult } from './types';
+import { REJECTED_MESSAGE, moderateUpload, moderationOf } from './supabaseModeration';
 import type { FeedPost, PostComment, PublicCreator, SocialBackend } from './socialTypes';
 
 type Row = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -54,6 +55,8 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
       const { data: urls } = await sb.storage.from(BUCKET).createSignedUrls(paths, URL_TTL);
       for (const u of urls ?? []) if (u.path && u.signedUrl && !u.error) signed.set(u.path, u.signedUrl);
     }
+    // Only the author and admins get rows here: their files still waiting for moderation.
+    const moderation = await moderationOf(sb, BUCKET, paths);
     return rows.map(
       (r): FeedPost => ({
         id: r.id,
@@ -66,6 +69,9 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
         mediaPath: r.media_path ?? undefined,
         mediaUrl: r.media_path ? signed.get(r.media_path) : undefined,
         isDraft: !!r.is_draft,
+        ...(r.media_path && moderation.get(r.media_path) && moderation.get(r.media_path) !== 'approved'
+          ? { moderation: moderation.get(r.media_path) }
+          : {}),
       })
     );
   },
@@ -106,7 +112,7 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
     return ok;
   },
 
-  async uploadMedia(user, file) {
+  async uploadMedia(user, file, kind = 'post') {
     const check = validateMedia(file);
     if (!check.type) return fail(check.error!);
     const path = `${user.id}/${newId()}.${extensionOf(file)}`;
@@ -115,7 +121,10 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
       const tooBig = /size|large|payload/i.test(error.message);
       return fail(tooBig ? 'El archivo es demasiado grande' : 'No se pudo subir el archivo. Inténtalo de nuevo.');
     }
-    return { ok: true, media: { path, type: check.type } };
+    // Scanned before anyone else can see it. A rejected file is kept (hidden) as evidence.
+    const moderation = await moderateUpload(sb, BUCKET, path, kind, check.type);
+    if (moderation === 'rejected') return fail(REJECTED_MESSAGE);
+    return { ok: true, media: { path, type: check.type, moderation } };
   },
 
   async removeMedia(_user, path) {

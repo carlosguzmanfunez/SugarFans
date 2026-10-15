@@ -3,6 +3,7 @@
 // SECURITY DEFINER functions, see supabase/migrations.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { PAID_WITH_PAYPAL, WRONG_CREDENTIALS, ACCOUNT_SUSPENDED, avatarOrEmpty, cleanPatch, mergeSettings, normalizeEmail, validateRegistration, validateSignupExtras } from './shared';
+import { REJECTED_MESSAGE, inReviewNotice, moderateUpload, moderationOf } from './supabaseModeration';
 import { DEFAULT_AVAILABILITY, cleanDetails, customTitle, normalizeAvailability, validateCounter, validateCustomRequest, validateExperience } from '../vip';
 import type { Backend, BookingDetails, BookingStatus, ExperienceType, ReserveDetails, SocialProvider, User, UserRole, VipBooking, VipExperience } from './types';
 import { creators as demoCreators } from '../../data/mockData';
@@ -235,6 +236,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
         sb.from('creator_posts').select('id, content, is_locked, created_at, media_path, media_type, is_draft').eq('creator_id', uid).order('created_at', { ascending: false }),
       ]);
       if (!profile.data) return null;
+      const moderation = await moderationOf(sb, 'post-media', (posts.data ?? []).map((p) => p.media_path).filter(Boolean) as string[]);
       return toUser(profile.data as ProfileRow, {
         authProvider,
         // A cancelled subscription counts until its end date.
@@ -249,6 +251,9 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
           mediaPath: p.media_path ?? undefined,
           mediaType: p.media_type ?? undefined,
           isDraft: !!p.is_draft,
+          ...(p.media_path && moderation.get(p.media_path) && moderation.get(p.media_path) !== 'approved'
+            ? { moderation: moderation.get(p.media_path) }
+            : {}),
         })),
       });
     },
@@ -364,6 +369,10 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       const { error } = await bucket.upload(path, image, { contentType: 'image/jpeg', upsert: false });
       if (error) return fail(/size|large|payload/i.test(error.message) ? 'La foto es demasiado grande' : 'No se pudo subir la foto. Inténtalo de nuevo.');
       const url = bucket.getPublicUrl(path).data.publicUrl;
+      // Scanned before it goes on the profile; until then the current photo stays.
+      const moderation = await moderateUpload(sb, 'profile-images', path, kind, 'image', url);
+      if (moderation === 'rejected') return fail(REJECTED_MESSAGE);
+      if (moderation !== 'approved') return { ok: true, notice: inReviewNotice(kind === 'avatar' ? 'Tu nueva foto de perfil' : 'Tu nueva portada') };
       const { error: saveError } = await sb.from('profiles').update({ [kind]: url }).eq('id', user.id);
       if (saveError) {
         await bucket.remove([path]);
@@ -374,6 +383,43 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       const old = (files ?? []).map((f) => `${user.id}/${f.name}`).filter((p) => p !== path && p.startsWith(`${user.id}/${kind}-`));
       if (old.length) await bucket.remove(old);
       return ok;
+    },
+
+    async moderationQueue() {
+      const { data, error } = await sb
+        .from('media_moderation')
+        .select('bucket, path, owner_id, kind, media_type, status, reason, provider, created_at, public_url, owner:profiles!media_moderation_owner_id_fkey(name)')
+        .in('status', ['pending', 'review', 'rejected'])
+        .order('created_at', { ascending: false })
+        .limit(200);
+      if (error || !data) return [];
+      const privatePaths = data.filter((r) => r.bucket === 'post-media').map((r) => r.path as string);
+      const signed = new Map<string, string>();
+      if (privatePaths.length) {
+        const { data: urls } = await sb.storage.from('post-media').createSignedUrls(privatePaths, 60 * 60);
+        for (const u of urls ?? []) if (u.path && u.signedUrl && !u.error) signed.set(u.path, u.signedUrl);
+      }
+      return data.map((r) => {
+        const owner = (Array.isArray(r.owner) ? r.owner[0] : r.owner) as { name?: string } | null;
+        return {
+          bucket: r.bucket,
+          path: r.path,
+          ownerId: r.owner_id,
+          ownerName: owner?.name ?? '',
+          kind: r.kind,
+          mediaType: r.media_type,
+          status: r.status,
+          reason: r.reason ?? '',
+          provider: r.provider ?? '',
+          createdAt: r.created_at,
+          previewUrl: r.bucket === 'post-media' ? signed.get(r.path) : r.public_url || undefined,
+        };
+      });
+    },
+
+    async reviewMedia(bucket, path, approve, reason) {
+      const { error } = await sb.rpc('moderation_review', { p_bucket: bucket, p_path: path, p_approve: approve, p_reason: reason ?? '' });
+      return error ? dbError(error, 'No se pudo guardar la decisión') : ok;
     },
 
     async updateProfile(user, patch) {

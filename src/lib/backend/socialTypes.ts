@@ -9,6 +9,27 @@ export type MediaType = 'image' | 'video';
 export interface MediaUpload {
   path: string; // "<author id>/<uuid>.<ext>"
   type: MediaType;
+  // Automatic moderation: only "approved" files are shown to anyone else.
+  moderation?: ModerationStatus;
+}
+
+// pending: not scanned yet · review: an admin decides · rejected: never shown.
+export type ModerationStatus = 'pending' | 'review' | 'approved' | 'rejected';
+
+// A file in the admin's "Moderación" tab.
+export interface ModerationItem {
+  bucket: 'post-media' | 'profile-images';
+  path: string;
+  ownerId: string;
+  ownerName: string;
+  kind: 'post' | 'perk_video' | 'avatar' | 'cover';
+  mediaType: MediaType;
+  status: ModerationStatus;
+  reason: string;
+  provider: string;
+  createdAt: string;
+  // Short-lived link for the admin's preview.
+  previewUrl?: string;
 }
 
 // A post a creator published from their panel.
@@ -25,6 +46,8 @@ export interface FeedPost {
   mediaUrl?: string;
   // Only its author (and admins) get drafts: they go public once the creator is verified.
   isDraft?: boolean;
+  // Only its author (and admins) see it while it isn't approved.
+  moderation?: ModerationStatus;
 }
 
 export interface Engagement {
@@ -76,7 +99,7 @@ export interface SocialBackend {
   comments(postId: string): Promise<PostComment[]>;
   addComment(user: User, postId: string, creatorProfileId: string, body: string): Promise<AuthResult>;
   deleteComment(user: User, commentId: string): Promise<AuthResult>;
-  uploadMedia(user: User, file: File): Promise<AuthResult & { media?: MediaUpload }>;
+  uploadMedia(user: User, file: File, kind?: 'post' | 'perk_video'): Promise<AuthResult & { media?: MediaUpload }>;
   removeMedia(user: User, path: string): Promise<void>;
   publicCreator(creatorProfileId: string): Promise<PublicCreator | null>;
   // Every creator who signed up (the demo catalogue is listed by the app itself).

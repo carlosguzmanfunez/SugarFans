@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { User } from '../context/AuthContext';
 import type { Engagement, MediaType } from '../lib/social';
+import type { ModerationStatus } from '../lib/backend/socialTypes';
 import { setLike, compactCount } from '../lib/social';
 import CommentsPanel from './CommentsPanel';
 import Avatar from './Avatar';
@@ -23,6 +24,8 @@ export interface DisplayPost {
   baseComments: number;
   // Only its author sees it until they verify their identity.
   isDraft?: boolean;
+  // Its photo or video waits for moderation (or was rejected): only its author sees it.
+  moderation?: ModerationStatus;
 }
 
 interface Props {
@@ -110,7 +113,16 @@ const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner,
             <p className="text-xs text-gray-500">{new Date(post.createdAt).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
           </div>
         </div>
-        {post.isDraft ? (
+        {post.moderation && post.moderation !== 'approved' ? (
+          <span
+            data-testid="moderation-badge"
+            className={`px-3 py-1 rounded-full text-xs font-medium ${post.moderation === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}`}
+            title={post.moderation === 'rejected' ? 'No cumple las normas de contenido' : 'Los demás lo verán en cuanto se apruebe'}
+          >
+            <i aria-hidden="true" className={`fas ${post.moderation === 'rejected' ? 'fa-ban' : 'fa-hourglass-half'} mr-1`}></i>
+            {post.moderation === 'rejected' ? 'No publicado' : 'En revisión'}
+          </span>
+        ) : post.isDraft ? (
           <span data-testid="draft-badge" className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-medium" title="Se publica cuando verifiques tu identidad">
             <i aria-hidden="true" className="fas fa-eye-slash mr-1"></i>Borrador: solo tú lo ves
           </span>
