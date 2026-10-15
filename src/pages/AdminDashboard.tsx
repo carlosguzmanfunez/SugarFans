@@ -205,7 +205,7 @@ const AdminDashboard: React.FC = () => {
             transactions={platform.transactions}
             coins={platform.coins}
             payouts={platform.payouts}
-            pending={{ verifications: pendingVerifications.length, reports: pendingReports.length, disputes: moneyBack.filter((t) => !t.platformCovers).length }}
+            pending={{ verifications: pendingVerifications.length, reports: pendingReports.length, disputes: moneyBack.filter((t) => !t.platformCovers).length, media: pendingMedia }}
             onOpen={(tab) => { setActiveTab(tab); setNotice(null); }}
           />
         )}

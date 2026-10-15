@@ -11,7 +11,7 @@ interface Props {
   transactions: Transaction[];
   coins: CoinPurchase[];
   payouts: Payout[];
-  pending: { verifications: number; reports: number; disputes: number };
+  pending: { verifications: number; reports: number; disputes: number; media?: number };
   onOpen: (tab: string) => void;
 }
 
@@ -42,6 +42,7 @@ const AdminOverview: React.FC<Props> = ({ accounts, transactions, coins, payouts
   const todo = [
     { tab: 'verifications', label: 'Verificaciones por revisar', n: pending.verifications },
     { tab: 'reports', label: 'Reportes pendientes', n: pending.reports },
+    { tab: 'moderation', label: 'Fotos y videos por revisar', n: pending.media ?? 0 },
     { tab: 'payouts', label: 'Reembolsos y disputas', n: pending.disputes },
   ];
 
