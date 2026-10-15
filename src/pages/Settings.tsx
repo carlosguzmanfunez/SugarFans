@@ -26,6 +26,7 @@ import { nationalPart } from '../config/countries';
 import { useLanguage } from '../context/LanguageContext';
 import { SOCIALS, normalizeUsername, parseSocial, profileLink, type SocialKey, type SocialLinks } from '../lib/creatorLinks';
 import ProfileImageButton from '../components/ProfileImageButton';
+import BecomeCreatorCard from '../components/BecomeCreatorCard';
 import { EMPTY_AVATAR, avatarOrEmpty } from '../lib/backend/shared';
 import { backend } from '../lib/backend';
 
@@ -361,6 +362,7 @@ const Settings: React.FC = () => {
                     Guardar cambios
                   </button>
                 </div>
+                <BecomeCreatorCard highlight={searchParams.get('focus') === 'creador'} />
               </div>
             )}
 

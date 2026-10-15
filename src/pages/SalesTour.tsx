@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { BECOME_CREATOR_LINK, canBecomeCreator } from '../lib/becomeCreator';
 import { useAuth } from '../context/AuthContext';
 import { BRAND } from '../config/brand';
 import { creators as demoCreators } from '../data/mockData';
@@ -49,7 +50,11 @@ const PERKS = [
 const SalesTour: React.FC = () => {
   const { user } = useAuth();
   const cta = user ? (
-    user.role === 'creator' ? <Link to="/creator/dashboard" className="btn btn-primary btn-lg">Ir a mi panel</Link> : null
+    user.role === 'creator' ? (
+      <Link to="/creator/dashboard" className="btn btn-primary btn-lg">Ir a mi panel</Link>
+    ) : canBecomeCreator(user) ? (
+      <Link to={BECOME_CREATOR_LINK} className="btn btn-primary btn-lg" data-testid="pitch-become-creator">Hazte creador</Link>
+    ) : null
   ) : (
     <Link to="/register?role=creator" className="btn btn-primary btn-lg" data-testid="pitch-cta">Crear mi cuenta gratis</Link>
   );

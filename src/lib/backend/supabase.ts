@@ -184,7 +184,7 @@ const fail = (error: string) => ({ ok: false, error });
 // Postgres raises our own Spanish messages; pass those through, hide the rest.
 const dbError = (error: { message?: string } | null, fallback: string) => {
   const msg = error?.message ?? '';
-  return fail(/[áéíóúñ¿]|Debes|Esta acción|Ese horario|La fecha|No puedes|No tienes|Reserva|Solo|Elige|Experiencia|Este perfil|Esta experiencia|Fans Reserve|Las experiencias|Mantén|El presupuesto|La duración|Entre|No quedan|Ya tienes|Evento|Este evento|Un Reserve Event|Indica/.test(msg) ? msg : fallback);
+  return fail(/[áéíóúñ¿]|Debes|Esta acción|Ese horario|La fecha|No puedes|No tienes|Reserva|Solo|Elige|Experiencia|Este perfil|Esta experiencia|Fans Reserve|Las experiencias|Mantén|El presupuesto|La duración|Entre|No quedan|Ya tienes|Evento|Este evento|Un Reserve Event|Indica|Tu cuenta|Esta cuenta|Termina|Las cuentas demo/.test(msg) ? msg : fallback);
 };
 
 const translateAuthError = (message: string): string => {
@@ -344,6 +344,14 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       // country/phone arguments: finish the sign-up without them.
       if (error?.code === 'PGRST202') ({ error } = await sb.rpc('complete_social_signup', { p_role: role, p_ref: ref ?? null }));
       return error ? dbError(error, 'No se pudo completar el registro') : ok;
+    },
+
+    async becomeCreator(user) {
+      if (user.role !== 'fan') return fail('Esta cuenta no se puede convertir en creador');
+      const { error } = await sb.rpc('become_creator');
+      // Until migration 20261015000001_become_creator is applied.
+      if (error?.code === 'PGRST202') return fail('Esta opción se activa en unos minutos. Inténtalo más tarde.');
+      return error ? dbError(error, 'No se pudo convertir tu cuenta en creador') : ok;
     },
 
     async logout() {

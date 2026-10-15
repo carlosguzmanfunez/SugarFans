@@ -4,17 +4,18 @@ import BrandLogo from './BrandLogo';
 import { BRAND } from '../config/brand';
 import { useAuth } from '../context/AuthContext';
 import type { UserRole } from '../lib/backend/types';
+import { BECOME_CREATOR_LINK, canBecomeCreator } from '../lib/becomeCreator';
 
 // Signup links only make sense to visitors; members get their own shortcut.
-const accountLinks = (role: UserRole | undefined) => {
+const accountLinks = (role: UserRole | undefined, canSwitch = false) => {
   if (!role) return { platform: { label: 'Crear cuenta', to: '/register' }, creators: { label: 'Empezar como creador', to: '/register?role=creator' } };
   if (role === 'creator') return { platform: { label: 'Mi cuenta', to: '/profile' }, creators: { label: 'Mi panel de creador', to: '/creator/dashboard' } };
   if (role === 'admin') return { platform: { label: 'Mi cuenta', to: '/profile' }, creators: { label: 'Panel de administración', to: '/admin' } };
-  return { platform: { label: 'Mi cuenta', to: '/profile' }, creators: null };
+  return { platform: { label: 'Mi cuenta', to: '/profile' }, creators: canSwitch ? { label: 'Hazte creador', to: BECOME_CREATOR_LINK } : null };
 };
 
-const columnsFor = (role: UserRole | undefined): { title: string; links: { label: string; to: string }[] }[] => {
-  const account = accountLinks(role);
+const columnsFor = (role: UserRole | undefined, canSwitch = false): { title: string; links: { label: string; to: string }[] }[] => {
+  const account = accountLinks(role, canSwitch);
   return [
   {
     title: 'Plataforma',
@@ -79,7 +80,7 @@ const Footer: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
-          {columnsFor(user?.role).map((col) => (
+          {columnsFor(user?.role, canBecomeCreator(user)).map((col) => (
             <div key={col.title}>
               <h3 className="font-display text-sm font-semibold text-white">{col.title}</h3>
               <ul className="mt-4 space-y-3 text-sm">
