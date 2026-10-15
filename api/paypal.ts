@@ -10,7 +10,10 @@
 //
 // Needs in the Vercel project settings: PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET,
 // PAYPAL_ENV ('sandbox' or 'live'), SUPABASE_SERVICE_ROLE_KEY and, for the
-// webhook, PAYPAL_WEBHOOK_ID.
+// webhook, PAYPAL_WEBHOOK_ID. RESEND_API_KEY sends the booking confirmation
+// email right after a Reserve payment (see api/_mail.ts).
+
+import { deliverOutbox, logServerError, resendKey } from './_mail.js';
 
 // Public values (same as .env.production); the anon key is meant to be public.
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://odugxvqwuvewsvifwmwb.supabase.co';
@@ -419,6 +422,7 @@ export async function GET(): Promise<Response> {
       secret: e.secret ? `${e.secret.length} caracteres` : 'FALTA',
       serviceRoleKey: e.serviceKey ? `${e.serviceKey.length} caracteres` : 'FALTA',
       paypal: paypalCheck,
+      resend: resendKey() ? 'OK' : 'FALTA',
     },
   });
 }
@@ -441,6 +445,7 @@ export async function POST(request: Request): Promise<Response> {
     try {
       return await webhook(request, e);
     } catch (err) {
+      await logServerError(e.serviceKey, 'api', `PayPal webhook: ${err instanceof Error ? err.message : String(err)}`, err instanceof Error ? err.stack ?? '' : '');
       return json(500, { error: err instanceof Error ? err.message : 'Error' });
     }
   }
@@ -535,7 +540,11 @@ export async function POST(request: Request): Promise<Response> {
             p_capture_id: capture.id,
             p_amount: capture.currency === 'USD' ? capture.value : -1,
           });
-      if (done.ok) return json(200, { ok: true, captureId: capture.id });
+      if (done.ok) {
+        // A Reserve payment queues its confirmation email: send it now.
+        await deliverOutbox(e.serviceKey);
+        return json(200, { ok: true, captureId: capture.id });
+      }
 
       // Charged but not fulfilled (e.g. the booking was cancelled meanwhile): give the money back.
       const refund = await paypal(e, ppToken, `/v2/payments/captures/${encodeURIComponent(capture.id)}/refund`, {}, `refund-${capture.id}`);
@@ -638,6 +647,7 @@ export async function POST(request: Request): Promise<Response> {
 
     return json(400, { error: 'Acción no válida.' });
   } catch (err) {
+    await logServerError(e.serviceKey, 'api', `PayPal ${String(body.action)}: ${err instanceof Error ? err.message : String(err)}`, err instanceof Error ? err.stack ?? '' : '');
     return json(502, { error: err instanceof Error ? err.message : 'No se pudo conectar con PayPal.' });
   }
 }

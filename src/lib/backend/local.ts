@@ -516,6 +516,11 @@ export const localBackend: Backend = {
     return ok;
   },
 
+  // Offline nothing is recorded: errors show in the browser console.
+  async appErrors() {
+    return [];
+  },
+
   async updateProfile(user, patch) {
     const cleaned = cleanPatch(patch);
     if (!cleaned.patch) return fail(cleaned.error!);

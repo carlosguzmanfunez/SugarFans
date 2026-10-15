@@ -32,6 +32,21 @@ export interface ModerationItem {
   previewUrl?: string;
 }
 
+// A production error in the admin's "Errores" tab: the same error within one
+// hour is one row with a counter.
+export interface AppError {
+  id: string;
+  source: 'web' | 'api' | 'email';
+  message: string;
+  detail: string;
+  url: string;
+  userAgent: string;
+  userName: string;
+  count: number;
+  firstSeen: string;
+  lastSeen: string;
+}
+
 // A post a creator published from their panel.
 export interface FeedPost {
   id: string;

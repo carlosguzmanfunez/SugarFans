@@ -1,6 +1,6 @@
 // Shared domain types and the contract every data backend implements.
 import type { PlatformBackend } from './platformTypes';
-import type { MediaUpload, ModerationItem, ModerationStatus, SocialBackend } from './socialTypes';
+import type { AppError, MediaUpload, ModerationItem, ModerationStatus, SocialBackend } from './socialTypes';
 import type { GiftsBackend } from './giftTypes';
 import type { RewardsBackend } from './rewardTypes';
 import type { LiveBackend } from './liveTypes';
@@ -300,6 +300,8 @@ export interface Backend {
   // Admins: uploads waiting for (or blocked by) moderation, and their decision.
   moderationQueue(): Promise<ModerationItem[]>;
   reviewMedia(bucket: ModerationItem['bucket'], path: string, approve: boolean, reason?: string): Promise<AuthResult>;
+  // Admins: errors recorded in production, newest first.
+  appErrors(): Promise<AppError[]>;
   changePassword(user: User, current: string, next: string): Promise<AuthResult>;
   // `password` is ignored for Google/Microsoft accounts, which have none.
   deleteAccount(user: User, password: string): Promise<AuthResult>;

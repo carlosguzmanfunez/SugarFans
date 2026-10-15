@@ -21,6 +21,7 @@ import { giftsApi, type CoinPurchase } from '../lib/gifts';
 import AdminOverview from '../components/AdminOverview';
 import AdminLedger from '../components/AdminLedger';
 import AdminModeration from '../components/AdminModeration';
+import AdminErrors from '../components/AdminErrors';
 import { backend } from '../lib/backend';
 import AdminUserSheet, { isSuspendedNow } from '../components/AdminUserSheet';
 import { countryName } from '../config/countries';
@@ -185,6 +186,7 @@ const AdminDashboard: React.FC = () => {
             { id: 'managed', label: 'Perfiles gestionados', icon: 'fa-robot' },
             { id: 'special', label: 'Cuentas especiales', icon: 'fa-star' },
             { id: 'users', label: 'Usuarios', icon: 'fa-users' },
+            { id: 'errors', label: 'Errores', icon: 'fa-bug' },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -211,6 +213,8 @@ const AdminDashboard: React.FC = () => {
         )}
 
         {activeTab === 'moderation' && <AdminModeration />}
+
+        {activeTab === 'errors' && <AdminErrors />}
 
         {activeTab === 'ledger' && <AdminLedger transactions={platform.transactions} coins={platform.coins.map((c) => ({ ...c, userName: accounts.find((a) => a.id === c.userId)?.name }))} payouts={platform.payouts} />}
 

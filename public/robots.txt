@@ -1,0 +1,9 @@
+User-agent: *
+Disallow: /admin
+Disallow: /settings
+Disallow: /profile
+Disallow: /creator/dashboard
+Disallow: /reset-password
+Disallow: /auth/
+
+Sitemap: https://fansreserve.com/sitemap.xml
