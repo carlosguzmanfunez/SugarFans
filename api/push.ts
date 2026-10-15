@@ -12,6 +12,7 @@
 // are created on first use and kept in public.app_secrets; VAPID_PUBLIC_KEY and
 // VAPID_PRIVATE_KEY in the Vercel settings override them if ever set.
 import webpush from 'web-push';
+import { logServerError } from './_mail.js';
 
 // Public values (same as .env.production); the anon key is meant to be public.
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://odugxvqwuvewsvifwmwb.supabase.co';
@@ -153,6 +154,7 @@ export async function POST(request: Request): Promise<Response> {
     if (typeof body.id !== 'string') return json(400, { error: 'Falta id' });
     return await deliver(body.id);
   } catch (err) {
+    await logServerError(clean(process.env.SUPABASE_SERVICE_ROLE_KEY), 'api', `Avisos push: ${err instanceof Error ? err.message : String(err)}`, err instanceof Error ? err.stack ?? '' : '');
     return json(500, { error: err instanceof Error ? err.message : 'Error' });
   }
 }

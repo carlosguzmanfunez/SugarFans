@@ -1,5 +1,8 @@
 // Must run before any module reads browser storage.
 import "./config/legacyStorage";
+// Errors in production go to the admin's "Errores" tab; imported early so a
+// failure while the rest of the app loads is caught too.
+import "./lib/errorReporting";
 // Keeps the browser's "install app" offer, which arrives only once and early.
 import "./lib/install";
 import React from "react";

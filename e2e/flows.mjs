@@ -1342,6 +1342,11 @@ const run = async () => {
       const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: /Descargar Excel/ }).click()]);
       expect(/fans-reserve-libro-todo-.*\.csv$/.test(download.suggestedFilename()), download.suggestedFilename());
     });
+    await check('Admin: la pestaña Errores abre (sin errores en la versión de prueba)', async () => {
+      await page.goto(`${BASE}/admin`);
+      await page.getByRole('button', { name: 'Errores', exact: true }).click();
+      await page.getByTestId('admin-errors').getByText('Sin errores registrados').waitFor();
+    });
     await check('Admin ve las cuentas reales y puede buscarlas', async () => {
       await logoutViaMenu(page);
       await login(page, 'admin@sugarfans.com', 'demo1234');
@@ -3066,6 +3071,10 @@ const run = async () => {
       await p.getByTestId('coming-soon').waitFor();
       await p.goto(`${BASE}/legal?doc=terms`);
       expect((await p.getByTestId('coming-soon').count()) === 0, 'la página legal quedó oculta');
+      // The link of the "recuperar contraseña" email works on any device.
+      await p.goto(`${BASE}/reset-password`);
+      await p.getByRole('heading').first().waitFor();
+      expect((await p.getByTestId('coming-soon').count()) === 0, 'el enlace para cambiar la contraseña quedó detrás de "Muy pronto"');
       // The private link opens the site on this device, and the code leaves the address bar.
       await p.goto(`${BASE}/explore?acceso=prueba-e2e`);
       await p.getByTestId('category-rail').waitFor();

@@ -7,6 +7,7 @@
 // Needs in the Vercel project settings: DIDIT_API_KEY, DIDIT_WORKFLOW_ID,
 // DIDIT_WEBHOOK_SECRET and SUPABASE_SERVICE_ROLE_KEY.
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { logServerError } from './_mail.js';
 
 // Public values (same as .env.production); the anon key is meant to be public.
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://odugxvqwuvewsvifwmwb.supabase.co';
@@ -152,6 +153,7 @@ export async function POST(request: Request): Promise<Response> {
     try {
       return await webhook(request, e);
     } catch (err) {
+      await logServerError(e.serviceKey, 'api', `Didit webhook: ${err instanceof Error ? err.message : String(err)}`, err instanceof Error ? err.stack ?? '' : '');
       return json(500, { error: err instanceof Error ? err.message : 'Error' });
     }
   }

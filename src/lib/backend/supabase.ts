@@ -417,6 +417,30 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       });
     },
 
+    async appErrors() {
+      const { data, error } = await sb
+        .from('app_errors')
+        .select('id, source, message, detail, url, user_agent, count, first_seen, last_seen, user:profiles!app_errors_user_id_fkey(name)')
+        .order('last_seen', { ascending: false })
+        .limit(200);
+      if (error || !data) return [];
+      return data.map((r) => {
+        const user = (Array.isArray(r.user) ? r.user[0] : r.user) as { name?: string } | null;
+        return {
+          id: r.id,
+          source: r.source,
+          message: r.message,
+          detail: r.detail ?? '',
+          url: r.url ?? '',
+          userAgent: r.user_agent ?? '',
+          userName: user?.name ?? '',
+          count: r.count,
+          firstSeen: r.first_seen,
+          lastSeen: r.last_seen,
+        };
+      });
+    },
+
     async reviewMedia(bucket, path, approve, reason) {
       const { error } = await sb.rpc('moderation_review', { p_bucket: bucket, p_path: path, p_approve: approve, p_reason: reason ?? '' });
       return error ? dbError(error, 'No se pudo guardar la decisión') : ok;
