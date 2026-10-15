@@ -1,19 +1,27 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { cropAvatar } from '../lib/profileImage';
+import { cropAvatar, cropCover, COVER_RATIO, COVER_DESKTOP_RATIO } from '../lib/profileImage';
 
 interface Props {
   image: HTMLImageElement;
   onCancel: () => void;
   onSave: (blob: Blob) => void;
+  // 'cover': a wide frame like Facebook's cover, instead of the profile circle.
+  kind?: 'avatar' | 'cover';
 }
 
 const MAX_ZOOM = 4;
 
-// Adjust screen for the profile photo, like Instagram's: drag to move the photo
-// inside the circle, zoom with the slider, the mouse wheel or two fingers.
-const AvatarCropper: React.FC<Props> = ({ image, onCancel, onSave }) => {
+// Adjust screen for the profile photo (a circle, like Instagram) or the cover (a wide
+// frame, like Facebook): drag to move the photo inside the frame, zoom with the
+// slider, the mouse wheel or two fingers.
+const frameWidth = (cover: boolean) => (cover ? Math.min(560, window.innerWidth - 72) : Math.min(320, window.innerWidth - 64));
+
+const AvatarCropper: React.FC<Props> = ({ image, onCancel, onSave, kind = 'avatar' }) => {
+  const cover = kind === 'cover';
   const box = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState(() => Math.min(320, window.innerWidth - 64));
+  const [size, setSize] = useState(() => frameWidth(cover));
+  // Frame in screen pixels: square for the avatar, 2:1 for the cover.
+  const frameH = cover ? size / COVER_RATIO : size;
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const framed = useRef(false);
@@ -23,15 +31,16 @@ const AvatarCropper: React.FC<Props> = ({ image, onCancel, onSave }) => {
 
   const w = image.naturalWidth;
   const h = image.naturalHeight;
-  // At zoom 1 the photo just covers the circle's square.
-  const scale = (size / Math.min(w, h)) * zoom;
+  // At zoom 1 the photo just covers the frame.
+  const fit = (z: number) => Math.max(size / w, frameH / h) * z;
+  const scale = fit(zoom);
   const dispW = w * scale;
   const dispH = h * scale;
 
   const clamp = (o: { x: number; y: number }, z = zoom) => {
-    const s = (size / Math.min(w, h)) * z;
+    const s = fit(z);
     const maxX = Math.max(0, (w * s - size) / 2);
-    const maxY = Math.max(0, (h * s - size) / 2);
+    const maxY = Math.max(0, (h * s - frameH) / 2);
     return { x: Math.min(maxX, Math.max(-maxX, o.x)), y: Math.min(maxY, Math.max(-maxY, o.y)) };
   };
 
@@ -42,7 +51,7 @@ const AvatarCropper: React.FC<Props> = ({ image, onCancel, onSave }) => {
   };
 
   useLayoutEffect(() => {
-    const measure = () => setSize(Math.min(320, window.innerWidth - 64));
+    const measure = () => setSize(frameWidth(cover));
     measure();
     window.addEventListener('resize', measure);
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onCancel();
@@ -51,14 +60,14 @@ const AvatarCropper: React.FC<Props> = ({ image, onCancel, onSave }) => {
       window.removeEventListener('resize', measure);
       window.removeEventListener('keydown', onKey);
     };
-  }, [onCancel]);
+  }, [onCancel, cover]);
 
   // A tall photo starts showing its top, where the face usually is; later the
   // photo keeps covering the circle when the screen size changes.
   useLayoutEffect(() => {
     if (framed.current) return setOffset((o) => clamp(o));
     framed.current = true;
-    setOffset(clamp({ x: 0, y: 1e9 }));
+    setOffset(clamp({ x: 0, y: cover ? 0 : 1e9 }));
   }, [size]);
 
   // Wheel zoom needs a non-passive listener so the page doesn't scroll.
@@ -100,22 +109,23 @@ const AvatarCropper: React.FC<Props> = ({ image, onCancel, onSave }) => {
 
   const save = async () => {
     setSaving(true);
-    // The circle's square, back in the photo's own pixels.
-    const side = size / scale;
-    const sx = (dispW / 2 - offset.x - size / 2) / scale;
-    const sy = (dispH / 2 - offset.y - size / 2) / scale;
+    // The frame, back in the photo's own pixels.
+    const sw = Math.min(size / scale, w);
+    const sh = Math.min(frameH / scale, h);
+    const sx = Math.max(0, (dispW / 2 - offset.x - size / 2) / scale);
+    const sy = Math.max(0, (dispH / 2 - offset.y - frameH / 2) / scale);
     try {
-      onSave(await cropAvatar(image, Math.max(0, sx), Math.max(0, sy), Math.min(side, w, h)));
+      onSave(cover ? await cropCover(image, sx, sy, sw, sh) : await cropAvatar(image, sx, sy, Math.min(sw, sh)));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Ajusta tu foto de perfil" data-testid="avatar-cropper">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 flex flex-col items-center gap-4">
+    <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={cover ? 'Ajusta tu portada' : 'Ajusta tu foto de perfil'} data-testid="avatar-cropper">
+      <div className={`bg-white rounded-2xl shadow-xl w-full ${cover ? 'max-w-xl' : 'max-w-sm'} p-5 flex flex-col items-center gap-4`}>
         <div className="w-full flex items-center justify-between">
-          <h2 className="font-bold text-gray-900">Ajusta tu foto de perfil</h2>
+          <h2 className="font-bold text-gray-900">{cover ? 'Ajusta tu portada' : 'Ajusta tu foto de perfil'}</h2>
           <button type="button" onClick={onCancel} aria-label="Cerrar" className="w-8 h-8 rounded-full hover:bg-gray-100 text-gray-500">
             <i aria-hidden="true" className="fas fa-times"></i>
           </button>
@@ -127,7 +137,7 @@ const AvatarCropper: React.FC<Props> = ({ image, onCancel, onSave }) => {
           onPointerUp={up}
           onPointerCancel={up}
           className="relative overflow-hidden rounded-xl bg-gray-900 cursor-grab active:cursor-grabbing select-none"
-          style={{ width: size, height: size, touchAction: 'none' }}
+          style={{ width: size, height: frameH, touchAction: 'none' }}
           data-testid="avatar-cropper-area"
         >
           <img
@@ -135,12 +145,25 @@ const AvatarCropper: React.FC<Props> = ({ image, onCancel, onSave }) => {
             alt=""
             draggable={false}
             className="absolute max-w-none pointer-events-none"
-            style={{ width: dispW, height: dispH, left: size / 2 - dispW / 2 + offset.x, top: size / 2 - dispH / 2 + offset.y }}
+            style={{ width: dispW, height: dispH, left: size / 2 - dispW / 2 + offset.x, top: frameH / 2 - dispH / 2 + offset.y }}
           />
-          {/* Darkens what falls outside the circle. */}
-          <div className="absolute inset-0 rounded-full pointer-events-none" style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.55)', border: '2px solid rgba(255,255,255,0.9)' }} />
+          {cover ? (
+            // Phones show the whole frame; computers show the band between the lines.
+            <div
+              className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-y-2 border-dashed border-white/80 pointer-events-none"
+              style={{ height: size / COVER_DESKTOP_RATIO }}
+              data-testid="cover-desktop-band"
+            />
+          ) : (
+            // Darkens what falls outside the circle.
+            <div className="absolute inset-0 rounded-full pointer-events-none" style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.55)', border: '2px solid rgba(255,255,255,0.9)' }} />
+          )}
         </div>
-        <p className="text-xs text-gray-500 text-center">Arrastra la foto para moverla y usa la barra para acercarla.</p>
+        <p className="text-xs text-gray-500 text-center">
+          {cover
+            ? 'Arrastra la foto para moverla y usa la barra para acercarla. En el celular se ve todo el recuadro; en la computadora, lo que queda entre las líneas.'
+            : 'Arrastra la foto para moverla y usa la barra para acercarla.'}
+        </p>
         <div className="w-full flex items-center gap-3">
           <i aria-hidden="true" className="fas fa-image text-gray-400 text-xs"></i>
           <input

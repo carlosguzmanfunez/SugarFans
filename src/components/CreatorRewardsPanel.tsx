@@ -51,7 +51,7 @@ const CreatorRewardsPanel: React.FC = () => {
   return (
     <div className="space-y-6" data-testid="rewards-panel">
       {special && !special.revokedAt && (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border-2 border-purple-200" data-testid="special-plan">
+        <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border-2 border-purple-200" data-testid="special-plan">
           <h3 className="font-bold text-gray-900 mb-2"><i aria-hidden="true" className="fas fa-star text-purple-500 mr-2"></i>Tienes un plan especial</h3>
           <ul className="text-sm text-gray-700 space-y-1">
             {special.reserveNet && (
@@ -91,7 +91,7 @@ const CreatorRewardsPanel: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm" data-testid="levels">
+      <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm" data-testid="levels">
         <h3 className="font-bold text-gray-900 mb-1"><i aria-hidden="true" className="fas fa-medal text-amber-500 mr-2"></i>Niveles y lo que desbloquean</h3>
         <p className="text-sm text-gray-500 mb-4">
           Subes con fans activos (los de tu enlace cuentan doble) o con lo que vendes en 30 días. Desde Plata, sin reportes confirmados;
@@ -123,7 +123,7 @@ const CreatorRewardsPanel: React.FC = () => {
       </div>
 
 
-      <div className="bg-gradient-to-br from-pink-500 to-purple-600 text-white rounded-2xl p-6">
+      <div className="bg-gradient-to-br from-pink-500 to-purple-600 text-white rounded-2xl p-4 sm:p-6">
         <h3 className="font-bold text-lg"><i aria-hidden="true" className="fas fa-link mr-2"></i>Tu enlace de invitación</h3>
         <p className="text-sm opacity-90 mt-1">
           Compártelo en Instagram, TikTok o X. De cada fan que se registre con él te quedas con el {pct(REFERRAL_SHARE)} de lo que te pague durante {REFERRAL_DAYS} días, y cuenta doble para subir de nivel.
@@ -136,7 +136,7 @@ const CreatorRewardsPanel: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm" data-testid="invite-creators">
+      <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm" data-testid="invite-creators">
         <h3 className="font-bold text-gray-900 mb-1"><i aria-hidden="true" className="fas fa-user-plus text-purple-500 mr-2"></i>Invita a otros creadores</h3>
         <p className="text-sm text-gray-500 mb-4">
           Cuando {CREATOR_INVITE_MIN} creadores que invitaste estén verificados y hayan vendido sus primeros {money(CREATOR_INVITE_QUALIFY)}, ganas un {pct(CREATOR_INVITE_BONUS)} extra
@@ -168,7 +168,7 @@ const CreatorRewardsPanel: React.FC = () => {
         )}
       </div>
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm">
+      <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
         <h3 className="font-bold text-gray-900 mb-3">Fans que invitaste</h3>
         {data.referrals.length === 0 ? (
           <p className="text-sm text-gray-500">Todavía nadie se ha registrado con tu enlace.</p>

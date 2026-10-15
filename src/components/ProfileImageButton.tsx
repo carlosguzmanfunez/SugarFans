@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../lib/backend';
 import { platformChanged } from '../lib/platform';
-import { checkProfileImage, loadImage, prepareProfileImage, type ProfileImageKind } from '../lib/profileImage';
+import { checkProfileImage, loadImage, type ProfileImageKind } from '../lib/profileImage';
 import AvatarCropper from './AvatarCropper';
 
 interface Props {
@@ -20,7 +20,7 @@ const ProfileImageButton: React.FC<Props> = ({ kind, onDone, className = '', wit
   const [busy, setBusy] = useState(false);
   const label = kind === 'avatar' ? 'Cambiar foto de perfil' : 'Cambiar foto de portada';
 
-  // Profile photo: the adjust screen opens first; the cover goes straight up.
+  // The adjust screen opens first: a circle for the photo, a wide frame for the cover.
   const [framing, setFraming] = useState<HTMLImageElement | null>(null);
 
   const upload = async (image: Blob) => {
@@ -48,8 +48,7 @@ const ProfileImageButton: React.FC<Props> = ({ kind, onDone, className = '', wit
     const problem = checkProfileImage(file);
     if (problem) return onDone(problem, false);
     try {
-      if (kind === 'avatar') return setFraming(await loadImage(file, true));
-      await upload(await prepareProfileImage(file, kind));
+      setFraming(await loadImage(file, true));
     } catch (err) {
       onDone(err instanceof Error ? err.message : 'No se pudo guardar la foto', false);
     }
@@ -86,6 +85,7 @@ const ProfileImageButton: React.FC<Props> = ({ kind, onDone, className = '', wit
       {framing && (
         <AvatarCropper
           image={framing}
+          kind={kind}
           onCancel={closeFraming}
           onSave={(blob) => {
             closeFraming();

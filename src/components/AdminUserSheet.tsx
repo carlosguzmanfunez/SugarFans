@@ -67,7 +67,7 @@ const AdminUserSheet: React.FC<Props> = ({ admin, target, restriction, history, 
 
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={`Gestionar cuenta de ${target.name}`}>
-      <div className="bg-white rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6" data-testid="admin-user-sheet">
+      <div className="bg-white rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6" data-testid="admin-user-sheet">
         <div className="flex justify-between items-start mb-4">
           <div>
             <h3 className="text-lg font-bold text-gray-900">{target.name}</h3>

@@ -255,9 +255,9 @@ const Settings: React.FC = () => {
           {/* Content */}
           <div className="flex-1">
             {activeSection === 'profile' && (
-              <div className="bg-white rounded-2xl shadow-sm p-6">
-                <h2 className="text-lg font-bold text-gray-900 mb-6">Editar perfil</h2>
-                <div className="flex items-center space-x-4 mb-6">
+              <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
+                <h2 className="text-lg font-bold text-gray-900 mb-4 sm:mb-6">Editar perfil</h2>
+                <div className="flex items-center gap-4 mb-5 sm:mb-6">
                   <img
                     src={avatarOrEmpty(user?.avatar)}
                     onError={(e) => {
@@ -265,14 +265,14 @@ const Settings: React.FC = () => {
                     }}
                     alt="Tu foto de perfil"
                     data-testid="settings-avatar"
-                    className="w-20 h-20 rounded-full object-cover bg-gray-100"
+                    className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-full object-cover bg-gray-100"
                   />
-                  <div>
+                  <div className="min-w-0">
                     <ProfileImageButton
                       kind="avatar"
                       withLabel
                       onDone={(text, ok) => showResult(ok ? { ok } : { ok, error: text }, text)}
-                      className="px-4 py-2 rounded-full border border-gray-200 !shadow-none"
+                      className="px-4 py-2 rounded-full border border-gray-200 whitespace-nowrap !shadow-none"
                     />
                     <p className="text-xs text-gray-500 mt-1">Sube una foto desde tu galería o tu computadora; se guarda al instante</p>
                   </div>
@@ -307,7 +307,7 @@ const Settings: React.FC = () => {
                         <p className="font-semibold text-gray-900 mb-3">Tu enlace y tus redes</p>
                         <label htmlFor="settings-username" className="block text-sm font-medium text-gray-700 mb-1">Tu @usuario</label>
                         <div className="flex items-stretch border border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-pink-500 overflow-hidden">
-                          <span className="px-3 flex items-center bg-gray-50 text-gray-500 text-sm border-r border-gray-200 whitespace-nowrap">fansreserve.com/@</span>
+                          <span className="px-3 flex items-center bg-gray-50 text-gray-500 text-sm border-r border-gray-200 whitespace-nowrap"><span className="max-sm:hidden">fansreserve.com/</span>@</span>
                           <input id="settings-username" type="text" name="username" value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, '').toLowerCase())} maxLength={31} autoCapitalize="none" autoCorrect="off" spellCheck={false} className="flex-1 min-w-0 px-3 py-3 outline-none" />
                         </div>
                         <p className="text-xs text-gray-500 mt-1">Ponlo en la bio de tus redes sociales: quien entre por tu enlace queda como fan tuyo.</p>
@@ -367,7 +367,7 @@ const Settings: React.FC = () => {
             )}
 
             {activeSection === 'security' && (
-              <div className="bg-white rounded-2xl shadow-sm p-6">
+              <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
                 <h2 className="text-lg font-bold text-gray-900 mb-6">Seguridad</h2>
                 <div className="space-y-6">
                   {socialProvider ? (
@@ -399,7 +399,7 @@ const Settings: React.FC = () => {
             {activeSection === 'verification' && <IdentityVerification />}
 
             {activeSection === 'notifications' && (
-              <div className="bg-white rounded-2xl shadow-sm p-6">
+              <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
                 <h2 className="text-lg font-bold text-gray-900 mb-6">Notificaciones</h2>
                 <div className="space-y-4">
                   {notificationItems.map((item) => (
@@ -422,7 +422,7 @@ const Settings: React.FC = () => {
             )}
 
             {activeSection === 'privacy' && (
-              <div className="bg-white rounded-2xl shadow-sm p-6">
+              <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
                 <h2 className="text-lg font-bold text-gray-900 mb-6">Privacidad</h2>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between py-3 border-b border-gray-100">
@@ -544,12 +544,12 @@ const Settings: React.FC = () => {
               <div className="space-y-6">
                 {backend.mode === 'supabase' ? (
                   // Real site: every charge goes through PayPal; no payment methods are stored here.
-                  <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="payment-methods">
+                  <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6" data-testid="payment-methods">
                     <h2 className="text-lg font-bold text-gray-900 mb-2">Métodos de pago</h2>
                     <p className="text-sm text-gray-500">Pagas con PayPal: con tu cuenta PayPal o con tarjeta a través de PayPal, cuando esté disponible en tu país. No guardamos datos de tarjetas.</p>
                   </div>
                 ) : (
-                  <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="payment-methods">
+                  <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6" data-testid="payment-methods">
                     <h2 className="text-lg font-bold text-gray-900 mb-2">Métodos de pago</h2>
                     <p className="text-sm text-gray-500 mb-6">Aceptamos tarjetas Visa y Mastercard, PayPal y Google Pay.</p>
                     <div className="space-y-3">
@@ -592,7 +592,7 @@ const Settings: React.FC = () => {
                   </div>
                 )}
 
-                <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="settings-subscriptions">
+                <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6" data-testid="settings-subscriptions">
                   <h2 className="text-lg font-bold text-gray-900 mb-2">Suscripciones</h2>
                   <p className="text-sm text-gray-500 mb-4">Se renuevan cada mes en la misma fecha en que te suscribiste. Puedes cancelar cuando quieras, sin permanencia: conservas el acceso hasta el final del mes que ya pagaste.</p>
                   {mySubscriptions.length === 0 ? (
@@ -622,7 +622,7 @@ const Settings: React.FC = () => {
                   )}
                 </div>
 
-                <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="payment-history">
+                <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6" data-testid="payment-history">
                   <h2 className="text-lg font-bold text-gray-900 mb-4">Historial de pagos</h2>
                   {myPayments.length === 0 ? (
                     <p className="text-sm text-gray-500">Aún no has realizado pagos.</p>
@@ -644,7 +644,7 @@ const Settings: React.FC = () => {
                 </div>
 
                 {user.role === 'creator' && (
-                  <div className="bg-white rounded-2xl shadow-sm p-6">
+                  <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
                     <h2 className="text-lg font-bold text-gray-900 mb-2">Cuenta para retiros</h2>
                     <p className="text-sm text-gray-600">Tu saldo, tu cuenta PayPal y los retiros se gestionan en el panel de creador.</p>
                     <Link to="/creator/dashboard?tab=earnings" className="mt-3 inline-block bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">
@@ -658,7 +658,7 @@ const Settings: React.FC = () => {
             {activeSection === 'wallet' && user && <WalletPanel user={user} />}
 
             {activeSection === 'blocking' && (
-              <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="blocked-users">
+              <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6" data-testid="blocked-users">
                 <h2 className="text-lg font-bold text-gray-900 mb-6">Usuarios bloqueados</h2>
                 {myBlocks.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">

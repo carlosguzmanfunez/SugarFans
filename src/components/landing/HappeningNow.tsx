@@ -28,7 +28,7 @@ const HappeningNow: React.FC<{ creators: Creator[] }> = ({ creators }) => {
     .slice(0, 5);
 
   return (
-    <section className="sec" id={ENABLE_OPEN_LIVE ? 'live' : 'ahora'} aria-labelledby="live-now-title" style={{ paddingTop: 64 }} data-testid="happening-now">
+    <section className="sec" id={ENABLE_OPEN_LIVE ? 'live' : 'ahora'} aria-labelledby="live-now-title" data-testid="happening-now">
       <div className="wrap">
         <div className="sec-head v-reveal">
           <h2 id="live-now-title">{LIVE_NOW.title}</h2>

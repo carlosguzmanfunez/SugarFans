@@ -61,7 +61,7 @@ const GiftDialog: React.FC<Props> = ({ user, creatorProfileId, creatorName, post
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={`Regalo para ${creatorName}`}>
-      <div className="bg-white rounded-2xl max-w-2xl w-full p-6 max-h-[92vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl max-w-2xl w-full p-4 sm:p-6 max-h-[92vh] overflow-y-auto">
         <div className="flex items-start justify-between mb-4">
           <div>
             <h3 className="text-lg font-bold text-gray-900">Enviar regalo a {creatorName}</h3>

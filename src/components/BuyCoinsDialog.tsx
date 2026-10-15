@@ -40,7 +40,7 @@ const BuyCoinsDialog: React.FC<Props> = ({ user, needed = 0, onDone, onClose }) 
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={`Comprar ${currencyWord}`}>
-      <div className="bg-white rounded-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl max-w-lg w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-start justify-between mb-4">
           <div>
             <h3 className="text-lg font-bold text-gray-900">Comprar {currencyWord}</h3>

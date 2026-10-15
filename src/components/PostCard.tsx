@@ -153,41 +153,43 @@ const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner,
       </div>
       <div className="p-4">
         {post.content && <p className="text-gray-700 whitespace-pre-line">{post.content}</p>}
-        <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2 mt-4 text-gray-500 sm:gap-x-6">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mt-4 text-[13px] text-gray-500 max-[380px]:gap-x-2.5 sm:gap-x-6 sm:text-sm">
           <button
             onClick={toggleLike}
             aria-pressed={liked}
             aria-label={liked ? 'Quitar me gusta' : 'Me gusta'}
-            className={`flex items-center text-sm transition ${liked ? 'text-pink-600' : 'hover:text-pink-500'}`}
+            className={`flex items-center whitespace-nowrap transition ${liked ? 'text-pink-600' : 'hover:text-pink-500'}`}
           >
             <i aria-hidden="true" className={`${liked ? 'fas' : 'far'} fa-heart mr-1`}></i> <span data-testid="like-count">{compactCount(likes)}</span>
           </button>
-          <button onClick={toggleComments} aria-expanded={showComments} aria-label="Comentarios" className={`flex items-center text-sm transition ${showComments ? 'text-pink-600' : 'hover:text-pink-500'}`}>
+          <button onClick={toggleComments} aria-expanded={showComments} aria-label="Comentarios" className={`flex items-center whitespace-nowrap transition ${showComments ? 'text-pink-600' : 'hover:text-pink-500'}`}>
             <i aria-hidden="true" className="fas fa-comment mr-1"></i> <span data-testid="comment-count">{compactCount(comments)}</span>
           </button>
           {!isOwner && (
-            <button onClick={() => (viewer ? onTip() : onNeedLogin())} className="flex items-center text-sm hover:text-pink-500 transition">
+            <button onClick={() => (viewer ? onTip() : onNeedLogin())} className="flex items-center whitespace-nowrap hover:text-pink-500 transition">
               <i aria-hidden="true" className="fas fa-hand-holding-usd mr-1"></i> Propina
             </button>
           )}
           {!isOwner && onGift && (
-            <button onClick={() => (viewer ? onGift() : onNeedLogin())} className="flex items-center text-sm hover:text-pink-500 transition">
+            <button onClick={() => (viewer ? onGift() : onNeedLogin())} className="flex items-center whitespace-nowrap hover:text-pink-500 transition">
               <i aria-hidden="true" className="fas fa-gift mr-1"></i> Regalo
             </button>
           )}
-          <button onClick={share} aria-label={copied ? 'Enlace copiado' : 'Compartir'} className="flex items-center text-sm hover:text-pink-500 transition ml-auto">
+          <span className="ml-auto flex items-center gap-x-3 sm:gap-x-6">
+          <button onClick={share} aria-label={copied ? 'Enlace copiado' : 'Compartir'} className="flex items-center whitespace-nowrap hover:text-pink-500 transition">
             <i aria-hidden="true" className="fas fa-share sm:mr-1"></i> <span className={copied ? '' : 'max-sm:hidden'}>{copied ? 'Enlace copiado' : 'Compartir'}</span>
           </button>
           {onDelete && (
-            <button onClick={onDelete} className="flex items-center text-sm hover:text-red-500 transition" aria-label="Eliminar publicación">
+            <button onClick={onDelete} className="flex items-center whitespace-nowrap hover:text-red-500 transition" aria-label="Eliminar publicación">
               <i aria-hidden="true" className="fas fa-trash sm:mr-1"></i> <span className="max-sm:hidden">Eliminar</span>
             </button>
           )}
           {!isOwner && (
-            <button onClick={onReport} className="flex items-center text-sm hover:text-red-500 transition" aria-label="Reportar publicación">
+            <button onClick={onReport} className="flex items-center whitespace-nowrap hover:text-red-500 transition" aria-label="Reportar publicación">
               <i aria-hidden="true" className="fas fa-flag sm:mr-1"></i> <span className="max-sm:hidden">Reportar</span>
             </button>
           )}
+          </span>
         </div>
         {error && <p role="alert" className="text-sm text-red-600 mt-3">{error}</p>}
         {showComments && canView && (

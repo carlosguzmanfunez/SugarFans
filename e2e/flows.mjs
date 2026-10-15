@@ -912,7 +912,7 @@ const run = async () => {
       await page.getByTestId('verification-banner').waitFor();
       expect((await welcome.count()) === 0, 'la bienvenida vuelve a salir');
     });
-    await check('Sin verificar: lo que sube queda como borrador que solo ve el creador; cambia su foto y portada', async () => {
+    await check('Sin verificar: lo que sube queda como borrador que solo ve el creador; cambia su foto y ajusta su portada', async () => {
       await page.getByTestId('verification-banner').getByText(/queda como borrador/).waitFor();
       await page.getByRole('button', { name: /Nueva publicación/ }).click();
       await page.getByTestId('draft-hint').waitFor();
@@ -928,7 +928,11 @@ const run = async () => {
         const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.getByTestId(button).click({ timeout: 3000 })]);
         await chooser.setFiles(photo(file));
       };
+      // The cover opens a wide adjust screen (like Facebook) that marks what computers show.
       await pickWith('cover-button', 'portada.png');
+      await page.getByTestId('avatar-cropper').getByText('Ajusta tu portada').waitFor();
+      await page.getByTestId('cover-desktop-band').waitFor();
+      await page.getByTestId('avatar-cropper-save').click();
       await page.getByText('Portada actualizada').waitFor();
       // Cancelling the adjust screen leaves the photo as it was.
       await pickWith('avatar-button', 'yo.png');
@@ -941,6 +945,8 @@ const run = async () => {
       const size = page.viewportSize();
       await page.setViewportSize({ width: 390, height: 844 });
       await pickWith('cover-button', 'portada.png');
+      await page.getByTestId('avatar-cropper-save').click({ timeout: 3000 });
+      await page.getByTestId('avatar-cropper').waitFor({ state: 'detached' });
       await pickWith('avatar-button', 'yo.png');
       await page.getByTestId('avatar-cropper-save').click({ timeout: 3000 });
       await page.getByTestId('avatar-cropper').waitFor({ state: 'detached' });
@@ -952,7 +958,7 @@ const run = async () => {
         await viewer.getByTestId('profile-image-full').waitFor();
         const [chooser] = await Promise.all([page.waitForEvent('filechooser'), viewer.getByRole('button', { name: label }).click({ timeout: 3000 })]);
         await chooser.setFiles(photo(`${kind}-2.png`));
-        if (kind === 'avatar') await page.getByTestId('avatar-cropper-save').click();
+        await page.getByTestId('avatar-cropper-save').click();
         await page.getByText(done).last().waitFor();
         await page.keyboard.press('Escape');
         await viewer.waitFor({ state: 'detached' });

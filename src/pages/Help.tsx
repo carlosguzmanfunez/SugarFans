@@ -75,10 +75,10 @@ const Help: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Centro de ayuda</h1>
-          <p className="text-xl text-gray-600 mb-8">¿En qué podemos ayudarte?</p>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="text-center mb-8 sm:mb-12">
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2 sm:mb-4">Centro de ayuda</h1>
+          <p className="text-lg sm:text-xl text-gray-600 mb-5 sm:mb-8">¿En qué podemos ayudarte?</p>
           <div className="relative max-w-xl mx-auto">
             <i aria-hidden="true" className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
             <input
@@ -92,16 +92,16 @@ const Help: React.FC = () => {
         </div>
 
         {/* Categories */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4 mb-8 sm:mb-12">
           {helpCategories.map((cat) => (
             <button
               key={cat.name}
               onClick={() => setSelectedCategory(selectedCategory === cat.name ? '' : cat.name)}
-              className={`bg-white rounded-xl p-5 text-center shadow-sm hover:shadow-md transition border ${
+              className={`bg-white rounded-xl p-4 sm:p-5 text-center shadow-sm hover:shadow-md transition border ${
                 selectedCategory === cat.name ? 'border-pink-500 bg-pink-50' : 'border-gray-100'
               }`}
             >
-              <i aria-hidden="true" className={`fas ${cat.icon} text-2xl text-pink-500 mb-2`}></i>
+              <i aria-hidden="true" className={`fas ${cat.icon} block text-2xl text-pink-500 mb-2`}></i>
               <h3 className="font-medium text-gray-900 text-sm">{cat.name}</h3>
               <p className="text-xs text-gray-500 mt-1">{faqs.filter((f) => f.category === cat.name).length} artículos</p>
             </button>
@@ -156,7 +156,7 @@ const Help: React.FC = () => {
         </div>
 
         {/* Report Content / contact support */}
-        <div id="report-form" className="mt-8 bg-white rounded-2xl shadow-sm p-6">
+        <div id="report-form" className="mt-8 bg-white rounded-2xl shadow-sm p-4 sm:p-6">
           <div className="flex gap-1 bg-gray-100 rounded-lg p-1 mb-4 max-w-sm">
             <button type="button" onClick={() => { setReportKind('other'); setReportResult(null); }} className={`flex-1 py-2 rounded-md text-sm font-medium ${reportKind === 'other' ? 'bg-white shadow text-red-600' : 'text-gray-600'}`}>
               <i aria-hidden="true" className="fas fa-flag mr-1"></i> Reportar contenido

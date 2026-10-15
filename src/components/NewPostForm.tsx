@@ -75,7 +75,7 @@ const NewPostForm: React.FC<Props> = ({ verified, asProfileId, onPublished, onCa
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6 border border-pink-100" data-testid="new-post">
+    <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 border border-pink-100" data-testid="new-post">
       <h3 className="font-bold text-lg mb-1">Crear nueva publicación</h3>
       <p className="text-sm text-gray-500 mb-4">
         Sube una foto (hasta {MAX_IMAGE_MB} MB) o un video (hasta {MAX_VIDEO_MB} MB). Aparecerá en tu perfil público. Revisamos cada archivo antes de mostrarlo: no se permite desnudez ni contenido sexual.

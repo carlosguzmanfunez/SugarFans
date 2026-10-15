@@ -83,16 +83,18 @@ const SalesTour: React.FC = () => {
         </div>
       </header>
 
-      <div className="mx-auto max-w-4xl px-4 py-12 sm:py-16">
+      <div className="mx-auto max-w-4xl px-4 py-8 sm:py-16">
         <section>
           <h2 className="text-center text-2xl font-semibold text-ink">Cuatro formas de ganar</h2>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-5 grid gap-3 sm:mt-6 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
             {WAYS.map((w) => (
-              <div key={w.title} className="card p-5" data-testid="pitch-way">
-                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-50 text-brand-700">
-                  <i aria-hidden="true" className={`fas ${w.icon}`}></i>
-                </span>
-                <h3 className="mt-3 font-semibold text-ink">{w.title}</h3>
+              <div key={w.title} className="card p-4 sm:p-5" data-testid="pitch-way">
+                <div className="flex items-center gap-3 sm:block">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-700 sm:h-11 sm:w-11">
+                    <i aria-hidden="true" className={`fas ${w.icon}`}></i>
+                  </span>
+                  <h3 className="font-semibold text-ink sm:mt-3">{w.title}</h3>
+                </div>
                 <p className="mt-1.5 text-sm leading-relaxed text-ink/70">{w.body}</p>
               </div>
             ))}
@@ -107,11 +109,11 @@ const SalesTour: React.FC = () => {
           <p className="mt-4 text-center text-sm text-ink/60">Y además, tus fans pueden enviarte regalos y propinas cuando quieran.</p>
         </section>
 
-        <section className="mt-14">
+        <section className="mt-10 sm:mt-14">
           <h2 className="text-center text-2xl font-semibold text-ink">Empiezas en 3 pasos</h2>
-          <ol className="mt-6 grid gap-4 sm:grid-cols-3">
+          <ol className="mt-5 grid gap-3 sm:mt-6 sm:grid-cols-3 sm:gap-4">
             {STEPS.map((s, i) => (
-              <li key={s.title} className="flex gap-3 rounded-2xl border border-line bg-white p-5" data-testid="pitch-step">
+              <li key={s.title} className="flex gap-3 rounded-2xl border border-line bg-white p-4 sm:p-5" data-testid="pitch-step">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-sm font-bold text-white">{i + 1}</span>
                 <div>
                   <h3 className="font-semibold text-ink">{s.title}</h3>
@@ -122,7 +124,7 @@ const SalesTour: React.FC = () => {
           </ol>
         </section>
 
-        <section className="mt-14 grid gap-6 sm:grid-cols-2 sm:items-center">
+        <section className="mt-10 grid gap-6 sm:mt-14 sm:grid-cols-2 sm:items-center">
           <div>
             <h2 className="text-2xl font-semibold text-ink">Por qué te conviene</h2>
             <ul className="mt-4 space-y-3">

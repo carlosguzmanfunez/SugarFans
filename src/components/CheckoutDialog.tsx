@@ -185,7 +185,7 @@ const CheckoutDialog: React.FC<Props> = ({ user, title, amount, note, confirmLab
   if (receipt) {
     return (
       <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Pago exitoso">
-        <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6">
+        <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <PaymentReceipt title={title} amount={amount} operation={receipt} subscription={paypal?.kind === 'subscription'} error={error} onDone={finishPaypal} />
         </div>
       </div>
@@ -194,7 +194,7 @@ const CheckoutDialog: React.FC<Props> = ({ user, title, amount, note, confirmLab
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={title}>
-      <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6">
+      <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <div className="flex items-start justify-between mb-4">
           <div>
             <h3 className="text-lg font-bold text-gray-900">{title}</h3>

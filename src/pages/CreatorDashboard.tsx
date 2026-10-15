@@ -204,7 +204,7 @@ const CreatorDashboard: React.FC = () => {
     <div className="min-h-screen bg-canvas">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8">
           <div>
             <h1 className="font-display text-3xl font-bold tracking-tight text-ink">Panel de creador</h1>
             <p className="text-ink/60">Bienvenida, {user?.name}</p>
@@ -254,7 +254,7 @@ const CreatorDashboard: React.FC = () => {
 
         {/* New post: text + photo or video */}
         {showNewPost && (
-          <div ref={newPostRef} id="nuevo" className="mb-8 scroll-mt-28" data-testid="new-post">
+          <div ref={newPostRef} id="nuevo" className="mb-6 sm:mb-8 scroll-mt-28" data-testid="new-post">
             <NewPostForm verified={verified} onPublished={handlePublished} onCancel={() => setShowNewPost(false)} />
           </div>
         )}
@@ -309,7 +309,7 @@ const CreatorDashboard: React.FC = () => {
         </ScrollStrip>
         {MONEY_TABS.includes(activeTab) ? (
           // Big colored cards so the creator spots their money sections at once.
-          <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-8" role="tablist" aria-label="Dinero">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-5 sm:mb-8" role="tablist" aria-label="Dinero">
             {[
               { id: 'earnings', label: 'Ingresos', hint: 'Saldo y retiros', icon: 'fa-wallet', on: 'from-emerald-500 to-teal-600 shadow-emerald-500/30', chip: 'bg-emerald-50 text-emerald-600' },
               { id: 'gifts', label: 'Regalos', hint: 'Lo que te regalan', icon: 'fa-gift', on: 'from-brand-500 to-brand-700 shadow-brand-500/30', chip: 'bg-brand-50 text-brand-600' },
@@ -340,14 +340,14 @@ const CreatorDashboard: React.FC = () => {
             })}
           </div>
         ) : (
-          <div className="mb-8" />
+          <div className="mb-5 sm:mb-8" />
         )}
 
         {/* Stats Grid */}
         {activeTab === 'overview' && (
           <>
             {user && <CreatorFirstSteps user={user} onOpenTab={(tab) => { setActiveTab(tab); setNotice(null); }} onNewPost={() => setShowNewPost(true)} />}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-8">
               {stats.map((stat) => (
                 <div key={stat.label} className="bg-white rounded-2xl border border-line p-4 sm:p-5">
                   <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center mb-3">
@@ -360,8 +360,8 @@ const CreatorDashboard: React.FC = () => {
             </div>
 
             {/* Income of the last 7 days, or what to do while there is none */}
-            <div className="bg-white rounded-2xl border border-line p-6 mb-8" data-testid="income-week">
-              <h3 className="font-semibold text-ink mb-4">Ingresos últimos 7 días</h3>
+            <div className="bg-white rounded-2xl border border-line p-4 sm:p-6 mb-6 sm:mb-8" data-testid="income-week">
+              <h3 className="font-semibold text-ink mb-3 sm:mb-4">Ingresos últimos 7 días</h3>
               {weekMax > 0 ? (
                 <div className="flex items-end gap-2 h-40">
                   {week.map((d) => (
@@ -376,7 +376,7 @@ const CreatorDashboard: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center text-center py-6">
+                <div className="flex flex-col items-center text-center py-2 sm:py-6">
                   <div className="w-12 h-12 rounded-2xl bg-brand-50 flex items-center justify-center mb-3">
                     <Icon name="fa-chart-line" className="text-brand-600" />
                   </div>
@@ -554,7 +554,7 @@ const CreatorDashboard: React.FC = () => {
             bookings={vipBookings}
             reloadBookings={reloadBookings}
             availabilityEditor={
-              <div className="bg-white rounded-2xl border border-line p-6" data-testid="vip-availability">
+              <div className="bg-white rounded-2xl border border-line p-4 sm:p-6" data-testid="vip-availability">
                 <h3 className="font-bold text-gray-900 mb-1">Horarios generales de Reserve</h3>
                 <p className="text-sm text-gray-500 mb-5">
                   Los fans solo podrán reservar en estos días y horas, con hasta {MAX_BOOKING_MONTHS} meses de antelación. Cada experiencia puede limitarlos aún más.
@@ -600,7 +600,7 @@ const CreatorDashboard: React.FC = () => {
         )}
 
         {activeTab === 'settings' && (
-          <div className="bg-white rounded-2xl border border-line p-6">
+          <div className="bg-white rounded-2xl border border-line p-4 sm:p-6">
             <h3 className="font-bold text-gray-900 mb-6">Configuración del perfil</h3>
             <div className="space-y-6 max-w-lg">
               <div>

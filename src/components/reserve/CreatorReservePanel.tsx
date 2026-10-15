@@ -90,7 +90,7 @@ const CreatorReservePanel: React.FC<Props> = ({ availability, bookings, reloadBo
 
   const list = (items: VipBooking[], empty: string, testId: string) =>
     items.length === 0 ? (
-      <p className="rounded-2xl border border-dashed border-line p-6 text-center text-sm text-muted">{empty}</p>
+      <p className="rounded-2xl border border-dashed border-line p-4 sm:p-6 text-center text-sm text-muted">{empty}</p>
     ) : (
       <div className="space-y-3">
         {items.map((b) => (

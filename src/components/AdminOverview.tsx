@@ -16,10 +16,10 @@ interface Props {
 }
 
 const Card: React.FC<{ title: string; hint?: string; children: React.ReactNode; testId?: string }> = ({ title, hint, children, testId }) => (
-  <div className="bg-white rounded-2xl shadow-sm p-5" data-testid={testId}>
+  <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-5" data-testid={testId}>
     <h3 className="font-bold text-gray-900">{title}</h3>
     {hint && <p className="text-xs text-gray-500 mt-0.5">{hint}</p>}
-    <div className="mt-4">{children}</div>
+    <div className="mt-3 sm:mt-4">{children}</div>
   </div>
 );
 
@@ -54,7 +54,7 @@ const AdminOverview: React.FC<Props> = ({ accounts, transactions, coins, payouts
   ];
 
   return (
-    <div className="space-y-6" data-testid="admin-overview">
+    <div className="space-y-4 sm:space-y-6" data-testid="admin-overview">
       <div className="flex flex-wrap gap-2" role="group" aria-label="Periodo">
         {(Object.keys(periodLabel) as Period[]).map((p) => (
           <button
@@ -68,20 +68,20 @@ const AdminOverview: React.FC<Props> = ({ accounts, transactions, coins, payouts
         ))}
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" data-testid="admin-money">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4" data-testid="admin-money">
         {big.map((c) => (
-          <div key={c.label} className="bg-white rounded-2xl shadow-sm p-5">
+          <div key={c.label} className="bg-white rounded-2xl shadow-sm p-4 sm:p-5">
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${c.bg}`}>
               <i aria-hidden="true" className={`fas ${c.icon}`}></i>
             </div>
-            <p className={`text-2xl font-bold mt-3 ${c.tone}`}>{c.value < 0 ? `−${money(-c.value)}` : money(Math.abs(c.value))}</p>
+            <p className={`text-2xl font-bold mt-2 sm:mt-3 ${c.tone}`}>{c.value < 0 ? `−${money(-c.value)}` : money(Math.abs(c.value))}</p>
             <p className="text-sm font-medium text-gray-900 mt-1">{c.label}</p>
             <p className="text-xs text-gray-500">{c.hint}</p>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         <Card title="Lo que debemos a creadores" hint="Hoy, sin importar el periodo" testId="admin-owed">
           <Row label="Disponible para retirar" value={money(owed.available)} strong />
           <Row label="Se acredita el 1° del mes" value={money(owed.pending)} />
@@ -104,7 +104,7 @@ const AdminOverview: React.FC<Props> = ({ accounts, transactions, coins, payouts
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         <Card title="Ventas por tipo" hint={periodLabel[period]} testId="admin-by-kind">
           {s.byKind.map((k) => (
             <Row key={k.key} label={`${k.label} (${k.count})`} value={money(k.amount)} />

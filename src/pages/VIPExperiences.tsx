@@ -62,20 +62,20 @@ const ReservePage: React.FC = () => {
           <div className="absolute -left-32 -top-40 h-[480px] w-[480px] rounded-full bg-[radial-gradient(closest-side,rgba(200,27,99,0.35),transparent)]" />
           <div className="absolute -bottom-48 -right-32 h-[480px] w-[480px] rounded-full bg-[radial-gradient(closest-side,rgba(109,60,230,0.3),transparent)]" />
         </div>
-        <div className="relative z-10 mx-auto max-w-7xl px-4 py-14 text-center sm:px-6 md:py-20 lg:px-8">
-          <span className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-gold-200 to-gold-400 text-xl text-night-900">
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-10 text-center sm:px-6 sm:py-14 md:py-20 lg:px-8">
+          <span className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-gold-200 to-gold-400 text-lg sm:mb-5 sm:h-14 sm:w-14 sm:text-xl text-night-900">
             <i className="fas fa-ticket" aria-hidden="true"></i>
           </span>
-          <h1 className="text-display-lg mb-4">Reserve</h1>
-          <p className="mx-auto max-w-2xl text-lg text-white/75 md:text-xl">
+          <h1 className="text-display-lg mb-3 sm:mb-4">Reserve</h1>
+          <p className="mx-auto max-w-2xl text-base text-white/75 sm:text-lg md:text-xl">
             Reserve Events en grupo, videollamadas 1:1 y experiencias definidas por tus creadores. Cada una con su fecha, duración, precio, alcance y reglas.
           </p>
-          <p className="mt-4 text-sm font-semibold uppercase tracking-[0.18em] text-gold-200">{RESERVE_COPY.principle}</p>
+          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] sm:mt-4 sm:text-sm text-gold-200">{RESERVE_COPY.principle}</p>
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="relative mx-auto mb-6 max-w-2xl">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
+        <div className="relative mx-auto mb-4 max-w-2xl sm:mb-6">
           <i className="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-ink/35" aria-hidden="true"></i>
           <input
             type="search"
@@ -86,7 +86,7 @@ const ReservePage: React.FC = () => {
             placeholder="Buscar creadores o experiencias..."
           />
         </div>
-        <div className="mb-8 space-y-3">
+        <div className="mb-6 space-y-3 sm:mb-8">
           <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0" role="group" aria-label="Tipo de Reserve" data-testid="reserve-products">
             {PRODUCTS.map((p) => (
               <button key={p.id} type="button" aria-pressed={product === p.id} onClick={() => setProduct(p.id)} className={chip(product === p.id)}>
@@ -115,7 +115,7 @@ const ReservePage: React.FC = () => {
           </label>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
           {visible.map((exp) => {
             const c = creatorOf(exp);
             const isOwn = !!user?.creatorProfileId && user.creatorProfileId === exp.creatorProfileId;
@@ -134,7 +134,7 @@ const ReservePage: React.FC = () => {
         </div>
         {!loading && visible.length === 0 && <p className="py-12 text-center text-muted">{query ? `No encontramos experiencias para "${search.trim()}".` : 'Todavía no hay experiencias con estos filtros.'}</p>}
 
-        <section className="mt-14 grid gap-6 rounded-3xl bg-white p-6 shadow-sm md:grid-cols-2 md:p-10" aria-labelledby="how-title">
+        <section className="mt-10 grid gap-6 rounded-3xl bg-white p-5 shadow-sm sm:mt-14 sm:p-6 md:grid-cols-2 md:p-10" aria-labelledby="how-title">
           <div>
             <h2 id="how-title" className="text-2xl font-bold text-ink">Cómo funciona Reserve</h2>
             <ol className="mt-5 space-y-3">

@@ -36,7 +36,7 @@ const ReportDialog: React.FC<Props> = ({ kind, targetId, targetLabel, onClose })
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Reportar">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6">
+      <div className="bg-white rounded-2xl max-w-md w-full p-4 sm:p-6">
         {done ? (
           <div className="text-center py-4">
             <i aria-hidden="true" className="fas fa-check-circle text-4xl text-green-500 mb-3"></i>

@@ -488,7 +488,7 @@ const LiveBroadcast: React.FC<{ event?: boolean }> = ({ event: isEvent = false }
 
       {leaving && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" role="alertdialog" aria-modal="true" aria-labelledby="leave-live-title" data-testid="leave-live-dialog">
-          <div className="bg-white text-gray-900 rounded-2xl max-w-sm w-full p-6 text-center">
+          <div className="bg-white text-gray-900 rounded-2xl max-w-sm w-full p-4 sm:p-6 text-center">
             <i aria-hidden="true" className="fas fa-tower-broadcast text-3xl text-red-500 mb-3"></i>
             <h2 id="leave-live-title" className="text-lg font-bold">Estás abandonando el Live y se cerrará. ¿Estás de acuerdo?</h2>
             <div className="mt-5 flex flex-col gap-2">
