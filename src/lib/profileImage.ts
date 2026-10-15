@@ -6,15 +6,21 @@ const MAX_INPUT_MB = 20;
 // Sharp when the photo is opened full size, not only in the small circle.
 const AVATAR_PX = 1024;
 export const checkProfileImage = (file: File): string | null => {
-  if (!file.type.startsWith('image/')) return 'Elige una foto (JPG, PNG o WebP)';
+  if (!file.type.startsWith('image/') && !/\.hei[cf]$/i.test(file.name)) return 'Elige una foto (JPG, PNG o WebP)';
   if (file.size > MAX_INPUT_MB * 1024 * 1024) return `La foto es demasiado grande (máximo ${MAX_INPUT_MB} MB)`;
   return null;
 };
 
-// keepUrl: the adjust screen still shows the picture, it frees the link when it closes.
-export const loadImage = (file: File, keepUrl = false) =>
+const UNREADABLE = 'No pudimos leer esa foto. Prueba con otra (JPG o PNG).';
+
+// iPhone and many Android phones save photos as HEIC/HEIF, which Chrome and other
+// browsers can't open. Those are turned into JPEG first, in the browser.
+const isHeic = (file: Blob & { name?: string }) =>
+  /image\/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name ?? '');
+
+const decode = (blob: Blob, keepUrl: boolean) =>
   new Promise<HTMLImageElement>((resolve, reject) => {
-    const url = URL.createObjectURL(file);
+    const url = URL.createObjectURL(blob);
     const img = new Image();
     img.onload = () => {
       if (!keepUrl) URL.revokeObjectURL(url);
@@ -22,10 +28,33 @@ export const loadImage = (file: File, keepUrl = false) =>
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
-      reject(new Error('No pudimos leer esa foto. Prueba con otra (JPG o PNG).'));
+      reject(new Error(UNREADABLE));
     };
     img.src = url;
   });
+
+const heicToJpeg = async (file: Blob): Promise<Blob> => {
+  const { default: heic2any } = await import('heic2any');
+  const out = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+  return Array.isArray(out) ? out[0] : out;
+};
+
+// keepUrl: the adjust screen still shows the picture, it frees the link when it closes.
+export const loadImage = async (file: File, keepUrl = false): Promise<HTMLImageElement> => {
+  try {
+    return await decode(file, keepUrl);
+  } catch (err) {
+    // Safari opens HEIC itself; elsewhere convert it and try again.
+    if (!isHeic(file)) throw err;
+    let jpeg: Blob;
+    try {
+      jpeg = await heicToJpeg(file);
+    } catch {
+      throw new Error(UNREADABLE);
+    }
+    return decode(jpeg, keepUrl);
+  }
+};
 
 // Avatar: centred square, 1024 px. Cover: up to 1600 px wide, any proportion
 // (the profile shows it cropped like Facebook does).
