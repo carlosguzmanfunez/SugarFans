@@ -89,13 +89,17 @@ const CreatorProfile: React.FC = () => {
   // Demo creators and platform-run profiles first, then creators who signed up.
   const { creators, loading: catalogLoading } = useCreatorCatalog();
   const catalogCreator = creators.find(c => c.id === id);
-  // Creators who signed up have no catalogue entry: load their public card.
+  // Creators with an account (not the demo catalogue or platform-run profiles): load
+  // their public card, which also carries the cover photo the catalogue list lacks.
+  const accountCreator = !catalogCreator || (!catalogCreator.managed && !demoCreators.some((c) => c.id === id));
   const { data: signedUp, loading: creatorLoading } = usePlatformQuery(
-    () => (catalogCreator || catalogLoading || !id ? Promise.resolve(null) : socialApi.publicCreator(id)),
-    [id, catalogLoading, !!catalogCreator],
+    () => (catalogLoading || !id || !accountCreator ? Promise.resolve(null) : socialApi.publicCreator(id)),
+    [id, catalogLoading, accountCreator],
     null as PublicCreator | null
   );
-  const creator: Creator | undefined = catalogCreator ?? (signedUp ? fromPublic(signedUp) : undefined);
+  const creator: Creator | undefined = catalogCreator
+    ? signedUp?.cover ? { ...catalogCreator, cover: signedUp.cover } : catalogCreator
+    : signedUp ? fromPublic(signedUp) : undefined;
   const badges = useBadges(id ? [id] : []);
   // The creator's own @usuario and social networks (accounts only; the demo catalogue has none).
   const { data: links } = usePlatformQuery(
