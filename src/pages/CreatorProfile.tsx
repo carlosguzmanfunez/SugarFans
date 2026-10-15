@@ -156,7 +156,7 @@ const CreatorProfile: React.FC = () => {
   if (!creator && (catalogLoading || creatorLoading)) {
     return (
       <div className="min-h-[60vh]" role="status" aria-label="Cargando">
-        <div className="skeleton h-48 md:h-72"></div>
+        <div className="skeleton aspect-[2/1] md:aspect-[27/10] md:max-w-5xl md:mx-auto md:rounded-b-3xl"></div>
         <div className="max-w-4xl mx-auto px-4 -mt-12 md:-mt-16">
           <div className="skeleton h-24 w-24 md:h-32 md:w-32 rounded-full ring-4 ring-canvas"></div>
           <div className="skeleton mt-4 h-7 w-56 rounded-lg"></div>
@@ -326,7 +326,8 @@ const CreatorProfile: React.FC = () => {
         />
       )}
       {/* Cover */}
-      <CoverImage src={creator.cover || null} seed={creator.id + creator.name} className="h-48 md:h-72">
+      {/* 2:1 on phones; on computers a wider band of the same photo, like Facebook. */}
+      <CoverImage src={creator.cover || null} seed={creator.id + creator.name} className="aspect-[2/1] md:aspect-[27/10] md:max-w-5xl md:mx-auto md:rounded-b-3xl">
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
         {(editsImages || !isPlaceholderImage(creator.cover)) && (
           <button

@@ -56,35 +56,6 @@ export const loadImage = async (file: File, keepUrl = false): Promise<HTMLImageE
   }
 };
 
-// Avatar: centred square, 1024 px. Cover: up to 1600 px wide, any proportion
-// (the profile shows it cropped like Facebook does).
-export const prepareProfileImage = async (file: File, kind: ProfileImageKind): Promise<Blob> => {
-  const img = await loadImage(file);
-  const w = img.naturalWidth;
-  const h = img.naturalHeight;
-  let sx = 0, sy = 0, sw = w, sh = h, dw: number, dh: number;
-  if (kind === 'avatar') {
-    const side = Math.min(w, h);
-    sx = (w - side) / 2;
-    sy = (h - side) / 2;
-    sw = sh = side;
-    dw = dh = Math.min(AVATAR_PX, side);
-  } else {
-    const scale = Math.min(1, 1600 / w);
-    dw = Math.round(w * scale);
-    dh = Math.round(h * scale);
-  }
-  const canvas = document.createElement('canvas');
-  canvas.width = dw;
-  canvas.height = dh;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('No pudimos preparar la foto');
-  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
-  return new Promise<Blob>((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('No pudimos preparar la foto'))), 'image/jpeg', 0.86)
-  );
-};
-
 // Avatar chosen by hand in the adjust screen: the square (in the photo's own pixels)
 // the person framed, saved at up to 1024 px.
 export const cropAvatar = (img: HTMLImageElement, sx: number, sy: number, side: number): Promise<Blob> => {
@@ -96,6 +67,30 @@ export const cropAvatar = (img: HTMLImageElement, sx: number, sy: number, side: 
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, out, out);
   ctx.drawImage(img, sx, sy, side, side, 0, 0, out, out);
+  return new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('No pudimos preparar la foto'))), 'image/jpeg', 0.86)
+  );
+};
+
+// Cover: saved 2:1, the shape phones show; computers show its middle band at
+// COVER_DESKTOP_RATIO (like Facebook, one photo fits both).
+export const COVER_RATIO = 2;
+export const COVER_DESKTOP_RATIO = 2.7;
+const COVER_PX = 1600;
+
+// Cover chosen by hand in the adjust screen: the frame (in the photo's own pixels),
+// saved at up to 1600 × 800.
+export const cropCover = (img: HTMLImageElement, sx: number, sy: number, sw: number, sh: number): Promise<Blob> => {
+  const outW = Math.max(1, Math.round(Math.min(COVER_PX, sw)));
+  const outH = Math.max(1, Math.round(outW / COVER_RATIO));
+  const canvas = document.createElement('canvas');
+  canvas.width = outW;
+  canvas.height = outH;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return Promise.reject(new Error('No pudimos preparar la foto'));
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, outW, outH);
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
   return new Promise<Blob>((resolve, reject) =>
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('No pudimos preparar la foto'))), 'image/jpeg', 0.86)
   );
