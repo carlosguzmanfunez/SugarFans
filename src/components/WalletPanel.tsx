@@ -31,7 +31,7 @@ const WalletPanel: React.FC<{ user: User }> = ({ user }) => {
 
   return (
     <div className="space-y-6" data-testid="wallet">
-      <div className="bg-gradient-to-br from-pink-500 to-purple-600 text-white rounded-2xl p-6 flex items-center justify-between gap-4">
+      <div className="bg-gradient-to-br from-pink-500 to-purple-600 text-white rounded-2xl p-4 sm:p-6 flex items-center justify-between gap-4">
         <div>
           <p className="text-sm opacity-80">Tus {currencyWord}</p>
           <p className="text-3xl font-bold flex items-center gap-2" data-testid="wallet-balance"><CoinIcon size={30} /> {formatCoins(data.wallet.coins)}</p>

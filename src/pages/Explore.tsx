@@ -80,7 +80,7 @@ const Explore: React.FC = () => {
     <div className="min-h-screen bg-canvas">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         {/* Search & Filters */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <h1 className="text-display-md text-ink md:text-center">
             {liveOnly ? (
               <><span className="live-dot mr-3 inline-block h-3 w-3 rounded-full bg-red-500 align-middle" aria-hidden="true"></span>En Live ahora</>
@@ -135,14 +135,14 @@ const Explore: React.FC = () => {
         </div>
 
         {browsing && (
-          <section aria-labelledby="reserve-rail-title" className="mb-10">
+          <section aria-labelledby="reserve-rail-title" className="mb-6 sm:mb-10">
             <RailHeading id="reserve-rail-title" title="Reserve disponible" to="/reserve" icon="fa-ticket" tone="text-gold-600" />
             <ReserveRail creators={visibleCreators} />
           </section>
         )}
 
         {liveOnly && filteredCreators.length === 0 && (
-          <div className="mb-10 rounded-3xl border border-line bg-white px-6 py-10 text-center" data-testid="live-empty">
+          <div className="mb-6 rounded-3xl border border-line bg-white px-5 py-8 sm:mb-10 sm:px-6 sm:py-10 text-center" data-testid="live-empty">
             <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-xl text-red-600">
               <i className="fas fa-tower-broadcast" aria-hidden="true"></i>
             </span>
@@ -199,7 +199,7 @@ const Explore: React.FC = () => {
 
         {/* Creators Grid */}
         {viewMode === 'creators' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredCreators.map((creator) => (
               <CreatorCard
                 key={creator.id}
@@ -215,7 +215,7 @@ const Explore: React.FC = () => {
 
         {/* Posts Grid */}
         {viewMode === 'posts' && !liveOnly && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {visiblePosts.map((post) => (
               <div key={post.id} className="card overflow-hidden">
                 <div className="p-4 flex items-center space-x-3">

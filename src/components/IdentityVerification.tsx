@@ -131,7 +131,7 @@ const IdentityVerification: React.FC = () => {
 
   if (verified) {
     return (
-      <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="verification">
+      <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6" data-testid="verification">
         {header}
         <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl p-4">
           <i aria-hidden="true" className="fas fa-check-circle text-2xl text-blue-600"></i>
@@ -149,7 +149,7 @@ const IdentityVerification: React.FC = () => {
 
   if (request?.status === 'pending') {
     return (
-      <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="verification">
+      <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6" data-testid="verification">
         {header}
         <div className="flex items-center gap-3 bg-yellow-50 border border-yellow-200 rounded-xl p-4">
           <i aria-hidden="true" className="fas fa-hourglass-half text-2xl text-yellow-600"></i>
@@ -168,7 +168,7 @@ const IdentityVerification: React.FC = () => {
 
   if (request?.status === 'rejected' && !retry) {
     return (
-      <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="verification">
+      <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6" data-testid="verification">
         {header}
         <div className="bg-red-50 border border-red-200 rounded-xl p-4">
           <p className="font-medium text-red-800"><i aria-hidden="true" className="fas fa-times-circle mr-2"></i>Solicitud rechazada</p>
@@ -183,7 +183,7 @@ const IdentityVerification: React.FC = () => {
 
   if (didit) {
     return (
-      <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="verification">
+      <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6" data-testid="verification">
         {header}
         <ul className="text-sm text-gray-700 space-y-2 mb-5">
           <li><i aria-hidden="true" className="fas fa-id-card w-5 text-pink-500"></i> Ten a mano tu documento original (no una copia).</li>
@@ -204,7 +204,7 @@ const IdentityVerification: React.FC = () => {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-6" data-testid="verification">
+    <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6" data-testid="verification">
       {header}
       <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

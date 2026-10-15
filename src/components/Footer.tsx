@@ -59,14 +59,14 @@ const Footer: React.FC = () => {
   return (
   <footer className="relative overflow-hidden bg-night-950 text-white/70">
     <div aria-hidden="true" className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-500/50 to-transparent" />
-    <div className="mx-auto max-w-7xl px-4 pb-10 pt-14 sm:px-6 md:pt-16 lg:px-8">
-      <div className="grid gap-12 lg:grid-cols-[1.3fr_2fr]">
+    <div className="mx-auto max-w-7xl px-4 pb-8 pt-10 sm:px-6 sm:pb-10 sm:pt-14 md:pt-16 lg:px-8">
+      <div className="grid gap-8 sm:gap-12 lg:grid-cols-[1.3fr_2fr]">
         <div className="max-w-sm">
           <BrandLogo size="sm" tone="dark" />
-          <p className="mt-5 text-[15px] leading-relaxed text-white/60">
+          <p className="mt-4 text-[15px] leading-relaxed text-white/60">
             Membresías, contenido exclusivo, sesiones en vivo y Reserve: experiencias definidas por cada creador.
           </p>
-          <ul className="mt-6 flex flex-wrap gap-2 text-xs">
+          <ul className="mt-5 flex flex-wrap gap-2 text-xs">
             {[
               { icon: 'fa-id-card', label: 'Creadores verificados' },
               { icon: 'fa-lock', label: 'Pagos protegidos' },
@@ -79,11 +79,11 @@ const Footer: React.FC = () => {
           </ul>
         </div>
 
-        <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-7 sm:grid-cols-4 sm:gap-8">
           {columnsFor(user?.role, canBecomeCreator(user)).map((col) => (
             <div key={col.title}>
               <h3 className="font-display text-sm font-semibold text-white">{col.title}</h3>
-              <ul className="mt-4 space-y-3 text-sm">
+              <ul className="mt-3 space-y-2.5 text-sm sm:mt-4 sm:space-y-3">
                 {col.links.map((l) => (
                   <li key={l.label}>
                     <Link to={l.to} className="text-white/60 transition-colors hover:text-white">
@@ -97,7 +97,7 @@ const Footer: React.FC = () => {
         </div>
       </div>
 
-      <div className="mt-14 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-white/45 md:flex-row md:items-center md:justify-between">
+      <div className="mt-10 flex flex-col gap-3 border-t sm:mt-14 border-white/10 pt-6 text-xs text-white/45 md:flex-row md:items-center md:justify-between">
         <p>
           © {new Date().getFullYear()} {BRAND.name}. Todos los derechos reservados. Solo para mayores de 18 años.
         </p>

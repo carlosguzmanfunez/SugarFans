@@ -96,7 +96,7 @@ const SpecialAccountsAdmin: React.FC<{ accounts: User[]; transactions: Transacti
         </div>
       )}
 
-      <form onSubmit={create} className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
+      <form onSubmit={create} className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 space-y-4">
         <div>
           <h3 className="font-bold text-gray-900">Crear link de cuenta especial</h3>
           <p className="text-sm text-gray-500 mt-1">

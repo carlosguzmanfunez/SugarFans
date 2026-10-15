@@ -56,7 +56,7 @@ const ExperienceGoalSettings: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm" data-testid="goal-settings">
+    <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm" data-testid="goal-settings">
       <h3 className="font-bold text-gray-900 mb-1"><i aria-hidden="true" className="fas fa-piggy-bank text-pink-500 mr-2"></i>Meta de experiencia</h3>
       <p className="text-sm text-gray-500 mb-4">
         Cada fan llena su propia meta con regalos y propinas. Al completarla elige una de las experiencias que marques aquí y recibe un ticket para

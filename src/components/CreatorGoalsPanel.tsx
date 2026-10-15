@@ -85,7 +85,7 @@ const CountryRankCard: React.FC = () => {
       : t('goals.countryRank').replace('{rank}', String(rank)).replace('{total}', String(peers.size)).replace('{country}', place);
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm" data-testid="country-rank">
+    <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm" data-testid="country-rank">
       <h3 className="font-bold text-gray-900 mb-1"><i aria-hidden="true" className="fas fa-trophy text-amber-500 mr-2"></i>{t('goals.countryTitle')}</h3>
       <p className="text-sm text-gray-700">{text}</p>
       {!country && (
@@ -110,7 +110,7 @@ const CreatorGoalsPanel: React.FC = () => {
 
   return (
     <div className="space-y-6" data-testid="goals-panel">
-      <div className="rounded-2xl p-6 text-white bg-gradient-to-br from-amber-500 via-orange-500 to-brand-600 shadow-lg shadow-orange-500/20" data-testid="next-goal">
+      <div className="rounded-2xl p-4 sm:p-6 text-white bg-gradient-to-br from-amber-500 via-orange-500 to-brand-600 shadow-lg shadow-orange-500/20" data-testid="next-goal">
         <p className="text-sm font-semibold uppercase tracking-wide text-white/80">Tu próxima meta</p>
         {next ? (
           <>
@@ -143,7 +143,7 @@ const CreatorGoalsPanel: React.FC = () => {
 
       <CountryRankCard />
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm" data-testid="medals">
+      <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm" data-testid="medals">
         <h3 className="font-bold text-gray-900 mb-1"><i aria-hidden="true" className="fas fa-award text-pink-500 mr-2"></i>Medallas</h3>
         <p className="text-sm text-gray-500 mb-4">Cada medalla te da visibilidad o una insignia. Se ganan con lo que ya haces en {BRAND.name}.</p>
         <div className="grid sm:grid-cols-2 gap-3">

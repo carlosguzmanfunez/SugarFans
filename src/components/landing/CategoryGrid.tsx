@@ -31,7 +31,7 @@ const CategoryGrid: React.FC<{ creators: Creator[] }> = ({ creators }) => {
     byCategory.set(id, [...(byCategory.get(id) ?? []), c]);
   });
   return (
-    <section className="sec" id="comunidades" aria-labelledby="categories-title" style={{ paddingTop: 72 }}>
+    <section className="sec" id="comunidades" aria-labelledby="categories-title">
       <div className="wrap">
         <div className="sec-head v-reveal">
           <h2 id="categories-title">

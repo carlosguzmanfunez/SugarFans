@@ -65,6 +65,8 @@
 .lv2 .float-gift{position:absolute;width:64px;height:64px;filter:drop-shadow(0 12px 18px rgb(40 10 40 / .25));animation:bob 6s ease-in-out infinite}
 @keyframes bob{50%{transform:translateY(-12px) rotate(-4deg)}}
 .lv2 .sec{padding-block:96px}
+.lv2 #comunidades{padding-top:72px}
+.lv2 [data-testid="happening-now"]{padding-top:64px}
 .lv2 .sec-head{display:flex;flex-direction:column;gap:12px;max-width:640px;margin-bottom:36px}
 .lv2 .sec-head h2{font-size:clamp(30px,3.4vw,46px);line-height:1.05;font-weight:700}
 .lv2 .sec-head p{color:var(--muted);font-size:17px}
@@ -412,6 +414,16 @@
   .lv2 .info .tags span:nth-child(3){display:none}
   .lv2 .t1{right:0;bottom:auto;top:0;min-width:0}
   .lv2 .seal{display:none}
+  /* Phones: sections sit closer together, without the desktop air between them. */
+  .lv2 .hero{padding-top:36px}
+  .lv2 .sec{padding-block:52px}
+  .lv2 #comunidades,
+  .lv2 [data-testid="happening-now"]{padding-top:40px}
+  .lv2 .sec-head{margin-bottom:22px}
+  .lv2 .j-head{margin-bottom:24px}
+  .lv2 .rsv{padding-block:56px}
+  .lv2 .cta-band{padding-block:56px}
+  .lv2 .join-end{padding-block:52px 60px}
 }
 /* Narrow phones (360px): both hero buttons on one row. */
 @media (max-width: 380px){

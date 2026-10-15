@@ -32,7 +32,7 @@ const ReserveExperienceCard: React.FC<Props> = ({ exp, onDetails, onBook, creato
   const label = bookLabel(exp);
   const full = product === 'event' && seatsTaken >= (exp.details?.maxParticipants ?? 0);
   return (
-    <article data-testid="reserve-card" aria-label={exp.title} className="group flex h-full flex-col rounded-2xl border border-line bg-white p-5 shadow-sm transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-[var(--shadow-lift)]">
+    <article data-testid="reserve-card" aria-label={exp.title} className="group flex h-full flex-col rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5 transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-[var(--shadow-lift)]">
       <div className="flex items-start gap-3">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-gold-100 to-gold-300 text-night-900">
           <i aria-hidden="true" className={`fas ${type.icon}`}></i>

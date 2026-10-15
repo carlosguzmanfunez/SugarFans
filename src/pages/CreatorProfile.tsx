@@ -540,9 +540,9 @@ const CreatorProfile: React.FC = () => {
             </div>
           </div>
           {isDemoProfile(creator) && (
-            <p className="mt-4 text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2" data-testid="demo-profile-note">
-              <i aria-hidden="true" className="fas fa-circle-info mr-1"></i>
-              Perfil de ejemplo para mostrarte cómo funciona {BRAND.name}. Sus seguidores, publicaciones y me gusta no son reales, y no acepta pagos.
+            <p className="mt-4 flex gap-2 text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2" data-testid="demo-profile-note">
+              <i aria-hidden="true" className="fas fa-circle-info mt-[3px] shrink-0"></i>
+              <span>Perfil de ejemplo para mostrarte cómo funciona {BRAND.name}. Sus seguidores, publicaciones y me gusta no son reales, y no acepta pagos.</span>
             </p>
           )}
         </div>
@@ -601,7 +601,7 @@ const CreatorProfile: React.FC = () => {
         </div>
 
         {iBlocked && (
-          <div className="bg-white rounded-2xl p-6 shadow-sm mb-6 text-center text-gray-600">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm mb-6 text-center text-gray-600">
             <Icon name="fa-ban" className="text-3xl text-gray-300 mb-2" />
             <p>Has bloqueado a {creator.name}. Desbloquéalo para volver a ver su contenido.</p>
           </div>
@@ -609,7 +609,7 @@ const CreatorProfile: React.FC = () => {
 
         {/* Content */}
         {!iBlocked && activeTab === 'posts' && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {composing && managesProfile && (
               <NewPostForm
                 verified
@@ -691,7 +691,7 @@ const CreatorProfile: React.FC = () => {
         )}
 
         {!iBlocked && activeTab === 'about' && (
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
             <h3 className="font-bold text-lg text-gray-900 mb-4">Acerca de {creator.name}</h3>
             <div className="space-y-4 text-gray-600">
               <div className="flex items-center space-x-3">
@@ -718,7 +718,7 @@ const CreatorProfile: React.FC = () => {
         )}
       </div>
 
-      <div className="h-16"></div>
+      <div className="h-8 sm:h-16"></div>
 
       {checkout && user && (
         <CheckoutDialog

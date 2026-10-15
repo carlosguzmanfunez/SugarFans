@@ -88,7 +88,7 @@ const CreatorGiftsPanel: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm p-6 space-y-2" data-testid="gift-perks-retired">
+      <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 space-y-2" data-testid="gift-perks-retired">
         <h3 className="font-bold text-gray-900">Qué son tus regalos</h3>
         <p className="text-sm text-gray-600">
           Apoyo voluntario de tus fans: recibes el {GIFT_SHARE * 100}% de cada regalo, acreditado el día 1 como el resto de tus ingresos.
@@ -102,7 +102,7 @@ const CreatorGiftsPanel: React.FC = () => {
       </div>
 
       {data.perks.length > 0 && (
-      <div className="bg-white rounded-2xl shadow-sm p-6">
+      <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
         <h3 className="font-bold text-gray-900 mb-1">Pedidos de regalos anteriores</h3>
         <p className="text-sm text-gray-500 mb-3">Videos y videollamadas que tus fans ganaron antes del cambio. Se siguen entregando aquí.</p>
         {(
@@ -142,7 +142,7 @@ const CreatorGiftsPanel: React.FC = () => {
       </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-sm p-6">
+      <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
         <h3 className="font-bold text-gray-900 mb-3">Regalos recibidos</h3>
         {data.gifts.length === 0 ? (
           <p className="text-sm text-gray-500">Aún no has recibido regalos.</p>
