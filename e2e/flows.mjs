@@ -2895,6 +2895,22 @@ const run = async () => {
       await p.waitForFunction((b) => document.querySelector('[data-testid=scroll-rail] div')?.style.marginLeft !== b, before);
       await ctx.close();
     });
+    await check('Mi perfil: "Copiar mi enlace" está junto al @usuario y copia fansreserve.com/@usuario', async () => {
+      const ctx = await newContext(browser, { locale: 'es-ES' });
+      await ctx.grantPermissions(['clipboard-read', 'clipboard-write']);
+      const p = await newPage(ctx);
+      await login(p, 'creator@sugarfans.com', 'demo1234');
+      await p.waitForURL((u) => new URL(u).pathname !== '/login');
+      await p.goto(`${BASE}/creator/1`);
+      await p.getByTestId('copy-my-link').click();
+      await p.getByTestId('copy-my-link').getByText('Enlace copiado').waitFor();
+      const copied = await p.evaluate(() => navigator.clipboard.readText());
+      expect(copied.endsWith('/@valentina_rose'), `copió ${copied}`);
+      await p.goto(`${BASE}/creator/2`);
+      await p.getByRole('heading', { level: 1 }).waitFor();
+      expect((await p.getByTestId('copy-my-link').count()) === 0, 'sale en el perfil de otro creador');
+      await ctx.close();
+    });
     await check('El creador ve su propio inicio (su día) en vez del hero de fans', async () => {
       const ctx = await newContext(browser, { viewport: { width: 390, height: 844 }, locale: 'es-ES', hasTouch: true });
       const p = await newPage(ctx);
