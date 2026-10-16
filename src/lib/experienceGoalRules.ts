@@ -21,7 +21,9 @@ export interface BonusInfo {
 // The wheel: every slot is a win the creator gives on top of the experience.
 export const TICKET_BONUSES: BonusInfo[] = [
   { id: 'extra-time', label: '10 minutos más', hint: 'Tu experiencia dura 10 minutos más.', icon: 'fa-hourglass-half' },
-  { id: 'live-shoutout', label: 'Saludo en su próximo Live', hint: 'Te saluda por tu nombre en su próximo Live.', icon: 'fa-tower-broadcast' },
+  // The id keeps its old name (the database picks it); since creator Lives are off the
+  // greeting happens at the start of the fan's own experience.
+  { id: 'live-shoutout', label: 'Saludo con tu nombre', hint: 'Te saluda por tu nombre al empezar tu experiencia.', icon: 'fa-hand-sparkles' },
   { id: 'thank-you', label: 'Mensaje de agradecimiento', hint: 'Te deja un mensaje personal de agradecimiento.', icon: 'fa-envelope-open-text' },
   { id: 'photo', label: 'Foto de recuerdo', hint: 'Una foto o captura de recuerdo al final de la experiencia.', icon: 'fa-camera' },
 ];

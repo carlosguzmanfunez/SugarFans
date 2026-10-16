@@ -86,7 +86,7 @@ const PresentationCover: React.FC = () => {
           </h2>
           <div className="pc-row">
             <p className="pc-lead">
-              Pregúntales en su Live para suscriptores o habla cara a cara en
+              Suscríbete a su contenido exclusivo o habla cara a cara en
               una videollamada 1:1. Todo dentro de Fans Reserve.
             </p>
             <div className="pc-ctas">

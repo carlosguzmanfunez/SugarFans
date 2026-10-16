@@ -18,6 +18,7 @@ import {
   type MedalId,
 } from '../lib/rewards';
 import { BRAND } from '../config/brand';
+import { ENABLE_CREATOR_LIVE } from '../config/features';
 import ExperienceGoalSettings from './ExperienceGoalSettings';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
@@ -147,7 +148,8 @@ const CreatorGoalsPanel: React.FC = () => {
         <h3 className="font-bold text-gray-900 mb-1"><i aria-hidden="true" className="fas fa-award text-pink-500 mr-2"></i>Medallas</h3>
         <p className="text-sm text-gray-500 mb-4">Cada medalla te da visibilidad o una insignia. Se ganan con lo que ya haces en {BRAND.name}.</p>
         <div className="grid sm:grid-cols-2 gap-3">
-          {MEDALS.map((m) => {
+          {/* "Constante" is earned with weekly Lives, which are not offered today. */}
+          {MEDALS.filter((m) => m.id !== 'constante' || ENABLE_CREATOR_LIVE).map((m) => {
             const has = earned.has(m.id);
             return (
               <div key={m.id} data-testid={`medal-${m.id}`} data-earned={has ? 'true' : 'false'} className={`flex gap-3 rounded-xl border p-4 ${has ? 'border-amber-300 bg-amber-50' : 'border-gray-100'}`}>

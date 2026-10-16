@@ -4,7 +4,7 @@
 // server is the one that enforces them: hiding a button is never access control.
 //
 //   open          Public Live, anyone signed in watches.        Disabled by ENABLE_OPEN_LIVE.
-//   subscriber    Subscriber Live: group Live included in an active subscription.
+//   subscriber    Subscriber Live: group Live included in an active subscription. Disabled by ENABLE_SUBSCRIBER_LIVE.
 //   reserve_event Reserve Event: group experience, one paid seat (booking) per fan.
 //   reserve_1to1  Reserve 1:1: private call, only the booking's fan and creator.
 //
@@ -41,6 +41,8 @@ export const decideBroadcast = (input: {
   isOwner: boolean;
   subscription: { cancel_at?: string | null } | null;
   openLiveEnabled: boolean;
+  // Optional so older callers keep their behaviour; api/live-token.ts always passes it.
+  subscriberLiveEnabled?: boolean;
   now?: number;
 }): Decision => {
   const { live, isOwner } = input;
@@ -51,6 +53,7 @@ export const decideBroadcast = (input: {
     if (!input.openLiveEnabled) return deny(403, 'El Live abierto no está disponible en Fans Reserve.');
     return { ok: true, mode, room, canPublish: isOwner, host: isOwner };
   }
+  if (input.subscriberLiveEnabled === false) return deny(403, 'Los Lives para suscriptores no están disponibles en Fans Reserve. Reserva una videollamada o un evento.');
   if (isOwner) return { ok: true, mode, room, canPublish: true, host: true };
   if (!isActiveSubscription(input.subscription, input.now)) return deny(403, 'Este Live es exclusivo para suscriptores. Suscríbete para entrar.');
   return { ok: true, mode, room, canPublish: false, host: false };

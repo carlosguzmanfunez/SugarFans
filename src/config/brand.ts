@@ -12,7 +12,7 @@ export const BRAND = {
   // Public title (Google, tabs, link previews): "Fans Reserve: <tagline>".
   tagline: 'conecta con tus creadores de contenido más allá del feed',
   description:
-    'Suscríbete a tus creadores de contenido favoritos, entra a sus Lives para suscriptores y reserva una videollamada 1:1 o una experiencia con ellos. Todo en un solo lugar.',
+    'Suscríbete al contenido exclusivo de tus creadores favoritos y reserva una videollamada 1:1, un Meet & Greet o un evento con ellos. Todo en un solo lugar.',
   themeColor: '#160d1f',
   backgroundColor: '#faf7f5',
   // Social preview (1200x630) and app icons, rendered from design/brand/ by

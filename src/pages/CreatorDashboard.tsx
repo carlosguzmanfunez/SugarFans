@@ -11,6 +11,7 @@ import CreatorRewardsPanel from '../components/CreatorRewardsPanel';
 import CreatorGoalsPanel from '../components/CreatorGoalsPanel';
 import Avatar from '../components/Avatar';
 import CreatorLivePanel from '../components/CreatorLivePanel';
+import { ENABLE_CREATOR_LIVE } from '../config/features';
 import { usePlatformQuery, platformApi, computeEarnings, iBlocked, blockUser, unblockUser, money, CREATOR_SHARE, creatorCut, transactionLabel } from '../lib/platform';
 import { WEEKDAYS, ALL_HOURS, MAX_BOOKING_MONTHS, DEFAULT_AVAILABILITY } from '../lib/vip';
 import { backend } from '../lib/backend';
@@ -261,7 +262,7 @@ const CreatorDashboard: React.FC = () => {
 
         {notice && <Notice ok={notice.ok} text={notice.text} onClose={() => setNotice(null)} />}
 
-        {user?.creatorProfileId && <CreatorLivePanel user={user} />}
+        {ENABLE_CREATOR_LIVE && user?.creatorProfileId && <CreatorLivePanel user={user} />}
 
         {/* Tabs: seven sections. "Dinero" groups income, gifts and rewards (their
             old ?tab= addresses still work and pick the sub-section). */}
