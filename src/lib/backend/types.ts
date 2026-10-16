@@ -86,6 +86,9 @@ export interface User {
   // international format (+50499998888). Private: only the user and admins see them.
   country?: string;
   phone?: string;
+  // Country of the identity document, set when a creator is verified. While set,
+  // country always equals it and the person can't change it.
+  idCountry?: string;
 }
 
 // Asked at sign-up besides name, email and password.
