@@ -67,6 +67,8 @@ interface ProfileRow {
   // Missing until migration 20261006000003_country_phone is applied.
   country?: string | null;
   phone?: string | null;
+  // Missing until migration 20261016000001_creator_country_from_id is applied.
+  id_country?: string | null;
   // Missing until migration 20261010000004_creator_username_socials is applied.
   username?: string | null;
 }
@@ -152,6 +154,7 @@ const toUser = (p: ProfileRow, extra?: Pick<User, 'subscriptions' | 'createdPost
   signupCompleted: p.signup_completed !== false,
   country: p.country ?? undefined,
   phone: p.phone ?? undefined,
+  idCountry: p.id_country ?? undefined,
   username: p.username ?? undefined,
 });
 

@@ -4,12 +4,14 @@ import { OTHER_COUNTRY, dialCode, normalizePhone, sortedCountries } from '../con
 
 // Country (required) and phone (optional) for the sign-up forms and Settings.
 // The phone is typed without the country code, which is shown next to it.
+// countryLocked: a verified creator's country comes from their ID and can't change.
 const CountryPhoneFields: React.FC<{
   country: string;
   phone: string;
+  countryLocked?: boolean;
   onCountry: (code: string) => void;
   onPhone: (value: string) => void;
-}> = ({ country, phone, onCountry, onPhone }) => {
+}> = ({ country, phone, countryLocked = false, onCountry, onPhone }) => {
   const { t, language } = useLanguage();
   const options = sortedCountries(language, t('country.other'));
   const dial = dialCode(country);
@@ -19,7 +21,12 @@ const CountryPhoneFields: React.FC<{
     <>
       <div>
         <label htmlFor="signup-country" className="block text-sm font-medium text-gray-700 mb-1">{t('register.country')}</label>
-        <select id="signup-country" name="country" value={country} onChange={(e) => onCountry(e.target.value)} className={`${inputClass} bg-white`} data-testid="signup-country">
+        <select id="signup-country" name="country" value={country} onChange={(e) => onCountry(e.target.value)}
+          disabled={countryLocked}
+          aria-describedby={countryLocked ? 'signup-country-hint' : undefined}
+          className={`${inputClass} ${countryLocked ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : 'bg-white'}`}
+          data-testid="signup-country"
+        >
           <option value="" disabled>{t('register.chooseCountry')}</option>
           {options.map((c) => (
             <option key={c.code} value={c.code}>
@@ -27,6 +34,12 @@ const CountryPhoneFields: React.FC<{
             </option>
           ))}
         </select>
+        {countryLocked && (
+          <p id="signup-country-hint" className="mt-1 text-xs text-gray-500" data-testid="country-from-id">
+            <i aria-hidden="true" className="fas fa-lock mr-1"></i>
+            {t('register.countryFromId')}
+          </p>
+        )}
       </div>
       <div>
         <label htmlFor="signup-phone" className="block text-sm font-medium text-gray-700 mb-1">{t('register.phone')}</label>

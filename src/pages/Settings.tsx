@@ -146,7 +146,7 @@ const Settings: React.FC = () => {
     if (country) {
       const checked = phoneFromForm(country, phone, t);
       if ('error' in checked) return showResult({ ok: false, error: checked.error });
-      if (country !== (user?.country ?? '')) data.country = country;
+      if (country !== (user?.country ?? '') && !user?.idCountry) data.country = country;
       if (checked.phone !== (user?.phone ?? '')) data.phone = checked.phone;
     }
     if (user?.role === 'creator') {
@@ -290,7 +290,7 @@ const Settings: React.FC = () => {
                       <input type="email" name="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none" />
                     )}
                   </div>
-                  <CountryPhoneFields country={country} phone={phone} onCountry={setCountry} onPhone={setPhone} />
+                  <CountryPhoneFields country={country} phone={phone} countryLocked={!!user?.idCountry} onCountry={setCountry} onPhone={setPhone} />
                   {user?.role === 'creator' && (
                     <>
                       <div>

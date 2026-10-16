@@ -31,7 +31,7 @@ import { backend } from '../lib/backend';
 import type { VipExperience } from '../lib/vip';
 import { socialApi, compactCount, setFollow, type PublicCreator } from '../lib/social';
 import { useDismiss } from '../hooks/useDismiss';
-import { socialLinkList } from '../lib/creatorLinks';
+import { profileLink, socialLinkList } from '../lib/creatorLinks';
 import {
   usePlatformQuery,
   platformApi,
@@ -62,6 +62,7 @@ const CreatorProfile: React.FC = () => {
   );
   const [checkout, setCheckout] = useState(false);
   const [shared, setShared] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [reporting, setReporting] = useState<{ kind: 'post' | 'creator'; targetId: string; label: string } | null>(null);
   const [tipping, setTipping] = useState<{ postId?: string } | null>(null);
   const [tipSent, setTipSent] = useState('');
@@ -376,7 +377,24 @@ const CreatorProfile: React.FC = () => {
                 <LevelBadge level={badges[creator.id]?.level} />
                 <MedalBadges badges={badges[creator.id]} />
               </div>
-              <p className="text-gray-500">@{links.username || creator.username}</p>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <p className="text-gray-500">@{links.username || creator.username}</p>
+                {/* The creator's own link, right where they look: easy to paste in their bios. */}
+                {isOwner && !managesProfile && (links.username || creator.username) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(profileLink(links.username || creator.username)).then(() => setLinkCopied(true), () => undefined);
+                      setTimeout(() => setLinkCopied(false), 2000);
+                    }}
+                    className="text-sm text-pink-600 font-medium hover:text-pink-700"
+                    data-testid="copy-my-link"
+                  >
+                    <Icon name={linkCopied ? 'fa-check' : 'fa-link'} className="mr-1" />
+                    {linkCopied ? 'Enlace copiado' : 'Copiar mi enlace'}
+                  </button>
+                )}
+              </div>
               {socials.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2" data-testid="creator-socials" aria-label={`Redes de ${creator.name}`}>
                   {socials.map((s) => (
