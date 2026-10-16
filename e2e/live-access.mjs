@@ -4,7 +4,8 @@
 // Usage: npm run test:access
 //
 //   Open Live      hidden and refused while ENABLE_OPEN_LIVE is off; comes back when on.
-//   Subscriber Live only active subscribers (and the creator, who publishes).
+//   Subscriber Live refused to everyone while ENABLE_SUBSCRIBER_LIVE is off; when on,
+//                  only active subscribers (and the creator, who publishes).
 //   Reserve Event  only fans with a confirmed seat (and the creator, who presents).
 //   Reserve 1:1    only the booking's fan and creator.
 //   Gifts and a plain subscription never open a Reserve.
@@ -123,6 +124,7 @@ const run = async () => {
     SUPABASE_ANON_KEY: 'stub',
   });
   delete process.env.ENABLE_OPEN_LIVE;
+  delete process.env.ENABLE_SUBSCRIBER_LIVE;
   const POST = await loadHandler();
   const server = await stub();
   const ask = async (who, body) => {
@@ -165,7 +167,17 @@ const run = async () => {
       }
     });
 
-    console.log('Subscriber Live');
+    console.log('Subscriber Live (desactivado por feature flag)');
+    await check('El flag ENABLE_SUBSCRIBER_LIVE existe y está apagado por defecto', async () => {
+      const src = readFileSync(new URL('../src/config/features.ts', import.meta.url), 'utf8');
+      expect(/export const ENABLE_SUBSCRIBER_LIVE: boolean = import\.meta\.env\.VITE_ENABLE_SUBSCRIBER_LIVE === 'true'/.test(src), 'el flag no está o no depende de VITE_ENABLE_SUBSCRIBER_LIVE');
+    });
+    await check('Con el flag apagado, nadie recibe acceso a un Subscriber Live (ni suscriptores ni el creator)', async () => {
+      refused(await ask('fan-sub', { creatorProfileId: '1' }), 'suscriptor activo');
+      refused(await ask('creator-1', { creatorProfileId: '1' }), 'creator en su Subscriber Live');
+    });
+    // With ENABLE_SUBSCRIBER_LIVE=true the rules below still hold.
+    process.env.ENABLE_SUBSCRIBER_LIVE = 'true';
     await check('Bloquea a usuarios sin suscripción, con la suscripción vencida o que solo enviaron regalos', async () => {
       refused(await ask('nobody', { creatorProfileId: '1' }), 'sin suscripción');
       refused(await ask('fan-expired', { creatorProfileId: '1' }), 'suscripción vencida');
@@ -186,6 +198,8 @@ const run = async () => {
       allowed(r, 'creator');
       expect(r.grant.canPublish && r.host, 'el creator debería publicar');
     });
+
+    delete process.env.ENABLE_SUBSCRIBER_LIVE;
 
     console.log('Reserve Event');
     await check('Bloquea a quien no tiene una plaza válida (sin reserva, sin pagar, suscriptor, regalo)', async () => {

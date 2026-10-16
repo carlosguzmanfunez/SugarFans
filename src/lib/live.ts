@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { backend } from './backend';
 import type { AuthResult, User } from './backend/types';
 import { platformChanged, usePlatformQuery } from './platform';
-import { ENABLE_OPEN_LIVE } from '../config/features';
+import { ENABLE_OPEN_LIVE, broadcastModeEnabled } from '../config/features';
 import type { BroadcastMode } from './backend/liveTypes';
 import { needsCreatorAnswer } from './reserveAlerts';
 
@@ -28,8 +28,11 @@ export const markNotificationsRead = async (user: User) => {
   platformChanged();
 };
 
-export const useCurrentLive = (creatorProfileId: string | undefined) =>
-  usePlatformQuery(() => (creatorProfileId ? l.currentLive(creatorProfileId) : Promise.resolve(null)), [creatorProfileId], null).data;
+// A creator's Live on air, only when its mode is on offer (both kinds are off today).
+export const useCurrentLive = (creatorProfileId: string | undefined) => {
+  const live = usePlatformQuery(() => (creatorProfileId ? l.currentLive(creatorProfileId) : Promise.resolve(null)), [creatorProfileId], null).data;
+  return live && broadcastModeEnabled(live.mode) ? live : null;
+};
 
 export const useLiveAlerts = (creatorProfileId: string | undefined, user: User | null) =>
   usePlatformQuery(
