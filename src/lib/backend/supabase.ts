@@ -14,6 +14,7 @@ import { createSupabaseGifts } from './supabaseGifts';
 import { createSupabaseRewards } from './supabaseRewards';
 import { createSupabaseSpecial } from './supabaseSpecial';
 import { BRAND } from '../../config/brand';
+import { fromRpc } from '../infraUsage';
 
 const REMEMBER_KEY = `${BRAND.storagePrefix}remember`;
 
@@ -442,6 +443,16 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
           lastSeen: r.last_seen,
         };
       });
+    },
+
+    async infraUsage() {
+      const { data, error } = await sb.rpc('infra_usage');
+      return error || !data ? null : fromRpc(data as Record<string, unknown>);
+    },
+
+    async setInfraSettings(plans, fundPct) {
+      const { error } = await sb.rpc('set_infra_settings', { p_plans: plans, p_fund_pct: fundPct });
+      return error ? dbError(error, 'No se pudo guardar') : ok;
     },
 
     async reviewMedia(bucket, path, approve, reason) {

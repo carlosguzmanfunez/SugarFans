@@ -63,6 +63,14 @@ const sendOne = async (key: string, row: OutboxRow) => {
   return `Resend ${r.status}: ${data.message ?? 'sin detalle'}`.slice(0, 300);
 };
 
+// One email straight to Resend (not through the outbox): for alerts to the team.
+// Returns '' when it went out, or the reason it didn't.
+export const sendEmail = async (to: string, subject: string, body: string, idempotencyKey: string) => {
+  const key = resendKey();
+  if (!key) return 'Falta RESEND_API_KEY';
+  return sendOne(key, { id: idempotencyKey, to_email: to, subject, body, attempts: 0 }).catch((e) => String(e).slice(0, 300));
+};
+
 // Sends what is waiting in email_outbox (oldest first). Never throws; returns how
 // many went out. Without RESEND_API_KEY nothing is touched, so the emails wait
 // until the key is set.

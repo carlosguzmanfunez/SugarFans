@@ -1353,6 +1353,25 @@ const run = async () => {
       await page.getByRole('button', { name: 'Errores', exact: true }).click();
       await page.getByTestId('admin-errors').getByText('Sin errores registrados').waitFor();
     });
+    await check('Admin: la pestaña Consumo muestra el fondo, los límites y guarda el plan', async () => {
+      await page.goto(`${BASE}/admin`);
+      await page.getByRole('button', { name: 'Consumo', exact: true }).click();
+      const tab = page.getByTestId('admin-infra');
+      await tab.getByText('Fondo para proveedores').waitFor();
+      expect((await page.getByTestId('infra-row').count()) >= 6, 'faltan filas de consumo');
+      expect((await page.getByTestId('infra-bill').innerText()) === '$0.00', 'los planes gratis deberían sumar $0');
+      await tab.getByText('Correos hoy').waitFor();
+      await page.getByLabel('Plan de Supabase').selectOption('pro');
+      await page.getByLabel('Plan de Resend').selectOption('pro');
+      await page.getByLabel('Porcentaje del fondo').fill('15');
+      await tab.getByRole('button', { name: 'Guardar cambios' }).click();
+      await tab.getByText('Guardado', { exact: true }).waitFor();
+      await page.reload();
+      await page.getByRole('button', { name: 'Consumo', exact: true }).click();
+      await page.getByTestId('infra-bill').getByText('$45.00').waitFor();
+      expect((await page.getByLabel('Porcentaje del fondo').inputValue()) === '15', 'no guardó el porcentaje');
+      expect((await page.getByTestId('admin-infra').getByText('Correos hoy').count()) === 0, 'Resend Pro no tiene tope diario');
+    });
     await check('Admin ve las cuentas reales y puede buscarlas', async () => {
       await logoutViaMenu(page);
       await login(page, 'admin@sugarfans.com', 'demo1234');

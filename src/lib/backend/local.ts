@@ -40,6 +40,7 @@ import {
   validateSignupExtras,
 } from './shared';
 import type { AuthResult, Availability, Backend, BookingInput, BookingStatus, User, VipBooking, VipExperience } from './types';
+import type { InfraUsage } from '../infraUsage';
 import { createLocalPlatform } from './localPlatform';
 import { createLocalSocial } from './localSocial';
 import { blobToDataUrl } from '../profileImage';
@@ -64,6 +65,7 @@ const SESSION_KEY = 'session';
 const SEEDED_KEY = 'seeded_v1';
 const AVAILABILITY_KEY = 'vip_availability';
 const BOOKINGS_KEY = 'vip_bookings';
+const INFRA_KEY = 'infra_settings';
 const OUTBOX_KEY = 'email_outbox';
 const EXPERIENCES_KEY = 'vip_experiences_v1';
 const RESETS_KEY = 'password_resets';
@@ -519,6 +521,32 @@ export const localBackend: Backend = {
   // Offline nothing is recorded: errors show in the browser console.
   async appErrors() {
     return [];
+  },
+
+  // Offline there are no providers: zero use, and the settings live in this browser.
+  async infraUsage() {
+    const saved = readJSON<{ plans: InfraUsage['plans']; fundPct: number }>(INFRA_KEY, { plans: {}, fundPct: 10 });
+    const now = new Date();
+    return {
+      month: now.toISOString().slice(0, 7),
+      measuredAt: now.toISOString(),
+      dbBytes: 0,
+      storageBytes: 0,
+      mau: loadAccounts().length,
+      usersTotal: loadAccounts().length,
+      emailsMonth: 0,
+      emailsToday: 0,
+      scansMonth: 0,
+      kycMonth: 0,
+      videoMinutesMonth: 0,
+      ...saved,
+    };
+  },
+
+  async setInfraSettings(plans, fundPct) {
+    if (!(fundPct >= 0 && fundPct <= 50)) return fail('El fondo debe estar entre 0% y 50%');
+    writeJSON(INFRA_KEY, { plans, fundPct });
+    return ok;
   },
 
   async updateProfile(user, patch) {

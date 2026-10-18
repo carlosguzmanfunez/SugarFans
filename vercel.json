@@ -1,4 +1,5 @@
 {
   "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
-  "functions": { "api/moderate.ts": { "maxDuration": 60 } }
+  "functions": { "api/moderate.ts": { "maxDuration": 60 } },
+  "crons": [{ "path": "/api/usage", "schedule": "0 14 * * *" }]
 }
