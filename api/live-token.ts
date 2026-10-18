@@ -2,6 +2,7 @@
 // (rules in src/lib/liveAccess.ts, the same ones the app shows):
 // - A creator's Live ({ creatorProfileId }), from live_broadcasts:
 //   · Subscriber Live: the creator publishes; only fans with an active subscription watch.
+//     Off unless ENABLE_SUBSCRIBER_LIVE=true (src/config/features.ts).
 //   · Open Live: anyone signed in watches. Off unless ENABLE_OPEN_LIVE=true (src/config/features.ts).
 // - A Reserve booking ({ bookingId }), confirmed and on its day:
 //   · Reserve Event seat: everyone with a seat meets in the event's room; the creator presents.
@@ -18,6 +19,8 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPA
 const LIVE_MAX_HOURS = 4;
 // Open Live stays off unless the project turns it back on (src/config/features.ts).
 const openLiveEnabled = () => process.env.ENABLE_OPEN_LIVE === 'true';
+// Subscriber Live is off too since 2026-10-16: live video is sold only through Reserve.
+const subscriberLiveEnabled = () => process.env.ENABLE_SUBSCRIBER_LIVE === 'true';
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
@@ -115,7 +118,7 @@ export async function POST(request: Request): Promise<Response> {
         token
       )) ?? []) as Array<{ cancel_at: string | null }>)
     : [];
-  return answer(decideBroadcast({ live: live ?? null, isOwner, subscription: subscription ?? null, openLiveEnabled: openLiveEnabled() }), {
+  return answer(decideBroadcast({ live: live ?? null, isOwner, subscription: subscription ?? null, openLiveEnabled: openLiveEnabled(), subscriberLiveEnabled: subscriberLiveEnabled() }), {
     title: live?.title,
   });
 }

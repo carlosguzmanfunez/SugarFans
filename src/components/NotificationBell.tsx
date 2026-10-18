@@ -63,7 +63,7 @@ const NotificationBell: React.FC<{ user: User }> = ({ user }) => {
             <p className="px-4 py-6 text-center text-sm text-muted">
               {user.role === 'creator'
                 ? 'Aún no tienes avisos. Aquí verás cada nueva solicitud de Reserve.'
-                : 'Aún no tienes avisos. Te avisaremos de los Lives de tus suscripciones y de las respuestas a tus reservas.'}
+                : 'Aún no tienes avisos. Te avisaremos de las respuestas a tus reservas.'}
             </p>
           ) : (
             <ul className="max-h-96 overflow-y-auto">

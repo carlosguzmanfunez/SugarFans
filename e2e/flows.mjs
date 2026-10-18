@@ -1353,6 +1353,25 @@ const run = async () => {
       await page.getByRole('button', { name: 'Errores', exact: true }).click();
       await page.getByTestId('admin-errors').getByText('Sin errores registrados').waitFor();
     });
+    await check('Admin: la pestaña Consumo muestra el fondo, los límites y guarda el plan', async () => {
+      await page.goto(`${BASE}/admin`);
+      await page.getByRole('button', { name: 'Consumo', exact: true }).click();
+      const tab = page.getByTestId('admin-infra');
+      await tab.getByText('Fondo para proveedores').waitFor();
+      expect((await page.getByTestId('infra-row').count()) >= 6, 'faltan filas de consumo');
+      expect((await page.getByTestId('infra-bill').innerText()) === '$0.00', 'los planes gratis deberían sumar $0');
+      await tab.getByText('Correos hoy').waitFor();
+      await page.getByLabel('Plan de Supabase').selectOption('pro');
+      await page.getByLabel('Plan de Resend').selectOption('pro');
+      await page.getByLabel('Porcentaje del fondo').fill('15');
+      await tab.getByRole('button', { name: 'Guardar cambios' }).click();
+      await tab.getByText('Guardado', { exact: true }).waitFor();
+      await page.reload();
+      await page.getByRole('button', { name: 'Consumo', exact: true }).click();
+      await page.getByTestId('infra-bill').getByText('$45.00').waitFor();
+      expect((await page.getByLabel('Porcentaje del fondo').inputValue()) === '15', 'no guardó el porcentaje');
+      expect((await page.getByTestId('admin-infra').getByText('Correos hoy').count()) === 0, 'Resend Pro no tiene tope diario');
+    });
     await check('Admin ve las cuentas reales y puede buscarlas', async () => {
       await logoutViaMenu(page);
       await login(page, 'admin@sugarfans.com', 'demo1234');
@@ -1998,7 +2017,9 @@ const run = async () => {
       const goals = await openGoals();
       await goals.getByTestId('next-goal').getByText('Llegar a Plata').waitFor();
       await goals.getByRole('progressbar', { name: 'Fans activos' }).waitFor();
-      for (const m of ['primer-reserve', 'iman', 'puntual', 'constante', 'embajador']) await goals.getByTestId(`medal-${m}`).waitFor();
+      for (const m of ['primer-reserve', 'iman', 'puntual', 'embajador']) await goals.getByTestId(`medal-${m}`).waitFor();
+      // "Constante" (weekly Lives) is hidden while creator Lives are off.
+      expect((await goals.getByTestId('medal-constante').count()) === 0, 'muestra la medalla Constante');
       expect((await goals.getByTestId('medal-iman').getAttribute('data-earned')) === 'false', 'Imán ganado sin fans');
     });
     await check('Un fan que llega con el enlace queda invitado y el creador cobra el 85% del neto de su suscripción', async () => {
@@ -2519,32 +2540,21 @@ const run = async () => {
       // The follow state loads after the first render: wait for it instead of reading it once.
       await resF.getByTestId('follow-button').and(resF.locator('[aria-pressed="true"]')).waitFor();
     });
-    await check('Campanita: seguir activa los avisos de Live y se pueden apagar', async () => {
-      const toggle = resF.getByTestId('live-alerts');
-      await toggle.and(resF.locator('[aria-pressed="true"]')).getByText('Te avisaremos cuando esté en Live').waitFor();
-      await toggle.click();
-      await toggle.getByText('Avisos de Live desactivados').waitFor();
-      await toggle.click();
-      await toggle.getByText('Te avisaremos cuando esté en Live').waitFor();
-    });
-    await check('Subscriber Live: un seguidor sin suscripción no recibe aviso ni puede entrar', async () => {
+    await check('Sin Live para suscriptores: el creador no ve "Iniciar Live" y el perfil no ofrece Live ni avisos de Live', async () => {
+      // Subscriber Live is off by flag (ENABLE_SUBSCRIBER_LIVE): live video is sold only through Reserve.
       await resC.goto(`${BASE}/creator/dashboard`);
-      const panel = resC.getByTestId('creator-live-panel');
-      await panel.getByText('Live para suscriptores').first().waitFor();
-      await panel.getByLabel('Título del Live').fill('Backstage para suscriptores');
-      await panel.getByRole('button', { name: 'Iniciar Live' }).click();
-      await waitPath(resC, '/en-vivo/1');
-      await resC.getByRole('button', { name: 'Encender cámara y empezar' }).waitFor();
+      await resC.locator('#panel-tabs').waitFor();
+      expect((await resC.getByTestId('creator-live-panel').count()) === 0, 'el panel ofrece iniciar un Live');
       await resF.goto(`${BASE}/creator/1`);
-      await resF.getByTestId('live-now').getByText('Live para suscriptores · ahora').waitFor();
-      await resF.getByTestId('subscriber-live-locked').getByText('Exclusivo para suscriptores').waitFor();
-      expect((await resF.getByTestId('access-ladder').getByRole('link', { name: 'Entrar al Live' }).count()) === 0, 'ofrece entrar sin suscripción');
-      expect((await resF.getByTestId('notification-count').count()) === 0, 'avisó a un seguidor sin suscripción');
+      const ladder = resF.getByTestId('access-ladder');
+      await ladder.getByText('Contenido exclusivo y beneficios del creador.').waitFor({ state: 'attached' });
+      expect((await resF.getByTestId('live-alerts').count()) === 0, 'el perfil ofrece avisos de Live');
+      expect((await resF.getByTestId('live-now').count()) === 0, 'el perfil muestra un Live');
+      expect((await ladder.getByText(/Lives? para suscriptores/).count()) === 0, 'Suscribirse promete Lives');
       await resF.goto(`${BASE}/en-vivo/1`);
-      await resF.getByTestId('subscriber-live-gate').getByText('Live exclusivo para suscriptores').waitFor();
-      expect((await resF.getByRole('button', { name: 'Entrar al Live' }).count()) === 0, 'la sala deja entrar sin suscripción');
+      await resF.getByText('Este creador no está en Live ahora').waitFor();
     });
-    await check('Subscriber Live: al suscribirse se puede entrar; la suscripción no crea reservas', async () => {
+    await check('Suscribirse da el contenido exclusivo y no crea reservas', async () => {
       await resF.goto(`${BASE}/creator/1`);
       await resF.getByRole('button', { name: /Suscribirse \$/ }).first().click();
       const dialog = resF.getByRole('dialog');
@@ -2555,59 +2565,9 @@ const run = async () => {
       }
       await dialog.getByRole('button', { name: /Suscribirme y pagar/ }).click();
       await resF.getByRole('button', { name: /Suscrito/ }).first().waitFor();
-      await resF.getByTestId('access-ladder').getByRole('link', { name: 'Entrar al Live' }).click();
-      await waitPath(resF, '/en-vivo/1');
-      await resF.getByRole('button', { name: 'Entrar al Live' }).click();
-      await resF.getByTestId('live-problem').getByText(/solo funciona en la web publicada/).waitFor();
+      expect((await resF.getByTestId('access-ladder').getByRole('link', { name: 'Entrar al Live' }).count()) === 0, 'ofrece entrar a un Live');
       const bookings = await resF.evaluate(() => JSON.parse(localStorage.getItem('fansreserve_vip_bookings') || '[]'));
       expect(!bookings.some((b) => b.creatorProfileId === '1' && b.fanEmail === 'fan@sugarfans.com' && b.status !== 'cancelled'), 'la suscripción creó una reserva');
-    });
-    await check('Subscriber Live: al terminarlo el perfil deja de mostrarlo', async () => {
-      await resC.goto(`${BASE}/creator/dashboard`);
-      await resC.getByTestId('creator-live-panel').getByRole('button', { name: 'Terminar Live' }).click();
-      await resC.getByTestId('creator-live-panel').getByRole('button', { name: 'Iniciar Live' }).waitFor();
-      await resF.goto(`${BASE}/creator/1`);
-      await resF.getByTestId('access-ladder').waitFor();
-      expect((await resF.getByTestId('live-now').count()) === 0, 'sigue en Live');
-      await resF.goto(`${BASE}/en-vivo/1`);
-      await resF.getByText('Este creador no está en Live ahora').waitFor();
-    });
-    await check('Subscriber Live: el suscriptor recibe el aviso; Salir no lo cierra; Terminar Live pide confirmar', async () => {
-      // The first Live was minutes ago: age it so this one isn't held back by the anti-spam window.
-      await resC.evaluate(() => {
-        const st = JSON.parse(localStorage.getItem('fansreserve_live') || '{}');
-        st.broadcasts = (st.broadcasts ?? []).map((b) => ({ ...b, startedAt: new Date(Date.now() - 86400000).toISOString() }));
-        localStorage.setItem('fansreserve_live', JSON.stringify(st));
-      });
-      await resC.goto(`${BASE}/creator/dashboard`);
-      const panel = resC.getByTestId('creator-live-panel');
-      await panel.getByLabel('Título del Live').fill('Segundo Live');
-      await panel.getByRole('button', { name: 'Iniciar Live' }).click();
-      await waitPath(resC, '/en-vivo/1');
-      await resF.goto(`${BASE}/explore`);
-      await resF.getByTestId('notification-count').getByText('1').waitFor();
-      await resF.getByTestId('notification-bell').click();
-      const item = resF.getByTestId('notification-panel').getByRole('link', { name: /Live para suscriptores/ });
-      await item.getByText('Segundo Live').waitFor();
-      await item.click();
-      await waitPath(resF, '/en-vivo/1');
-      await resF.getByRole('button', { name: 'Salir' }).click();
-      await waitPath(resF, '/creator/1');
-      await resF.getByTestId('live-now').waitFor();
-      await resC.getByRole('button', { name: 'Terminar Live' }).click();
-      const dialog = resC.getByTestId('leave-live-dialog');
-      await dialog.getByText('Estás abandonando el Live y se cerrará. ¿Estás de acuerdo?').waitFor();
-      await dialog.getByRole('button', { name: 'No, continuar en el Live' }).click();
-      await dialog.waitFor({ state: 'detached' });
-      expect(new URL(resC.url()).pathname === '/en-vivo/1', 'salió del Live al decir que no');
-      await resC.getByRole('button', { name: 'Terminar Live' }).click();
-      await dialog.getByRole('button', { name: 'Sí, cerrar el Live' }).click();
-      await waitPath(resC, '/creator/dashboard');
-      await panel.getByRole('button', { name: 'Iniciar Live' }).waitFor();
-      await resF.goto(`${BASE}/creator/1`);
-      await unfoldReserve(resF);
-      await resF.getByTestId('access-ladder').waitFor();
-      expect((await resF.getByTestId('live-now').count()) === 0, 'sigue en Live');
     });
     await check('Reserve Event: el fan reserva su plaza y la sala de grupo no es la de una videollamada 1:1', async () => {
       await resF.goto(`${BASE}/creator/1`);
@@ -2922,7 +2882,7 @@ const run = async () => {
       for (const id of ['ch-reservas', 'ch-ganado', 'ch-metas', 'ch-nudge']) await p.getByTestId(id).waitFor();
       expect((await p.getByTestId('ch-creditos').count()) === 0, 'sigue la tarjeta de Créditos');
       const buttons = (await p.getByTestId('ch-nudge').getByRole('link').allTextContents()).map((t) => t.trim());
-      expect(JSON.stringify(buttons) === JSON.stringify(['Subir foto o video', 'Mi perfil', 'Iniciar Live']), `botones: ${buttons.join(' | ')}`);
+      expect(JSON.stringify(buttons) === JSON.stringify(['Subir foto o video', 'Mi perfil']), `botones: ${buttons.join(' | ')}`);
       await p.getByTestId('ch-metas').getByText(/^Avance a /).waitFor();
       await p.getByTestId('ch-metas').getByRole('progressbar').waitFor();
       await p.getByTestId('ch-metas').tap();

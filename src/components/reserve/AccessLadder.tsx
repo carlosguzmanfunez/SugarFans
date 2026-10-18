@@ -5,7 +5,7 @@ import { socialApi, compactCount } from '../../lib/social';
 import { usePlatformQuery } from '../../lib/platform';
 import { Link } from 'react-router-dom';
 import { useCurrentLive, useLiveAlerts, setLiveAlerts } from '../../lib/live';
-import { ENABLE_OPEN_LIVE } from '../../config/features';
+import { ENABLE_CREATOR_LIVE, ENABLE_SUBSCRIBER_LIVE } from '../../config/features';
 import { useAuth } from '../../context/AuthContext';
 import { MIN_SUBSCRIPTION } from '../../lib/platformRules';
 import { openReserve } from './CreatorReserveSection';
@@ -31,12 +31,11 @@ interface Props {
 }
 
 // How to get closer to a creator, from free to most personal:
-// Seguir → Suscribirse (includes Subscriber Live) → Reserve (Reserve Event, Reserve 1:1).
+// Seguir → Suscribirse (exclusive content) → Reserve (Reserve Event, Reserve 1:1).
 // Each one says what it gives and what it doesn't. Live is not a step of its own.
 const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, following, experiences, onSubscribe, editsPrice = false }) => {
-  const current = useCurrentLive(creator.id);
-  // An Open Live only counts while Open Live is enabled.
-  const live = current && (current.mode === 'subscriber' || ENABLE_OPEN_LIVE) ? current : null;
+  // Only a Live whose mode is on offer (useCurrentLive filters by the feature flags).
+  const live = useCurrentLive(creator.id);
   const subscriberLive = live?.mode === 'subscriber';
   const canEnter = !!live && (!subscriberLive || isSubscribed || isOwner);
   const alerts = useLiveAlerts(following ? creator.id : undefined, user);
@@ -60,7 +59,7 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
             </span>
           )}
           {isOwner && <span className="mt-3 text-xs text-muted">{compactCount(creator.followers)} seguidores</span>}
-          {!isOwner && following && user && (
+          {ENABLE_CREATOR_LIVE && !isOwner && following && user && (
             <button
               type="button"
               onClick={() => setLiveAlerts(user, creator.id, !alerts)}
@@ -81,7 +80,7 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
           ) : (
             <span className="mt-1 text-sm font-semibold text-ink">${creator.subscriptionPrice}/mes</span>
           )}
-          <span className={blurb}>Contenido exclusivo, Lives para suscriptores y beneficios del creador.</span>
+          <span className={blurb}>{ENABLE_SUBSCRIBER_LIVE ? 'Contenido exclusivo, Lives para suscriptores y beneficios del creador.' : 'Contenido exclusivo y beneficios del creador.'}</span>
           {live && (
             <span className="mt-2 flex flex-col gap-0.5" data-testid="live-now">
               <span className="flex items-center text-sm font-semibold text-red-600">

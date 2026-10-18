@@ -6,6 +6,7 @@ import { usePlatformQuery, platformApi, computeEarnings, money } from '../../lib
 import { socialApi } from '../../lib/social';
 import { levelById, nextLevel, rewardsApi } from '../../lib/rewards';
 import { useReserveInbox } from '../../lib/live';
+import { ENABLE_CREATOR_LIVE } from '../../config/features';
 import { CREATOR_RESERVE_LINK } from '../../lib/reserveAlerts';
 
 // A creator's home: instead of the fans' hero (which sells creators to fans), the top
@@ -112,7 +113,7 @@ const CreatorHome: React.FC = () => {
                 </p>
                 <p className="mt-0.5 text-sm text-ink/60">
                   {stale
-                    ? 'Una foto, un video o un Live mantienen a tu comunidad cerca y suscrita.'
+                    ? 'Una foto o un video mantienen a tu comunidad cerca y suscrita.'
                     : 'Sigue así: publicar seguido mantiene a tu comunidad cerca y suscrita.'}
                 </p>
               </div>
@@ -124,9 +125,11 @@ const CreatorHome: React.FC = () => {
               <Link to={`/creator/${profileId}`} className="v-btn v-ghost" data-testid="ch-perfil">
                 <Icon name="fa-user" /> Mi perfil
               </Link>
-              <Link to="/creator/dashboard" className="v-btn v-ghost">
-                <span aria-hidden="true" className="h-2 w-2 rounded-full bg-red-500" /> Iniciar Live
-              </Link>
+              {ENABLE_CREATOR_LIVE && (
+                <Link to="/creator/dashboard" className="v-btn v-ghost">
+                  <span aria-hidden="true" className="h-2 w-2 rounded-full bg-red-500" /> Iniciar Live
+                </Link>
+              )}
             </div>
           </div>
         )}

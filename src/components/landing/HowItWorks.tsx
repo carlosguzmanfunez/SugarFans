@@ -208,7 +208,7 @@ const TICKET = <><path d="M3 9a2 2 0 0 0 0 6v3a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-3
 // The free public Live panel only comes back with ENABLE_OPEN_LIVE.
 const HowItWorks: React.FC = () => {
   const follow: Panel = { key: 'follow', cls: 'p-follow', label: 'Sigue', price: 'Gratis', title: 'Te enteras de todo', sub: 'Ves sus publicaciones públicas y sus novedades, gratis.', who: byId('1').avatar, icon: <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" /> };
-  const sub: Panel = { key: 'sub', cls: 'p-sub', label: 'Suscríbete', price: `${formatPrice(byId('2').subscriptionPrice)} al mes`, title: 'Le hablas en su Live', sub: 'Contenido exclusivo y Lives solo para suscriptores, donde le escribes y le preguntas en directo. Cancelas cuando quieras.', who: byId('2').avatar, icon: <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" /> };
+  const sub: Panel = { key: 'sub', cls: 'p-sub', label: 'Suscríbete', price: `${formatPrice(byId('2').subscriptionPrice)} al mes`, title: 'Ves lo que no publica en otro lado', sub: 'Su contenido exclusivo, solo para suscriptores. Cancelas cuando quieras.', who: byId('2').avatar, icon: <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" /> };
   const panels: Panel[] = ENABLE_OPEN_LIVE
     ? [
         follow,

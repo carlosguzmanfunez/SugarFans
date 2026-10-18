@@ -15,7 +15,7 @@ const WAYS = [
   {
     icon: 'fa-star',
     title: 'Suscripción mensual',
-    body: 'Tus seguidores más fieles te apoyan cada mes con el precio que tú eliges. A cambio ven tu contenido exclusivo y tus Lives para suscriptores.',
+    body: 'Tus seguidores más fieles te apoyan cada mes con el precio que tú eliges. A cambio ven tu contenido exclusivo.',
   },
   {
     icon: 'fa-users',

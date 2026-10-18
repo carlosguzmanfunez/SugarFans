@@ -6,6 +6,7 @@ import type { RewardsBackend } from './rewardTypes';
 import type { LiveBackend } from './liveTypes';
 import type { SpecialBackend } from './specialTypes';
 import type { SocialLinks } from '../creatorLinks';
+import type { InfraUsage } from '../infraUsage';
 import type { ApprovalMode, CancellationPolicyId, LocationType, PurposeId, ReserveModality } from '../../config/reserve';
 export type * from './platformTypes';
 export type * from './socialTypes';
@@ -305,6 +306,10 @@ export interface Backend {
   reviewMedia(bucket: ModerationItem['bucket'], path: string, approve: boolean, reason?: string): Promise<AuthResult>;
   // Admins: errors recorded in production, newest first.
   appErrors(): Promise<AppError[]>;
+  // Admins: this month's use of each provider's plan ("Consumo" tab), and the plans
+  // in use plus the share of income set aside for providers.
+  infraUsage(): Promise<InfraUsage | null>;
+  setInfraSettings(plans: InfraUsage['plans'], fundPct: number): Promise<AuthResult>;
   changePassword(user: User, current: string, next: string): Promise<AuthResult>;
   // `password` is ignored for Google/Microsoft accounts, which have none.
   deleteAccount(user: User, password: string): Promise<AuthResult>;
