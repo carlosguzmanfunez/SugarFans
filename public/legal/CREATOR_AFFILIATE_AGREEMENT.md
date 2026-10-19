@@ -28,7 +28,7 @@ Este Contrato para Creadores y Afiliados ("Contrato") constituye un acuerdo lega
 
 1.5. **"Comisión"** se refiere al porcentaje que la Plataforma retiene de los Ingresos generados.
 
-1.6. **"Saldo acreditado"** se refiere a la parte de los Ingresos pagados antes del día 1 del mes en curso, disponible para retirar.
+1.6. **"Saldo acreditado"** se refiere a la parte de los Ingresos de ciclos cerrados del 26 al 25, acreditada al comenzar el 26 y elegible para solicitar pago del 26 al día 1 siguiente, ambos incluidos, en hora de Honduras (UTC−6). Los saldos ya acreditados antes del cambio de calendario se conservan.
 
 ---
 
@@ -214,12 +214,12 @@ Pago al Creador = (Precio pagado por el fan − comisión del procesador por ese
 
 ### 6.3. Cronograma de Pagos
 
-6.3.1. **Acreditación mensual**: El día 1 de cada mes se acredita todo lo que los fans pagaron antes de esa fecha. Lo cobrado a mitad de mes aparece como pendiente hasta el día 1 siguiente.
+6.3.1. **Acreditación mensual**: Las ganancias se acumulan desde el 26 a las 00:00 hasta terminar el 25 del siguiente mes. Se acreditan al comenzar el 26, cuando también empieza el nuevo ciclo. La ventana de pago va del 26 al día 1 siguiente, ambos incluidos, en hora de Honduras (UTC−6). Las ganancias del nuevo ciclo no se incluyen en el pago del ciclo cerrado. Los saldos previamente acreditados y los pagos registrados se conservan.
 
 6.3.2. **Retiros**:
 - Un solo botón: se retira siempre el saldo acreditado completo
 - Mínimo: $50 USD ($25 USD en los niveles Oro y Diamante); si no lo alcanza, el saldo se acumula
-- Cualquier día del mes, sin aprobación previa
+- Se solicita durante la ventana del 26 al día 1 siguiente (inclusive), hora de Honduras (UTC−6); no implica un sistema de pagos automáticos por lote activo
 - A la cuenta PayPal del Creador, mediante PayPal Payouts
 - La comisión que cobre el procesador de pagos por enviar el retiro se descuenta del monto retirado (ver 6.4)
 
@@ -573,7 +573,7 @@ Los fans que llegan con su enlace cuentan doble para el nivel. Las medallas (Pri
 
 | Qué | Cuándo |
 |-----|--------|
-| Acreditación | Día 1 de cada mes, por lo pagado antes de esa fecha |
+| Acreditación | Ciclo del 26 al 25; acreditación al comenzar el 26 y ventana de pago del 26 al 1 siguiente, hora de Honduras (UTC−6) |
 | Retiro | Cualquier día, saldo completo, desde $50 USD ($25 en Oro y Diamante); la comisión de envío del retiro se descuenta del monto |
 
 ---

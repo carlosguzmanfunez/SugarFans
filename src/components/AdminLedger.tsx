@@ -3,20 +3,23 @@ import type { Payout, Transaction } from '../lib/platform';
 import { money } from '../lib/platform';
 import type { CoinPurchase } from '../lib/gifts';
 import { ledger, ledgerCsv, periodLabel, type Period } from '../lib/adminLedger';
+import { hondurasDateKey, formatPayoutDate } from '../lib/payoutCalendar';
+import { usePayoutClock } from '../lib/usePayoutCalendar';
 
 const signed = (n: number) => (Math.abs(n) < 0.005 ? '—' : n < 0 ? `−${money(-n)}` : money(n));
 
 // Admin "Libro": every money movement of the period, downloadable for the accountant.
 const AdminLedger: React.FC<{ transactions: Transaction[]; coins: CoinPurchase[]; payouts: Payout[] }> = ({ transactions, coins, payouts }) => {
   const [period, setPeriod] = useState<Period>('month');
-  const rows = ledger(transactions, coins, payouts, period);
+  const at = usePayoutClock();
+  const rows = ledger(transactions, coins, payouts, period, at);
   const total = (k: 'amount' | 'fee' | 'creator' | 'platform') => Math.round(rows.reduce((s, r) => s + r[k], 0) * 100) / 100;
 
   const download = () => {
-    const blob = new Blob(['﻿' + ledgerCsv(rows)], { type: 'text/csv;charset=utf-8' });
+    const blob = new Blob(['﻿' + ledgerCsv(ledger(transactions, coins, payouts, period, new Date()))], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `fans-reserve-libro-${periodLabel[period].toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `fans-reserve-libro-${periodLabel[period].toLowerCase().replace(/\s+/g, '-')}-${hondurasDateKey()}.csv`;
     a.click();
     URL.revokeObjectURL(a.href);
   };
@@ -65,7 +68,7 @@ const AdminLedger: React.FC<{ transactions: Transaction[]; coins: CoinPurchase[]
             )}
             {rows.map((r) => (
               <tr key={`${r.type}-${r.id}`} data-testid="ledger-row">
-                <td className="py-2 pr-3 text-gray-500 whitespace-nowrap">{new Date(r.at).toLocaleDateString('es', { day: 'numeric', month: 'short' })}</td>
+                <td className="py-2 pr-3 text-gray-500 whitespace-nowrap">{formatPayoutDate(r.at)}</td>
                 <td className="py-2 pr-3">
                   <p className="font-medium text-gray-900">{r.type}</p>
                   <p className="text-xs text-gray-500">{r.who}</p>

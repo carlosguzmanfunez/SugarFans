@@ -1191,25 +1191,35 @@ const run = async () => {
     });
 
     console.log('\nIngresos y retiros del creador');
+    // Playwright clock state is context-wide. Keep finance's future dates out of
+    // booking deadlines, sessions and reward qualification in the main journey.
+    const journeyPage = page;
+    const payoutContext = await newContext(browser, { locale: 'es-ES', storageState: await context.storageState() });
+    {
+    const page = await payoutContext.newPage();
     await check('Creadora nueva: saldo 0 y no puede retirar por debajo de $50', async () => {
       await page.goto(`${BASE}/creator/dashboard?tab=earnings`);
       expect((await readAmount(page, 'available-balance')) === 0, 'saldo inicial inesperado');
       expect(await page.getByRole('button', { name: 'Retirar $0.00' }).isDisabled(), 'el botón de retiro no está bloqueado');
-      await page.getByText(/Podrás retirar cuando tu saldo disponible llegue a \$50\.00/).waitFor();
+      await page.getByTestId('payout-window').waitFor();
       expect((await page.locator('input[name=payoutAmount]').count()) === 0, 'no debe poder elegir el monto');
     });
-    await check('Creadora demo: 80% de lo que llega después de PayPal; lo de este mes se acredita el día 1', async () => {
+    const payoutRealNow = new Date();
+    const payoutTestNow = new Date(Date.UTC(payoutRealNow.getUTCFullYear(), payoutRealNow.getUTCMonth(), 26, 12));
+    await page.clock.setSystemTime(payoutTestNow);
+    await check('Creadora demo: reparto correcto y ciclo 26–25 en hora de Honduras', async () => {
       await logoutViaMenu(page);
       await login(page, 'creator@sugarfans.com', 'demo1234');
       await waitPath(page, '/');
       await page.goto(`${BASE}/creator/dashboard?tab=earnings`);
       // 80% of the net of each $9.99 payment (minus PayPal's 5.4% + $0.30) is $7.32:
       // subscription + 2 renewals = 21.96 in total, no demo money.
-      // The renewal from last month is credited; this month's payments wait for the 1st.
+      // On the 26th the completed cycle is credited; new earnings wait for its next closure.
       const available = (await readAmount(page, 'available-balance'));
       const pending = (await readAmount(page, 'pending-balance'));
       expect(Math.abs(available + pending - 21.96) < 0.02, `total inesperado: ${available} + ${pending}`);
-      expect(pending >= 7.32, 'el pago de este mes debería estar por acreditar');
+      await page.getByTestId('earnings-cycle').getByText(/Hora de Honduras/).waitFor();
+      await page.getByTestId('payout-window').getByText(/Ventana de pago abierta/).waitFor();
       await page.getByText('+$7.32').first().waitFor();
     });
     await check('Con sesión de creadora la portada lleva a su panel en lugar del registro', async () => {
@@ -1227,6 +1237,7 @@ const run = async () => {
         const d = new Date();
         d.setUTCDate(10);
         d.setUTCMonth(d.getUTCMonth() - monthsAgo);
+        if (monthsAgo === 0) { d.setUTCDate(26); d.setUTCHours(6, 0, 0, 0); }
         const id = `tx-e2e-${amount}-${monthsAgo}-${data.transactions.length}`;
         data.transactions.push({
           id, key: id, payerId: null, payerName: 'Fan de prueba', creatorProfileId: '1', creatorName: 'Valentina Rose',
@@ -1237,8 +1248,8 @@ const run = async () => {
     await check('Creadora demo: retira el saldo completo a su PayPal, con la comisión descontada', async () => {
       const before = (await readAmount(page, 'available-balance'));
       const pendingBefore = (await readAmount(page, 'pending-balance'));
-      await addSale(100, 1); // credited on this month's 1st: +80
-      await addSale(50, 0); // paid this month: waits for next 1st (+40 pending)
+      await addSale(100, 1); // closed cycle: +80
+      await addSale(50, 0); // new cycle starts on the 26th (+40 pending)
       await page.reload();
       const available = (await readAmount(page, 'available-balance'));
       expect(Math.abs(available - (before + 80)) < 0.001, `saldo inesperado: ${available}`);
@@ -1274,6 +1285,16 @@ const run = async () => {
       expect((await readAmount(page, 'available-balance')) === 64, 'no se acumularon 32 + 32');
       expect(!(await page.getByRole('button', { name: 'Retirar $64.00' }).isDisabled()), 'debería poder retirar');
     });
+    await check('Fuera de la ventana no se inicia un pago, aunque alcance el mínimo', async () => {
+      await page.clock.setSystemTime(new Date(Date.UTC(payoutTestNow.getUTCFullYear(), payoutTestNow.getUTCMonth() + 1, 2, 6)));
+      await page.reload();
+      await page.getByTestId('payout-window').getByText(/Próxima ventana/).waitFor();
+      expect(await page.getByRole('button', { name: 'Retirar $64.00' }).isDisabled(), 'permitió solicitar fuera de la ventana');
+    });
+    const payoutStore = await page.evaluate(() => localStorage.getItem('fansreserve_platform'));
+    await journeyPage.evaluate((store) => localStorage.setItem('fansreserve_platform', store), payoutStore);
+    }
+    await payoutContext.close();
     await check('La creadora ve a un suscriptor real, lo bloquea y él deja de ver su perfil', async () => {
       await logoutViaMenu(page);
       await login(page, 'fan@sugarfans.com', 'demo1234');
@@ -1337,7 +1358,7 @@ const run = async () => {
       const money = page.getByTestId('admin-money');
       await money.getByText('Entró de fans').waitFor();
       await money.getByText('Ganancia de Fans Reserve').waitFor();
-      await page.getByTestId('admin-owed').getByText('Disponible para retirar').waitFor();
+      await page.getByTestId('admin-owed').getByText('Saldo de ciclos cerrados').waitFor();
       await page.getByRole('button', { name: 'Todo', exact: true }).click();
       expect(!(await money.innerText()).includes('$0.00\nEntró de fans'), 'no cuenta ningún pago');
       await page.getByRole('button', { name: 'Libro', exact: true }).click();

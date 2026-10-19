@@ -57,15 +57,16 @@ const Settings: React.FC = () => {
     async () => {
       if (!user) return { methods: [], payments: [], blocks: [], unpaid: 0 };
       const creatorId = user.role === 'creator' ? user.creatorProfileId : undefined;
-      const [methods, payments, blocks, sales, payouts] = await Promise.all([
+      const [methods, payments, blocks, sales, payouts, calendar] = await Promise.all([
         platformApi.paymentMethods(user.id),
         platformApi.myPayments(user.id),
         platformApi.blocks(user),
         creatorId ? platformApi.creatorSales(creatorId) : Promise.resolve([]),
         creatorId ? platformApi.myPayouts(user.id) : Promise.resolve([]),
+        creatorId ? platformApi.payoutCalendar() : Promise.resolve(null),
       ]);
       // Earnings not withdrawn yet (credited + pending), lost if the account is deleted.
-      const e = computeEarnings(sales, payouts);
+      const e = computeEarnings(sales, payouts, new Date(), calendar?.legacyCutoff);
       const unpaid = Math.max(0, e.available) + e.pending;
       return { methods, payments, blocks: blocks.filter((b) => b.blockerId === user.id), unpaid };
     },

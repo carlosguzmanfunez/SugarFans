@@ -2,12 +2,14 @@
 // Everything lives in one localStorage key; accounts are touched through the
 // callbacks local.ts passes in.
 import { readJSON, writeJSONChecked, newId } from '../storage';
+import { payoutWindow } from '../payoutCalendar';
 import { addMonths, round2, validateReport, validateTip, validateVerification, computeEarnings, payoutFee, payoutAccountLabel, money, buildManagedProfile } from '../platformRules';
 import { creators as catalogue } from '../../data/mockData';
 import type { AuthResult, User } from './types';
 import type { AccountRestriction, AdminActionLog, Block, ManagedProfile, PaymentMethod, Payout, PayoutAccount, PlatformBackend, Report, Transaction, VerificationRequest } from './platformTypes';
 
 interface Store {
+  payoutLegacyCutoff: string;
   verifications: VerificationRequest[];
   paymentMethods: PaymentMethod[];
   transactions: (Transaction & { key: string })[];
@@ -46,6 +48,7 @@ const KEY = 'platform';
 const SEEDED_KEY = 'platform_seeded_v1';
 
 const empty = (): Store => ({
+  payoutLegacyCutoff: new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1)).toISOString(),
   verifications: [],
   paymentMethods: [],
   transactions: [],
@@ -129,7 +132,7 @@ export const createLocalPlatform = (
     const profileId = user.creatorProfileId ?? user.id;
     return computeEarnings(
       s.transactions.filter((t) => t.creatorProfileId === profileId),
-      s.payouts.filter((p) => p.userId === user.id)
+      s.payouts.filter((p) => p.userId === user.id), new Date(), s.payoutLegacyCutoff
     );
   };
 
@@ -387,6 +390,15 @@ export const createLocalPlatform = (
       return load().payoutAccounts[userId] ?? null;
     },
 
+    async payoutCalendar() {
+      const stored = readJSON<Partial<Store>>(KEY, {});
+      const s = load();
+      // Persist the transition floor for this offline store, including older demos.
+      // A read must not broadcast storage events between already-initialized tabs.
+      if (!stored.payoutLegacyCutoff && !writeJSONChecked(KEY, s)) return null;
+      return { legacyCutoff: s.payoutLegacyCutoff };
+    },
+
     async setPayoutAccount(user, account) {
       return commit((s) => ({ ...s, payoutAccounts: { ...s.payoutAccounts, [user.id]: account } }));
     },
@@ -404,6 +416,7 @@ export const createLocalPlatform = (
         return fail('Tus retiros están en revisión. Escríbenos a support@fansreserve.com');
       const account = s.payoutAccounts[user.id];
       if (!account) return fail('Añade el email de tu cuenta PayPal para retiros');
+      if (!payoutWindow().open) return fail('Los pagos se procesan del 26 al 1, hora de Honduras (UTC−6).');
       const { available } = earningsOf(s, user);
       const terms = deps.payoutTerms(user);
       const fee = payoutFee(available);

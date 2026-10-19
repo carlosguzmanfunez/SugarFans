@@ -27,12 +27,15 @@ import { creators as demoCreators } from '../data/mockData';
 import { socialApi, compactCount } from '../lib/social';
 import { posts as catalogPosts } from '../data/mockData';
 import { BRAND, displayPayer } from '../config/brand';
+import { usePayoutCalendar } from '../lib/usePayoutCalendar';
+import { hondurasMidnight, hondurasParts, PAYOUT_TIME_ZONE } from '../lib/payoutCalendar';
 
 // "Dinero" in the tab bar: income, gifts and rewards.
 const MONEY_TABS = ['earnings', 'gifts', 'rewards'];
 
 const CreatorDashboard: React.FC = () => {
   const { user, deletePost, updateUser } = useAuth();
+  const calendar = usePayoutCalendar();
   // The open tab lives in the address (?tab=vip), so "Reservas" in the menus opens
   // it even when the panel is already on screen, and back/forward move between tabs.
   const [searchParams, setSearchParams] = useSearchParams();
@@ -98,7 +101,7 @@ const CreatorDashboard: React.FC = () => {
     null
   );
   const verificationStatus = live?.verification?.status;
-  const earnings = live ? computeEarnings(live.sales, live.payouts) : null;
+  const earnings = live && calendar.data ? computeEarnings(live.sales, live.payouts, calendar.at, calendar.data.legacyCutoff) : null;
   const monthName = (iso: string) => new Date(iso).toLocaleDateString('es', { month: 'short', year: 'numeric' });
 
   const toggle = <T,>(list: T[], item: T) => (list.includes(item) ? list.filter((x) => x !== item) : [...list, item]);
@@ -161,7 +164,7 @@ const CreatorDashboard: React.FC = () => {
   const activeSubscribers = subscribers.filter((sub) => !isBlocked(sub.id)).length;
 
   const stats = [
-    { label: 'Por acreditar el día 1', value: money(earnings?.pending ?? 0), icon: 'fa-dollar-sign' },
+    { label: 'En acumulación · ciclo 26–25', value: earnings ? money(earnings.pending) : '—', icon: 'fa-dollar-sign' },
     { label: 'Suscriptores activos', value: String(activeSubscribers), icon: 'fa-users' },
     { label: 'Publicaciones', value: String(user?.posts ?? 0), icon: 'fa-image' },
     { label: 'Me gusta totales', value: compactCount(content.likes), icon: 'fa-heart' },
@@ -169,15 +172,14 @@ const CreatorDashboard: React.FC = () => {
 
   // Real income of the last 7 days (the creator's part of each fan payment).
   const week = Array.from({ length: 7 }, (_, i) => {
-    const day = new Date();
-    day.setHours(0, 0, 0, 0);
-    day.setDate(day.getDate() - (6 - i));
+    const local = hondurasParts(calendar.at);
+    const day = new Date(hondurasMidnight(local.year, local.month, local.day - (6 - i)));
     const next = day.getTime() + 86_400_000;
     const total = (live?.sales ?? [])
       .filter((t) => t.status === 'paid')
       .filter((t) => { const at = new Date(t.createdAt).getTime(); return at >= day.getTime() && at < next; })
       .reduce((sum, t) => sum + creatorCut(t), 0);
-    return { label: day.toLocaleDateString('es', { weekday: 'short' }).replace('.', ''), total };
+    return { label: day.toLocaleDateString('es', { weekday: 'short', timeZone: PAYOUT_TIME_ZONE }).replace('.', ''), total };
   });
   const weekMax = Math.max(...week.map((d) => d.total));
   const [linkCopied, setLinkCopied] = useState(false);

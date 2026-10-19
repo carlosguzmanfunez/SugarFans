@@ -5,30 +5,36 @@ import type { Payout, Transaction } from './backend/platformTypes';
 import type { CoinPurchase } from './backend/giftTypes';
 import { creditCutoff } from './platformRules';
 import { GIFT_SHARE } from './giftRules';
+import { earningsCycle, hondurasParts, hondurasMidnight, hondurasTimestamp } from './payoutCalendar';
 
-export type Period = 'today' | '7d' | 'month' | 'lastMonth' | 'all';
+export type Period = 'today' | '7d' | 'month' | 'lastMonth' | 'cycle' | 'all';
 export const periodLabel: Record<Period, string> = {
   today: 'Hoy',
   '7d': '7 días',
   month: 'Este mes',
   lastMonth: 'Mes pasado',
+  cycle: 'Ciclo actual 26–25',
   all: 'Todo',
 };
 
 // [from, to) in ISO; null = no bound.
 export const periodRange = (period: Period, at = new Date()): [string | null, string | null] => {
-  const day = new Date(at);
-  day.setHours(0, 0, 0, 0);
-  const monthStart = new Date(at.getFullYear(), at.getMonth(), 1);
+  const { year, month, day: localDay } = hondurasParts(at);
+  const day = new Date(hondurasMidnight(year, month, localDay));
+  const monthStart = hondurasMidnight(year, month, 1);
   switch (period) {
     case 'today':
       return [day.toISOString(), null];
     case '7d':
       return [new Date(day.getTime() - 6 * 86_400_000).toISOString(), null];
     case 'month':
-      return [monthStart.toISOString(), null];
+      return [monthStart, null];
     case 'lastMonth':
-      return [new Date(at.getFullYear(), at.getMonth() - 1, 1).toISOString(), monthStart.toISOString()];
+      return [hondurasMidnight(year, month - 1, 1), monthStart];
+    case 'cycle': {
+      const cycle = earningsCycle(at);
+      return [cycle.start, cycle.end];
+    }
     default:
       return [null, null];
   }
@@ -104,8 +110,8 @@ export const summarize = (txs: Transaction[], coins: CoinPurchase[], period: Per
 };
 
 // What Fans Reserve owes creators right now (all time, not by period).
-export const owedToCreators = (txs: Transaction[], payouts: Payout[], at = new Date()) => {
-  const cutoff = creditCutoff(at);
+export const owedToCreators = (txs: Transaction[], payouts: Payout[], at = new Date(), legacyCutoff?: string) => {
+  const cutoff = creditCutoff(at, legacyCutoff);
   const earned = txs.filter(counts);
   const credited = round2(earned.filter((t) => t.createdAt < cutoff).reduce((s, t) => s + creatorPart(t), 0));
   const pending = round2(earned.filter((t) => t.createdAt >= cutoff).reduce((s, t) => s + creatorPart(t), 0));
@@ -113,7 +119,7 @@ export const owedToCreators = (txs: Transaction[], payouts: Payout[], at = new D
   const withdrawn = round2(sent.reduce((s, p) => s + p.amount, 0));
   return {
     available: round2(Math.max(0, credited - withdrawn)), // can be withdrawn today
-    pending, // credited on the 1st of next month
+    pending, // closes on the 26th at 00:00 Honduras
     sending: round2(payouts.filter((p) => p.status === 'sending').reduce((s, p) => s + p.amount, 0)),
     withdrawn,
   };
@@ -208,8 +214,8 @@ export const ledger = (txs: Transaction[], coins: CoinPurchase[], payouts: Payou
 // The ledger as a CSV file for the accountant.
 export const ledgerCsv = (rows: LedgerRow[]) => {
   const q = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
-  const head = ['Fecha', 'Tipo', 'Quién', 'Monto USD', 'Comisión PayPal', 'Parte creador', 'Fans Reserve', 'Estado'];
-  return [head, ...rows.map((r) => [r.at, r.type, r.who, r.amount.toFixed(2), r.fee.toFixed(2), r.creator.toFixed(2), r.platform.toFixed(2), r.status])]
+  const head = ['Fecha Honduras (UTC-6)', 'Tipo', 'Quién', 'Monto USD', 'Comisión PayPal', 'Parte creador', 'Fans Reserve', 'Estado'];
+  return [head, ...rows.map((r) => [hondurasTimestamp(r.at), r.type, r.who, r.amount.toFixed(2), r.fee.toFixed(2), r.creator.toFixed(2), r.platform.toFixed(2), r.status])]
     .map((line) => line.map(q).join(','))
     .join('\n');
 };

@@ -1,3 +1,4 @@
+import { formatPayoutDate } from '../lib/payoutCalendar';
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import ManagedProfilesAdmin from '../components/ManagedProfilesAdmin';
@@ -341,7 +342,7 @@ const AdminDashboard: React.FC = () => {
                   <div>
                     <p className="font-medium text-gray-900 text-sm">{transactionLabel[t.kind]} · {t.payerName} → {t.creatorName} · {money(t.amount)}</p>
                     <p className="text-xs text-gray-500">
-                      {new Date(t.createdAt).toLocaleDateString('es')} • {t.status === 'disputed' ? 'En disputa con PayPal' : 'Reembolsado al fan'} • Parte del creador {money(creatorCut(t))}
+                      {formatPayoutDate(t.createdAt)} • {t.status === 'disputed' ? 'En disputa con PayPal' : 'Reembolsado al fan'} • Parte del creador {money(creatorCut(t))}
                     </p>
                   </div>
                   {t.platformCovers ? (
@@ -371,7 +372,7 @@ const AdminDashboard: React.FC = () => {
                     <p className="text-xs text-gray-500">
                       {p.accountLabel} • Disponía de {money(p.availableBefore)}
                       {p.fee > 0 && ` • Comisión PayPal ${money(p.fee)}`}
-                      {p.paidAt && ` • Pagado el ${new Date(p.paidAt).toLocaleDateString('es')}`}
+                      {p.paidAt && ` • Pagado el ${formatPayoutDate(p.paidAt)}`}
                     </p>
                   </div>
                   {p.status === 'paid' ? (
