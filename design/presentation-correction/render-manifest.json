@@ -2,191 +2,191 @@
   {
     "file": "fans-reserve-presentacion-en.mp4",
     "sourceSha256": "25a44875a4e253e34e86056abdb9e5da0c19b50c10e0229633ab01d87a7750be",
-    "outputSha256": "ad6e93dc418caa651899d58f0d3a44d553fa7d617f4443fe89ae882c28b8b52b",
-    "duration": "31.600000",
+    "outputSha256": "24da1b6a078fa0ffe3c9bbcfb72945f8230a2fc8bff31f1fbae73258de20c7d6",
+    "duration": "36.200000",
     "video": {
       "codec_type": "video",
       "width": 1280,
       "height": 720,
       "r_frame_rate": "30/1",
-      "nb_frames": "948"
+      "nb_frames": "1086"
     },
     "checks": [
-      "lint",
-      "validate",
-      "inspect"
+      "subscription:lint/validate/inspect",
+      "ending:lint/validate/inspect"
     ],
-    "exclusiveLabel": "Exclusive content"
+    "exclusiveLabel": "Exclusive content",
+    "endingHeadline": "Talk face to face with your favorite creator."
   },
   {
     "file": "fans-reserve-presentacion-fr.mp4",
     "sourceSha256": "5af8df0eca39e19562cffa9d9f07e2b9da6ff98803490b21742eea7bc242801d",
-    "outputSha256": "e8966e2fde8fbb38a1f94b98410f1400f0d1d87aa98b8f8a1d82b469b6bacc8b",
-    "duration": "31.600000",
+    "outputSha256": "7563e087cb80c328f4cbf8cd3082826496e0b53dd44cb7e06cbafe86066faa9b",
+    "duration": "36.200000",
     "video": {
       "codec_type": "video",
       "width": 1280,
       "height": 720,
       "r_frame_rate": "30/1",
-      "nb_frames": "948"
+      "nb_frames": "1086"
     },
     "checks": [
-      "lint",
-      "validate",
-      "inspect"
+      "subscription:lint/validate/inspect",
+      "ending:lint/validate/inspect"
     ],
-    "exclusiveLabel": "Contenu exclusif"
+    "exclusiveLabel": "Contenu exclusif",
+    "endingHeadline": "Parle face à face avec ton créateur préféré."
   },
   {
     "file": "fans-reserve-presentacion-it.mp4",
     "sourceSha256": "6f093852fc4a22f2f6864191a2634d32e501eb93c96e51f5244dd726eb8a117d",
-    "outputSha256": "a69c0f2f4491397e481ef8263cfc434d3649795c9529230d4562f8d67078693b",
-    "duration": "31.600000",
+    "outputSha256": "0a71f9d71e94d354f17bb7bf65861ac3717c08060fc0a6e6e7c4f4dec6ee8348",
+    "duration": "36.200000",
     "video": {
       "codec_type": "video",
       "width": 1280,
       "height": 720,
       "r_frame_rate": "30/1",
-      "nb_frames": "948"
+      "nb_frames": "1086"
     },
     "checks": [
-      "lint",
-      "validate",
-      "inspect"
+      "subscription:lint/validate/inspect",
+      "ending:lint/validate/inspect"
     ],
-    "exclusiveLabel": "Contenuto esclusivo"
+    "exclusiveLabel": "Contenuto esclusivo",
+    "endingHeadline": "Parla faccia a faccia con il tuo creator preferito."
   },
   {
     "file": "fans-reserve-presentacion-pt.mp4",
     "sourceSha256": "1b8073bfe15f3c873485e3ff7a71fe107c47be916854cbf02377cc5e58929554",
-    "outputSha256": "c8a7f1911049d2a9cae8f4c58bca6f10d2fd6ebf259e3872fcc9ecfea72748ca",
-    "duration": "31.600000",
+    "outputSha256": "fdebb8a0acc1f3d85a64bdeb1dc9b35c89f84ed2321cad575f5aed058a7f34fc",
+    "duration": "36.200000",
     "video": {
       "codec_type": "video",
       "width": 1280,
       "height": 720,
       "r_frame_rate": "30/1",
-      "nb_frames": "948"
+      "nb_frames": "1086"
     },
     "checks": [
-      "lint",
-      "validate",
-      "inspect"
+      "subscription:lint/validate/inspect",
+      "ending:lint/validate/inspect"
     ],
-    "exclusiveLabel": "Conteúdo exclusivo"
+    "exclusiveLabel": "Conteúdo exclusivo",
+    "endingHeadline": "Converse cara a cara com seu criador favorito."
   },
   {
     "file": "fans-reserve-presentacion-vertical-en.mp4",
     "sourceSha256": "20ee58605c854c500400fe3fda0d9938dbf7076a3f0b6feb8107748282cb0331",
-    "outputSha256": "22cbe0708548c3324634b6fcbc31b6e9fff4c036868b10346e1168dd28aa8370",
-    "duration": "31.600000",
+    "outputSha256": "f7e7f52d1001411e59a927d64d047066d5fb1d6ae9ace7566f70a9a7cdbd8ff3",
+    "duration": "36.200000",
     "video": {
       "codec_type": "video",
       "width": 720,
       "height": 1280,
       "r_frame_rate": "30/1",
-      "nb_frames": "948"
+      "nb_frames": "1086"
     },
     "checks": [
-      "lint",
-      "validate",
-      "inspect"
+      "subscription:lint/validate/inspect",
+      "ending:lint/validate/inspect"
     ],
-    "exclusiveLabel": "Exclusive content"
+    "exclusiveLabel": "Exclusive content",
+    "endingHeadline": "Talk face to face with your favorite creator."
   },
   {
     "file": "fans-reserve-presentacion-vertical-fr.mp4",
     "sourceSha256": "bf6549bb35b17646bb068c05bba53963cca3bd50230d96c4a0f926e36bcda057",
-    "outputSha256": "aa4e5a13f32591271ba36d1380f2040bd0b3ead13047468f30761094a9ee99c5",
-    "duration": "31.600000",
+    "outputSha256": "b65135a8211e295a84ba162e31ad9de2cfa1c8e62eff6bcb0d39265e0fbccf56",
+    "duration": "36.200000",
     "video": {
       "codec_type": "video",
       "width": 720,
       "height": 1280,
       "r_frame_rate": "30/1",
-      "nb_frames": "948"
+      "nb_frames": "1086"
     },
     "checks": [
-      "lint",
-      "validate",
-      "inspect"
+      "subscription:lint/validate/inspect",
+      "ending:lint/validate/inspect"
     ],
-    "exclusiveLabel": "Contenu exclusif"
+    "exclusiveLabel": "Contenu exclusif",
+    "endingHeadline": "Parle face à face avec ton créateur préféré."
   },
   {
     "file": "fans-reserve-presentacion-vertical-it.mp4",
     "sourceSha256": "10c845a2e79b7b3c61ccde18bb930127fbe3269213c6be353f27f832e48d7add",
-    "outputSha256": "b20d92a097357dff18beb623f8834284c3294cf5f52091a0d9823a7014439206",
-    "duration": "31.600000",
+    "outputSha256": "2ae5e7a5c0f896cb7026cde3d73a8a60f2fa77107606921e6c200e377063c4c0",
+    "duration": "36.200000",
     "video": {
       "codec_type": "video",
       "width": 720,
       "height": 1280,
       "r_frame_rate": "30/1",
-      "nb_frames": "948"
+      "nb_frames": "1086"
     },
     "checks": [
-      "lint",
-      "validate",
-      "inspect"
+      "subscription:lint/validate/inspect",
+      "ending:lint/validate/inspect"
     ],
-    "exclusiveLabel": "Contenuto esclusivo"
+    "exclusiveLabel": "Contenuto esclusivo",
+    "endingHeadline": "Parla faccia a faccia con il tuo creator preferito."
   },
   {
     "file": "fans-reserve-presentacion-vertical-pt.mp4",
     "sourceSha256": "d26a3f11914b2e5204a93c821147f460c8ae6fd5f1b3abdc612ae00ae37c2adf",
-    "outputSha256": "47afb2474aa6f4011f49705de915e3605a6ce1824af6f71cc0c6ff84c604b682",
-    "duration": "31.600000",
+    "outputSha256": "ecdb5694d4eda6e2b9043e04b9120a597e0be6c9f763703ed51bf753f5719af7",
+    "duration": "36.200000",
     "video": {
       "codec_type": "video",
       "width": 720,
       "height": 1280,
       "r_frame_rate": "30/1",
-      "nb_frames": "948"
+      "nb_frames": "1086"
     },
     "checks": [
-      "lint",
-      "validate",
-      "inspect"
+      "subscription:lint/validate/inspect",
+      "ending:lint/validate/inspect"
     ],
-    "exclusiveLabel": "Conteúdo exclusivo"
+    "exclusiveLabel": "Conteúdo exclusivo",
+    "endingHeadline": "Converse cara a cara com seu criador favorito."
   },
   {
     "file": "fans-reserve-presentacion-vertical.mp4",
     "sourceSha256": "8f3eb5ef59dc642b1064112ce87c06fc6e0d181dc0e908c2960bccf3e80ff223",
-    "outputSha256": "e9d6bd64da65ef47c2c82e773cbc6a2c25ef644d23267fd37c677fb131463312",
-    "duration": "31.600000",
+    "outputSha256": "06ded08d331c51f6b7df8b7c39f2401723820337ab2002b31288f6dd421d8135",
+    "duration": "36.200000",
     "video": {
       "codec_type": "video",
       "width": 720,
       "height": 1280,
       "r_frame_rate": "30/1",
-      "nb_frames": "948"
+      "nb_frames": "1086"
     },
     "checks": [
-      "lint",
-      "validate",
-      "inspect"
+      "subscription:lint/validate/inspect",
+      "ending:lint/validate/inspect"
     ],
-    "exclusiveLabel": "Contenido exclusivo"
+    "exclusiveLabel": "Contenido exclusivo",
+    "endingHeadline": "Habla cara a cara con tu creador favorito."
   },
   {
     "file": "fans-reserve-presentacion.mp4",
     "sourceSha256": "f2edf9b0edf87c29c7bd98f12b2a79687db2b0a42e6fe8bcceff6ce0d3c5852e",
-    "outputSha256": "48fba342930d6af326e861e1dc921e9ee61e486ce5558d5d0f9e059863f0c3ee",
-    "duration": "31.600000",
+    "outputSha256": "b3b4a7806f951b128043b63b7f6e7bb2c1eae2c157bb7ee979a5a9828bd326fa",
+    "duration": "36.200000",
     "video": {
       "codec_type": "video",
       "width": 1280,
       "height": 720,
       "r_frame_rate": "30/1",
-      "nb_frames": "948"
+      "nb_frames": "1086"
     },
     "checks": [
-      "lint",
-      "validate",
-      "inspect"
+      "subscription:lint/validate/inspect",
+      "ending:lint/validate/inspect"
     ],
-    "exclusiveLabel": "Contenido exclusivo"
+    "exclusiveLabel": "Contenido exclusivo",
+    "endingHeadline": "Habla cara a cara con tu creador favorito."
   }
 ]

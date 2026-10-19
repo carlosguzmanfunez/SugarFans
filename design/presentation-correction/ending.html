@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="{{LANG}}"><head>
+<meta charset="utf-8"><meta name="viewport" content="width={{WIDTH}},height={{HEIGHT}}">
+<script src="assets/gsap.min.js"></script>
+<style>
+@font-face{font-family:Sora;src:url('assets/sora.woff2') format('woff2');font-weight:100 900}
+*{box-sizing:border-box;margin:0}html,body{width:{{WIDTH}}px;height:{{HEIGHT}}px;overflow:hidden;background:#160d1f}
+#root{width:100%;height:100%;position:relative;color:#fff6fa;font-family:Sora,sans-serif;background:#160d1f}
+.glow{position:absolute;inset:0;background:radial-gradient(ellipse at 20% 8%,#730b47 0%,rgba(115,11,71,0) 66%),radial-gradient(ellipse at 86% 87%,#54229c 0%,rgba(84,34,156,0) 60%)}
+.scene-content{width:100%;height:100%;padding:60px 72px;display:flex;gap:56px;align-items:center;position:relative}
+.copy{flex:1;min-width:0;display:flex;flex-direction:column;gap:22px;align-items:flex-start}
+.eyebrow{color:#f2d792;font-weight:650;font-size:26px;letter-spacing:.035em}
+h1{font-size:61px;line-height:1.04;letter-spacing:-.045em;font-weight:750;max-width:560px}
+.detail{font-size:25px;line-height:1.42;font-weight:400;max-width:520px;color:#f8e6f1}
+.cta{display:inline-flex;align-items:center;gap:15px;border-radius:32px;padding:16px 24px;background:#f2d792;color:#160d1f;font-size:23px;font-weight:700;margin-top:3px}
+.cta svg{width:25px;height:25px}
+.call-panel{width:500px;height:590px;flex:none;padding:12px;border-radius:34px;background:rgba(255,246,250,.10);border:1px solid rgba(255,246,250,.25);box-shadow:0 25px 70px rgba(10,4,17,.35);display:flex;flex-direction:column;gap:10px}
+.call-header{display:flex;align-items:center;gap:12px;padding:5px 8px 8px}
+.mark{width:34px;height:34px}.room{font-size:18px;font-weight:650}.privacy{font-size:16px;color:#f8e6f1;margin-left:auto;display:flex;align-items:center;gap:8px}.dot{width:7px;height:7px;background:#9ce7c0;border-radius:50%}
+.feed{flex:1;min-height:0;display:grid;border-radius:23px;overflow:hidden;background:#24142f}
+.creator,.fan{grid-area:1/1;min-height:0;min-width:0;object-fit:cover;display:block}
+.creator{width:100%;height:100%}.fan{width:140px;height:100px;align-self:end;justify-self:end;margin:14px;border:2px solid #fff6fa;border-radius:17px;box-shadow:0 4px 18px rgba(10,4,17,.4)}
+.toolbar{display:flex;justify-content:center;gap:16px;padding:3px 0 2px}.control{width:45px;height:45px;border-radius:50%;display:grid;place-items:center;background:rgba(255,246,250,.12)}.control svg{width:22px;height:22px}.hangup{background:#c52b59}
+.portrait .scene-content{padding:58px 50px;gap:30px;flex-direction:column;align-items:stretch}
+.portrait .copy{flex:none;gap:16px}.portrait .eyebrow{font-size:25px}.portrait h1{font-size:63px;line-height:1.07;max-width:620px}.portrait .detail{font-size:25px;line-height:1.38;max-width:600px}.portrait .cta{padding:14px 23px;font-size:23px;margin-top:0}
+.portrait .call-panel{width:100%;height:620px;flex:1;min-height:460px;padding:12px}.portrait .call-header{padding-bottom:8px}.portrait .fan{width:155px;height:106px}
+</style></head><body>
+<div id="root" class="{{SHAPE}}" data-composition-id="reserve-one-to-one" data-start="0" data-duration="6" data-width="{{WIDTH}}" data-height="{{HEIGHT}}" data-fps="30">
+<div class="glow" aria-hidden="true" data-layout-ignore></div>
+<div class="scene-content">
+<div class="copy"><p class="eyebrow" id="eyebrow">{{EYEBROW}}</p><h1 id="headline">{{HEADLINE}}</h1><p class="detail" id="detail">{{DETAIL}}</p><div class="cta" id="cta">{{CTA}}<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16M13 5l7 7-7 7"/></svg></div></div>
+<div class="call-panel" id="call">
+<div class="call-header"><img class="mark" src="assets/mark.svg" alt=""><span class="room">Reserve 1:1</span><span class="privacy"><span class="dot"></span>{{PRIVATE}}</span></div>
+<div class="feed"><video class="creator" id="creator-feed" data-start="0" data-duration="6" data-track-index="0" src="assets/creator.mp4" muted playsinline></video><video class="fan" id="fan-feed" data-start="0" data-duration="6" data-track-index="1" src="assets/fan.mp4" muted playsinline></video></div>
+<div class="toolbar" id="toolbar" aria-hidden="true"><span class="control"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg></span><span class="control"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="12" height="12" rx="3"/><path d="m15 10 6-3v10l-6-3"/></svg></span><span class="control hangup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13c5-5 13-5 18 0l-3 4-4-3v-2h-4v2l-4 3z"/></svg></span></div>
+</div></div></div>
+<script>
+window.__timelines=window.__timelines||{};const tl=gsap.timeline({paused:true});
+tl.from('#call',{x:38,opacity:0,scale:.97,duration:.8,ease:'power3.out'},.1);
+tl.from('#eyebrow',{x:-20,opacity:0,duration:.4,ease:'power2.out'},.15);
+tl.from('#headline',{y:25,opacity:0,duration:.65,ease:'expo.out'},.3);
+tl.from('#detail',{opacity:0,duration:.5,ease:'sine.out'},.65);
+tl.from('#cta',{y:12,scale:.95,opacity:0,duration:.45,ease:'back.out(1.1)'},.9);
+tl.from('#toolbar',{y:6,opacity:0,duration:.35,ease:'power1.out'},.8);
+window.__timelines['reserve-one-to-one']=tl;
+</script></body></html>

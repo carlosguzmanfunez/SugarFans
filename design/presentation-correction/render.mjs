@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { resolve, join } from 'node:path';
 import { createRequire } from 'node:module';
-import { generate, sourceDir, languages } from './generate.mjs';
+import { generate, generateEnding, sourceDir, languages, endingCopy } from './generate.mjs';
 
 const args = Object.fromEntries(process.argv.slice(2).reduce((pairs, value, i, all) => {
   if (value.startsWith('--')) pairs.push([value.slice(2), all[i + 1]]);
@@ -37,7 +37,11 @@ async function probe(path, log) {
   return JSON.parse(readFileSync(log, 'utf8'));
 }
 const hash = path => createHash('sha256').update(readFileSync(path)).digest('hex');
+// Reuse the illustrative fan footage already present in the original film.
+const fan = join(work, 'fan.mp4');
+await run(ffmpeg, ['-hide_banner', '-v', 'error', '-y', '-ss', '6', '-t', '3.2', '-i', join(originals, 'fans-reserve-presentacion.mp4'), '-vf', 'crop=338:230:790:360,setpts=(PTS-STARTPTS)*1.875,fps=30', '-t', '6', '-an', '-c:v', 'libx264', '-crf', '18', '-pix_fmt', 'yuv420p', fan], join(work, 'fan-extract.log'));
 const projects = generate(join(work, 'projects'), tools).filter(project => (!args.lang || project.lang === args.lang) && (!args.shape || (project.portrait ? 'vertical' : 'horizontal') === args.shape));
+const endings = new Map(generateEnding(join(work, 'ending-projects'), tools, fan).map(project => [project.name, project]));
 if (!projects.length) throw new Error('No variants match the requested filters');
 const fileName = project => `fans-reserve-presentacion${project.portrait ? '-vertical' : ''}${project.lang === 'es' ? '' : `-${project.lang}`}.mp4`;
 const targets = new Set(projects.map(fileName));
@@ -52,18 +56,23 @@ for (let i = 0; i < projects.length; i += 2) {
     const base = await probe(input, join(work, `${name}-input.json`));
     const video = base.streams.find(s => s.codec_type === 'video');
     if (Math.abs(Number(base.format.duration) - 31.6) > .02 || video.r_frame_rate !== '30/1' || video.width !== (portrait ? 720 : 1280) || video.height !== (portrait ? 1280 : 720)) throw new Error(`Unexpected source format: ${file}`);
-    for (const command of ['lint', 'validate', 'inspect']) {
-      const flags = command === 'inspect' ? ['--samples', '12', '--strict'] : [];
-      await run(process.execPath, [cli, command, folder, ...flags], join(work, `${name}-${command}.log`));
+    const ending = endings.get(name);
+    for (const [part, projectFolder] of [['subscription', folder], ['ending', ending.folder]]) {
+      for (const command of ['lint', 'validate', 'inspect']) {
+        const flags = command === 'inspect' ? ['--samples', '12', '--strict'] : [];
+        await run(process.execPath, [cli, command, projectFolder, ...flags], join(work, `${name}-${part}-${command}.log`));
+      }
     }
     const scene = join(work, `${name}-scene.mp4`);
     await run(process.execPath, [cli, 'render', folder, '--output', scene, '--fps', '30', '--quality', 'high', '--workers', '2'], join(work, `${name}-render.log`));
-    const filter = '[0:v]split=2[h][t];[h]trim=end=19.6,setpts=PTS-STARTPTS,format=yuv420p,setsar=1[head];[t]trim=start=24.6,setpts=PTS-STARTPTS,format=yuv420p,setsar=1[tail];[1:v]setpts=PTS-STARTPTS,format=yuv420p,setsar=1[scene];[head][scene]xfade=transition=fade:duration=0.4:offset=19.2[first];[first][tail]xfade=transition=fade:duration=0.4:offset=24.6[v]';
-    await run(ffmpeg, ['-hide_banner', '-y', '-i', input, '-i', scene, '-filter_complex', filter, '-map', '[v]', '-map', '0:a?', '-c:v', 'libx264', '-crf', '18', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-r', '30', '-c:a', 'copy', '-t', '31.6', '-movflags', '+faststart', output], join(work, `${name}-splice.log`));
+    const endingScene = join(work, `${name}-ending.mp4`);
+    await run(process.execPath, [cli, 'render', ending.folder, '--output', endingScene, '--fps', '30', '--quality', 'high', '--workers', '2'], join(work, `${name}-ending-render.log`));
+    const filter = '[0:v]split=3[h][r][o];[h]trim=end=19.6,setpts=PTS-STARTPTS,format=yuv420p,setsar=1[head];[r]trim=start=24.6:end=28.6,setpts=PTS-STARTPTS,format=yuv420p,setsar=1[reserve];[o]trim=start=29.2,setpts=PTS-STARTPTS,format=yuv420p,setsar=1[outro];[1:v]setpts=PTS-STARTPTS,format=yuv420p,setsar=1[subscription];[2:v]setpts=PTS-STARTPTS,format=yuv420p,setsar=1[call];[head][subscription]xfade=transition=fade:duration=0.4:offset=19.2[first];[first][reserve]xfade=transition=fade:duration=0.4:offset=24.6[second];[second][call]xfade=transition=fade:duration=0.4:offset=28.2[third];[third][outro]xfade=transition=fade:duration=0.4:offset=33.8[v]';
+    await run(ffmpeg, ['-hide_banner', '-y', '-i', input, '-i', scene, '-i', endingScene, '-filter_complex', filter, '-map', '[v]', '-an', '-c:v', 'libx264', '-crf', '18', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-r', '30', '-t', '36.2', '-movflags', '+faststart', output], join(work, `${name}-splice.log`));
     const result = await probe(output, join(work, `${name}-output.json`));
     const finalVideo = result.streams.find(s => s.codec_type === 'video');
-    if (Math.abs(Number(result.format.duration) - 31.6) > .02 || finalVideo.width !== video.width || finalVideo.height !== video.height || finalVideo.r_frame_rate !== '30/1' || Number(finalVideo.nb_frames) !== 948) throw new Error(`Output format mismatch: ${file}`);
-    manifest.push({ file, sourceSha256: hash(input), outputSha256: hash(output), duration: result.format.duration, video: finalVideo, checks: ['lint', 'validate', 'inspect'], exclusiveLabel: languages[lang][5] });
+    if (Math.abs(Number(result.format.duration) - 36.2) > .02 || finalVideo.width !== video.width || finalVideo.height !== video.height || finalVideo.r_frame_rate !== '30/1' || Number(finalVideo.nb_frames) !== 1086) throw new Error(`Output format mismatch: ${file}`);
+    manifest.push({ file, sourceSha256: hash(input), outputSha256: hash(output), duration: result.format.duration, video: finalVideo, checks: ['subscription:lint/validate/inspect', 'ending:lint/validate/inspect'], exclusiveLabel: languages[lang][5], endingHeadline: endingCopy[lang][1] });
     writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
     console.log(`OK ${name}: ${file}`);
   }));

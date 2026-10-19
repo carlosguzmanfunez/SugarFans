@@ -1,8 +1,10 @@
-# Correction to the presentation film
+# Fans Reserve presentation edits
 
-The original editable project is not in this repository. This HyperFrames source replaces only the Follow → Subscribe → Reserve scene in the ten existing MP4 files. The subscription label now describes exclusive content in Spanish, English, Portuguese, French and Italian. Reserve Event and Reserve 1:1 stay available.
+The original editable project is not in this repository. This HyperFrames source corrects the Follow → Subscribe → Reserve scene and adds a six-second 1:1 video-call scene after Reserve experiences, before the existing brand outro. The ten MP4 variants cover horizontal and vertical formats in Spanish, English, Portuguese, French and Italian. Subscriptions describe exclusive content; Reserve Event and Reserve 1:1 remain separate experiences.
 
-The originals are silent, 31.6 seconds at 30 fps, in 1280×720 and 720×1280. The replacement runs from 19.2 to 25.0 seconds with 0.4-second crossfades. The source footage before 19.2 and after 25.0 stays at its original timeline position. Encoding is H.264 CRF 18 with fast-start metadata.
+The originals are silent, 31.6 seconds at 30 fps, in 1280×720 and 720×1280. Outputs are 36.2 seconds (1,086 frames). The subscription replacement runs from 19.2 to 25.0 seconds. The new call scene starts at 28.2 seconds, followed by the original brand outro from 33.8 seconds. Every transition is a 0.4-second crossfade. Encoding is H.264 CRF 18 with fast-start metadata.
+
+The call uses the existing licensed makeup example as its creator feed and a crop of the illustrative fan feed already present in the original film. Neither person is identified as a Fans Reserve creator. The fan crop is retimed from 3.2 to 6 seconds, silently. No new third-party footage is downloaded.
 
 ## Rebuild
 
@@ -12,7 +14,7 @@ Requires Node 22+, the app dependencies (`npm ci` at repository root), and the p
 node design/presentation-correction/render.mjs --originals /path/to/originals --out /path/to/output --work /path/to/work
 ```
 
-`--tools /path/to/tools` optionally points to another directory containing the pinned tool dependencies in `node_modules`. HyperFrames may use `HYPERFRAMES_BROWSER_PATH` for a locally installed Chrome. The script uses the packaged FFmpeg executable, validates each composition, renders each scene, then splices and probes every final video. Outputs include the ten MP4s and a manifest with hashes, dimensions, frame rates, durations and checks.
+`--tools /path/to/tools` optionally points to another directory containing the pinned tool dependencies in `node_modules`. HyperFrames may use `HYPERFRAMES_BROWSER_PATH` for a locally installed Chrome; Chrome Headless Shell is recommended for rendering. The script prepares the fan crop, validates both compositions per variant, renders the scenes, then splices and probes every final video. Outputs include the ten MP4s and a manifest with hashes, dimensions, frame rates, durations, subscription labels and closing headlines.
 
 To retry a single language after an interrupted render, use the same output directory and add `--lang it` (or the relevant language code). Add `--shape vertical` or `--shape horizontal` to retry one format. This preserves the other manifest entries.
 
