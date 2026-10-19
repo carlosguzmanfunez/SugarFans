@@ -145,6 +145,9 @@ try {
  await check('Libro distingue mes y ciclo; CSV lleva UTC−6 explícito',async()=>{
   const at=new Date('2026-10-19T03:00:00Z');
   assert.deepEqual(r.periodRange('today',at),['2026-10-18T06:00:00.000Z',null]);
+  assert.deepEqual(r.periodRange('7d',at),['2026-10-12T06:00:00.000Z',null]);
+  const local=r.hondurasParts(at);
+  assert.equal(r.hondurasMidnight(local.year,local.month,local.day-6),'2026-10-12T06:00:00.000Z');
   assert.deepEqual(r.periodRange('month',at),['2026-10-01T06:00:00.000Z',null]);
   assert.deepEqual(r.periodRange('cycle',at),['2026-09-26T06:00:00.000Z','2026-10-26T06:00:00.000Z']);
   const csv=r.ledgerCsv([{at:'2026-10-19T03:00:00Z',type:'Test',who:'Test',amount:1,fee:0,creator:.8,platform:.2,status:'paid'}]);
