@@ -33,7 +33,8 @@ const ScrollStrip: React.FC<{ id?: string; className?: string; outerClassName?: 
   return (
     <div id={id} className={outerClassName}>
       <div className="relative">
-        <div ref={ref} onScroll={measure} className={`overflow-x-auto scrollbar-hide ${className}`}>
+        {/* Keep positioned children (including sr-only badges) inside the scroll area. */}
+        <div ref={ref} onScroll={measure} className={`relative overflow-x-auto scrollbar-hide ${className}`}>
           {children}
         </div>
         {view.overflow && !view.atEnd && (
