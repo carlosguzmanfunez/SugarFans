@@ -16,6 +16,7 @@ import { vipExperiences } from '../data/mockData';
 import { CALL_MINUTES } from './giftRules';
 import {
   CANCELLATION_POLICIES,
+  CREATOR_CATEGORIES,
   LOCATION_TYPES,
   MAX_LIST_ITEMS,
   MAX_PARTICIPANTS,
@@ -167,6 +168,9 @@ export const defaultDetails = (): ReserveDetails => {
 };
 export const detailsOf = (exp: Pick<VipExperience, 'type' | 'details'>): ReserveDetails => ({ ...defaultDetails(), ...(exp.details ?? {}) });
 
+export const experienceCategory = (exp: Pick<VipExperience, 'details'>, profileCategory?: string | null) =>
+  categoryFor(exp.details?.categoryId ?? profileCategory);
+
 // Manual approval = "Solicitar"; automatic = "Reservar" (some types are always reviewed).
 export const needsApproval = (exp: Pick<VipExperience, 'type' | 'details'>) =>
   detailsOf(exp).approval !== 'automatic' || !!experienceTypeById(exp.type)?.alwaysManual;
@@ -216,7 +220,7 @@ export const locationSummary = (d: Pick<ReserveDetails, 'modality' | 'locationTy
 
 const cleanList = (items: string[] | undefined) => (items ?? []).map((x) => x.trim()).filter(Boolean).slice(0, MAX_LIST_ITEMS);
 
-// Validates an experience against the creator's category and the Reserve rules.
+// Explicit experience categories take precedence over the legacy profile fallback.
 export const validateExperience = (input: VipExperienceInput, categoryName?: string): { ok: boolean; error?: string } => {
   const title = input.title.trim();
   if (title.length < 3 || title.length > 80) return { ok: false, error: 'El título debe tener entre 3 y 80 caracteres' };
@@ -229,9 +233,12 @@ export const validateExperience = (input: VipExperienceInput, categoryName?: str
     return { ok: false, error: `La duración debe estar entre ${MIN_SESSION_MINUTES} y ${MAX_SESSION_MINUTES} minutos` };
   const d = input.details;
   if (d) {
+    if (d.categoryId !== undefined && !CREATOR_CATEGORIES.some((c) => c.id === d.categoryId))
+      return { ok: false, error: 'Elige una categoría válida para esta experiencia' };
+    const effectiveCategory = d.categoryId ?? categoryName;
     // New Reserve experiences: the category decides what can be offered.
-    if (categoryName !== undefined) {
-      const category = categoryFor(categoryName);
+    if (effectiveCategory !== undefined) {
+      const category = categoryFor(effectiveCategory);
       if (!category.experiences.includes(type.id)) return { ok: false, error: `${category.name} no ofrece "${type.name}"` };
       if (!modalitiesFor(category, type).includes(d.modality)) return { ok: false, error: 'Esa modalidad no está disponible para esta experiencia' };
       const allowed = locationsFor(category, type, d.modality);
@@ -242,7 +249,7 @@ export const validateExperience = (input: VipExperienceInput, categoryName?: str
       return { ok: false, error: 'Elige una ubicación permitida para esta experiencia' };
     if (d.locationTypes.some((l) => !LOCATION_TYPES[l])) return { ok: false, error: 'Ubicación no permitida' };
     if (isHomeService(d.locationTypes)) {
-      if (categoryName !== undefined && !offersHomeServices(categoryFor(categoryName))) return { ok: false, error: 'Esta experiencia no se puede ofrecer a domicilio' };
+      if (effectiveCategory !== undefined && !offersHomeServices(categoryFor(effectiveCategory))) return { ok: false, error: 'Esta experiencia no se puede ofrecer a domicilio' };
       if (d.approval !== 'manual') return { ok: false, error: 'Las experiencias a domicilio requieren tu aprobación manual' };
     }
     if (d.format === 'event') {
@@ -278,6 +285,7 @@ export const validateExperience = (input: VipExperienceInput, categoryName?: str
 
 // Trims an experience's details before saving.
 export const cleanDetails = (d: ReserveDetails): ReserveDetails => ({
+  ...(d.categoryId ? { categoryId: d.categoryId } : {}),
   modality: d.modality,
   locationTypes: [...new Set(d.locationTypes)],
   ...(d.city?.trim() ? { city: d.city.trim() } : {}),

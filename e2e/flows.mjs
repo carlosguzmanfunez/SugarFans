@@ -32,7 +32,7 @@ const loadReserveRules = async () => {
   const out = join(mkdtempSync(join(tmpdir(), 'reserve-rules-')), 'rules.mjs');
   await build({
     stdin: {
-      contents: "export * from './src/config/reserve.ts'; export * from './src/lib/moderation.ts'; export { validateExperience, defaultDetails } from './src/lib/vip.ts';",
+      contents: "export * from './src/config/reserve.ts'; export * from './src/lib/moderation.ts'; export { validateExperience, defaultDetails, experienceCategory, cleanDetails } from './src/lib/vip.ts';",
       resolveDir: new URL('..', import.meta.url).pathname,
       loader: 'ts',
     },
@@ -2457,6 +2457,19 @@ const run = async () => {
       const shoot = { title: 'Sesión de fotos', description: 'Sesión profesional.', type: 'photo-session', price: 120, durationMinutes: 60, image: '', active: true };
       expect(!R.validateExperience({ ...shoot, details: { ...hd, modality: 'profesional' } }, 'Modelos').ok, 'Modelos acepta domicilio');
     });
+    await check('La categoría guardada en la experiencia prevalece sobre el perfil y se valida', async () => {
+      const input = { title: 'Entrenamiento guiado', description: 'Una sesión para mejorar tu técnica.', type: 'training-1-1', price: 50, durationMinutes: 60, image: '', active: true,
+        details: { ...R.defaultDetails(), categoryId: 'fitness' } };
+      expect(R.validateExperience(input, 'Tu gente').ok, 'la categoría del perfil bloquea una experiencia Fitness');
+      expect(R.cleanDetails(input.details).categoryId === 'fitness', 'se pierde la categoría al guardar');
+      expect(R.experienceCategory(input, 'Tu gente').id === 'fitness', 'se clasifica por el perfil');
+      expect(R.experienceCategory({ details: R.defaultDetails() }, 'Cocina').id === 'cocina', 'las experiencias anteriores perdieron su categoría de respaldo');
+      expect(!R.validateExperience({ ...input, details: { ...input.details, categoryId: 'inventada' } }, 'Fitness').ok, 'acepta una categoría inventada');
+      expect(!R.validateExperience({ ...input, details: { ...input.details, categoryId: 'modelaje-glamour' } }, 'Fitness').ok, 'acepta entrenamiento bajo Tu gente');
+      const home = { ...input, details: { ...input.details, modality: 'presencial', locationTypes: ['fan-place'], city: 'Tegucigalpa' } };
+      expect(R.validateExperience(home, 'Tu gente').ok, 'un perfil Tu gente no puede ofrecer entrenamiento Fitness a domicilio');
+      expect(!R.validateExperience({ ...home, details: { ...home.details, approval: 'automatic' } }, 'Tu gente').ok, 'se perdió la aprobación manual para domicilios');
+    });
     await check('Una experiencia necesita estar definida y moderada para publicarse', async () => {
       const base = { title: 'Sesión de fotos', description: 'Sesión profesional en estudio.', type: 'photo-session', price: 120, durationMinutes: 60, image: '', active: true };
       const d = { ...R.defaultDetails(), modality: 'profesional', locationTypes: ['studio'], city: 'Miami' };
@@ -2591,7 +2604,7 @@ const run = async () => {
       await resF.goto(`${BASE}/creator/1`);
       await unfoldReserve(resF);
       const section = resF.getByTestId('creator-reserve');
-      await section.getByTestId('notice-subscription').getByText(/No incluye Reserve Events, videollamadas 1:1 ni otras experiencias de Reserve/).waitFor();
+      await section.getByTestId('notice-subscription').getByText(/Los Reserve Events, las videollamadas 1:1 y las demás experiencias de Reserve se reservan y pagan por separado/).waitFor();
       await section.getByTestId('notice-gift').getByText(/no garantizan respuesta, conversación ni acceso\. Si el creador tiene una Meta de experiencia, se van acumulando hasta que la completes/).waitFor();
       await resF.getByRole('button', { name: 'Enviar regalo' }).click();
       const dialog = resF.getByRole('dialog', { name: /Regalo para Valentina Rose/ });
@@ -2660,21 +2673,78 @@ const run = async () => {
       await mine.getByText('Aceptada · pendiente de pago').waitFor();
       await mine.getByRole('button', { name: 'Pagar $220.00' }).waitFor();
     });
-    await check('Al crear una experiencia el creador puede cambiar de categoría ahí mismo', async () => {
+    await check('Elegir la categoría de una experiencia no cambia el perfil ni las otras experiencias, incluso al cancelar', async () => {
       await resC.goto(`${BASE}/creator/dashboard?tab=vip`);
+      await resC.getByRole('button', { name: /^Mis experiencias/ }).click();
+      await resC.getByTestId('my-experience').first().waitFor();
+      const before = await resC.getByTestId('my-experience').allTextContents();
       await resC.getByRole('button', { name: /Crear experiencia/ }).click();
       const form = resC.getByTestId('experience-form');
       const cats = form.getByTestId('wizard-categories');
       const types = form.getByTestId('allowed-types');
       await types.locator('[data-type=photo-session]').waitFor();
-      await cats.getByRole('radio', { name: 'Cocina' }).click();
-      await types.locator('[data-type=cooking-class]').waitFor();
-      expect((await cats.getByRole('radio', { name: 'Cocina' }).getAttribute('aria-checked')) === 'true', 'Cocina no quedó elegida');
-      await cats.getByRole('radio', { name: 'Tu gente' }).click();
-      await types.locator('[data-type=photo-session]').waitFor();
+      let dialogs = 0;
+      const recordDialog = () => { dialogs++; };
+      resC.on('dialog', recordDialog);
+      try {
+        await cats.getByRole('radio', { name: 'Cocina', exact: true }).click();
+        await types.locator('[data-type=cooking-class]').waitFor();
+        expect((await cats.getByRole('radio', { name: 'Cocina', exact: true }).getAttribute('aria-checked')) === 'true', 'Cocina no quedó elegida');
+        expect(dialogs === 0, 'cambiar la categoría de la experiencia abrió una confirmación de perfil');
+      } finally {
+        resC.off('dialog', recordDialog);
+      }
+      await form.getByText('Solo clasifica esta experiencia. Tu perfil seguirá en Tu gente.').waitFor();
+      const viewport = resC.viewportSize();
+      try {
+        await resC.setViewportSize({ width: 390, height: 844 });
+        await cats.getByRole('radio', { name: 'Fitness', exact: true }).click();
+        await types.locator('[data-type=training-1-1]').waitFor();
+        expect(await resC.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'las categorías desbordan en móvil');
+      } finally { await resC.setViewportSize(viewport); }
+      await form.getByRole('button', { name: 'Cancelar' }).first().click();
+      expect(JSON.stringify(await resC.getByTestId('my-experience').allTextContents()) === JSON.stringify(before), 'cambiaron otras experiencias al cancelar');
+      await resC.getByRole('button', { name: /Crear experiencia/ }).click();
+      expect((await form.getByTestId('wizard-categories').getByRole('radio', { name: 'Tu gente', exact: true }).getAttribute('aria-checked')) === 'true', 'se modificó la categoría principal del perfil');
       await form.getByRole('button', { name: 'Cancelar' }).first().click();
     });
-    await check('El creator solo puede crear experiencias permitidas para su categoría', async () => {
+    await check('Una experiencia Fitness de un perfil Tu gente conserva su categoría al publicar, editar y filtrar', async () => {
+      await resC.goto(`${BASE}/creator/dashboard?tab=vip`);
+      await resC.getByRole('button', { name: /Crear experiencia/ }).click();
+      const form = resC.getByTestId('experience-form');
+      await form.getByTestId('wizard-categories').getByRole('radio', { name: 'Fitness', exact: true }).click();
+      await form.getByTestId('allowed-types').locator('[data-type=training-1-1]').click();
+      const next = () => form.getByRole('button', { name: 'Siguiente', exact: true }).click();
+      await next();
+      await form.locator('input[name=expTitle]').fill('Entrenamiento virtual de prueba');
+      await next();
+      await form.locator('textarea[name=expDescription]').fill('Una rutina guiada para mejorar tu técnica y resolver tus dudas.');
+      await next();
+      for (let i = 3; i < 12; i++) await next();
+      await form.getByTestId('experience-preview').getByTestId('experience-category').getByText('Fitness', { exact: true }).waitFor();
+      await next();
+      await form.getByRole('button', { name: 'Publicar experiencia', exact: true }).click();
+      await resC.getByText('Experiencia publicada.', { exact: true }).waitFor();
+      await resC.reload();
+      const card = resC.getByTestId('my-experience').filter({ hasText: 'Entrenamiento virtual de prueba' });
+      await card.getByTestId('experience-category').getByText('Fitness', { exact: true }).waitFor();
+      await card.getByRole('button', { name: 'Editar', exact: true }).click();
+      await form.getByRole('button', { name: 'Paso 1: Tipo de experiencia', exact: true }).click();
+      expect((await form.getByTestId('wizard-categories').getByRole('radio', { name: 'Fitness', exact: true }).getAttribute('aria-checked')) === 'true', 'la experiencia perdió su categoría guardada');
+      await form.getByText('Solo clasifica esta experiencia. Tu perfil seguirá en Tu gente.').waitFor();
+      await form.getByRole('button', { name: 'Paso 14: Publicar', exact: true }).click();
+      await form.getByRole('button', { name: 'Guardar cambios', exact: true }).click();
+      await resC.getByText('Experiencia actualizada.', { exact: true }).waitFor();
+      await resC.getByRole('button', { name: /Crear experiencia/ }).click();
+      expect((await form.getByTestId('wizard-categories').getByRole('radio', { name: 'Tu gente', exact: true }).getAttribute('aria-checked')) === 'true', 'publicar Fitness cambió el perfil a Fitness');
+      await form.getByRole('button', { name: 'Cancelar' }).first().click();
+      await resF.goto(`${BASE}/reserve`);
+      await resF.locator('select[name=reserveCategory]').selectOption('fitness');
+      await resF.getByTestId('reserve-card').filter({ hasText: 'Entrenamiento virtual de prueba' }).waitFor();
+      await resF.locator('select[name=reserveCategory]').selectOption('modelaje-glamour');
+      expect((await resF.getByTestId('reserve-card').filter({ hasText: 'Entrenamiento virtual de prueba' }).count()) === 0, 'el catálogo filtró la experiencia por la categoría del perfil');
+    });
+    await check('Las actividades permitidas dependen de la categoría de la experiencia', async () => {
       await resC.goto(`${BASE}/creator/dashboard?tab=vip`);
       await resC.getByRole('button', { name: /Crear experiencia/ }).click();
       const form = resC.getByTestId('experience-form');
