@@ -78,7 +78,7 @@ const paypalToken = async (e: ReturnType<typeof env>) => {
   return data.access_token;
 };
 
-const paypal = async (e: ReturnType<typeof env>, token: string, path: string, body?: unknown, requestId?: string) => {
+const paypal = async (e: ReturnType<typeof env>, token: string, path: string, body?: unknown, requestId?: string, timeoutMs?: number) => {
   const r = await fetch(`${e.api}${path}`, {
     method: body === undefined ? 'GET' : 'POST',
     headers: {
@@ -88,6 +88,7 @@ const paypal = async (e: ReturnType<typeof env>, token: string, path: string, bo
     },
     // A string is sent as is (the webhook check must carry PayPal's exact event).
     body: body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body),
+    signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined,
   });
   return { status: r.status, data: (await r.json().catch(() => ({}))) as any };
 };
@@ -221,82 +222,147 @@ const cancelAtPaypal = async (e: Env, token: string, subscriptionId: string, rea
 
 // PayPal's state of one payout item → ours ('sending' while PayPal still works on it).
 const PAYOUT_DONE = ['SUCCESS'];
-const PAYOUT_FAILED = ['FAILED', 'RETURNED', 'BLOCKED', 'DENIED', 'REFUNDED', 'REVERSED', 'CANCELED'];
+// BLOCKED/ONHOLD are not evidence that the funds returned. Unknown states also
+// keep the reservation; batch DENIED is not an authoritative item result.
+const PAYOUT_FAILED = ['FAILED', 'RETURNED', 'REFUNDED', 'REVERSED'];
 const payoutStatus = (paypalStatus: string) =>
   PAYOUT_DONE.includes(paypalStatus) ? 'paid' : PAYOUT_FAILED.includes(paypalStatus) ? 'failed' : 'sending';
 
 const markPayout = (e: Env, id: string, status: string, batchId: string | null, itemId: string | null, error: string | null) =>
   rpc(e, 'paypal_payout_mark', { p_id: id, p_status: status, p_batch_id: batchId, p_item_id: itemId, p_error: error });
 
-// Withdraws the creator's whole credited balance to their PayPal account.
-const sendPayout = async (e: Env, token: string, userId: string): Promise<Response> => {
-  const started = await rpc(e, 'paypal_payout_start', { p_user: userId });
-  if (!started.ok) return json(400, { error: started.error });
-  const { id, net, fee, email } = started.data as { id: string; net: number; fee: number; email: string };
+type PayoutClaim = {
+  operation: 'submit' | 'check' | 'wait' | 'review' | 'done';
+  token?: string;
+  batch?: string;
+  payload?: { sender_batch_header: { sender_batch_id: string }; items: { receiver: string; amount: { value: string; currency: string }; sender_item_id: string }[] };
+  net?: number;
+  fee?: number;
+  status?: 'sending' | 'paid' | 'failed';
+};
+const validBatchId = (value: unknown): value is string => typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value);
+const pendingPayout = (paypalStatus = 'SUBMISSION_UNCERTAIN') => ({ status: 'sending' as const, paypalStatus });
+const PAYOUT_TIMEOUT_MS = 10000;
 
-  const sent = await paypal(e, token, '/v1/payments/payouts', {
-    // The withdrawal id as PayPal's batch id: a repeated call can't pay twice.
-    sender_batch_header: { sender_batch_id: id, email_subject: 'Recibiste tu retiro de Fans Reserve', email_message: 'Tus ganancias en Fans Reserve ya están en tu cuenta PayPal.' },
-    items: [
-      {
-        recipient_type: 'EMAIL',
-        receiver: email,
-        amount: { value: Number(net).toFixed(2), currency: 'USD' },
-        sender_item_id: id,
-        note: 'Retiro de tus ganancias en Fans Reserve',
-      },
-    ],
-  });
-  const batchId = sent.data?.batch_header?.payout_batch_id ? String(sent.data.batch_header.payout_batch_id) : null;
-  if (sent.status >= 300 || !batchId) {
-    const reason = String(sent.data?.name ?? sent.data?.message ?? `Error ${sent.status}`);
-    await markPayout(e, id, 'failed', null, null, reason);
-    const noFunds = /INSUFFICIENT_FUNDS/.test(reason);
-    return json(502, {
-      error: noFunds
-        ? 'PayPal no pudo enviar el retiro en este momento. Tu saldo sigue disponible; intenta más tarde.'
-        : 'PayPal no pudo enviar el retiro. Tu saldo sigue disponible; revisa el email de tu cuenta PayPal e intenta de nuevo.',
+// Never follow arbitrary URLs from an error body with a bearer token. Extract
+// only a batch ID from this environment's own documented resource path.
+const duplicateBatch = (e: Env, data: any): string | null => {
+  const duplicate = data?.name === 'DUPLICATE_BATCH_ID'
+    || (Array.isArray(data?.details) && data.details.some((x: any) => x?.issue === 'DUPLICATE_BATCH_ID'));
+  if (!duplicate || !Array.isArray(data?.links)) return null;
+  for (const link of data.links) {
+    try {
+      const url = new URL(link.href);
+      const match = url.pathname.match(/^\/v1\/payments\/payouts\/([A-Za-z0-9_-]{1,128})$/);
+      if (url.origin === e.api && !url.username && !url.password && match) return match[1];
+    } catch { /* an invalid recovery link cannot authorize a new payment */ }
+  }
+  return null;
+};
+
+const batchMatches = (batch: any, id: string, batchId: string) =>
+  batch?.batch_header?.sender_batch_header?.sender_batch_id === id
+  && batch?.batch_header?.payout_batch_id === batchId;
+
+const processPayout = async (e: Env, token: string, userId: string, id: string, waitForDelivery = false) => {
+  const claimed = await rpc(e, 'paypal_payout_claim', { p_user: userId, p_id: id, p_environment: e.mode, p_sender: e.clientId });
+  if (!claimed.ok) throw new Error(claimed.error);
+  const c = claimed.data as PayoutClaim;
+  if (c.operation === 'done') return { status: c.status ?? 'sending', paypalStatus: 'RECONCILED' };
+  if (c.operation === 'review') return pendingPayout('MANUAL_REVIEW');
+  if (c.operation === 'wait') return pendingPayout('RECOVERY_PENDING');
+  if (!['submit','check'].includes(c.operation)) throw new Error('Respuesta de recuperación no válida');
+  const save = async (outcome: 'accepted' | 'uncertain' | 'rejected', batch: string | null, error: string | null) => {
+    const saved = await rpc(e, 'paypal_payout_submission_result', {
+      p_user: userId, p_id: id, p_token: c.token, p_outcome: outcome, p_batch: batch, p_error: error,
     });
+    if (!saved.ok) throw new Error(saved.error);
+    return saved.data as { applied: boolean; status: 'sending' | 'paid' | 'failed' };
+  };
+  let batchId = c.batch;
+  let recoveredBatch: Awaited<ReturnType<typeof paypal>> | undefined;
+  if (c.operation === 'submit') {
+    if (!c.token || c.payload?.sender_batch_header?.sender_batch_id !== id) throw new Error('Falta la referencia original del retiro');
+    let sent;
+    try { sent = await paypal(e, token, '/v1/payments/payouts', c.payload, undefined, PAYOUT_TIMEOUT_MS); }
+    catch {
+      await save('uncertain', null, 'Respuesta de envío no recibida');
+      return pendingPayout();
+    }
+    if (sent.status >= 200 && sent.status < 300 && validBatchId(sent.data?.batch_header?.payout_batch_id)) {
+      batchId = sent.data.batch_header.payout_batch_id;
+    } else {
+      const duplicate = duplicateBatch(e, sent.data);
+      if (duplicate) {
+        // A duplicate is evidence of an existing batch, never a failed payout.
+        let original;
+        try { original = await paypal(e, token, `/v1/payments/payouts/${encodeURIComponent(duplicate)}`, undefined, undefined, PAYOUT_TIMEOUT_MS); }
+        catch { /* keep the reservation and recover later with the same key */ }
+        if (original && original.status === 200 && batchMatches(original.data,id,duplicate)) {
+          batchId = duplicate;
+          recoveredBatch = original;
+        }
+      }
+      if (!batchId) {
+        const rejected = sent.status === 422 && sent.data?.name === 'INSUFFICIENT_FUNDS';
+        const saved = await save(rejected ? 'rejected' : 'uncertain', null, String(sent.data?.name ?? `HTTP_${sent.status}`));
+        return saved.status === 'failed' ? { status: 'failed' as const, paypalStatus: 'REJECTED' } : pendingPayout();
+      }
+    }
+    // Persist acceptance BEFORE the first delivery query. Lost DB acknowledgments
+    // recover via the same key after lease expiry; stale workers cannot overwrite.
+    const saved = await save('accepted', batchId!, null);
+    if (!saved.applied) return pendingPayout();
+    if (saved.status === 'paid') return { status: 'paid' as const, paypalStatus: 'SUCCESS' };
   }
+  if (!validBatchId(batchId)) return pendingPayout('MANUAL_REVIEW');
+  if (waitForDelivery && !recoveredBatch) await pause(1500);
+  let batch = recoveredBatch;
+  if (!batch) {
+    try { batch = await paypal(e, token, `/v1/payments/payouts/${encodeURIComponent(batchId)}`, undefined, undefined, PAYOUT_TIMEOUT_MS); }
+    catch { return pendingPayout(); }
+  }
+  if (batch.status !== 200) return pendingPayout();
+  if (!batchMatches(batch.data,id,batchId)) return pendingPayout('MANUAL_REVIEW');
+  const item = Array.isArray(batch.data?.items)
+    ? batch.data.items.find((x: any) => x?.payout_item?.sender_item_id === id) : null;
+  if (!item) return pendingPayout();
+  const original = c.payload?.items?.[0];
+  const amount = item.payout_item?.amount;
+  const receiver = item.payout_item?.receiver;
+  if (amount?.currency !== 'USD' || Number(amount?.value) !== Number(c.net)
+    || (original && (typeof receiver !== 'string' || receiver.toLowerCase() !== original.receiver.toLowerCase()))
+    || typeof item.payout_item_id !== 'string' || !item.payout_item_id) return pendingPayout('MANUAL_REVIEW');
+  const paypalStatus = String(item.transaction_status ?? 'UNKNOWN');
+  const status = payoutStatus(paypalStatus);
+  const saved = await markPayout(e,id,status,batchId,item.payout_item_id,item.errors?.name ? String(item.errors.name) : null);
+  if (!saved.ok) throw new Error(saved.error);
+  return { status, paypalStatus };
+};
 
-  // PayPal usually settles it within seconds; the webhook reports it otherwise.
-  let status = 'sending';
-  let itemId: string | null = null;
-  let error: string | null = null;
-  for (let i = 0; i < 3 && status === 'sending'; i++) {
-    await pause(1500);
-    const batch = await paypal(e, token, `/v1/payments/payouts/${encodeURIComponent(batchId)}`);
-    const item = batch.data?.items?.[0];
-    if (!item) continue;
-    itemId = item.payout_item_id ? String(item.payout_item_id) : null;
-    status = payoutStatus(String(item.transaction_status ?? ''));
-    error = item.errors?.name ? String(item.errors.name) : null;
-    if (String(item.transaction_status) === 'UNCLAIMED') break; // waits for the creator to open a PayPal account
-  }
-  await markPayout(e, id, status, batchId, itemId, error);
-  if (status === 'failed') {
-    return json(502, { error: 'PayPal no pudo entregar el retiro. Tu saldo sigue disponible; revisa el email de tu cuenta PayPal.' });
-  }
-  return json(200, { ok: true, status, net, fee });
+// Reservation and immutable request snapshot are created together, before HTTP.
+const sendPayout = async (e: Env, token: string, userId: string): Promise<Response> => {
+  const started = await rpc(e, 'paypal_payout_begin', { p_user: userId, p_environment: e.mode, p_sender: e.clientId });
+  if (!started.ok) return json(400, { error: started.error });
+  const { id, net, fee } = started.data as { id: string; net: number; fee: number };
+  const result = await processPayout(e,token,userId,id,true);
+  if (result.status === 'failed') return json(502, { error: 'PayPal no pudo entregar el retiro. Tu saldo sigue disponible; revisa tu cuenta PayPal.' });
+  return json(200, { ok: true, status: result.status, net, fee });
 };
 
 // Asks PayPal again about the creator's withdrawals still 'sending' (in case a webhook
 // never arrived) and returns PayPal's own state of each one.
 const checkPayouts = async (e: Env, token: string, userId: string): Promise<Response> => {
   const mine = await supabase(
-    `/rest/v1/payouts?user_id=eq.${encodeURIComponent(userId)}&status=eq.sending&paypal_batch_id=not.is.null&select=id,paypal_batch_id`,
+    `/rest/v1/payouts?user_id=eq.${encodeURIComponent(userId)}&status=eq.sending&select=id`,
     asServer(e.serviceKey)
   );
-  const rows = Array.isArray(mine.data) ? (mine.data as { id: string; paypal_batch_id: string }[]) : [];
+  if (!mine.ok) throw new Error(mine.error);
+  const rows = Array.isArray(mine.data) ? (mine.data as { id: string }[]) : [];
   const items: { id: string; status: string; paypalStatus: string }[] = [];
   for (const row of rows) {
-    const batch = await paypal(e, token, `/v1/payments/payouts/${encodeURIComponent(row.paypal_batch_id)}`);
-    const item = batch.data?.items?.[0];
-    const paypalStatus = String(item?.transaction_status ?? batch.data?.batch_header?.batch_status ?? 'UNKNOWN');
-    const status = item ? payoutStatus(paypalStatus) : 'sending';
-    await markPayout(e, row.id, status, row.paypal_batch_id, item?.payout_item_id ? String(item.payout_item_id) : null,
-      item?.errors?.name ? String(item.errors.name) : status === 'failed' ? paypalStatus : null);
-    items.push({ id: row.id, status, paypalStatus });
+    const result = await processPayout(e,token,userId,row.id);
+    items.push({ id: row.id, ...result });
   }
   return json(200, { items });
 };

@@ -10,7 +10,25 @@ Migration `20261019215002_disable_simulated_payout_fallback.sql` replaces the ol
 
 Deploy the retirement migration before publishing the updated client. Do not restore the historical fallback as a rollback: that would reopen the same unsafe path. Verify function privileges and unchanged historical rows when applying it. The new `npm run test:payout-safety` covers unavailable/malformed responses, valid paid/sending responses, session requirements, direct RPC denial and history preservation on disposable PostgreSQL. This is preparation for production review, not evidence that the migration is already applied or that an automatic executor exists.
 
-Next in order: preserve/recover ambiguous submissions, persist and reconcile provider events, then build exact batch reservations/allocations and an adjustment ledger. Cross-session concurrency and actual PayPal Sandbox integration remain required before unattended execution.
+Step 2 prepares the ambiguous-submission recovery below. Provider event reconciliation, exact batch reservations/allocations and an adjustment ledger remain pending. Cross-session concurrency and actual PayPal Sandbox integration remain required before unattended execution.
+
+## Step 2: preserve and recover ambiguous submissions
+
+Migration `20261019220609_payout_submission_recovery.sql` adds a server-only snapshot per individual withdrawal. `paypal_payout_begin` atomically reserves the balance and stores the exact provider request, including recipient, net USD amount, note/header, stable withdrawal UUID, environment and sender client ID. It is not the frozen multi-creator batch or accounting ledger required below. No historical rows are backfilled from today's recipient account.
+
+The server claims an attempt using a two-minute lease and a fencing token, then calls PayPal outside the database transaction with a bounded ten-second network timeout. A timeout, 5xx, malformed response or missing batch ID retains `sending` and its reserved balance. Acceptance saves the batch ID before any delivery query. A definitive `422 INSUFFICIENT_FUNDS` rejection may release a first attempt; the same rejection after an uncertain earlier attempt must retain the reserve.
+
+`payout-check` now includes withdrawals without a stored batch ID. It can replay the same frozen request and recover the original batch from PayPal's duplicate response. Recovery links are limited to the configured PayPal API origin; the fetched batch must identify the original withdrawal. Amount, USD currency, recipient and item reference are checked before applying an item result. A known batch is queried without resending. `ONHOLD`, `BLOCKED` and unknown states retain the reservation.
+
+New POST attempts stop after five total attempts or 29 days from the first attempt, conservatively within PayPal's documented 30-day duplicate protection. New sending is also held for sender/environment changes, identity/account restrictions and negative creator balances. These conditions never release the reservation. Known batches remain queryable beyond that limit and while sending is restricted. An older response with an obsolete lease cannot overwrite a newer attempt. An old withdrawal without its original snapshot and batch requires review instead of reconstruction or resending.
+
+Recovery runs when the existing server reconciliation endpoint is requested (including opening/reloading earnings). This does not add a monthly scheduler or unattended executor. The creator sees “En proceso”, confirmation pending or review needed, rather than a guaranteed delivery message. New RPCs are executable only by `service_role`; RLS and table privileges deny direct client/server REST access to the snapshots, which are accessed by the narrowly granted RPCs.
+
+`npm run test:payout-recovery` executes the actual API and SQL against disposable PostgreSQL with all PayPal calls mocked. Independent PostgreSQL sessions, actual PayPal Sandbox signature/integration behavior and durable webhook history remain pending. The existing webhook state writer still needs Step 3; this step alone does not make automatic payouts ready.
+
+Deployment order: PR 86/fallback retirement first, then this migration, then the updated server/client. Retain snapshots and reservations during rollback; restoring the old send/error handling would reopen duplicate-payment risk. No production migration, real payout or automatic job is authorized or enabled by these test results.
+
+Provider references: [sender batch deduplication](https://developer.paypal.com/api/payments.payouts-batch/v1/definitions/payout_sender_batch_header/), [batch details](https://developer.paypal.com/api/payments.payouts-batch/v1/payouts-get/), [item transaction states](https://developer.paypal.com/api/payments.payouts-batch/v1/definitions/transaction_enum/).
 
 ## Existing foundation
 
