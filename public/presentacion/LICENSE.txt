@@ -7,6 +7,3 @@ Uses the approved brand kit, the demo creators' AI portraits and four Reserve ex
 F03 correction: the subscription scene now describes exclusive content instead of Subscriber Live.
 Editable HyperFrames correction source and rendering instructions: design/presentation-correction.
 The remaining footage, its credits, and the original posters are retained.
-The added Reserve 1:1 closing scene uses the existing makeup example clip and the
-illustrative fan footage from the original presentation. The models are not identified
-as actual Fans Reserve creators and do not endorse the brand.
