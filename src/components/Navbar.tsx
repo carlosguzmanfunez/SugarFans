@@ -98,10 +98,10 @@ const Navbar: React.FC = () => {
       >
         <div className="flex h-16 items-center justify-between gap-2 sm:gap-4">
           {/* Logo */}
-          {/* A touch smaller on narrow phones so the Créditos pill fits next to the bell. */}
+          {/* Use just the mark on the narrowest phones so the account controls still fit. */}
           <BrandLogo
             size="sm"
-            className="shrink-0 max-[400px]:gap-2! max-[400px]:[&>svg:first-child]:size-[30px] max-[400px]:[&>svg:last-child]:h-[10px] max-[400px]:[&>svg:last-child]:w-[89px]"
+            className="shrink-0 max-[360px]:[&>svg:last-child]:hidden max-[400px]:gap-2! max-[400px]:[&>svg:first-child]:size-[30px] max-[400px]:[&>svg:last-child]:h-[10px] max-[400px]:[&>svg:last-child]:w-[89px]"
           />
 
           {/* Desktop Nav */}
