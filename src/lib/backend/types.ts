@@ -7,7 +7,7 @@ import type { LiveBackend } from './liveTypes';
 import type { SpecialBackend } from './specialTypes';
 import type { SocialLinks } from '../creatorLinks';
 import type { InfraUsage } from '../infraUsage';
-import type { ApprovalMode, CancellationPolicyId, LocationType, PurposeId, ReserveModality } from '../../config/reserve';
+import type { ApprovalMode, CancellationPolicyId, CreatorCategoryId, LocationType, PurposeId, ReserveModality } from '../../config/reserve';
 export type * from './platformTypes';
 export type * from './socialTypes';
 export type * from './giftTypes';
@@ -236,6 +236,9 @@ export type ExperienceType = string;
 // How an experience is offered (vip_experiences.details). Experiences created
 // before Reserve have none: they read as virtual, online, manual approval.
 export interface ReserveDetails {
+  // This experience's category, independent of its creator's profile category.
+  // Absent on older experiences, which keep the profile category as a fallback.
+  categoryId?: CreatorCategoryId;
   modality: ReserveModality;
   locationTypes: LocationType[];
   city?: string;

@@ -4,7 +4,7 @@ import { backend } from '../../lib/backend';
 import { usePlatformQuery, platformChanged, money } from '../../lib/platform';
 import { creators as demoCreators } from '../../data/mockData';
 import { categoryFor, RESERVE_COPY, RESERVE_RESPONSE_HOURS } from '../../config/reserve';
-import { detailsOf, reserveStatusOf, typeOf, type Availability, type VipBooking, type VipExperience } from '../../lib/vip';
+import { detailsOf, experienceCategory, reserveStatusOf, typeOf, type Availability, type VipBooking, type VipExperience } from '../../lib/vip';
 import ReserveExperienceWizard from './ReserveExperienceWizard';
 import ReserveBookingCard from './ReserveBookingCard';
 import { ExperienceFacts } from './ReserveBits';
@@ -157,7 +157,7 @@ const CreatorReservePanel: React.FC<Props> = ({ availability, bookings, reloadBo
           ) : mine.length === 0 ? (
             <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
               <p className="font-semibold text-ink">Aún no tienes experiencias</p>
-              <p className="mt-1 text-sm text-muted">Crea la primera: elige entre las experiencias permitidas para {category.name}.</p>
+              <p className="mt-1 text-sm text-muted">Crea la primera: elige su categoría y el tipo de experiencia que quieres ofrecer.</p>
             </div>
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
@@ -168,6 +168,7 @@ const CreatorReservePanel: React.FC<Props> = ({ availability, bookings, reloadBo
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-700">{typeOf(exp.type).name}</p>
+                        <span data-testid="experience-category" className="mt-1 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-ink/70">{experienceCategory(exp, category.id).name}</span>
                         <p className="mt-0.5 font-semibold text-ink">
                           {exp.title}
                           {!exp.active && <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-muted">Oculta</span>}

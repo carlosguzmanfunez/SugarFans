@@ -1,6 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { BRAND } from '../../config/brand';
-import { useAuth } from '../../context/AuthContext';
 import { backend } from '../../lib/backend';
 import type { User } from '../../context/AuthContext';
 import {
@@ -10,6 +9,7 @@ import {
   MIN_EXPERIENCE_PRICE,
   MAX_EXPERIENCE_PRICE,
   defaultDetails,
+  experienceCategory,
   bookingWindow,
   canBeEvent,
   validateExperience,
@@ -28,6 +28,7 @@ import {
   RESERVE_FORMATS,
   RESERVE_MODALITIES,
   SUBSCRIBER_DISCOUNTS,
+  categoryFor,
   experienceTypeById,
   experienceTypesFor,
   isHomeService,
@@ -35,6 +36,7 @@ import {
   modalitiesFor,
   noticeLabel,
   type CreatorCategory,
+  type CreatorCategoryId,
   type ReserveModality,
 } from '../../config/reserve';
 import { moderate } from '../../lib/moderation';
@@ -71,12 +73,10 @@ const field = 'mt-1 block w-full rounded-xl border border-line px-3 py-2.5 text-
 const toggle = <T,>(list: T[], item: T) => (list.includes(item) ? list.filter((x) => x !== item) : [...list, item]);
 
 // "Crear experiencia": the creator defines a Reserve step by step, choosing only
-// among the experiences, modalities and venue types their category allows. The
-// first step also lets them switch their category (it is the profile's, so it
-// applies to all their experiences) without going to Configuración.
-const ReserveExperienceWizard: React.FC<Props> = ({ user, category, availability, editing, onSaved, onCancel }) => {
-  const allowedTypes = experienceTypesFor(category);
-  const initialType = editing ? experienceTypeById(editing.type) : allowedTypes[0];
+// among the options allowed by this experience's category. Choosing a category
+// changes only the draft; the creator's profile is never updated here.
+const ReserveExperienceWizard: React.FC<Props> = ({ user, category: profileCategory, availability, editing, onSaved, onCancel }) => {
+  const initialType = editing ? experienceTypeById(editing.type) : experienceTypesFor(profileCategory)[0];
   const [step, setStep] = useState(editing ? 1 : 0);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -90,11 +90,13 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category, availability
       image: DEFAULT_EXPERIENCE_IMAGE,
       active: true,
     };
-    return { ...base, details: { ...defaultDetails(), ...(editing?.details ?? {}) } };
+    return { ...base, details: { ...defaultDetails(), ...(editing?.details ?? {}), categoryId: editing?.details?.categoryId ?? profileCategory.id } };
   });
   const [includes, setIncludes] = useState(input.details.includes.join('\n'));
   const [excludes, setExcludes] = useState(input.details.excludes.join('\n'));
 
+  const category = experienceCategory(input, profileCategory.id);
+  const allowedTypes = experienceTypesFor(category);
   const type = experienceTypeById(input.type) ?? allowedTypes[0];
   const d = input.details;
   const set = (patch: Partial<VipExperienceInput>) => {
@@ -106,16 +108,17 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category, availability
     setError('');
   };
 
-  const pickType = (id: string) => {
+  const pickType = (id: string, selectedCategory = category) => {
     const t = experienceTypeById(id)!;
-    const modality: ReserveModality = modalitiesFor(category, t)[0] ?? 'virtual';
-    const locations = locationsFor(category, t, modality);
+    const modality: ReserveModality = modalitiesFor(selectedCategory, t)[0] ?? 'virtual';
+    const locations = locationsFor(selectedCategory, t, modality);
     setInput((x) => ({
       ...x,
       type: id,
       durationMinutes: t.minutes ? t.defaultMinutes ?? t.minutes[0] : undefined,
       details: {
         ...x.details,
+        categoryId: selectedCategory.id,
         modality,
         locationTypes: modality === 'virtual' ? ['online'] : locations.slice(0, 1),
         maxParticipants: Math.min(x.details.maxParticipants, t.maxParticipants),
@@ -140,26 +143,12 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category, availability
     setD({ modality, locationTypes: modality === 'virtual' ? ['online'] : locations.slice(0, 1) });
   };
 
-  // Category switched from the first step: save it on the profile, then offer that
-  // category's first experience (the old type may not be allowed there).
-  const { updateUser } = useAuth();
-  const [switching, setSwitching] = useState(false);
-  const switchCategory = async (name: string) => {
-    if (name === category.name || switching) return;
-    if (!window.confirm(`Tu categoría pasará a ser ${name}. Se aplica a tu perfil y a todas tus experiencias. ¿Continuar?`)) return;
-    setSwitching(true);
-    const result = await updateUser({ settings: { ...user.settings, category: name } });
-    setSwitching(false);
-    if (!result.ok) setError(result.error || 'No se pudo cambiar la categoría');
+  const switchCategory = (id: CreatorCategoryId) => {
+    if (id === category.id) return;
+    const selected = categoryFor(id);
+    const first = experienceTypesFor(selected)[0];
+    if (first) pickType(first.id, selected);
   };
-  const lastCategory = useRef(category.id);
-  useEffect(() => {
-    if (lastCategory.current === category.id) return;
-    lastCategory.current = category.id;
-    const first = experienceTypesFor(category)[0];
-    if (first) pickType(first.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category.id]);
 
   const lines = (text: string) => text.split('\n').map((x) => x.trim()).filter(Boolean);
   const current = (): VipExperienceInput => ({ ...input, details: { ...d, includes: lines(includes), excludes: lines(excludes) } });
@@ -182,7 +171,7 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category, availability
     }
     if (i === 9) return mod([d.requirements.notes, ...lines(includes)]);
     if (i === 11) {
-      const check = validateExperience(current(), user.settings.category || category.name);
+      const check = validateExperience(current(), category.id);
       return check.ok ? null : check.error!;
     }
     return null;
@@ -196,7 +185,7 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category, availability
 
   const publish = async () => {
     const final = current();
-    const check = validateExperience(final, user.settings.category || category.name);
+    const check = validateExperience(final, category.id);
     if (!check.ok) return setError(check.error!);
     setSaving(true);
     const result = await backend.saveExperience(user, final, editing?.id);
@@ -237,26 +226,24 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category, availability
 
       {step === 0 && (
         <div>
-          {!editing && (
-            <div className="mb-4">
-              <p className="mb-2 text-sm font-semibold text-ink">Categoría</p>
-              <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Categoría" data-testid="wizard-categories">
-                {CREATOR_CATEGORIES.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={c.id === category.id}
-                    disabled={switching}
-                    onClick={() => switchCategory(c.name)}
-                    className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition disabled:opacity-60 ${c.id === category.id ? 'border-ink bg-ink text-white' : 'border-line text-ink/70 hover:border-ink/30'}`}
-                  >
-                    {c.name}
-                  </button>
-                ))}
-              </div>
+          <div className="mb-4">
+            <p className="mb-2 text-sm font-semibold text-ink">Categoría de esta experiencia</p>
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Categoría de esta experiencia" data-testid="wizard-categories">
+              {CREATOR_CATEGORIES.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={c.id === category.id}
+                  onClick={() => switchCategory(c.id)}
+                  className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition ${c.id === category.id ? 'border-ink bg-ink text-white' : 'border-line text-ink/70 hover:border-ink/30'}`}
+                >
+                  {c.name}
+                </button>
+              ))}
             </div>
-          )}
+            <p className="mt-2 text-xs text-muted">Solo clasifica esta experiencia. Tu perfil seguirá en {profileCategory.name}.</p>
+          </div>
           <p className="mb-3 text-sm text-ink/70">Actividades permitidas para <strong>{category.name}</strong>:</p>
           <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Tipo de experiencia" data-testid="allowed-types">
             {allowedTypes.map((t) => (

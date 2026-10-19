@@ -5,9 +5,9 @@ import { backend } from '../lib/backend';
 import { usePlatformQuery } from '../lib/platform';
 import { useCreatorCatalog } from '../lib/catalog';
 import type { VipExperience } from '../lib/vip';
-import { detailsOf, isUpcomingEvent, reserveProductOf, type ReserveProduct } from '../lib/vip';
+import { detailsOf, experienceCategory, isUpcomingEvent, reserveProductOf, type ReserveProduct } from '../lib/vip';
 import { useEventSeats } from '../components/reserve/CreatorReserveSection';
-import { CREATOR_CATEGORIES, MODALITY_IDS, RESERVE_COPY, RESERVE_FLOW, RESERVE_MODALITIES, categoryFor, type ReserveModality } from '../config/reserve';
+import { CREATOR_CATEGORIES, MODALITY_IDS, RESERVE_COPY, RESERVE_FLOW, RESERVE_MODALITIES, type ReserveModality } from '../config/reserve';
 import ReserveExperienceCard from '../components/reserve/ReserveExperienceCard';
 import ReserveBookingDialog from '../components/reserve/ReserveBookingDialog';
 import { ReserveNotice } from '../components/reserve/ReserveBits';
@@ -48,7 +48,7 @@ const ReservePage: React.FC = () => {
     .filter((e) => reserveProductOf(e) !== 'event' || isUpcomingEvent(e))
     .filter((e) => product === 'all' || reserveProductOf(e) === product)
     .filter((e) => modality === 'all' || detailsOf(e).modality === modality)
-    .filter((e) => category === 'all' || categoryFor(creatorOf(e)?.category).id === category)
+    .filter((e) => category === 'all' || experienceCategory(e, creatorOf(e)?.category).id === category)
     .filter((e) => matchesSearch(e));
 
   const seats = useEventSeats(visible);

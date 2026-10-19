@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { needsApproval, reserveProductOf, typeOf, type VipExperience } from '../../lib/vip';
+import { experienceCategory, needsApproval, reserveProductOf, typeOf, type VipExperience } from '../../lib/vip';
 import { EventFacts, ExperienceFacts, PriceTag } from './ReserveBits';
 import Avatar from '../Avatar';
 
@@ -42,6 +42,7 @@ const ReserveExperienceCard: React.FC<Props> = ({ exp, onDetails, onBook, creato
             {product === 'event' ? `Reserve Event · ${type.name}` : product === 'one-to-one' ? `Reserve 1:1 · ${type.name}` : type.name}
           </p>
           <h3 className="mt-0.5 text-base font-bold leading-snug text-ink">{exp.title}</h3>
+          {exp.details?.categoryId && <span data-testid="experience-category" className="mt-1 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-ink/70">{experienceCategory(exp).name}</span>}
         </div>
       </div>
       {creator && (
