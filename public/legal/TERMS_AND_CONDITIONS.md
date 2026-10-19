@@ -200,7 +200,7 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 - Reservas de Reserve: el Creador recibe el 80%
 - Regalos: el Creador recibe el 60%
 - La Plataforma conserva siempre al menos el 10% de cada venta
-- Los ingresos se acreditan el día 1 de cada mes; lo cobrado a mitad de mes aparece como pendiente
+- Las ganancias se acumulan del 26 al 25 siguiente y se acreditan al comenzar el 26. El pago se solicita del 26 al día 1 siguiente, ambos incluidos, en hora de Honduras (UTC−6). Las ganancias del nuevo ciclo quedan pendientes para su propio cierre; los saldos anteriormente acreditados se conservan
 - Retiro del saldo completo a la cuenta PayPal del Creador, cualquier día, desde $50 USD ($25 USD en los niveles Oro y Diamante)
 - La comisión que cobre el procesador de pagos por enviar el retiro se descuenta del monto retirado
 - Los Creadores son responsables de sus obligaciones fiscales

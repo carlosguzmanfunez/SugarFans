@@ -91,7 +91,7 @@ const CreatorGiftsPanel: React.FC = () => {
       <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 space-y-2" data-testid="gift-perks-retired">
         <h3 className="font-bold text-gray-900">Qué son tus regalos</h3>
         <p className="text-sm text-gray-600">
-          Apoyo voluntario de tus fans: recibes el {GIFT_SHARE * 100}% de cada regalo, acreditado el día 1 como el resto de tus ingresos.
+          Apoyo voluntario de tus fans: recibes el {GIFT_SHARE * 100}% de cada regalo, incluido en el ciclo del 26 al 25 como el resto de tus ingresos. Se acredita al comenzar el 26 y se paga del 26 al 1 siguiente, hora de Honduras (UTC−6).
         </p>
         <p className="text-sm text-gray-600">
           Los regalos no desbloquean acceso, videos ni videollamadas. Las videollamadas y experiencias se ofrecen en{' '}

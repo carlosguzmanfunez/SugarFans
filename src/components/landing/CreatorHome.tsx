@@ -8,6 +8,7 @@ import { levelById, nextLevel, rewardsApi } from '../../lib/rewards';
 import { useReserveInbox } from '../../lib/live';
 import { ENABLE_CREATOR_LIVE } from '../../config/features';
 import { CREATOR_RESERVE_LINK } from '../../lib/reserveAlerts';
+import { usePayoutCalendar } from '../../lib/usePayoutCalendar';
 
 // A creator's home: instead of the fans' hero (which sells creators to fans), the top
 // of the page is about their own day: requests waiting, money this month, how close
@@ -20,6 +21,7 @@ const DAY = 86_400_000;
 
 const CreatorHome: React.FC = () => {
   const { user } = useAuth();
+  const calendar = usePayoutCalendar();
   const profileId = user?.creatorProfileId ?? user?.id ?? '';
   const waiting = useReserveInbox(user ?? null);
   const { data } = usePlatformQuery(
@@ -32,11 +34,13 @@ const CreatorHome: React.FC = () => {
         rewardsApi.myRewards(user),
       ]);
       const last = posts.reduce((max, p) => Math.max(max, Date.parse(p.createdAt) || 0), 0);
-      return { earnings: computeEarnings(sales, payouts), lastPost: last || null, rewards };
+      return { sales, payouts, lastPost: last || null, rewards };
     },
     [user?.id, profileId],
     null
   );
+
+  const earnings = data && calendar.data ? computeEarnings(data.sales, data.payouts, calendar.at, calendar.data.legacyCutoff) : null;
 
   const first = (user?.name ?? '').split(' ')[0];
   const days = data?.lastPost ? Math.floor((Date.now() - data.lastPost) / DAY) : null;
@@ -59,8 +63,8 @@ const CreatorHome: React.FC = () => {
     },
     {
       to: '/creator/dashboard?tab=earnings',
-      label: 'Ganado este mes',
-      value: data ? money(data.earnings.thisMonth) : '…',
+      label: 'En acumulación · ciclo 26–25',
+      value: earnings ? money(earnings.pending) : '…',
       icon: <Icon name="fa-wallet" />,
       testid: 'ch-ganado',
     },

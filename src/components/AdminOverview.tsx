@@ -5,6 +5,7 @@ import { money } from '../lib/platform';
 import type { CoinPurchase } from '../lib/gifts';
 import { owedToCreators, periodLabel, summarize, unspentCredits, type Period } from '../lib/adminLedger';
 import { periodRange } from '../lib/adminLedger';
+import { usePayoutCalendar } from '../lib/usePayoutCalendar';
 
 interface Props {
   accounts: User[];
@@ -33,8 +34,9 @@ const Row: React.FC<{ label: string; value: string; strong?: boolean; tone?: str
 // Admin home: the money of the chosen period, what is owed to creators, users and to-dos.
 const AdminOverview: React.FC<Props> = ({ accounts, transactions, coins, payouts, pending, onOpen }) => {
   const [period, setPeriod] = useState<Period>('month');
+  const calendar = usePayoutCalendar();
   const s = summarize(transactions, coins, period);
-  const owed = owedToCreators(transactions, payouts);
+  const owed = owedToCreators(transactions, payouts, calendar.at, calendar.data?.legacyCutoff);
   const [from, to] = periodRange(period);
   const people = accounts.filter((a) => a.role !== 'admin');
   const fresh = people.filter((a) => (!from || a.createdAt >= from) && (!to || a.createdAt < to));
@@ -83,8 +85,8 @@ const AdminOverview: React.FC<Props> = ({ accounts, transactions, coins, payouts
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         <Card title="Lo que debemos a creadores" hint="Hoy, sin importar el periodo" testId="admin-owed">
-          <Row label="Disponible para retirar" value={money(owed.available)} strong />
-          <Row label="Se acredita el 1° del mes" value={money(owed.pending)} />
+          <Row label="Saldo de ciclos cerrados" value={calendar.data ? money(owed.available) : '—'} strong />
+          <Row label="En acumulación · ciclo 26–25" value={calendar.data ? money(owed.pending) : '—'} />
           <Row label="Retiros en camino" value={money(owed.sending)} />
           <Row label="Total ya retirado" value={money(owed.withdrawn)} />
         </Card>

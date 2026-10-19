@@ -55,7 +55,7 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
       {
         heading: '4. Pagos',
         paragraphs: [
-          'El flujo es: solicitud, aceptación, pago, confirmación, experiencia y liquidación. El fan paga con PayPal cuando el creador acepta. Fans Reserve procesa el pago en nombre del creador, retiene su comisión y registra la parte del creador como saldo a su favor, que se acredita el día 1 de cada mes y se retira a su cuenta PayPal.',
+          'El flujo es: solicitud, aceptación, pago, confirmación, experiencia y liquidación. El fan paga con PayPal cuando el creador acepta. Fans Reserve procesa el pago en nombre del creador, retiene su comisión y registra la parte del creador como saldo a su favor, que se acumula en ciclos del 26 al 25, se acredita al comenzar el 26 y se solicita a su cuenta PayPal del 26 al día 1 siguiente, ambos incluidos, en hora de Honduras (UTC−6).',
         ],
       },
     ],

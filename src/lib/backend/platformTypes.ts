@@ -166,6 +166,7 @@ export interface AdminActionLog {
 }
 
 export interface PlatformBackend {
+  payoutCalendar(): Promise<import('../payoutCalendar').PayoutCalendarPolicy | null>;
   myVerification(userId: string): Promise<VerificationRequest | null>;
   submitVerification(user: User, input: VerificationInput): Promise<AuthResult>;
   listVerifications(): Promise<VerificationRequest[]>; // admin

@@ -249,6 +249,12 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
     return ((data ?? []) as Row[]).map((r) => ({ id: r.id, name: r.name, avatar: avatarOrEmpty(r.avatar), since: r.since }));
   },
 
+  async payoutCalendar() {
+    const { data, error } = await sb.rpc('payout_calendar_policy');
+    return !error && typeof data?.legacy_cutoff === 'string' && Number.isFinite(Date.parse(data.legacy_cutoff))
+      ? { legacyCutoff: new Date(data.legacy_cutoff).toISOString() } : null;
+  },
+
   async payoutAccount(userId) {
     const { data } = await sb.from('payout_accounts').select('*').eq('user_id', userId).maybeSingle();
     // An older bank account counts as none: withdrawals now go to PayPal.

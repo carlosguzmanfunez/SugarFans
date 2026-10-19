@@ -25,9 +25,11 @@ import { GIFT_SHARE } from '../lib/giftRules';
 import { rewardsApi } from '../lib/rewards';
 import { BRAND, displayPayer } from '../config/brand';
 import { displayGiftNote } from '../config/gifts';
+import { earningsCycle, payoutWindow, formatPayoutDate } from '../lib/payoutCalendar';
+import { usePayoutCalendar } from '../lib/usePayoutCalendar';
 
 const field = 'w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-sm';
-const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
+const fmtDate = formatPayoutDate;
 
 // How each withdrawal looks in the list.
 const payoutBadge: Record<Payout['status'], { label: string; chip: string; icon: string }> = {
@@ -49,6 +51,7 @@ const sendingNote = (state?: string) =>
 // Creator dashboard > Ingresos: real balance (80% of fan payments), PayPal account and withdrawals.
 const CreatorPayouts: React.FC = () => {
   const { user } = useAuth();
+  const calendar = usePayoutCalendar();
   const userId = user?.id ?? '';
   const profileId = user?.creatorProfileId ?? userId;
   const { data, loading } = usePlatformQuery(
@@ -75,10 +78,12 @@ const CreatorPayouts: React.FC = () => {
 
   if (!user) return null;
   const { sales, payoutAccount } = data;
-  const earnings = computeEarnings(sales, data.payouts);
+  const earnings = computeEarnings(sales, data.payouts, calendar.at, calendar.data?.legacyCutoff);
   const paid = data.payouts;
-  const creditDay = fmtDate(nextCreditDate());
-  const canWithdraw = earnings.available >= terms.min;
+  const cycle = earningsCycle(calendar.at);
+  const window = payoutWindow(calendar.at);
+  const creditDay = fmtDate(nextCreditDate(calendar.at));
+  const canWithdraw = !!calendar.data && !loading && window.open && earnings.available >= terms.min;
   const fee = payoutFee(earnings.available);
   const verified = !!user.isVerified;
 
@@ -110,15 +115,18 @@ const CreatorPayouts: React.FC = () => {
       {notice && <Notice ok={notice.ok} text={notice.text} onClose={() => setNotice(null)} />}
       <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
         <h3 className="font-bold text-gray-900 mb-1">Resumen de ingresos</h3>
+        <p className="text-sm text-gray-600 mb-3" data-testid="earnings-cycle">Ciclo actual: {fmtDate(cycle.start)} – {fmtDate(cycle.lastDay)}. Hora de Honduras (UTC−6).</p>
+        {calendar.data && calendar.data.legacyCutoff > cycle.start && <p className="text-xs text-gray-500 mb-3">Los importes ya acreditados antes de este calendario permanecen en el saldo de ciclos cerrados.</p>}
+        {!calendar.loading && !calendar.data && <p role="alert" className="text-sm text-amber-800 mb-3">No pudimos confirmar el calendario de pagos. Actualiza la página antes de solicitar un pago.</p>}
         <p className="text-sm text-gray-500 mb-4">Recibes el {CREATOR_SHARE * 100}% de lo que llega de cada pago después de la comisión de PayPal (más en Diamante y con los fans de tu enlace; {GIFT_SHARE * 100}% de los regalos). Los detalles están en Recompensas.</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-green-50 rounded-xl p-4">
-            <p className="text-sm text-green-700">Saldo disponible</p>
-            <p className="text-2xl font-bold text-green-900" data-testid="available-balance">{money(earnings.available)}</p>
+            <p className="text-sm text-green-700">Saldo de ciclos cerrados</p>
+            <p className="text-2xl font-bold text-green-900" data-testid="available-balance">{calendar.data ? money(earnings.available) : '—'}</p>
           </div>
           <div className="bg-blue-50 rounded-xl p-4">
-            <p className="text-sm text-blue-700">Por acreditar el {creditDay}</p>
-            <p className="text-2xl font-bold text-blue-900" data-testid="pending-balance">{money(earnings.pending)}</p>
+            <p className="text-sm text-blue-700">En acumulación · se acredita el {creditDay}</p>
+            <p className="text-2xl font-bold text-blue-900" data-testid="pending-balance">{calendar.data ? money(earnings.pending) : '—'}</p>
           </div>
           <div className="bg-purple-50 rounded-xl p-4">
             <p className="text-sm text-purple-700">Total ganado</p>
@@ -130,10 +138,12 @@ const CreatorPayouts: React.FC = () => {
       <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
         <h3 className="font-bold text-gray-900 mb-1">Retirar saldo</h3>
         <p className="text-sm text-gray-500 mb-4">
-          Tus ingresos se acreditan el día 1 de cada mes y se acumulan si no los retiras. Puedes retirar en cualquier momento del mes, siempre el
-          saldo completo, a partir de {money(terms.min)} USD, a tu cuenta PayPal (desde ahí puedes pasarlo a tu banco). Todo se paga en dólares (USD).
+          Tus ganancias se acumulan del 26 de cada mes al 25 del siguiente. Al comenzar el 26 se cierra ese ciclo y empieza uno nuevo.
+          La ventana de pago va del 26 al día 1 siguiente, ambos incluidos, en hora de Honduras (UTC−6).
+          Por ahora solicita aquí el saldo completo durante esa ventana, a partir de {money(terms.min)} USD, a tu cuenta PayPal (desde ahí puedes pasarlo a tu banco). Todo se paga en dólares (USD).
           PayPal cobra {PAYOUT_FEE_RATE * 100}% (máximo {money(PAYOUT_FEE_MAX)}) por enviar el retiro, y esa comisión se descuenta del monto retirado.
         </p>
+        <p className="text-sm text-gray-700 mb-4" data-testid="payout-window">{window.open ? 'Ventana de pago abierta' : 'Próxima ventana de pago'}: {fmtDate(window.nextStart)} – {fmtDate(new Date(Date.parse(window.nextEnd) - 1).toISOString())}. Los saldos no pagados se conservan; las ganancias del nuevo ciclo se pagan en su próxima ventana.</p>
         {!verified && (
           <p className="text-sm bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl p-3 mb-4">
             <i aria-hidden="true" className="fas fa-id-card mr-2"></i>Para retirar necesitas verificar tu identidad.{' '}
@@ -182,9 +192,10 @@ const CreatorPayouts: React.FC = () => {
               Recibirás {money(earnings.available - fee)} (comisión de PayPal {money(fee)}).
             </p>
           )}
-          {!canWithdraw && (
+          {!loading && window.open && calendar.data && earnings.available < terms.min && (
             <p className="text-xs text-gray-500">Podrás retirar cuando tu saldo disponible llegue a {money(terms.min)}.</p>
           )}
+          {!window.open && <p className="text-xs text-gray-500">Las solicitudes de pago se habilitan del 26 al 1, hora de Honduras.</p>}
         </div>
         {paid.length > 0 && (
           <div className="mt-6" data-testid="payouts">

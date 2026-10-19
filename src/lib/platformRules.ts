@@ -1,5 +1,7 @@
 // Pure rules shared by the UI and both backends: validation, dates and money.
 import { CREATOR_CATEGORIES } from '../config/reserve';
+import { creditCutoff } from './payoutCalendar';
+export { creditCutoff, nextCreditDate } from './payoutCalendar';
 import type {
   DocType,
   ManagedProfileInput,
@@ -174,20 +176,15 @@ export const validateReport = (input: ReportInput, signedIn: boolean): Check => 
   return good;
 };
 
-// Start of the current month in UTC, the same boundary the database uses.
-export const creditCutoff = (at = new Date()) => new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), 1)).toISOString();
-export const nextCreditDate = (at = new Date()) => new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth() + 1, 1)).toISOString();
-
 // What the creator earns from one payment: 80%, or 60% of a gift.
 export const creatorCut = (t: Pick<Transaction, 'amount' | 'share'>) => t.amount * (t.share ?? CREATOR_SHARE);
 
-// The creator keeps 80% of what fans paid (60% of gifts). Earnings are credited on the 1st of
-// each month (everything paid before that day) and add up until withdrawn; a
-// withdrawal always takes the whole credited balance.
-export const computeEarnings = (sales: Transaction[], payouts: Payout[], at = new Date()) => {
+// Cycles close at midnight on the 26th in Honduras. Unpaid balances carry over;
+// sending/paid payouts remain deducted, including those from the old calendar.
+export const computeEarnings = (sales: Transaction[], payouts: Payout[], at = new Date(), legacyCutoff?: string) => {
   // A refund Fans Reserve covers (not the creator's fault) still counts for them.
   const paid = sales.filter((t) => t.status === 'paid' || (t.platformCovers && (t.status === 'refunded' || t.status === 'disputed')));
-  const cutoff = creditCutoff(at);
+  const cutoff = creditCutoff(at, legacyCutoff);
   const share = (list: Transaction[]) => round2(list.reduce((s, t) => s + creatorCut(t), 0));
   const credited = share(paid.filter((t) => t.createdAt < cutoff));
   const pending = share(paid.filter((t) => t.createdAt >= cutoff));
@@ -196,7 +193,7 @@ export const computeEarnings = (sales: Transaction[], payouts: Payout[], at = ne
   return {
     gross: round2(paid.reduce((s, t) => s + t.amount, 0)),
     thisMonth: pending,
-    pending, // credited on the 1st of next month
+    pending, // current cycle, closes on the 26th at 00:00 Honduras
     totalEarned: round2(credited + pending),
     withdrawn,
     available: round2(credited - withdrawn),

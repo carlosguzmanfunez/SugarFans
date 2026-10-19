@@ -24,7 +24,7 @@ const CREATOR_BENEFITS = [
   'Publica fotos y videos, gratis o solo para suscriptores',
   'Publica experiencias en Reserve: clases, sesiones, eventos y colaboraciones, con tus reglas',
   'Panel con suscriptores, ingresos y estadísticas',
-  'Retira desde $50 a tu cuenta PayPal; tus ingresos se acreditan el día 1',
+  'Ganancias del 26 al 25; solicita tu pago a PayPal del 26 al 1, desde $50, hora de Honduras',
 ];
 
 // `embedded`: only the sign-up card, for the visitors' entrance page (JoinPage) on desktop.
