@@ -2,6 +2,16 @@
 
 Status: **P0 — required before enabling unattended payouts.** The 26–25 calendar and 26–1 payment window are approved; automatic execution is explicitly deferred. This item does not replace other launch/security blockers.
 
+## Step 1: retire simulated withdrawals from the real backend
+
+The Supabase adapter now accepts only an explicit server confirmation (`ok: true`, `paid` or `sending`, and a positive numeric net amount). Network failures, unavailable endpoints and malformed responses report an unconfirmed withdrawal and never invoke a SQL payment fallback. Local demonstration payments remain in the separate browser-only backend.
+
+Migration `20261019215002_disable_simulated_payout_fallback.sql` replaces the old `request_payout()` implementation with a non-writing rejection, changes it to `SECURITY INVOKER`, and removes execution from `PUBLIC`, `anon`, `authenticated` and `service_role`. Keeping the signature makes stale clients fail closed. Even a future accidental grant cannot restore its previous behavior. Existing payments and balances are not rewritten; the supported `paypal_payout_start` and provider confirmation flow remain available.
+
+Deploy the retirement migration before publishing the updated client. Do not restore the historical fallback as a rollback: that would reopen the same unsafe path. Verify function privileges and unchanged historical rows when applying it. The new `npm run test:payout-safety` covers unavailable/malformed responses, valid paid/sending responses, session requirements, direct RPC denial and history preservation on disposable PostgreSQL. This is preparation for production review, not evidence that the migration is already applied or that an automatic executor exists.
+
+Next in order: preserve/recover ambiguous submissions, persist and reconcile provider events, then build exact batch reservations/allocations and an adjustment ledger. Cross-session concurrency and actual PayPal Sandbox integration remain required before unattended execution.
+
 ## Existing foundation
 
 The application already stores transactions, payout recipients and individual payouts with gross/fee/net amounts, sending/paid/failed state, provider references and an error field. The existing server sends a single creator payout, uses a stable identifier for that request, checks provider notifications, and can query or cancel applicable in-progress payouts. Database checks include identity verification, minimum balance, account restrictions, recipient presence and a lock against overlapping withdrawals.

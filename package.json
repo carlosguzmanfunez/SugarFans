@@ -32,7 +32,8 @@
     "test:infra-usage-db": "node e2e/infra-usage-db.mjs",
     "test:usage": "node e2e/usage-api.mjs",
     "test:experience-category-db": "node e2e/experience-category-db.mjs",
-    "test:payout-calendar": "node e2e/payout-calendar.mjs"
+    "test:payout-calendar": "node e2e/payout-calendar.mjs",
+    "test:payout-safety": "node e2e/payout-safety.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
