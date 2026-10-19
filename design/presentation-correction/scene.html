@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="{{LANG}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width={{WIDTH}}, height={{HEIGHT}}">
+  <script src="assets/gsap.min.js"></script>
+  <style>
+    @font-face { font-family: Sora; src: url('assets/sora.woff2') format('woff2'); font-weight: 100 900; }
+    * { box-sizing: border-box; margin: 0; }
+    html, body { width: {{WIDTH}}px; height: {{HEIGHT}}px; overflow: hidden; background: #160d1f; }
+    #root { width: 100%; height: 100%; color: #fff6fa; font-family: Sora, sans-serif; position: relative; background: #160d1f; }
+    .glow { position: absolute; inset: 0; background: radial-gradient(ellipse at 22% 12%, #730b47 0%, rgba(115,11,71,0) 64%), radial-gradient(ellipse at 85% 86%, #54229c 0%, rgba(84,34,156,0) 58%); }
+    .scene-content { position: relative; width: 100%; height: 100%; padding: 46px 126px 100px; display: flex; flex-direction: column; }
+    header { text-align: center; }
+    .eyebrow { color: #f2d792; font-size: 20px; letter-spacing: .25em; font-weight: 600; }
+    h1 { font-size: 53px; font-weight: 750; line-height: 1.12; letter-spacing: -.045em; margin-top: 8px; }
+    .steps { display: grid; grid-template-columns: .85fr 1.3fr 1.05fr; gap: 38px; height: 316px; margin-top: auto; }
+    .card { padding: 30px; border: 1px solid rgba(255,246,250,.13); border-radius: 30px; background: rgba(255,246,250,.09); display: flex; flex-direction: column; gap: 27px; }
+    .card:last-child { background: linear-gradient(145deg, rgba(160,18,116,.65), rgba(84,34,156,.72)); }
+    .topline { display: flex; align-items: flex-start; }
+    .number { display: grid; place-items: center; width: 62px; height: 62px; border-radius: 18px; color: #160d1f; background: #ff9cc0; font-size: 32px; font-weight: 800; }
+    #step-2 .number { background: #c4b5fd; }
+    #step-3 .number { background: #f2d792; }
+    h2 { font-size: 54px; font-weight: 750; letter-spacing: -.045em; line-height: 1.1; white-space: nowrap; }
+    .benefit { align-self: flex-start; margin-top: auto; padding: 9px 16px; border-radius: 30px; background: rgba(255,246,250,.08); font-size: 23px; font-weight: 650; line-height: 1.2; white-space: nowrap; }
+    .progress { height: 3px; margin-top: 32px; background: rgba(255,246,250,.12); }
+    .progress span { display: block; height: 100%; background: #f2d792; transform-origin: left; }
+    .portrait .scene-content { padding: 112px 54px 90px; }
+    .portrait .eyebrow { font-size: 23px; }
+    .portrait h1 { font-size: 61px; line-height: 1.12; margin-top: 12px; }
+    .portrait .steps { grid-template-columns: 1fr; grid-template-rows: repeat(3, 1fr); gap: 24px; height: 814px; }
+    .portrait .card { padding: 28px; gap: 28px; display: grid; grid-template-columns: auto 1fr; grid-template-rows: 62px 1fr; grid-template-areas: 'number benefit' 'title title'; }
+    .portrait .topline { grid-area: number; }
+    .portrait h2 { font-size: 69px; grid-area: title; }
+    .portrait .benefit { grid-area: benefit; justify-self: end; align-self: start; margin: 0; font-size: 24px; }
+    .portrait .progress { display: none; }
+  </style>
+</head>
+<body>
+  <div id="root" class="{{SHAPE}}" data-composition-id="subscription-correction" data-start="0" data-duration="5.8" data-width="{{WIDTH}}" data-height="{{HEIGHT}}" data-fps="30">
+    <div class="glow" data-layout-ignore aria-hidden="true"></div>
+    <div class="scene-content">
+      <header><p class="eyebrow">{{EYEBROW}}</p><h1>{{TITLE}}</h1></header>
+      <div class="steps">
+        <section class="card" id="step-1"><div class="topline"><span class="number">1</span></div><h2>{{FOLLOW}}</h2><span class="benefit">{{FREE}}</span></section>
+        <section class="card" id="step-2"><div class="topline"><span class="number">2</span></div><h2>{{SUBSCRIBE}}</h2><span class="benefit">{{EXCLUSIVE}}</span></section>
+        <section class="card" id="step-3"><div class="topline"><span class="number">3</span></div><h2>{{RESERVE}}</h2><span class="benefit">Reserve Event · 1:1</span></section>
+      </div>
+      <div class="progress" aria-hidden="true"><span></span></div>
+    </div>
+  </div>
+  <script>
+    window.__timelines = window.__timelines || {};
+    const tl = gsap.timeline({ paused: true });
+    tl.from('.eyebrow', { y: 12, opacity: 0, duration: .45, ease: 'power2.out' }, .1);
+    tl.from('h1', { y: 25, opacity: 0, duration: .65, ease: 'power3.out' }, .2);
+    for (let i = 1; i <= 3; i++) {
+      const t = .65 + (i - 1) * .35;
+      tl.from('#step-' + i, { y: 32, opacity: 0, duration: .6, ease: 'power3.out' }, t);
+      tl.from('#step-' + i + ' .number', { scale: .8, opacity: 0, duration: .4, ease: 'back.out(1.2)' }, t + .15);
+      tl.from('#step-' + i + ' h2', { x: -12, opacity: 0, duration: .45, ease: 'power2.out' }, t + .2);
+      tl.from('#step-' + i + ' .benefit', { y: 10, opacity: 0, duration: .4, ease: 'sine.out' }, t + .3);
+    }
+    tl.from('.progress span', { scaleX: 0, duration: 4.4, ease: 'none' }, 1.1);
+    window.__timelines['subscription-correction'] = tl;
+  </script>
+</body>
+</html>

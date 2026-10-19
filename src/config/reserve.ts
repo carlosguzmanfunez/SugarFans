@@ -532,7 +532,7 @@ export const RESERVE_FLOW = ['Solicitud', 'Aceptación', 'Pago', 'Confirmación'
 export const RESERVE_COPY = {
   principle: 'Reserva experiencias, no personas.',
   gift: 'Los regalos son apoyo voluntario: no garantizan respuesta, conversación ni acceso. Si el creador tiene una Meta de experiencia, se van acumulando hasta que la completes.',
-  subscription: 'La suscripción da acceso al contenido, a los Lives para suscriptores y a los beneficios que el creador define. No incluye Reserve Events, videollamadas 1:1 ni otras experiencias de Reserve.',
+  subscription: 'La suscripción da acceso al contenido exclusivo y a los beneficios que el creador define. Los Reserve Events, las videollamadas 1:1 y las demás experiencias de Reserve se reservan y pagan por separado.',
   subscriberLive: 'Live grupal incluido en tu suscripción. No es tiempo individual con el creador ni garantiza interacción individual.',
   event: 'Reserve Event: experiencia grupal con fecha, duración, precio y plazas definidas. Tu plaza garantiza el acceso al evento, no tiempo individual.',
   oneToOne: 'Reserve 1:1: videollamada solo entre tú y el creador, dentro de la reserva confirmada.',
