@@ -20,8 +20,8 @@ const filmFiles = (lang: Language, phone: boolean) => {
   const suffix = lang === "es" ? "" : `-${lang}`;
   const shape = phone ? "-vertical" : "";
   return {
-    src: `/presentacion/fans-reserve-presentacion${shape}${suffix}.mp4?v=7`,
-    poster: `/presentacion/poster${shape}${suffix}.jpg?v=7`,
+    src: `/presentacion/fans-reserve-presentacion${shape}${suffix}.mp4?v=8`,
+    poster: `/presentacion/poster${shape}${suffix}.jpg?v=8`,
   };
 };
 const COMMUNITIES = [

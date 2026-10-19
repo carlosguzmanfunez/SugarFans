@@ -198,7 +198,7 @@ export const UpcomingAccess: React.FC<{ creatorId: string; experiences: VipExper
   // this card only shows there while a Subscriber Live is on.
   return (
     <section aria-labelledby="upcoming-title" className={`mb-6 rounded-3xl bg-white p-5 shadow-sm sm:p-6 ${liveTitle ? '' : 'max-sm:hidden'}`} data-testid="upcoming-access">
-      <h2 id="upcoming-title" className="text-base font-bold text-ink">Próximos Lives para suscriptores y Reserve Events</h2>
+      <h2 id="upcoming-title" className="text-base font-bold text-ink">{liveTitle ? 'Próximos Lives para suscriptores y Reserve Events' : 'Próximos Reserve Events'}</h2>
       <ul className="mt-3 divide-y divide-line">
         {liveTitle && (
           <li className="flex flex-wrap items-center justify-between gap-2 py-3">

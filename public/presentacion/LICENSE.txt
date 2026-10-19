@@ -3,3 +3,7 @@ Made with HyperFrames; source in the project files (presentacion-global/proyecto
 One render per language (es keeps the plain names; en, pt, fr, it carry a -<lang> suffix).
 Uses the approved brand kit, the demo creators' AI portraits and four Reserve example clips
 (Pexels License, see ../reserve-clips/LICENSE.txt). The people in those clips are not Fans Reserve creators.
+
+F03 correction: the subscription scene now describes exclusive content instead of Subscriber Live.
+Editable HyperFrames correction source and rendering instructions: design/presentation-correction.
+The remaining footage, its credits, and the original posters are retained.
