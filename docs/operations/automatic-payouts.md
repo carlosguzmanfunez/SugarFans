@@ -8,9 +8,9 @@ The Supabase adapter now accepts only an explicit server confirmation (`ok: true
 
 Migration `20261019215002_disable_simulated_payout_fallback.sql` replaces the old `request_payout()` implementation with a non-writing rejection, changes it to `SECURITY INVOKER`, and removes execution from `PUBLIC`, `anon`, `authenticated` and `service_role`. Keeping the signature makes stale clients fail closed. Even a future accidental grant cannot restore its previous behavior. Existing payments and balances are not rewritten; the supported `paypal_payout_start` and provider confirmation flow remain available.
 
-Deploy the retirement migration before publishing the updated client. Do not restore the historical fallback as a rollback: that would reopen the same unsafe path. Verify function privileges and unchanged historical rows when applying it. The new `npm run test:payout-safety` covers unavailable/malformed responses, valid paid/sending responses, session requirements, direct RPC denial and history preservation on disposable PostgreSQL. This is preparation for production review, not evidence that the migration is already applied or that an automatic executor exists.
+The retirement migration was applied before publishing the updated client, recorded in Supabase as version `20261020015101`. PR #86 is merged and published. Function bodies/privileges and unchanged historical rows/balances were verified. Do not restore the historical fallback as a rollback: that would reopen the same unsafe path. `npm run test:payout-safety` covers unavailable/malformed responses, valid paid/sending responses, session requirements, direct RPC denial and history preservation on disposable PostgreSQL. No automatic executor is enabled.
 
-Step 2 prepares the ambiguous-submission recovery below. Provider event reconciliation, exact batch reservations/allocations and an adjustment ledger remain pending. Cross-session concurrency and actual PayPal Sandbox integration remain required before unattended execution.
+Step 2 below is also published. Step 3 provides the payout event reconciliation proposed in this branch; its migration and server still require publication. Exact batch reservations/allocations, an adjustment ledger, cross-session concurrency and actual PayPal Sandbox integration remain required before unattended execution.
 
 ## Step 2: preserve and recover ambiguous submissions
 
@@ -24,11 +24,17 @@ New POST attempts stop after five total attempts or 29 days from the first attem
 
 Recovery runs when the existing server reconciliation endpoint is requested (including opening/reloading earnings). This does not add a monthly scheduler or unattended executor. The creator sees “En proceso”, confirmation pending or review needed, rather than a guaranteed delivery message. New RPCs are executable only by `service_role`; RLS and table privileges deny direct client/server REST access to the snapshots, which are accessed by the narrowly granted RPCs.
 
-`npm run test:payout-recovery` executes the actual API and SQL against disposable PostgreSQL with all PayPal calls mocked. Independent PostgreSQL sessions, actual PayPal Sandbox signature/integration behavior and durable webhook history remain pending. The existing webhook state writer still needs Step 3; this step alone does not make automatic payouts ready.
+`npm run test:payout-recovery` executes the actual API and SQL against disposable PostgreSQL with all PayPal calls mocked. Independent PostgreSQL sessions and actual PayPal Sandbox signature/integration behavior remain pending. Step 3 adds durable payout webhook history and replaces the old writer; step 2 alone does not make automatic payouts ready.
 
-Deployment order: PR 86/fallback retirement first, then this migration, then the updated server/client. Retain snapshots and reservations during rollback; restoring the old send/error handling would reopen duplicate-payment risk. No production migration, real payout or automatic job is authorized or enabled by these test results.
+Publication completed in that order: PR #86/fallback retirement, this migration (Supabase version `20261020015155`), then PR #87/server and client. Production commit `45edfa40167ab6ba561bf53cf29ba08162baa9fe` is READY in Vercel. Historical payout, transaction, recipient and calculated balance signatures were unchanged. Retain snapshots and reservations during rollback; restoring the old send/error handling would reopen duplicate-payment risk. No real payout was executed and no automatic job was enabled.
 
 Provider references: [sender batch deduplication](https://developer.paypal.com/api/payments.payouts-batch/v1/definitions/payout_sender_batch_header/), [batch details](https://developer.paypal.com/api/payments.payouts-batch/v1/payouts-get/), [item transaction states](https://developer.paypal.com/api/payments.payouts-batch/v1/definitions/transaction_enum/).
+
+## Step 3: persist and reconcile payout events
+
+See [payout event reconciliation](payout-event-reconciliation.md) for the design, deployment sequence and operator checks. This branch adds a private event inbox and query history, authoritative provider validation, atomic evidence/state commits and fencing of late query responses. Pending events are recoverable via webhook retries or the earnings endpoint. Contradictory payment states preserve/recover the original reservation and require review.
+
+The recovery suite now includes 40 recovery cases and 25 event cases. This migration has not been applied to production. Its scope is Payouts notifications, queries and cancellation; capture refunds, disputes and subscription events still need their own durable inbox/reconciliation. The double-entry ledger, frozen multi-creator batches and unattended executor remain open.
 
 ## Existing foundation
 
