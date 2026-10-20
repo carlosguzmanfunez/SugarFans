@@ -52,7 +52,7 @@ import { createLocalLive, addLocalNotification } from './localLive';
 import { bookingAlert, isOverdue, respondByFrom } from '../reserveAlerts';
 import { creators as demoCreators } from '../../data/mockData';
 import { moderate } from '../moderation';
-import { demoAccount, isDemoEmail } from '../../config/demoAccounts';
+import { demoAccount, isDemoEmail, offlineDemoEnabled } from '../../config/demoAccounts';
 import { BRAND } from '../../config/brand';
 import { usernameFrom } from '../creatorLinks';
 
@@ -81,7 +81,7 @@ const baseUser = (partial: Pick<User, 'id' | 'name' | 'email' | 'role' | 'avatar
   ...partial,
 });
 
-const demoUsers: User[] = [
+const demoUsers: User[] = offlineDemoEnabled ? [
   baseUser({ id: 'demo-admin', name: `Admin ${BRAND.compactName}`, email: demoAccount('admin').email, role: 'admin', avatar: avatarFor('admin') }),
   baseUser({
     id: 'demo-creator',
@@ -98,7 +98,7 @@ const demoUsers: User[] = [
     posts: 256,
   }),
   baseUser({ id: 'demo-fan', name: 'Carlos M.', email: demoAccount('fan').email, role: 'fan', avatar: avatarFor('carlos') }),
-];
+]: [];
 
 const notify = () => window.dispatchEvent(new Event(CHANGE_EVENT));
 
@@ -119,6 +119,7 @@ const saveAccounts = (accounts: StoredAccount[]) => {
 
 // Seed the demo accounts once per browser; deleting one keeps it deleted.
 const seedPromise: Promise<void> = (async () => {
+  if (!offlineDemoEnabled) return;
   if (readJSON<boolean>(SEEDED_KEY, false)) return;
   const accounts = loadAccounts();
   for (const demo of demoUsers) {

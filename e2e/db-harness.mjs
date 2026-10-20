@@ -25,8 +25,9 @@ export const createDbTest = (DB) => {
     return r.stdout.trim();
   };
   // Runs as a signed-in user through row security, like the app does.
+  const nullSink = process.platform === 'win32' ? 'NUL' : '/dev/null';
   const as = (uid, query) =>
-    psql(DB, `begin;\nset local role authenticated;\nselect set_config('request.jwt.claim.sub', '${uid}', true) \\g /dev/null\n${query};\ncommit;`);
+    psql(DB, `begin;\nset local role authenticated;\nselect set_config('request.jwt.claim.sub', '${uid}', true) \\g ${nullSink}\n${query};\ncommit;`);
   const raises = (fn, pattern, what) => {
     try {
       fn();
@@ -43,7 +44,9 @@ export const createDbTest = (DB) => {
   alter default privileges in schema public grant all on tables to anon, authenticated;
   alter default privileges in schema public grant all on sequences to anon, authenticated;
   create schema auth;
-  create table auth.users (id uuid primary key default gen_random_uuid(), email text, raw_user_meta_data jsonb default '{}'::jsonb, raw_app_meta_data jsonb default '{}'::jsonb, created_at timestamptz default now(), email_confirmed_at timestamptz, banned_until timestamptz, last_sign_in_at timestamptz);
+  create table auth.users (id uuid primary key default gen_random_uuid(), email text, raw_user_meta_data jsonb default '{}'::jsonb, raw_app_meta_data jsonb default '{}'::jsonb, created_at timestamptz default now(), email_confirmed_at timestamptz, banned_until timestamptz, last_sign_in_at timestamptz, deleted_at timestamptz, encrypted_password text);
+  create table auth.sessions (id uuid primary key default gen_random_uuid(), user_id uuid references auth.users(id) on delete cascade);
+  create table auth.refresh_tokens (id bigserial primary key, user_id text, session_id uuid references auth.sessions(id) on delete cascade);
   create table auth.identities (id uuid primary key default gen_random_uuid(), user_id uuid, provider text);
   create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
   create function auth.role() returns text language sql stable as $$ select current_setting('request.jwt.claim.role', true) $$;
@@ -70,7 +73,7 @@ export const createDbTest = (DB) => {
     psql(DB, roles === '3' ? SHIM.replace(/^\s*create role .*$/m, '') : SHIM);
     const dir = new URL('../supabase/migrations/', import.meta.url);
     for (const f of readdirSync(dir).filter((x) => x.endsWith('.sql')).sort())
-      psql(DB, readFileSync(new URL(f, dir), 'utf8').replace(/^create extension if not exists pg_cron;$/m, ''));
+      psql(DB, 'begin;\n' + readFileSync(new URL(f, dir), 'utf8').replace(/^create extension if not exists pg_cron;$/m, '') + '\ncommit;');
   };
 
   // Creators come verified (an unverified one can't be paid); pass verified: false to test that.

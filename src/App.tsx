@@ -23,6 +23,7 @@ const ReferralLink = lazy(() => import('./pages/ReferralLink'));
 const SpecialInviteLink = lazy(() => import('./pages/SpecialInviteLink'));
 const CreatorDashboard = lazy(() => import('./pages/CreatorDashboard'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const OwnerPanel = lazy(() => import('./pages/OwnerPanel'));
 const Help = lazy(() => import('./pages/Help'));
 const SalesTour = lazy(() => import('./pages/SalesTour'));
 const Settings = lazy(() => import('./pages/Settings'));
@@ -50,7 +51,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; roles?: string[] }> 
   // Remember where the user was going so they land there after the check.
   if (!ageVerified) return <Navigate to="/age-verification" replace state={{ from: location.pathname }} />;
   if (!isAuthenticated) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
-  if (roles && user && !roles.includes(user.role)) return <Navigate to="/explore" replace />;
+  if (roles && user && !roles.includes(user.role) && !user.isOwner) return <Navigate to="/explore" replace />;
   
   return <>{children}</>;
 };
@@ -220,6 +221,7 @@ const AppRoutes: React.FC = () => {
       } />
 
       {/* Protected pages */}
+      <Route path="/owner" element={<AppLayout><ProtectedRoute><OwnerPanel /></ProtectedRoute></AppLayout>} />
       <Route path="/live/:bookingId" element={
         <AppLayout>
           <ProtectedRoute><LiveRoom /></ProtectedRoute>

@@ -16,6 +16,7 @@ import { createSupabaseSpecial } from './supabaseSpecial';
 import { BRAND } from '../../config/brand';
 import { fromRpc } from '../infraUsage';
 import { createSupabaseFinance } from './supabaseFinance';
+import { isDemoEmail } from '../../config/demoAccounts';
 
 const REMEMBER_KEY = `${BRAND.storagePrefix}remember`;
 
@@ -133,11 +134,13 @@ const toExperience = (e: ExperienceRow): VipExperience => ({
   ...(hasDetails(e.details) ? { details: e.details as ReserveDetails } : {}),
 });
 
-const toUser = (p: ProfileRow, extra?: Pick<User, 'subscriptions' | 'createdPosts' | 'authProvider'>): User => ({
+const toUser = (p: ProfileRow, extra?: Pick<User, 'subscriptions' | 'createdPosts' | 'authProvider' | 'isOwner' | 'role'>): User => ({
   id: p.id,
   name: p.name,
   email: p.email,
-  role: p.role,
+  role: extra?.isOwner ? extra.role ?? p.role : p.role,
+  isOwner: extra?.isOwner === true,
+  accountRole: p.role,
   avatar: avatarOrEmpty(p.avatar),
   cover: p.cover || undefined,
   bio: p.bio ?? undefined,
@@ -235,15 +238,19 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       const { data: sessionData } = await sb.auth.getSession();
       const uid = sessionData.session?.user.id;
       if (!uid) return null;
+      if (isDemoEmail(sessionData.session?.user.email)) return null;
       const authProvider = (sessionData.session?.user.app_metadata?.provider as string | undefined) ?? 'email';
-      const [profile, subs, posts] = await Promise.all([
+      const [profile, subs, posts, owner] = await Promise.all([
         sb.from('profiles').select('*').eq('id', uid).maybeSingle(),
         sb.from('subscriptions').select('creator_id, price, since, cancel_at').eq('fan_id', uid),
         sb.from('creator_posts').select('id, content, is_locked, created_at, media_path, media_type, is_draft').eq('creator_id', uid).order('created_at', { ascending: false }),
+        sb.rpc('owner_access'),
       ]);
       if (!profile.data) return null;
       const moderation = await moderationOf(sb, 'post-media', (posts.data ?? []).map((p) => p.media_path).filter(Boolean) as string[]);
       return toUser(profile.data as ProfileRow, {
+        isOwner: !owner.error && owner.data?.owner === true && ['fan','creator','admin'].includes(owner.data?.view),
+        role: owner.data?.view,
         authProvider,
         // A cancelled subscription counts until its end date.
         subscriptions: (subs.data ?? [])
@@ -272,6 +279,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
     },
 
     async login(email, password, remember) {
+      if (isDemoEmail(email)) return fail('Las cuentas de demostración solo están disponibles en las pruebas locales.');
       try {
         localStorage.setItem(REMEMBER_KEY, String(remember));
       } catch {
@@ -279,6 +287,11 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       }
       const { error } = await sb.auth.signInWithPassword({ email: normalizeEmail(email), password });
       return error ? fail(translateAuthError(error.message)) : ok;
+    },
+
+    async ownerSwitchView(view) {
+      const { error } = await sb.rpc('owner_switch_view', { p_view: view });
+      return error ? dbError(error, 'No se pudo cambiar de vista') : ok;
     },
 
     async register(name, email, password, role, ref, extras) {

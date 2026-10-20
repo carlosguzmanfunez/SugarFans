@@ -21,6 +21,7 @@ interface AuthContextType {
   completeSocialSignup: (role: UserRole, ref?: string, extras?: SignupExtras) => Promise<AuthResult>;
   // "Hazte creador": the signed-in fan's account becomes a creator account.
   becomeCreator: () => Promise<AuthResult>;
+  switchOwnerView: (view: UserRole) => Promise<AuthResult>;
   logout: () => Promise<void>;
   verifyAge: () => void;
   updateUser: (data: ProfilePatch) => Promise<AuthResult>;
@@ -104,6 +105,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const becomeCreator = () => (user ? run(() => backend.becomeCreator(user)) : Promise.resolve(notSignedIn));
+  const switchOwnerView = (view: UserRole) => user?.isOwner && backend.ownerSwitchView
+    ? run(() => backend.ownerSwitchView!(view))
+    : Promise.resolve({ ok: false, error: 'Esta opción solo está disponible para el propietario' });
 
   const logout = async () => {
     await backend.logout();
@@ -162,6 +166,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         signInWithProvider,
         completeSocialSignup,
         becomeCreator,
+        switchOwnerView,
         logout,
         verifyAge,
         updateUser,

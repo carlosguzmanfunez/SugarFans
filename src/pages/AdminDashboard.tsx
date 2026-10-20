@@ -107,7 +107,7 @@ const AdminDashboard: React.FC = () => {
       date: new Date(u.createdAt).toLocaleDateString('es'),
       country: u.country ?? '',
       phone: u.phone ?? '',
-      isAdmin: u.role === 'admin',
+      isAdmin: u.role === 'admin' || (u.id === user?.id && user?.isOwner === true),
       suspended: isSuspendedNow(platform.restrictions.find((r) => r.userId === u.id)),
       frozen: !!platform.restrictions.find((r) => r.userId === u.id)?.payoutsFrozen,
     }));
