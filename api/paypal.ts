@@ -236,17 +236,29 @@ const PAYOUT_TIMEOUT_MS = 10000;
 // Never follow arbitrary URLs from an error body with a bearer token. Extract
 // only a batch ID from this environment's own documented resource path.
 const duplicateBatch = (e: Env, data: any): string | null => {
-  const duplicate = data?.name === 'DUPLICATE_BATCH_ID'
-    || (Array.isArray(data?.details) && data.details.some((x: any) => x?.issue === 'DUPLICATE_BATCH_ID'));
-  if (!duplicate || !Array.isArray(data?.links)) return null;
-  for (const link of data.links) {
+  const duplicate = data?.name === 'DUPLICATE_BATCH_ID';
+  const details = (Array.isArray(data?.details) ? data.details : []).filter((detail: any) =>
+    duplicate || detail?.issue === 'DUPLICATE_BATCH_ID'
+    // Payouts v1 also returns this issue with its original-batch link nested
+    // under details[].link. A generic USER_BUSINESS_ERROR is not enough.
+    || (data?.name === 'USER_BUSINESS_ERROR' && detail?.field === 'SENDER_BATCH_ID'
+      && detail?.issue === 'Batch with given sender_batch_id already exists'));
+  if (!duplicate && details.length === 0) return null;
+  const links = [
+    ...(Array.isArray(data?.links) ? data.links : []),
+    ...details.flatMap((detail: any) => Array.isArray(detail?.link) ? detail.link : []),
+  ];
+  const batches = new Set<string>();
+  for (const link of links) {
+    if (typeof link?.href !== 'string' || (link.method !== undefined && link.method !== 'GET')) continue;
     try {
       const url = new URL(link.href);
       const match = url.pathname.match(/^\/v1\/payments\/payouts\/([A-Za-z0-9_-]{1,128})$/);
-      if (url.origin === e.api && !url.username && !url.password && match) return match[1];
+      if (url.origin === e.api && !url.username && !url.password && match) batches.add(match[1]);
     } catch { /* an invalid recovery link cannot authorize a new payment */ }
   }
-  return null;
+  // Conflicting original-batch references require review; never pick one by order.
+  return batches.size === 1 ? [...batches][0] : null;
 };
 
 const batchMatches = (batch: any, id: string, batchId: string) =>
