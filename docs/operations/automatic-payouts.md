@@ -36,6 +36,10 @@ See [payout event reconciliation](payout-event-reconciliation.md) for the design
 
 The recovery suite includes 40 recovery cases and 25 event cases. Deployment requires `20261020015716_payout_event_reconciliation.sql` before the server. Its scope is Payouts notifications, queries and cancellation; capture refunds, disputes and subscription events still need their own durable inbox/reconciliation. The double-entry ledger, frozen multi-creator batches and unattended executor remain open.
 
+## Step 4: creator subledger and frozen reservations
+
+See [creator ledger and batches](creator-ledger-batches.md). This branch adds a balanced, append-only creator-payables subledger, source revisions and allocations shared by manual withdrawals and frozen batch reservations. It also adds the administrative review/correction/CSV interface and authoritative creator balances. Installation requires a verified opening without legacy withdrawals; it refuses to invent historical allocations. The batch-handoff gate remains false. This does not complete full company accounting, bank/PSP reconciliation, incident email workflows or the automatic executor.
+
 ## Existing foundation
 
 The application already stores transactions, payout recipients and individual payouts with gross/fee/net amounts, sending/paid/failed state, provider references and an error field. The existing server sends a single creator payout, uses a stable identifier for that request, checks provider notifications, and can query or cancel applicable in-progress payouts. Database checks include identity verification, minimum balance, account restrictions, recipient presence and a lock against overlapping withdrawals.

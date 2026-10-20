@@ -7,6 +7,7 @@ import type { LiveBackend } from './liveTypes';
 import type { SpecialBackend } from './specialTypes';
 import type { SocialLinks } from '../creatorLinks';
 import type { InfraUsage } from '../infraUsage';
+import type { FinanceBackend } from '../creatorFinance';
 import type { ApprovalMode, CancellationPolicyId, CreatorCategoryId, LocationType, PurposeId, ReserveModality } from '../../config/reserve';
 export type * from './platformTypes';
 export type * from './socialTypes';
@@ -312,6 +313,7 @@ export interface Backend {
   // Admins: this month's use of each provider's plan ("Consumo" tab), and the plans
   // in use plus the share of income set aside for providers.
   infraUsage(): Promise<InfraUsage | null>;
+  finance: FinanceBackend;
   setInfraSettings(plans: InfraUsage['plans'], fundPct: number): Promise<AuthResult>;
   changePassword(user: User, current: string, next: string): Promise<AuthResult>;
   // `password` is ignored for Google/Microsoft accounts, which have none.

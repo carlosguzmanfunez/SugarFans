@@ -15,6 +15,7 @@ import { createSupabaseRewards } from './supabaseRewards';
 import { createSupabaseSpecial } from './supabaseSpecial';
 import { BRAND } from '../../config/brand';
 import { fromRpc } from '../infraUsage';
+import { createSupabaseFinance } from './supabaseFinance';
 
 const REMEMBER_KEY = `${BRAND.storagePrefix}remember`;
 
@@ -223,6 +224,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       return data.session?.access_token ?? null;
     },
     platform: createSupabasePlatform(sb),
+    finance: createSupabaseFinance(sb),
     social: createSupabaseSocial(sb),
     gifts: createSupabaseGifts(sb),
     rewards: createSupabaseRewards(sb),

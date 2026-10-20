@@ -9,6 +9,7 @@ import { build } from 'esbuild';
 import { payoutEventCases } from './payout-event-cases.mjs';
 
 const dir=mkdtempSync(join(tmpdir(),'fans-payout-recovery-')),db=new PGlite(),oldFetch=globalThis.fetch;
+const withLedger=process.env.TEST_FINANCE_LEDGER==='1';
 const user='00000000-0000-0000-0000-000000000001',other='00000000-0000-0000-0000-000000000002';
 const sender='TEST_ONLY_CLIENT',q=async(sql,args=[]) => (await db.query(sql,args)).rows;
 const source=name=>readFileSync(resolve('supabase/migrations',name),'utf8');
@@ -27,7 +28,8 @@ const finish=async(id,token,outcome,batch=null)=>(await q('select paypal_payout_
 const response=(status,data)=>status===204?new Response(null,{status}):new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json'}});
 let state,passed=0;
 const reset=async()=>{
-  await db.exec('reset role;truncate paypal_payout_reconciliations,paypal_payout_events,paypal_payout_submissions,payouts,transactions,profiles,payout_accounts,account_restrictions');
+  const financeTables=withLedger?'finance_allocations,finance_source_revisions,finance_journal,finance_adjustments,finance_sources,finance_batch_items,finance_batches,':'';
+  await db.exec(`reset role;truncate ${financeTables}paypal_payout_reconciliations,paypal_payout_events,paypal_payout_submissions,payouts,transactions,profiles,payout_accounts,account_restrictions`);
   await clock('2026-10-26T12:00:00Z');
   await q("insert into profiles values($1,'creator','Creator','creator',true,false)",[user]);
   await q("insert into payout_accounts values($1,'original@example.invalid')",[user]);
@@ -56,6 +58,10 @@ try {
   `);
   await clock('2026-10-19T12:00:00Z');await db.exec(calendar);await db.exec(source('20261019215002_disable_simulated_payout_fallback.sql'));await db.exec(markSql);await db.exec(migration);
   await db.exec(source('20261020015716_payout_event_reconciliation.sql'));
+  if(withLedger){
+    await db.exec("create function is_admin() returns boolean language sql stable security definer set search_path='' as $$select coalesce((select role='admin' from public.profiles where id=auth.uid()),false)$$");
+    await db.exec(source('20261020032222_creator_ledger_batch_reservations.sql'));
+  }
   await build({entryPoints:['api/paypal.ts'],outfile:join(dir,'paypal.mjs'),bundle:true,platform:'node',format:'esm',logLevel:'silent'});
   const api=await import(pathToFileURL(join(dir,'paypal.mjs')).href);
   globalThis.fetch=async(url,init={})=>{

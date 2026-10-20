@@ -14,6 +14,7 @@ export type * from './backend/platformTypes';
 const p = backend.platform;
 const listeners = new Set<() => void>();
 export const platformChanged = () => listeners.forEach((l) => l());
+export const onPlatformChanged = (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; };
 
 const after = async <T extends AuthResult>(result: Promise<T>): Promise<T> => {
   const r = await result;

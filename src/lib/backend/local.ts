@@ -41,6 +41,7 @@ import {
 } from './shared';
 import type { AuthResult, Availability, Backend, BookingInput, BookingStatus, User, VipBooking, VipExperience } from './types';
 import type { InfraUsage } from '../infraUsage';
+import { financeLocal } from '../creatorFinance';
 import { createLocalPlatform } from './localPlatform';
 import { createLocalSocial } from './localSocial';
 import { blobToDataUrl } from '../profileImage';
@@ -424,6 +425,7 @@ const ok = { ok: true } as const;
 const fail = (error: string) => ({ ok: false, error });
 
 export const localBackend: Backend = {
+  finance: financeLocal,
   mode: 'local',
   async accessToken() {
     return null;

@@ -27,6 +27,7 @@ import { BRAND, displayPayer } from '../config/brand';
 import { displayGiftNote } from '../config/gifts';
 import { earningsCycle, payoutWindow, formatPayoutDate } from '../lib/payoutCalendar';
 import { usePayoutCalendar } from '../lib/usePayoutCalendar';
+import { useCreatorBalance } from '../lib/useCreatorBalance';
 
 const field = 'w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-sm';
 const fmtDate = formatPayoutDate;
@@ -53,6 +54,7 @@ const CreatorPayouts: React.FC = () => {
   const { user } = useAuth();
   const calendar = usePayoutCalendar();
   const userId = user?.id ?? '';
+  const book = useCreatorBalance(userId);
   const profileId = user?.creatorProfileId ?? userId;
   const { data, loading } = usePlatformQuery(
     async () => {
@@ -78,12 +80,12 @@ const CreatorPayouts: React.FC = () => {
 
   if (!user) return null;
   const { sales, payoutAccount } = data;
-  const earnings = computeEarnings(sales, data.payouts, calendar.at, calendar.data?.legacyCutoff);
+  const earnings = computeEarnings(sales, data.payouts, calendar.at, calendar.data?.legacyCutoff,book.data);
   const paid = data.payouts;
   const cycle = earningsCycle(calendar.at);
   const window = payoutWindow(calendar.at);
   const creditDay = fmtDate(nextCreditDate(calendar.at));
-  const canWithdraw = !!calendar.data && !loading && window.open && earnings.available >= terms.min;
+  const canWithdraw = book.ready && !!calendar.data && !loading && window.open && !!user.isVerified && !!payoutAccount && !data.payouts.some(p=>p.status==='sending') && earnings.available >= terms.min;
   const fee = payoutFee(earnings.available);
   const verified = !!user.isVerified;
 
@@ -118,19 +120,21 @@ const CreatorPayouts: React.FC = () => {
         <p className="text-sm text-gray-600 mb-3" data-testid="earnings-cycle">Ciclo actual: {fmtDate(cycle.start)} – {fmtDate(cycle.lastDay)}. Hora de Honduras (UTC−6).</p>
         {calendar.data && calendar.data.legacyCutoff > cycle.start && <p className="text-xs text-gray-500 mb-3">Los importes ya acreditados antes de este calendario permanecen en el saldo de ciclos cerrados.</p>}
         {!calendar.loading && !calendar.data && <p role="alert" className="text-sm text-amber-800 mb-3">No pudimos confirmar el calendario de pagos. Actualiza la página antes de solicitar un pago.</p>}
+        {!book.ready && <p role="status" className="text-sm text-amber-800 mb-3">Estamos confirmando tu saldo y lo apartado para pagos. <button className="underline" onClick={book.reload}>Actualizar saldo</button></p>}
+        {book.data && book.data.reserved>0 && <p className="text-sm bg-amber-50 text-amber-900 p-3 rounded-xl mb-3" data-testid="creator-batch-reserved">{money(book.data.reserved)} apartados para el lote de pago. Ese importe sigue siendo tuyo y ya está separado del saldo que puedes retirar manualmente.</p>}
         <p className="text-sm text-gray-500 mb-4">Recibes el {CREATOR_SHARE * 100}% de lo que llega de cada pago después de la comisión de PayPal (más en Diamante y con los fans de tu enlace; {GIFT_SHARE * 100}% de los regalos). Los detalles están en Recompensas.</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-green-50 rounded-xl p-4">
-            <p className="text-sm text-green-700">Saldo de ciclos cerrados</p>
-            <p className="text-2xl font-bold text-green-900" data-testid="available-balance">{calendar.data ? money(earnings.available) : '—'}</p>
+            <p className="text-sm text-green-700">Disponible sin apartar · ciclos cerrados</p>
+            <p className="text-2xl font-bold text-green-900" data-testid="available-balance">{calendar.data && book.ready ? money(earnings.available) : '—'}</p>
           </div>
           <div className="bg-blue-50 rounded-xl p-4">
             <p className="text-sm text-blue-700">En acumulación · se acredita el {creditDay}</p>
-            <p className="text-2xl font-bold text-blue-900" data-testid="pending-balance">{calendar.data ? money(earnings.pending) : '—'}</p>
+            <p className="text-2xl font-bold text-blue-900" data-testid="pending-balance">{calendar.data && book.ready ? money(earnings.pending) : '—'}</p>
           </div>
           <div className="bg-purple-50 rounded-xl p-4">
             <p className="text-sm text-purple-700">Total ganado</p>
-            <p className="text-2xl font-bold text-purple-900">{money(earnings.totalEarned)}</p>
+            <p className="text-2xl font-bold text-purple-900">{book.ready?money(earnings.totalEarned):'—'}</p>
           </div>
         </div>
       </div>
@@ -185,14 +189,14 @@ const CreatorPayouts: React.FC = () => {
             disabled={!canWithdraw}
             className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-5 py-3 rounded-xl text-sm font-medium hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Retirar {money(earnings.available)}
+            {book.ready?`Retirar ${money(earnings.available)}`:'Confirmando saldo…'}
           </button>
           {canWithdraw && (
             <p className="text-xs text-gray-500">
               Recibirás {money(earnings.available - fee)} (comisión de PayPal {money(fee)}).
             </p>
           )}
-          {!loading && window.open && calendar.data && earnings.available < terms.min && (
+          {book.ready && !loading && window.open && calendar.data && earnings.available < terms.min && (
             <p className="text-xs text-gray-500">Podrás retirar cuando tu saldo disponible llegue a {money(terms.min)}.</p>
           )}
           {!window.open && <p className="text-xs text-gray-500">Las solicitudes de pago se habilitan del 26 al 1, hora de Honduras.</p>}

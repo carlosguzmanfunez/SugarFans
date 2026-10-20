@@ -181,7 +181,7 @@ export const creatorCut = (t: Pick<Transaction, 'amount' | 'share'>) => t.amount
 
 // Cycles close at midnight on the 26th in Honduras. Unpaid balances carry over;
 // sending/paid payouts remain deducted, including those from the old calendar.
-export const computeEarnings = (sales: Transaction[], payouts: Payout[], at = new Date(), legacyCutoff?: string) => {
+export const computeEarnings = (sales: Transaction[], payouts: Payout[], at = new Date(), legacyCutoff?: string, book?: import('./creatorFinance').CreatorBalance) => {
   // A refund Fans Reserve covers (not the creator's fault) still counts for them.
   const paid = sales.filter((t) => t.status === 'paid' || (t.platformCovers && (t.status === 'refunded' || t.status === 'disputed')));
   const cutoff = creditCutoff(at, legacyCutoff);
@@ -192,11 +192,12 @@ export const computeEarnings = (sales: Transaction[], payouts: Payout[], at = ne
   const withdrawn = round2(payouts.filter((p) => p.status !== 'failed').reduce((s, p) => s + p.amount, 0));
   return {
     gross: round2(paid.reduce((s, t) => s + t.amount, 0)),
-    thisMonth: pending,
-    pending, // current cycle, closes on the 26th at 00:00 Honduras
-    totalEarned: round2(credited + pending),
+    thisMonth: book?.pending ?? pending,
+    pending: book?.pending ?? pending, // current cycle, closes on the 26th at 00:00 Honduras
+    totalEarned: book?.total_earned ?? round2(credited + pending),
     withdrawn,
-    available: round2(credited - withdrawn),
+    available: book?.available ?? round2(credited - withdrawn),
+    reserved: book?.reserved ?? 0,
   };
 };
 

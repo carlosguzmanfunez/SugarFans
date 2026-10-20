@@ -15,6 +15,7 @@ import { ENABLE_CREATOR_LIVE } from '../config/features';
 import { usePlatformQuery, platformApi, computeEarnings, iBlocked, blockUser, unblockUser, money, CREATOR_SHARE, creatorCut, transactionLabel } from '../lib/platform';
 import { WEEKDAYS, ALL_HOURS, MAX_BOOKING_MONTHS, DEFAULT_AVAILABILITY } from '../lib/vip';
 import { backend } from '../lib/backend';
+import { useCreatorBalance } from '../lib/useCreatorBalance';
 import { useBackendData } from '../lib/useBackendData';
 import NewPostForm from '../components/NewPostForm';
 import CreatorReservePanel from '../components/reserve/CreatorReservePanel';
@@ -81,6 +82,7 @@ const CreatorDashboard: React.FC = () => {
   const pendingVip = vipBookings.filter((b) => needsCreatorAnswer(b)).length;
   // A new request shows up in the list at once.
   const userId = user?.id;
+  const book = useCreatorBalance(userId);
   useEffect(() => (userId ? onNewNotification(userId, reloadBookings) : undefined), [userId, reloadBookings]);
 
   // Real verification state, fan payments (80% for the creator), subscribers and blocks.
@@ -101,7 +103,7 @@ const CreatorDashboard: React.FC = () => {
     null
   );
   const verificationStatus = live?.verification?.status;
-  const earnings = live && calendar.data ? computeEarnings(live.sales, live.payouts, calendar.at, calendar.data.legacyCutoff) : null;
+  const earnings = live && calendar.data && book.ready ? computeEarnings(live.sales, live.payouts, calendar.at, calendar.data.legacyCutoff,book.data) : null;
   const monthName = (iso: string) => new Date(iso).toLocaleDateString('es', { month: 'short', year: 'numeric' });
 
   const toggle = <T,>(list: T[], item: T) => (list.includes(item) ? list.filter((x) => x !== item) : [...list, item]);
