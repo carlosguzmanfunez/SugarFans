@@ -6,7 +6,7 @@ export const ADMIN='00000000-0000-0000-0000-000000000090';
 export const CREATOR='00000000-0000-0000-0000-000000000001';
 export const OTHER='00000000-0000-0000-0000-000000000002';
 export const FINANCE_MIGRATION='20261020032222_creator_ledger_batch_reservations.sql';
-export const NOTIFICATION_MIGRATION='20261020230654_payout_notification_wording.sql';
+export const NOTIFICATION_MIGRATION='20261020231703_payout_notification_wording.sql';
 export async function financeFixture({beforeMigration,notificationMigration=true}={}) {
  const db=new PGlite();const q=async(sql,args=[]) => (await db.query(sql,args)).rows;
  const source=n=>readFileSync(resolve('supabase/migrations',n),'utf8');
