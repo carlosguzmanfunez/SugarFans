@@ -26,6 +26,14 @@ const begin=async()=> (await q('select paypal_payout_begin($1,$2,$3) as v',[user
 const claim=async(id,who=user,mode='sandbox',client=sender)=>(await q('select paypal_payout_claim($1,$2,$3,$4) as v',[who,id,mode,client]))[0].v;
 const finish=async(id,token,outcome,batch=null)=>(await q('select paypal_payout_submission_result($1,$2,$3,$4,$5,$6) as v',[user,id,token,outcome,batch,'TEST_RESULT']))[0].v;
 const response=(status,data)=>status===204?new Response(null,{status}):new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json'}});
+// Error shape observed in Sandbox; the URL and batch ID are test values because
+// Developer redacts the original nested URL. Never replay a real withdrawal.
+const duplicateV1Fixture=JSON.parse(readFileSync(resolve('e2e/fixtures/paypal-duplicate-batch-v1.json'),'utf8'));
+const duplicateV1=id=>{
+  const error=structuredClone(duplicateV1Fixture);
+  error.details[0].link[0].href=`https://api-m.sandbox.paypal.com/v1/payments/payouts/BATCH-${id}`;
+  return error;
+};
 let state,passed=0;
 const reset=async()=>{
   const financeTables=withLedger?'finance_allocations,finance_source_revisions,finance_journal,finance_adjustments,finance_sources,finance_batch_items,finance_batches,':'';
@@ -113,6 +121,7 @@ try {
         if(state.mode==='before-acceptance')throw new TypeError('TEST network before acceptance');
         if(state.accepted.has(id)) {
           if(state.mode==='lost-all')throw new TypeError('TEST lost duplicate response');
+          if(state.duplicateResponse)return response(400,state.duplicateResponse(id));
           return response(400,{name:'VALIDATION_ERROR',details:[{issue:'DUPLICATE_BATCH_ID'}],links:[{rel:'original',href:`${state.badLink?'https://foreign.example.invalid':'https://api-m.sandbox.paypal.com'}/v1/payments/payouts/BATCH-${id}`,method:'GET'}]});
         }
         state.accepted.set(id,body);
@@ -139,6 +148,86 @@ try {
 
   await check('Un envío confirmado paga una vez y persiste la referencia antes de consultar',async()=>{
     const r=await post();assert.equal(r.body.status,'paid');assert.equal((await current()).status,'paid');assert.equal((await submission()).batch_id,(await current()).paypal_batch_id);assert.equal(state.accepted.size,1);assert.equal(await balance(),0);
+  });
+  await check('El duplicado v1 observado recupera la respuesta perdida sin webhook ni segundo retiro',async()=>{
+    state.mode='disconnected';state.duplicateResponse=duplicateV1;
+    const first=await post();assert.equal(first.body.status,'sending');assert.equal(await balance(),0);
+    const original=structuredClone(state.posts[0]);await advance();state.mode='success';
+    const recovered=await post('payout-check');assert.equal(recovered.body.items[0].status,'paid');
+    assert.equal((await current()).status,'paid');assert.equal((await rows()).length,1);
+    assert.equal((await submission()).batch_id,(await current()).paypal_batch_id);
+    assert.equal(state.accepted.size,1);assert.equal(state.posts.length,2);assert.deepEqual(state.posts[1],original);
+    assert.equal(await balance(),0);assert.equal(Number((await q('select count(*) as n from paypal_payout_events'))[0].n),0);
+    if(withLedger){
+      const journal=await q('select kind,amount from finance_journal order by sequence');
+      assert.equal(journal.filter(j=>j.kind==='payout_reserved').length,1);assert.equal(journal.filter(j=>j.kind==='payout_confirmed').length,1);
+      assert.equal(journal.filter(j=>j.kind==='payout_released').length,0);
+      await post('payout-check');assert.deepEqual(await q('select kind,amount from finance_journal order by sequence'),journal);
+    }
+    assert.equal(state.posts.length,2);
+  });
+  await check('El duplicado v1 recupera un lote pendiente sin liberar fondos y luego confirma por GET',async()=>{
+    state.mode='disconnected';state.status='UNCLAIMED';state.duplicateResponse=duplicateV1;await post();
+    await advance();state.mode='success';await post('payout-check');
+    assert.equal((await current()).status,'sending');assert.ok((await current()).paypal_batch_id);assert.equal(await balance(),0);
+    state.status='SUCCESS';await post('payout-check');assert.equal((await current()).status,'paid');assert.equal(state.posts.length,2);assert.equal(state.accepted.size,1);
+  });
+  await check('El código DUPLICATE_BATCH_ID también permite enlaces anidados y detalles nulos',async()=>{
+    state.mode='disconnected';state.duplicateResponse=id=>{const e=duplicateV1(id);e.name='VALIDATION_ERROR';e.details[0].issue='DUPLICATE_BATCH_ID';e.details.unshift(null);return e;};
+    await post();await advance();state.mode='success';await post('payout-check');assert.equal((await current()).status,'paid');assert.equal(state.accepted.size,1);
+  });
+  await check('Enlaces al mismo lote no duplican la recuperación y sus parámetros no se reenvían',async()=>{
+    state.mode='disconnected';state.duplicateResponse=id=>{const e=duplicateV1(id);e.links=[{...e.details[0].link[0],href:e.details[0].link[0].href+'?ignored=1#ignored'}];return e;};
+    await post();await advance();state.mode='success';await post('payout-check');assert.equal((await current()).status,'paid');
+    assert.ok(state.gets.length>0);assert.ok(state.gets.every(h=>!h.includes('?')&&!h.includes('#')));assert.equal(state.accepted.size,1);
+  });
+  for(const [name,href] of [
+    ['dominio ajeno',id=>`https://foreign.example.invalid/v1/payments/payouts/BATCH-${id}`],
+    ['entorno Live',id=>`https://api-m.paypal.com/v1/payments/payouts/BATCH-${id}`],
+    ['HTTP sin TLS',id=>`http://api-m.sandbox.paypal.com/v1/payments/payouts/BATCH-${id}`],
+    ['credenciales en URL',id=>`https://user:password@api-m.sandbox.paypal.com/v1/payments/payouts/BATCH-${id}`],
+    ['otra ruta',id=>`https://api-m.sandbox.paypal.com/v1/payments/payouts-item/BATCH-${id}`],
+    ['ruta de cancelación',id=>`https://api-m.sandbox.paypal.com/v1/payments/payouts/BATCH-${id}/cancel`],
+    ['ruta relativa',id=>`/v1/payments/payouts/BATCH-${id}`],
+    ['identificador codificado',()=>`https://api-m.sandbox.paypal.com/v1/payments/payouts/OTHER%2FBATCH`],
+    ['URL ausente',()=>null],
+  ])await check(`El duplicado v1 rechaza ${name} y conserva toda la reserva`,async()=>{
+    state.mode='disconnected';state.duplicateResponse=id=>{const e=duplicateV1(id);e.details[0].link[0].href=href(id);return e;};
+    await post();await advance();state.mode='success';await post('payout-check');
+    assert.equal(state.gets.length,0);assert.equal((await current()).paypal_batch_id,null);assert.equal((await current()).status,'sending');assert.equal(await balance(),0);assert.equal(state.accepted.size,1);
+  });
+  for(const [name,mutate] of [
+    ['error genérico',e=>{e.details[0].issue='Receiver is not confirmed';}],
+    ['campo ajeno',e=>{e.details[0].field='RECEIVER';}],
+    ['nombre de error ajeno',e=>{e.name='ANOTHER_ERROR';}],
+    ['método de escritura',e=>{e.details[0].link[0].method='POST';}],
+    ['lista de enlaces malformada',e=>{e.details[0].link={href:'INVALID'};}],
+    ['detalles malformados',e=>{e.details={issue:'DUPLICATE_BATCH_ID'};}],
+  ])await check(`El duplicado v1 no interpreta ${name} como prueba de lote`,async()=>{
+    state.mode='disconnected';state.duplicateResponse=id=>{const e=duplicateV1(id);mutate(e);return e;};
+    await post();await advance();state.mode='success';const r=await post('payout-check');
+    assert.equal(r.http,200);assert.equal(state.gets.length,0);assert.equal((await current()).status,'sending');assert.equal(await balance(),0);assert.equal(state.accepted.size,1);
+  });
+  await check('Dos referencias de lote contradictorias requieren conservar el envío incierto',async()=>{
+    state.mode='disconnected';state.duplicateResponse=id=>{const e=duplicateV1(id);e.links=[{...e.details[0].link[0],href:'https://api-m.sandbox.paypal.com/v1/payments/payouts/ANOTHER_BATCH'}];return e;};
+    await post();await advance();state.mode='success';await post('payout-check');assert.equal(state.gets.length,0);assert.equal((await current()).status,'sending');assert.equal(await balance(),0);
+  });
+  await check('Un enlace de otro detalle no se mezcla con el detalle duplicado v1',async()=>{
+    state.mode='disconnected';state.duplicateResponse=id=>{const e=duplicateV1(id);e.details.unshift({field:'RECEIVER',issue:'OTHER',link:[{href:'https://api-m.sandbox.paypal.com/v1/payments/payouts/ANOTHER_BATCH'}]});return e;};
+    await post();await advance();state.mode='success';await post('payout-check');assert.equal((await current()).status,'paid');assert.equal(state.accepted.size,1);
+  });
+  await check('El lote recuperado por duplicado v1 debe pertenecer a la referencia original',async()=>{
+    state.mode='disconnected';state.duplicateResponse=duplicateV1;await post();await advance();state.mode='success';state.badHeader=true;await post('payout-check');
+    assert.equal((await current()).paypal_batch_id,null);assert.equal((await current()).status,'sending');assert.equal(await balance(),0);
+  });
+  for(const [name,mutate] of [
+    ['importe',b=>{b.items[0].payout_item.amount.value='1.00';}],
+    ['moneda',b=>{b.items[0].payout_item.amount.currency='EUR';}],
+    ['destinatario',b=>{b.items[0].payout_item.receiver='other@example.invalid';}],
+    ['referencia de ítem',b=>{b.items[0].payout_item.sender_item_id='other-reference';}],
+  ])await check(`La recuperación v1 conserva fondos si el ítem tiene ${name} incorrecto`,async()=>{
+    state.mode='disconnected';state.duplicateResponse=duplicateV1;await post();await advance();state.mode='success';state.mutate=mutate;await post('payout-check');
+    assert.equal((await current()).status,'sending');assert.equal(await balance(),0);assert.equal(state.accepted.size,1);assert.equal(state.posts.length,2);
   });
   await check('Si falla el snapshot se revierte también la reserva inicial',async()=>{
     await db.exec("create function fail_test_snapshot() returns trigger language plpgsql as $$begin raise exception 'TEST snapshot unavailable';end;$$;create trigger fail_test_snapshot before insert on paypal_payout_submissions for each row execute function fail_test_snapshot()");

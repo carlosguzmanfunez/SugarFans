@@ -1,0 +1,18 @@
+{
+  "name": "USER_BUSINESS_ERROR",
+  "message": "User business error.",
+  "details": [
+    {
+      "field": "SENDER_BATCH_ID",
+      "issue": "Batch with given sender_batch_id already exists",
+      "link": [
+        {
+          "href": "https://api-m.sandbox.paypal.com/v1/payments/payouts/TEST_ORIGINAL_BATCH",
+          "rel": "self",
+          "method": "GET"
+        }
+      ]
+    }
+  ],
+  "links": []
+}
