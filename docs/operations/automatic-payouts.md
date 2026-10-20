@@ -10,7 +10,7 @@ Migration `20261019215002_disable_simulated_payout_fallback.sql` replaces the ol
 
 The retirement migration was applied before publishing the updated client, recorded in Supabase as version `20261020015101`. PR #86 is merged and published. Function bodies/privileges and unchanged historical rows/balances were verified. Do not restore the historical fallback as a rollback: that would reopen the same unsafe path. `npm run test:payout-safety` covers unavailable/malformed responses, valid paid/sending responses, session requirements, direct RPC denial and history preservation on disposable PostgreSQL. No automatic executor is enabled.
 
-Step 2 below is also published. Step 3 provides the payout event reconciliation proposed in this branch; its migration and server still require publication. Exact batch reservations/allocations, an adjustment ledger, cross-session concurrency and actual PayPal Sandbox integration remain required before unattended execution.
+Step 2 below is also published. Step 3 adds payout event reconciliation; deploy its migration before its server, following the procedure linked below. Exact batch reservations/allocations, an adjustment ledger, cross-session concurrency and actual PayPal Sandbox integration remain required before unattended execution.
 
 ## Step 2: preserve and recover ambiguous submissions
 
@@ -32,9 +32,9 @@ Provider references: [sender batch deduplication](https://developer.paypal.com/a
 
 ## Step 3: persist and reconcile payout events
 
-See [payout event reconciliation](payout-event-reconciliation.md) for the design, deployment sequence and operator checks. This branch adds a private event inbox and query history, authoritative provider validation, atomic evidence/state commits and fencing of late query responses. Pending events are recoverable via webhook retries or the earnings endpoint. Contradictory payment states preserve/recover the original reservation and require review.
+See [payout event reconciliation](payout-event-reconciliation.md) for the design, deployment sequence and operator checks. Step 3 adds a private event inbox and query history, authoritative provider validation, atomic evidence/state commits and fencing of late query responses. Pending events are recoverable via webhook retries or the earnings endpoint. Contradictory payment states preserve/recover the original reservation and require review.
 
-The recovery suite now includes 40 recovery cases and 25 event cases. This migration has not been applied to production. Its scope is Payouts notifications, queries and cancellation; capture refunds, disputes and subscription events still need their own durable inbox/reconciliation. The double-entry ledger, frozen multi-creator batches and unattended executor remain open.
+The recovery suite includes 40 recovery cases and 25 event cases. Deployment requires `20261020015716_payout_event_reconciliation.sql` before the server. Its scope is Payouts notifications, queries and cancellation; capture refunds, disputes and subscription events still need their own durable inbox/reconciliation. The double-entry ledger, frozen multi-creator batches and unattended executor remain open.
 
 ## Existing foundation
 
