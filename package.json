@@ -34,7 +34,10 @@
     "test:experience-category-db": "node e2e/experience-category-db.mjs",
     "test:payout-calendar": "node e2e/payout-calendar.mjs",
     "test:payout-safety": "node e2e/payout-safety.mjs",
-    "test:payout-recovery": "node e2e/payout-recovery.mjs"
+    "test:payout-recovery": "node e2e/payout-recovery.mjs",
+    "test:finance-ledger": "node e2e/finance-ledger.mjs",
+    "test:finance-adapter": "node e2e/finance-adapter.mjs",
+    "test:finance-ui": "node e2e/finance-ui.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",

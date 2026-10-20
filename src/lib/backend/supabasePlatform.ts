@@ -279,7 +279,7 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
       return (data ?? []).map(toPayout);
     };
     const payouts = await read();
-    if (!payouts.some((p) => p.status === 'sending')) return payouts;
+    if (!payouts.length) return payouts;
     // A withdrawal on its way: ask PayPal again, in case its notification didn't arrive.
     const token = (await sb.auth.getSession()).data.session?.access_token;
     const r = await fetch('/api/paypal', {
@@ -289,6 +289,7 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
     }).catch(() => null);
     const body = (await r?.json().catch(() => null)) as { items?: { id: string; paypalStatus: string }[] } | null;
     if (!r?.ok || !body?.items?.length) return payouts;
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event('fansreserve:finance-sync'));
     const states = new Map(body.items.map((i) => [i.id, i.paypalStatus]));
     return (await read()).map((p) => (p.status === 'sending' && states.has(p.id) ? { ...p, paypalState: states.get(p.id) } : p));
   },

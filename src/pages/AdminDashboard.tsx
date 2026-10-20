@@ -21,6 +21,7 @@ import { displayEmail } from '../config/demoAccounts';
 import { giftsApi, type CoinPurchase } from '../lib/gifts';
 import AdminOverview from '../components/AdminOverview';
 import AdminLedger from '../components/AdminLedger';
+import AdminFinance from '../components/AdminFinance';
 import AdminModeration from '../components/AdminModeration';
 import AdminErrors from '../components/AdminErrors';
 import AdminInfra from '../components/AdminInfra';
@@ -181,6 +182,7 @@ const AdminDashboard: React.FC = () => {
           {[
             { id: 'overview', label: 'Resumen', icon: 'fa-chart-pie' },
             { id: 'ledger', label: 'Libro', icon: 'fa-book' },
+            { id: 'finance', label: 'Pagos a creadores', icon: 'fa-layer-group' },
             { id: 'verifications', label: `Verificaciones (${pendingVerifications.length})`, icon: 'fa-id-card' },
             { id: 'reports', label: `Reportes (${pendingReports.length})`, icon: 'fa-flag' },
             { id: 'moderation', label: `Moderación (${pendingMedia})`, icon: 'fa-shield-alt' },
@@ -218,6 +220,7 @@ const AdminDashboard: React.FC = () => {
         {activeTab === 'moderation' && <AdminModeration />}
 
         {activeTab === 'errors' && <AdminErrors />}
+        {activeTab === 'finance' && <AdminFinance />}
 
         {activeTab === 'infra' && <AdminInfra transactions={platform.transactions} coins={platform.coins} />}
 

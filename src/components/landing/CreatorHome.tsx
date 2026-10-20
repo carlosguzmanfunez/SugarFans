@@ -9,6 +9,7 @@ import { useReserveInbox } from '../../lib/live';
 import { ENABLE_CREATOR_LIVE } from '../../config/features';
 import { CREATOR_RESERVE_LINK } from '../../lib/reserveAlerts';
 import { usePayoutCalendar } from '../../lib/usePayoutCalendar';
+import { useCreatorBalance } from '../../lib/useCreatorBalance';
 
 // A creator's home: instead of the fans' hero (which sells creators to fans), the top
 // of the page is about their own day: requests waiting, money this month, how close
@@ -21,6 +22,7 @@ const DAY = 86_400_000;
 
 const CreatorHome: React.FC = () => {
   const { user } = useAuth();
+  const book = useCreatorBalance(user?.id);
   const calendar = usePayoutCalendar();
   const profileId = user?.creatorProfileId ?? user?.id ?? '';
   const waiting = useReserveInbox(user ?? null);
@@ -40,7 +42,7 @@ const CreatorHome: React.FC = () => {
     null
   );
 
-  const earnings = data && calendar.data ? computeEarnings(data.sales, data.payouts, calendar.at, calendar.data.legacyCutoff) : null;
+  const earnings = data && calendar.data && book.ready ? computeEarnings(data.sales, data.payouts, calendar.at, calendar.data.legacyCutoff,book.data) : null;
 
   const first = (user?.name ?? '').split(' ')[0];
   const days = data?.lastPost ? Math.floor((Date.now() - data.lastPost) / DAY) : null;

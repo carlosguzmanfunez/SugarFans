@@ -66,8 +66,9 @@ const Settings: React.FC = () => {
         creatorId ? platformApi.payoutCalendar() : Promise.resolve(null),
       ]);
       // Earnings not withdrawn yet (credited + pending), lost if the account is deleted.
-      const e = computeEarnings(sales, payouts, new Date(), calendar?.legacyCutoff);
-      const unpaid = Math.max(0, e.available) + e.pending;
+      const book = creatorId ? await backend.finance.balance() : null;
+      const e = computeEarnings(sales, payouts, new Date(), calendar?.legacyCutoff,book?.ok?book.data:undefined);
+      const unpaid = Math.max(0, e.available) + e.reserved + e.pending;
       return { methods, payments, blocks: blocks.filter((b) => b.blockerId === user.id), unpaid };
     },
     [userId],
