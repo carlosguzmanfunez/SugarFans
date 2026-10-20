@@ -6,7 +6,8 @@ export const ADMIN='00000000-0000-0000-0000-000000000090';
 export const CREATOR='00000000-0000-0000-0000-000000000001';
 export const OTHER='00000000-0000-0000-0000-000000000002';
 export const FINANCE_MIGRATION='20261020032222_creator_ledger_batch_reservations.sql';
-export async function financeFixture({beforeMigration}={}) {
+export const NOTIFICATION_MIGRATION='20261020231703_payout_notification_wording.sql';
+export async function financeFixture({beforeMigration,notificationMigration=true}={}) {
  const db=new PGlite();const q=async(sql,args=[]) => (await db.query(sql,args)).rows;
  const source=n=>readFileSync(resolve('supabase/migrations',n),'utf8');
  await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;
@@ -30,6 +31,7 @@ export async function financeFixture({beforeMigration}={}) {
  await db.exec(source('20261019220609_payout_submission_recovery.sql'));await db.exec(source('20261020015716_payout_event_reconciliation.sql'));
  if(beforeMigration)await beforeMigration({db,q,clock,auth});
  try {await db.exec(source(FINANCE_MIGRATION));}catch(error){await db.close();throw error;}
+ if(notificationMigration)await db.exec(source(NOTIFICATION_MIGRATION));
  const reset=async()=>{
    await db.exec('reset role;truncate finance_allocations,finance_source_revisions,finance_journal,finance_adjustments,finance_sources,finance_batch_items,finance_batches,paypal_payout_reconciliations,paypal_payout_events,paypal_payout_submissions,payouts,transactions,profiles,payout_accounts,account_restrictions');
    await q('update finance_private.settings set batch_handoff_enabled=false');

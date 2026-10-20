@@ -43,3 +43,12 @@ Las consultas superpuestas se simulan intercalando operaciones reales de SQL; PG
 El alcance nuevo son eventos de Payouts, consultas y cancelaciones de retiros. Las disputas, reembolsos de cobros y suscripciones conservan su tratamiento previo; aún necesitan su propia bandeja y conciliación. Este registro de evidencias no sustituye el ledger de doble entrada ni las reservas/asignaciones por lote del punto 4. Tampoco convierte la apertura de Ingresos en un conciliador periódico en segundo plano.
 
 Referencias: [eventos de Payouts](https://developer.paypal.com/payouts/webhooks/), [detalles de un ítem](https://developer.paypal.com/api/payments.payouts-batch/v1/payouts-item-get), [cancelación de un ítem no reclamado](https://developer.paypal.com/api/payments.payouts-batch/v1/payouts-item-cancel), [permisos de funciones de Supabase](https://supabase.com/docs/guides/database/functions).
+# Mensajes de retiro
+
+Los snapshots nuevos, tanto manuales como preparados por lote, usan un asunto neutral: «Tu retiro de Fans Reserve». El correo remite al panel y a PayPal para consultar el estado; no afirma que el dinero ya se entregó. PayPal controla el envío de ese correo: esta corrección no crea un nuevo proceso de emails ni modifica las alertas del ejecutor.
+
+El panel anuncia entrega únicamente para el estado local `paid`, confirmado por la conciliación del ítem. `sending`, los envíos inciertos y una respuesta sin estado explícito conservan un mensaje de confirmación pendiente. `UNCLAIMED` permite solicitar cancelación, pero el saldo solo se libera después de confirmar la devolución. Los controles se sitúan debajo de la explicación en pantallas pequeñas.
+
+La migración `20261020231703_payout_notification_wording.sql` cambia únicamente los textos de las dos funciones que crean snapshots. No reescribe solicitudes anteriores: sus reintentos deben conservar payload y referencia originales. No modifica permisos, importes, reservas, estados ni el interruptor de lotes automáticos.
+
+Validación local: `npm run test:payout-notifications`, `TEST_FINANCE_LEDGER=1 node e2e/payout-recovery.mjs`, `npm run test:finance-ledger`, `npm run typecheck` y `npm run build`. Para revisar el componente real con fixtures sin red externa: `node e2e/payout-notifications-preview.mjs` y abrir la URL impresa. Admite `state=PENDING|UNCLAIMED|ONHOLD|SUBMISSION_UNCERTAIN|PAID|RETURNED` y `state=REQUEST&result=sending|paid|unknown`. No conecta a Supabase ni a PayPal; detener con Ctrl+C.

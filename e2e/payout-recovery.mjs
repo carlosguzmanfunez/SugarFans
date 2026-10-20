@@ -70,6 +70,8 @@ try {
     await db.exec("create function is_admin() returns boolean language sql stable security definer set search_path='' as $$select coalesce((select role='admin' from public.profiles where id=auth.uid()),false)$$");
     await db.exec(source('20261020032222_creator_ledger_batch_reservations.sql'));
   }
+  const notificationSql=source('20261020231703_payout_notification_wording.sql');
+  await db.exec(withLedger ? notificationSql : notificationSql.match(/create or replace function public\.paypal_payout_begin\([\s\S]*?\$\$;/i)[0]);
   await build({entryPoints:['api/paypal.ts'],outfile:join(dir,'paypal.mjs'),bundle:true,platform:'node',format:'esm',logLevel:'silent'});
   const api=await import(pathToFileURL(join(dir,'paypal.mjs')).href);
   globalThis.fetch=async(url,init={})=>{
