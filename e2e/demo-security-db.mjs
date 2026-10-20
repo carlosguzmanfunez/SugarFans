@@ -1,0 +1,78 @@
+// F01 containment against disposable SQL. No external Auth requests or secrets.
+import assert from 'node:assert/strict';
+import { readFileSync, readdirSync } from 'node:fs';
+import { PGlite } from '@electric-sql/pglite';
+const file=readdirSync('supabase/migrations').find(n=>n.endsWith('_retire_shared_demo_identities.sql'));
+const migration=readFileSync('supabase/migrations/'+file,'utf8');
+const db=new PGlite();const q=async(sql,args=[]) => (await db.query(sql,args)).rows;
+const ids={admin:'00000000-0000-0000-0000-000000000001',creator:'00000000-0000-0000-0000-000000000002',fan:'00000000-0000-0000-0000-000000000003',owner:'00000000-0000-0000-0000-000000000004',other:'00000000-0000-0000-0000-000000000005'};
+const results=[];const check=async(name,fn)=>{try{await fn();results.push({name,ok:true});console.log('PASS '+name);}catch(e){results.push({name,ok:false});console.error('FAIL '+name+': '+e.message);}};
+const scalar=async(sql,args=[])=>Object.values((await q(sql,args))[0])[0];
+const migrate=async()=>{await db.exec('begin');try{await db.exec(migration);await db.exec('commit');}catch(e){await db.exec('rollback');throw e;}};
+try {
+await db.exec(`create role anon;create role authenticated;create role service_role;
+create schema auth;
+create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,deleted_at timestamptz,banned_until timestamptz,encrypted_password text);
+create table auth.sessions(id uuid primary key,user_id uuid references auth.users(id));
+create table auth.refresh_tokens(id uuid primary key,user_id text,session_id uuid references auth.sessions(id) on delete cascade);
+create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb$$;
+create table profiles(id uuid primary key references auth.users(id),name text,role text);
+create table account_restrictions(user_id uuid primary key,suspended_until timestamptz,suspension_reason text,payouts_frozen boolean,updated_at timestamptz);
+create table admin_actions(id uuid default gen_random_uuid(),admin_id uuid,admin_name text,user_id uuid,user_name text,action text,reason text,until timestamptz);
+create table transactions(id text primary key,amount numeric);
+create table payouts(id text primary key,amount numeric);
+insert into transactions values('original',138.38);insert into payouts values('original',25);
+create function is_admin() returns boolean language sql stable security definer as $$select exists(select 1 from profiles where id=auth.uid() and role='admin')$$;`);
+await db.exec(readFileSync('supabase/migrations/20261020174153_owner_account_controls.sql','utf8'));
+for(const [role,id] of Object.entries(ids)){
+const demo=['admin','creator','fan'].includes(role);
+await q("insert into auth.users values($1,$2,now(),null,null,'fixture-hash')",[id,demo?role+'@sugarfans.com':role+'@example.invalid']);
+await q('insert into profiles values($1,$2,$3)',[id,role,role==='admin'?'admin':role==='creator'?'creator':'fan']);
+await q('insert into auth.sessions values($1,$1)',[id]);
+await q('insert into auth.refresh_tokens values($1,$2,$1)',[id,id]);
+}
+const history=await q("select md5((select json_agg(t)::text from transactions t)) as tx,md5((select json_agg(p)::text from payouts p)) as payouts");
+await check('rechaza retirar al único administrador sin sustituto',async()=>{await assert.rejects(migrate,/administrador personal/);assert.equal(await scalar('select count(*)::int from auth.sessions'),5);assert.equal(await scalar('select role from profiles where id=$1',[ids.admin]),'admin');});
+await q("update profiles set role='admin' where id=$1",[ids.owner]);
+await check('rechaza sustituto sin correo confirmado',async()=>{await q('update auth.users set email_confirmed_at=null where id=$1',[ids.owner]);await assert.rejects(migrate,/administrador personal/);await q('update auth.users set email_confirmed_at=now() where id=$1',[ids.owner]);});
+await check('rechaza sustituto suspendido',async()=>{await q("update auth.users set banned_until=now()+interval '1 day' where id=$1",[ids.owner]);await assert.rejects(migrate,/administrador personal/);await q('update auth.users set banned_until=null where id=$1',[ids.owner]);});
+await check('aplica contención con administrador personal confirmado',migrate);
+await check('retira el rol administrativo de la identidad demo',async()=>assert.equal(await scalar('select role from profiles where id=$1',[ids.admin]),'fan'));
+await check('bloquea las tres identidades compartidas y elimina contraseña',async()=>assert.equal(await scalar("select count(*)::int from auth.users where email like '%@sugarfans.com' and banned_until>now()+interval '90 years' and encrypted_password is null"),3));
+await check('revoca sesiones y tokens de las tres demos',async()=>{assert.equal(await scalar('select count(*)::int from auth.sessions where user_id=any($1::uuid[])',[[ids.admin,ids.creator,ids.fan]]),0);assert.equal(await scalar('select count(*)::int from auth.refresh_tokens where user_id=any($1::text[])',[[ids.admin,ids.creator,ids.fan]]),0);});
+await check('conserva sesiones y credencial de cuentas personales',async()=>{assert.equal(await scalar('select count(*)::int from auth.sessions'),2);assert.equal(await scalar('select encrypted_password from auth.users where id=$1',[ids.owner]),'fixture-hash');});
+await check('congela retiros y suspende las tres demos',async()=>assert.equal(await scalar('select count(*)::int from account_restrictions where payouts_frozen and suspended_until>now()'),3));
+await check('JWT anterior de demo ya no obtiene privilegios',async()=>{await q("select set_config('request.jwt.claim.sub',$1,false)",[ids.admin]);assert.equal(await scalar('select is_admin()'),false);});
+await check('administrador personal conserva privilegios',async()=>{await q("select set_config('request.jwt.claim.sub',$1,false)",[ids.owner]);assert.equal(await scalar('select is_admin()'),true);});
+await check('fan y claims manipulados no otorgan administración',async()=>{await q("select set_config('request.jwt.claim.sub',$1,false)",[ids.other]);await q("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({user_metadata:{role:'admin'}})]);assert.equal(await scalar('select is_admin()'),false);});
+await check('impide volver a promover una identidad demo',async()=>{await q("select set_config('request.jwt.claim.sub','',false)");await assert.rejects(q("update profiles set role='admin' where id=$1",[ids.admin]),/identidades demo/);});
+await check('anon carece de ejecución del helper administrativo',async()=>assert.equal(await scalar("select has_function_privilege('anon','is_admin()','EXECUTE')"),false));
+await check('el trigger no es un RPC ejecutable por clientes',async()=>{for(const role of ['anon','authenticated','service_role'])assert.equal(await scalar("select has_function_privilege($1,'reject_demo_admin_role()','EXECUTE')",[role]),false);});
+await check('historial financiero y cuentas se conservan',async()=>{assert.deepEqual(await q("select md5((select json_agg(t)::text from transactions t)) as tx,md5((select json_agg(p)::text from payouts p)) as payouts"),history);assert.equal(await scalar('select count(*)::int from auth.users'),5);});
+await check('una segunda aplicación no duplica acciones de contención',async()=>{await migrate();assert.equal(await scalar('select count(*)::int from admin_actions'),3);});
+await check('suspender administrador personal retira autorización inmediatamente',async()=>{await q("insert into account_restrictions values($1,now()+interval '1 day','fixture',false,now())",[ids.owner]);await q("select set_config('request.jwt.claim.sub',$1,false)",[ids.owner]);assert.equal(await scalar('select is_admin()'),false);});
+// Owner inspection views preserve the creator business identity and history.
+await q("delete from account_restrictions where user_id=$1",[ids.owner]);
+await q("update profiles set role='creator' where id=$1",[ids.owner]);
+await q("insert into security_private.owner_account(user_id,reason) values($1,'Propietario virtual autorizado para pruebas')",[ids.owner]);
+const ownerAuth=async()=>{await q("select set_config('request.jwt.claim.sub',$1,false)",[ids.owner]);await q("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({session_id:ids.owner})]);};
+await ownerAuth();
+await check('propietario de sesión real obtiene las tres vistas',async()=>{const c=await scalar('select owner_access()');assert.equal(c.owner,true);assert.equal(c.account_role,'creator');assert.deepEqual(c.roles,['fan','creator','admin']);});
+await check('Fan, Creador y Admin conservan perfil e historial originales',async()=>{for(const view of ['fan','creator','admin']){await q('select owner_switch_view($1)',[view]);assert.equal((await scalar('select owner_access()')).view,view);assert.equal(await scalar('select role from profiles where id=$1',[ids.owner]),'creator');assert.equal(await scalar('select is_admin()'),true);}assert.deepEqual(await q("select md5((select json_agg(t)::text from transactions t)) as tx,md5((select json_agg(p)::text from payouts p)) as payouts"),history);});
+await check('repetir la vista actual no duplica el historial',async()=>{const n=await scalar('select count(*)::int from security_private.owner_view_audit');await q("select owner_switch_view('admin')");assert.equal(await scalar('select count(*)::int from security_private.owner_view_audit'),n);});
+await check('rechaza vista inválida sin cambiar permisos',async()=>{await assert.rejects(q("select owner_switch_view('root')"),/vista válida/);assert.equal((await scalar('select owner_access()')).view,'admin');});
+await check('otro usuario no recibe acceso por correo o user_metadata falso',async()=>{await q("select set_config('request.jwt.claim.sub',$1,false)",[ids.other]);await q("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({session_id:ids.other,email:'owner@example.invalid',user_metadata:{isOwner:true,role:'admin'}})]);assert.equal((await scalar('select owner_access()')).owner,false);await assert.rejects(q("select owner_switch_view('admin')"),/propietario autenticado/);await ownerAuth();});
+await check('una sesión revocada retira el acceso de propietario al instante',async()=>{await q('delete from auth.refresh_tokens where session_id=$1',[ids.owner]);await q('delete from auth.sessions where id=$1',[ids.owner]);assert.equal((await scalar('select owner_access()')).owner,false);assert.equal(await scalar('select is_admin()'),false);await q('insert into auth.sessions values($1,$1)',[ids.owner]);});
+await check('una sesión ajena no sirve para la identidad propietaria',async()=>{await q("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({session_id:ids.other})]);assert.equal(await scalar('select is_admin()'),false);await ownerAuth();});
+await check('la cuenta propietaria es única',async()=>await assert.rejects(q("insert into security_private.owner_account(user_id,reason) values($1,'Segundo propietario no autorizado')",[ids.other]),/duplicate key/));
+await check('ningún cliente lee o escribe directamente el registro de propietario',async()=>{for(const role of ['anon','authenticated','service_role']){assert.equal(await scalar("select has_schema_privilege($1,'security_private','USAGE')",[role]),false);assert.equal(await scalar("select has_table_privilege($1,'security_private.owner_account','SELECT,INSERT,UPDATE,DELETE')",[role]),false);}});
+await check('solo authenticated puede pedir cambios de vista',async()=>{for(const role of ['anon','service_role'])assert.equal(await scalar("select has_function_privilege($1,'owner_switch_view(text)','EXECUTE')",[role]),false);assert.equal(await scalar("select has_function_privilege('authenticated','owner_switch_view(text)','EXECUTE')"),true);});
+await check('no se borra ni reescribe la auditoría de vistas',async()=>await assert.rejects(q("delete from security_private.owner_view_audit"),/inmutable/));
+await check('la gestión de cuentas no puede suspender ni borrar al propietario',async()=>{for(const action of ['suspend','delete'])await assert.rejects(q("select admin_account_action($1,$2,'Prueba de protección',null)",[ids.owner,action]),/administrador/);assert.equal(await scalar('select count(*)::int from auth.users where id=$1',[ids.owner]),1);});
+await db.exec("alter table profiles add column creator_profile_id text;alter table profiles add column is_verified boolean default false;create table managed_profiles(id text primary key);insert into managed_profiles values('m-owner-test');create table creator_posts(id uuid default gen_random_uuid(),creator_id uuid,creator_profile_id text,media_path text,is_draft boolean);create trigger fill_creator_post before insert or update on creator_posts for each row execute function fill_creator_post();create trigger creator_post_draft before insert or update on creator_posts for each row execute function creator_post_draft();");
+await check('el propietario publica como perfil administrado conservando su identidad creadora',async()=>{await ownerAuth();await q("insert into creator_posts(creator_id,creator_profile_id,is_draft) values($1,'m-owner-test',true)",[ids.owner]);const p=(await q('select creator_profile_id,is_draft from creator_posts where creator_id=$1',[ids.owner]))[0];assert.equal(p.creator_profile_id,'m-owner-test');assert.equal(p.is_draft,false);assert.equal(await scalar('select role from profiles where id=$1',[ids.owner]),'creator');});
+await check('un creador ordinario no obtiene publicación administrativa por solicitarla',async()=>{await q("update profiles set role='creator' where id=$1",[ids.other]);await q("select set_config('request.jwt.claim.sub',$1,false)",[ids.other]);await q("select set_config('request.jwt.claims',$1,false)",[JSON.stringify({session_id:ids.other})]);await q("insert into creator_posts(creator_id,creator_profile_id,is_draft) values($1,'m-owner-test',false)",[ids.other]);const p=(await q('select creator_profile_id,is_draft from creator_posts where creator_id=$1',[ids.other]))[0];assert.equal(p.creator_profile_id,ids.other);assert.equal(p.is_draft,true);});
+} finally {await db.close();}
+console.log(results.filter(r=>r.ok).length+'/'+results.length+' casos F01');
+if(results.some(r=>!r.ok))process.exitCode=1;

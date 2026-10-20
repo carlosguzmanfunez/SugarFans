@@ -64,7 +64,9 @@ finish(async () => {
     raises(() => psql(DB, `select public.payout_checks('${lola}')`), /en revisión/, 'retiro congelado');
     tip('o-3', fan, cp);
     act(admin, lola, 'unfreeze_payouts', '');
-    raises(() => psql(DB, `select public.payout_checks('${lola}')`), /Necesitas al menos/, 'sigue congelado');
+    const nextGuard = psql(DB, 'select public.payout_window_open(now())') === 't'
+      ? /Necesitas al menos/ : /26 al 1/;
+    raises(() => psql(DB, `select public.payout_checks('${lola}')`), nextGuard, 'no pasó el control de descongelación');
   });
   await check('Quitar Verificado', async () => {
     act(admin, lola, 'unverify', 'Documento falso');

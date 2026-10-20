@@ -21,7 +21,7 @@ try {
  const finance=createSupabaseFinance(client);backend.finance=finance;
  function BalanceProbe(){const b=useCreatorBalance('${CREATOR}');return <div><button onClick={b.reload}>Consultar saldo de prueba</button><p data-testid="balance-ready">{String(b.ready)}</p><p data-testid="balance-value">{b.data?.available??'—'}</p></div>;}
  createRoot(document.getElementById('root')).render(location.pathname==='/balance-test'?<BalanceProbe/>:<AdminFinance api={finance}/>);`,resolveDir:process.cwd(),loader:'tsx'},
-   outfile:join(folder,'app.js'),bundle:true,format:'esm',platform:'browser',define:{'import.meta.env':'{}'},logLevel:'silent'});
+   outfile:join(folder,'app.js'),bundle:true,format:'esm',platform:'browser',define:{'import.meta.env':JSON.stringify({MODE:'offline'})},logLevel:'silent'});
  const assets=resolve('dist/assets'),css=readdirSync(assets).find(x=>/^index-.*\.css$/.test(x));assert.ok(css,'Run npm run build before the UI suite');
  server=createServer(async(req,res)=>{
    try {

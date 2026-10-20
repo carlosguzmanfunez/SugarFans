@@ -1,6 +1,7 @@
 import { localBackend } from './local';
 import { createSupabaseBackend } from './supabase';
 import type { Backend } from './types';
+import { offlineDemoEnabled } from '../../config/demoAccounts';
 
 export * from './types';
 export { defaultSettings, DEMO_PASSWORD, PAID_WITH_PAYPAL } from './shared';
@@ -12,5 +13,7 @@ export const openedFromRecoveryLink = typeof window !== 'undefined' && /type=rec
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
-// Supabase when configured; otherwise a browser-only store (dev and offline tests).
-export const backend: Backend = url && key ? createSupabaseBackend(url, key) : localBackend;
+const missingBackend = (): never => { throw new Error('Falta la configuración de autenticación. Contacta con soporte.'); };
+// A published build must not silently become a local authentication demo.
+export const backend: Backend = url && key ? createSupabaseBackend(url, key)
+  : offlineDemoEnabled ? localBackend : missingBackend();

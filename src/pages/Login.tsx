@@ -5,10 +5,10 @@ import { useLanguage } from '../context/LanguageContext';
 import LanguageSelector from '../components/LanguageSelector';
 import BrandLogo from '../components/BrandLogo';
 import SocialLoginButtons from '../components/SocialLoginButtons';
-import { DEMO_ACCOUNTS, type DemoAccount } from '../config/demoAccounts';
+import { DEMO_ACCOUNTS, offlineDemoEnabled, type DemoAccount } from '../config/demoAccounts';
 
 const Login: React.FC = () => {
-  const { login } = useAuth();
+  const { login, backendMode } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
@@ -32,8 +32,7 @@ const Login: React.FC = () => {
     }
   };
 
-  // Test mode: the demo accounts sign in with their internal credentials, which
-  // are never shown (see src/config/demoAccounts.ts).
+  // Real Auth never receives a shared demonstration credential.
   const signInDemo = (account: DemoAccount) => signIn(account.email, account.password);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -127,7 +126,7 @@ const Login: React.FC = () => {
           </p>
         </div>
 
-        {/* Demo accounts (test mode) */}
+        {offlineDemoEnabled && backendMode === 'local' && (
         <section className="mt-4 rounded-2xl border border-line bg-white/70 p-4" aria-labelledby="demo-access">
           <p id="demo-access" className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">
             <i aria-hidden="true" className="fas fa-flask mr-1.5"></i>{t('login.demo')}
@@ -149,6 +148,7 @@ const Login: React.FC = () => {
             ))}
           </div>
         </section>
+        )}
       </div>
       </div>
     </div>

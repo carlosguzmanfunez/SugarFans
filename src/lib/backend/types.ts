@@ -62,6 +62,9 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  // Server-confirmed singleton owner. role is its selected inspection view.
+  isOwner?: boolean;
+  accountRole?: UserRole;
   avatar: string;
   cover?: string;
   bio?: string;
@@ -291,6 +294,7 @@ export interface Backend {
   // The signed-in session's token for the app's own server functions (null in the local store).
   accessToken(): Promise<string | null>;
   getCurrentUser(): Promise<User | null>;
+  ownerSwitchView?(view: UserRole): Promise<AuthResult>;
   // Fires when the session or the signed-in user's data may have changed elsewhere.
   onChange(cb: () => void): () => void;
   login(email: string, password: string, remember: boolean): Promise<AuthResult>;

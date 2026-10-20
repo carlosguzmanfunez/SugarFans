@@ -143,7 +143,7 @@ const Navbar: React.FC = () => {
                 {!!waiting && <RedDot count={waiting} />}
               </Link>
             )}
-            {isAuthenticated && user?.role === 'admin' && (
+            {isAuthenticated && (user?.role === 'admin' || user?.isOwner) && (
               <Link to="/admin" className={linkCls('/admin')}>
                 {t('nav.admin')}
               </Link>
@@ -173,6 +173,11 @@ const Navbar: React.FC = () => {
                       <p className="truncate text-sm font-semibold text-ink">{user?.name}</p>
                       <p className="truncate text-xs text-muted">{displayEmail(user?.email)}</p>
                     </div>
+                    {user?.isOwner && (
+                      <Link to="/owner" className="flex items-center gap-3 border-b border-line px-4 py-3 text-sm font-semibold text-brand-700">
+                        <Icon name="fa-crown" className="w-4" /> Dirección general
+                      </Link>
+                    )}
                     <Link to="/profile" className="flex items-center gap-3 px-4 py-2.5 text-sm text-ink/80 hover:bg-canvas">
                       <Icon name="fa-user" className="w-4 text-ink/40" /> {t('nav.profile')}
                     </Link>
@@ -248,7 +253,7 @@ const Navbar: React.FC = () => {
                   <Icon name="fa-chart-line" className="w-5 text-iris-600" /> {t('nav.dashboard')}
                 </Link>
               )}
-              {isAuthenticated && user?.role === 'admin' && (
+              {isAuthenticated && (user?.role === 'admin' || user?.isOwner) && (
                 <Link to="/admin" className={mobileLinkCls('/admin')} onClick={() => setShowMobile(false)}>
                   <Icon name="fa-shield-halved" className="w-5 text-iris-600" /> {t('nav.admin')}
                 </Link>

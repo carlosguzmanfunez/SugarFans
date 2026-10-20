@@ -1,11 +1,7 @@
-// Demo accounts for TEST MODE (shown on the login page until the site goes live).
-//
-// INTERNAL vs DISPLAY. The emails below are the real Supabase Auth identities of
-// the demo accounts and come from the previous brand. They must stay as they are
-// (renaming them means migrating Auth), so the UI never shows them: the login
-// page offers "Demo Fan / Demo Creator / Demo Admin" and signs in with these
-// credentials, and anywhere a demo user's email would be shown, displayEmail()
-// shows the account label instead.
+// Historical demo identities are retained for labels and for denying real Auth.
+// Credentials and access buttons exist only in an explicit disconnected build.
+export const offlineDemoEnabled = import.meta.env?.MODE === 'offline'
+  && !import.meta.env.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export type DemoRole = 'fan' | 'creator' | 'admin';
 
@@ -18,17 +14,21 @@ export interface DemoAccount {
   password: string;
 }
 
-export const DEMO_PASSWORD = 'demo1234';
+export const DEMO_PASSWORD = offlineDemoEnabled ? 'demo1234' : '';
 
-export const DEMO_ACCOUNTS: DemoAccount[] = [
-  { role: 'fan', label: 'Demo Fan', description: 'Explora, suscríbete y envía regalos', icon: 'fa-heart', email: 'fan@sugarfans.com', password: DEMO_PASSWORD },
-  { role: 'creator', label: 'Demo Creator', description: 'Panel de creador, contenido y ganancias', icon: 'fa-star', email: 'creator@sugarfans.com', password: DEMO_PASSWORD },
-  { role: 'admin', label: 'Demo Admin', description: 'Moderación, verificaciones y pagos', icon: 'fa-shield-halved', email: 'admin@sugarfans.com', password: DEMO_PASSWORD },
+const DEMO_IDENTITIES: Omit<DemoAccount, 'password'>[] = [
+  { role: 'fan', label: 'Demo Fan', description: 'Explora, suscríbete y envía regalos', icon: 'fa-heart', email: 'fan@sugarfans.com' },
+  { role: 'creator', label: 'Demo Creator', description: 'Panel de creador, contenido y ganancias', icon: 'fa-star', email: 'creator@sugarfans.com' },
+  { role: 'admin', label: 'Demo Admin', description: 'Moderación, verificaciones y pagos', icon: 'fa-shield-halved', email: 'admin@sugarfans.com' },
 ];
+
+export const DEMO_ACCOUNTS: DemoAccount[] = offlineDemoEnabled
+  ? DEMO_IDENTITIES.map((identity) => ({ ...identity, password: DEMO_PASSWORD }))
+  : [];
 
 export const demoAccount = (role: DemoRole) => DEMO_ACCOUNTS.find((a) => a.role === role)!;
 
-const byEmail = (email?: string | null) => DEMO_ACCOUNTS.find((a) => a.email === (email ?? '').trim().toLowerCase());
+const byEmail = (email?: string | null) => DEMO_IDENTITIES.find((a) => a.email === (email ?? '').trim().toLowerCase());
 
 export const isDemoEmail = (email?: string | null) => !!byEmail(email);
 
