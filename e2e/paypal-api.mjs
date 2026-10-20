@@ -131,13 +131,26 @@ globalThis.fetch = async (url, init = {}) => {
     return res(200, id ? [{ paypal_subscription_id: id }] : []);
   }
   // Withdrawals.
-  if (u.endsWith('/rest/v1/rpc/paypal_payout_start')) {
+  if (u.endsWith('/rest/v1/rpc/paypal_payout_begin')) {
     if (h.apikey !== 'sb_secret_test') return res(401, {});
     if (db.payoutError) return res(400, { message: db.payoutError });
     if ([...db.payouts.values()].some((x) => x.status === 'sending')) return res(400, { message: 'Tienes un retiro en camino; espera a que PayPal lo confirme' });
     const id = `po-${db.payouts.size + 1}`;
-    db.payouts.set(id, { user: body.p_user, status: 'sending', amount: 160, fee: 3.2, net: 156.8 });
+    const payload = { sender_batch_header: { sender_batch_id: id, email_subject: 'Prueba', email_message: 'Prueba' },
+      items: [{ recipient_type: 'EMAIL', receiver: 'vale@example.com', amount: { value: '156.80', currency: 'USD' }, sender_item_id: id }] };
+    db.payouts.set(id, { user: body.p_user, status: 'sending', amount: 160, fee: 3.2, net: 156.8, payload });
     return res(200, { id, amount: 160, fee: 3.2, net: 156.8, email: 'vale@example.com' });
+  }
+  if (u.endsWith('/rest/v1/rpc/paypal_payout_claim')) {
+    const x = db.payouts.get(body.p_id);
+    if (!x || x.user !== body.p_user) return res(400, { message: 'Retiro no encontrado' });
+    return res(200, { operation: x.batch ? 'check' : 'submit', token: `lease-${body.p_id}`, payload: x.payload, batch: x.batch, net: x.net, fee: x.fee });
+  }
+  if (u.endsWith('/rest/v1/rpc/paypal_payout_submission_result')) {
+    const x = db.payouts.get(body.p_id);
+    if (body.p_outcome === 'accepted') x.batch = body.p_batch;
+    if (body.p_outcome === 'rejected') x.status = 'failed';
+    return res(200, { applied: true, status: x.status });
   }
   if (u.includes('/rest/v1/payouts?') && u.includes('user_id=eq.')) {
     if (h.apikey !== 'sb_secret_test') return res(401, {});
@@ -160,7 +173,11 @@ globalThis.fetch = async (url, init = {}) => {
   const itemCancel = u.match(/\/v1\/payments\/payouts-item\/([\w-]+)\/cancel$/);
   if (itemCancel) return pp.payoutStatus === 'UNCLAIMED' ? res(200, { payout_item_id: itemCancel[1], transaction_status: 'RETURNED' }) : res(400, { name: 'ITEM_CANCELLATION_FAILED' });
   const batchGet = u.match(/\/v1\/payments\/payouts\/([\w-]+)$/);
-  if (batchGet) return res(200, { items: [{ payout_item_id: `ITEM-${batchGet[1]}`, transaction_status: pp.payoutStatus }] });
+  if (batchGet) {
+    const batch = pp.payoutBatches.get(batchGet[1]);
+    return res(200, { batch_header: { payout_batch_id: batchGet[1], sender_batch_header: batch?.sender_batch_header },
+      items: [{ payout_item_id: `ITEM-${batchGet[1]}`, transaction_status: pp.payoutStatus, payout_item: batch?.items[0] }] });
+  }
   // Subscriptions: PayPal side.
   if (u.endsWith('/v1/catalogs/products')) return res(201, { id: `PROD-${++pp.products}` });
   if (u.endsWith('/v1/billing/plans')) {
@@ -558,7 +575,7 @@ await check('Un retiro a un email sin cuenta PayPal se puede cancelar y vuelve a
 });
 
 await check('La service role solo se usa en llamadas del servidor', async () => {
-  const leaked = calls.filter((c) => c.h.apikey === 'sb_secret_test' && !/paypal_(register|fulfill|mark|catalog|self_pay|money_back|subscription_(register|activate|payment|ended)|payout_(start|mark))|\/rest\/v1\/payouts\?|\/rest\/v1\/paypal_orders\?id=eq\.[^&]+&(status=eq\.created|select=kind,params)$/.test(c.u));
+  const leaked = calls.filter((c) => c.h.apikey === 'sb_secret_test' && !/paypal_(register|fulfill|mark|catalog|self_pay|money_back|subscription_(register|activate|payment|ended)|payout_(start|begin|claim|submission_result|mark))|\/rest\/v1\/payouts\?|\/rest\/v1\/paypal_orders\?id=eq\.[^&]+&(status=eq\.created|select=kind,params)$/.test(c.u));
   expect(leaked.length === 0, leaked.map((c) => c.u).join(', '));
 });
 

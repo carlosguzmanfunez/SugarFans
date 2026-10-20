@@ -83,7 +83,7 @@ export interface Payout {
   availableBefore: number; // balance the creator had when withdrawing
   requestedAt: string;
   paidAt: string | null;
-  paypalState?: string; // PayPal's own state of a withdrawal still on its way (e.g. PENDING, UNCLAIMED)
+  paypalState?: string; // Provider status or recovery state (e.g. UNCLAIMED, SUBMISSION_UNCERTAIN, MANUAL_REVIEW).
 }
 
 export type ReportKind = 'post' | 'creator' | 'support' | 'other';

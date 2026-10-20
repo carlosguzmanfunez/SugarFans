@@ -34,19 +34,19 @@ const fmtDate = formatPayoutDate;
 // How each withdrawal looks in the list.
 const payoutBadge: Record<Payout['status'], { label: string; chip: string; icon: string }> = {
   paid: { label: 'Pagado', chip: 'bg-green-100 text-green-700', icon: 'fa-check-circle text-green-600' },
-  sending: { label: 'En camino', chip: 'bg-blue-100 text-blue-700', icon: 'fa-clock text-blue-600' },
+  sending: { label: 'En proceso', chip: 'bg-blue-100 text-blue-700', icon: 'fa-clock text-blue-600' },
   failed: { label: 'No se pudo enviar', chip: 'bg-red-100 text-red-700', icon: 'fa-times-circle text-red-600' },
 };
 
 // What PayPal says about a withdrawal still on its way.
-const sendingNote = (state?: string) =>
-  state === 'UNCLAIMED'
-    ? 'PayPal no pudo entregarlo: no hay una cuenta con ese email o esa cuenta no puede recibir pagos (cancélalo para que vuelva a tu saldo, o vuelve solo en 30 días)'
-    : state === 'ONHOLD'
-      ? 'PayPal lo retuvo para revisarlo'
-      : state
-        ? `PayPal lo está enviando (estado en PayPal: ${state})`
-        : 'PayPal lo está enviando';
+const sendingNote = (state?: string) => {
+  if (state === 'MANUAL_REVIEW') return 'Este retiro necesita revisión. El saldo sigue apartado para evitar un pago duplicado.';
+  if (state === 'SUBMISSION_UNCERTAIN' || state === 'RECOVERY_PENDING')
+    return 'Estamos confirmando el envío. Tu saldo sigue apartado; no necesitas solicitar otro retiro.';
+  if (state === 'UNCLAIMED') return 'PayPal no pudo entregarlo: no hay una cuenta con ese email o esa cuenta no puede recibir pagos (cancélalo para que vuelva a tu saldo, o vuelve solo en 30 días)';
+  if (state === 'ONHOLD') return 'PayPal lo retuvo para revisarlo';
+  return state ? `Estamos confirmando el retiro (estado en PayPal: ${state})` : 'Estamos confirmando el estado del retiro; tu saldo sigue apartado';
+};
 
 // Creator dashboard > Ingresos: real balance (80% of fan payments), PayPal account and withdrawals.
 const CreatorPayouts: React.FC = () => {
@@ -100,7 +100,7 @@ const CreatorPayouts: React.FC = () => {
       ok: true,
       text:
         r.status === 'sending'
-          ? `Retiro en camino: PayPal está enviando ${money(r.amount ?? 0)} a tu cuenta`
+          ? `Retiro registrado: ${money(r.amount ?? 0)} pendientes de confirmación. El saldo sigue apartado.`
           : `Retiro pagado: ${money(r.amount ?? 0)} enviados a tu cuenta PayPal`,
     });
   };
