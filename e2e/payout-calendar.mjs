@@ -16,6 +16,7 @@ const q=async(sql,args=[]) => (await db.query(sql,args)).rows;
 const clock=at=>q("select set_config('test.clock',$1,false)",[at]);
 const rejects=(sql,match,args=[])=>assert.rejects(()=>q(sql,args),match);
 const migration=readFileSync(resolve('supabase/migrations/20261019194731_earnings_calendar_26_25.sql'),'utf8');
+const retireFallback=readFileSync(resolve('supabase/migrations/20261019215002_disable_simulated_payout_fallback.sql'),'utf8');
 const user='00000000-0000-0000-0000-000000000001', legacy='2026-10-01T00:00:00.000Z';
 const fixtures=[
  ['legacy','2026-09-30T23:59:59Z',100,.8,'paid',false],
@@ -49,7 +50,7 @@ try {
   insert into profiles values('${user}','creator','Test','creator',true,false);
   insert into payout_accounts values('${user}','creator@example.invalid');
  `);
- await clock('2026-10-19T12:00:00Z'); await db.exec(migration);
+ await clock('2026-10-19T12:00:00Z'); await db.exec(migration); await db.exec(retireFallback);
  for(const [id,at,amount,share,status,cover] of fixtures) await q("insert into transactions values($1,'creator',$2,$3,$4,$5,$6)",[id,amount,share,status,cover,at]);
  await q("insert into payouts(user_id,amount,status) values($1,20,'paid'),($1,15,'failed')",[user]);
  await q("select set_config('request.jwt.claim.sub',$1,false)",[user]);
@@ -85,7 +86,7 @@ try {
  });
  await check('Migración repetible, sin reescribir pagos ni mover el corte anterior',async()=>{
   const before=await q('select id,status,amount from payouts order by id');
-  await clock('2026-11-30T12:00:00Z'); await db.exec(migration);
+  await clock('2026-11-30T12:00:00Z'); await db.exec(migration); await db.exec(retireFallback);
   assert.equal(new Date((await q('select legacy_cutoff from payout_calendar_settings'))[0].legacy_cutoff).toISOString(),legacy);
   assert.deepEqual(await q('select id,status,amount from payouts order by id'),before);
   assert.equal((await q('select count(*)::int as n from transactions'))[0].n,fixtures.length);
@@ -109,10 +110,10 @@ try {
   await rejects('select * from payout_calendar_settings',/permission denied/);
   await db.exec('reset role');
  });
- await check('Ambas entradas de pago rechazan el 25 y el 2 sin insertar',async()=>{
+ await check('La entrada PayPal rechaza el 25 y el 2; el RPC retirado permanece cerrado',async()=>{
   for(const at of ['2026-10-26T05:59:59.999Z','2026-11-02T06:00:00Z']) {
    await clock(at); const n=(await q('select count(*) as n from payouts'))[0].n;
-   await rejects('select paypal_payout_start($1)',/del 26 al 1/,[user]); await rejects('select request_payout()',/del 26 al 1/);
+   await rejects('select paypal_payout_start($1)',/del 26 al 1/,[user]); await rejects('select request_payout()',/deshabilitado/);
    assert.equal((await q('select count(*) as n from payouts'))[0].n,n);
   }
  });
@@ -134,13 +135,13 @@ try {
   await q("update transactions set status='disputed',platform_covers=false where creator_profile_id='creator'");
   assert.equal(await balance(),-20); await rejects('select paypal_payout_start($1)',/al menos/,[user]);
  });
- await check('Fallback existente también usa la ventana y fecha local sin duplicar saldo',async()=>{
+ await check('El RPC retirado no altera saldo ni historial incluso dentro de la ventana',async()=>{
   await q("update transactions set status='paid' where id='legacy'");
   await clock('2026-11-02T05:59:59.999Z');
-  const amount=Number((await q('select request_payout() as amount'))[0].amount);
-  assert.equal(amount,60); assert.equal(await balance(),0);
-  assert.equal((await q("select scheduled_for::text as d from payouts where amount=60 and status='paid'"))[0].d,'2026-11-01');
-  await rejects('select request_payout()',/al menos/);
+  const before=await q('select * from payouts order by id'), available=await balance();
+  await rejects('select request_payout()',/deshabilitado/);
+  assert.equal(await balance(),available);
+  assert.deepEqual(await q('select * from payouts order by id'),before);
  });
  await check('Libro distingue mes y ciclo; CSV lleva UTC−6 explícito',async()=>{
   const at=new Date('2026-10-19T03:00:00Z');

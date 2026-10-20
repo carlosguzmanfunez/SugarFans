@@ -294,18 +294,23 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
   },
 
   async requestPayout() {
-    // With PayPal set up the server sends it with PayPal Payouts; otherwise it's recorded as paid.
-    const token = (await sb.auth.getSession()).data.session?.access_token;
+    // Only the provider-backed server may confirm a real withdrawal.
+    // An unavailable/ambiguous response must never create a simulated payment.
+    const session = await sb.auth.getSession().catch(() => null);
+    const token = session?.data.session?.access_token;
+    if (!token) return fail('Inicia sesión para solicitar un retiro.');
     const r = await fetch('/api/paypal', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${token ?? ''}` },
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
       body: JSON.stringify({ action: 'payout' }),
     }).catch(() => null);
-    const body = (await r?.json().catch(() => null)) as { status?: 'sending' | 'paid'; net?: number; error?: string } | null;
-    if (r?.ok) return { ok: true, amount: Number(body?.net ?? 0), status: body?.status ?? 'paid' };
-    if (r && r.status !== 503 && r.status !== 404 && body?.error) return fail(body.error);
-    const { data, error } = await sb.rpc('request_payout');
-    return error ? dbError(error, 'No se pudo hacer el retiro') : { ok: true, amount: Number(data), status: 'paid' as const };
+    const body = (await r?.json().catch(() => null)) as { ok?: unknown; status?: unknown; net?: unknown; error?: unknown } | null;
+    if (r?.ok && body?.ok === true && !body.error && (body.status === 'sending' || body.status === 'paid')
+      && typeof body.net === 'number' && Number.isFinite(body.net) && body.net > 0) {
+      return { ok: true, amount: body.net, status: body.status };
+    }
+    if (r && !r.ok && typeof body?.error === 'string' && body.error.trim()) return fail(body.error);
+    return fail('No pudimos confirmar el retiro. Actualiza tus ingresos antes de volver a intentarlo.');
   },
 
   async cancelPayout(_user, payoutId) {
