@@ -28,6 +28,7 @@ import { displayGiftNote } from '../config/gifts';
 import { earningsCycle, payoutWindow, formatPayoutDate } from '../lib/payoutCalendar';
 import { usePayoutCalendar } from '../lib/usePayoutCalendar';
 import { useCreatorBalance } from '../lib/useCreatorBalance';
+import { payoutRequestMessage, sendingPayoutNote } from '../lib/payoutMessages';
 
 const field = 'w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-sm';
 const fmtDate = formatPayoutDate;
@@ -36,17 +37,7 @@ const fmtDate = formatPayoutDate;
 const payoutBadge: Record<Payout['status'], { label: string; chip: string; icon: string }> = {
   paid: { label: 'Pagado', chip: 'bg-green-100 text-green-700', icon: 'fa-check-circle text-green-600' },
   sending: { label: 'En proceso', chip: 'bg-blue-100 text-blue-700', icon: 'fa-clock text-blue-600' },
-  failed: { label: 'No se pudo enviar', chip: 'bg-red-100 text-red-700', icon: 'fa-times-circle text-red-600' },
-};
-
-// What PayPal says about a withdrawal still on its way.
-const sendingNote = (state?: string) => {
-  if (state === 'MANUAL_REVIEW') return 'Este retiro necesita revisión. El saldo sigue apartado para evitar un pago duplicado.';
-  if (state === 'SUBMISSION_UNCERTAIN' || state === 'RECOVERY_PENDING')
-    return 'Estamos confirmando el envío. Tu saldo sigue apartado; no necesitas solicitar otro retiro.';
-  if (state === 'UNCLAIMED') return 'PayPal no pudo entregarlo: no hay una cuenta con ese email o esa cuenta no puede recibir pagos (cancélalo para que vuelva a tu saldo, o vuelve solo en 30 días)';
-  if (state === 'ONHOLD') return 'PayPal lo retuvo para revisarlo';
-  return state ? `Estamos confirmando el retiro (estado en PayPal: ${state})` : 'Estamos confirmando el estado del retiro; tu saldo sigue apartado';
+  failed: { label: 'Devuelto al saldo', chip: 'bg-red-100 text-red-700', icon: 'fa-times-circle text-red-600' },
 };
 
 // Creator dashboard > Ingresos: real balance (80% of fan payments), PayPal account and withdrawals.
@@ -100,10 +91,7 @@ const CreatorPayouts: React.FC = () => {
     if (!r.ok) return setNotice({ ok: false, text: r.error! });
     setNotice({
       ok: true,
-      text:
-        r.status === 'sending'
-          ? `Retiro registrado: ${money(r.amount ?? 0)} pendientes de confirmación. El saldo sigue apartado.`
-          : `Retiro pagado: ${money(r.amount ?? 0)} enviados a tu cuenta PayPal`,
+      text: payoutRequestMessage(r.status, r.amount),
     });
   };
 
@@ -206,24 +194,26 @@ const CreatorPayouts: React.FC = () => {
             <p className="text-sm font-semibold text-gray-900">Tus retiros</p>
             <div className="divide-y divide-gray-100">
               {paid.map((p) => (
-                <div key={p.id} className="py-3 flex items-center gap-3 text-sm">
+                <div key={p.id} className="py-3 flex flex-wrap items-start gap-3 text-sm sm:flex-nowrap sm:items-center">
                   <i className={`fas ${payoutBadge[p.status].icon} text-lg`} aria-hidden="true"></i>
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">Retiraste {money(p.amount)} · {p.accountLabel}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-gray-900">Retiro de {money(p.amount)} · {p.accountLabel}</p>
                     <p className="text-xs text-gray-500">
                       Disponías de {money(p.availableBefore)}
-                      {p.fee > 0 && ` · recibes ${money(p.net)} (comisión de PayPal ${money(p.fee)})`}
-                      {p.status === 'paid' && p.paidAt && ` · pagado el ${fmtDate(p.paidAt)}`}
-                      {p.status === 'sending' && ` · ${sendingNote(p.paypalState)}`}
+                      {p.fee > 0 && ` · importe ${p.status === 'paid' ? 'entregado' : 'previsto'} ${money(p.net)} (comisión de PayPal ${money(p.fee)})`}
+                      {p.status === 'paid' && ` · PayPal confirmó la entrega${p.paidAt ? ` el ${fmtDate(p.paidAt)}` : ''}`}
+                      {p.status === 'sending' && ` · ${sendingPayoutNote(p.paypalState)}`}
                       {p.status === 'failed' && ' · el monto volvió a tu saldo'}
                     </p>
                   </div>
-                  {p.status === 'sending' && p.paypalState === 'UNCLAIMED' && (
-                    <button type="button" onClick={() => cancel(p.id)} className="text-xs font-semibold text-pink-600 hover:text-pink-700">
-                      Cancelar y devolver a mi saldo
-                    </button>
-                  )}
-                  <span className={`text-xs px-2 py-1 rounded-full ${payoutBadge[p.status].chip}`}>{payoutBadge[p.status].label}</span>
+                  <div className="flex w-full flex-wrap items-center gap-3 pl-7 sm:w-auto sm:flex-nowrap sm:pl-0">
+                    {p.status === 'sending' && p.paypalState === 'UNCLAIMED' && (
+                      <button type="button" onClick={() => cancel(p.id)} className="text-xs font-semibold text-pink-600 hover:text-pink-700">
+                        Cancelar y devolver a mi saldo
+                      </button>
+                    )}
+                    <span className={`shrink-0 text-xs px-2 py-1 rounded-full ${payoutBadge[p.status].chip}`}>{payoutBadge[p.status].label}</span>
+                  </div>
                 </div>
               ))}
             </div>
