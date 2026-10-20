@@ -6,6 +6,7 @@ import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { PGlite } from '@electric-sql/pglite';
 import { build } from 'esbuild';
+import { payoutEventCases } from './payout-event-cases.mjs';
 
 const dir=mkdtempSync(join(tmpdir(),'fans-payout-recovery-')),db=new PGlite(),oldFetch=globalThis.fetch;
 const user='00000000-0000-0000-0000-000000000001',other='00000000-0000-0000-0000-000000000002';
@@ -26,7 +27,7 @@ const finish=async(id,token,outcome,batch=null)=>(await q('select paypal_payout_
 const response=(status,data)=>status===204?new Response(null,{status}):new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json'}});
 let state,passed=0;
 const reset=async()=>{
-  await db.exec('reset role;truncate paypal_payout_submissions,payouts,transactions,profiles,payout_accounts,account_restrictions');
+  await db.exec('reset role;truncate paypal_payout_reconciliations,paypal_payout_events,paypal_payout_submissions,payouts,transactions,profiles,payout_accounts,account_restrictions');
   await clock('2026-10-26T12:00:00Z');
   await q("insert into profiles values($1,'creator','Creator','creator',true,false)",[user]);
   await q("insert into payout_accounts values($1,'original@example.invalid')",[user]);
@@ -35,7 +36,7 @@ const reset=async()=>{
 };
 const check=async(name,fn)=>{await reset();await fn();assert.deepEqual(state.unexpected,[]);passed++;console.log(`OK ${name}`);};
 globalThis.fetch=async()=>{throw new Error('NETWORK_DISABLED');};
-Object.assign(process.env,{SUPABASE_URL:'https://database.example.invalid',SUPABASE_ANON_KEY:'TEST_ONLY_PUBLIC',SUPABASE_SERVICE_ROLE_KEY:'sb_secret_test_only',PAYPAL_ENV:'sandbox',PAYPAL_CLIENT_ID:sender,PAYPAL_CLIENT_SECRET:'TEST_ONLY_NOT_A_SECRET'});
+Object.assign(process.env,{SUPABASE_URL:'https://database.example.invalid',SUPABASE_ANON_KEY:'TEST_ONLY_PUBLIC',SUPABASE_SERVICE_ROLE_KEY:'sb_secret_test_only',PAYPAL_ENV:'sandbox',PAYPAL_CLIENT_ID:sender,PAYPAL_CLIENT_SECRET:'TEST_ONLY_NOT_A_SECRET',PAYPAL_WEBHOOK_ID:'WH_TEST_ONLY'});
 delete process.env.RESEND_API_KEY;
 try {
   await db.exec(`
@@ -54,6 +55,7 @@ try {
     create function payout_label(p_email text) returns text language sql immutable as $$select 'TEST ONLY'::text$$;
   `);
   await clock('2026-10-19T12:00:00Z');await db.exec(calendar);await db.exec(source('20261019215002_disable_simulated_payout_fallback.sql'));await db.exec(markSql);await db.exec(migration);
+  await db.exec(source('20261020015716_payout_event_reconciliation.sql'));
   await build({entryPoints:['api/paypal.ts'],outfile:join(dir,'paypal.mjs'),bundle:true,platform:'node',format:'esm',logLevel:'silent'});
   const api=await import(pathToFileURL(join(dir,'paypal.mjs')).href);
   globalThis.fetch=async(url,init={})=>{
@@ -64,6 +66,20 @@ try {
       const name=u.pathname.split('/').at(-1);
       if(name==='log_app_error')return response(204);
       try {
+        const signatures={
+          paypal_payout_event_receive:['p_environment','p_sender','p_event'],
+          paypal_payout_reconcile_begin:['p_id','p_user','p_environment','p_sender','p_event','p_source'],
+          paypal_payout_reconcile_finish:['p_query','p_response'],
+          paypal_payout_event_pending:['p_user'],
+        };
+        if(signatures[name]) {
+          state.rpcCalls??=[];state.rpcCalls.push(name);
+          if(state.failRpc===name){state.failRpc=null;return response(503,{message:'TEST journal unavailable'});}
+          const args=signatures[name].map(k=>body[k]);
+          const result=(await q(`select ${name}(${args.map((_,i)=>`$${i+1}`).join(',')}) as v`,args))[0].v;
+          if(state.loseAckRpc===name){state.loseAckRpc=null;return response(503,{message:'TEST journal committed, acknowledgment lost'});}
+          return response(200,result);
+        }
         if(name==='paypal_payout_begin')return response(200,(await q('select paypal_payout_begin($1,$2,$3) as v',[body.p_user,body.p_environment,body.p_sender]))[0].v);
         if(name==='paypal_payout_claim')return response(200,(await q('select paypal_payout_claim($1,$2,$3,$4) as v',[body.p_user,body.p_id,body.p_environment,body.p_sender]))[0].v);
         if(name==='paypal_payout_submission_result') {
@@ -77,6 +93,13 @@ try {
     }
     if(u.origin==='https://api-m.sandbox.paypal.com') {
       if(u.pathname==='/v1/oauth2/token')return response(200,{access_token:'TEST_ONLY_TOKEN'});
+      if(u.pathname==='/v1/notifications/verify-webhook-signature')return response(200,{verification_status:state.badSignature?'FAILURE':'SUCCESS'});
+      if(u.pathname.endsWith('/cancel')) {
+        state.cancelCalls=(state.cancelCalls??0)+1;
+        if(state.status==='UNCLAIMED')state.status='RETURNED';
+        if(state.cancelLost)throw new TypeError('TEST cancellation acknowledgment lost');
+        return response(200,{transaction_status:state.status});
+      }
       if(u.pathname==='/v1/payments/payouts'&&init.method==='POST') {
         assert.ok(init.signal instanceof AbortSignal,'Payout request needs a bounded network timeout');
         state.posts.push(body);const id=body.sender_batch_header.sender_batch_id;
@@ -99,12 +122,14 @@ try {
         const payload=state.accepted.get(match[1]);if(!payload)return response(404,{});
         const batch={batch_header:{payout_batch_id:`BATCH-${match[1]}`,sender_batch_header:{sender_batch_id:state.badHeader?'another-reference':match[1]}},
           items:[{payout_item_id:`ITEM-${match[1]}`,transaction_status:state.status,payout_item:structuredClone(payload.items[0])}]};
-        if(state.mutate)state.mutate(batch);return response(200,batch);
+        if(state.mutate)state.mutate(batch);
+        if(state.afterGet){const fn=state.afterGet;state.afterGet=null;await fn();}
+        return response(200,batch);
       }
     }
     state.unexpected.push(u.href);throw new Error(`NETWORK_DISABLED ${u.origin}`);
   };
-  const post=async(action='payout')=>{const r=await api.POST(new Request('https://app.example.invalid/api/paypal',{method:'POST',headers:{authorization:'Bearer TEST_ONLY_USER','content-type':'application/json'},body:JSON.stringify({action})}));return {http:r.status,body:await r.json()};};
+  const post=async(action='payout',extra={})=>{const r=await api.POST(new Request('https://app.example.invalid/api/paypal',{method:'POST',headers:{authorization:'Bearer TEST_ONLY_USER','content-type':'application/json'},body:JSON.stringify({action,...extra})}));return {http:r.status,body:await r.json()};};
 
   await check('Un envío confirmado paga una vez y persiste la referencia antes de consultar',async()=>{
     const r=await post();assert.equal(r.body.status,'paid');assert.equal((await current()).status,'paid');assert.equal((await submission()).batch_id,(await current()).paypal_batch_id);assert.equal(state.accepted.size,1);assert.equal(await balance(),0);
@@ -181,9 +206,9 @@ try {
   await check('Un retiro histórico sin snapshot ni lote no utiliza el destinatario actual',async()=>{
     await q('select paypal_payout_start($1)',[user]);const r=await post('payout-check');assert.equal(r.body.items[0].paypalStatus,'MANUAL_REVIEW');assert.equal(state.posts.length,0);assert.equal(await balance(),0);
   });
-  await check('Un retiro histórico con lote confirmado se consulta sin nuevo POST',async()=>{
+  await check('Un retiro histórico con lote pero sin snapshot requiere revisión sin nuevo POST',async()=>{
     await post();const p=await current();await q("update payouts set status='sending' where id=$1",[p.id]);await q('delete from paypal_payout_submissions');const n=state.posts.length;
-    await post('payout-check');assert.equal(state.posts.length,n);assert.equal((await current()).status,'paid');
+    const r=await post('payout-check');assert.equal(state.posts.length,n);assert.equal((await current()).status,'sending');assert.equal(r.body.items[0].paypalStatus,'MANUAL_REVIEW');
   });
   await check('Un enlace duplicado a otro dominio no se sigue ni libera fondos',async()=>{
     state.mode='503';await post();state.mode='success';state.badLink=true;await advance();await post('payout-check');assert.equal(state.gets.length,0);assert.equal((await current()).status,'sending');assert.equal(await balance(),0);
@@ -227,5 +252,6 @@ try {
     await db.exec('set role service_role');
     try {await assert.rejects(()=>q('select * from paypal_payout_submissions'),/permission denied/);await assert.rejects(()=>q("update paypal_payout_submissions set net=1"),/permission denied/);assert.equal((await claim(p.id)).operation,'submit');}finally{await db.exec('reset role');}
   });
+  await payoutEventCases({db,q,user,sender,check,post,api,current,balance,begin,claim,finish,state:()=>state,advance});
   console.log(`\n${passed} comprobaciones satisfactorias; proveedor simulado, sin producción.`);
 } finally {globalThis.fetch=oldFetch;await db.close();assert.equal(resolve(dir,'..'),resolve(tmpdir()));rmSync(dir,{recursive:true,force:true});}
