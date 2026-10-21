@@ -19,6 +19,8 @@ export const createSupabaseFinance=(sb:SupabaseClient):FinanceBackend=>{
    adjust:(user,amount,reason,key,reference,reverses)=>call('finance_creator_adjust',{p_user:user,p_amount:amount,p_reason:reason,p_key:key,p_reference:reference,p_reverses:reverses??null}),
    journal:month=>call('finance_journal_export',{p_month:month}),
    operations:()=>call('finance_operations'),
+   payoutGroups:batch=>call('finance_payout_groups',{p_batch:batch??null}),
+   payoutGroup:id=>call('finance_payout_group',{p_id:id}),
    caseList:(offset,reference)=>call('finance_case_list',{p_offset:offset,p_limit:50,p_reference:reference??null}),
    casePreview:id=>call('finance_case_preview',{p_id:id}),
    caseAct:input=>call('finance_case_act',{p_id:input.id,p_key:input.key,p_expected:input.expected,p_action:input.action,p_party:input.party,p_category:input.category,p_evidence:input.evidence,p_reason:input.reason,p_notice:input.notice??null,p_followup:input.followup??null}),
