@@ -301,7 +301,7 @@ const reconcilePayout = async (e: Env, token: string, id: string, userId: string
     retry: r.outcome === 'retry' || r.outcome === 'stale' };
 };
 
-const processPayout = async (e: Env, token: string, userId: string, id: string, waitForDelivery = false) => {
+const processPayout = async (e: Env, token: string, userId: string, id: string, waitForDelivery = false, allowSubmit?: () => Promise<boolean>) => {
   const claimed = await rpc(e, 'paypal_payout_claim', { p_user: userId, p_id: id, p_environment: e.mode, p_sender: e.clientId });
   if (!claimed.ok) throw new Error(claimed.error);
   const c = claimed.data as PayoutClaim;
@@ -320,6 +320,7 @@ const processPayout = async (e: Env, token: string, userId: string, id: string, 
   let recoveredBatch: Awaited<ReturnType<typeof paypal>> | undefined;
   if (c.operation === 'submit') {
     if (!c.token || c.payload?.sender_batch_header?.sender_batch_id !== id) throw new Error('Falta la referencia original del retiro');
+    if (allowSubmit && !await allowSubmit()) return pendingPayout('AUTOMATION_BLOCKED');
     let sent;
     try { sent = await paypal(e, token, '/v1/payments/payouts', c.payload, undefined, PAYOUT_TIMEOUT_MS); }
     catch {
@@ -355,6 +356,22 @@ const processPayout = async (e: Env, token: string, userId: string, id: string, 
   if (!validBatchId(batchId)) return pendingPayout('MANUAL_REVIEW');
   if (waitForDelivery && !recoveredBatch) await pause(1500);
   return reconcilePayout(e,token,id,userId);
+};
+
+// Internal server contracts; these exports are not HTTP handlers. The scheduled
+// worker rechecks its durable permission immediately before any provider POST.
+export const payoutServerIdentity = () => {
+  const e=env();
+  if(!e.clientId||!e.secret||!e.serviceKey)throw new Error('Falta la configuración de PayPal');
+  return {mode:e.mode,clientId:e.clientId};
+};
+export const runStoredPayout = async (userId:string,id:string,allowSubmit:()=>Promise<boolean>) => {
+  const e=env();if(!e.clientId||!e.secret||!e.serviceKey)throw new Error('Falta la configuración de PayPal');
+  return processPayout(e as Env,await paypalToken(e),userId,id,false,allowSubmit);
+};
+export const reconcileStoredPayoutEvent = async (id:string,eventId:string) => {
+  const e=env();if(!e.clientId||!e.secret||!e.serviceKey)throw new Error('Falta la configuración de PayPal');
+  return reconcilePayout(e as Env,await paypalToken(e),id,null,eventId,'webhook');
 };
 
 // Reservation and immutable request snapshot are created together, before HTTP.

@@ -16,6 +16,11 @@ export interface FinanceBackend {
  cancel(id: string,reason: string): Promise<FinanceResult<null>>;
  adjust(user: string,amount: number,reason: string,key: string,reference: string,reverses?: string): Promise<FinanceResult<{id:string}>>;
  journal(month: string): Promise<FinanceResult<FinanceJournalRow[]>>;
+ operations?():Promise<FinanceResult<import('./payoutOperations').PayoutOperations>>;
+ review?():Promise<FinanceResult<null>>;
+ testAlert?():Promise<FinanceResult<null>>;
+ funding?(key:string,environment:'sandbox'|'live',available:number,at:string,reference:string):Promise<FinanceResult<{id:string}>>;
+ importStatement?(key:string,environment:'sandbox'|'live',test:boolean,rows:import('./payoutOperations').StatementInput[]):Promise<FinanceResult<{id:string}>>;
 }
 export const financeReasons: Record<string,string> = {
  IDENTITY_REQUIRED:'Falta verificar su identidad',SUSPENDED:'Cuenta suspendida',ACCOUNT_FROZEN:'Retiros en revisión',
