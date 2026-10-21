@@ -40,6 +40,8 @@
     "test:finance-adapter": "node e2e/finance-adapter.mjs",
     "test:fee-resolution": "node e2e/fee-resolution.mjs",
     "test:fee-resolution-ui": "node e2e/fee-resolution-ui.mjs",
+    "test:incident-procedures": "node e2e/incident-procedures.mjs",
+    "test:incident-procedures-ui": "node e2e/incident-procedures-ui.mjs",
     "test:finance-ui": "node e2e/finance-ui.mjs",
     "test:payout-automation": "node e2e/payout-automation.mjs",
     "test:payout-operations-ui": "node e2e/payout-operations-ui.mjs",

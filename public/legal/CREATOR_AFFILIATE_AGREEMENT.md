@@ -235,6 +235,10 @@ En Reserve, un descuento para suscriptores activado por el Creador se absorbe de
 
 6.4.4. **Procesador de pagos**: Los cobros a los fans y los retiros se procesan con PayPal. Mientras la Plataforma está en fase de prelanzamiento, el acceso está restringido.
 
+6.4.5. **Errores e incidencias**: Usted debe comprobar que los datos e instrucciones de retiro que proporciona son correctos. La responsabilidad por un error o incumplimiento se evalúa con evidencia de su causa y de la intervención de cada parte; un error humano de nuestro equipo o un fallo de procesamiento de la Plataforma no se atribuye al Creador por defecto. La cobertura de ventas prevista en 6.2.3 se mantiene. El costo ordinario de un retiro y la pérdida ocasionada por un error son conceptos distintos; no se duplican descuentos ni se introducen penalizaciones mediante una nota de atribución.
+
+6.4.6. **Revisión y bloqueos**: Un resultado de pago incierto conserva su referencia y los fondos necesarios hasta su conciliación. Cada bloqueo requiere revisar su causa antes de liberarlo. Puede solicitar revisión mediante soporte y aportar nuevos comprobantes; una rectificación queda registrada sin borrar la decisión anterior. Una clasificación interna no sustituye la resolución del proveedor ni limita derechos o vías de reclamación aplicables.
+
 ### 6.5. Impuestos
 
 6.5.1. **Responsabilidad Fiscal**: Usted es responsable de:

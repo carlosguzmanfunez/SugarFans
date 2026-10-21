@@ -30,7 +30,7 @@ Una resolución cierra su incidencia de reporte y cancela los avisos todavía pe
 
 Si un retiro resuelto deja de estar entregado o una consulta posterior contradice el costo, el sistema congela los retiros de esa cuenta y conserva el registro del bloqueo. No libera fondos automáticamente ni reasigna responsabilidades.
 
-Un operador debe conciliar la devolución, revisar el ajuste y cualquier reserva o retiro posterior, y dejar evidencia de la decisión. Revertir una resolución no desbloquea la cuenta por sí solo. La validación completa del procedimiento humano de desbloqueo, disputas y avisos agotados sigue siendo el punto 5 del plan; no debe habilitarse dinero automático antes de cerrarlo.
+Un operador debe conciliar la devolución, revisar el ajuste y cualquier reserva o retiro posterior, y dejar evidencia de la decisión. Revertir una resolución no desbloquea la cuenta por sí solo. Los [procedimientos del punto 5](payout-incident-procedures.md) añaden el expediente de responsabilidad y la liberación de cada motivo cuando sus comprobaciones lo permiten. Las incidencias deben atenderse antes de habilitar dinero automático.
 
 ## Despliegue y permisos
 

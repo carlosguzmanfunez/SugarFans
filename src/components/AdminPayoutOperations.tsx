@@ -3,9 +3,10 @@ import type {FinanceBackend} from '../lib/creatorFinance';
 import {operationReasons,parseStatementFile,statementExample,type PayoutOperations,type StatementInput} from '../lib/payoutOperations';
 import {money,platformChanged} from '../lib/platform';
 import FeeResolutionPanel from './FeeResolutionPanel';
+import AdminCasework from './AdminCasework';
 const date=(value:string)=>new Intl.DateTimeFormat('es-HN',{dateStyle:'medium',timeStyle:'short',timeZone:'America/Tegucigalpa'}).format(new Date(value));
 const button='rounded-xl bg-gray-900 text-white px-4 py-2 text-sm disabled:opacity-40';
-export default function AdminPayoutOperations({api}:{api:FinanceBackend}){
+export default function AdminPayoutOperations({api,caseReference}:{api:FinanceBackend;caseReference?:string}){
  const [data,setData]=useState<PayoutOperations|null>(null),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[revision,setRevision]=useState(0);
  const [example,setExample]=useState(false),[rows,setRows]=useState<StatementInput[]|null>(null),[reference,setReference]=useState(''),[available,setAvailable]=useState('');
  const [feeLine,setFeeLine]=useState<string|null>(null);
@@ -39,6 +40,7 @@ export default function AdminPayoutOperations({api}:{api:FinanceBackend}){
     <ul className="mt-3 divide-y">{data.statements.slice(0,30).map(r=><li key={r.id} className="py-3 text-sm"><p className="break-all">{r.source==='bank'?'Banco':'PayPal'} · {r.external_id} · {money(r.amount)}</p><p className={r.state==='review'?'text-amber-800':'text-green-700'}>{r.state==='resolved'?'Resuelta con evidencia y registro contable':r.state==='matched'?'Coincide con su referencia':operationReasons[r.reason??'']??'Revisar este movimiento'}</p>{r.kind==='fee'&&api.feePreview&&<button type="button" className="underline mt-2" onClick={()=>setFeeLine(r.id)}>Revisar diferencia de comisión</button>}</li>)}</ul>
     {feeLine&&<FeeResolutionPanel key={feeLine} line={feeLine} api={api} onClose={()=>setFeeLine(null)} onChanged={()=>{setRevision(x=>x+1);platformChanged();}}/>}
    </details>
+   {api.caseList&&<AdminCasework api={api} refreshKey={revision} initialReference={caseReference} onChanged={()=>{setRevision(x=>x+1);platformChanged();}}/>}
    <details className="border-t pt-4"><summary className="font-medium cursor-pointer">Últimas revisiones</summary><ul className="mt-3 space-y-2">{data.jobs.map(j=><li key={j.id} className="text-sm">{date(j.started_at)} · {j.state==='finished'?'Completada':j.state==='running'?'En proceso':'Pendiente de reanudar'} · {j.summary.processed??0} movimientos comprobados · {j.summary.held??0} por revisar</li>)}</ul></details>
   </>}
  </section>;

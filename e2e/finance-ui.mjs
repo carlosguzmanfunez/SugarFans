@@ -14,8 +14,8 @@ const folder=mkdtempSync(join(tmpdir(),'finance-ui-')),output=resolve('../../out
 let fixture,server,browser,page;const errors=[],unexpected=[];let loseFreezeAck=true;
 let holdBalance=false,failBalance=false,heldReady,releaseBalance;
 try {
- fixture=await financeFixture({automationMigration:true});await fixture.reset();await fixture.sale();await fixture.sale('diego','other',100);await fixture.sale('next','creator',25,.8,'2026-10-27T12:00:00Z');
- const signatures={finance_operations:[],finance_overview:[],finance_creator_balance:[],finance_batch_detail:['p_id'],finance_batch_freeze:['p_key','p_cutoff','p_expected'],finance_batch_cancel:['p_id','p_reason'],finance_creator_adjust:['p_user','p_amount','p_reason','p_key','p_reference','p_reverses'],finance_journal_export:['p_month']};
+ fixture=await financeFixture({incidentMigration:true});await fixture.reset();await fixture.sale();await fixture.sale('diego','other',100);await fixture.sale('next','creator',25,.8,'2026-10-27T12:00:00Z');
+ const signatures={finance_case_list:['p_offset','p_limit','p_reference'],finance_case_preview:['p_id'],finance_case_act:['p_id','p_key','p_expected','p_action','p_party','p_category','p_evidence','p_reason','p_notice','p_followup'],finance_operations:[],finance_overview:[],finance_creator_balance:[],finance_batch_detail:['p_id'],finance_batch_freeze:['p_key','p_cutoff','p_expected'],finance_batch_cancel:['p_id','p_reason'],finance_creator_adjust:['p_user','p_amount','p_reason','p_key','p_reference','p_reverses'],finance_journal_export:['p_month']};
  await build({stdin:{contents:`import React from 'react';import {createRoot} from 'react-dom/client';import AdminFinance from './src/components/AdminFinance';import {createSupabaseFinance} from './src/lib/backend/supabaseFinance';import {backend} from './src/lib/backend';import {useCreatorBalance} from './src/lib/useCreatorBalance';
  const client={rpc:async(name,args)=>{const response=await fetch('/rpc',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name,args})});return response.json();}};
  const finance=createSupabaseFinance(client);backend.finance=finance;

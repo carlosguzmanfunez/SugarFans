@@ -205,6 +205,10 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 - El costo real de enviar el retiro corresponde al Creador. El panel muestra una estimación y las diferencias comprobadas se regularizan con ajustes a su favor o a su cargo, conservando el retiro original y sin atribuir culpa automáticamente
 - Los Creadores son responsables de sus obligaciones fiscales
 
+6.5.1. **Errores y responsabilidad**: Cada parte debe comprobar los datos e instrucciones que proporciona y responder por errores o incumplimientos que se le puedan atribuir con evidencia, conforme al contrato y la ley aplicables. Los errores de nuestro personal y los fallos de procesamiento o servicios propios corresponden a Fans Reserve. Si la causa no está determinada, se mantiene la revisión; una reclamación no prueba por sí sola responsabilidad del fan o del creador. El costo ordinario del retiro se distingue de una pérdida ocasionada por un error. Registrar un responsable no autoriza cargos adicionales, penalizaciones o descuentos duplicados.
+
+6.5.2. **Revisión de incidencias**: Los envíos inciertos conservan su referencia y los fondos necesarios hasta conciliarse. La Plataforma registra evidencia, decisiones y rectificaciones antes de liberar cada motivo de bloqueo. Puede solicitar revisión y aportar comprobantes mediante soporte. Este procedimiento no sustituye decisiones del proveedor ni limita derechos o vías de reclamación aplicables; se mantiene la cobertura del contrato de creadores cuando el problema no fue culpa del creador.
+
 6.6. **Impuestos**:
 - Los precios pueden incluir impuestos aplicables según su jurisdicción
 - Usted es responsable de declarar y pagar impuestos sobre sus ingresos (para Creadores)

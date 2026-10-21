@@ -1,0 +1,70 @@
+import React,{useEffect,useRef,useState} from 'react';
+import type {FinanceBackend} from '../lib/creatorFinance';
+import {financeReasons} from '../lib/creatorFinance';
+import {operationReasons} from '../lib/payoutOperations';
+import {caseActions,caseCategories,caseEffects,caseGuidance,caseParties,type CaseAction,type CaseCategory,type CasePage,type CaseParty,type CasePreview} from '../lib/incidentProcedures';
+import {money} from '../lib/platformRules';
+
+const button='rounded-xl bg-gray-900 text-white px-4 py-2 text-sm disabled:opacity-40 disabled:cursor-not-allowed';
+const input='block w-full border border-gray-200 rounded-xl p-2 mt-1 bg-white';
+const date=(v:string)=>new Intl.DateTimeFormat('es-HN',{timeZone:'America/Tegucigalpa',dateStyle:'medium',timeStyle:'short'}).format(new Date(v));
+export default function AdminCasework({api,refreshKey=0,initialReference,onChanged}:{api:FinanceBackend;refreshKey?:number;initialReference?:string;onChanged:()=>void}){
+ const [page,setPage]=useState<CasePage|null>(null),[offset,setOffset]=useState(0),[filter,setFilter]=useState(initialReference),[selected,setSelected]=useState('');
+ const [data,setData]=useState<CasePreview|null>(null),[error,setError]=useState(''),[listError,setListError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[revision,setRevision]=useState(0);
+ const [action,setAction]=useState<CaseAction>('note'),[party,setParty]=useState<CaseParty>('undetermined'),[category,setCategory]=useState<CaseCategory>('unresolved');
+ const [reason,setReason]=useState(''),[evidence,setEvidence]=useState(''),[humanNotice,setHumanNotice]=useState(''),[followup,setFollowup]=useState(''),[confirm,setConfirm]=useState(false),[attested,setAttested]=useState(false);
+ const request=useRef<{payload:string;key:string}|null>(null);
+ useEffect(()=>{setFilter(initialReference);setOffset(0);setSelected('');},[initialReference]);
+ useEffect(()=>{let active=true;setListError('');api.caseList?.(offset,filter).then(r=>{if(active){if(r.ok){setPage(r.data);setSelected(current=>current||r.data.items[0]?.id||'');}else{setPage(null);setListError(r.error);}}}).catch(()=>{if(active){setPage(null);setListError('No pudimos cargar los expedientes.');}});return()=>{active=false;};},[api,offset,filter,revision,refreshKey]);
+ useEffect(()=>{let active=true;setData(null);setError('');setConfirm(false);setAttested(false);setReason('');setEvidence('');setHumanNotice('');setFollowup('');setAction('note');setParty('undetermined');setCategory('unresolved');
+  if(selected)api.casePreview?.(selected).then(r=>{if(active){if(r.ok&&r.data.issue===null){setData(r.data);setAction(r.data.actions[0]??'note');}else setError(r.ok?'No encontramos este expediente.':r.error);}}).catch(()=>{if(active)setError('No pudimos comprobar el estado actual del expediente.');});return()=>{active=false;};
+ },[api,selected,revision,refreshKey]);
+ const chooseCategory=(value:CaseCategory)=>{setCategory(value);if(value==='platform_processing')setParty('platform');else if(value==='provider_processing')setParty('provider');else if(value==='unresolved')setParty('undetermined');};
+ const save=async()=>{
+  if(!data||!attested||!data.actions.includes(action))return;setBusy(true);setError('');setNotice('');
+  try{
+   const fields={id:data.incident,expected:data.hash,action,party,category,evidence,reason,notice:action==='ack_alert'?humanNotice:null,followup:followup?new Date(followup+'-06:00').toISOString():null};
+   const payload=JSON.stringify(fields);if(request.current?.payload!==payload)request.current={payload,key:crypto.randomUUID()};
+   const r=await api.caseAct?.({...fields,key:request.current.key});
+   if(!r?.ok){setError(r&&!r.ok?r.error:'La decisión no está disponible.');return;}
+   setNotice(action==='release_hold'?(r.data.result.unfrozen?'Bloqueo liberado con evidencia. No se envió dinero.':'Motivo liberado. La cuenta conserva otros bloqueos activos.'):'Decisión registrada en el historial del expediente.');request.current=null;setRevision(x=>x+1);onChanged();
+  }catch{setError('No recibimos la confirmación. Reintenta sin cambiar esta decisión para conservar la misma referencia.');}finally{setBusy(false);}
+ };
+ return <section id="finance-casework" className="border-t pt-5 space-y-4" data-testid="finance-casework">
+  <div className="flex flex-wrap justify-between gap-3"><div><h4 className="font-bold">Expedientes de pagos</h4><p className="text-sm text-gray-600 mt-1">Identifica la causa, documenta la responsabilidad y revisa el efecto antes de decidir.</p></div><button type="button" className="text-sm underline" disabled={busy} onClick={()=>setRevision(x=>x+1)}>Actualizar expedientes</button></div>
+  <p className="text-sm text-gray-600">Cada parte responde por errores que se le puedan atribuir con evidencia. Los errores de nuestro equipo y del sistema corresponden a Fans Reserve. Una anotación no autoriza un descuento adicional.</p>
+  {listError&&<p role="alert" className="text-red-800">{listError}</p>}{notice&&<p role="status" className="rounded-xl p-3 bg-green-50 text-green-800">{notice}</p>}
+  {filter&&<div className="flex flex-wrap items-center gap-3 text-sm"><span>Mostrando la cuenta o venta seleccionada</span><button disabled={busy} type="button" className="underline" onClick={()=>{setFilter(undefined);setOffset(0);setSelected('');}}>Ver todos los expedientes</button></div>}
+  {!page&&!listError&&<p role="status">Cargando expedientes…</p>}
+  {page&&<>
+   {page.total===0?<p className="text-sm text-gray-600">No hay expedientes para esta vista. «Revisar ahora» comprueba las incidencias actuales.</p>:<>
+    <ul className="space-y-2">{page.items.map(item=><li key={item.id}><button type="button" disabled={busy} className={`text-left w-full rounded-xl border p-3 ${selected===item.id?'border-gray-900 bg-gray-50':'border-gray-200'}`} onClick={()=>setSelected(item.id)}><span className="block font-medium text-sm">{item.title}</span><span className="block text-xs text-gray-600 mt-1">{item.state==='open'?'Pendiente':'Atendido'} · {date(item.first_seen_at)}{item.state==='open'&&item.followup_at?` · Revisar ${date(item.followup_at)}`:''}</span></button></li>)}</ul>
+    <div className="flex flex-wrap items-center gap-3 text-sm"><span>{offset+1}–{Math.min(offset+page.items.length,page.total)} de {page.total}</span><button type="button" className="underline" disabled={busy||offset===0} onClick={()=>{setOffset(Math.max(0,offset-50));setSelected('');}}>Anteriores</button><button type="button" className="underline" disabled={busy||offset+page.items.length>=page.total} onClick={()=>{setOffset(offset+50);setSelected('');}}>Siguientes</button></div>
+   </>}
+  </>}
+  {selected&&<div className="rounded-xl border border-gray-200 p-4 space-y-4" data-testid="case-detail">
+   {error&&<p role="alert" className="rounded-xl bg-red-50 text-red-800 p-3">{error}</p>}
+   {!data&&!error&&<p role="status">Comprobando la evidencia…</p>}
+   {data&&<>
+    <div><h5 className="font-semibold">{data.title}</h5><p className="text-xs text-gray-500 mt-1 break-all">Expediente {data.incident} · {data.state==='open'?'Pendiente':'Atendido'}</p></div>
+    <p className="text-sm text-gray-600">{caseGuidance[data.code]??'Comprueba el origen del problema. Documentar una nota no altera el estado del pago ni sustituye las comprobaciones de seguridad.'}</p>
+    {data.source.transaction&&<div className="rounded-xl bg-gray-50 p-3 text-sm space-y-1"><p className="break-all">Venta: {data.source.transaction}</p><p>Importe de la venta: {money(data.source.amount??0)}</p><p>Estado: {data.source.status==='disputed'?'En disputa':data.source.status==='refunded'?'Reembolsada':'Confirmada'}</p><p>{data.source.covered?'Fans Reserve conserva la parte del creador.':'Se aplica el estado de la venta al saldo del creador.'}</p></div>}
+    {data.source.kind&&<p className="text-sm">Motivo: {data.source.reason}. Otros bloqueos activos: {data.source.remaining_holds??0}.</p>}
+    {!!data.source.blockers?.length&&<div className="bg-amber-50 text-amber-900 rounded-xl p-3 text-sm"><p className="font-medium">Todavía no se puede liberar:</p><ul className="list-disc pl-5 mt-1">{data.source.blockers.map((b,index)=><li key={b+index}>{operationReasons[b]??financeReasons[b]??(b==='DISPUTE_ASSESSMENT_REQUIRED'?'Falta revisar la responsabilidad de una venta reembolsada.':b==='PROVIDER_CONFIRMATION_REQUIRED'?'Falta confirmar con PayPal el estado final del retiro.':b==='PROVIDER_EVENT'?'Hay un aviso de PayPal pendiente de conciliar.':'La evidencia necesita revisión.')}</li>)}</ul></div>}
+    {data.source.alert&&<p className="text-sm">Aviso con {data.source.attempts} intentos. {data.source.state==='review'?'Requiere atención humana.':'Su historial se conserva.'}</p>}
+    {data.source.parent_incident&&<button type="button" className="text-sm underline" disabled={busy} onClick={()=>setSelected(data.source.parent_incident!)}>Abrir expediente original</button>}
+    {data.actions.length>0?<form className="space-y-3" onSubmit={e=>{e.preventDefault();setConfirm(true);setAttested(false);}}>
+     <label className="block text-sm">Acción<select aria-label="Acción" className={input} value={action} disabled={busy||confirm} onChange={e=>setAction(e.target.value as CaseAction)}>{data.actions.map(a=><option value={a} key={a}>{caseActions[a]}</option>)}</select></label>
+     <div className="grid sm:grid-cols-2 gap-3"><label className="block text-sm">Causa<select aria-label="Causa" className={input} value={category} disabled={busy||confirm} onChange={e=>chooseCategory(e.target.value as CaseCategory)}>{Object.entries(caseCategories).map(([key,text])=><option key={key} value={key}>{text}</option>)}</select></label>
+     <label className="block text-sm">Responsable según la evidencia<select aria-label="Responsable según la evidencia" className={input} value={party} disabled={busy||confirm} onChange={e=>setParty(e.target.value as CaseParty)}>{Object.entries(caseParties).map(([key,text])=><option key={key} value={key}>{text}</option>)}</select></label></div>
+     <label className="block text-sm">Referencia de comprobantes<input aria-label="Referencia de comprobantes" className={input} value={evidence} onChange={e=>setEvidence(e.target.value)} minLength={10} maxLength={1000} required disabled={busy||confirm}/></label>
+     <label className="block text-sm">Motivo de la decisión<textarea aria-label="Motivo de la decisión" className={input} value={reason} onChange={e=>setReason(e.target.value)} minLength={20} maxLength={2000} required disabled={busy||confirm}/></label>
+     {action==='ack_alert'&&<label className="block text-sm">Constancia de atención humana<textarea aria-label="Constancia de atención humana" className={input} value={humanNotice} onChange={e=>setHumanNotice(e.target.value)} minLength={10} maxLength={1000} required disabled={busy||confirm}/></label>}
+     {action==='note'&&<label className="block text-sm">Próxima revisión (hora de Honduras, UTC−6)<input aria-label="Próxima revisión (hora de Honduras, UTC−6)" type="datetime-local" className={input} value={followup} onChange={e=>setFollowup(e.target.value)} required disabled={busy||confirm}/><span className="text-xs text-gray-500">Plazo interno de seguimiento. Conserva y atiende por separado los plazos que haya indicado PayPal.</span></label>}
+     {!confirm?<button type="submit" className={button} disabled={busy||(action==='coverage'&&party==='undetermined')}>Revisar decisión</button>:<div className="bg-amber-50 rounded-xl p-3 space-y-3"><p className="text-sm font-medium">{caseEffects(action,party)}</p><label className="flex gap-2 items-start text-sm"><input type="checkbox" className="mt-1" checked={attested} disabled={busy} onChange={e=>setAttested(e.target.checked)}/><span>He revisado los comprobantes y el efecto de esta decisión.</span></label><div className="flex flex-wrap gap-3"><button type="button" className={button} disabled={busy||!attested} onClick={()=>void save()}>Confirmar decisión documentada</button><button type="button" className="text-sm underline" disabled={busy} onClick={()=>setConfirm(false)}>Volver a revisar</button></div></div>}
+    </form>:<p className="rounded-xl bg-gray-50 p-3 text-sm">Este expediente está atendido. Su historial se conserva para consulta. Si aparecen nuevos comprobantes, solicita su revisión por soporte.</p>}
+    <details className="border-t pt-3"><summary className="cursor-pointer text-sm font-medium">Historial de decisiones ({data.history.length})</summary>{data.history.length===0?<p className="text-sm text-gray-600 mt-3">Aún no hay decisiones registradas.</p>:<ul className="space-y-3 mt-3">{data.history.map(h=><li key={h.id} className="rounded-xl bg-gray-50 p-3 text-sm break-words"><p className="font-medium">{caseActions[h.action]} · {date(h.created_at)}</p><p>{caseParties[h.party]} · {caseCategories[h.category]}</p><p>{h.reason}</p><p className="text-xs text-gray-600">Comprobantes: {h.evidence}</p>{h.notice&&<p className="text-xs text-gray-600">Atención: {h.notice}</p>}</li>)}</ul>}</details>
+   </>}
+  </div>}
+ </section>;
+}

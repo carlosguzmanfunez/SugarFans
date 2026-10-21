@@ -27,6 +27,7 @@ No habilitar `finance_private.automation_settings.execution_enabled`, `finance_p
 - Evidencia de entrega y aviso firmado, cuenta administrativa responsable, techo de comisión y conexión correcta del mismo entorno. Las credenciales y la autorización deben corresponder al entorno real.
 - Pruebas de capacidad suficientes para la lista de creadores y la ventana del 26 al 1, con supervisión y recuperación operativa.
 - Confirmación de recepción de alertas y procedimiento para avisos fallidos.
+- Validación de los [procedimientos de incidencias](payout-incident-procedures.md): atribución documentada, revisión de disputas, liberación individual de bloqueos y constancia de atención de correos agotados.
 - Conciliación real y política contable para comisiones, ajustes y disputas.
 
 El propietario registrado puede seguir usando sus vistas Fan/Creador/Admin: su perfil no necesita convertirse en admin para operar. El servidor valida la sesión administrativa real; las tareas programadas verifican la identidad responsable, bajas, suspensiones y correo confirmado del propietario sin suplantar una sesión.

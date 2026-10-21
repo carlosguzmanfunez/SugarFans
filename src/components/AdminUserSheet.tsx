@@ -34,11 +34,12 @@ interface Props {
   transactions: Transaction[];
   onClose: () => void;
   onDone: (text: string) => void;
+  onReviewPayouts?: () => void;
 }
 
 // Admin: everything about one account and what can be done to it (suspend, freeze
 // withdrawals, take away Verificado, cancel). Each action asks for a reason and is logged.
-const AdminUserSheet: React.FC<Props> = ({ admin, target, restriction, history, transactions, onClose, onDone }) => {
+const AdminUserSheet: React.FC<Props> = ({ admin, target, restriction, history, transactions, onClose, onDone,onReviewPayouts }) => {
   const [reason, setReason] = useState('');
   const [days, setDays] = useState('7');
   const [confirmDelete, setConfirmDelete] = useState('');
@@ -146,8 +147,8 @@ const AdminUserSheet: React.FC<Props> = ({ admin, target, restriction, history, 
               <p className="font-medium text-gray-900 text-sm">Retiros</p>
               <p className="text-xs text-gray-500 mb-3">Sigue vendiendo con normalidad, pero no puede sacar su dinero mientras lo revisas.</p>
               {frozen ? (
-                <button disabled={busy} onClick={() => run('unfreeze_payouts', `${target.name} ya puede retirar`)} className={`${btn} bg-gray-900 text-white`}>
-                  Descongelar retiros
+                <button disabled={busy} onClick={onReviewPayouts??(() => run('unfreeze_payouts', `${target.name} ya puede retirar`))} className={`${btn} bg-gray-900 text-white`}>
+                  {onReviewPayouts?'Revisar motivos de bloqueo':'Descongelar retiros'}
                 </button>
               ) : (
                 <button disabled={busy || needsReason} onClick={() => run('freeze_payouts', `Retiros de ${target.name} congelados`)} className={`${btn} bg-amber-500 text-white`}>
