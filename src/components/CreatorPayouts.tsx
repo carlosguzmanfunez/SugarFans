@@ -17,8 +17,6 @@ import {
   transactionLabel,
   payoutAccountLabel,
   payoutFee,
-  PAYOUT_FEE_RATE,
-  PAYOUT_FEE_MAX,
   type Payout,
 } from '../lib/platform';
 import { GIFT_SHARE } from '../lib/giftRules';
@@ -133,7 +131,7 @@ const CreatorPayouts: React.FC = () => {
           Tus ganancias se acumulan del 26 de cada mes al 25 del siguiente. Al comenzar el 26 se cierra ese ciclo y empieza uno nuevo.
           La ventana de pago va del 26 al día 1 siguiente, ambos incluidos, en hora de Honduras (UTC−6).
           Por ahora solicita aquí el saldo completo durante esa ventana, a partir de {money(terms.min)} USD, a tu cuenta PayPal (desde ahí puedes pasarlo a tu banco). Todo se paga en dólares (USD).
-          PayPal cobra {PAYOUT_FEE_RATE * 100}% (máximo {money(PAYOUT_FEE_MAX)}) por enviar el retiro, y esa comisión se descuenta del monto retirado.
+          El costo real de enviar el retiro corre por tu cuenta. El panel muestra una estimación; las diferencias comprobadas con PayPal se registran a tu favor o a tu cargo, conservando el retiro original.
         </p>
         <p className="text-sm text-gray-700 mb-4" data-testid="payout-window">{window.open ? 'Ventana de pago abierta' : 'Próxima ventana de pago'}: {fmtDate(window.nextStart)} – {fmtDate(new Date(Date.parse(window.nextEnd) - 1).toISOString())}. Los saldos no pagados se conservan; las ganancias del nuevo ciclo se pagan en su próxima ventana.</p>
         {!verified && (
@@ -181,7 +179,7 @@ const CreatorPayouts: React.FC = () => {
           </button>
           {canWithdraw && (
             <p className="text-xs text-gray-500">
-              Recibirás {money(earnings.available - fee)} (comisión de PayPal {money(fee)}).
+              Importe previsto de envío: {money(earnings.available - fee)} (costo estimado del retiro: {money(fee)}).
             </p>
           )}
           {book.ready && !loading && window.open && calendar.data && earnings.available < terms.min && (
@@ -200,7 +198,7 @@ const CreatorPayouts: React.FC = () => {
                     <p className="font-medium text-gray-900">Retiro de {money(p.amount)} · {p.accountLabel}</p>
                     <p className="text-xs text-gray-500">
                       Disponías de {money(p.availableBefore)}
-                      {p.fee > 0 && ` · importe ${p.status === 'paid' ? 'entregado' : 'previsto'} ${money(p.net)} (comisión de PayPal ${money(p.fee)})`}
+                      {p.fee > 0 && ` · importe ${p.status === 'paid' ? 'entregado' : 'previsto'} ${money(p.net)} (costo estimado registrado ${money(p.fee)})`}
                       {p.status === 'paid' && ` · PayPal confirmó la entrega${p.paidAt ? ` el ${fmtDate(p.paidAt)}` : ''}`}
                       {p.status === 'sending' && ` · ${sendingPayoutNote(p.paypalState)}`}
                       {p.status === 'failed' && ' · el monto volvió a tu saldo'}
@@ -221,6 +219,11 @@ const CreatorPayouts: React.FC = () => {
         )}
       </div>
 
+      {!!book.data?.fee_adjustments?.length&&<div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6" data-testid="creator-fee-adjustments">
+        <h3 className="font-bold text-gray-900 mb-3">Ajustes del costo de tus retiros</h3>
+        <ul className="space-y-3">{book.data.fee_adjustments.map(a=><li key={a.id} className="rounded-xl bg-gray-50 p-3 text-sm"><p className="font-medium">{a.reversed_at?'Ajuste revertido':a.creator_delta>0?`${money(a.creator_delta)} a tu favor`:a.creator_delta<0?`${money(-a.creator_delta)} a tu cargo`:'Corrección del reporte, sin cambio de saldo'}</p><p className="text-gray-600">Estimado: {money(a.estimated_fee)} · Confirmado por PayPal: {money(a.actual_fee)} · {fmtDate(a.created_at)}</p></li>)}</ul>
+        <p className="text-xs text-gray-500 mt-3">Los créditos nuevos se incorporan al siguiente cierre; los descuentos afectan el saldo disponible. Una reversión conserva la fecha original. Estos ajustes ya están incluidos en tus saldos.</p>
+      </div>}
       <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
         <h3 className="font-bold text-gray-900 mb-4">Pagos de tus fans</h3>
         {sales.length === 0 ? (

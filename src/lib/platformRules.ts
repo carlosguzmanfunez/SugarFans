@@ -18,7 +18,8 @@ export const CREATOR_SHARE = 0.8;
 export const MIN_PAYOUT = 50;
 // Lowest monthly subscription price (database constraint profiles_subscription_price_check).
 export const MIN_SUBSCRIPTION = 4.99;
-// PayPal's fee for sending a withdrawal, paid by the creator (same rule as public.payout_fee).
+// Legacy withdrawal-cost estimate, reserved before submission (same as public.payout_fee).
+// It is not a guaranteed PayPal tariff; verified differences settle separately.
 export const PAYOUT_FEE_RATE = 0.02;
 export const PAYOUT_FEE_MAX = 20;
 export const payoutFee = (amount: number) => Math.min(Math.round(amount * PAYOUT_FEE_RATE * 100) / 100, PAYOUT_FEE_MAX);

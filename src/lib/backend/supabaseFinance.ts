@@ -19,6 +19,9 @@ export const createSupabaseFinance=(sb:SupabaseClient):FinanceBackend=>{
    adjust:(user,amount,reason,key,reference,reverses)=>call('finance_creator_adjust',{p_user:user,p_amount:amount,p_reason:reason,p_key:key,p_reference:reference,p_reverses:reverses??null}),
    journal:month=>call('finance_journal_export',{p_month:month}),
    operations:()=>call('finance_operations'),
+   feePreview:line=>call('finance_fee_preview',{p_line:line}),
+   resolveFee:(line,key,expected,evidence,reason)=>call('finance_fee_resolve',{p_line:line,p_key:key,p_expected:expected,p_evidence:evidence,p_reason:reason}),
+   reverseFee:(id,key,reason)=>call('finance_fee_reverse',{p_id:id,p_key:key,p_reason:reason}),
    testAlert:async()=>{
      try{const {data}=await sb.auth.getSession();const token=data.session?.access_token;if(!token)return {ok:false,error:'Inicia sesión con tu cuenta administrativa.'};
        const r=await fetch('/api/payout-job',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json'},body:JSON.stringify({action:'test-alert'})});

@@ -41,7 +41,7 @@ La plantilla es un formato normalizado, no un lector universal de extractos orig
 
 Un ID externo ya importado no puede sobrescribirse con otros datos. Referencias ambiguas, retiros desconocidos, comisiones diferentes y transferencias sin contraparte quedan por revisar y bloquean el ejecutor. Coincidir por referencia e importe no certifica un estado bancario completo.
 
-Una comisión real diferente de la estimación **no cambia el saldo del creador** ni se da por resuelta automáticamente. Hace falta definir con el contador quién asume la diferencia y registrar un ajuste documentado; esta versión no incluye una aprobación que ignore o resuelva esas diferencias. Nunca borrar el original para conseguir que coincida.
+Una comisión real diferente de la estimación **no cambia el saldo del creador automáticamente**. El propietario confirmó conservar el costo real del retiro a cargo del creador. La [revisión de diferencias](payout-fee-resolution.md) permite registrar un ajuste documentado, con evidencia conciliada de PayPal y confirmación administrativa, o su reversión exacta. No basta un CSV ni se permite introducir un importe para forzar la coincidencia. Nunca borrar el original para conseguir que coincida.
 
 ## Validación repetible
 

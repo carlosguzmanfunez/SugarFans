@@ -193,7 +193,7 @@ Este Contrato para Creadores y Afiliados ("Contrato") constituye un acuerdo lega
 - Bonos del programa de Recompensas
 
 6.1.2. **Su parte de cada venta**:
-Todas las partes se calculan sobre el **neto** de cada pago: lo que paga el fan menos la comisión que cobra el procesador de pagos (PayPal) por ese pago.
+En el reparto ordinario de suscripciones, renovaciones, propinas y Reserve, los porcentajes se calculan sobre el **neto** de cada pago: lo que paga el fan menos la comisión que cobra el procesador de pagos (PayPal) por ese pago.
 - **Suscripciones, renovaciones, propinas y reservas de Reserve**: 80% del neto; 83% en el nivel Diamante
 - **Fans de su enlace de invitación**: 85% del neto de lo que le paguen durante 60 días (o su parte de nivel, si es mayor)
 - **Invitar Creadores**: cuando al menos 2 Creadores que invitó con su enlace de creadores estén verificados y hayan vendido sus primeros $100 USD, recibe un 5% extra del neto de lo que venda cada uno (suscripciones, renovaciones y propinas) durante un mes, hasta $100 USD por Creador invitado, sin que a ellos se les descuente nada
@@ -208,7 +208,9 @@ Todas las partes se calculan sobre el **neto** de cada pago: lo que paga el fan 
 Pago al Creador = (Precio pagado por el fan − comisión del procesador por ese pago) × su parte (según 6.1.2)
 ```
 
-6.2.2. **Ejemplo**: una suscripción de $10 USD de un Creador Bronce le deja $8 USD.
+En Reserve, un descuento para suscriptores activado por el Creador se absorbe de su parte. La parte de la Plataforma conserva como referencia el precio sin descuento, conforme a la regla de Reserve vigente. Esta excepción no cambia el reparto ordinario de las demás ventas.
+
+6.2.2. **Ejemplo ilustrativo del reparto ordinario**: si el fan paga $100 USD y el costo de cobro de PayPal es $5.70 USD, el neto es $94.30 USD. Un Creador Bronce recibe el 80% de ese neto: $75.44 USD. Fans Reserve conserva $18.86 USD, el 20% del neto. Estos importes son anteriores al costo de enviar el retiro. El costo de $5.70 es un supuesto para explicar el cálculo, no una tarifa garantizada de PayPal. Los regalos y las cuentas con condiciones especiales conservan sus propias reglas.
 
 6.2.3. **Reembolsos, contracargos y disputas**: Mientras PayPal resuelve una disputa, su parte de esa venta queda congelada. Si la venta se reembolsa o el fan gana el contracargo o la disputa, su parte se descuenta de su saldo; si ya la retiró, se descuenta de sus ingresos futuros. Si el equipo de Fans Reserve determina que el problema no fue culpa suya, la Plataforma asume ese importe y no se le descuenta nada. Si el fan pierde la disputa, su parte se libera.
 
@@ -229,7 +231,7 @@ Pago al Creador = (Precio pagado por el fan − comisión del procesador por ese
 
 6.4.2. **Cobro a los fans**: La comisión que cobra el procesador de pagos cuando un fan paga se resta del pago antes del reparto: la parte del Creador (6.1.2) se calcula sobre el neto, es decir, lo que pagó el fan menos esa comisión.
 
-6.4.3. **Envío de retiros**: La comisión que cobre el procesador de pagos o el banco por enviar cada retiro al Creador corre por cuenta del Creador y se descuenta del monto retirado. Antes de confirmar el retiro, el panel muestra el monto que recibirá y la comisión de PayPal.
+6.4.3. **Envío de retiros**: La comisión que cobre el procesador de pagos o el banco por enviar cada retiro al Creador corre por cuenta del Creador y se descuenta del monto retirado. Antes de confirmar el retiro, el panel muestra el importe previsto de envío y una estimación del costo. El costo definitivo se comprueba con el registro del procesador. Si el costo real es menor que el estimado, la diferencia queda a su favor; si es mayor, la diferencia comprobada queda a su cargo. La regularización conserva el retiro original y añade un ajuste identificado en el historial. Esta conciliación de costos no atribuye por sí misma culpa ni modifica el tratamiento de reembolsos, disputas o errores previsto en 6.2.3.
 
 6.4.4. **Procesador de pagos**: Los cobros a los fans y los retiros se procesan con PayPal. Mientras la Plataforma está en fase de prelanzamiento, el acceso está restringido.
 
@@ -574,7 +576,7 @@ Los fans que llegan con su enlace cuentan doble para el nivel. Las medallas (Pri
 | Qué | Cuándo |
 |-----|--------|
 | Acreditación | Ciclo del 26 al 25; acreditación al comenzar el 26 y ventana de pago del 26 al 1 siguiente, hora de Honduras (UTC−6) |
-| Retiro | Cualquier día, saldo completo, desde $50 USD ($25 en Oro y Diamante); la comisión de envío del retiro se descuenta del monto |
+| Retiro | Del 26 al día 1 siguiente, hora de Honduras (UTC−6), saldo completo, desde $50 USD ($25 en Oro y Diamante); la comisión de envío del retiro se descuenta del monto |
 
 ---
 **AL REGISTRARSE COMO CREADOR, USTED RECONOCE QUE HA LEÍDO, ENTENDIDO Y ACEPTA ESTAR VINCULADO POR ESTE CONTRATO.**
