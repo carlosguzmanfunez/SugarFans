@@ -4,7 +4,7 @@ Las ganancias se acumulan del 26 a las 00:00 hasta antes del 26 siguiente, en `A
 
 ## Publicación
 
-1. Aplicar `20261021045607_payout_batch_executor_and_reconciliation.sql` antes de publicar la API y el cliente. No altera retiros, destinatarios ni ingresos existentes. El historial financiero permanece inmutable.
+1. Aplicar `20261021045607_payout_batch_executor_and_reconciliation.sql` y `20261021050319_payout_owner_notification_authority.sql` antes de publicar la API y el cliente. No altera retiros, destinatarios ni ingresos existentes. El historial financiero permanece inmutable.
 2. Configurar `CRON_SECRET` en Production, conservar `RESEND_API_KEY` con acceso de envío a fansreserve.com. `PAYOUT_ALERT_EMAIL` es opcional y por defecto usa el correo del propietario, carlosguzmanfunez@gmail.com. Ningún cliente puede elegir destinatarios.
 3. Publicar y verificar `/api/payout-job`: GET requiere el secreto de cron; POST requiere sesión administrativa y solo revisa. El botón de prueba de correo usa el servidor publicado sin extraer credenciales. Una prueba por destinatario/día, con referencia estable y reintentos acotados. «Aceptado» no certifica llegada a la bandeja.
 4. Comprobar en el panel la última revisión y los avisos pendientes. Revisiones normales sin incidencias no generan correo. Una incidencia persistente no vuelve a avisar; si se resuelve y reaparece, abre un episodio nuevo.
@@ -28,6 +28,8 @@ No habilitar `finance_private.automation_settings.execution_enabled`, `finance_p
 - Pruebas de capacidad suficientes para la lista de creadores y la ventana del 26 al 1, con supervisión y recuperación operativa.
 - Confirmación de recepción de alertas y procedimiento para avisos fallidos.
 - Conciliación real y política contable para comisiones, ajustes y disputas.
+
+El propietario registrado puede seguir usando sus vistas Fan/Creador/Admin: su perfil no necesita convertirse en admin para operar. El servidor valida la sesión administrativa real; las tareas programadas verifican la identidad responsable, bajas, suspensiones y correo confirmado del propietario sin suplantar una sesión.
 
 La variable del servidor debe coincidir exactamente con el entorno y las dos puertas de base de datos deben estar activadas. Las referencias comerciales/de prueba y el presupuesto solo se cambian por administración confiable de la base; la pantalla no habilita el ejecutor. El despliegue no modifica esas puertas.
 

@@ -10,12 +10,12 @@ export const NOTIFICATION_MIGRATION='20261020231703_payout_notification_wording.
 export async function financeFixture({beforeMigration,notificationMigration=true,automationMigration=process.env.TEST_PAYOUT_OPERATIONS==='1'}={}) {
  const db=new PGlite();const q=async(sql,args=[]) => (await db.query(sql,args)).rows;
  const source=n=>readFileSync(resolve('supabase/migrations',n),'utf8');
- await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;
+ await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create schema security_private;create table security_private.owner_account(user_id uuid primary key);create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,deleted_at timestamptz,banned_until timestamptz);
  create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
  create or replace function pg_catalog.now() returns timestamptz language sql stable as $$select current_setting('test.clock')::timestamptz$$;
  create table profiles(id uuid primary key,creator_profile_id text,name text,role text,is_verified boolean,suspended boolean);
  create table payout_accounts(user_id uuid primary key,paypal_email text);
- create table account_restrictions(user_id uuid primary key,payouts_frozen boolean);
+ create table account_restrictions(user_id uuid primary key,payouts_frozen boolean,suspended_until timestamptz);
  create table transactions(id text primary key,creator_profile_id text,amount numeric,creator_share numeric,status text,platform_covers boolean default false,created_at timestamptz);
  create table payouts(id uuid primary key default gen_random_uuid(),user_id uuid references profiles(id),creator_name text,amount numeric,fee numeric,net numeric,account_label text,available_before numeric,status text,paid_at timestamptz,requested_at timestamptz default now(),scheduled_for date,paypal_batch_id text,paypal_item_id text,error text);
  create function is_admin() returns boolean language sql stable security definer set search_path='' as $$select coalesce((select role='admin' from public.profiles where id=auth.uid()),false)$$;
@@ -32,13 +32,14 @@ export async function financeFixture({beforeMigration,notificationMigration=true
  if(beforeMigration)await beforeMigration({db,q,clock,auth});
  try {await db.exec(source(FINANCE_MIGRATION));}catch(error){await db.close();throw error;}
  if(notificationMigration)await db.exec(source(NOTIFICATION_MIGRATION));
- if(automationMigration)await db.exec(source('20261021045607_payout_batch_executor_and_reconciliation.sql'));
+ if(automationMigration){await db.exec(source('20261021045607_payout_batch_executor_and_reconciliation.sql'));await db.exec(source('20261021050319_payout_owner_notification_authority.sql'));}
  const reset=async()=>{
    const operations=automationMigration?'finance_alert_tests,finance_alert_queue,finance_incidents,finance_job_runs,finance_execution_reservations,finance_funding_checks,finance_statement_lines,finance_statement_imports,finance_private.automation_settings,':'';
-   await db.exec('reset role;truncate '+operations+'finance_allocations,finance_source_revisions,finance_journal,finance_adjustments,finance_sources,finance_batch_items,finance_batches,paypal_payout_reconciliations,paypal_payout_events,paypal_payout_submissions,payouts,transactions,profiles,payout_accounts,account_restrictions');
+   await db.exec('reset role;truncate '+operations+'auth.users,security_private.owner_account,finance_allocations,finance_source_revisions,finance_journal,finance_adjustments,finance_sources,finance_batch_items,finance_batches,paypal_payout_reconciliations,paypal_payout_events,paypal_payout_submissions,payouts,transactions,profiles,payout_accounts,account_restrictions');
    await q('update finance_private.settings set batch_handoff_enabled=false');
    await clock('2026-10-26T12:00:00Z');await auth(ADMIN);
    await q("insert into profiles values($1,null,'Administrador','admin',true,false),($2,'creator','Mariana','creator',true,false),($3,'other','Diego','creator',true,false)",[ADMIN,CREATOR,OTHER]);
+   await q("insert into auth.users(id,email,email_confirmed_at) values($1,'admin@example.invalid',now()),($2,'creator@example.invalid',now()),($3,'other@example.invalid',now())",[ADMIN,CREATOR,OTHER]);
    await q("insert into payout_accounts values($1,'mariana@example.invalid'),($2,'diego@example.invalid')",[CREATOR,OTHER]);
    if(automationMigration)await q("insert into finance_private.automation_settings(id,environment,operator_user_id) values(true,'sandbox',$1)",[ADMIN]);
  };
