@@ -38,7 +38,7 @@ export async function financeFixture({beforeMigration,notificationMigration=true
   await db.exec("alter table transactions add column kind text not null default 'tip';alter table transactions add column key text;alter table account_restrictions add column updated_at timestamptz default now();alter table account_restrictions add column suspension_reason text;create table admin_actions(id uuid default gen_random_uuid(),admin_id uuid,admin_name text,user_id uuid,user_name text,action text,reason text,until timestamptz,created_at timestamptz default now())");
   await db.exec(source('20261020174153_owner_account_controls.sql').match(/create or replace function public\.admin_account_action\([\s\S]*?\$\$;/i)[0]);
   await db.exec(source('20261010000002_platform_covers_refunds.sql').match(/create or replace function public\.admin_cover_refund\([\s\S]*?\$\$;/i)[0].replace('id = p_transaction','id = p_transaction::text'));
-  await db.exec(source('20261021152433_payout_incident_procedures.sql'));
+  await db.exec(source('20261021164442_payout_incident_procedures.sql'));
  }
  const reset=async()=>{
    const fees=feeResolutionMigration?'finance_fee_holds,finance_fee_reversals,finance_fee_resolutions,finance_private.fee_policy,':'';
