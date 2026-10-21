@@ -4,6 +4,7 @@ import {operationReasons,parseStatementFile,statementExample,type PayoutOperatio
 import {money,platformChanged} from '../lib/platform';
 import FeeResolutionPanel from './FeeResolutionPanel';
 import AdminCasework from './AdminCasework';
+import AdminPayoutRehearsal from './AdminPayoutRehearsal';
 const date=(value:string)=>new Intl.DateTimeFormat('es-HN',{dateStyle:'medium',timeStyle:'short',timeZone:'America/Tegucigalpa'}).format(new Date(value));
 const button='rounded-xl bg-gray-900 text-white px-4 py-2 text-sm disabled:opacity-40';
 export default function AdminPayoutOperations({api,caseReference}:{api:FinanceBackend;caseReference?:string}){
@@ -23,6 +24,7 @@ export default function AdminPayoutOperations({api,caseReference}:{api:FinanceBa
   <div className="flex flex-wrap justify-between gap-3"><div><h3 className="font-bold">Revisión y seguimiento automático</h3><p className="text-sm text-gray-600 mt-1">El sistema revisa las cuentas cada día. Te avisa en este panel y por correo cuando encuentra algo que requiere atención.</p></div><button className={button} disabled={busy||!data} onClick={review}>Revisar ahora</button></div>
   {error&&<p role="alert" className="rounded-xl p-3 bg-red-50 text-red-800">{error}</p>}{notice&&<p role="status" className="rounded-xl p-3 bg-green-50 text-green-800">{notice}</p>}
   {!data&&!error&&<p role="status">Cargando la revisión…</p>}
+  <AdminPayoutRehearsal/>
   {data&&<>
    <div className="rounded-xl bg-gray-50 p-4 space-y-2"><p className="font-medium">{data.execution_enabled?'Ejecutor configurado':'Envíos automáticos apagados'}</p><p className="text-sm text-gray-600">{data.blocked?(operationReasons[data.blocked]??'Hay requisitos pendientes antes del envío.'):'Los requisitos de esta revisión están completos.'}</p><p className="text-sm">Autorización comercial PayPal: {data.authorization_confirmed?'registrada':'pendiente'} · Entorno {data.environment==='sandbox'?'de pruebas':'real'}</p><p className="text-xs text-gray-500">Cada envío conserva su referencia, su destinatario y su importe. Un resultado incierto mantiene el dinero separado hasta conciliarlo.</p></div>
    <div><h4 className="font-medium">{data.incidents.length?`${data.incidents.length} ${data.incidents.length===1?'asunto':'asuntos'} por revisar`:'Sin incidencias registradas'}</h4><ul className="mt-3 space-y-2">{data.incidents.map(i=><li key={i.id} className="rounded-xl border border-amber-200 bg-amber-50 p-3"><strong className="text-sm">{i.title}</strong><p className="text-sm text-gray-700 mt-1 break-words">{i.detail}</p><p className="text-xs text-gray-500 mt-2">Detectado {date(i.first_seen_at)}</p></li>)}</ul><p className="text-xs text-gray-500 mt-2">{data.alerts_pending} avisos pendientes de entrega o revisión.</p></div>

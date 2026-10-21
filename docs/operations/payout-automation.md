@@ -11,6 +11,8 @@ Las ganancias se acumulan del 26 a las 00:00 hasta antes del 26 siguiente, en `A
 
 ## Capacidad y recuperación
 
+El [ensayo virtual de lotes](payout-rehearsal.md) prepara listas ficticias de hasta 1.000 creadores y compara la capacidad de distintas frecuencias sin cambiar la programación. La prueba independiente del ejecutor usa el SQL vigente y la API programada con transportes ficticios; no acredita todavía capacidad de Supabase alojado ni entrega nativa en PayPal Sandbox para esa carga.
+
 El cron de Vercel está programado a las 12:00 UTC cada día. En Hobby puede ejecutarse dentro de esa hora (06:00–07:00 de Honduras); los avisos no son inmediatos. Procesa hasta cinco elementos pendientes por ejecución y tres avisos. Antes de activar dinero real se debe dimensionar la frecuencia, el volumen y la atención de incidentes: este límite diario no garantiza pagar una lista grande durante la ventana. No se contrata ningún plan nuevo con este cambio.
 
 Una ejecución tiene una concesión de tres minutos. Otra conexión recibe `busy`; una ejecución vencida no puede completar otra. Se conserva el historial. Los avisos firmados pendientes y los lotes ya identificados se consultan también en modo revisión. Un envío incierto sin identificador solo puede reintentarse con su referencia original, reserva persistida y todos los requisitos de ejecución vigentes. Nunca se libera saldo por una excepción genérica.
