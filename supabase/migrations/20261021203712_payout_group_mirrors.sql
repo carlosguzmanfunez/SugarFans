@@ -39,7 +39,7 @@ end$migration$;
 create function finance_private.group_rows(p_batch uuid)returns setof jsonb language sql stable set search_path='' as $$
  with facts as(
  select i.*,m.group_id,m.position,p.id payout,p.status payout_status,p.paid_at,s.state provider_state,
-  e.detail error_detail,r.outcome reconciliation_outcome,
+  e.detail error_detail,r.outcome reconciliation_outcome,c.id case_id,c.reference case_reference,
   case when u.id is null or u.role<>'creator' or u.creator_profile_id is distinct from i.creator_profile_id then 'OWNER_AMBIGUOUS'
    when not coalesce(u.is_verified,false)then 'IDENTITY_REQUIRED'
    when public.is_suspended(i.user_id)then 'SUSPENDED'
@@ -54,12 +54,20 @@ create function finance_private.group_rows(p_batch uuid)returns setof jsonb lang
  left join public.profiles u on u.id=i.user_id
  left join lateral(select q.outcome from public.paypal_payout_reconciliations q where q.payout_id=p.id order by q.sequence desc limit 1)r on true
  left join public.finance_incidents e on e.code='PREPARATION_FAILED' and e.reference=i.id::text and e.state='open'
+ left join lateral(
+  select k.id,k.reference from public.finance_incidents k where k.state='open'and(
+   k.reference=i.id::text or k.reference=p.id::text or k.reference=i.user_id::text
+   or exists(select 1 from public.finance_payout_holds h where h.id::text=k.reference and h.user_id=i.user_id)
+   or exists(select 1 from public.transactions t where k.code='DISPUTE_CASE'and t.id::text=k.reference and t.creator_profile_id=i.creator_profile_id)
+   or exists(select 1 from public.paypal_payout_events ev where k.code='PROVIDER_EVENT'and ev.id::text=k.reference and ev.payout_id=p.id)
+  )order by case when k.reference=i.id::text then 0 when k.code='PROVIDER_EVENT'then 1 when k.reference=p.id::text then 2 else 3 end,k.first_seen_at desc,k.id limit 1
+ )c on true
  where i.batch_id=p_batch
  ),classified as(
  select f.*,case when payout_status='paid'and booked then 'paid'
   when payout_status='paid' or payout_status='failed' or provider_state='manual_review' or reconciliation_outcome='review' or state in('held','review','released') or current_reason is not null or error_detail is not null then 'review'
   when payout_status='sending' then 'pending' else 'ready'end as result from facts f
- )select jsonb_build_object('item',id,'group',group_id,'position',position,'creator',creator_name,'net',net,'payout',payout,'status',result,'paid_at',paid_at,
+ )select jsonb_build_object('item',id,'group',group_id,'position',position,'creator',creator_name,'net',net,'payout',payout,'status',result,'paid_at',paid_at,'case_id',case_id,'case_reference',case_reference,
  'reason',case when result='paid'then 'Entrega confirmada y registrada'
   when payout_status='paid'then 'Falta comprobar el registro contable de la entrega'
   when provider_state='manual_review' or reconciliation_outcome='review'then 'El resultado del envío requiere conciliación humana'

@@ -5,7 +5,7 @@ import {money} from '../lib/platform';
 const day=(v:string)=>new Intl.DateTimeFormat('es-HN',{dateStyle:'medium',timeZone:'America/Tegucigalpa'}).format(new Date(Date.parse(v)-1));
 const label=(n:number)=>String(n).padStart(2,'0');
 const button='rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm disabled:opacity-40';
-export default function AdminPayoutGroups({api,refreshKey=0}:{api:FinanceBackend;refreshKey?:number}){
+export default function AdminPayoutGroups({api,refreshKey=0,onAttend}:{api:FinanceBackend;refreshKey?:number;onAttend?:(reference:string,incident:string)=>void}){
  const [list,setList]=useState<PayoutGroupList|null>(null),[batch,setBatch]=useState<string|null>(null),[revision,setRevision]=useState(0),[error,setError]=useState('');
  const [detail,setDetail]=useState<PayoutGroupDetail|null>(null),[view,setView]=useState<GroupView>('mirror'),[loading,setLoading]=useState(false);
  const [page,setPage]=useState(0);
@@ -53,6 +53,7 @@ export default function AdminPayoutGroups({api,refreshKey=0}:{api:FinanceBackend
     <div className="flex flex-wrap justify-between gap-2"><strong>{r.creator}</strong><span>{money(r.net)}</span></div>
     <p className={r.status==='paid'?'text-emerald-800':r.status==='ready'?'text-gray-700':'text-amber-900'}>{groupStatusLabel[r.status]}</p><p><strong>Motivo:</strong> {r.reason}</p><p><strong>Siguiente paso:</strong> {r.next_step}</p>
     <p className="text-xs text-gray-500 break-all">{r.payout?'Retiro original: '+r.payout:'Ítem original: '+r.item+' · aún sin retiro creado'}</p>
+    {view==='mirror'&&onAttend&&(r.case_id&&r.case_reference?<button type="button" className={button} onClick={()=>onAttend(r.case_reference!,r.case_id!)}>Atender este caso</button>:<p className="text-xs text-gray-600">{r.status==='pending'?'Este envío sigue bajo seguimiento automático. Aún no tiene un expediente de incidencia.':'Usa «Revisar ahora» para comprobar y registrar la incidencia antes de atenderla.'}</p>)}
    </li>)}</ul>
    <p className="text-xs text-gray-500">Consulta del {new Intl.DateTimeFormat('es-HN',{dateStyle:'medium',timeStyle:'short',timeZone:'America/Tegucigalpa'}).format(new Date(detail.as_of))}. Al actualizar, una confirmación pasa a «Pagos confirmados» conservando el grupo y la referencia originales. El historial de incidencias y movimientos se conserva.</p>
   </section>}

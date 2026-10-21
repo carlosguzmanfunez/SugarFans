@@ -20,7 +20,7 @@ export async function payoutJobFixture(){
    if(u.pathname==='/auth/v1/user')return response(init.headers.authorization==='Bearer TEST_ADMIN'?200:401,{id:ADMIN});
    const name=u.pathname.split('/').at(-1);if(name==='is_admin')return response(200,init.headers.authorization==='Bearer TEST_ADMIN');if(name==='log_app_error')return response(204);
    if(Object.hasOwn(signatures,name)){
-    state.rpcCalls++;try{const data=await f.db.transaction(async tx=>{await tx.exec('set local role service_role');await tx.query("select set_config('request.jwt.claim.sub','',true)");const args=signatures[name].map(k=>b[k]??null);return(await tx.query(`select public.${name}(${args.map((_,i)=>'$'+(i+1)).join(',')}) as v`,args)).rows[0].v;});return response(200,data);}catch(e){return response(400,{message:e.message});}
+    state.rpcCalls++;try{const data=await f.db.transaction(async tx=>{await tx.exec('set local role service_role');await tx.query("select set_config('request.jwt.claim.sub','',true)");const args=signatures[name].map(k=>b[k]??null);return(await tx.query(`select public.${name}(${args.map((_,i)=>'$'+(i+1)).join(',')}) as v`,args)).rows[0].v;});if(name==='finance_job_start'&&Object.hasOwn(state,'startReply')){const reply=state.startReply;delete state.startReply;return response(200,reply);}if(state.invalidRpc===name){delete state.invalidRpc;return new Response('{',{status:200});}if(name==='finance_job_allow_submit'&&Object.hasOwn(state,'allowReply')){const reply=state.allowReply;delete state.allowReply;return response(200,reply);}return response(200,data);}catch(e){return response(400,{message:e.message});}
    }
   }
   if(u.origin==='https://api-m.sandbox.paypal.com'){

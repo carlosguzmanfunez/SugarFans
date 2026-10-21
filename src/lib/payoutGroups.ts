@@ -1,7 +1,7 @@
 export type GroupStatus='paid'|'pending'|'review'|'ready';
 export interface PayoutGroupSummary {id:string;number:number;total:number;paid:number;pending:number;review:number;ready:number;paid_net:number}
 export interface PayoutGroupList {batch:string|null;as_of:string;batches:{id:string;cutoff:string;version:number;state:string;created_at:string}[];groups:PayoutGroupSummary[]}
-export interface PayoutGroupMember {item:string;group:string;position:number;creator:string;net:number;payout:string|null;status:GroupStatus;paid_at:string|null;reason:string;next_step:string}
+export interface PayoutGroupMember {item:string;group:string;position:number;creator:string;net:number;payout:string|null;status:GroupStatus;paid_at:string|null;reason:string;next_step:string;case_id?:string|null;case_reference?:string|null}
 export interface PayoutGroupDetail {id:string;batch:string;number:number;cutoff:string;version:number;batch_state:string;as_of:string;members:PayoutGroupMember[]}
 export type GroupView='mirror'|'paid'|'ready';
 export const groupStatusLabel:Record<GroupStatus,string>={paid:'Pago confirmado',pending:'Esperando confirmación',review:'Requiere revisión',ready:'Por atender'};

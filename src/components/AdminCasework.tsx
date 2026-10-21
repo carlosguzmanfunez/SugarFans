@@ -8,13 +8,14 @@ import {money} from '../lib/platformRules';
 const button='rounded-xl bg-gray-900 text-white px-4 py-2 text-sm disabled:opacity-40 disabled:cursor-not-allowed';
 const input='block w-full border border-gray-200 rounded-xl p-2 mt-1 bg-white';
 const date=(v:string)=>new Intl.DateTimeFormat('es-HN',{timeZone:'America/Tegucigalpa',dateStyle:'medium',timeStyle:'short'}).format(new Date(v));
-export default function AdminCasework({api,refreshKey=0,initialReference,onChanged}:{api:FinanceBackend;refreshKey?:number;initialReference?:string;onChanged:()=>void}){
+export default function AdminCasework({api,refreshKey=0,initialReference,initialIncident,navigationKey=0,onChanged}:{api:FinanceBackend;refreshKey?:number;initialReference?:string;initialIncident?:string;navigationKey?:number;onChanged:()=>void}){
  const [page,setPage]=useState<CasePage|null>(null),[offset,setOffset]=useState(0),[filter,setFilter]=useState(initialReference),[selected,setSelected]=useState('');
  const [data,setData]=useState<CasePreview|null>(null),[error,setError]=useState(''),[listError,setListError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[revision,setRevision]=useState(0);
  const [action,setAction]=useState<CaseAction>('note'),[party,setParty]=useState<CaseParty>('undetermined'),[category,setCategory]=useState<CaseCategory>('unresolved');
  const [reason,setReason]=useState(''),[evidence,setEvidence]=useState(''),[humanNotice,setHumanNotice]=useState(''),[followup,setFollowup]=useState(''),[confirm,setConfirm]=useState(false),[attested,setAttested]=useState(false);
  const request=useRef<{payload:string;key:string}|null>(null);
- useEffect(()=>{setFilter(initialReference);setOffset(0);setSelected('');},[initialReference]);
+ const section=useRef<HTMLElement|null>(null),appliedNavigation=useRef('');
+ useEffect(()=>{const signature=JSON.stringify([initialReference,initialIncident,navigationKey]);if(busy||appliedNavigation.current===signature)return;appliedNavigation.current=signature;setFilter(initialReference);setOffset(0);setSelected(initialIncident??'');if(initialReference){section.current?.focus({preventScroll:true});section.current?.scrollIntoView({block:'start'});}},[initialReference,initialIncident,navigationKey,busy]);
  useEffect(()=>{let active=true;setListError('');api.caseList?.(offset,filter).then(r=>{if(active){if(r.ok){setPage(r.data);setSelected(current=>current||r.data.items[0]?.id||'');}else{setPage(null);setListError(r.error);}}}).catch(()=>{if(active){setPage(null);setListError('No pudimos cargar los expedientes.');}});return()=>{active=false;};},[api,offset,filter,revision,refreshKey]);
  useEffect(()=>{let active=true;setData(null);setError('');setConfirm(false);setAttested(false);setReason('');setEvidence('');setHumanNotice('');setFollowup('');setAction('note');setParty('undetermined');setCategory('unresolved');
   if(selected)api.casePreview?.(selected).then(r=>{if(active){if(r.ok&&r.data.issue===null){setData(r.data);setAction(r.data.actions[0]??'note');}else setError(r.ok?'No encontramos este expediente.':r.error);}}).catch(()=>{if(active)setError('No pudimos comprobar el estado actual del expediente.');});return()=>{active=false;};
@@ -30,7 +31,7 @@ export default function AdminCasework({api,refreshKey=0,initialReference,onChang
    setNotice(action==='release_hold'?(r.data.result.unfrozen?'Bloqueo liberado con evidencia. No se envió dinero.':'Motivo liberado. La cuenta conserva otros bloqueos activos.'):'Decisión registrada en el historial del expediente.');request.current=null;setRevision(x=>x+1);onChanged();
   }catch{setError('No recibimos la confirmación. Reintenta sin cambiar esta decisión para conservar la misma referencia.');}finally{setBusy(false);}
  };
- return <section id="finance-casework" className="border-t pt-5 space-y-4" data-testid="finance-casework">
+ return <section ref={section} tabIndex={-1} aria-label="Expedientes de pagos" id="finance-casework" className="border-t pt-5 space-y-4" data-testid="finance-casework">
   <div className="flex flex-wrap justify-between gap-3"><div><h4 className="font-bold">Expedientes de pagos</h4><p className="text-sm text-gray-600 mt-1">Identifica la causa, documenta la responsabilidad y revisa el efecto antes de decidir.</p></div><button type="button" className="text-sm underline" disabled={busy} onClick={()=>setRevision(x=>x+1)}>Actualizar expedientes</button></div>
   <p className="text-sm text-gray-600">Cada parte responde por errores que se le puedan atribuir con evidencia. Los errores de nuestro equipo y del sistema corresponden a Fans Reserve. Una anotación no autoriza un descuento adicional.</p>
   {listError&&<p role="alert" className="text-red-800">{listError}</p>}{notice&&<p role="status" className="rounded-xl p-3 bg-green-50 text-green-800">{notice}</p>}

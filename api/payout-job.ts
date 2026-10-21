@@ -14,12 +14,22 @@ const headers=(key:string)=>key.startsWith('eyJ')?{apikey:key,authorization:'Bea
 const rpc=async<T>(name:string,args:Record<string,unknown>):Promise<T>=>{
  const e=settings();if(!e.key)throw new Error('Falta la conexión de cuentas');
  const r=await fetch(e.url+'/rest/v1/rpc/'+name,{method:'POST',headers:{...headers(e.key),'content-type':'application/json'},body:JSON.stringify(args),signal:AbortSignal.timeout(12000)});
- const b=await r.json().catch(()=>({}));if(!r.ok)throw new Error(typeof b.message==='string'?b.message:'No pudimos confirmar la operación');return b as T;
+ const b=r.status===204?null:await r.json();if(!r.ok)throw new Error(b&&typeof b.message==='string'?b.message:'No pudimos confirmar la operación');return b as T;
 };
 type Work={operation:'event'|'payout'|'prepare';payout:string|null;user_id:string;event:string|null;item:string|null};
 export async function runPayoutReview(executeRequested:boolean,options?:{clock?:PayoutClock}){
  const clock=options?.clock??payoutClock,deadline=clock.now()+120000;
- const e=settings(),started=await rpc<{operation:string;id?:string;blocked?:string}>('finance_job_start',{p_environment:e.mode,p_execute:executeRequested});
+ const e=settings();let started:{operation:string;id?:string;blocked?:string};
+ try{
+  const reply=await rpc<unknown>('finance_job_start',{p_environment:e.mode,p_execute:executeRequested});
+  if(!reply||typeof reply!=='object'||!('operation'in reply)||!['run','busy','disabled'].includes(String(reply.operation))
+   ||(reply.operation==='run'&&(!('id'in reply)||typeof reply.id!=='string'||!(/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i).test(reply.id))))throw Error('No se confirmó la referencia de inicio');
+  started=reply as typeof started;
+ }catch{
+  // The database may have committed its lease even when its acknowledgement was lost.
+  // Never invent a run id, complete that unknown lease, or contact the provider.
+  return {ok:false,operation:'unconfirmed',error:'No se confirmó el inicio de la ronda. Conserva sus referencias y espera la siguiente revisión; no se iniciaron envíos desde esta respuesta.'};
+ }
  if(started.operation!=='run'||!started.id)return {ok:true,operation:started.operation};
  const id=started.id,summary={reviewed:0,processed:0,held:0,alerts:0,blocked:started.blocked??null as string|null,errors:[] as string[],work_limit:5,provider_calls:0,provider_wait_until:null as string|null};
  try{
@@ -43,7 +53,7 @@ export async function runPayoutReview(executeRequested:boolean,options?:{clock?:
     if(item.operation==='prepare'){
      const prepared=await rpc<{id:string}>('finance_job_prepare',{p_run:id,p_item:item.item,p_sender:identity.clientId});payout=prepared.id;
     }
-    const result=await session.run(item.user_id,payout!,()=>rpc<boolean>('finance_job_allow_submit',{p_run:id,p_user:item.user_id,p_payout:payout,p_sender:identity.clientId}));
+    const result=await session.run(item.user_id,payout!,async()=>await rpc<unknown>('finance_job_allow_submit',{p_run:id,p_user:item.user_id,p_payout:payout,p_sender:identity.clientId})===true);
     if(result.paypalStatus==='AUTOMATION_BLOCKED')summary.held++;else summary.processed++;
     }
    }catch(error){summary.held++;const message=error instanceof Error?error.message:'Un envío necesita revisión';summary.errors.push(message.slice(0,300));await rpc('finance_job_item_error',{p_run:id,p_item:item.item??item.payout,p_message:message});}

@@ -44,6 +44,7 @@
     "test:incident-procedures-ui": "node e2e/incident-procedures-ui.mjs",
     "test:finance-ui": "node e2e/finance-ui.mjs",
     "test:payout-automation": "node e2e/payout-automation.mjs",
+    "test:payout-start-ack": "node e2e/payout-start-ack.mjs",
     "test:payout-rehearsal": "node e2e/payout-rehearsal.mjs",
     "test:payout-batch-rehearsal": "node e2e/payout-batch-rehearsal.mjs",
     "test:payout-capacity": "node e2e/payout-provider-control.mjs && node e2e/payout-capacity.mjs",
