@@ -8,10 +8,11 @@ export interface FeePreview {
 export interface PayoutOperations {
  environment:'sandbox'|'live';review_enabled:boolean;execution_enabled:boolean;authorization_confirmed:boolean;provider_tested:boolean;blocked:string|null;fee_limit:number|null;
  incidents:{id:string;code:string;title:string;detail:string;first_seen_at:string}[];alerts_pending:number;
- jobs:{id:string;state:string;started_at:string;finished_at:string|null;summary:{processed?:number;held?:number;alerts?:number}}[];
+ jobs:{id:string;state:string;started_at:string;finished_at:string|null;summary:{processed?:number;held?:number;alerts?:number;work_limit?:number;provider_calls?:number;provider_wait_until?:string|null}}[];
  funding:{available:number;observed_at:string;reference:string}|null;statements:StatementResult[];
 }
 export const operationReasons:Record<string,string>={
+ PROVIDER_COOLDOWN:'PayPal pidió esperar; la próxima ronda respetará esa pausa.',PROVIDER_INTERRUPTED:'Una ronda anterior se interrumpió y necesita revisión antes de continuar.',
  EXECUTOR_DISABLED:'Los envíos automáticos están apagados.',COMMERCIAL_AUTHORIZATION_REQUIRED:'Falta la autorización escrita de PayPal para el modelo de intermediación.',
  PROVIDER_TEST_REQUIRED:'Falta registrar la prueba de entrega con PayPal.',FEE_LIMIT_REQUIRED:'Falta definir el presupuesto máximo de comisión por envío.',
  OPERATOR_REQUIRED:'Falta identificar la cuenta responsable de los lotes.',OUTSIDE_PAYMENT_WINDOW:'Estamos fuera de la ventana de pago del 26 al 1.',

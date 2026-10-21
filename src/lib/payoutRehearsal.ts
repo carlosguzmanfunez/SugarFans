@@ -1,14 +1,15 @@
 // Planning exercise only: no backend, credentials, storage or provider imports.
 import {earningsCycle,hondurasDateKey,payoutWindow} from './payoutCalendar';
-export type Cadence='daily'|'hourly'|'quarter_hour';
-export interface RehearsalInput {creators:number;funds:number;day:string;cadence:Cadence;scenario:'normal'|'incidents';renewFunds:boolean}
+export type Cadence='daily'|'hourly'|'quarter_hour'|'five_minutes';
+export interface RehearsalInput {creators:number;funds:number;day:string;cadence:Cadence;caseLimit?:number;scenario:'normal'|'incidents';renewFunds:boolean}
 export interface VirtualCreator {reference:string;name:string;state:'ready'|'blocked'|'uncertain'|'confirmed';reason:string;submissions:number}
 export interface Rehearsal {input:RehearsalInput;at:string;firstAt:string;cutoff:string;windowEnd:string;rows:VirtualCreator[];runs:number;spentBudget:number;paused:boolean;history:{at:string;sent:number;confirmed:number;waiting:number;reason:string}[]}
 export const VIRTUAL_WORK_LIMIT=5;
 export const VIRTUAL_GROSS=100, VIRTUAL_FEE=2, VIRTUAL_NET=98, VIRTUAL_BUDGET=103;
-const intervals:Record<Cadence,number>={daily:1440,hourly:60,quarter_hour:15};
+const intervals:Record<Cadence,number>={daily:1440,hourly:60,quarter_hour:15,five_minutes:5};
 export function createRehearsal(input:RehearsalInput):Rehearsal{
  if(!Number.isInteger(input.creators)||input.creators<1||input.creators>1000)throw Error('Elige entre 1 y 1.000 creadores.');
+ if(!Number.isInteger(input.caseLimit??5)||(input.caseLimit??5)<1||(input.caseLimit??5)>50)throw Error('La capacidad de ejemplo debe estar entre 1 y 50.');
  if(!Number.isFinite(input.funds)||input.funds<0||input.funds>10000000||Math.abs(input.funds*100-Math.round(input.funds*100))>1e-7)throw Error('Indica fondos entre $0 y $10.000.000, con hasta dos decimales.');
  if(!Object.prototype.hasOwnProperty.call(intervals,input.cadence)||!['normal','incidents'].includes(input.scenario)||typeof input.renewFunds!=='boolean')throw Error('Revisa las opciones del ensayo.');
  const at=input.day+'T06:00:00-06:00';
@@ -20,7 +21,8 @@ export function createRehearsal(input:RehearsalInput):Rehearsal{
 export function rehearsalCapacity(s:Rehearsal){
  const open=payoutWindow(new Date(s.firstAt)).open;
  const slots=open?Math.ceil((Date.parse(s.windowEnd)-Date.parse(s.firstAt))/(intervals[s.input.cadence]*60000)):0;
- return {slots,maximum:slots*VIRTUAL_WORK_LIMIT,minimumRuns:Math.ceil(s.input.creators/VIRTUAL_WORK_LIMIT),fits:slots*VIRTUAL_WORK_LIMIT>=s.input.creators};
+ const limit=s.input.caseLimit??VIRTUAL_WORK_LIMIT;
+ return {slots,maximum:slots*limit,minimumRuns:Math.ceil(s.input.creators/limit),fits:slots*limit>=s.input.creators};
 }
 export function rehearsalTotals(s:Rehearsal){
  const count=(state:VirtualCreator['state'])=>s.rows.filter(r=>r.state===state).length;
@@ -32,7 +34,7 @@ export function advanceRehearsal(s:Rehearsal):Rehearsal{
  const fresh=s.input.renewFunds||Date.parse(s.at)-Date.parse(s.firstAt)<86400000;
  let budget=s.spentBudget,sent=0,waiting=0,reason=!inWindow?'Ventana cerrada':!fresh?'Comprobación de fondos vencida':'';
  // An unresolved query consumes work too. It is never converted into a new send.
- const work=s.rows.filter(r=>r.state==='uncertain'||inWindow&&r.state==='ready').slice(0,VIRTUAL_WORK_LIMIT);
+ const work=s.rows.filter(r=>r.state==='uncertain'||inWindow&&r.state==='ready').slice(0,s.input.caseLimit??VIRTUAL_WORK_LIMIT);
  const refs=new Set(work.map(r=>r.reference));
  const rows=s.rows.map(r=>{
   if(!refs.has(r.reference))return r;
@@ -51,7 +53,7 @@ export function confirmVirtualPending(s:Rehearsal):Rehearsal{
 export function finishVirtualWindow(s:Rehearsal):Rehearsal{
  if(s.paused)return s;
  let next=s;
- for(let i=0;i<1000&&Date.parse(next.at)<Date.parse(next.windowEnd)&&next.rows.some(r=>r.state==='ready'||r.state==='uncertain');i++)next=advanceRehearsal(next);
+ for(let i=0;i<5000&&Date.parse(next.at)<Date.parse(next.windowEnd)&&next.rows.some(r=>r.state==='ready'||r.state==='uncertain');i++)next=advanceRehearsal(next);
  return next;
 }
 export const rehearsalExport=(s:Rehearsal)=>({format:'fansreserve.virtual-payout-rehearsal.v1',mode:'virtual',realPayments:false,providerCalls:0,databaseWrites:0,currency:'USD',notice:'Escenario ilustrativo. No es un comprobante de PayPal, autorización de pago ni registro contable.',...s,totals:rehearsalTotals(s),capacity:rehearsalCapacity(s)});

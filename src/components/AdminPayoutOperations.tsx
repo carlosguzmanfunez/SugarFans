@@ -43,7 +43,7 @@ export default function AdminPayoutOperations({api,caseReference}:{api:FinanceBa
     {feeLine&&<FeeResolutionPanel key={feeLine} line={feeLine} api={api} onClose={()=>setFeeLine(null)} onChanged={()=>{setRevision(x=>x+1);platformChanged();}}/>}
    </details>
    {api.caseList&&<AdminCasework api={api} refreshKey={revision} initialReference={caseReference} onChanged={()=>{setRevision(x=>x+1);platformChanged();}}/>}
-   <details className="border-t pt-4"><summary className="font-medium cursor-pointer">Últimas revisiones</summary><ul className="mt-3 space-y-2">{data.jobs.map(j=><li key={j.id} className="text-sm">{date(j.started_at)} · {j.state==='finished'?'Completada':j.state==='running'?'En proceso':'Pendiente de reanudar'} · {j.summary.processed??0} movimientos comprobados · {j.summary.held??0} por revisar</li>)}</ul></details>
+   <details className="border-t pt-4"><summary className="font-medium cursor-pointer">Últimas revisiones</summary><ul className="mt-3 space-y-2">{data.jobs.map(j=><li key={j.id} className="text-sm"><p>{date(j.started_at)} · {j.state==='finished'?'Completada':j.state==='running'?'En proceso':'Pendiente de reanudar'} · {j.summary.processed??0} movimientos comprobados · {j.summary.held??0} por revisar</p>{j.summary.work_limit&&<p className="text-xs text-gray-600">Capacidad configurada: hasta {j.summary.work_limit} casos por ronda.</p>}{j.summary.provider_wait_until&&<p className="text-amber-900">{Number.isFinite(Date.parse(j.summary.provider_wait_until))?'El proveedor pidió una pausa hasta '+date(j.summary.provider_wait_until)+'.':'La ronda anterior necesita revisión humana antes de continuar.'}</p>}</li>)}</ul></details>
   </>}
  </section>;
 }

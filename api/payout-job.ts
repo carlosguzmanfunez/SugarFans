@@ -1,7 +1,8 @@
 // Bounded, resumable scheduled review. Deployment never enables money gates.
 import {timingSafeEqual} from 'node:crypto';
 import {sendEmail,logServerError} from './_mail.js';
-import {payoutServerIdentity,runStoredPayout,reconcileStoredPayoutEvent} from './paypal.js';
+import {createStoredPayoutSession} from './paypal.js';
+import {createPayoutControl,payoutClock,payoutWorkLimit,type PayoutClock} from './_payout-provider.js';
 const clean=(s:string|undefined)=>s?.trim().replace(/^["']|["']$/g,'').trim()||undefined;
 const json=(status:number,body:unknown)=>new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json','cache-control':'no-store'}});
 const safeEqual=(a:string,b:string)=>{const x=Buffer.from(a),y=Buffer.from(b);return x.length===y.length&&timingSafeEqual(x,y);};
@@ -16,27 +17,40 @@ const rpc=async<T>(name:string,args:Record<string,unknown>):Promise<T>=>{
  const b=await r.json().catch(()=>({}));if(!r.ok)throw new Error(typeof b.message==='string'?b.message:'No pudimos confirmar la operación');return b as T;
 };
 type Work={operation:'event'|'payout'|'prepare';payout:string|null;user_id:string;event:string|null;item:string|null};
-export async function runPayoutReview(executeRequested:boolean){
+export async function runPayoutReview(executeRequested:boolean,options?:{clock?:PayoutClock}){
+ const clock=options?.clock??payoutClock,deadline=clock.now()+120000;
  const e=settings(),started=await rpc<{operation:string;id?:string;blocked?:string}>('finance_job_start',{p_environment:e.mode,p_execute:executeRequested});
  if(started.operation!=='run'||!started.id)return {ok:true,operation:started.operation};
- const id=started.id,deadline=Date.now()+120000,summary:{reviewed:number;processed:number;held:number;alerts:number;blocked:string|null;errors:string[]}={reviewed:0,processed:0,held:0,alerts:0,blocked:started.blocked??null,errors:[]};
+ const id=started.id,summary={reviewed:0,processed:0,held:0,alerts:0,blocked:started.blocked??null as string|null,errors:[] as string[],work_limit:5,provider_calls:0,provider_wait_until:null as string|null};
  try{
+  summary.work_limit=payoutWorkLimit(clean(process.env.PAYOUT_WORK_LIMIT));
   summary.reviewed=await rpc<number>('finance_job_review',{p_run:id});
-  const work=await rpc<Work[]>('finance_job_work',{p_run:id,p_limit:5});
+  const gate=await rpc<{ready:boolean;until:string|null;failures:number;reason:string}>('finance_provider_gate',{p_run:id});
+  const work=gate.ready?await rpc<Work[]>('finance_job_work',{p_run:id,p_limit:summary.work_limit}):[];
+  if(!gate.ready){summary.blocked=gate.reason;summary.provider_wait_until=gate.until;}
+  const control=createPayoutControl(clock,deadline,gate.failures);
+  if(work.length)await rpc('finance_provider_enter',{p_run:id});
+  let session:ReturnType<typeof createStoredPayoutSession>|undefined;
   for(const item of work){
-   if(Date.now()>deadline-50000)break;
+   if(clock.now()>deadline-50000)break;
    try{
-    if(item.operation==='event'){await reconcileStoredPayoutEvent(item.payout!,item.event!);summary.processed++;continue;}
-    const identity=payoutServerIdentity();let payout=item.payout;
+    session??=createStoredPayoutSession(control);
+    if(item.operation==='event'){await session.event(item.payout!,item.event!);summary.processed++;}
+    else{
+    const identity=session.identity;let payout=item.payout;
     if(item.operation==='prepare'){
      const prepared=await rpc<{id:string}>('finance_job_prepare',{p_run:id,p_item:item.item,p_sender:identity.clientId});payout=prepared.id;
     }
-    const result=await runStoredPayout(item.user_id,payout!,()=>rpc<boolean>('finance_job_allow_submit',{p_run:id,p_user:item.user_id,p_payout:payout,p_sender:identity.clientId}));
+    const result=await session.run(item.user_id,payout!,()=>rpc<boolean>('finance_job_allow_submit',{p_run:id,p_user:item.user_id,p_payout:payout,p_sender:identity.clientId}));
     if(result.paypalStatus==='AUTOMATION_BLOCKED')summary.held++;else summary.processed++;
+    }
    }catch(error){summary.held++;const message=error instanceof Error?error.message:'Un envío necesita revisión';summary.errors.push(message.slice(0,300));await rpc('finance_job_item_error',{p_run:id,p_item:item.item??item.payout,p_message:message});}
+   if(control.wait){const seconds=Math.ceil((Date.parse(control.wait.until)-clock.now())/1000);const paused=await rpc<{until:string}>('finance_provider_pause',{p_run:id,p_seconds:Number.isFinite(seconds)&&seconds<=2147483647?Math.max(1,seconds):null,p_status:control.wait.status});summary.blocked='PROVIDER_COOLDOWN';summary.provider_wait_until=paused.until;break;}
   }
+  summary.provider_calls=control.calls;
+  if(work.length&&!control.wait)await rpc('finance_provider_success',{p_run:id});
   // Only exceptions enqueue alerts; normal successful reviews send no email.
-  if(Date.now()<deadline-5000){
+  if(clock.now()<deadline-5000){
    const alerts=await rpc<{id:string;token:string;to:string;subject:string;body:string;key:string}[]>('finance_alert_claim',{p_recipient:e.recipient,p_limit:3});
    for(const alert of alerts){const error=await sendEmail(alert.to,alert.subject,alert.body,alert.key);await rpc('finance_alert_finish',{p_id:alert.id,p_token:alert.token,p_error:error||null});if(!error)summary.alerts++;}
   }

@@ -1,0 +1,8 @@
+import assert from'node:assert/strict';import{readFileSync,mkdtempSync,rmSync}from'node:fs';import{build}from'esbuild';import{tmpdir}from'node:os';import{resolve,join}from'node:path';import{pathToFileURL}from'node:url';
+const folder=mkdtempSync(join(tmpdir(),'pro-schedule-'));
+try{await build({entryPoints:['src/lib/payoutCalendar.ts'],outfile:join(folder,'calendar.mjs'),bundle:true,format:'esm',platform:'node',logLevel:'silent'});const{payoutWindow}=await import(pathToFileURL(join(folder,'calendar.mjs')));const proposal=JSON.parse(readFileSync('docs/operations/vercel-payouts-pro.example.json','utf8')),active=JSON.parse(readFileSync('vercel.json','utf8'));assert.equal(active.crons.find(c=>c.path==='/api/payout-job').schedule,'0 12 * * *');
+ const crons=proposal.crons.filter(c=>c.path==='/api/payout-job').map(c=>c.schedule.split(' '));
+ const matches=(expr,n)=>expr==='*'||expr.startsWith('*/')&&n%Number(expr.slice(2))===0||expr.split(',').some(p=>{const[a,b]=p.split('-').map(Number);return n>=a&&n<=(b??a);});let ticks=0;
+ for(let t=Date.UTC(2026,0,1);t<Date.UTC(2029,0,1);t+=300000){const d=new Date(t),inside=payoutWindow(d).open,hour=d.getUTCHours(),minute=d.getUTCMinutes(),day=d.getUTCDate();const hits=crons.filter(([m,h,dom])=>matches(m,minute)&&matches(h,hour)&&matches(dom,day)).length;const daily=!inside&&hour===12&&minute===0;assert.equal(hits,inside||daily?1:0,d.toISOString());ticks++;}
+ assert.equal(proposal.functions['api/payout-job.ts'].maxDuration,180);console.log('OK '+ticks+' intervalos de cinco minutos: ventana de Honduras y revisión diaria, 2026–2028 incluido febrero bisiesto; cron publicado intacto.');
+}finally{assert.equal(resolve(folder,'..'),resolve(tmpdir()));rmSync(folder,{recursive:true,force:true});}
