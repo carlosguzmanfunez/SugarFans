@@ -26,16 +26,17 @@ const begin=async()=> (await q('select paypal_payout_begin($1,$2,$3) as v',[user
 const claim=async(id,who=user,mode='sandbox',client=sender)=>(await q('select paypal_payout_claim($1,$2,$3,$4) as v',[who,id,mode,client]))[0].v;
 const finish=async(id,token,outcome,batch=null)=>(await q('select paypal_payout_submission_result($1,$2,$3,$4,$5,$6) as v',[user,id,token,outcome,batch,'TEST_RESULT']))[0].v;
 const response=(status,data)=>status===204?new Response(null,{status}):new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json'}});
-// Error shape observed in Sandbox; the URL and batch ID are test values because
-// Developer redacts the original nested URL. Never replay a real withdrawal.
+// Error shape observed in Sandbox. Native QA also confirmed the api.* alias
+// in nested links returned to requests sent to api-m.*. IDs remain test values.
 const duplicateV1Fixture=JSON.parse(readFileSync(resolve('e2e/fixtures/paypal-duplicate-batch-v1.json'),'utf8'));
 const duplicateV1=id=>{
   const error=structuredClone(duplicateV1Fixture);
-  error.details[0].link[0].href=`https://api-m.sandbox.paypal.com/v1/payments/payouts/BATCH-${id}`;
+  error.details[0].link[0].href=`https://api.sandbox.paypal.com/v1/payments/payouts/BATCH-${id}`;
   return error;
 };
 let state,passed=0;
 const reset=async()=>{
+  process.env.PAYPAL_ENV='sandbox';
   const financeTables=withLedger?'finance_allocations,finance_source_revisions,finance_journal,finance_adjustments,finance_sources,finance_batch_items,finance_batches,':'';
   await db.exec(`reset role;truncate ${financeTables}paypal_payout_reconciliations,paypal_payout_events,paypal_payout_submissions,payouts,transactions,profiles,payout_accounts,account_restrictions`);
   await clock('2026-10-26T12:00:00Z');
@@ -107,7 +108,7 @@ try {
         if(name==='paypal_payout_mark'){await q('select paypal_payout_mark($1,$2,$3,$4,$5)',[body.p_id,body.p_status,body.p_batch_id,body.p_item_id,body.p_error]);return response(204);}
       }catch(error){return response(400,{message:error.message});}
     }
-    if(u.origin==='https://api-m.sandbox.paypal.com') {
+    if(u.origin===(process.env.PAYPAL_ENV==='live'?'https://api-m.paypal.com':'https://api-m.sandbox.paypal.com')) {
       if(u.pathname==='/v1/oauth2/token')return response(200,{access_token:'TEST_ONLY_TOKEN'});
       if(u.pathname==='/v1/notifications/verify-webhook-signature')return response(200,{verification_status:state.badSignature?'FAILURE':'SUCCESS'});
       if(u.pathname.endsWith('/cancel')) {
@@ -174,6 +175,16 @@ try {
     assert.equal((await current()).status,'sending');assert.ok((await current()).paypal_batch_id);assert.equal(await balance(),0);
     state.status='SUCCESS';await post('payout-check');assert.equal((await current()).status,'paid');assert.equal(state.posts.length,2);assert.equal(state.accepted.size,1);
   });
+  for(const [mode,origin] of [
+    ['sandbox','https://api-m.sandbox.paypal.com'],['sandbox','https://api.sandbox.paypal.com'],
+    ['live','https://api-m.paypal.com'],['live','https://api.paypal.com'],
+  ])await check(`Duplicado ${mode}: reconoce ${origin} y consulta solo el origen configurado`,async()=>{
+    process.env.PAYPAL_ENV=mode;state.mode='disconnected';state.duplicateResponse=id=>{const e=duplicateV1(id);e.details[0].link[0].href=`${origin}/v1/payments/payouts/BATCH-${id}`;return e;};
+    await post();await advance();state.mode='success';await post('payout-check');
+    assert.equal((await current()).status,'paid');assert.equal(state.accepted.size,1);assert.equal(state.posts.length,2);
+    const canonical=mode==='live'?'https://api-m.paypal.com':'https://api-m.sandbox.paypal.com';
+    assert.ok(state.gets.length>0);assert.ok(state.gets.every(h=>new URL(h).origin===canonical));
+  });
   await check('El código DUPLICATE_BATCH_ID también permite enlaces anidados y detalles nulos',async()=>{
     state.mode='disconnected';state.duplicateResponse=id=>{const e=duplicateV1(id);e.name='VALIDATION_ERROR';e.details[0].issue='DUPLICATE_BATCH_ID';e.details.unshift(null);return e;};
     await post();await advance();state.mode='success';await post('payout-check');assert.equal((await current()).status,'paid');assert.equal(state.accepted.size,1);
@@ -186,6 +197,11 @@ try {
   for(const [name,href] of [
     ['dominio ajeno',id=>`https://foreign.example.invalid/v1/payments/payouts/BATCH-${id}`],
     ['entorno Live',id=>`https://api-m.paypal.com/v1/payments/payouts/BATCH-${id}`],
+    ['alias de Live',id=>`https://api.paypal.com/v1/payments/payouts/BATCH-${id}`],
+    ['alias por HTTP',id=>`http://api.sandbox.paypal.com/v1/payments/payouts/BATCH-${id}`],
+    ['alias con credenciales',id=>`https://user:password@api.sandbox.paypal.com/v1/payments/payouts/BATCH-${id}`],
+    ['subdominio engañoso',id=>`https://api.sandbox.paypal.com.attacker.invalid/v1/payments/payouts/BATCH-${id}`],
+    ['puerto ajeno',id=>`https://api.sandbox.paypal.com:444/v1/payments/payouts/BATCH-${id}`],
     ['HTTP sin TLS',id=>`http://api-m.sandbox.paypal.com/v1/payments/payouts/BATCH-${id}`],
     ['credenciales en URL',id=>`https://user:password@api-m.sandbox.paypal.com/v1/payments/payouts/BATCH-${id}`],
     ['otra ruta',id=>`https://api-m.sandbox.paypal.com/v1/payments/payouts-item/BATCH-${id}`],
@@ -197,6 +213,11 @@ try {
     state.mode='disconnected';state.duplicateResponse=id=>{const e=duplicateV1(id);e.details[0].link[0].href=href(id);return e;};
     await post();await advance();state.mode='success';await post('payout-check');
     assert.equal(state.gets.length,0);assert.equal((await current()).paypal_batch_id,null);assert.equal((await current()).status,'sending');assert.equal(await balance(),0);assert.equal(state.accepted.size,1);
+  });
+  await check('Un duplicado Live no acepta enlaces Sandbox de ninguno de sus hosts',async()=>{
+    process.env.PAYPAL_ENV='live';state.mode='disconnected';state.duplicateResponse=id=>{const e=duplicateV1(id);e.links=[{href:`https://api-m.sandbox.paypal.com/v1/payments/payouts/BATCH-${id}`,method:'GET'}];return e;};
+    await post();await advance();state.mode='success';await post('payout-check');
+    assert.equal(state.gets.length,0);assert.equal((await current()).status,'sending');assert.equal(await balance(),0);assert.equal(state.accepted.size,1);
   });
   for(const [name,mutate] of [
     ['error genérico',e=>{e.details[0].issue='Receiver is not confirmed';}],

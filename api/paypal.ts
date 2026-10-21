@@ -234,7 +234,8 @@ const pendingPayout = (paypalStatus = 'SUBMISSION_UNCERTAIN') => ({ status: 'sen
 const PAYOUT_TIMEOUT_MS = 10000;
 
 // Never follow arbitrary URLs from an error body with a bearer token. Extract
-// only a batch ID from this environment's own documented resource path.
+// only a batch ID from this environment's own resource path. PayPal responses
+// may name api.* even when the request used api-m.*; all queries still use e.api.
 const duplicateBatch = (e: Env, data: any): string | null => {
   const duplicate = data?.name === 'DUPLICATE_BATCH_ID';
   const details = (Array.isArray(data?.details) ? data.details : []).filter((detail: any) =>
@@ -244,6 +245,9 @@ const duplicateBatch = (e: Env, data: any): string | null => {
     || (data?.name === 'USER_BUSINESS_ERROR' && detail?.field === 'SENDER_BATCH_ID'
       && detail?.issue === 'Batch with given sender_batch_id already exists'));
   if (!duplicate && details.length === 0) return null;
+  const origins = e.mode === 'live'
+    ? ['https://api-m.paypal.com', 'https://api.paypal.com']
+    : ['https://api-m.sandbox.paypal.com', 'https://api.sandbox.paypal.com'];
   const links = [
     ...(Array.isArray(data?.links) ? data.links : []),
     ...details.flatMap((detail: any) => Array.isArray(detail?.link) ? detail.link : []),
@@ -254,7 +258,7 @@ const duplicateBatch = (e: Env, data: any): string | null => {
     try {
       const url = new URL(link.href);
       const match = url.pathname.match(/^\/v1\/payments\/payouts\/([A-Za-z0-9_-]{1,128})$/);
-      if (url.origin === e.api && !url.username && !url.password && match) batches.add(match[1]);
+      if (origins.includes(url.origin) && !url.username && !url.password && match) batches.add(match[1]);
     } catch { /* an invalid recovery link cannot authorize a new payment */ }
   }
   // Conflicting original-batch references require review; never pick one by order.
