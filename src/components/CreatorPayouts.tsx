@@ -74,7 +74,7 @@ const CreatorPayouts: React.FC = () => {
   const cycle = earningsCycle(calendar.at);
   const window = payoutWindow(calendar.at);
   const creditDay = fmtDate(nextCreditDate(calendar.at));
-  const canWithdraw = book.ready && !!calendar.data && !loading && window.open && !!user.isVerified && !!payoutAccount && !data.payouts.some(p=>p.status==='sending') && earnings.available >= terms.min;
+  const canWithdraw = book.ready && !!calendar.data && !loading && window.open && !!user.isVerified && !!payoutAccount && !book.data?.holds?.length && !data.payouts.some(p=>p.status==='sending') && earnings.available >= terms.min;
   const fee = payoutFee(earnings.available);
   const verified = !!user.isVerified;
 
@@ -134,6 +134,7 @@ const CreatorPayouts: React.FC = () => {
           El costo real de enviar el retiro corre por tu cuenta. El panel muestra una estimación; las diferencias comprobadas con PayPal se registran a tu favor o a tu cargo, conservando el retiro original.
         </p>
         <p className="text-sm text-gray-700 mb-4" data-testid="payout-window">{window.open ? 'Ventana de pago abierta' : 'Próxima ventana de pago'}: {fmtDate(window.nextStart)} – {fmtDate(new Date(Date.parse(window.nextEnd) - 1).toISOString())}. Los saldos no pagados se conservan; las ganancias del nuevo ciclo se pagan en su próxima ventana.</p>
+        {!!book.data?.holds?.length&&<div className="rounded-xl bg-amber-50 text-amber-900 p-3 mb-4 text-sm" data-testid="creator-payout-holds"><p className="font-medium">Tus retiros están en revisión</p><ul className="list-disc pl-5 mt-1">{book.data.holds.map(h=><li key={h.id}>{h.kind==='fee'?'Revisión del costo de un retiro':h.kind==='manual'?'Revisión administrativa de tu cuenta':'Comprobación de seguridad de pagos'}</li>)}</ul><p className="mt-2">El saldo permanece registrado. Puedes pedir una revisión a soporte; cada motivo se libera cuando termina su comprobación.</p></div>}
         {!verified && (
           <p className="text-sm bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl p-3 mb-4">
             <i aria-hidden="true" className="fas fa-id-card mr-2"></i>Para retirar necesitas verificar tu identidad.{' '}

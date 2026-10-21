@@ -43,6 +43,7 @@ const kindLabel = { post: 'Publicación', creator: 'Perfil', support: 'Soporte',
 const roleName = { fan: 'Fan', creator: 'Creador', admin: 'Admin' } as const;
 
 const AdminDashboard: React.FC = () => {
+  const [caseReference,setCaseReference]=useState<string>();
   const { user, listAccounts } = useAuth();
   const { data: accounts, reload: reloadAccounts } = usePlatformQuery(listAccounts, [], []);
   const { data: platform } = usePlatformQuery(
@@ -220,7 +221,7 @@ const AdminDashboard: React.FC = () => {
         {activeTab === 'moderation' && <AdminModeration />}
 
         {activeTab === 'errors' && <AdminErrors />}
-        {activeTab === 'finance' && <AdminFinance />}
+        {activeTab === 'finance' && <AdminFinance caseReference={caseReference}/>}
 
         {activeTab === 'infra' && <AdminInfra transactions={platform.transactions} coins={platform.coins} />}
 
@@ -335,7 +336,7 @@ const AdminDashboard: React.FC = () => {
             <div className="p-5 border-b border-gray-100">
               <h3 className="font-bold text-gray-900">Reembolsos, contracargos y disputas</h3>
               <p className="text-sm text-gray-600 mt-1">
-                PayPal los descuenta solos al creador. Si no fue su culpa (fraude con tarjeta robada, un fallo nuestro), márcalo y conserva su parte: la pérdida la asume Fans Reserve.
+                El estado confirmado por PayPal se refleja en el saldo. Revisa la causa, la evidencia y la responsabilidad en su expediente; si no fue culpa del creador, se aplica la cobertura de Fans Reserve prevista en el contrato.
               </p>
             </div>
             <div className="divide-y divide-gray-100">
@@ -348,7 +349,7 @@ const AdminDashboard: React.FC = () => {
                       {formatPayoutDate(t.createdAt)} • {t.status === 'disputed' ? 'En disputa con PayPal' : 'Reembolsado al fan'} • Parte del creador {money(creatorCut(t))}
                     </p>
                   </div>
-                  {t.platformCovers ? (
+                  {backend.finance.caseList?<button type="button" onClick={()=>{setCaseReference(t.id);setActiveTab('finance');}} className="text-xs px-3 py-1.5 rounded-full border border-gray-300 text-gray-700">Revisar expediente{t.platformCovers?' · Con cobertura':''}</button>:t.platformCovers ? (
                     <button onClick={() => toggleCover(t.id, false)} className="text-xs px-3 py-1.5 rounded-full bg-green-100 text-green-700 font-medium">
                       <i aria-hidden="true" className="fas fa-shield-alt mr-1"></i>Lo cubre Fans Reserve · Deshacer
                     </button>
@@ -540,6 +541,7 @@ const AdminDashboard: React.FC = () => {
             history={platform.adminActions.filter((a) => a.userId === managed.id)}
             transactions={platform.transactions}
             onClose={() => setManaging(null)}
+            onReviewPayouts={backend.finance.caseList?()=>{setCaseReference(managed.id);setActiveTab('finance');setManaging(null);}:undefined}
             onDone={(text) => {
               reloadAccounts();
               setNotice({ ok: true, text });

@@ -11,7 +11,7 @@ const labelState:Record<string,string>={reserved:'Apartado',held:'Por revisar',r
 const explanation=(reason:string|null)=>reason?(financeReasons[reason]??reason):'Listo para apartar';
 const closeDay=(cutoff:string)=>formatPayoutDate(new Date(Date.parse(cutoff)-1).toISOString());
 
-const AdminFinance:React.FC<{api?:FinanceBackend}>=({api=backend.finance})=>{
+const AdminFinance:React.FC<{api?:FinanceBackend;caseReference?:string}>=({api=backend.finance,caseReference})=>{
  const [data,setData]=useState<FinanceOverview|null>(null),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [revision,setRevision]=useState(0),[busy,setBusy]=useState(false),[confirm,setConfirm]=useState(false);
  const [selected,setSelected]=useState(''),[detail,setDetail]=useState<FinanceBatchDetail|null>(null),[detailError,setDetailError]=useState('');
@@ -72,7 +72,7 @@ const AdminFinance:React.FC<{api?:FinanceBackend}>=({api=backend.finance})=>{
    {notice&&<p role="status" className="rounded-xl bg-green-50 text-green-800 p-4">{notice}</p>}
    {!data&&!error&&<p role="status">Cargando los saldos confirmados…</p>}
    {data&&<>
-     {api.operations&&<AdminPayoutOperations api={api}/>}
+     {api.operations&&<AdminPayoutOperations api={api} caseReference={caseReference}/>}
      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3" data-testid="finance-summary">
        {[
          ['Sin apartar',data.creators.reduce((s,c)=>s+Number(c.available),0),'Incluye importes que todavía requieren revisión.'],

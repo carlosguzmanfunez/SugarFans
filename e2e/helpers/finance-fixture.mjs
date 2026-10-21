@@ -7,7 +7,7 @@ export const CREATOR='00000000-0000-0000-0000-000000000001';
 export const OTHER='00000000-0000-0000-0000-000000000002';
 export const FINANCE_MIGRATION='20261020032222_creator_ledger_batch_reservations.sql';
 export const NOTIFICATION_MIGRATION='20261020231703_payout_notification_wording.sql';
-export async function financeFixture({beforeMigration,notificationMigration=true,feeResolutionMigration=process.env.TEST_FEE_RESOLUTION==='1',automationMigration=process.env.TEST_PAYOUT_OPERATIONS==='1'||feeResolutionMigration}={}) {
+export async function financeFixture({beforeMigration,notificationMigration=true,incidentMigration=process.env.TEST_INCIDENT_PROCEDURES==='1',feeResolutionMigration=process.env.TEST_FEE_RESOLUTION==='1'||incidentMigration,automationMigration=process.env.TEST_PAYOUT_OPERATIONS==='1'||feeResolutionMigration}={}) {
  const db=new PGlite();const q=async(sql,args=[]) => (await db.query(sql,args)).rows;
  const source=n=>readFileSync(resolve('supabase/migrations',n),'utf8');
  await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create schema security_private;create table security_private.owner_account(user_id uuid primary key);create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,deleted_at timestamptz,banned_until timestamptz);
@@ -34,10 +34,17 @@ export async function financeFixture({beforeMigration,notificationMigration=true
  if(notificationMigration)await db.exec(source(NOTIFICATION_MIGRATION));
  if(automationMigration){await db.exec(source('20261021045607_payout_batch_executor_and_reconciliation.sql'));await db.exec(source('20261021050319_payout_owner_notification_authority.sql'));}
  if(feeResolutionMigration)await db.exec(source('20261021145039_payout_fee_resolution.sql'));
+ if(incidentMigration){
+  await db.exec("alter table transactions add column kind text not null default 'tip';alter table transactions add column key text;alter table account_restrictions add column updated_at timestamptz default now();alter table account_restrictions add column suspension_reason text;create table admin_actions(id uuid default gen_random_uuid(),admin_id uuid,admin_name text,user_id uuid,user_name text,action text,reason text,until timestamptz,created_at timestamptz default now())");
+  await db.exec(source('20261020174153_owner_account_controls.sql').match(/create or replace function public\.admin_account_action\([\s\S]*?\$\$;/i)[0]);
+  await db.exec(source('20261010000002_platform_covers_refunds.sql').match(/create or replace function public\.admin_cover_refund\([\s\S]*?\$\$;/i)[0].replace('id = p_transaction','id = p_transaction::text'));
+  await db.exec(source('20261021164442_payout_incident_procedures.sql'));
+ }
  const reset=async()=>{
    const fees=feeResolutionMigration?'finance_fee_holds,finance_fee_reversals,finance_fee_resolutions,finance_private.fee_policy,':'';
    const operations=automationMigration?'finance_alert_tests,finance_alert_queue,finance_incidents,finance_job_runs,finance_execution_reservations,finance_funding_checks,finance_statement_lines,finance_statement_imports,finance_private.automation_settings,':'';
-   await db.exec('reset role;truncate '+fees+operations+'auth.users,security_private.owner_account,finance_allocations,finance_source_revisions,finance_journal,finance_adjustments,finance_sources,finance_batch_items,finance_batches,paypal_payout_reconciliations,paypal_payout_events,paypal_payout_submissions,payouts,transactions,profiles,payout_accounts,account_restrictions');
+   const cases=incidentMigration?'finance_hold_releases,finance_case_actions,finance_payout_holds,admin_actions,':'';
+   await db.exec('reset role;truncate '+cases+fees+operations+'auth.users,security_private.owner_account,finance_allocations,finance_source_revisions,finance_journal,finance_adjustments,finance_sources,finance_batch_items,finance_batches,paypal_payout_reconciliations,paypal_payout_events,paypal_payout_submissions,payouts,transactions,profiles,payout_accounts,account_restrictions');
    await q('update finance_private.settings set batch_handoff_enabled=false');
    await clock('2026-10-26T12:00:00Z');await auth(ADMIN);
    await q("insert into profiles values($1,null,'Administrador','admin',true,false),($2,'creator','Mariana','creator',true,false),($3,'other','Diego','creator',true,false)",[ADMIN,CREATOR,OTHER]);
