@@ -34,6 +34,8 @@ export async function runPayoutReview(executeRequested:boolean,options?:{clock?:
   for(const item of work){
    if(clock.now()>deadline-50000)break;
    try{
+    // Remember only cases actually started, so unresolved cases rotate behind untried work.
+    await rpc('finance_job_attempt',{p_run:id,p_operation:item.operation,p_reference:item.event??item.payout??item.item});
     session??=createStoredPayoutSession(control);
     if(item.operation==='event'){await session.event(item.payout!,item.event!);summary.processed++;}
     else{

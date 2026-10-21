@@ -22,7 +22,17 @@ Ante 429, autenticación rechazada, error temporal o desconexión se detiene el 
 
 Se registra la entrada a la ronda antes de contactar al proveedor. Si el proceso se interrumpe o falla la escritura que confirma su cierre/pausa, las siguientes rondas quedan detenidas con una incidencia, conservando fondos y referencias. La revisión diaria mantiene un solo episodio y aviso. Un operador autorizado debe conciliar esos envíos, documentar el expediente y resolver exclusivamente el control de interrupción mediante administración confiable de la base; no se ofrece un botón para borrar esa protección ni se cambian las puertas de dinero. Una pausa temporal correctamente registrada se reanuda sola al vencer.
 
-La migración `20261021191647_payout_provider_capacity.sql` debe aplicarse antes de publicar el servidor ampliado. La preparación en QA es independiente de Production. No modificar retiros ni tablas de historial para eliminar una espera.
+Las migraciones `20261021191647_payout_provider_capacity.sql` y después `20261021200143_payout_work_rotation.sql` deben aplicarse antes de publicar el servidor ampliado. La primera se comprobó en QA independiente; la segunda se prueba inicialmente en PostgreSQL temporal y queda pendiente de aceptación alojada. No modificar retiros ni tablas de historial para eliminar una espera.
+
+## Problemas individuales y pausas generales
+
+Un creador sin verificar, bloqueado, con disputa o con un pago pendiente no detiene a los demás por sí solo. El envío afectado conserva su reserva y referencia. La revisión registra sus incidencias y los avisos; no se repite un pago aceptado para intentar desbloquearlo.
+
+La selección guarda el último turno de cada caso realmente iniciado, antes de procesarlo. Atiende primero los casos todavía no intentados y después los que llevan más tiempo esperando. Así, varios pendientes antiguos o errores de preparación no vuelven a ocupar todos los primeros lugares indefinidamente. Los casos no alcanzados por tiempo conservan su turno; este registro no modifica saldos ni prueba una entrega.
+
+Se conserva una pausa general si PayPal exige esperar, falla su acceso o conexión, o la ronda no puede confirmar la escritura de su cierre. También siguen los controles comunes de fondos, conciliación, autorización y plazo. Una ronda limitada puede terminar sin haber atendido todos sus casos; la siguiente retoma la lista. No se borran esos controles para acelerar un pago individual.
+
+`npm run test:payout-isolation` reproduce la diferencia con 12 creadores: uno bloqueado deja cobrar a los otros once; uno pendiente permite cuatro pagos sanos en la misma ronda; cinco pendientes dejan avanzar a otros siete sin reenviar lo aceptado; cinco fallos de preparación después del cierre ya no acaparan las rondas. Corregida la causa, sus cinco casos pueden completarse con las reservas originales. Incluye permisos de la tabla privada y de la función de turnos. Toda la prueba intercepta la red y usa datos ficticios.
 
 ## Ensayos y siguiente aceptación
 

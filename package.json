@@ -47,6 +47,7 @@
     "test:payout-rehearsal": "node e2e/payout-rehearsal.mjs",
     "test:payout-batch-rehearsal": "node e2e/payout-batch-rehearsal.mjs",
     "test:payout-capacity": "node e2e/payout-provider-control.mjs && node e2e/payout-capacity.mjs",
+    "test:payout-isolation": "node e2e/payout-isolation.mjs",
     "test:payout-pro-schedule": "node e2e/payout-pro-schedule.mjs",
     "test:payout-rehearsal-ui": "node e2e/payout-rehearsal-ui.mjs",
     "test:payout-operations-ui": "node e2e/payout-operations-ui.mjs",
