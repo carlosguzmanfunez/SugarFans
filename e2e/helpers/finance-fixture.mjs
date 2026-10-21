@@ -32,7 +32,7 @@ export async function financeFixture({beforeMigration,notificationMigration=true
  if(beforeMigration)await beforeMigration({db,q,clock,auth});
  try {await db.exec(source(FINANCE_MIGRATION));}catch(error){await db.close();throw error;}
  if(notificationMigration)await db.exec(source(NOTIFICATION_MIGRATION));
- if(automationMigration)await db.exec(source('20261021041631_payout_batch_executor_and_reconciliation.sql'));
+ if(automationMigration)await db.exec(source('20261021045607_payout_batch_executor_and_reconciliation.sql'));
  const reset=async()=>{
    const operations=automationMigration?'finance_alert_tests,finance_alert_queue,finance_incidents,finance_job_runs,finance_execution_reservations,finance_funding_checks,finance_statement_lines,finance_statement_imports,finance_private.automation_settings,':'';
    await db.exec('reset role;truncate '+operations+'finance_allocations,finance_source_revisions,finance_journal,finance_adjustments,finance_sources,finance_batch_items,finance_batches,paypal_payout_reconciliations,paypal_payout_events,paypal_payout_submissions,payouts,transactions,profiles,payout_accounts,account_restrictions');
