@@ -3,6 +3,7 @@ import { backend } from '../lib/backend';
 import { money,platformChanged } from '../lib/platform';
 import { formatPayoutDate,hondurasDateKey } from '../lib/payoutCalendar';
 import { financeJournalCsv,financeReasons,type FinanceBackend,type FinanceOverview,type FinanceBatchDetail,type FinanceJournalRow,type FinanceAdjustment } from '../lib/creatorFinance';
+import AdminPayoutOperations from './AdminPayoutOperations';
 
 const button='rounded-xl bg-gray-900 text-white px-4 py-2 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed';
 const input='w-full rounded-xl border border-gray-200 px-3 py-2 bg-white text-sm';
@@ -71,6 +72,7 @@ const AdminFinance:React.FC<{api?:FinanceBackend}>=({api=backend.finance})=>{
    {notice&&<p role="status" className="rounded-xl bg-green-50 text-green-800 p-4">{notice}</p>}
    {!data&&!error&&<p role="status">Cargando los saldos confirmados…</p>}
    {data&&<>
+     {api.operations&&<AdminPayoutOperations api={api}/>}
      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3" data-testid="finance-summary">
        {[
          ['Sin apartar',data.creators.reduce((s,c)=>s+Number(c.available),0),'Incluye importes que todavía requieren revisión.'],
@@ -82,7 +84,7 @@ const AdminFinance:React.FC<{api?:FinanceBackend}>=({api=backend.finance})=>{
      </div>
      <div className="bg-white rounded-2xl shadow-sm p-5 space-y-4">
        <div><h3 className="font-bold">Preparar el lote del cierre</h3><p className="text-sm text-gray-600 mt-1">Ganancias acumuladas hasta el {closeDay(data.cutoff)} a las 11:59 p. m., hora de Honduras (UTC−6). Incluye saldos pendientes de ciclos anteriores.</p></div>
-       <p className="text-sm text-gray-600">{data.window_open?'Estamos dentro de la ventana de pago del 26 al 1.':'Podrás apartar el lote dentro de la ventana del 26 al 1.'} La ejecución automática continúa pendiente.</p>
+       <p className="text-sm text-gray-600">{data.window_open?'Estamos dentro de la ventana de pago del 26 al 1.':'Podrás apartar el lote dentro de la ventana del 26 al 1.'} {data.execution_enabled?'Los envíos requieren las autorizaciones y fondos comprobados en la revisión automática.':'Los envíos automáticos permanecen apagados.'}</p>
        <ul className="sm:hidden space-y-2">{data.creators.map(c=><li key={c.user_id} className="border border-gray-100 rounded-xl p-3"><div className="flex justify-between gap-2"><strong>{c.name}</strong><span>{money(c.available)}</span></div><p className="text-xs text-gray-500 mt-1">{c.account}</p><p className={`text-sm mt-1 ${c.reason?'text-amber-800':'text-green-700'}`}>{explanation(c.reason)}</p></li>)}</ul>
        <div className="hidden sm:block overflow-x-auto"><table className="w-full text-sm min-w-[580px]"><thead><tr className="text-left text-gray-500"><th className="py-2">Creador</th><th>Cuenta</th><th className="text-right">Sin apartar</th><th className="pl-4">Revisión</th></tr></thead>
          <tbody>{data.creators.map(c=><tr key={c.user_id} className="border-t border-gray-100"><td className="py-3 pr-3 font-medium">{c.name}</td><td className="pr-3 text-gray-600">{c.account}</td><td className="text-right whitespace-nowrap">{money(c.available)}</td><td className={`pl-4 ${c.reason?'text-amber-800':'text-green-700'}`}>{explanation(c.reason)}</td></tr>)}</tbody></table></div>

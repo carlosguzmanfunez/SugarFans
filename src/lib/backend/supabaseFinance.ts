@@ -18,5 +18,20 @@ export const createSupabaseFinance=(sb:SupabaseClient):FinanceBackend=>{
    cancel:(id,reason)=>call('finance_batch_cancel',{p_id:id,p_reason:reason}),
    adjust:(user,amount,reason,key,reference,reverses)=>call('finance_creator_adjust',{p_user:user,p_amount:amount,p_reason:reason,p_key:key,p_reference:reference,p_reverses:reverses??null}),
    journal:month=>call('finance_journal_export',{p_month:month}),
+   operations:()=>call('finance_operations'),
+   testAlert:async()=>{
+     try{const {data}=await sb.auth.getSession();const token=data.session?.access_token;if(!token)return {ok:false,error:'Inicia sesión con tu cuenta administrativa.'};
+       const r=await fetch('/api/payout-job',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json'},body:JSON.stringify({action:'test-alert'})});
+       const result=await r.json();if(!r.ok||!result.accepted)return {ok:false,error:result.error||'La prueba de correo quedó pendiente.'};return {ok:true,data:null};
+     }catch{return {ok:false,error:'No recibimos la confirmación del correo. La prueba conserva su referencia para evitar duplicados.'};}
+   },
+   funding:(key,environment,available,at,reference)=>call('finance_funding_record',{p_key:key,p_environment:environment,p_available:available,p_at:at,p_reference:reference}),
+   importStatement:(key,environment,test,rows)=>call('finance_statement_import',{p_key:key,p_environment:environment,p_test:test,p_rows:rows}),
+   review:async()=>{
+     try{const {data}=await sb.auth.getSession();const token=data.session?.access_token;if(!token)return {ok:false,error:'Inicia sesión con tu cuenta administrativa.'};
+       const r=await fetch('/api/payout-job',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json'},body:'{}'});
+       if(!r.ok)return {ok:false,error:'La revisión quedó pendiente. Actualiza antes de repetirla.'};return {ok:true,data:null};
+     }catch{return {ok:false,error:'No recibimos la confirmación. Actualiza las cuentas antes de continuar.'};}
+   },
  };
 };

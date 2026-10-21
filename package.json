@@ -39,6 +39,8 @@
     "test:finance-ledger": "node e2e/finance-ledger.mjs",
     "test:finance-adapter": "node e2e/finance-adapter.mjs",
     "test:finance-ui": "node e2e/finance-ui.mjs",
+    "test:payout-automation": "node e2e/payout-automation.mjs",
+    "test:payout-operations-ui": "node e2e/payout-operations-ui.mjs",
     "test:demo-security-db": "node e2e/demo-security-db.mjs",
     "test:demo-security-ui": "node e2e/demo-security-ui.mjs",
     "test:owner-ui": "node e2e/owner-security-ui.mjs",

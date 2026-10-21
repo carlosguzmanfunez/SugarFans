@@ -7,7 +7,7 @@ export const CREATOR='00000000-0000-0000-0000-000000000001';
 export const OTHER='00000000-0000-0000-0000-000000000002';
 export const FINANCE_MIGRATION='20261020032222_creator_ledger_batch_reservations.sql';
 export const NOTIFICATION_MIGRATION='20261020231703_payout_notification_wording.sql';
-export async function financeFixture({beforeMigration,notificationMigration=true}={}) {
+export async function financeFixture({beforeMigration,notificationMigration=true,automationMigration=process.env.TEST_PAYOUT_OPERATIONS==='1'}={}) {
  const db=new PGlite();const q=async(sql,args=[]) => (await db.query(sql,args)).rows;
  const source=n=>readFileSync(resolve('supabase/migrations',n),'utf8');
  await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;
@@ -32,12 +32,15 @@ export async function financeFixture({beforeMigration,notificationMigration=true
  if(beforeMigration)await beforeMigration({db,q,clock,auth});
  try {await db.exec(source(FINANCE_MIGRATION));}catch(error){await db.close();throw error;}
  if(notificationMigration)await db.exec(source(NOTIFICATION_MIGRATION));
+ if(automationMigration)await db.exec(source('20261021041631_payout_batch_executor_and_reconciliation.sql'));
  const reset=async()=>{
-   await db.exec('reset role;truncate finance_allocations,finance_source_revisions,finance_journal,finance_adjustments,finance_sources,finance_batch_items,finance_batches,paypal_payout_reconciliations,paypal_payout_events,paypal_payout_submissions,payouts,transactions,profiles,payout_accounts,account_restrictions');
+   const operations=automationMigration?'finance_alert_tests,finance_alert_queue,finance_incidents,finance_job_runs,finance_execution_reservations,finance_funding_checks,finance_statement_lines,finance_statement_imports,finance_private.automation_settings,':'';
+   await db.exec('reset role;truncate '+operations+'finance_allocations,finance_source_revisions,finance_journal,finance_adjustments,finance_sources,finance_batch_items,finance_batches,paypal_payout_reconciliations,paypal_payout_events,paypal_payout_submissions,payouts,transactions,profiles,payout_accounts,account_restrictions');
    await q('update finance_private.settings set batch_handoff_enabled=false');
    await clock('2026-10-26T12:00:00Z');await auth(ADMIN);
    await q("insert into profiles values($1,null,'Administrador','admin',true,false),($2,'creator','Mariana','creator',true,false),($3,'other','Diego','creator',true,false)",[ADMIN,CREATOR,OTHER]);
    await q("insert into payout_accounts values($1,'mariana@example.invalid'),($2,'diego@example.invalid')",[CREATOR,OTHER]);
+   if(automationMigration)await q("insert into finance_private.automation_settings(id,environment,operator_user_id) values(true,'sandbox',$1)",[ADMIN]);
  };
  const sale=(id='sale',creator='creator',amount=200,share=.8,at='2026-10-20T12:00:00Z',status='paid')=>q('insert into transactions(id,creator_profile_id,amount,creator_share,created_at,status) values($1,$2,$3,$4,$5,$6)',[id,creator,amount,share,at,status]);
  const rpc=async(name,args=[]) => (await q(`select public.${name}(${args.map((_,i)=>`$${i+1}`).join(',')}) as v`,args))[0].v;

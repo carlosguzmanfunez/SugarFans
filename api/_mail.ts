@@ -57,6 +57,7 @@ const sendOne = async (key: string, row: OutboxRow) => {
     method: 'POST',
     headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json', 'idempotency-key': `outbox-${row.id}` },
     body: JSON.stringify({ from: FROM, to: [row.to_email], reply_to: REPLY_TO, subject: row.subject, text: row.body, html: emailHtml(row.subject, row.body) }),
+    signal: AbortSignal.timeout(10000),
   });
   if (r.ok) return '';
   const data = (await r.json().catch(() => ({}))) as { message?: string };
