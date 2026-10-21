@@ -36,7 +36,7 @@ do $$declare t text;begin
 end$$;
 revoke all on sequence public.finance_fee_resolutions_sequence_seq from public,anon,authenticated,service_role;
 
-create function finance_private.fee_basis(p_line uuid) returns jsonb language plpgsql stable set search_path='' as $$
+create function finance_private.fee_basis(p_line uuid) returns jsonb language plpgsql volatile set search_path='' as $$
 declare l public.finance_statement_lines;p public.payouts;s public.paypal_payout_submissions;q public.paypal_payout_reconciliations;
  v_user public.profiles;v_policy finance_private.fee_policy;v_item jsonb;v_fee numeric;v_count integer;v jsonb;v_issue text;
 begin
@@ -75,10 +75,40 @@ begin
 end$$;
 
 -- Keep the generic adjustment contract; fee reversals must reverse the clearing entry too.
-alter function public.finance_creator_adjust(uuid,numeric,text,uuid,text,uuid) set schema finance_private;
-alter function finance_private.finance_creator_adjust(uuid,numeric,text,uuid,text,uuid) rename to creator_adjust_core;
+create function finance_private.creator_adjust_core(p_user uuid,p_amount numeric,p_reason text,p_key uuid,p_reference text,p_reverses uuid default null)
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare a public.finance_adjustments;o public.finance_adjustments;v_creator text;v_eligible timestamptz;v_source uuid;
+begin
+ perform finance_private.assert_admin();perform finance_private.lock_book();
+ if p_key is null or p_amount is null or p_amount::text in ('NaN','Infinity','-Infinity') or p_amount=0 or abs(p_amount)>100000 or p_amount<>round(p_amount,2)
+   or length(trim(coalesce(p_reason,'')))<10 or nullif(trim(p_reference),'') is null then raise exception 'Indica importe en USD, motivo y referencia de la corrección';end if;
+ select * into a from public.finance_adjustments where request_key=p_key;
+ if a.id is not null then
+   if (a.user_id,a.amount,a.reason,a.reference,a.reverses) is distinct from (p_user,p_amount,trim(p_reason),trim(p_reference),p_reverses) then raise exception 'Referencia de corrección reutilizada';end if;
+   return jsonb_build_object('id',a.id);
+ end if;
+ select creator_profile_id into v_creator from public.profiles where id=p_user and role='creator';
+ if v_creator is null then raise exception 'Creador no encontrado';end if;
+ v_eligible:=case when p_amount<0 then '-infinity'::timestamptz else now() end;
+ if p_reverses is not null then
+   select * into o from public.finance_adjustments where id=p_reverses;
+   if o.id is null or o.user_id<>p_user or o.amount<>-p_amount then raise exception 'La reversión debe compensar exactamente la corrección original';end if;
+   v_eligible:=o.eligible_at;
+ end if;
+ insert into public.finance_adjustments(request_key,user_id,creator_profile_id,amount,eligible_at,reason,reference,reverses,created_by)
+ values(p_key,p_user,v_creator,p_amount,v_eligible,trim(p_reason),trim(p_reference),p_reverses,auth.uid()) returning * into a;
+ insert into public.finance_sources(creator_profile_id,kind,reference,amount,eligible_at,revision,snapshot)
+ values(v_creator,'adjustment',a.id::text,p_amount,v_eligible,1,to_jsonb(a)) returning id into v_source;
+ insert into public.finance_source_revisions(source_id,revision,before_amount,after_amount,before_eligible_at,after_eligible_at,snapshot)
+ values(v_source,1,0,p_amount,v_eligible,v_eligible,to_jsonb(a));
+ perform finance_private.post('adjustment/'||a.id,v_creator,case when p_amount>0 then 'operating_clearing' else 'creator_payable' end,
+   case when p_amount>0 then 'creator_payable' else 'operating_clearing' end,abs(p_amount),'manual_adjustment',a.id::text,to_jsonb(a));
+ perform finance_private.review_changed(v_creator);
+ return jsonb_build_object('id',a.id);
+end;
+$$;
 revoke all on function finance_private.creator_adjust_core(uuid,numeric,text,uuid,text,uuid) from public,anon,authenticated,service_role;
-create function public.finance_creator_adjust(p_user uuid,p_amount numeric,p_reason text,p_key uuid,p_reference text,p_reverses uuid default null)
+create or replace function public.finance_creator_adjust(p_user uuid,p_amount numeric,p_reason text,p_key uuid,p_reference text,p_reverses uuid default null)
 returns jsonb language plpgsql security definer set search_path='' as $$
 begin
  perform finance_private.assert_admin();perform finance_private.lock_book();
@@ -122,6 +152,8 @@ begin
  end if;
  insert into public.finance_fee_resolutions(id,request_key,line_id,payout_id,proof_id,reported_fee,estimated_fee,actual_fee,creator_delta,adjustment_id,policy_version,contract_reference,expected_hash,evidence,reason,created_by)
  values(v_id,p_key,p_line,(v->>'payout')::uuid,(v->>'proof')::uuid,(v->>'reported_fee')::numeric,(v->>'estimated_fee')::numeric,(v->>'actual_fee')::numeric,v_delta,v_adjust,v->>'policy_version',v->>'contract_reference',p_expected,trim(p_evidence),trim(p_reason),auth.uid());
+ update public.finance_incidents set state='resolved',resolved_at=now() where code='STATEMENT_REVIEW' and reference=p_line::text and state='open';
+ update public.finance_alert_queue a set state='cancelled' from public.finance_incidents i where a.incident_id=i.id and i.code='STATEMENT_REVIEW' and i.reference=p_line::text and (a.state='pending' or (a.state='sending' and a.lease_until<=now()));
  return jsonb_build_object('id',v_id,'adjustment',v_adjust);
 end$$;
 create function public.finance_fee_reverse(p_id uuid,p_key uuid,p_reason text) returns jsonb language plpgsql security definer set search_path='' as $$
@@ -141,11 +173,28 @@ begin
    case when r.creator_delta>0 then 'fee_clearing' else 'operating_clearing' end,abs(r.creator_delta),'fee_cost_reclassification_reversed',v_id::text,jsonb_build_object('resolution',r.id,'actor',auth.uid()));
  end if;
  insert into public.finance_fee_reversals(id,request_key,resolution_id,adjustment_id,reason,created_by) values(v_id,p_key,r.id,v_adjust,trim(p_reason),auth.uid());
+ perform finance_private.incident(null,'STATEMENT_REVIEW',r.line_id::text,'Una comisión vuelve a revisión','La resolución anterior fue revertida. Revisa la evidencia antes de volver a regularizar el costo.');
  return jsonb_build_object('id',v_id);
 end$$;
 
-alter function finance_private.statement_results() rename to statement_results_before_fee_resolution;
-create function finance_private.statement_results() returns jsonb language plpgsql stable set search_path='' as $$
+create function finance_private.statement_results_before_fee_resolution() returns jsonb language sql stable set search_path='' as $$
+ select coalesce(jsonb_agg(to_jsonb(r) order by occurred_at desc,id),'[]'::jsonb) from (
+ select l.*,p.id as payout_id,p.net as expected_net,p.fee as estimated_fee,
+ case when (select count(*) from public.finance_statement_lines d where d.environment=l.environment and d.source=l.source and d.kind=l.kind and d.reference=l.reference)>1 then 'review'
+   when l.kind='transfer' then case when (select count(*) from public.finance_statement_lines o where o.environment=l.environment and o.source<>l.source and o.kind='transfer' and o.reference=l.reference and o.amount=l.amount)=1 then 'matched' else 'review' end
+   when p.id is null or p.status<>'paid' then 'review'
+   when l.kind='payout' and l.amount=p.net then 'matched'
+   when l.kind='fee' and l.amount=p.fee then 'matched' else 'review' end as state,
+ case when (select count(*) from public.finance_statement_lines d where d.environment=l.environment and d.source=l.source and d.kind=l.kind and d.reference=l.reference)>1 then 'AMBIGUOUS_REFERENCE'
+   when l.kind='transfer' then case when (select count(*) from public.finance_statement_lines o where o.environment=l.environment and o.source<>l.source and o.kind='transfer' and o.reference=l.reference and o.amount=l.amount)=1 then null else 'TRANSFER_UNMATCHED' end
+   when p.id is null then 'PAYOUT_UNKNOWN' when p.status<>'paid' then 'PAYOUT_NOT_CONFIRMED'
+   when l.kind='payout' and l.amount<>p.net then 'NET_MISMATCH'
+   when l.kind='fee' and l.amount<>p.fee then 'FEE_VARIANCE' else null end as reason
+ from public.finance_statement_lines l left join public.payouts p on l.kind in ('payout','fee') and p.paypal_item_id=l.reference
+ and exists(select 1 from public.paypal_payout_submissions s where s.payout_id=p.id and s.environment=l.environment)
+ ) r;
+$$;
+create or replace function finance_private.statement_results() returns jsonb language plpgsql stable set search_path='' as $$
 declare r jsonb;v jsonb;z public.finance_fee_resolutions;v_results jsonb:='[]';
 begin
  for r in select * from jsonb_array_elements(finance_private.statement_results_before_fee_resolution()) loop
@@ -189,7 +238,32 @@ begin
  end if;return new;
 end$$;
 create trigger finance_fee_proof_changed after update of response,outcome on public.paypal_payout_reconciliations for each row execute function finance_private.fee_proof_changed();
+create or replace function finance_private.reason_label(p_reason text) returns text language sql immutable set search_path='' as $$
+ select case p_reason when 'IDENTITY_REQUIRED' then 'Falta verificar su identidad' when 'ACCOUNT_FROZEN' then 'Los retiros de esta cuenta están en revisión'
+ when 'SUSPENDED' then 'La cuenta está suspendida' when 'RECIPIENT_REQUIRED' then 'Falta una cuenta PayPal válida' when 'OWNER_AMBIGUOUS' then 'Revisar el propietario del perfil'
+ when 'DISPUTE_OPEN' then 'Hay una disputa pendiente' when 'NEGATIVE_BALANCE' then 'Hay saldo por recuperar' when 'SOURCE_CHANGED_AFTER_CLOSE' then 'Una ganancia cambió después del cierre'
+ when 'EXECUTOR_DISABLED' then 'Los envíos automáticos están apagados' when 'COMMERCIAL_AUTHORIZATION_REQUIRED' then 'Falta la autorización escrita de PayPal'
+ when 'PROVIDER_TEST_REQUIRED' then 'Falta registrar la prueba de entrega con PayPal' when 'FEE_LIMIT_REQUIRED' then 'Falta el presupuesto máximo de comisión'
+ when 'OPERATOR_REQUIRED' then 'Falta identificar la cuenta responsable' when 'OUTSIDE_PAYMENT_WINDOW' then 'Estamos fuera de la ventana del 26 al 1'
+ when 'ENVIRONMENT_MISMATCH' then 'La conexión y las cuentas usan entornos distintos' when 'RECONCILIATION_REQUIRED' then 'Hay diferencias en los reportes'
+ when 'TRANSFER_UNMATCHED' then 'Falta la otra parte de la transferencia entre PayPal y banco' when 'PAYOUT_UNKNOWN' then 'No encontramos el retiro de esta referencia'
+ when 'PAYOUT_NOT_CONFIRMED' then 'PayPal todavía no confirmó el retiro' when 'NET_MISMATCH' then 'El importe no coincide con el pago'
+ when 'FEE_VARIANCE' then 'La comisión reportada difiere de la estimada' when 'AMBIGUOUS_REFERENCE' then 'La referencia aparece más de una vez'
+ when 'PROVIDER_FEE_REQUIRED' then 'Falta confirmar el costo de este retiro con una consulta de PayPal' when 'REPORT_FEE_MISMATCH' then 'El costo del reporte difiere del confirmado por PayPal' when 'FEE_PROOF_CHANGED' then 'La evidencia cambió después del ajuste y los retiros necesitan revisión' else 'Revisa el detalle del movimiento antes de continuar' end;
+$$;
 revoke all on all functions in schema finance_private from public,anon,authenticated,service_role;
 revoke all on function public.finance_fee_preview(uuid),public.finance_fee_resolve(uuid,uuid,text,text,text),public.finance_fee_reverse(uuid,uuid,text) from public,anon,authenticated,service_role;
 grant execute on function public.finance_fee_preview(uuid),public.finance_fee_resolve(uuid,uuid,text,text,text),public.finance_fee_reverse(uuid,uuid,text) to authenticated;
+create or replace function public.finance_creator_balance() returns jsonb language plpgsql stable security definer set search_path='' as $$
+declare p public.profiles;
+begin
+ select * into p from public.profiles where id=auth.uid() and role='creator';
+ if p.id is null then raise exception 'Solo los creadores pueden consultar su saldo';end if;
+ return jsonb_build_object('cutoff',public.payout_credit_cutoff(now()),'available',public.creator_available_balance(p.id),
+   'reserved',coalesce((select sum(gross) from public.finance_batch_items i where user_id=p.id and state in ('reserved','review') and not exists(select 1 from public.payouts x where x.finance_batch_item_id=i.id)),0),
+   'pending',coalesce((select sum(amount) from public.finance_sources where creator_profile_id=p.creator_profile_id and eligible_at>=public.payout_credit_cutoff(now())),0),
+   'total_earned',coalesce((select sum(amount) from public.finance_sources where creator_profile_id=p.creator_profile_id),0),
+   'fee_adjustments',coalesce((select jsonb_agg(h order by h.created_at desc) from (select r.id,r.payout_id,r.estimated_fee,r.actual_fee,r.creator_delta,r.created_at,z.created_at as reversed_at from public.finance_fee_resolutions r join public.payouts x on x.id=r.payout_id left join public.finance_fee_reversals z on z.resolution_id=r.id where x.user_id=p.id order by r.created_at desc limit 20) h),'[]'::jsonb));
+end;
+$$;
 select pg_notify('pgrst','reload schema');

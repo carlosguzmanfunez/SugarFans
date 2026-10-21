@@ -196,13 +196,13 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 - Sujetas a las mismas comisiones que otros pagos
 
 6.5. **Ingresos de los Creadores**:
-- Suscripciones, renovaciones y propinas: el Creador recibe del 80% al 90% según su nivel y sus recompensas
-- Reservas de Reserve: el Creador recibe el 80%
+- Suscripciones, renovaciones, propinas y reservas ordinarias de Reserve: el Creador recibe el 80% del neto después del costo de cobro de PayPal, 83% en Diamante y 85% para fans de su enlace durante el período aplicable; el conjunto de beneficios respeta el tope del 90% del neto
 - Regalos: el Creador recibe el 60%
-- La Plataforma conserva siempre al menos el 10% de cada venta
+- Los descuentos de Reserve para suscriptores activados por el Creador se absorben de su parte; la parte de la Plataforma conserva como referencia el precio sin descuento
+- En ese reparto ordinario, la parte de la Plataforma se calcula sobre el mismo neto; es 20% en el reparto base y respeta un mínimo del 10% del neto al combinar beneficios. Los regalos y las cuentas con condiciones especiales conservan sus reglas
 - Las ganancias se acumulan del 26 al 25 siguiente y se acreditan al comenzar el 26. El pago se solicita del 26 al día 1 siguiente, ambos incluidos, en hora de Honduras (UTC−6). Las ganancias del nuevo ciclo quedan pendientes para su propio cierre; los saldos anteriormente acreditados se conservan
-- Retiro del saldo completo a la cuenta PayPal del Creador, cualquier día, desde $50 USD ($25 USD en los niveles Oro y Diamante)
-- La comisión que cobre el procesador de pagos por enviar el retiro se descuenta del monto retirado
+- Retiro del saldo completo a la cuenta PayPal del Creador durante esa ventana, desde $50 USD ($25 USD en los niveles Oro y Diamante)
+- El costo real de enviar el retiro corresponde al Creador. El panel muestra una estimación y las diferencias comprobadas se regularizan con ajustes a su favor o a su cargo, conservando el retiro original y sin atribuir culpa automáticamente
 - Los Creadores son responsables de sus obligaciones fiscales
 
 6.6. **Impuestos**:

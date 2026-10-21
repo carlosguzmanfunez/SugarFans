@@ -1,5 +1,10 @@
 export interface StatementInput {source:'paypal'|'bank';external_id:string;kind:'payout'|'fee'|'transfer';reference:string;amount:number;currency:'USD';occurred_at:string}
-export interface StatementResult extends StatementInput {id:string;state:'matched'|'review';reason:string|null;estimated_fee:number|null;expected_net:number|null}
+export interface StatementResult extends StatementInput {id:string;state:'matched'|'review'|'resolved';reason:string|null;estimated_fee:number|null;expected_net:number|null;actual_fee?:number;creator_delta?:number;resolution_id?:string}
+export interface FeePreview {
+ issue:string|null;line?:string;payout?:string;creator?:string;environment?:'live'|'sandbox';reported_fee?:number;estimated_fee?:number;actual_fee?:number;creator_delta?:number;
+ proof?:string;policy_version?:string;contract_reference?:string;enabled?:boolean;hash?:string;
+ history:{id:string;creator_delta:number;estimated_fee:number;actual_fee:number;evidence:string;reason:string;created_at:string;reversed:boolean}[];
+}
 export interface PayoutOperations {
  environment:'sandbox'|'live';review_enabled:boolean;execution_enabled:boolean;authorization_confirmed:boolean;provider_tested:boolean;blocked:string|null;fee_limit:number|null;
  incidents:{id:string;code:string;title:string;detail:string;first_seen_at:string}[];alerts_pending:number;
@@ -14,6 +19,10 @@ export const operationReasons:Record<string,string>={
  TRANSFER_UNMATCHED:'Falta la otra parte de la transferencia entre PayPal y banco.',PAYOUT_UNKNOWN:'No encontramos el retiro correspondiente.',
  PAYOUT_NOT_CONFIRMED:'PayPal todavía no confirmó ese retiro.',NET_MISMATCH:'El importe del reporte no coincide con el pago.',FEE_VARIANCE:'La comisión reportada difiere de la estimada.',
  AMBIGUOUS_REFERENCE:'La referencia aparece más de una vez; revisa el reporte.',
+ FEE_LINE_REQUIRED:'Selecciona una comisión de retiro de PayPal.',CREATOR_REQUIRED:'Revisa el perfil del creador antes de ajustar su saldo.',
+ PROVIDER_FEE_REQUIRED:'Falta una consulta conciliada de PayPal que confirme el costo de este retiro en USD.',
+ PROVIDER_AMOUNT_MISMATCH:'PayPal reportó un importe distinto del envío registrado.',ORIGINAL_SNAPSHOT_MISMATCH:'Los importes originales del retiro requieren revisión.',
+ REPORT_FEE_MISMATCH:'La comisión del reporte difiere de la confirmada por PayPal.',FEE_PROOF_CHANGED:'La evidencia cambió después del ajuste; revisa la resolución anterior.',
 };
 // This example remains in the browser. It never records fictitious lines in production.
 export const statementExample=()=>({rows:[

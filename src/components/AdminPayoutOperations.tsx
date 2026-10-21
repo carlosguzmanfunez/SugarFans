@@ -1,12 +1,14 @@
 import React,{useEffect,useRef,useState} from 'react';
 import type {FinanceBackend} from '../lib/creatorFinance';
 import {operationReasons,parseStatementFile,statementExample,type PayoutOperations,type StatementInput} from '../lib/payoutOperations';
-import {money} from '../lib/platform';
+import {money,platformChanged} from '../lib/platform';
+import FeeResolutionPanel from './FeeResolutionPanel';
 const date=(value:string)=>new Intl.DateTimeFormat('es-HN',{dateStyle:'medium',timeStyle:'short',timeZone:'America/Tegucigalpa'}).format(new Date(value));
 const button='rounded-xl bg-gray-900 text-white px-4 py-2 text-sm disabled:opacity-40';
 export default function AdminPayoutOperations({api}:{api:FinanceBackend}){
  const [data,setData]=useState<PayoutOperations|null>(null),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[revision,setRevision]=useState(0);
  const [example,setExample]=useState(false),[rows,setRows]=useState<StatementInput[]|null>(null),[reference,setReference]=useState(''),[available,setAvailable]=useState('');
+ const [feeLine,setFeeLine]=useState<string|null>(null);
  const importKey=useRef<string|null>(null),fundKey=useRef<{payload:string;key:string;at:string}|null>(null);
  useEffect(()=>{let active=true;setError('');api.operations?.().then(r=>{if(active){if(r.ok)setData(r.data);else setError(r.error);}}).catch(()=>{if(active)setError('No pudimos cargar la revisión automática.');});return()=>{active=false;};},[api,revision]);
  const perform=async(fn:()=>Promise<void>)=>{setBusy(true);setError('');setNotice('');try{await fn();}catch{setError('No recibimos la confirmación. Actualiza antes de repetir la operación.');}finally{setBusy(false);}};
@@ -34,7 +36,8 @@ export default function AdminPayoutOperations({api}:{api:FinanceBackend}){
     <label className="block text-sm mt-4">Archivo de movimientos (hasta 200)<input type="file" accept=".csv,text/csv,.json,application/json" className="block mt-2 max-w-full" disabled={busy} onChange={e=>void loadFile(e.target.files?.[0])}/></label>
     <p className="text-xs text-gray-500 mt-2">Usa la plantilla con origen PayPal o Banco, tipo Pago, Comisión o Transferencia, referencia e importe en USD. Indica la fecha con su zona horaria, por ejemplo 2026-10-26T12:00:00-06:00.</p>
     {rows&&<div className="mt-3 space-y-3"><p className="text-sm">{rows.length} movimientos listos para revisar.</p><ul className="text-sm space-y-1">{rows.slice(0,5).map((r,i)=><li key={i} className="break-all">{r.source==='bank'?'Banco':'PayPal'} · {r.reference} · {money(r.amount)}</li>)}</ul><button className={button} disabled={busy} onClick={importRows}>Confirmar importación del reporte</button></div>}
-    <ul className="mt-3 divide-y">{data.statements.slice(0,30).map(r=><li key={r.id} className="py-3 text-sm"><p className="break-all">{r.source==='bank'?'Banco':'PayPal'} · {r.external_id} · {money(r.amount)}</p><p className={r.state==='matched'?'text-green-700':'text-amber-800'}>{r.state==='matched'?'Coincide con su referencia':operationReasons[r.reason??'']??'Revisar este movimiento'}</p></li>)}</ul>
+    <ul className="mt-3 divide-y">{data.statements.slice(0,30).map(r=><li key={r.id} className="py-3 text-sm"><p className="break-all">{r.source==='bank'?'Banco':'PayPal'} · {r.external_id} · {money(r.amount)}</p><p className={r.state==='review'?'text-amber-800':'text-green-700'}>{r.state==='resolved'?'Resuelta con evidencia y registro contable':r.state==='matched'?'Coincide con su referencia':operationReasons[r.reason??'']??'Revisar este movimiento'}</p>{r.kind==='fee'&&api.feePreview&&<button type="button" className="underline mt-2" onClick={()=>setFeeLine(r.id)}>Revisar diferencia de comisión</button>}</li>)}</ul>
+    {feeLine&&<FeeResolutionPanel key={feeLine} line={feeLine} api={api} onClose={()=>setFeeLine(null)} onChanged={()=>{setRevision(x=>x+1);platformChanged();}}/>}
    </details>
    <details className="border-t pt-4"><summary className="font-medium cursor-pointer">Últimas revisiones</summary><ul className="mt-3 space-y-2">{data.jobs.map(j=><li key={j.id} className="text-sm">{date(j.started_at)} · {j.state==='finished'?'Completada':j.state==='running'?'En proceso':'Pendiente de reanudar'} · {j.summary.processed??0} movimientos comprobados · {j.summary.held??0} por revisar</li>)}</ul></details>
   </>}

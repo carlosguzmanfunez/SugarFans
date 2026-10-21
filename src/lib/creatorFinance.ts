@@ -1,5 +1,5 @@
 export type FinanceResult<T> = { ok: true; data: T } | { ok: false; error: string };
-export interface CreatorBalance { cutoff: string; available: number; reserved: number; pending: number; total_earned: number }
+export interface CreatorBalance { cutoff: string; available: number; reserved: number; pending: number; total_earned: number; fee_adjustments?:{id:string;payout_id:string;estimated_fee:number;actual_fee:number;creator_delta:number;created_at:string;reversed_at:string|null}[] }
 export interface FinanceCreator { user_id: string; creator_profile_id: string; name: string; available: number; next_cycle: number; fee: number; account: string; reason: string | null }
 export interface FinanceBatch { id: string; cutoff: string; version: number; state: 'frozen' | 'cancelled'; created_at: string; gross: number; items: number; held: number; paid: number; sending: number; reserved: number }
 export interface FinanceItem { id: string; user_id: string; creator_name: string; gross: number; fee: number; net: number; account: string; state: 'reserved' | 'held' | 'review' | 'released' | 'submitted'; reason: string | null; payout_status: string | null; payout_id: string | null; allocations: { source: string; kind: string; revision: number; amount: number }[] }
@@ -19,6 +19,9 @@ export interface FinanceBackend {
  operations?():Promise<FinanceResult<import('./payoutOperations').PayoutOperations>>;
  review?():Promise<FinanceResult<null>>;
  testAlert?():Promise<FinanceResult<null>>;
+ feePreview?(line:string):Promise<FinanceResult<import('./payoutOperations').FeePreview>>;
+ resolveFee?(line:string,key:string,expected:string,evidence:string,reason:string):Promise<FinanceResult<{id:string}>>;
+ reverseFee?(id:string,key:string,reason:string):Promise<FinanceResult<{id:string}>>;
  funding?(key:string,environment:'sandbox'|'live',available:number,at:string,reference:string):Promise<FinanceResult<{id:string}>>;
  importStatement?(key:string,environment:'sandbox'|'live',test:boolean,rows:import('./payoutOperations').StatementInput[]):Promise<FinanceResult<{id:string}>>;
 }
