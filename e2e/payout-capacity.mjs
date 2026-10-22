@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';import{mkdirSync,writeFileSync}from'node:fs';import{resolve}from'node:path';
+import{payoutJobFixture}from'./helpers/payout-job-fixture.mjs';
+const f=await payoutJobFixture(),results=[],count=1000;
+const record=(name,data)=>{results.push({name,...data});console.log('OK '+name+' '+JSON.stringify(data));};
+async function tick(at){const r=await f.runVirtual(at);assert.equal(r.http,200,JSON.stringify(r));return r.data;}
+try{
+ for(const limit of[25,50]){
+  console.log('Preparando ensayo de 1.000 creadores, capacidad '+limit+'…');await f.seed(count);await f.enable();await f.funds(103000,'2026-10-26T12:00:00Z');process.env.PAYOUT_WORK_LIMIT=String(limit);
+  let rounds=0;while(Number((await f.stats()).paid)<count&&rounds<100){const r=await tick(new Date(Date.parse('2026-10-26T12:00:00Z')+rounds*300000).toISOString());assert.equal(r.held,0,JSON.stringify(r));assert.ok(r.processed<=limit);assert.ok(r.provider_calls<=120);rounds++;if(rounds%10===0)console.log('Progreso '+limit+': '+(await f.stats()).paid+'/1000');}
+  const stats=await f.stats();assert.equal(Number(stats.paid),count);assert.equal(stats.accepted,count);assert.equal(stats.posts,count);assert.equal(rounds,count/limit);assert.equal(f.transport.oauth,rounds);
+  let maximum=0;for(let i=0,j=0;i<f.transport.requests.length;i++){while(f.transport.requests[i].at-f.transport.requests[j].at>=60000)j++;maximum=Math.max(maximum,i-j+1);}assert.ok(maximum<=120);
+  const before=stats.posts;await tick('2026-10-26T18:00:00Z');assert.equal(f.transport.posts.length,before);
+  assert.equal((await f.q("select count(*)::integer n from finance_journal where kind='payout_confirmed'"))[0].n,count);
+  record('Lista completa con '+limit+' casos por ronda',{creators:count,rounds,virtualSpacingMinutes:5,plannedWindowMinutes:rounds*5,providerPosts:before,authorizations:f.transport.oauth,maxRequestsIn60Seconds:maximum,confirmedEntries:count,duplicates:0});
+ }
+ await f.seed(50);await f.enable();await f.funds(5150,'2026-10-26T12:00:00Z');process.env.PAYOUT_WORK_LIMIT='50';f.transport.latencyMs=2500;
+ const slow=await tick('2026-10-26T12:00:00Z');assert.ok(slow.processed>5&&slow.processed<50,JSON.stringify(slow));assert.equal((await f.q('select state from finance_job_runs order by started_at desc limit 1'))[0].state,'finished');f.transport.latencyMs=0;await tick('2026-10-26T12:05:00Z');assert.equal(Number((await f.stats()).paid),50);assert.equal(f.transport.accepted.size,50);record('Proveedor lento: se corta por tiempo y se continúa sin duplicados',{firstRound:slow.processed,finalConfirmed:50});
+ await f.seed(12);await f.enable();await f.funds(1236,'2026-10-26T12:00:00Z');process.env.PAYOUT_WORK_LIMIT='50';f.transport.rateLimited=1;f.transport.retryAfter='180';
+ const limited=await tick('2026-10-26T12:00:00Z');assert.equal(limited.blocked,'PROVIDER_COOLDOWN');assert.equal(f.transport.posts.length,1);const original=f.transport.posts[0],calls=f.transport.requests.length;
+ const paused=await tick('2026-10-26T12:02:00Z');assert.equal(paused.blocked,'PROVIDER_COOLDOWN');assert.equal(f.transport.requests.length,calls);await tick('2026-10-26T12:04:00Z');assert.equal(Number((await f.stats()).paid),12);assert.deepEqual(f.transport.posts[1],original);assert.equal(f.transport.accepted.size,12);record('429: respeta Retry-After entre rondas y recupera la misma referencia',{pauseSeconds:180,providerCallsDuringPause:0,confirmed:12});
+ await f.seed(12);await f.enable();await f.funds(1236,'2026-10-26T12:00:00Z');f.transport.queryFailures=1;const unavailable=await tick('2026-10-26T12:00:00Z');assert.equal(unavailable.blocked,'PROVIDER_COOLDOWN');assert.equal((await f.stats()).sending,1);assert.equal(f.transport.accepted.size,1);await tick('2026-10-26T12:05:00Z');assert.equal(Number((await f.stats()).paid),12);assert.equal(f.transport.accepted.size,12);record('503 después de aceptar: conserva fondos y entrega, luego concilia',{confirmed:12,accepted:12});
+ await f.seed(12);process.env.PAYOUT_WORK_LIMIT='50';await tick('2026-10-26T12:00:00Z');assert.equal(f.transport.requests.length,0);assert.equal((await f.stats()).total,0);
+ for(const role of['anon','authenticated']){await f.db.exec('set role '+role);try{await assert.rejects(()=>f.rpc('finance_provider_gate',['00000000-0000-0000-0000-000000000001']),/permission denied/);await assert.rejects(()=>f.q('select * from finance_private.provider_limits'),/permission denied/);}finally{await f.db.exec('reset role');}}
+ record('Capacidad mayor conserva puertas apagadas y permisos privados',{newPayouts:0,providerCalls:0});
+ await f.seed(12);await f.enable();await f.funds(1236,'2026-10-26T12:00:00Z');
+ const interrupted=await f.rpc('finance_job_start',['sandbox',true]);await f.rpc('finance_provider_enter',[interrupted.id]);await f.clock('2026-10-26T12:04:00Z');
+ const afterCrash=await tick('2026-10-26T12:05:00Z');assert.equal(afterCrash.blocked,'PROVIDER_INTERRUPTED');assert.equal(f.transport.requests.length,0);const notices=(await f.q("select count(*)::integer n from finance_incidents where code='PROVIDER_INTERRUPTED'and state='open'"))[0].n;assert.equal(notices,1);await tick('2026-10-26T12:10:00Z');assert.equal((await f.q("select count(*)::integer n from finance_alert_queue a join finance_incidents i on i.id=a.incident_id where i.code='PROVIDER_INTERRUPTED'"))[0].n,1);
+ record('Una caída antes de confirmar el cierre exige revisión y conserva una sola alerta',{providerCallsAfterInterruptedRound:0,incidentEpisodes:1});
+ assert.deepEqual(f.transport.blockedNetwork,[]);const dir=resolve('../../outputs/capacidad-proveedores');mkdirSync(dir,{recursive:true});writeFileSync(resolve(dir,'RESULTADOS.json'),JSON.stringify({at:new Date().toISOString(),mode:'virtual',productionChanges:0,nativeProviderCalls:0,results,limits:'Tiempo y red emulados; se verifican API y SQL reales en PostgreSQL temporal. No acredita latencia ni cupo particular de PayPal/Supabase alojado.'},null,2));console.log(results.length+' escenarios de capacidad satisfactorios.');
+}finally{await f.close();}

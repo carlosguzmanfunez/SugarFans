@@ -14,6 +14,7 @@
 // email right after a Reserve payment (see api/_mail.ts).
 
 import { deliverOutbox, logServerError, resendKey } from './_mail.js';
+import type {PayoutProviderControl} from './_payout-provider.js';
 
 // Public values (same as .env.production); the anon key is meant to be public.
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://odugxvqwuvewsvifwmwb.supabase.co';
@@ -45,11 +46,12 @@ const asUser = (token: string) => ({ apikey: SUPABASE_ANON_KEY, authorization: `
 // New secret keys (sb_secret_…) go in apikey only; the legacy service_role key is a JWT.
 const asServer = (key: string): Record<string, string> => (key.startsWith('eyJ') ? { apikey: key, authorization: `Bearer ${key}` } : { apikey: key });
 
-const supabase = async (path: string, headers: Record<string, string>, body?: unknown, method?: 'PATCH') => {
+const supabase = async (path: string, headers: Record<string, string>, body?: unknown, method?: 'PATCH',timeoutMs?:number) => {
   const r = await fetch(`${SUPABASE_URL}${path}`, {
     method: method ?? (body === undefined ? 'GET' : 'POST'),
     headers: { ...headers, 'content-type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
+    signal: timeoutMs?AbortSignal.timeout(timeoutMs):undefined,
   });
   const text = await r.text();
   let data: any = null;
@@ -64,22 +66,30 @@ const supabase = async (path: string, headers: Record<string, string>, body?: un
 
 // --- PayPal -------------------------------------------------------------------
 
-const paypalToken = async (e: ReturnType<typeof env>) => {
-  const r = await fetch(`${e.api}/v1/oauth2/token`, {
+const paypalAccess = async (e: ReturnType<typeof env>&{payoutControl?:PayoutProviderControl}) => {
+  await e.payoutControl?.before();
+  let r:Response;
+  try{r = await fetch(`${e.api}/v1/oauth2/token`, {
     method: 'POST',
     headers: {
       authorization: `Basic ${Buffer.from(`${e.clientId}:${e.secret}`).toString('base64')}`,
       'content-type': 'application/x-www-form-urlencoded',
     },
     body: 'grant_type=client_credentials',
-  });
-  const data = (await r.json().catch(() => ({}))) as { access_token?: string; error_description?: string };
+    signal: e.payoutControl?AbortSignal.timeout(10000):undefined,
+  });}catch(error){e.payoutControl?.unavailable();throw error;}
+  e.payoutControl?.observe(r);
+  const data = (await r.json().catch(() => ({}))) as { access_token?: string; error_description?: string;expires_in?:number };
   if (!r.ok || !data.access_token) throw new Error(data.error_description || `PayPal rechazó las credenciales (${r.status})`);
-  return data.access_token;
+  const ttl=typeof data.expires_in==='number'&&Number.isFinite(data.expires_in)&&data.expires_in>0?data.expires_in:60;
+  return {token:data.access_token,until:(e.payoutControl?.clock.now()??Date.now())+Math.max(0,ttl*1000-5000)};
 };
+const paypalToken=async(e:ReturnType<typeof env>)=>(await paypalAccess(e)).token;
 
-const paypal = async (e: ReturnType<typeof env>, token: string, path: string, body?: unknown, requestId?: string, timeoutMs?: number) => {
-  const r = await fetch(`${e.api}${path}`, {
+const paypal = async (e: ReturnType<typeof env>&{payoutControl?:PayoutProviderControl}, token: string, path: string, body?: unknown, requestId?: string, timeoutMs?: number) => {
+  await e.payoutControl?.before();
+  let r:Response;
+  try{r = await fetch(`${e.api}${path}`, {
     method: body === undefined ? 'GET' : 'POST',
     headers: {
       authorization: `Bearer ${token}`,
@@ -89,7 +99,8 @@ const paypal = async (e: ReturnType<typeof env>, token: string, path: string, bo
     // A string is sent as is (the webhook check must carry PayPal's exact event).
     body: body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body),
     signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined,
-  });
+  });}catch(error){e.payoutControl?.unavailable();throw error;}
+  e.payoutControl?.observe(r);
   return { status: r.status, data: (await r.json().catch(() => ({}))) as any };
 };
 
@@ -110,7 +121,7 @@ const captureOf = (order: any): { id: string; value: number; currency: string; f
 
 // --- Subscriptions --------------------------------------------------------------
 
-type Env = ReturnType<typeof env> & { serviceKey: string };
+type Env = ReturnType<typeof env> & { serviceKey: string;payoutControl?:PayoutProviderControl };
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // Product and plan ids live in paypal_catalog, per environment.
@@ -175,7 +186,7 @@ const examplePaid = async (e: Env, userToken: string, kind: string, params: Reco
   return EXAMPLE_PROFILES.has(creator);
 };
 
-const rpc = (e: Env, name: string, body: unknown) => supabase(`/rest/v1/rpc/${name}`, asServer(e.serviceKey), body);
+const rpc = (e: Env, name: string, body: unknown) => supabase(`/rest/v1/rpc/${name}`, asServer(e.serviceKey), body,undefined,e.payoutControl?12000:undefined);
 
 // True when this fan account and the creator being paid are the same person (paypal_self_pay):
 // the same account, phone or verified identity, or a PayPal email the creator signs in or withdraws with.
@@ -296,6 +307,8 @@ const reconcilePayout = async (e: Env, token: string, id: string, userId: string
   const saved = await rpc(e, 'paypal_payout_reconcile_finish', { p_query: c.query, p_response: response });
   if (!saved.ok) throw new Error(saved.error);
   const r = saved.data as { status: string; paypalStatus?: string; outcome: string; reason?: string };
+  const proof=response as {data?:{items?:{payout_item?:{sender_item_id?:string};errors?:{name?:string}}[]}};
+  if(r.outcome==='applied'&&r.status==='failed'&&proof.data?.items?.some(item=>item.payout_item?.sender_item_id===id&&item.errors?.name==='INSUFFICIENT_FUNDS'))e.payoutControl?.fundsUnavailable();
   if (r.outcome === 'review') await logServerError(e.serviceKey,'api','Retiro PayPal requiere revisión',`${id}: ${r.reason ?? 'MANUAL_REVIEW'}`);
   return { status: r.status, paypalStatus: r.outcome === 'review' ? 'MANUAL_REVIEW' : r.paypalStatus ?? 'RECOVERY_PENDING',
     retry: r.outcome === 'retry' || r.outcome === 'stale' };
@@ -343,6 +356,8 @@ const processPayout = async (e: Env, token: string, userId: string, id: string, 
       }
       if (!batchId) {
         const rejected = sent.status === 422 && sent.data?.name === 'INSUFFICIENT_FUNDS';
+        // Stop this round even if the database committed but its acknowledgement is lost.
+        if(rejected)e.payoutControl?.fundsUnavailable();
         const saved = await save(rejected ? 'rejected' : 'uncertain', null, String(sent.data?.name ?? `HTTP_${sent.status}`));
         return saved.status === 'failed' ? { status: 'failed' as const, paypalStatus: 'REJECTED' } : pendingPayout();
       }
@@ -372,6 +387,14 @@ export const runStoredPayout = async (userId:string,id:string,allowSubmit:()=>Pr
 export const reconcileStoredPayoutEvent = async (id:string,eventId:string) => {
   const e=env();if(!e.clientId||!e.secret||!e.serviceKey)throw new Error('Falta la configuración de PayPal');
   return reconcilePayout(e as Env,await paypalToken(e),id,null,eventId,'webhook');
+};
+
+// One authorization per round, reused only until PayPal's expiry. Never serialized.
+export const createStoredPayoutSession=(control:PayoutProviderControl)=>{
+ const config=env();if(!config.clientId||!config.secret||!config.serviceKey)throw new Error('Falta la configuración de PayPal');
+ const e={...config,payoutControl:control} as Env;let authorization:Awaited<ReturnType<typeof paypalAccess>>|null=null;
+ const token=async()=>{if(!authorization||authorization.until<=control.clock.now())authorization=await paypalAccess(e);return authorization.token;};
+ return {identity:{mode:e.mode,clientId:e.clientId!},run:async(userId:string,id:string,allow:()=>Promise<boolean>)=>processPayout(e,await token(),userId,id,false,allow),event:async(id:string,eventId:string)=>reconcilePayout(e,await token(),id,null,eventId,'webhook')};
 };
 
 // Reservation and immutable request snapshot are created together, before HTTP.

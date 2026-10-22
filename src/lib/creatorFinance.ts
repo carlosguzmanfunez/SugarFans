@@ -17,6 +17,8 @@ export interface FinanceBackend {
  adjust(user: string,amount: number,reason: string,key: string,reference: string,reverses?: string): Promise<FinanceResult<{id:string}>>;
  journal(month: string): Promise<FinanceResult<FinanceJournalRow[]>>;
  operations?():Promise<FinanceResult<import('./payoutOperations').PayoutOperations>>;
+ payoutGroups?(batch?:string|null):Promise<FinanceResult<import('./payoutGroups').PayoutGroupList>>;
+ payoutGroup?(id:string):Promise<FinanceResult<import('./payoutGroups').PayoutGroupDetail>>;
  review?():Promise<FinanceResult<null>>;
  testAlert?():Promise<FinanceResult<null>>;
  caseList?(offset:number,reference?:string):Promise<FinanceResult<import('./incidentProcedures').CasePage>>;
