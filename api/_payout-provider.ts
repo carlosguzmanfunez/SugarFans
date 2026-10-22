@@ -4,7 +4,7 @@ export const payoutClock:PayoutClock={now:()=>Date.now(),sleep:ms=>new Promise(r
 export interface ProviderWait {until:string;status:number}
 export function payoutWorkLimit(value:string|undefined){const n=value===undefined?5:Number(value);if(!Number.isInteger(n)||n<1||n>50)throw Error('La capacidad por ronda debe estar entre 1 y 50');return n;}
 export function createPayoutControl(clock:PayoutClock,deadline:number,failures=0){
- let next=0,calls=0,wait:ProviderWait|null=null;
+ let next=0,calls=0,wait:ProviderWait|null=null,fundingStop=false;
  const defer=(status:number,header:string|null=null)=>{
   const fallback=Math.min(3600000,60000*2**Math.min(failures,6));let until=clock.now()+fallback;
   if(header){const parsed=/^\d+(?:\.\d+)?$/.test(header.trim())?clock.now()+Number(header)*1000:Date.parse(header);if(Number.isFinite(parsed))until=Math.max(until,parsed);}
@@ -12,7 +12,8 @@ export function createPayoutControl(clock:PayoutClock,deadline:number,failures=0
   wait={status,until:until>8640000000000000?'infinity':new Date(until).toISOString()};
  };
  return {
-  clock,deadline,get calls(){return calls;},get wait(){return wait;},
+  clock,deadline,get calls(){return calls;},get wait(){return wait;},get fundingStop(){return fundingStop;},
+  fundsUnavailable(){fundingStop=true;},
   async before(){
    if(wait)throw Error('El proveedor pidió una pausa; se conservan las referencias');
    const delay=Math.max(0,next-clock.now());

@@ -28,11 +28,14 @@ export async function payoutJobFixture(){
    if(u.pathname==='/v1/oauth2/token'){state.oauth++;return response(200,{access_token:'TEST_TOKEN',expires_in:3600});}
    if(u.pathname==='/v1/payments/payouts'&&init.method==='POST'){
     assert.equal(b.items.length,1,'Current executor sends one creator per provider request');assert.match(b.items[0].receiver,/@example\.invalid$/);state.posts.push(b);const id=b.sender_batch_header.sender_batch_id;
+    if(state.insufficientAt===state.posts.length)return response(422,{name:'INSUFFICIENT_FUNDS'});
+    if(state.pendingAt===state.posts.length)state.pending.add(id);
+    if(state.deniedAt===state.posts.length)(state.denied??=new Set()).add(id);
     if(state.accepted.has(id))return response(400,{name:'USER_BUSINESS_ERROR',details:[{field:'SENDER_BATCH_ID',issue:'Batch with given sender_batch_id already exists',link:[{href:`https://api.sandbox.paypal.com/v1/payments/payouts/BATCH-${id}`,method:'GET'}]}]});
     if(state.rateLimited>0){state.rateLimited--;const limited=response(429,{name:'RATE_LIMIT_REACHED',message:'TEST temporary rate limit'});if(state.retryAfter)limited.headers.set('retry-after',state.retryAfter);return limited;}
     state.accepted.set(id,b);if(state.lost>0){state.lost--;throw Error('TEST accepted response lost');}return response(201,{batch_header:{payout_batch_id:'BATCH-'+id}});
    }
-   const id=u.pathname.match(/^\/v1\/payments\/payouts\/BATCH-(.*)$/)?.[1];if(id){if(state.queryFailures>0){state.queryFailures--;return response(503,{name:'TEST_UNAVAILABLE'});}const payload=state.accepted.get(id);assert.ok(payload);const p=(await f.q('select fee from payouts where id=$1',[id]))[0];return response(200,{batch_header:{payout_batch_id:'BATCH-'+id,sender_batch_header:payload.sender_batch_header},items:[{payout_item_id:'ITEM-'+id,transaction_status:state.pending.has(id)?'PENDING':'SUCCESS',payout_item_fee:{currency:'USD',value:String(p.fee)},payout_item:payload.items[0]}]});}
+   const id=u.pathname.match(/^\/v1\/payments\/payouts\/BATCH-(.*)$/)?.[1];if(id){if(state.queryFailures>0){state.queryFailures--;return response(503,{name:'TEST_UNAVAILABLE'});}const payload=state.accepted.get(id);assert.ok(payload);const p=(await f.q('select fee from payouts where id=$1',[id]))[0];return response(200,{batch_header:{payout_batch_id:'BATCH-'+id,sender_batch_header:payload.sender_batch_header},items:[{...(state.denied?.has(id)&&state.deniedReason?{errors:{name:state.deniedReason}}:{}),payout_item_id:'ITEM-'+id,transaction_status:state.denied?.has(id)?'FAILED':state.pending.has(id)?'PENDING':'SUCCESS',payout_item_fee:{currency:'USD',value:String(state.nativeFee??p.fee)},payout_item:payload.items[0]}]});}
   }
   if(u.href==='https://api.resend.com/emails'){state.emails.push({key:init.headers['idempotency-key'],body:b});return state.mailFail?response(503,{message:'TEST mail unavailable'}):response(200,{id:'TEST_MAIL'});}
   state.blockedNetwork.push(u.origin+u.pathname);throw Error('NETWORK_DISABLED');

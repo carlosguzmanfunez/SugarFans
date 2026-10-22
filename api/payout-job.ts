@@ -42,7 +42,7 @@ export async function runPayoutReview(executeRequested:boolean,options?:{clock?:
   if(work.length)await rpc('finance_provider_enter',{p_run:id});
   let session:ReturnType<typeof createStoredPayoutSession>|undefined;
   for(const item of work){
-   if(clock.now()>deadline-50000)break;
+   if(control.fundingStop||clock.now()>deadline-50000)break;
    try{
     // Remember only cases actually started, so unresolved cases rotate behind untried work.
     await rpc('finance_job_attempt',{p_run:id,p_operation:item.operation,p_reference:item.event??item.payout??item.item});
@@ -59,6 +59,7 @@ export async function runPayoutReview(executeRequested:boolean,options?:{clock?:
    }catch(error){summary.held++;const message=error instanceof Error?error.message:'Un envío necesita revisión';summary.errors.push(message.slice(0,300));await rpc('finance_job_item_error',{p_run:id,p_item:item.item??item.payout,p_message:message});}
    if(control.wait){const seconds=Math.ceil((Date.parse(control.wait.until)-clock.now())/1000);const paused=await rpc<{until:string}>('finance_provider_pause',{p_run:id,p_seconds:Number.isFinite(seconds)&&seconds<=2147483647?Math.max(1,seconds):null,p_status:control.wait.status});summary.blocked='PROVIDER_COOLDOWN';summary.provider_wait_until=paused.until;break;}
   }
+  if(control.fundingStop)summary.blocked='PAYER_FUNDS_INSUFFICIENT';
   summary.provider_calls=control.calls;
   if(work.length&&!control.wait)await rpc('finance_provider_success',{p_run:id});
   // Only exceptions enqueue alerts; normal successful reviews send no email.

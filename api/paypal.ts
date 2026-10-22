@@ -307,6 +307,8 @@ const reconcilePayout = async (e: Env, token: string, id: string, userId: string
   const saved = await rpc(e, 'paypal_payout_reconcile_finish', { p_query: c.query, p_response: response });
   if (!saved.ok) throw new Error(saved.error);
   const r = saved.data as { status: string; paypalStatus?: string; outcome: string; reason?: string };
+  const proof=response as {data?:{items?:{payout_item?:{sender_item_id?:string};errors?:{name?:string}}[]}};
+  if(r.outcome==='applied'&&r.status==='failed'&&proof.data?.items?.some(item=>item.payout_item?.sender_item_id===id&&item.errors?.name==='INSUFFICIENT_FUNDS'))e.payoutControl?.fundsUnavailable();
   if (r.outcome === 'review') await logServerError(e.serviceKey,'api','Retiro PayPal requiere revisión',`${id}: ${r.reason ?? 'MANUAL_REVIEW'}`);
   return { status: r.status, paypalStatus: r.outcome === 'review' ? 'MANUAL_REVIEW' : r.paypalStatus ?? 'RECOVERY_PENDING',
     retry: r.outcome === 'retry' || r.outcome === 'stale' };
@@ -354,6 +356,8 @@ const processPayout = async (e: Env, token: string, userId: string, id: string, 
       }
       if (!batchId) {
         const rejected = sent.status === 422 && sent.data?.name === 'INSUFFICIENT_FUNDS';
+        // Stop this round even if the database committed but its acknowledgement is lost.
+        if(rejected)e.payoutControl?.fundsUnavailable();
         const saved = await save(rejected ? 'rejected' : 'uncertain', null, String(sent.data?.name ?? `HTTP_${sent.status}`));
         return saved.status === 'failed' ? { status: 'failed' as const, paypalStatus: 'REJECTED' } : pendingPayout();
       }

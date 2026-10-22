@@ -41,10 +41,11 @@ export async function financeFixture({beforeMigration,notificationMigration=true
   await db.exec(source('20261021164442_payout_incident_procedures.sql'));
  }
  if(capacityMigration){await db.exec(source('20261021191647_payout_provider_capacity.sql'));await db.exec(source('20261021200143_payout_work_rotation.sql'));if(incidentMigration)await db.exec(source('20261021203712_payout_group_mirrors.sql'));}
+ if(capacityMigration&&incidentMigration)await db.exec(source('20261022015657_payout_rejected_cases_and_funding_pause.sql'));
  const reset=async()=>{
    const fees=feeResolutionMigration?'finance_fee_holds,finance_fee_reversals,finance_fee_resolutions,finance_private.fee_policy,':'';
    const operations=automationMigration?'finance_alert_tests,finance_alert_queue,finance_incidents,finance_job_runs,finance_execution_reservations,finance_funding_checks,finance_statement_lines,finance_statement_imports,finance_private.automation_settings,':'';
-   const cases=incidentMigration?'finance_hold_releases,finance_case_actions,finance_payout_holds,admin_actions,':'';
+   const cases=incidentMigration?(capacityMigration?'finance_private.payer_funding_releases,finance_private.payer_funding_stops,':'')+'finance_hold_releases,finance_case_actions,finance_payout_holds,admin_actions,':'';
    await db.exec('reset role;truncate '+(capacityMigration?(incidentMigration?'finance_private.payout_group_members,finance_private.payout_groups,':'')+'finance_private.provider_limits,finance_private.work_attempts,':'')+cases+fees+operations+'auth.users,security_private.owner_account,finance_allocations,finance_source_revisions,finance_journal,finance_adjustments,finance_sources,finance_batch_items,finance_batches,paypal_payout_reconciliations,paypal_payout_events,paypal_payout_submissions,payouts,transactions,profiles,payout_accounts,account_restrictions');
    await q('update finance_private.settings set batch_handoff_enabled=false');
    await clock('2026-10-26T12:00:00Z');await auth(ADMIN);

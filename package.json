@@ -57,7 +57,10 @@
     "test:demo-security-db": "node e2e/demo-security-db.mjs",
     "test:demo-security-ui": "node e2e/demo-security-ui.mjs",
     "test:owner-ui": "node e2e/owner-security-ui.mjs",
-    "test:finance-concurrency": "node e2e/finance-concurrency.mjs"
+    "test:finance-concurrency": "node e2e/finance-concurrency.mjs",
+    "test:payout-funding": "node e2e/payout-funding-followups.mjs",
+    "test:payout-funding-ui": "node e2e/payout-funding-ui.mjs",
+    "test:payout-funding-concurrency": "node e2e/payout-funding-concurrency.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",

@@ -12,6 +12,10 @@ export interface PayoutOperations {
  funding:{available:number;observed_at:string;reference:string}|null;statements:StatementResult[];
 }
 export const operationReasons:Record<string,string>={
+ PAYER_FUNDS_INSUFFICIENT:'Faltan fondos en la cuenta pagadora. Los nuevos envíos están pausados; los ya aceptados siguen conciliándose.',
+ FRESH_FUNDING_REQUIRED:'Registra una comprobación nueva de fondos, posterior al rechazo y de las últimas 24 horas.',
+ FUNDING_COVERAGE_REQUIRED:'Los fondos comprobados aún no cubren los compromisos y el resto reservado del ciclo.',
+ FUNDING_STOP_INACTIVE:'Esta pausa ya fue atendida. Actualiza el expediente.',
  PROVIDER_COOLDOWN:'PayPal pidió esperar; la próxima ronda respetará esa pausa.',PROVIDER_INTERRUPTED:'Una ronda anterior se interrumpió y necesita revisión antes de continuar.',
  EXECUTOR_DISABLED:'Los envíos automáticos están apagados.',COMMERCIAL_AUTHORIZATION_REQUIRED:'Falta la autorización escrita de PayPal para el modelo de intermediación.',
  PROVIDER_TEST_REQUIRED:'Falta registrar la prueba de entrega con PayPal.',FEE_LIMIT_REQUIRED:'Falta definir el presupuesto máximo de comisión por envío.',
