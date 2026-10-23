@@ -6,6 +6,7 @@ import FeeResolutionPanel from './FeeResolutionPanel';
 import AdminCasework from './AdminCasework';
 import AdminPayoutRehearsal from './AdminPayoutRehearsal';
 import AdminPayoutGroups from './AdminPayoutGroups';
+import AdminPayoutSchedule from './AdminPayoutSchedule';
 const date=(value:string)=>new Intl.DateTimeFormat('es-HN',{dateStyle:'medium',timeStyle:'short',timeZone:'America/Tegucigalpa'}).format(new Date(value));
 const button='rounded-xl bg-gray-900 text-white px-4 py-2 text-sm disabled:opacity-40';
 export default function AdminPayoutOperations({api,caseReference}:{api:FinanceBackend;caseReference?:string}){
@@ -24,9 +25,10 @@ export default function AdminPayoutOperations({api,caseReference}:{api:FinanceBa
  const recordFunds=(event:React.FormEvent)=>{event.preventDefault();void perform(async()=>{if(!data)return;const payload=JSON.stringify([Number(available),reference]);if(fundKey.current?.payload!==payload)fundKey.current={payload,key:crypto.randomUUID(),at:new Date().toISOString()};const r=await api.funding?.(fundKey.current.key,data.environment,Number(available),fundKey.current.at,reference);if(!r?.ok){setError(r&&!r.ok?r.error:'La comprobación no está disponible.');return;}fundKey.current=null;setNotice('Saldo registrado con su referencia. Esto no activa los envíos.');setAvailable('');setReference('');setRevision(x=>x+1);});};
  const downloadTemplate=()=>{const url=URL.createObjectURL(new Blob(['\uFEFFOrigen;ID movimiento;Tipo;Referencia;Importe USD;Moneda;Fecha\r\n'],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='plantilla-movimientos.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
  return <section className="bg-white rounded-2xl shadow-sm p-5 space-y-5" data-testid="payout-operations">
-  <div className="flex flex-wrap justify-between gap-3"><div><h3 className="font-bold">Revisión y seguimiento automático</h3><p className="text-sm text-gray-600 mt-1">El sistema revisa las cuentas cada día. Te avisa en este panel y por correo cuando encuentra algo que requiere atención.</p></div><button className={button} disabled={busy||!data} onClick={review}>Revisar ahora</button></div>
+  <div className="flex flex-wrap justify-between gap-3"><div><h3 className="font-bold">Revisión y seguimiento automático</h3><p className="text-sm text-gray-600 mt-1">Consulta el horario publicado y las últimas revisiones. Las incidencias quedan en este panel y en la cola de avisos por correo.</p></div><button className={button} disabled={busy||!data} onClick={review}>Revisar ahora</button></div>
   {error&&<p role="alert" className="rounded-xl p-3 bg-red-50 text-red-800">{error}</p>}{notice&&<p role="status" className="rounded-xl p-3 bg-green-50 text-green-800">{notice}</p>}
   {!data&&!error&&<p role="status">Cargando la revisión…</p>}
+  <AdminPayoutSchedule api={api} jobs={data?.jobs??[]} refreshKey={revision}/>
   <AdminPayoutRehearsal/>
   {data&&<>
    <AdminPayoutGroups api={api} refreshKey={revision} onAttend={api.caseList?(reference,incident)=>setCaseTarget(t=>({reference,incident,navigation:t.navigation+1})):undefined}/>

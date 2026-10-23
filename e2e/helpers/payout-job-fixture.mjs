@@ -17,7 +17,7 @@ export async function payoutJobFixture(){
  globalThis.fetch=async(input,init={})=>{
   const u=new URL(String(input)),b=typeof init.body==='string'&&init.body.startsWith('{')?JSON.parse(init.body):null;
   if(u.origin==='https://database.example.invalid'){
-   if(u.pathname==='/auth/v1/user')return response(init.headers.authorization==='Bearer TEST_ADMIN'?200:401,{id:ADMIN});
+   if(u.pathname==='/auth/v1/user')return response(['Bearer TEST_ADMIN','Bearer TEST_FAN'].includes(init.headers.authorization)?200:401,{id:ADMIN});
    const name=u.pathname.split('/').at(-1);if(name==='is_admin')return response(200,init.headers.authorization==='Bearer TEST_ADMIN');if(name==='log_app_error')return response(204);
    if(Object.hasOwn(signatures,name)){
     state.rpcCalls++;try{const data=await f.db.transaction(async tx=>{await tx.exec('set local role service_role');await tx.query("select set_config('request.jwt.claim.sub','',true)");const args=signatures[name].map(k=>b[k]??null);return(await tx.query(`select public.${name}(${args.map((_,i)=>'$'+(i+1)).join(',')}) as v`,args)).rows[0].v;});if(name==='finance_job_start'&&Object.hasOwn(state,'startReply')){const reply=state.startReply;delete state.startReply;return response(200,reply);}if(state.invalidRpc===name){delete state.invalidRpc;return new Response('{',{status:200});}if(name==='finance_job_allow_submit'&&Object.hasOwn(state,'allowReply')){const reply=state.allowReply;delete state.allowReply;return response(200,reply);}return response(200,data);}catch(e){return response(400,{message:e.message});}
@@ -43,6 +43,10 @@ export async function payoutJobFixture(){
  try{
   await build({entryPoints:['api/payout-job.ts'],outfile:join(folder,'job.mjs'),bundle:true,platform:'node',format:'esm',logLevel:'silent'});
   const api=await import(pathToFileURL(join(folder,'job.mjs')).href);
+  await build({entryPoints:['api/payout-review.ts'],outfile:join(folder,'review.mjs'),bundle:true,platform:'node',format:'esm',logLevel:'silent'});
+  const reviewApi=await import(pathToFileURL(join(folder,'review.mjs')).href);
+  assert.deepEqual(Object.keys(reviewApi),['GET']);
+  const runScheduledReview=async(token='TEST_CRON')=>{const r=await reviewApi.GET(new Request('https://app.example.invalid/api/payout-review?execute=true',{headers:{authorization:'Bearer '+token}}));return{http:r.status,data:await r.json()};};
   const run=async({token='TEST_CRON',method='GET',body={}}={})=>{const r=await api[method](new Request('https://app.example.invalid/api/payout-job',{method,headers:{authorization:'Bearer '+token},...(method==='POST'?{body:JSON.stringify(body)}:{})}));return{http:r.status,data:await r.json()};};
   const runVirtual=async(at)=>{await f.clock(at);state.virtualNow=Date.parse(at);const data=await api.runPayoutReview(process.env.PAYOUT_AUTOMATION_MODE==='sandbox',{clock:{now:()=>state.virtualNow,sleep:async ms=>{state.virtualNow+=ms;}}});return{http:data.ok?200:503,data};};
   const seed=async(count)=>{
@@ -56,6 +60,6 @@ export async function payoutJobFixture(){
   const enable=async()=>{process.env.PAYOUT_AUTOMATION_MODE='sandbox';await f.q("update finance_private.automation_settings set execution_enabled=true,provider_test_reference='TEST fictitious provider only',fee_limit=5");await f.q('update finance_private.settings set batch_handoff_enabled=true');};
   const funds=(amount,at)=>f.rpc('finance_funding_record',[randomUUID(),'sandbox',amount,at,'TEST synthetic balance observation']);
   const stats=async()=>({...(await f.q("select count(*)::integer total,count(*)filter(where status='paid')::integer paid,count(*)filter(where status='sending')::integer sending,coalesce(sum(net)filter(where status='paid'),0)::numeric net from payouts"))[0],accepted:state.accepted.size,posts:state.posts.length,emails:state.emails.length});
-  return {...f,seed,enable,funds,run,runVirtual,stats,get transport(){return state;},close:async()=>{globalThis.fetch=oldFetch;for(const[k,v]of Object.entries(prior)){if(v===undefined)delete process.env[k];else process.env[k]=v;}await f.db.close();assert.equal(resolve(folder,'..'),resolve(tmpdir()));rmSync(folder,{recursive:true,force:true});}};
+  return {...f,seed,enable,funds,run,runVirtual,runScheduledReview,stats,get transport(){return state;},close:async()=>{globalThis.fetch=oldFetch;for(const[k,v]of Object.entries(prior)){if(v===undefined)delete process.env[k];else process.env[k]=v;}await f.db.close();assert.equal(resolve(folder,'..'),resolve(tmpdir()));rmSync(folder,{recursive:true,force:true});}};
  }catch(e){globalThis.fetch=oldFetch;await f.db.close();throw e;}
 }

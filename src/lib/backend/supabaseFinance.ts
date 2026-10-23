@@ -19,6 +19,12 @@ export const createSupabaseFinance=(sb:SupabaseClient):FinanceBackend=>{
    adjust:(user,amount,reason,key,reference,reverses)=>call('finance_creator_adjust',{p_user:user,p_amount:amount,p_reason:reason,p_key:key,p_reference:reference,p_reverses:reverses??null}),
    journal:month=>call('finance_journal_export',{p_month:month}),
    operations:()=>call('finance_operations'),
+   scheduleStatus:async()=>{
+     try{const {data}=await sb.auth.getSession();const token=data.session?.access_token;if(!token)return {ok:false,error:'Inicia sesión con tu cuenta administrativa.'};
+       const r=await fetch('/api/payout-job',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json'},body:JSON.stringify({action:'schedule-status'})});
+       const result=await r.json();if(!r.ok||result.mode!=='review-only'||result.version!==1||!['daily-review','five-minute-review'].includes(result.profile)||!Number.isFinite(Date.parse(result.serverTime)))return {ok:false,error:'No pudimos confirmar el horario publicado.'};return {ok:true,data:result};
+     }catch{return {ok:false,error:'No pudimos consultar el horario publicado.'};}
+   },
    payoutGroups:batch=>call('finance_payout_groups',{p_batch:batch??null}),
    payoutGroup:id=>call('finance_payout_group',{p_id:id}),
    caseList:(offset,reference)=>call('finance_case_list',{p_offset:offset,p_limit:50,p_reference:reference??null}),

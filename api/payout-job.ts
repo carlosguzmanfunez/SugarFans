@@ -3,6 +3,7 @@ import {timingSafeEqual} from 'node:crypto';
 import {sendEmail,logServerError} from './_mail.js';
 import {createStoredPayoutSession} from './paypal.js';
 import {createPayoutControl,payoutClock,payoutWorkLimit,type PayoutClock} from './_payout-provider.js';
+import {reviewScheduleStatus} from '../src/lib/payoutSchedule.js';
 const clean=(s:string|undefined)=>s?.trim().replace(/^["']|["']$/g,'').trim()||undefined;
 const json=(status:number,body:unknown)=>new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json','cache-control':'no-store'}});
 const safeEqual=(a:string,b:string)=>{const x=Buffer.from(a),y=Buffer.from(b);return x.length===y.length&&timingSafeEqual(x,y);};
@@ -17,7 +18,7 @@ const rpc=async<T>(name:string,args:Record<string,unknown>):Promise<T>=>{
  const b=r.status===204?null:await r.json();if(!r.ok)throw new Error(b&&typeof b.message==='string'?b.message:'No pudimos confirmar la operación');return b as T;
 };
 type Work={operation:'event'|'payout'|'prepare';payout:string|null;user_id:string;event:string|null;item:string|null};
-export async function runPayoutReview(executeRequested:boolean,options?:{clock?:PayoutClock}){
+export async function runPayoutReview(executeRequested:boolean,options?:{clock?:PayoutClock;workLimit?:number;trigger?:'scheduled-review'|'manual-review';scheduleProfile?:string}){
  const clock=options?.clock??payoutClock,deadline=clock.now()+120000;
  const e=settings();let started:{operation:string;id?:string;blocked?:string};
  try{
@@ -31,9 +32,9 @@ export async function runPayoutReview(executeRequested:boolean,options?:{clock?:
   return {ok:false,operation:'unconfirmed',error:'No se confirmó el inicio de la ronda. Conserva sus referencias y espera la siguiente revisión; no se iniciaron envíos desde esta respuesta.'};
  }
  if(started.operation!=='run'||!started.id)return {ok:true,operation:started.operation};
- const id=started.id,summary={reviewed:0,processed:0,held:0,alerts:0,blocked:started.blocked??null as string|null,errors:[] as string[],work_limit:5,provider_calls:0,provider_wait_until:null as string|null};
+ const id=started.id,summary={reviewed:0,processed:0,held:0,alerts:0,blocked:started.blocked??null as string|null,errors:[] as string[],work_limit:5,provider_calls:0,provider_wait_until:null as string|null,trigger:options?.trigger??'legacy',schedule_profile:options?.scheduleProfile??null};
  try{
-  summary.work_limit=payoutWorkLimit(clean(process.env.PAYOUT_WORK_LIMIT));
+  summary.work_limit=payoutWorkLimit(options?.workLimit===undefined?clean(process.env.PAYOUT_WORK_LIMIT):String(options.workLimit));
   summary.reviewed=await rpc<number>('finance_job_review',{p_run:id});
   const gate=await rpc<{ready:boolean;until:string|null;failures:number;reason:string}>('finance_provider_gate',{p_run:id});
   const work=gate.ready?await rpc<Work[]>('finance_job_work',{p_run:id,p_limit:summary.work_limit}):[];
@@ -75,6 +76,15 @@ export async function runPayoutReview(executeRequested:boolean,options?:{clock?:
   return {ok:false,operation:'failed',id,error:'La revisión quedó registrada para reanudarse. Los fondos inciertos permanecen separados.'};
  }
 }
+export async function scheduledReview(request:Request):Promise<Response>{
+ const e=settings(),auth=request.headers.get('authorization')??'';
+ if(!e.cron||!safeEqual(auth,'Bearer '+e.cron))return json(401,{error:'Acceso no autorizado'});
+ if(!e.key)return json(503,{error:'La revisión aún no está configurada'});
+ const schedule=reviewScheduleStatus();
+ // This schedule cannot request execution, even when all legacy money flags are on.
+ const result=await runPayoutReview(false,{workLimit:schedule.caseLimit,trigger:'scheduled-review',scheduleProfile:schedule.profile});
+ return json(result.ok?200:503,result);
+}
 export async function GET(request:Request):Promise<Response>{
  const e=settings(),auth=request.headers.get('authorization')??'';
  if(!e.cron||!safeEqual(auth,'Bearer '+e.cron))return json(401,{error:'Acceso no autorizado'});
@@ -91,6 +101,7 @@ export async function POST(request:Request):Promise<Response>{
  const role=await fetch(e.url+'/rest/v1/rpc/is_admin',{method:'POST',headers:authHeaders,body:'{}',signal:AbortSignal.timeout(10000)});
  if(!role.ok||await role.json()!==true)return json(403,{error:'Esta revisión solo está disponible para administradores'});
  const body=await request.json().catch(()=>({})) as {action?:string};
+ if(body.action==='schedule-status')return json(200,reviewScheduleStatus());
  if(body.action==='test-alert'){
   const test=await rpc<{id:string;token?:string;operation:string}>('finance_alert_test_claim',{p_user:identity.id,p_recipient:e.recipient});
   if(test.operation==='sent')return json(200,{accepted:true});
@@ -100,5 +111,5 @@ export async function POST(request:Request):Promise<Response>{
   return json(error?503:200,error?{error:'El proveedor no confirmó el correo de prueba. Puedes revisar o reintentar desde este panel.'}:{accepted:true});
  }
  // A dashboard refresh only reviews; it cannot request execution of money.
- const result=await runPayoutReview(false);return json(result.ok?200:503,result);
+ const result=await runPayoutReview(false,{workLimit:reviewScheduleStatus().caseLimit,trigger:'manual-review'});return json(result.ok?200:503,result);
 }

@@ -8,7 +8,7 @@ export interface FeePreview {
 export interface PayoutOperations {
  environment:'sandbox'|'live';review_enabled:boolean;execution_enabled:boolean;authorization_confirmed:boolean;provider_tested:boolean;blocked:string|null;fee_limit:number|null;
  incidents:{id:string;code:string;title:string;detail:string;first_seen_at:string}[];alerts_pending:number;
- jobs:{id:string;state:string;started_at:string;finished_at:string|null;summary:{processed?:number;held?:number;alerts?:number;work_limit?:number;provider_calls?:number;provider_wait_until?:string|null}}[];
+ jobs:{id:string;state:string;started_at:string;finished_at:string|null;summary:{processed?:number;held?:number;alerts?:number;work_limit?:number;provider_calls?:number;provider_wait_until?:string|null;trigger?:string;schedule_profile?:string|null}}[];
  funding:{available:number;observed_at:string;reference:string}|null;statements:StatementResult[];
 }
 export const operationReasons:Record<string,string>={
