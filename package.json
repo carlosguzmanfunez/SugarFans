@@ -10,6 +10,8 @@
     "payout:schedule:prepare-pro": "node scripts/payout-schedule.mjs --write-pro",
     "test:payout-schedule": "node e2e/payout-review-runtime.mjs && node e2e/payout-pro-schedule.mjs && node e2e/payout-review-safety.mjs",
     "test:payout-schedule-ui": "node e2e/payout-schedule-ui.mjs",
+    "test:payout-operational-recovery": "node e2e/payout-supervised-recovery.mjs && node e2e/payout-watchdog.mjs && node e2e/payout-review-runtime.mjs",
+    "test:payout-operational-recovery-ui": "node e2e/payout-operational-recovery-ui.mjs",
     "typecheck": "tsc --noEmit",
     "e2e": "vite build --mode offline && node e2e/flows.mjs",
     "e2e:supabase": "vite build && node e2e/flows.mjs",

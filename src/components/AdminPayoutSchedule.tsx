@@ -3,6 +3,7 @@ import type {FinanceBackend} from '../lib/creatorFinance';
 import type {PayoutOperations} from '../lib/payoutOperations';
 import {payoutWindow} from '../lib/payoutCalendar';
 import {reviewScheduleHealth,type ReviewScheduleStatus} from '../lib/payoutSchedule';
+import AdminPayoutWatchdog from './AdminPayoutWatchdog';
 const date=(s:string)=>new Intl.DateTimeFormat('es-HN',{timeZone:'America/Tegucigalpa',dateStyle:'medium',timeStyle:'short'}).format(new Date(s));
 export default function AdminPayoutSchedule({api,jobs,refreshKey}:{api:FinanceBackend;jobs:PayoutOperations['jobs'];refreshKey:number}){
  const [schedule,setSchedule]=useState<ReviewScheduleStatus|null>(null),[error,setError]=useState('');
@@ -34,12 +35,13 @@ export default function AdminPayoutSchedule({api,jobs,refreshKey}:{api:FinanceBa
    {health.state==='late'&&<p role="alert" className="text-sm text-amber-900">No hay una revisión programada reciente. Usa «Revisar ahora» y comprueba el programador y los registros del servidor. La pantalla no puede garantizar avisos por correo durante una caída del servicio.</p>}
    {health.state==='interrupted'&&<p role="alert" className="text-sm text-amber-900">Una ronda lleva más de tres minutos sin terminar. Conserva sus referencias y reservas; comprueba el resultado de PayPal y documenta la revisión antes de reanudar. No vuelvas a crear el pago.</p>}
   </>}
+  <AdminPayoutWatchdog api={api} refreshKey={refreshKey}/>
   <details className="border-t border-purple-200 pt-3"><summary className="cursor-pointer text-sm font-medium">Qué hacer si algo requiere atención</summary>
    <ol className="mt-3 space-y-2 text-sm list-decimal pl-5">
     <li>Un caso individual pasa a su espejo y expediente. Los demás pueden avanzar cuando los envíos estén autorizados.</li>
     <li>Si faltan fondos, registra una comprobación nueva en PayPal, posterior al rechazo y de las últimas 24 horas. No liberes reservas para forzar el saldo.</li>
     <li>Si PayPal pidió esperar, respeta la hora registrada. Una respuesta incierta se consulta con su referencia original.</li>
-    <li>Si el servidor se interrumpió, revisa «Últimas revisiones» y el expediente. Conserva la evidencia y solicita recuperación al responsable técnico; esta pantalla no elimina ese bloqueo.</li>
+    <li>Si el servidor se interrumpió, abre su expediente. «Reanudar tras revisión» solo aparece cuando el registro permite comprobar los envíos iniciados. Documenta la evidencia y confirma la decisión; una ronda antigua o un resultado incierto requieren revisión adicional.</li>
     <li>Si un aviso agotó sus intentos, atiende su expediente y registra el resultado. No repitas envíos sin comprobar su entrega.</li>
    </ol>
   </details>
