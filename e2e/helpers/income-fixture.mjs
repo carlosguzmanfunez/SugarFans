@@ -2,7 +2,7 @@ import {readFileSync} from 'node:fs';
 import {financeFixture,CREATOR,ADMIN,OTHER} from './finance-fixture.mjs';
 export {CREATOR,ADMIN,OTHER};
 export const FAN='00000000-0000-0000-0000-000000000003';
-export const INCOME_MIGRATION='20261023164424_income_event_reconciliation.sql';
+export const INCOME_MIGRATION='20261023191322_income_event_reconciliation.sql';
 export async function incomeFixture(){
  const f=await financeFixture({incidentMigration:true,recoveryMigration:true}),{db,q}=f;
  const source=n=>readFileSync('supabase/migrations/'+n,'utf8');
@@ -23,7 +23,7 @@ export async function incomeFixture(){
   update public.paypal_orders set status='completed',capture_id=p_capture_id where id=p_order_id;end$$;`);
  for(const name of ['coin_balance','paypal_money_back'])await db.exec(source('20261010000001_refunds_disputes_self_pay.sql').match(new RegExp(`create or replace function public\\.${name}\\([\\s\\S]*?\\$\\$;`,'i'))[0]);
  for(const name of ['paypal_subscription_register','paypal_subscription_activate','paypal_subscription_payment','paypal_subscription_ended'])await db.exec(source('20261003000006_paypal_subscriptions.sql').match(new RegExp(`create or replace function public\\.${name}\\([\\s\\S]*?\\$\\$;`,'i'))[0]);
- await db.exec(source('20261023155345_partial_refund_accounting.sql'));
+ await db.exec(source('20261023191316_partial_refund_accounting.sql'));
  try{await db.exec(source(INCOME_MIGRATION));}catch(e){await db.close();throw Error(e.message+' · '+(e.where??'')+' · position '+(e.position??''));}
  const reset=async()=>{
   await db.exec('reset role;truncate finance_private.income_action_checks,finance_private.income_actions,finance_private.income_proofs,finance_private.income_attempts,finance_private.income_resources,finance_private.income_disputes,finance_private.income_events,finance_private.refund_receipts,finance_private.refund_followups,finance_private.refund_events,coin_purchases,paypal_orders,paypal_subscriptions,subscriptions,vip_bookings');

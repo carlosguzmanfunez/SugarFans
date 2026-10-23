@@ -58,7 +58,7 @@ Las pruebas de esta entrega no consultan PayPal ni Supabase remotos ni acreditan
 
 ## Publicación y pendientes
 
-Orden de instalación pendiente: `20261023155345_partial_refund_accounting.sql`, después `20261023164424_income_event_reconciliation.sql`, y después servidor y cliente conjuntamente. Revisar las migraciones y ejecutar las pruebas del entorno aislado antes de publicación. Durante ese proceso conservar `execution_enabled=false` y `batch_handoff_enabled=false`.
+Orden de instalación: `20261023191316_partial_refund_accounting.sql`, después `20261023191322_income_event_reconciliation.sql`, después `20261023191333_honduras_payout_cost.sql`, y después servidor y cliente conjuntamente. Las tres actualizaciones de base se aplicaron el 23 de octubre de 2026, después de las pruebas aisladas. Durante la publicación conservar `execution_enabled=false` y `batch_handoff_enabled=false`.
 
 Las excepciones parciales de Créditos, descuentos Reserve, contratos especiales y bases históricas incompletas continúan retenidas para un procedimiento supervisado específico. Tampoco se resuelven automáticamente las evidencias contradictorias que ya están en revisión. El listado muestra el motivo sin exponer el comprobante privado; su inspección detallada sigue requiriendo intervención técnica autorizada. No presentar esta entrega como automatización completa de esos casos.
 

@@ -1,6 +1,6 @@
 # Devoluciones parciales: primera entrega
 
-Rama aislada; no aplicada a Supabase ni publicada. Requiere `20261023155345_partial_refund_accounting.sql` antes del servidor y cliente. No habilita pagos ni modifica cron o tarifas.
+Actualización de base aplicada a Supabase el 23 de octubre de 2026 como `20261023191316_partial_refund_accounting.sql`. El servidor y cliente se publican conjuntamente con la recuperación de avisos y el costo de envío para Honduras. No habilita pagos ni modifica cron o tarifas.
 
 ## Alcance
 
@@ -42,7 +42,7 @@ Las pruebas no envían dinero ni llaman a PayPal/Supabase remotos. No certifican
 
 ## Continuación y condición de publicación
 
-La misma rama incorpora ahora el registro durable de cobros, renovaciones, disputas y reversiones, con recuperación administrativa. Véase [avisos y recuperación](income-event-reconciliation.md). Requiere también `20261023164424_income_event_reconciliation.sql` antes de publicar servidor y cliente.
+La misma rama incorpora ahora el registro durable de cobros, renovaciones, disputas y reversiones, con recuperación administrativa. Véase [avisos y recuperación](income-event-reconciliation.md). Requiere también `20261023191322_income_event_reconciliation.sql` antes de publicar servidor y cliente.
 
 La continuación reemplaza la reversión total del manejador legado de disputas por comprobantes individuales; las pruebas cubren resoluciones a favor del comprador con devolución parcial. Sigue pendiente el procedimiento específico de resolución para las excepciones de Créditos, descuentos y contratos especiales retenidas. No declarar resueltas esas excepciones con las pruebas ordinarias ni presentar la rama como automatización completa.
 

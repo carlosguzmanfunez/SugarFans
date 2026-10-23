@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync,mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';import {resolve,join} from 'node:path';import {pathToFileURL} from 'node:url';import {randomUUID} from 'node:crypto';import {build} from 'esbuild';
 import {financeFixture,ADMIN,CREATOR} from './helpers/finance-fixture.mjs';
-const migration=readFileSync('supabase/migrations/20261023183016_honduras_payout_cost.sql','utf8');
+const migration=readFileSync('supabase/migrations/20261023191333_honduras_payout_cost.sql','utf8');
 const dir=mkdtempSync(join(tmpdir(),'hn-payout-cost-'));let passed=0;
 await build({entryPoints:['src/lib/platformRules.ts'],outfile:join(dir,'rules.mjs'),bundle:true,platform:'node',format:'esm',logLevel:'silent'});
 const {payoutFee,PAYOUT_FEE_MAX}=await import(pathToFileURL(join(dir,'rules.mjs')).href);

@@ -1,6 +1,6 @@
 # Costo de enviar pagos a creadores desde Honduras
 
-Política aprobada por Carlos el 23 de octubre de 2026. Trabajo local; pendiente revisión y publicación. Moneda USD, cuenta pagadora de Honduras. No cambia el cobro al fan ni el reparto previo entre Fans Reserve y el creador.
+Política aprobada por Carlos el 23 de octubre de 2026. Actualización de base aplicada el mismo día; servidor y cliente se publican conjuntamente con devoluciones parciales y recuperación de avisos. Moneda USD, cuenta pagadora de Honduras. No cambia el cobro al fan ni el reparto previo entre Fans Reserve y el creador.
 
 ## Regla y ejemplo
 
@@ -37,7 +37,7 @@ El presupuesto de seguridad para disponer de fondos en la cuenta pagadora no es 
 
 Se actualizan el desglose de Ingresos del creador, los términos generales y contrato de creadores en `/legal`, y el ensayo virtual. La pantalla muestra de dónde sale el porcentaje y suma lo que recibiría con lo que se aparta. No cambia los porcentajes de ventas, incentivos, regalos, cuentas especiales ni el calendario 26–25 / pago 26–1.
 
-Aplicar `20261023183016_honduras_payout_cost.sql` antes de publicar servidor y cliente, con las puertas de dinero apagadas. Revisar los lotes anteriores marcados para volver a preparar. La rama incluye además las entregas locales de devoluciones parciales y recuperación de avisos; revisar ese conjunto de dependencias antes de publicar. No restaurar ni modificar migraciones históricas.
+Aplicar `20261023191333_honduras_payout_cost.sql` antes de publicar servidor y cliente, con las puertas de dinero apagadas. Revisar los lotes anteriores marcados para volver a preparar. La rama incluye además las entregas locales de devoluciones parciales y recuperación de avisos; revisar ese conjunto de dependencias antes de publicar. No restaurar ni modificar migraciones históricas.
 
 ## Verificación
 
