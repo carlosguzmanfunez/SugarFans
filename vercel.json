@@ -1,5 +1,5 @@
 {
   "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
-  "functions": { "api/moderate.ts": { "maxDuration": 60 }, "api/payout-job.ts": { "maxDuration": 180 } },
-  "crons": [{ "path": "/api/usage", "schedule": "0 14 * * *" }, { "path": "/api/payout-job", "schedule": "0 12 * * *" }]
+  "functions": { "api/moderate.ts": { "maxDuration": 60 }, "api/payout-job.ts": { "maxDuration": 180 }, "api/payout-review.ts": { "maxDuration": 180 } },
+  "crons": [{ "path": "/api/usage", "schedule": "0 14 * * *" }, { "path": "/api/payout-review", "schedule": "0 12 * * *" }]
 }

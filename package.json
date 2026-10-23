@@ -4,7 +4,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/payout-schedule.mjs --check",
     "build": "vite build",
+    "payout:schedule:check": "node scripts/payout-schedule.mjs --check",
+    "payout:schedule:prepare-pro": "node scripts/payout-schedule.mjs --write-pro",
+    "test:payout-schedule": "node e2e/payout-pro-schedule.mjs && node e2e/payout-review-safety.mjs",
+    "test:payout-schedule-ui": "node e2e/payout-schedule-ui.mjs",
     "typecheck": "tsc --noEmit",
     "e2e": "vite build --mode offline && node e2e/flows.mjs",
     "e2e:supabase": "vite build && node e2e/flows.mjs",
