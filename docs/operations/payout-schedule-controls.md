@@ -45,6 +45,7 @@ Incluso con Pro, este perfil seguirá siendo de revisión: no habilita el calend
 ## Validación
 
 - Typecheck y build; verificación de consistencia antes de cada build.
+- Carga en frío de módulos ESM emitidos sin bundle, como en Node: importación JSON con atributo de tipo y extensión explícita en el calendario compartido. Comprueba que las rutas arrancan y rechazan acceso anónimo sin red.
 - test:payout-schedule: todos los intervalos de cinco minutos de 2026–2028, incluidos meses cortos, cambios de año y febrero bisiesto; control del plan, permisos, separación manual/programado y ausencia de envíos con las opciones antiguas activadas.
 - test:payout-schedule-ui y test:payout-operations-ui: móvil/escritorio, teclado, estados de atraso y caída, lectura sin escrituras y operaciones existentes.
 - Regresiones de inicio incierto, automatización, aislamiento y avisos. Toda nueva prueba financiera intercepta la red y usa datos ficticios.

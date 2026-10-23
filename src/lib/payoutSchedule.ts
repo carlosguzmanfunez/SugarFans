@@ -1,5 +1,5 @@
-import config from '../config/payout-schedule.json';
-import {PAYOUT_TIME_ZONE,payoutWindow} from './payoutCalendar';
+import config from '../config/payout-schedule.json' with {type:'json'};
+import {PAYOUT_TIME_ZONE,payoutWindow} from './payoutCalendar.js';
 export type ReviewProfile = keyof typeof config.profiles;
 export interface ReviewScheduleStatus {
  version:1; profile:ReviewProfile; timeZone:string; mode:'review-only'; caseLimit:number;
