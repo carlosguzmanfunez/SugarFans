@@ -1,0 +1,34 @@
+import assert from 'node:assert/strict';
+import {readFileSync,mkdtempSync,rmSync}from'node:fs';
+import{tmpdir}from'node:os';import{resolve,join}from'node:path';import{pathToFileURL}from'node:url';
+import{build}from'esbuild';import{PGlite}from'@electric-sql/pglite';
+const dir=mkdtempSync(join(tmpdir(),'watchdog-test-'));let db;let passed=0;
+try{
+ await build({entryPoints:['ops/watchdog/supabase/functions/finance-watchdog/health.ts'],outfile:join(dir,'health.mjs'),bundle:true,platform:'node',format:'esm',logLevel:'silent'});
+ const{evaluateHealth}=await import(pathToFileURL(join(dir,'health.mjs')));
+ const armed='2026-10-23T02:00:00Z',at='2026-10-23T13:11:00Z';
+ const payload=(now,jobs=[])=>({version:1,checked_at:now,schedule:{profile:'daily-review',mode:'review-only'},execution_enabled:false,handoff_enabled:false,jobs});
+ const test=(name,fn)=>{fn();passed++;console.log('OK '+name);};
+ test('Before the first deadline, no invented missed review',()=>assert.equal(evaluateHealth(payload('2026-10-23T12:59:00Z'),armed,Date.parse('2026-10-23T12:59:00Z')).kind,'healthy'));
+ test('Missing review stays late on subsequent days',()=>{for(const now of[at,'2026-10-24T15:00:00Z'])assert.equal(evaluateHealth(payload(now),armed,Date.parse(now)).kind,'review_late');});
+ const job={state:'finished',started_at:'2026-10-23T12:28:00Z',finished_at:'2026-10-23T12:28:02Z',execute_requested:false,summary:{trigger:'scheduled-review',schedule_profile:'daily-review'}};
+ test('A native scheduled completion moves the deadline',()=>assert.equal(evaluateHealth(payload(at,[job]),armed,Date.parse(at)).kind,'healthy'));
+ test('A manual run cannot hide a missed cron',()=>assert.equal(evaluateHealth(payload(at,[{...job,summary:{...job.summary,trigger:'manual-review'}}]),armed,Date.parse(at)).kind,'review_late'));
+ test('Future, failed or missing-finish runs cannot hide a missed cron',()=>{for(const j of[{...job,started_at:'2027-01-01'},{...job,state:'failed'},{...job,finished_at:null}])assert.equal(evaluateHealth(payload(at,[j]),armed,Date.parse(at)).kind,'review_late');});
+ test('Any money gate / profile change is actionable',()=>{for(const change of[{execution_enabled:true},{handoff_enabled:true},{schedule:{profile:'other'}}])assert.equal(evaluateHealth({...payload(at),...change},armed,Date.parse(at)).kind,'unsafe_configuration');});
+ test('A stale or malformed health response cannot count as healthy',()=>{for(const data of[null,{},payload('2020-01-01')])assert.equal(evaluateHealth(data,armed,Date.parse(at)).kind,'unreachable');});
+ db=new PGlite();await db.exec("create role anon;create role authenticated;create role service_role;create or replace function pg_catalog.now()returns timestamptz language sql stable as $$select current_setting('test.clock')::timestamptz$$;select set_config('test.clock','2026-10-23T02:00:00Z',false)");
+ await db.exec(readFileSync('ops/watchdog/supabase/migrations/20261023025438_independent_finance_watchdog.sql','utf8'));
+ const q=async(s,a=[])=>(await db.query(s,a)).rows;
+ const rpc=async(n,a=[])=>(await q(`select public.${n}(${a.map((_,i)=>'$'+(i+1)).join(',')}) v`,a))[0].v;
+ const record=async kind=>{const s=await rpc('finance_watchdog_status');await rpc('finance_watchdog_record',[s.revision,kind,kind==='healthy'?'REVIEW_MONITORED':'HEALTH_ENDPOINT_UNAVAILABLE']);};
+ await record('unreachable');assert.equal(await rpc('finance_watchdog_claim'),null);passed++;
+ await record('unreachable');const mail=await rpc('finance_watchdog_claim');assert.ok(mail?.id);assert.equal(await rpc('finance_watchdog_claim'),null);passed++;
+ assert.equal(await rpc('finance_watchdog_finish',[mail.id,crypto.randomUUID(),true]),false);await q("select set_config('test.clock','2026-10-23T02:03:00Z',false)");const retry=await rpc('finance_watchdog_claim');assert.equal(retry.id,mail.id);assert.notEqual(retry.token,mail.token);assert.equal(await rpc('finance_watchdog_finish',[mail.id,mail.token,true]),false);passed++;
+ await rpc('finance_watchdog_finish',[retry.id,retry.token,true]);await record('unreachable');assert.equal(await rpc('finance_watchdog_claim'),null);passed++;
+ await record('healthy');const recovered=await rpc('finance_watchdog_claim');assert.ok(recovered.subject.includes('vigilancia'));await rpc('finance_watchdog_finish',[recovered.id,recovered.token,true]);await record('healthy');assert.equal(await rpc('finance_watchdog_claim'),null);passed++;
+ const status=await rpc('finance_watchdog_status');await record('healthy');await assert.rejects(()=>rpc('finance_watchdog_record',[status.revision,'unreachable','HEALTH_ENDPOINT_UNAVAILABLE']),/Stale/);passed++;
+ await record('unreachable');await record('unreachable');const lost=await rpc('finance_watchdog_claim');await q("select set_config('test.clock','2026-10-24T02:00:00Z',false)");assert.equal(await rpc('finance_watchdog_claim'),null);assert.equal((await rpc('finance_watchdog_status')).notification_review,1);passed++;
+ for(const role of['anon','authenticated']){await db.exec('set role '+role);try{await assert.rejects(()=>rpc('finance_watchdog_status'),/permission denied/);await assert.rejects(()=>q('select * from watchdog_private.state'),/permission denied/);}finally{await db.exec('reset role');}}passed++;
+ console.log(`${passed} watchdog checks passed; no external network or email.`);
+}finally{if(db)await db.close();assert.equal(resolve(dir,'..'),resolve(tmpdir()));rmSync(dir,{recursive:true,force:true});}

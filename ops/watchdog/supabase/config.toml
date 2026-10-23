@@ -1,0 +1,4 @@
+project_id = "fansreserve-independent-watchdog"
+
+[functions.finance-watchdog]
+verify_jwt = false

@@ -102,6 +102,16 @@ export async function POST(request:Request):Promise<Response>{
  if(!role.ok||await role.json()!==true)return json(403,{error:'Esta revisión solo está disponible para administradores'});
  const body=await request.json().catch(()=>({})) as {action?:string};
  if(body.action==='schedule-status')return json(200,reviewScheduleStatus());
+ if(body.action==='watchdog-status'){
+  const secret=clean(process.env.WATCHDOG_TRIGGER_TOKEN);
+  if(!secret)return json(503,{error:'El vigilante independiente aún no está configurado'});
+  try{
+   const r=await fetch('https://pcxblbctafwmijfcwgdd.supabase.co/functions/v1/finance-watchdog',{headers:{authorization:'Bearer '+secret},signal:AbortSignal.timeout(10000)});
+   if(!r.ok)throw Error('Unavailable');
+   const s=await r.json();
+   return json(200,{armed_at:s.armed_at,checked_at:s.checked_at,kind:s.kind,incident:!!s.incident,notification_review:s.notification_review,last_email:s.last_email});
+  }catch{return json(503,{error:'No pudimos consultar el vigilante independiente'});}
+ }
  if(body.action==='test-alert'){
   const test=await rpc<{id:string;token?:string;operation:string}>('finance_alert_test_claim',{p_user:identity.id,p_recipient:e.recipient});
   if(test.operation==='sent')return json(200,{accepted:true});

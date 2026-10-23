@@ -18,6 +18,7 @@ export interface FinanceBackend {
  journal(month: string): Promise<FinanceResult<FinanceJournalRow[]>>;
  operations?():Promise<FinanceResult<import('./payoutOperations').PayoutOperations>>;
  scheduleStatus?():Promise<FinanceResult<import('./payoutSchedule').ReviewScheduleStatus>>;
+ watchdogStatus?():Promise<FinanceResult<{armed_at:string;checked_at:string|null;kind:string;incident:boolean;notification_review:number;last_email:{created_at:string;state:string;attempts:number}|null}>>;
  payoutGroups?(batch?:string|null):Promise<FinanceResult<import('./payoutGroups').PayoutGroupList>>;
  payoutGroup?(id:string):Promise<FinanceResult<import('./payoutGroups').PayoutGroupDetail>>;
  review?():Promise<FinanceResult<null>>;

@@ -8,7 +8,8 @@ export interface CasePreview {
  source:{transaction?:string;creator?:string;status?:string;covered?:boolean;amount?:number;creator_cut?:number;source_revision?:number;
  id?:string;user_id?:string;kind?:string;reason?:string;released?:boolean;remaining_holds?:number;blockers?:string[];reference?:string;detail?:string;
  alert?:string;state?:string;attempts?:number;recipient?:string|null;first_attempt_at?:string;original_incident?:string;parent_incident?:string;followup_at?:string;
- payout?:string;net?:number;submission_state?:string;definitive?:boolean;environment?:'sandbox'|'live';stop?:string;stopped_at?:string;available?:number;required?:number;observed_at?:string;funding_reference?:string};
+ payout?:string;net?:number;submission_state?:string;definitive?:boolean;environment?:'sandbox'|'live';stop?:string;stopped_at?:string;available?:number;required?:number;observed_at?:string;funding_reference?:string;
+ run?:string;run_state?:string;lease_until?:string;items?:{payout:string;status:string;ready:boolean;reason:string|null}[]};
  history:{id:string;sequence:number;action:CaseAction;party:CaseParty;category:CaseCategory;evidence:string;reason:string;notice:string|null;followup_at:string|null;created_at:string;created_by:string;result:Record<string,unknown>}[];
 }
 export interface CaseDecision {id:string;key:string;expected:string;action:CaseAction;party:CaseParty;category:CaseCategory;evidence:string;reason:string;notice?:string|null;followup?:string|null}
@@ -29,9 +30,11 @@ export const caseGuidance:Record<string,string>={
  BATCH_REVIEW:'Revisa las ganancias asignadas y el cambio posterior al cierre. No liberes un lote que tenga un envío incierto.',
  PREPARATION_FAILED:'Revisa la causa, los fondos y la referencia del envío original. La preparación correcta resuelve la incidencia; una nota no reinicia un retiro.',
  JOB_FAILURE:'Corrige la conexión o el servicio y ejecuta Revisar ahora. Una revisión completada correctamente resuelve esta incidencia.',
+ PROVIDER_INTERRUPTED:'Una ronda se interrumpió. El sistema comprueba los envíos que alcanzó a iniciar antes de permitir la reanudación. Documenta la revisión y conserva las referencias originales. Esta decisión no envía pagos ni libera dinero apartado.',
  CASE_OVERDUE:'Abre el expediente original y documenta su seguimiento. Cambiar una fecha interna no modifica los plazos de PayPal ni autoriza un pago.',
 };
-export const caseEffects=(action:CaseAction,party:CaseParty,code?:string)=>code==='PAYER_FUNDS_INSUFFICIENT'&&action==='close_review'?'Se levanta la pausa por falta de fondos con esta evidencia nueva. Las siguientes rondas podrán enviar si todos los demás requisitos se cumplen. Los rechazos anteriores no se reintentan con esta decisión.':({
+export const recoveryReason=(value:string)=>({NO_INTERRUPTED_RUN:'Ya no existe una ronda interrumpida que reanudar.',RUN_STILL_ACTIVE:'La ronda anterior todavía tiene tiempo para terminar.',LEGACY_RUN_REQUIRES_TECHNICAL_REVIEW:'Esta ronda es anterior al nuevo registro de recuperación y requiere revisión técnica.',MISSING_SUBMISSION:'Falta localizar la instrucción original de un envío.',PROVIDER_RESULT_NOT_RECONCILED:'Falta conciliar un resultado de PayPal; conserva sus fondos apartados.',LEDGER_CONFIRMATION_MISSING:'Falta comprobar el registro contable de un pago confirmado.'}[value.split('/')[0]]??'La evidencia necesita revisión.');
+export const caseEffects=(action:CaseAction,party:CaseParty,code?:string)=>code==='PROVIDER_INTERRUPTED'&&action==='close_review'?'Se levanta únicamente la espera causada por esta ronda interrumpida. Los siguientes procesos conservan todos los controles, bloqueos y referencias. Esta decisión no envía dinero.':code==='PAYER_FUNDS_INSUFFICIENT'&&action==='close_review'?'Se levanta la pausa por falta de fondos con esta evidencia nueva. Las siguientes rondas podrán enviar si todos los demás requisitos se cumplen. Los rechazos anteriores no se reintentan con esta decisión.':({
  note:'Se guarda el seguimiento y su próxima revisión. No cambia el saldo ni libera bloqueos.',
  coverage:party==='creator'?'Se mantiene a cargo del creador la parte de esta venta prevista en el contrato. Si ya estaba descontada, no se descuenta otra vez.':'Fans Reserve cubre la parte del creador según el contrato 6.2.3. Registrar al fan o al proveedor como responsable no genera un cobro externo.',
  release_hold:'Se libera este motivo documentado. Si hay otro bloqueo activo, la cuenta seguirá retenida. Esta acción no envía dinero.',
