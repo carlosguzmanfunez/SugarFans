@@ -18,7 +18,7 @@ try{
  test('Any money gate / profile change is actionable',()=>{for(const change of[{execution_enabled:true},{handoff_enabled:true},{schedule:{profile:'other'}}])assert.equal(evaluateHealth({...payload(at),...change},armed,Date.parse(at)).kind,'unsafe_configuration');});
  test('A stale or malformed health response cannot count as healthy',()=>{for(const data of[null,{},payload('2020-01-01')])assert.equal(evaluateHealth(data,armed,Date.parse(at)).kind,'unreachable');});
  db=new PGlite();await db.exec("create role anon;create role authenticated;create role service_role;create or replace function pg_catalog.now()returns timestamptz language sql stable as $$select current_setting('test.clock')::timestamptz$$;select set_config('test.clock','2026-10-23T02:00:00Z',false)");
- await db.exec(readFileSync('ops/watchdog/supabase/migrations/20261023025438_independent_finance_watchdog.sql','utf8'));
+ await db.exec(readFileSync('ops/watchdog/supabase/migrations/20261023030008_independent_finance_watchdog.sql','utf8'));
  const q=async(s,a=[])=>(await db.query(s,a)).rows;
  const rpc=async(n,a=[])=>(await q(`select public.${n}(${a.map((_,i)=>'$'+(i+1)).join(',')}) v`,a))[0].v;
  const record=async kind=>{const s=await rpc('finance_watchdog_status');await rpc('finance_watchdog_record',[s.revision,kind,kind==='healthy'?'REVIEW_MONITORED':'HEALTH_ENDPOINT_UNAVAILABLE']);};
