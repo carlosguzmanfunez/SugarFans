@@ -18,11 +18,26 @@ export const CREATOR_SHARE = 0.8;
 export const MIN_PAYOUT = 50;
 // Lowest monthly subscription price (database constraint profiles_subscription_price_check).
 export const MIN_SUBSCRIPTION = 4.99;
-// Legacy withdrawal-cost estimate, reserved before submission (same as public.payout_fee).
-// It is not a guaranteed PayPal tariff; verified differences settle separately.
+// Honduras, USD: 2% of the amount RECEIVED, capped at $1 per payment.
+// The input is the creator's whole balance, including the cost to send it.
+// Use cents to find the largest affordable transfer. A possible rounding cent
+// remains in the cost reservation until the verified provider cost is settled.
 export const PAYOUT_FEE_RATE = 0.02;
-export const PAYOUT_FEE_MAX = 20;
-export const payoutFee = (amount: number) => Math.min(Math.round(amount * PAYOUT_FEE_RATE * 100) / 100, PAYOUT_FEE_MAX);
+export const PAYOUT_FEE_MAX = 1;
+export const PAYOUT_FEE_POLICY = 'hn-usd-2026-10-23';
+export const payoutFee = (amount: number) => {
+  if (!Number.isFinite(amount) || amount > 999999999999.99) throw new Error('Saldo de retiro no válido');
+  if (amount <= 0) return 0;
+  const gross = Math.round(amount * 100);
+  if (gross >= 5100) return PAYOUT_FEE_MAX;
+  let low = 0, high = gross;
+  while (low < high) {
+    const sent = low + Math.ceil((high - low) / 2);
+    const cost = Math.min(Math.floor((sent + 25) / 50), 100);
+    if (sent + cost <= gross) low = sent; else high = sent - 1;
+  }
+  return (gross - low) / 100;
+};
 
 export const docTypeLabel: Record<DocType, string> = {
   dni: 'Documento nacional de identidad',

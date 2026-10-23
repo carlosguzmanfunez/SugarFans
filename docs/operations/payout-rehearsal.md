@@ -5,7 +5,7 @@ El volumen inicial solicitado es de **1.000 creadores por ciclo**. La pantalla �
 ## Qué se practica
 
 - Calendario de Honduras: ganancias del 26 al 25, pago desde el 26 hasta terminar el día 1 siguiente. Un ingreso registrado exactamente a las 00:00 del 26 pertenece al siguiente ciclo.
-- Lista ficticia de hasta 1.000 creadores, presupuesto y margen para comisiones. El ejemplo parte de ganancias ya calculadas: $100 por creador, $2 de costo estimado de retiro, $98 netos y techo de comisión de $5. No se vuelve a restar la comisión de la plataforma.
+- Lista ficticia de hasta 1.000 creadores y fondos disponibles. El ejemplo actualizado de Honduras parte de $100 por creador después de nuestra comisión: $99 a recibir y $1 para PayPal. El 2% de $99 es $1,98 y se aplica el máximo publicado de $1; $99 + $1 = $100. El máximo corresponde a cada pago individual. No se vuelve a restar la comisión de la plataforma. Estos fondos pertenecen solo al ejemplo: no cambian el presupuesto de seguridad configurado en el ejecutor real.
 - Comparación entre la frecuencia diaria publicada y propuestas por hora, cada 15 minutos o cada cinco minutos, con cinco, 25 o 50 casos por ronda. Cambiar una propuesta no cambia la programación ni las puertas reales.
 - Pausar/reanudar el ensayo, identidad pendiente, destinatario pendiente, mínimo, disputa, fondos insuficientes o evidencia vencida a las 24 horas.
 - Una respuesta perdida conserva su referencia y presupuesto. Simular una confirmación no inicia otro envío. Los bloqueos no tienen un botón que los libere sin evidencia.

@@ -7,7 +7,7 @@ export const CREATOR='00000000-0000-0000-0000-000000000001';
 export const OTHER='00000000-0000-0000-0000-000000000002';
 export const FINANCE_MIGRATION='20261020032222_creator_ledger_batch_reservations.sql';
 export const NOTIFICATION_MIGRATION='20261020231703_payout_notification_wording.sql';
-export async function financeFixture({beforeMigration,notificationMigration=true,incidentMigration=process.env.TEST_INCIDENT_PROCEDURES==='1',feeResolutionMigration=process.env.TEST_FEE_RESOLUTION==='1'||incidentMigration,automationMigration=process.env.TEST_PAYOUT_OPERATIONS==='1'||feeResolutionMigration,capacityMigration=automationMigration,recoveryMigration=false}={}) {
+export async function financeFixture({beforeMigration,notificationMigration=true,incidentMigration=process.env.TEST_INCIDENT_PROCEDURES==='1',feeResolutionMigration=process.env.TEST_FEE_RESOLUTION==='1'||incidentMigration,automationMigration=process.env.TEST_PAYOUT_OPERATIONS==='1'||feeResolutionMigration,capacityMigration=automationMigration,recoveryMigration=false,payoutCostMigration=false}={}) {
  const db=new PGlite();const q=async(sql,args=[]) => (await db.query(sql,args)).rows;
  const source=n=>readFileSync(resolve('supabase/migrations',n),'utf8');
  await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create schema security_private;create table security_private.owner_account(user_id uuid primary key);create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,deleted_at timestamptz,banned_until timestamptz);
@@ -43,6 +43,7 @@ export async function financeFixture({beforeMigration,notificationMigration=true
  if(capacityMigration){await db.exec(source('20261021191647_payout_provider_capacity.sql'));await db.exec(source('20261021200143_payout_work_rotation.sql'));if(incidentMigration)await db.exec(source('20261021203712_payout_group_mirrors.sql'));}
  if(capacityMigration&&incidentMigration)await db.exec(source('20261022015657_payout_rejected_cases_and_funding_pause.sql'));
  if(recoveryMigration)await db.exec(source('20261023031247_payout_supervised_recovery.sql'));
+ if(payoutCostMigration)await db.exec(source('20261023183016_honduras_payout_cost.sql'));
  const reset=async()=>{
    const fees=feeResolutionMigration?'finance_fee_holds,finance_fee_reversals,finance_fee_resolutions,finance_private.fee_policy,':'';
    const operations=automationMigration?'finance_alert_tests,finance_alert_queue,finance_incidents,finance_job_runs,finance_execution_reservations,finance_funding_checks,finance_statement_lines,finance_statement_imports,finance_private.automation_settings,':'';

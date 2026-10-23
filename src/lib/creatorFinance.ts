@@ -39,6 +39,7 @@ export const financeReasons: Record<string,string> = {
  RECIPIENT_REQUIRED:'Falta una cuenta PayPal válida',OWNER_AMBIGUOUS:'Revisar el propietario del perfil',PAYOUT_IN_PROGRESS:'Ya tiene un retiro en proceso',
  DISPUTE_OPEN:'Tiene una disputa pendiente',NEGATIVE_BALANCE:'Tiene un saldo por recuperar',BELOW_MINIMUM:'Aún no llega al mínimo de retiro',SOURCE_CHANGED_AFTER_CLOSE:'Una ganancia cambió después del cierre',
  BATCH_RESERVED:'Ya está apartado en un lote',
+ PAYOUT_FEE_POLICY_CHANGED:'Cambió el costo de envío. Cancela el apartado anterior y prepara otro con el nuevo cálculo.',
 };
 const cell=(value:unknown)=>{
  const text=String(value??'');const safe=/^\s*[=+\-@]/.test(text)||/^[\t\r\n]/.test(text)?`'${text}`:text;

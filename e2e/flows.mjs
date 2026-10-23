@@ -1265,16 +1265,17 @@ const run = async () => {
       await page.getByPlaceholder('Email de tu cuenta PayPal').fill('Valentina.Rose@Example.com');
       await page.getByRole('button', { name: 'Guardar cuenta' }).click();
       await page.getByText('PayPal · va•••@example.com').waitFor();
-      // PayPal's fee (2%, at most $20) comes out of the withdrawal.
-      const fee = Math.min(Math.round(available * 2) / 100, 20);
-      await page.getByText(`Recibirás ${money(available - fee)} (comisión de PayPal ${money(fee)})`).waitFor();
+      // This fixture is above the Honduras USD fee cap threshold.
+      expect(available >= 51, 'el saldo de esta prueba debe alcanzar el máximo de envío');
+      const fee = 1;
+      await page.getByTestId('payout-cost-breakdown').locator('dd').filter({hasText:money(available - fee)}).waitFor();
       await page.getByRole('button', { name: label }).click();
-      await page.getByText(`Retiro pagado: ${money(available - fee)} enviados a tu cuenta PayPal`).waitFor();
+      await page.getByText(`PayPal confirmó la entrega de ${money(available - fee)} a tu cuenta PayPal.`,{exact:true}).waitFor();
       await waitAmount(page, 'available-balance', '$0.00');
       const paid = page.getByTestId('payouts');
       await paid.getByText('Pagado', { exact: true }).waitFor();
-      await paid.getByText(`Retiraste ${money(available)} · PayPal · va•••@example.com`).waitFor();
-      await paid.getByText(`Disponías de ${money(available)} · recibes ${money(available - fee)} (comisión de PayPal ${money(fee)})`, { exact: false }).waitFor();
+      await paid.getByText(`Retiro de ${money(available)} · PayPal · va•••@example.com`).waitFor();
+      await paid.getByText(`Disponías de ${money(available)} · importe entregado ${money(available - fee)} (costo estimado registrado ${money(fee)})`, { exact: false }).waitFor();
       await paid.locator('i.fa-check-circle.text-green-600').first().waitFor({ state: 'attached' });
       expect(Math.abs((await readAmount(page, 'pending-balance')) - (pendingBefore + 40)) < 0.001, 'se retiró lo que aún no estaba acreditado');
     });
