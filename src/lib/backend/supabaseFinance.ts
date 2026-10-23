@@ -26,6 +26,12 @@ export const createSupabaseFinance=(sb:SupabaseClient):FinanceBackend=>{
      }catch{return {ok:false,error:'No pudimos consultar el horario publicado.'};}
    },
    payoutGroups:batch=>call('finance_payout_groups',{p_batch:batch??null}),
+   watchdogStatus:async()=>{
+     try{const {data}=await sb.auth.getSession();const token=data.session?.access_token;if(!token)return {ok:false,error:'Inicia sesión con tu cuenta administrativa.'};
+       const r=await fetch('/api/payout-job',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json'},body:JSON.stringify({action:'watchdog-status'})});
+       const result=await r.json();if(!r.ok||!Number.isFinite(Date.parse(result.armed_at))||!['healthy','unreachable','review_late','unsafe_configuration'].includes(result.kind))return {ok:false,error:'No pudimos confirmar el vigilante independiente.'};return {ok:true,data:result};
+     }catch{return {ok:false,error:'No pudimos consultar el vigilante independiente.'};}
+   },
    payoutGroup:id=>call('finance_payout_group',{p_id:id}),
    caseList:(offset,reference)=>call('finance_case_list',{p_offset:offset,p_limit:50,p_reference:reference??null}),
    casePreview:id=>call('finance_case_preview',{p_id:id}),
