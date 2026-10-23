@@ -23,6 +23,8 @@ export interface FinanceBackend {
  payoutGroup?(id:string):Promise<FinanceResult<import('./payoutGroups').PayoutGroupDetail>>;
  review?():Promise<FinanceResult<null>>;
  testAlert?():Promise<FinanceResult<null>>;
+ incomeEvents?():Promise<FinanceResult<{pending:number;review:number;items:{id:string;type:string;state:string;attempts:number;received_at:string;reason:string|null}[]}>>;
+ recoverIncome?():Promise<FinanceResult<{checked:number;applied:number;pending:number}>>;
  caseList?(offset:number,reference?:string):Promise<FinanceResult<import('./incidentProcedures').CasePage>>;
  casePreview?(id:string):Promise<FinanceResult<import('./incidentProcedures').CasePreview>>;
  caseAct?(input:import('./incidentProcedures').CaseDecision):Promise<FinanceResult<{id:string;result:Record<string,unknown>}>>;

@@ -40,11 +40,11 @@ El ensayo de integración con todas las migraciones también verifica la fórmul
 
 Las pruebas no envían dinero ni llaman a PayPal/Supabase remotos. No certifican una devolución nativa Sandbox.
 
-## Siguiente entrega y condición de publicación
+## Continuación y condición de publicación
 
-Extender el registro durable a cobros, renovaciones, disputas y reversiones; añadir recuperación supervisada de sus avisos sin depender de los reintentos del proveedor. **Todavía no está implementado en esta entrega.**
+La misma rama incorpora ahora el registro durable de cobros, renovaciones, disputas y reversiones, con recuperación administrativa. Véase [avisos y recuperación](income-event-reconciliation.md). Requiere también `20261023164424_income_event_reconciliation.sql` antes de publicar servidor y cliente.
 
-Antes de publicar, cubrir especialmente disputas resueltas a favor del comprador con devolución parcial: el manejador legado de disputas todavía utiliza una reversión total. También hace falta el procedimiento de resolución para las excepciones de Créditos/contratos especiales retenidas. No declarar resueltos estos casos con las pruebas ordinarias de devoluciones ni publicar esta entrega como automatización completa.
+La continuación reemplaza la reversión total del manejador legado de disputas por comprobantes individuales; las pruebas cubren resoluciones a favor del comprador con devolución parcial. Sigue pendiente el procedimiento específico de resolución para las excepciones de Créditos, descuentos y contratos especiales retenidas. No declarar resueltas esas excepciones con las pruebas ordinarias ni presentar la rama como automatización completa.
 
 No ejecutar pagos reales para verificar una migración. Mantener `execution_enabled=false` y `batch_handoff_enabled=false`.
 

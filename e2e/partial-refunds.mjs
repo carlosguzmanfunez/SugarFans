@@ -3,16 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync,mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';import {join} from 'node:path';import {pathToFileURL} from 'node:url';
 import {randomUUID} from 'node:crypto';import {build} from 'esbuild';
-import {financeFixture,CREATOR,ADMIN} from './helpers/finance-fixture.mjs';
-const f=await financeFixture({incidentMigration:true,recoveryMigration:true}),{db,q,rpc,sale,auth}=f;
-const source=n=>readFileSync('supabase/migrations/'+n,'utf8');
-await db.exec(`alter table transactions add column paypal_ref text,add column gateway_fee numeric,add column service_fee numeric,add column tax_amount numeric,add column creator_name text,add column payer_id uuid,add column reversed_by text;
- create table coin_purchases(id uuid default gen_random_uuid(),user_id uuid,price numeric,status text,coins bigint,paypal_ref text);
- create table vip_bookings(id uuid,status text,updated_at timestamptz,details jsonb);
- create table paypal_subscriptions(id text,status text);create table subscriptions(paypal_subscription_id text,cancel_at timestamptz);
- create table paypal_orders(id text,capture_id text,status text);`);
-for(const name of ['coin_balance','paypal_money_back'])await db.exec(source('20261010000001_refunds_disputes_self_pay.sql').match(new RegExp(`create or replace function public\\.${name}\\([\\s\\S]*?\\$\\$;`,'i'))[0]);
-await db.exec(source('20261023155345_partial_refund_accounting.sql'));
+import {incomeFixture,CREATOR,ADMIN} from './helpers/income-fixture.mjs';
+const f=await incomeFixture(),{db,q,rpc,sale,auth}=f;
 const dir=mkdtempSync(join(tmpdir(),'refund-qa-'));
 await build({entryPoints:['api/paypal.ts'],outfile:join(dir,'api.mjs'),bundle:true,platform:'node',format:'esm',logLevel:'silent'});
 await build({entryPoints:['src/lib/adminLedger.ts','src/lib/platformRules.ts'],outdir:dir,bundle:true,platform:'node',format:'esm',outExtension:{'.js':'.mjs'},logLevel:'silent'});
@@ -24,7 +16,7 @@ const realFetch=globalThis.fetch;
 globalThis.fetch=async(url,init={})=>{
  const u=new URL(url),body=init.body?JSON.parse(init.body.startsWith('{')?init.body:'{}'):{};calls.push(u.href);
  if(u.origin==='https://refund-qa.example.invalid'&&u.pathname.startsWith('/rest/v1/rpc/')){
-  const names={paypal_refund_receive:['p_environment','p_sender','p_event'],paypal_refund_apply:['p_id','p_ref','p_refund','p_payment']};
+ const names={paypal_refund_receive:['p_environment','p_sender','p_event'],paypal_refund_apply:['p_id','p_ref','p_refund','p_payment'],paypal_refund_followup:['p_id','p_resource']};
   const name=u.pathname.split('/').pop();assert.ok(names[name],`Unexpected RPC ${name}`);
   try {await db.exec('set role service_role');return response(200,await rpc(name,names[name].map(k=>body[k])));}catch(e){return response(400,{message:e.message});}finally{await db.exec('reset role');}
  }
@@ -32,7 +24,7 @@ globalThis.fetch=async(url,init={})=>{
  if(u.pathname==='/v1/oauth2/token')return response(200,{access_token:'QA_ACCESS'});
  if(u.pathname==='/v1/notifications/verify-webhook-signature')return response(200,{verification_status:signature?'SUCCESS':'FAILURE'});
  if(u.pathname==='/v1/billing/subscriptions/I-SUB1/cancel')return cancelFailure?response(503,{}):new Response(null,{status:204});
- if(u.pathname==='/v1/billing/subscriptions/I-SUB1')return response(200,{status:cancelFailure?'ACTIVE':'CANCELLED'});
+ if(u.pathname==='/v1/billing/subscriptions/I-SUB1')return response(200,{id:'I-SUB1',status:cancelFailure?'ACTIVE':'CANCELLED'});
  const refund=u.pathname.match(/^\/v[12]\/payments\/refunds?\/([^/]+)$/);
  if(refund)return response(failQuery?503:200,refunds.get(refund[1])??{});
  const payment=u.pathname.match(/^\/v[12]\/payments\/(captures|sale)\/([^/]+)$/);
@@ -45,7 +37,7 @@ const refund=(amount='20.00',fee='0.00',id='RF-1',ref='CAP-1')=>({id,status:'COM
 const payment=(id='CAP-1',status='PARTIALLY_REFUNDED')=>({id,status,amount:{currency_code:'USD',value:'100.00'}});
 let tx;
 async function reset(){
- await db.exec('reset role;truncate finance_private.refund_receipts,finance_private.refund_events,coin_purchases,paypal_orders,paypal_subscriptions,subscriptions,vip_bookings');await f.reset();
+ await f.reset();
  tx=randomUUID();await sale(tx,'creator',100,.76);await q("update transactions set paypal_ref='CAP-1',gateway_fee=5,creator_name='Mariana',kind='tip' where id=$1",[tx]);
  refunds=new Map([['RF-1',refund()]]);payments=new Map([['CAP-1',payment()]]);calls=[];failQuery=false;signature=true;cancelFailure=false;
 }
@@ -75,8 +67,8 @@ try{
  await check('Special fee/tax contracts require review instead of guessing a partial split',async()=>{await q('update transactions set service_fee=5 where id=$1',[tx]);await hook(event());assert.equal(await balance(),76);assert.equal((await q('select state from finance_private.refund_events'))[0].state,'review');});
  await check('An original collection fee is required for automatic partial allocation',async()=>{await q('update transactions set gateway_fee=null where id=$1',[tx]);await hook(event());assert.equal(await balance(),76);});
  await check('Original sale amount, share, date and fee cannot be overwritten after refund application',async()=>{await hook(event());for(const sql of ['amount=101','creator_share=.8','gateway_fee=4',"created_at=now()"]){await assert.rejects(()=>q('update transactions set '+sql+' where id=$1',[tx]),/base original/);}assert.equal(await balance(),60);});
- await check('Partial subscription refunds retain paid access and query the original sale rather than event links',async()=>{await q("update transactions set paypal_ref=null,key='paypal-sub:I-SUB1:SALE-1',kind='renewal' where id=$1",[tx]);await q("insert into paypal_subscriptions values('I-SUB1','active')");refunds.set('RF-1',{id:'RF-1',state:'completed',sale_id:'SALE-1',amount:{total:'20.00',currency:'USD'}});payments.set('SALE-1',{id:'SALE-1',state:'partially_refunded',amount:{total:'100.00',currency:'USD'}});const ev=event();ev.event_type='PAYMENT.SALE.REFUNDED';assert.equal((await hook(ev)).status,200);assert.equal(await balance(),60);assert.equal((await q('select status from paypal_subscriptions'))[0].status,'active');assert.equal(calls.filter(u=>u.includes('/billing/subscriptions/')).length,0);});
- await check('A lost full-subscription cancellation acknowledgement can retry without another financial debit',async()=>{await q("update transactions set paypal_ref=null,key='paypal-sub:I-SUB1:SALE-1',kind='renewal' where id=$1",[tx]);await q("insert into paypal_subscriptions values('I-SUB1','active')");refunds.set('RF-1',{id:'RF-1',state:'completed',sale_id:'SALE-1',amount:{total:'100.00',currency:'USD'}});payments.set('SALE-1',{id:'SALE-1',state:'refunded',amount:{total:'100.00',currency:'USD'}});const ev=event();ev.event_type='PAYMENT.SALE.REFUNDED';cancelFailure=true;assert.equal((await hook(ev)).status,503);assert.equal(await balance(),0);const n=await count('finance_journal');cancelFailure=false;assert.equal((await hook(ev)).status,200);assert.equal(await count('finance_journal'),n);});
+ await check('Partial subscription refunds retain paid access and query the original sale rather than event links',async()=>{await q("update transactions set paypal_ref=null,key='paypal-sub:I-SUB1:SALE-1',kind='renewal' where id=$1",[tx]);await q("insert into paypal_subscriptions(id,status) values('I-SUB1','active')");refunds.set('RF-1',{id:'RF-1',state:'completed',sale_id:'SALE-1',amount:{total:'20.00',currency:'USD'}});payments.set('SALE-1',{id:'SALE-1',state:'partially_refunded',amount:{total:'100.00',currency:'USD'}});const ev=event();ev.event_type='PAYMENT.SALE.REFUNDED';assert.equal((await hook(ev)).status,200);assert.equal(await balance(),60);assert.equal((await q('select status from paypal_subscriptions'))[0].status,'active');assert.equal(calls.filter(u=>u.includes('/billing/subscriptions/')).length,0);});
+ await check('A lost full-subscription cancellation acknowledgement can retry without another financial debit',async()=>{await q("update transactions set paypal_ref=null,key='paypal-sub:I-SUB1:SALE-1',kind='renewal' where id=$1",[tx]);await q("insert into paypal_subscriptions(id,status) values('I-SUB1','active')");refunds.set('RF-1',{id:'RF-1',state:'completed',sale_id:'SALE-1',amount:{total:'100.00',currency:'USD'}});payments.set('SALE-1',{id:'SALE-1',state:'refunded',amount:{total:'100.00',currency:'USD'}});const ev=event();ev.event_type='PAYMENT.SALE.REFUNDED';cancelFailure=true;assert.equal((await hook(ev)).status,503);assert.equal(await balance(),0);const n=await count('finance_journal');cancelFailure=false;assert.equal((await hook(ev)).status,200);assert.equal(await count('finance_journal'),n);});
  await check('Original signed event identity cannot be changed or deleted',async()=>{await hook(event());await assert.rejects(()=>q("update finance_private.refund_events set body='{}'"),/inmutable/);await assert.rejects(()=>q('delete from finance_private.refund_events'),/Conservar/);});
  await check('A partial refund case cannot close before a documented coverage decision',async()=>{await hook(event());const id=(await q("select id from finance_incidents where code='DISPUTE_CASE' and reference=$1",[tx]))[0].id;const p=await rpc('finance_case_preview',[id]);assert.ok(p.actions.includes('coverage'));assert.ok(!p.actions.includes('close_review'));await rpc('finance_case_act',[id,randomUUID(),p.hash,'coverage','platform','platform_processing','QA provider and original contract evidence','Platform processing error covered under the existing agreement',null,null]);assert.equal(await balance(),76);const after=await rpc('finance_case_preview',[id]);assert.ok(after.actions.includes('close_review'));});
  await check('A later partial refund invalidates the prior coverage assessment',async()=>{await hook(event());const id=(await q("select id from finance_incidents where code='DISPUTE_CASE' and reference=$1",[tx]))[0].id;let p=await rpc('finance_case_preview',[id]);await rpc('finance_case_act',[id,randomUUID(),p.hash,'coverage','creator','service_delivery','QA provider and service delivery evidence','Creator service delivery issue assessed with original evidence',null,null]);refunds.set('RF-2',refund('10.00','0.00','RF-2'));await hook(event('EV-2','RF-2'));p=await rpc('finance_case_preview',[id]);assert.ok(!p.actions.includes('close_review'));});

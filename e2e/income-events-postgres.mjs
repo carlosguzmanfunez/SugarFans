@@ -1,0 +1,35 @@
+// Every migration on disposable local PostgreSQL; no provider HTTP calls.
+import assert from 'node:assert/strict';import {spawn,spawnSync} from 'node:child_process';import {randomUUID} from 'node:crypto';import {mkdirSync,writeFileSync} from 'node:fs';import {resolve,join} from 'node:path';
+import {createDbTest} from './db-harness.mjs';
+assert.ok(['localhost','127.0.0.1'].includes(process.env.PGHOST),'Only local PostgreSQL is allowed');
+const DB='fr_income_events_test';const {setup,user,psql,check,finish}=createDbTest(DB);
+const lit=x=>"'"+String(typeof x==='object'?JSON.stringify(x):x).replaceAll("'","''")+"'";
+const sql=(fn,args)=>'select public.'+fn+'('+args.map(lit).join(',')+')';
+const rpc=(fn,args)=>JSON.parse(psql(DB,'set role service_role;'+sql(fn,args)));
+const session=statement=>new Promise((yes,no)=>{let out='',err='';const child=spawn('psql',['-X','-q','-At','-v','ON_ERROR_STOP=1','-d',DB],{windowsHide:true,stdio:['pipe','pipe','pipe']});child.stdout.on('data',x=>out+=x);child.stderr.on('data',x=>err+=x);child.on('error',no);child.on('close',code=>code===0?yes(out.trim()):no(Error(err)));child.stdin.end("set statement_timeout='10s';set role service_role;"+statement);});
+finish(async()=>{
+ setup();const creator=user('income-creator@example.invalid','creator'),fan=user('income-fan@example.invalid','fan');
+ const cp=psql(DB,`select creator_profile_id from public.profiles where id=${lit(creator)}`);
+ psql(DB,`set role service_role;select paypal_register('ORDER-1',${lit(fan)},'tip',${lit({creatorProfileId:cp,amount:100})},100);select paypal_fulfill('ORDER-1',${lit(fan)},'CAP-1',100);`);
+ psql(DB,"update transactions set created_at='2026-09-20T12:00:00Z' where paypal_ref='CAP-1'");
+ const balance=()=>Number(psql(DB,`select creator_available_balance(${lit(creator)})`));
+ const event=(eid=randomUUID())=>({id:eid,event_type:'CUSTOMER.DISPUTE.CREATED',resource:{dispute_id:'D-1',disputed_transactions:[{seller_transaction_id:'CAP-1'}]}});
+ const dispute=(status='OPEN',outcome,refund,at='2026-10-23T12:00:00Z')=>({dispute_id:'D-1',status,update_time:at,disputed_transactions:[{seller_transaction_id:'CAP-1',gross_amount:{currency_code:'USD',value:'100.00'}}],...(outcome?{dispute_outcome:{outcome_code:outcome,...(refund?{amount_refunded:{currency_code:'USD',value:refund}}:{})}}:{})});
+ const receive=e=>rpc('paypal_income_receive',['sandbox','QA_APP',e]);const claim=id=>rpc('paypal_income_claim',[id,'sandbox','QA_APP']);
+ await check('All migrations install and preserve original local balances',async()=>{assert.equal(balance(),75.44);assert.equal(psql(DB,'select execution_enabled from finance_private.automation_settings'),'f');});
+ await check('Independent sessions cannot claim the same incoming notice twice',async()=>{const e=receive(event()),s=sql('paypal_income_claim',[e.id,'sandbox','QA_APP']);const claims=(await Promise.all([session(s),session(s)])).map(JSON.parse);assert.equal(claims.filter(c=>c.operation==='work').length,1);assert.equal(claims.filter(c=>c.operation==='wait').length,1);});
+ await check('A newer reconciliation wins over an overlapping older query',async()=>{const a=receive(event()),b=receive(event()),ca=claim(a.id),cb=claim(b.id);rpc('paypal_income_apply',[b.id,cb.token,{resource:dispute('RESOLVED','RESOLVED_SELLER_FAVOUR',undefined,'2026-10-23T12:01:00Z')}]);const old=rpc('paypal_income_apply',[a.id,ca.token,{resource:dispute()}]);assert.equal(old.state,'pending');assert.equal(balance(),75.44);});
+ await check('Resolved buyer partial refund never reverses the full sale on real PostgreSQL',async()=>{const e=receive(event()),c=claim(e.id);const result=rpc('paypal_income_apply',[e.id,c.token,{resource:dispute('RESOLVED','RESOLVED_BUYER_FAVOUR','20.00','2026-10-23T12:02:00Z')}]);assert.equal(result.state,'pending');assert.equal(balance(),0);
+  const refund={id:'RF-1',status:'COMPLETED',amount:{value:'20.00',currency_code:'USD'},links:[{rel:'up',href:'https://api-m.sandbox.paypal.com/v2/payments/captures/CAP-1'}]};const received=rpc('paypal_refund_receive',['sandbox','QA_APP',{id:'RF-EVENT',event_type:'PAYMENT.CAPTURE.REFUNDED',resource:{id:'RF-1'}}]);rpc('paypal_refund_apply',[received.id,'CAP-1',refund,{id:'CAP-1',status:'PARTIALLY_REFUNDED',amount:{value:'100.00',currency_code:'USD'}}]);assert.equal(balance(),59.44);assert.equal(psql(DB,"select status from transactions where paypal_ref='CAP-1'"),'paid');
+ });
+ await check('Capture recovery cannot bypass the native self-payment guard',async()=>{psql(DB,`insert into payout_accounts(user_id,paypal_email) values(${lit(creator)},'creator-paypal@example.invalid') on conflict(user_id) do update set paypal_email=excluded.paypal_email;set role service_role;select paypal_register('ORDER-SELF',${lit(fan)},'tip',${lit({creatorProfileId:cp,amount:100})},100);`);
+  const e=receive({id:randomUUID(),event_type:'PAYMENT.CAPTURE.COMPLETED',resource:{id:'CAP-SELF',supplementary_data:{related_ids:{order_id:'ORDER-SELF'}}}}),c=claim(e.id),capture={id:'CAP-SELF',status:'COMPLETED',amount:{value:'100.00',currency_code:'USD'}};
+  const r=rpc('paypal_income_apply',[e.id,c.token,{resource:capture,order:{id:'ORDER-SELF',payer:{email_address:'creator-paypal@example.invalid'},purchase_units:[{payments:{captures:[capture]}}]}}]);assert.equal(r.state,'pending');assert.equal(psql(DB,"select count(*) from transactions where paypal_ref='CAP-SELF'"),'0');assert.equal(psql(DB,"select count(*) from finance_private.income_actions where reference='CAP-SELF' and kind='refund_capture' and state='prepared'"),'1');
+ });
+ await check('Incoming proofs have RLS, no direct app grants and immutable query history',async()=>{assert.equal(psql(DB,"select bool_and(relrowsecurity) from pg_class where oid in ('finance_private.income_events'::regclass,'finance_private.income_proofs'::regclass)"),'t');for(const role of ['anon','authenticated','service_role'])assert.equal(psql(DB,`select has_table_privilege(${lit(role)},'finance_private.income_proofs','SELECT')`),'f');assert.equal(psql(DB,"select has_function_privilege('service_role','public.paypal_money_back(text,text)','EXECUTE')"),'f');});
+ await check('Both payment gates remain off and no payout exists',async()=>{assert.equal(psql(DB,'select batch_handoff_enabled from finance_private.settings'),'f');assert.equal(psql(DB,'select execution_enabled from finance_private.automation_settings'),'f');assert.equal(psql(DB,'select count(*) from payouts'),'0');});
+ if(process.env.FANSRESERVE_ADVISOR_BIN)await check('Supabase advisors run against the disposable local database',async()=>{
+  const r=spawnSync(process.env.FANSRESERVE_ADVISOR_BIN,['db','advisors','--db-url',`postgresql://postgres@127.0.0.1:${Number(process.env.PGPORT)}/${DB}?sslmode=disable`,'--type','all','--level','warn','--fail-on','none','--output','json'],{windowsHide:true,encoding:'utf8'});
+  const out=resolve(process.env.FANSRESERVE_TEST_OUTPUT??'../../outputs/income-events-2026-10-23');mkdirSync(out,{recursive:true});writeFileSync(join(out,'advisors.json'),r.stdout);writeFileSync(join(out,'advisors-diagnostic.txt'),r.stderr);assert.equal(r.status,0,r.stderr);JSON.parse(r.stdout);
+ });
+});

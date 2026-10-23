@@ -28,6 +28,8 @@
     "test:drafts-db": "node e2e/draft-posts.mjs",
     "test:refunds-db": "node e2e/refunds-db.mjs",
     "test:partial-refunds": "node e2e/partial-refunds.mjs",
+    "test:income-events": "node e2e/income-events.mjs",
+    "test:income-events-ui": "node e2e/income-events-ui.mjs",
     "test:admin-accounts": "node e2e/admin-accounts.mjs",
     "test:creator-links-db": "node e2e/creator-links-db.mjs",
     "test:reserve-discount-db": "node e2e/reserve-discount-db.mjs",
