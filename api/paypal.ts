@@ -209,6 +209,48 @@ const moneyBack = async (e: Env, token: string, ref: string, action: 'refund' | 
   if (typeof subId === 'string' && subId) await cancelAtPaypal(e, token, subId, 'Pago reembolsado en PayPal');
 };
 
+// Refund amounts come from a canonical provider query, never from an event link.
+// Save the signed notification before HTTP/SQL application so a failed attempt
+// can be repeated without losing the notification or applying the refund twice.
+const refundWebhook = async (e: Env, token: string, event: any): Promise<Response> => {
+  const saved = await rpc(e, 'paypal_refund_receive', { p_environment: e.mode, p_sender: e.clientId, p_event: event });
+  if (!saved.ok) throw new Error(saved.error);
+  const receipt = saved.data;
+  if (receipt.state === 'review') return json(200, { ok: true, review: true });
+  let result = receipt.result;
+  if (receipt.state !== 'applied') {
+    const capture = event.event_type === 'PAYMENT.CAPTURE.REFUNDED';
+    const id = String(event.resource?.id ?? '');
+    if (!/^[A-Za-z0-9-]{1,255}$/.test(id)) return json(503, { error: 'Aviso guardado; referencia de devolución por revisar' });
+    const refund = await paypal(e, token, capture ? `/v2/payments/refunds/${encodeURIComponent(id)}` : `/v1/payments/refund/${encodeURIComponent(id)}`);
+    if (refund.status !== 200) return json(503, { error: 'Aviso guardado; comprobante de devolución pendiente' });
+    let ref = capture ? '' : String(refund.data?.sale_id ?? '');
+    if (capture) {
+      const up = (refund.data?.links ?? []).find((link: any) => link.rel === 'up')?.href;
+      try {
+        const url = new URL(up);
+        const hosts = e.mode === 'live' ? ['api-m.paypal.com', 'api.paypal.com'] : ['api-m.sandbox.paypal.com', 'api.sandbox.paypal.com'];
+        if (url.protocol === 'https:' && hosts.includes(url.hostname) && !url.port && !url.search && !url.hash)
+          ref = url.pathname.match(/^\/v2\/payments\/captures\/([A-Za-z0-9-]+)$/)?.[1] ?? '';
+      } catch { /* The saved event remains pending; no untrusted URL is fetched. */ }
+    }
+    if (!/^[A-Za-z0-9-]{1,255}$/.test(ref)) return json(503, { error: 'Aviso guardado; falta vincular el cobro original' });
+    const payment = await paypal(e, token, capture ? `/v2/payments/captures/${encodeURIComponent(ref)}` : `/v1/payments/sale/${encodeURIComponent(ref)}`);
+    if (payment.status !== 200) return json(503, { error: 'Aviso guardado; consulta del cobro pendiente' });
+    const applied = await rpc(e, 'paypal_refund_apply', { p_id: receipt.id, p_ref: ref, p_refund: refund.data, p_payment: payment.data });
+    if (!applied.ok) throw new Error(applied.error);
+    result = applied.data;
+    if (result.state === 'pending') return json(503, { error: 'Aviso guardado; conciliación pendiente' });
+    if (result.state === 'review') return json(200, { ok: true, review: true });
+  }
+  // A partial subscription refund leaves access intact. On a full refund, a lost
+  // cancellation acknowledgement is safely retried even after SQL was committed.
+  if (typeof result?.subscription === 'string' && result.subscription &&
+      !await cancelAtPaypal(e, token, result.subscription, 'Pago reembolsado en PayPal'))
+    return json(503, { error: 'Devolución registrada; cancelación de suscripción pendiente' });
+  return json(200, { ok: true });
+};
+
 // Records every completed payment of a subscription (idempotent). Returns how many it saw.
 const syncPayments = async (e: Env, token: string, subscriptionId: string) => {
   const from = new Date(Date.now() - 400 * 864e5).toISOString();
@@ -507,13 +549,14 @@ const webhook = async (request: Request, e: Env): Promise<Response> => {
       // Refused money gives no access, even if PayPal's activation arrived first.
       if (refused) await rpc(e, 'paypal_subscription_ended', { p_id: subId, p_now: true });
     }
-  } else if ((type === 'PAYMENT.SALE.REFUNDED' || type === 'PAYMENT.SALE.REVERSED') && (res.sale_id || res.id)) {
+  } else if (type === 'PAYMENT.SALE.REFUNDED' || type === 'PAYMENT.CAPTURE.REFUNDED') {
+    return refundWebhook(e, token, event);
+  } else if (type === 'PAYMENT.SALE.REVERSED' && (res.sale_id || res.id)) {
     // A subscription payment given back (REVERSED: a chargeback). The refund carries the sale it undoes.
     await moneyBack(e, token, String(res.sale_id ?? res.id), 'refund');
-  } else if (type === 'PAYMENT.CAPTURE.REFUNDED' || type === 'PAYMENT.CAPTURE.REVERSED') {
+  } else if (type === 'PAYMENT.CAPTURE.REVERSED') {
     // A refund resource links up to its capture; a reversal is the capture itself.
-    const up = ((res.links ?? []) as any[]).find((l) => l?.rel === 'up')?.href;
-    const captureId = type === 'PAYMENT.CAPTURE.REFUNDED' && typeof up === 'string' ? up.split('/').filter(Boolean).pop() : res.id;
+    const captureId = res.id;
     if (captureId) await moneyBack(e, token, String(captureId), 'refund');
   } else if (type.startsWith('CUSTOMER.DISPUTE.')) {
     // Frozen while PayPal decides; given back if the fan wins, released otherwise.

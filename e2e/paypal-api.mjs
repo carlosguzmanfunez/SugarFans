@@ -57,6 +57,15 @@ globalThis.fetch = async (url, init = {}) => {
     db.moneyBack.push(body);
     return res(200, { matched: 1, subscription: body.p_action === 'refund' && body.p_ref === 'SALE-R2' ? 'I-SUB2' : null });
   }
+  if (u.endsWith('/rest/v1/rpc/paypal_refund_receive')) {
+    if (h.apikey !== 'sb_secret_test') return res(401, {});
+    return res(200, { id: body.p_event.id, state: 'pending' });
+  }
+  if (u.endsWith('/rest/v1/rpc/paypal_refund_apply')) {
+    if (h.apikey !== 'sb_secret_test') return res(401, {});
+    db.moneyBack.push({ p_ref: body.p_ref, p_action: 'refund' });
+    return res(200, { state: 'applied', full: true, subscription: body.p_ref === 'SALE-R2' ? 'I-SUB2' : null });
+  }
   if (u.includes('/rest/v1/paypal_orders?id=eq.')) {
     const id = decodeURIComponent(u.split('id=eq.')[1].split('&')[0]);
     const o = db.orders.get(id);
@@ -241,6 +250,10 @@ globalThis.fetch = async (url, init = {}) => {
     pp.saleRefunds.push(saleRefund[1]);
     return res(201, { state: 'completed' });
   }
+  if (u.endsWith('/v2/payments/refunds/REF-1')) return res(200, { id: 'REF-1', status: 'COMPLETED', amount: { value: '10.00', currency_code: 'USD' }, links: [{ rel: 'up', href: 'https://api-m.sandbox.paypal.com/v2/payments/captures/CAP-ORDER2' }] });
+  if (u.endsWith('/v2/payments/captures/CAP-ORDER2')) return res(200, { id: 'CAP-ORDER2', status: 'REFUNDED', amount: { value: '10.00', currency_code: 'USD' } });
+  if (u.endsWith('/v1/payments/refund/RF-9')) return res(200, { id: 'RF-9', sale_id: 'SALE-R2', state: 'completed', amount: { total: '9.99', currency: 'USD' } });
+  if (u.endsWith('/v1/payments/sale/SALE-R2')) return res(200, { id: 'SALE-R2', state: 'refunded', amount: { total: '9.99', currency: 'USD' } });
   if (u.endsWith('/v1/oauth2/token')) return res(200, { access_token: 'pp-token' });
   if (u.endsWith('/v2/checkout/orders') && init.method === 'POST') {
     const id = `ORDER${pp.orders.size + 1}`;
@@ -607,7 +620,7 @@ await check('Un retiro a un email sin cuenta PayPal se puede cancelar y vuelve a
 });
 
 await check('La service role solo se usa en llamadas del servidor', async () => {
-  const leaked = calls.filter((c) => c.h.apikey === 'sb_secret_test' && !/paypal_(register|fulfill|mark|catalog|self_pay|money_back|subscription_(register|activate|payment|ended)|payout_(start|begin|claim|submission_result|event_receive|event_pending|reconcile_begin|reconcile_finish))|\/rest\/v1\/payouts\?|\/rest\/v1\/paypal_orders\?id=eq\.[^&]+&(status=eq\.created|select=kind,params)$/.test(c.u));
+  const leaked = calls.filter((c) => c.h.apikey === 'sb_secret_test' && !/paypal_(register|fulfill|mark|catalog|self_pay|money_back|refund_(receive|apply)|subscription_(register|activate|payment|ended)|payout_(start|begin|claim|submission_result|event_receive|event_pending|reconcile_begin|reconcile_finish))|\/rest\/v1\/payouts\?|\/rest\/v1\/paypal_orders\?id=eq\.[^&]+&(status=eq\.created|select=kind,params)$/.test(c.u));
   expect(leaked.length === 0, leaked.map((c) => c.u).join(', '));
 });
 

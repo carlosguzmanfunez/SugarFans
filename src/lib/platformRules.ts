@@ -178,7 +178,8 @@ export const validateReport = (input: ReportInput, signedIn: boolean): Check => 
 };
 
 // What the creator earns from one payment: 80%, or 60% of a gift.
-export const creatorCut = (t: Pick<Transaction, 'amount' | 'share'>) => t.amount * (t.share ?? CREATOR_SHARE);
+export const creatorCut = (t: Pick<Transaction, 'amount' | 'share' | 'creatorRefundLoss' | 'platformCovers'>) =>
+  Math.max(0, t.amount * (t.share ?? CREATOR_SHARE) - (t.platformCovers ? 0 : t.creatorRefundLoss ?? 0));
 
 // Cycles close at midnight on the 26th in Honduras. Unpaid balances carry over;
 // sending/paid payouts remain deducted, including those from the old calendar.
@@ -192,7 +193,7 @@ export const computeEarnings = (sales: Transaction[], payouts: Payout[], at = ne
   // A withdrawal PayPal couldn't deliver goes back to the balance.
   const withdrawn = round2(payouts.filter((p) => p.status !== 'failed').reduce((s, p) => s + p.amount, 0));
   return {
-    gross: round2(paid.reduce((s, t) => s + t.amount, 0)),
+    gross: round2(paid.reduce((s, t) => s + t.amount - (t.refundedAmount ?? 0), 0)),
     thisMonth: book?.pending ?? pending,
     pending: book?.pending ?? pending, // current cycle, closes on the 26th at 00:00 Honduras
     totalEarned: book?.total_earned ?? round2(credited + pending),
