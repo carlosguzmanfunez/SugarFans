@@ -1,7 +1,7 @@
 // Bounded, resumable scheduled review. Deployment never enables money gates.
 import {timingSafeEqual} from 'node:crypto';
 import {sendEmail,logServerError} from './_mail.js';
-import {createStoredPayoutSession} from './paypal.js';
+import {createStoredPayoutSession,recoverIncomingEvents} from './paypal.js';
 import {createPayoutControl,payoutClock,payoutWorkLimit,type PayoutClock} from './_payout-provider.js';
 import {reviewScheduleStatus} from '../src/lib/payoutSchedule.js';
 const clean=(s:string|undefined)=>s?.trim().replace(/^["']|["']$/g,'').trim()||undefined;
@@ -102,6 +102,9 @@ export async function POST(request:Request):Promise<Response>{
  if(!role.ok||await role.json()!==true)return json(403,{error:'Esta revisión solo está disponible para administradores'});
  const body=await request.json().catch(()=>({})) as {action?:string};
  if(body.action==='schedule-status')return json(200,reviewScheduleStatus());
+ if(body.action==='recover-income'){
+  try{return json(200,await recoverIncomingEvents());}catch{return json(503,{error:'No pudimos comprobar los avisos pendientes. Sus referencias se conservan.'});}
+ }
  if(body.action==='watchdog-status'){
   const secret=clean(process.env.WATCHDOG_TRIGGER_TOKEN);
   if(!secret)return json(503,{error:'El vigilante independiente aún no está configurado'});

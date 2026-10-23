@@ -18,11 +18,26 @@ export const CREATOR_SHARE = 0.8;
 export const MIN_PAYOUT = 50;
 // Lowest monthly subscription price (database constraint profiles_subscription_price_check).
 export const MIN_SUBSCRIPTION = 4.99;
-// Legacy withdrawal-cost estimate, reserved before submission (same as public.payout_fee).
-// It is not a guaranteed PayPal tariff; verified differences settle separately.
+// Honduras, USD: 2% of the amount RECEIVED, capped at $1 per payment.
+// The input is the creator's whole balance, including the cost to send it.
+// Use cents to find the largest affordable transfer. A possible rounding cent
+// remains in the cost reservation until the verified provider cost is settled.
 export const PAYOUT_FEE_RATE = 0.02;
-export const PAYOUT_FEE_MAX = 20;
-export const payoutFee = (amount: number) => Math.min(Math.round(amount * PAYOUT_FEE_RATE * 100) / 100, PAYOUT_FEE_MAX);
+export const PAYOUT_FEE_MAX = 1;
+export const PAYOUT_FEE_POLICY = 'hn-usd-2026-10-23';
+export const payoutFee = (amount: number) => {
+  if (!Number.isFinite(amount) || amount > 999999999999.99) throw new Error('Saldo de retiro no válido');
+  if (amount <= 0) return 0;
+  const gross = Math.round(amount * 100);
+  if (gross >= 5100) return PAYOUT_FEE_MAX;
+  let low = 0, high = gross;
+  while (low < high) {
+    const sent = low + Math.ceil((high - low) / 2);
+    const cost = Math.min(Math.floor((sent + 25) / 50), 100);
+    if (sent + cost <= gross) low = sent; else high = sent - 1;
+  }
+  return (gross - low) / 100;
+};
 
 export const docTypeLabel: Record<DocType, string> = {
   dni: 'Documento nacional de identidad',
@@ -178,7 +193,8 @@ export const validateReport = (input: ReportInput, signedIn: boolean): Check => 
 };
 
 // What the creator earns from one payment: 80%, or 60% of a gift.
-export const creatorCut = (t: Pick<Transaction, 'amount' | 'share'>) => t.amount * (t.share ?? CREATOR_SHARE);
+export const creatorCut = (t: Pick<Transaction, 'amount' | 'share' | 'creatorRefundLoss' | 'platformCovers'>) =>
+  Math.max(0, t.amount * (t.share ?? CREATOR_SHARE) - (t.platformCovers ? 0 : t.creatorRefundLoss ?? 0));
 
 // Cycles close at midnight on the 26th in Honduras. Unpaid balances carry over;
 // sending/paid payouts remain deducted, including those from the old calendar.
@@ -192,7 +208,7 @@ export const computeEarnings = (sales: Transaction[], payouts: Payout[], at = ne
   // A withdrawal PayPal couldn't deliver goes back to the balance.
   const withdrawn = round2(payouts.filter((p) => p.status !== 'failed').reduce((s, p) => s + p.amount, 0));
   return {
-    gross: round2(paid.reduce((s, t) => s + t.amount, 0)),
+    gross: round2(paid.reduce((s, t) => s + t.amount - (t.refundedAmount ?? 0), 0)),
     thisMonth: book?.pending ?? pending,
     pending: book?.pending ?? pending, // current cycle, closes on the 26th at 00:00 Honduras
     totalEarned: book?.total_earned ?? round2(credited + pending),

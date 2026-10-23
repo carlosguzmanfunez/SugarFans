@@ -6,7 +6,7 @@ Política confirmada por el propietario el 21 de octubre de 2026. Complementa `p
 
 En las ventas ordinarias, el costo de cobro se resta antes de repartir el neto. El reparto base sigue siendo 80% para el creador y 20% para Fans Reserve; niveles, referidos, regalos, descuentos y cuentas especiales conservan sus reglas. No se recalculan ventas históricas.
 
-El creador cubre el costo real de enviar su retiro, según el contrato de creadores 6.4.3. La cifra que reserva hoy el sistema es una estimación heredada, no una tarifa garantizada de PayPal. No se altera su fórmula en esta entrega: la tarifa aplicable a la cuenta comercial debe confirmarse con el proveedor.
+El creador cubre el costo real de enviar su retiro, según el contrato de creadores 6.4.3. La actualización local del 23 de octubre añade la política de Honduras en USD: 2% de lo recibido, hasta USD1 por pago. Se calcula cuánto enviar para que el dinero recibido y el costo quepa en el saldo disponible. Un posible centavo sobrante por redondeo queda en el apartado y vuelve al creador mediante este procedimiento cuando el costo se comprueba. Véase [costo de envío de Honduras](honduras-payout-cost.md). Los envíos ya preparados conservan sus importes anteriores; no se reescribe su comprobante.
 
 La diferencia del creador es **costo estimado − costo real comprobado**. Por ejemplo, estimado USD1 y confirmado USD0.98 producen USD0.02 a su favor. No constituyen una comisión nueva de Fans Reserve. Una corrección de costos no determina culpabilidad ni sustituye las reglas de reembolsos y disputas del contrato 6.2.3.
 

@@ -7,6 +7,7 @@ import AdminCasework from './AdminCasework';
 import AdminPayoutRehearsal from './AdminPayoutRehearsal';
 import AdminPayoutGroups from './AdminPayoutGroups';
 import AdminPayoutSchedule from './AdminPayoutSchedule';
+import AdminIncomingEvents from './AdminIncomingEvents';
 const date=(value:string)=>new Intl.DateTimeFormat('es-HN',{dateStyle:'medium',timeStyle:'short',timeZone:'America/Tegucigalpa'}).format(new Date(value));
 const button='rounded-xl bg-gray-900 text-white px-4 py-2 text-sm disabled:opacity-40';
 export default function AdminPayoutOperations({api,caseReference}:{api:FinanceBackend;caseReference?:string}){
@@ -29,6 +30,7 @@ export default function AdminPayoutOperations({api,caseReference}:{api:FinanceBa
   {error&&<p role="alert" className="rounded-xl p-3 bg-red-50 text-red-800">{error}</p>}{notice&&<p role="status" className="rounded-xl p-3 bg-green-50 text-green-800">{notice}</p>}
   {!data&&!error&&<p role="status">Cargando la revisión…</p>}
   <AdminPayoutSchedule api={api} jobs={data?.jobs??[]} refreshKey={revision}/>
+  <AdminIncomingEvents api={api} refreshKey={revision} onChanged={()=>{setRevision(x=>x+1);platformChanged();}}/>
   <AdminPayoutRehearsal/>
   {data&&<>
    <AdminPayoutGroups api={api} refreshKey={revision} onAttend={api.caseList?(reference,incident)=>setCaseTarget(t=>({reference,incident,navigation:t.navigation+1})):undefined}/>

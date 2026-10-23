@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Notice from './Notice';
+import PayoutCostBreakdown from './PayoutCostBreakdown';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -16,7 +17,6 @@ import {
   nextCreditDate,
   transactionLabel,
   payoutAccountLabel,
-  payoutFee,
   type Payout,
 } from '../lib/platform';
 import { GIFT_SHARE } from '../lib/giftRules';
@@ -75,7 +75,6 @@ const CreatorPayouts: React.FC = () => {
   const window = payoutWindow(calendar.at);
   const creditDay = fmtDate(nextCreditDate(calendar.at));
   const canWithdraw = book.ready && !!calendar.data && !loading && window.open && !!user.isVerified && !!payoutAccount && !book.data?.holds?.length && !data.payouts.some(p=>p.status==='sending') && earnings.available >= terms.min;
-  const fee = payoutFee(earnings.available);
   const verified = !!user.isVerified;
 
   const saveAccount = async () => {
@@ -131,7 +130,8 @@ const CreatorPayouts: React.FC = () => {
           Tus ganancias se acumulan del 26 de cada mes al 25 del siguiente. Al comenzar el 26 se cierra ese ciclo y empieza uno nuevo.
           La ventana de pago va del 26 al día 1 siguiente, ambos incluidos, en hora de Honduras (UTC−6).
           Por ahora solicita aquí el saldo completo durante esa ventana, a partir de {money(terms.min)} USD, a tu cuenta PayPal (desde ahí puedes pasarlo a tu banco). Todo se paga en dólares (USD).
-          El costo real de enviar el retiro corre por tu cuenta. El panel muestra una estimación; las diferencias comprobadas con PayPal se registran a tu favor o a tu cargo, conservando el retiro original.
+          Tú cubres lo que PayPal cobra por enviar tu pago. Para envíos en USD desde nuestra cuenta de Honduras, calculamos el 2% de lo que recibirás, hasta USD 1 por pago.
+          Primero apartamos ese costo de tu saldo. Después comprobamos cuánto cobró PayPal: cualquier diferencia queda registrada a tu favor o a tu cargo. Un centavo que sobre por redondeo sigue siendo tuyo.
         </p>
         <p className="text-sm text-gray-700 mb-4" data-testid="payout-window">{window.open ? 'Ventana de pago abierta' : 'Próxima ventana de pago'}: {fmtDate(window.nextStart)} – {fmtDate(new Date(Date.parse(window.nextEnd) - 1).toISOString())}. Los saldos no pagados se conservan; las ganancias del nuevo ciclo se pagan en su próxima ventana.</p>
         {!!book.data?.holds?.length&&<div className="rounded-xl bg-amber-50 text-amber-900 p-3 mb-4 text-sm" data-testid="creator-payout-holds"><p className="font-medium">Tus retiros están en revisión</p><ul className="list-disc pl-5 mt-1">{book.data.holds.map(h=><li key={h.id}>{h.kind==='fee'?'Revisión del costo de un retiro':h.kind==='manual'?'Revisión administrativa de tu cuenta':'Comprobación de seguridad de pagos'}</li>)}</ul><p className="mt-2">El saldo permanece registrado. Puedes pedir una revisión a soporte; cada motivo se libera cuando termina su comprobación.</p></div>}
@@ -178,11 +178,7 @@ const CreatorPayouts: React.FC = () => {
           >
             {book.ready?`Retirar ${money(earnings.available)}`:'Confirmando saldo…'}
           </button>
-          {canWithdraw && (
-            <p className="text-xs text-gray-500">
-              Importe previsto de envío: {money(earnings.available - fee)} (costo estimado del retiro: {money(fee)}).
-            </p>
-          )}
+          {canWithdraw && <PayoutCostBreakdown balance={earnings.available}/>}
           {book.ready && !loading && window.open && calendar.data && earnings.available < terms.min && (
             <p className="text-xs text-gray-500">Podrás retirar cuando tu saldo disponible llegue a {money(terms.min)}.</p>
           )}

@@ -1,11 +1,12 @@
 // Planning exercise only: no backend, credentials, storage or provider imports.
 import {earningsCycle,hondurasDateKey,payoutWindow} from './payoutCalendar';
+import {payoutFee} from './platformRules';
 export type Cadence='daily'|'hourly'|'quarter_hour'|'five_minutes';
 export interface RehearsalInput {creators:number;funds:number;day:string;cadence:Cadence;caseLimit?:number;scenario:'normal'|'incidents';renewFunds:boolean}
 export interface VirtualCreator {reference:string;name:string;state:'ready'|'blocked'|'uncertain'|'confirmed';reason:string;submissions:number}
 export interface Rehearsal {input:RehearsalInput;at:string;firstAt:string;cutoff:string;windowEnd:string;rows:VirtualCreator[];runs:number;spentBudget:number;paused:boolean;history:{at:string;sent:number;confirmed:number;waiting:number;reason:string}[]}
 export const VIRTUAL_WORK_LIMIT=5;
-export const VIRTUAL_GROSS=100, VIRTUAL_FEE=2, VIRTUAL_NET=98, VIRTUAL_BUDGET=103;
+export const VIRTUAL_GROSS=100, VIRTUAL_FEE=payoutFee(VIRTUAL_GROSS), VIRTUAL_NET=VIRTUAL_GROSS-VIRTUAL_FEE, VIRTUAL_BUDGET=VIRTUAL_GROSS;
 const intervals:Record<Cadence,number>={daily:1440,hourly:60,quarter_hour:15,five_minutes:5};
 export function createRehearsal(input:RehearsalInput):Rehearsal{
  if(!Number.isInteger(input.creators)||input.creators<1||input.creators>1000)throw Error('Elige entre 1 y 1.000 creadores.');

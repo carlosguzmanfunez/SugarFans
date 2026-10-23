@@ -1,0 +1,20 @@
+// Full migration history and actual RPCs on disposable local PostgreSQL only.
+import assert from 'node:assert/strict';import {spawnSync} from 'node:child_process';import {mkdirSync,writeFileSync} from 'node:fs';import {resolve,join} from 'node:path';
+import {createDbTest} from './db-harness.mjs';
+assert.ok(['127.0.0.1','localhost'].includes(process.env.PGHOST),'Use only local PostgreSQL');
+const DB='fr_hn_payout_cost_test';const {setup,user,psql,check,finish}=createDbTest(DB);
+const lit=v=>"'"+String(typeof v==='object'?JSON.stringify(v):v).replaceAll("'","''")+"'";
+const rpc=(name,args)=>JSON.parse(psql(DB,`set role service_role;select public.${name}(${args.map(lit).join(',')})`));
+finish(async()=>{
+ setup();const creator=user('hn-creator@example.invalid','creator'),fan=user('hn-fan@example.invalid','fan'),cp=psql(DB,`select creator_profile_id from profiles where id=${lit(creator)}`);
+ await check('All migrations install the Honduras USD rule and preserve both execution gates',async()=>{for(const[a,fee]of[[25,.49],[50,.98],[75.44,1],[100,1],[20000,1]])assert.equal(Number(psql(DB,`select payout_fee(${a})`)),fee);assert.equal(psql(DB,'select execution_enabled from finance_private.automation_settings'),'f');assert.equal(psql(DB,'select batch_handoff_enabled from finance_private.settings'),'f');});
+ await check('A native USD100 tip still earns USD75.44; changing sending cost never changes the sale split',async()=>{psql(DB,`set role service_role;select paypal_register('HN-ORDER',${lit(fan)},'tip',${lit({creatorProfileId:cp,amount:100})},100);select paypal_fulfill('HN-ORDER',${lit(fan)},'HN-CAPTURE',100);`);const sale=JSON.parse(psql(DB,"select row_to_json(t) from transactions t where paypal_ref='HN-CAPTURE'"));assert.equal(Number(sale.gateway_fee),5.70);assert.equal(Number(sale.amount)*Number(sale.creator_share),75.44);});
+ await check('The native withdrawal and immutable provider request send USD74.44 with USD1 reserved',async()=>{
+  // The real date is outside the payment window. Override only this disposable
+  // database's window check; production dates and cron are never touched.
+  psql(DB,`update profiles set is_verified=true where id=${lit(creator)};insert into payout_accounts(user_id,paypal_email) values(${lit(creator)},'hn-receiver@example.invalid');update transactions set created_at='2026-09-20T12:00:00Z' where paypal_ref='HN-CAPTURE';create or replace function public.payout_window_open(p_at timestamptz) returns boolean language sql stable set search_path='' as $$select true$$;`);
+  const p=rpc('paypal_payout_begin',[creator,'sandbox','QA_HN_APP']);assert.equal(Number(p.net),74.44);assert.equal(Number(p.fee),1);assert.equal(psql(DB,`select request_body#>>'{items,0,amount,value}' from paypal_payout_submissions where payout_id=${lit(p.id)}`),'74.44');assert.equal(psql(DB,'select count(*) from finance_journal where kind=\'payout_confirmed\''),'0');assert.equal(psql(DB,`select creator_available_balance(${lit(creator)})`),'0.00');
+ });
+ await check('Browser roles cannot prepare withdrawals or change the creator-share calculations',async()=>{for(const role of ['anon','authenticated'])assert.equal(psql(DB,`select has_function_privilege(${lit(role)},'public.paypal_payout_begin(uuid,text,text)','EXECUTE')`),'f');assert.equal(psql(DB,'select batch_handoff_enabled from finance_private.settings'),'f');assert.equal(psql(DB,'select execution_enabled from finance_private.automation_settings'),'f');});
+ if(process.env.FANSRESERVE_ADVISOR_BIN)await check('Supabase advisors inspect the new rule in the local test database',async()=>{const r=spawnSync(process.env.FANSRESERVE_ADVISOR_BIN,['db','advisors','--db-url',`postgresql://postgres@127.0.0.1:${Number(process.env.PGPORT)}/${DB}?sslmode=disable`,'--type','all','--level','warn','--fail-on','none','--output','json'],{windowsHide:true,encoding:'utf8'});const out=resolve('../../outputs/honduras-payout-cost-2026-10-23');mkdirSync(out,{recursive:true});writeFileSync(join(out,'advisors.json'),r.stdout);writeFileSync(join(out,'advisors-diagnostic.txt'),r.stderr);assert.equal(r.status,0,r.stderr);JSON.parse(r.stdout);});
+});

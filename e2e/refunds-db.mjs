@@ -3,13 +3,34 @@
 // PayPal decides, and nobody pays their own creator account from a fan account.
 // Usage: PGHOST=/tmp PGPORT=5432 PGUSER=postgres npm run test:refunds-db
 import { createDbTest } from './db-harness.mjs';
+import { randomUUID } from 'node:crypto';
 
 const DB = 'fr_refunds_test';
 const { check, expect, psql, as, raises, setup, user, finish } = createDbTest(DB);
 
 const sr = (sql) => psql(DB, `set role service_role; ${sql}`);
 const profileOf = (uid) => psql(DB, `select creator_profile_id from public.profiles where id = '${uid}'`);
-const back = (ref, action) => JSON.parse(sr(`select public.paypal_money_back('${ref}', '${action}')`));
+const literal = value => "'"+String(typeof value==='object'?JSON.stringify(value):value).replaceAll("'","''")+"'";
+const rpc = (name,args) => JSON.parse(sr(`select public.${name}(${args.map(literal).join(',')})`));
+let nativeVersion=0;
+// Simulated canonical provider evidence enters the same server-only contracts as
+// the API. The retired arbitrary refund writer is deliberately never used.
+const back = (ref, action) => {
+  const original=JSON.parse(psql(DB,`select json_build_object('amount',t.amount,'sale',t.key like 'paypal-sub:%') from public.transactions t where t.kind<>'referral' and (t.paypal_ref=${literal(ref)} or (t.key like 'paypal-sub:%' and split_part(t.key,':',3)=${literal(ref)}))
+    union all select json_build_object('amount',c.price,'sale',false) from public.coin_purchases c where c.paypal_ref=${literal(ref)}`));
+  const amount=Number(original.amount).toFixed(2);
+  if(action==='refund'){
+    const refund=original.sale?{id:'RF-'+ref,state:'completed',sale_id:ref,amount:{total:amount,currency:'USD'}}:
+      {id:'RF-'+ref,status:'COMPLETED',amount:{value:amount,currency_code:'USD'},links:[{rel:'up',href:'https://api-m.sandbox.paypal.com/v2/payments/captures/'+ref}]};
+    const event={id:'EVENT-RF-'+ref,event_type:original.sale?'PAYMENT.SALE.REFUNDED':'PAYMENT.CAPTURE.REFUNDED',resource:refund};
+    const saved=rpc('paypal_refund_receive',['sandbox','NATIVE_QA_APP',event]);
+    return rpc('paypal_refund_apply',[saved.id,ref,refund,original.sale?{id:ref,state:'refunded',amount:{total:amount,currency:'USD'}}:{id:ref,status:'REFUNDED',amount:{value:amount,currency_code:'USD'}}]);
+  }
+  const resolved=action==='release',native={dispute_id:'D-'+ref,status:resolved?'RESOLVED':'OPEN',update_time:new Date(Date.parse('2026-10-23T12:00:00Z')+(++nativeVersion)*1000).toISOString(),disputed_transactions:[{seller_transaction_id:ref,gross_amount:{currency_code:'USD',value:amount}}],...(resolved?{dispute_outcome:{outcome_code:'RESOLVED_SELLER_FAVOUR'}}:{})};
+  const saved=rpc('paypal_income_receive',['sandbox','NATIVE_QA_APP',{id:randomUUID(),event_type:resolved?'CUSTOMER.DISPUTE.RESOLVED':'CUSTOMER.DISPUTE.CREATED',resource:native}]);
+  const claimed=rpc('paypal_income_claim',[saved.id,'sandbox','NATIVE_QA_APP']);
+  return rpc('paypal_income_apply',[saved.id,claimed.token,{resource:native}]);
+};
 const status = (where) => psql(DB, `select string_agg(status, ',' order by created_at, id) from public.transactions where ${where}`);
 const balance = (uid) => Number(psql(DB, `select public.coin_balance('${uid}')`));
 const pay = (order, uid, kind, params, amount, capture) =>
@@ -28,10 +49,11 @@ finish(async () => {
 
   await check('Una propina pagada con PayPal recuerda su cobro', async () => {
     pay('o-tip', fan, 'tip', { creatorProfileId: cp, amount: 10 }, 10, 'CAP-TIP');
+    psql(DB, "update public.transactions set created_at=now()-interval '40 days' where paypal_ref='CAP-TIP'");
     expect(psql(DB, `select paypal_ref from public.transactions where kind = 'tip'`) === 'CAP-TIP', 'sin referencia');
   });
   await check('Disputa: la venta queda congelada; si PayPal da la razón al creador, vuelve', async () => {
-    expect(back('CAP-TIP', 'dispute').matched === 1, 'no encontró la venta');
+    expect(back('CAP-TIP', 'dispute').state === 'applied', 'no concilió la disputa');
     expect(status(`kind = 'tip'`) === 'disputed', status(`kind = 'tip'`));
     back('CAP-TIP', 'release');
     expect(status(`kind = 'tip'`) === 'paid', 'no volvió a pagada');
@@ -41,8 +63,10 @@ finish(async () => {
     expect(back('CAP-TIP', 'refund').matched === 1, 'no la reembolsó');
     expect(status(`kind = 'tip'`) === 'refunded', status(`kind = 'tip'`));
     expect(psql(DB, `select status from public.paypal_orders where id = 'o-tip'`) === 'refunded', 'el pedido sigue completado');
-    expect(back('CAP-TIP', 'refund').matched === 0, 'contó dos veces');
-    expect(back('CAP-TIP', 'release').matched === 0, 'un reembolso volvió a pagado');
+    const receipts=psql(DB,"select count(*) from finance_private.refund_receipts"),journal=psql(DB,"select count(*) from public.finance_journal");
+    back('CAP-TIP', 'refund');
+    expect(psql(DB,"select count(*) from finance_private.refund_receipts")===receipts && psql(DB,"select count(*) from public.finance_journal")===journal, 'contó dos veces');
+    back('CAP-TIP', 'release');expect(status(`kind = 'tip'`) === 'refunded', 'un reembolso volvió a pagado');
   });
   await check('Una Reserve reembolsada se cancela', async () => {
     const b = psql(DB, `insert into public.vip_bookings (experience_id, creator_profile_id, title, creator_name, price, fan_id, fan_name, fan_email, date, time, status, details) values ('custom', '${cp}', 'Clase', 'Lola', 20, '${fan}', 'Fan', 'fan@test.com', current_date + 5, '10:00', 'accepted', '{"kind":"custom"}') returning id`);
@@ -78,21 +102,23 @@ finish(async () => {
   });
   await check('Si no fue culpa del creador, un admin lo cubre y el creador conserva su parte', async () => {
     const admin = user('admin@test.com', 'fan');
-    psql(DB, `update public.profiles set role = 'admin' where id = '${admin}';
-              update public.transactions set created_at = now() - interval '40 days' where kind = 'tip' and creator_profile_id = '${cp}'`);
+    psql(DB, `update public.profiles set role = 'admin' where id = '${admin}'`);
     const avail = () => Number(psql(DB, `select public.creator_available_balance('${lola}')`));
     const before = avail();
     const tip = psql(DB, `select id from public.transactions where paypal_ref = 'CAP-TIP'`);
-    raises(() => as(lola, `select public.admin_cover_refund('${tip}', true)`), /no está permitida/, 'el creador se lo cubre solo');
-    as(admin, `select public.admin_cover_refund('${tip}', true)`);
+    const incident=psql(DB,`select id from public.finance_incidents where code='DISPUTE_CASE' and reference='${tip}'`);
+    raises(() => as(lola, `select public.finance_case_preview('${incident}')`), /no está permitida|para administradores/, 'el creador se lo cubre solo');
+    const cover=party=>{const preview=JSON.parse(as(admin,`select public.finance_case_preview('${incident}')`));as(admin,`select public.finance_case_act('${incident}','${randomUUID()}','${preview.hash}','coverage','${party}','${party==='platform'?'platform_processing':'service_delivery'}','QA original provider proof and contract reviewed','QA documented responsibility and coverage assessment',null,null)`);};
+    cover('platform');
     expect(avail() > before, `saldo ${before} → ${avail()}`);
-    as(admin, `select public.admin_cover_refund('${tip}', false)`);
+    cover('creator');
     expect(avail() === before, 'quitar la cobertura no lo descontó');
-    const paid = psql(DB, `select id from public.transactions where status = 'paid' and kind = 'renewal' limit 1`) || psql(DB, `select id from public.transactions where status = 'paid' and kind <> 'referral' limit 1`);
-    raises(() => as(admin, `select public.admin_cover_refund('${paid}', true)`), /reembolsada o en disputa/, 'una venta pagada');
+    raises(() => as(admin, `select public.admin_cover_refund('${tip}', true)`), /expediente/i, 'sin evaluación de expediente');
   });
-  await check('Solo el servidor marca reembolsos', async () => {
+  await check('Un fan no registra avisos y el escritor antiguo permanece retirado incluso para el servidor', async () => {
     raises(() => as(fan, `select public.paypal_money_back('CAP-VIP', 'release')`), /permission denied/, 'un fan');
+    raises(() => sr(`select public.paypal_money_back('CAP-VIP', 'release')`), /permission denied/, 'el servidor usando el escritor retirado');
+    raises(() => as(fan, `select public.paypal_refund_receive('sandbox','NATIVE_QA_APP','{}')`), /permission denied/, 'un fan registrando un aviso');
   });
 
   console.log('\nPagarse a uno mismo');

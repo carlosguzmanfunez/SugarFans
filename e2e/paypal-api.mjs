@@ -25,6 +25,7 @@ const calls = [];
 // These fakes check API contracts. The real SQL, permissions and event races are
 // exercised separately by payout-recovery.mjs + payout-event-cases.mjs.
 const payoutEvents = new Map(), payoutQueries = new Map();
+const incomeEvents=new Map(),incomeNative=new Map(),incomeActions=new Map();
 const res = (status, body) =>
   status === 204 ? new Response(null, { status }) : new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 
@@ -33,6 +34,39 @@ globalThis.fetch = async (url, init = {}) => {
   const body = init.body && typeof init.body === 'string' && init.body.startsWith('{') ? JSON.parse(init.body) : init.body;
   const h = init.headers ?? {};
   calls.push({ u, body, h });
+  // Wire-contract fakes only. Real incoming SQL, ordering, fees, leases and
+  // uncertain external effects are covered by income-events.mjs on PostgreSQL.
+  if(u.endsWith('/rest/v1/rpc/paypal_income_receive')){
+    if(h.apikey!=='sb_secret_test')return res(401,{});
+    const e=body.p_event,r=e.resource??{};incomeEvents.set(e.id,e);
+    if(e.event_type==='PAYMENT.SALE.COMPLETED')incomeNative.set('/v1/payments/sale/'+r.id,{...r,state:'completed',billing_agreement_id:r.billing_agreement_id,amount:{...r.amount,currency:'USD'}});
+    if(e.event_type.startsWith('CUSTOMER.DISPUTE.'))incomeNative.set('/v1/customer/disputes/'+r.dispute_id,{...r,status:e.event_type.endsWith('RESOLVED')?'RESOLVED':'OPEN',update_time:'2026-10-26T12:00:00Z'});
+    if(e.event_type.startsWith('BILLING.SUBSCRIPTION.')){const sub=pp.subs.get(r.id);if(sub)sub.status=e.event_type.endsWith('SUSPENDED')?'SUSPENDED':e.event_type.endsWith('ACTIVATED')?'ACTIVE':'CANCELLED';}
+    return res(200,{id:e.id,state:'pending'});
+  }
+  if(u.endsWith('/rest/v1/rpc/paypal_income_claim'))return res(200,{operation:'work',token:'QA-INCOME-TOKEN',body:incomeEvents.get(body.p_id)});
+  if(u.endsWith('/rest/v1/rpc/paypal_income_context'))return res(200,{orders:[]});
+  if(u.endsWith('/rest/v1/rpc/paypal_income_retry'))return res(200,{state:'pending'});
+  if(u.endsWith('/rest/v1/rpc/paypal_income_apply')){
+    const event=incomeEvents.get(body.p_id),r=body.p_proof.resource,actions=[];
+    if(event.event_type==='PAYMENT.SALE.COMPLETED'){
+      const sub=body.p_proof.subscription,id=sub.id,o=db.subs.get(id);
+      if(o?.status==='created'){o.status='active';db.access.set(o.user+':'+o.creator,id);}
+      const refused=['self-2','demo-2','banned-2'].includes(o?.creator);
+      if(!o||refused||db.access.get(o.user+':'+o.creator)!==id){
+        for(const [kind,reference] of [['cancel_subscription',id],['refund_sale',r.id]]){const key=kind+'/'+reference;incomeActions.set(key,{id:key,kind,reference,state:'prepared',amount:Number(r.amount.total),key:'refund-'+reference});actions.push(key);}
+        db.ended.push({p_id:id,p_now:true});
+      }else db.payments.set(r.id,{p_id:id,p_sale_id:r.id,p_amount:Number(r.amount.total)});
+    }else if(event.event_type.startsWith('CUSTOMER.DISPUTE.')){
+      db.moneyBack.push({p_ref:r.disputed_transactions[0].seller_transaction_id,p_action:r.status==='RESOLVED'&&r.dispute_outcome?.outcome_code==='RESOLVED_SELLER_FAVOUR'?'release':'dispute'});
+    }else if(event.event_type.endsWith('.REVERSED'))db.moneyBack.push({p_ref:r.id,p_action:'refund'});
+    else if(event.event_type.startsWith('BILLING.SUBSCRIPTION.'))db.ended.push({p_id:r.id,p_now:r.status==='SUSPENDED'});
+    return res(200,{state:actions.length?'pending':'applied',...(actions.length?{actions}:{})});
+  }
+  if(u.endsWith('/rest/v1/rpc/paypal_income_action_claim')){const a=incomeActions.get(body.p_id),operation=a.state==='confirmed'?'done':a.state==='prepared'&&body.p_allow_send?'send':'check';if(operation==='send')a.state='attempted';return res(200,{...a,operation});}
+  if(u.endsWith('/rest/v1/rpc/paypal_income_action_confirm')){const a=incomeActions.get(body.p_id),r=body.p_proof.resource,confirmed=a.kind==='cancel_subscription'?['CANCELLED','EXPIRED'].includes(r.status):['REFUNDED','refunded'].includes(r.state??r.status);if(confirmed)a.state='confirmed';return res(200,{confirmed});}
+  if(u.endsWith('/rest/v1/rpc/paypal_income_complete'))return res(200,{state:'applied'});
+  if(u.endsWith('/rest/v1/rpc/paypal_refund_followup'))return res(204,null);
   if (u.endsWith('/auth/v1/user')) return h.authorization === 'Bearer fan-token' ? res(200, { id: 'fan-1' }) : res(401, { msg: 'bad jwt' });
   if (u.endsWith('/rest/v1/rpc/paypal_quote')) {
     if (body.p_kind === 'tip' && body.p_params.amount > 500) return res(400, { message: 'La propina debe estar entre $1 y $500' });
@@ -56,6 +90,15 @@ globalThis.fetch = async (url, init = {}) => {
     if (h.apikey !== 'sb_secret_test') return res(401, {});
     db.moneyBack.push(body);
     return res(200, { matched: 1, subscription: body.p_action === 'refund' && body.p_ref === 'SALE-R2' ? 'I-SUB2' : null });
+  }
+  if (u.endsWith('/rest/v1/rpc/paypal_refund_receive')) {
+    if (h.apikey !== 'sb_secret_test') return res(401, {});
+    return res(200, { id: body.p_event.id, state: 'pending' });
+  }
+  if (u.endsWith('/rest/v1/rpc/paypal_refund_apply')) {
+    if (h.apikey !== 'sb_secret_test') return res(401, {});
+    db.moneyBack.push({ p_ref: body.p_ref, p_action: 'refund' });
+    return res(200, { state: 'applied', full: true, subscription: body.p_ref === 'SALE-R2' ? 'I-SUB2' : null });
   }
   if (u.includes('/rest/v1/paypal_orders?id=eq.')) {
     const id = decodeURIComponent(u.split('id=eq.')[1].split('&')[0]);
@@ -229,9 +272,14 @@ globalThis.fetch = async (url, init = {}) => {
   if (subTx) return res(200, { transactions: pp.subs.get(subTx[1])?.sales ?? [] });
   const subGet = u.match(/\/v1\/billing\/subscriptions\/([\w-]+)$/);
   if (subGet) {
-    const sub = pp.subs.get(subGet[1]);
+    let sub = pp.subs.get(subGet[1]);
+    if(!sub&&db.subs.has(subGet[1])){const o=db.subs.get(subGet[1]);sub={status:'ACTIVE',custom_id:o.user+':'+o.creator};pp.subs.set(subGet[1],sub);}
     return sub ? res(200, { id: subGet[1], status: sub.status, custom_id: sub.custom_id, plan_id: sub.plan_id, subscriber: { email_address: sub.payer ?? 'fan@paypal.test' } }) : res(404, {});
   }
+  const incomingPath=new URL(u).pathname;
+  if(incomeNative.has(incomingPath))return res(200,incomeNative.get(incomingPath));
+  const incomingCapture=u.match(/\/v2\/payments\/captures\/([\w-]+)$/);
+  if(incomingCapture)return res(200,{id:incomingCapture[1],status:'REFUNDED',amount:{value:'100.00',currency_code:'USD'}});
   if (u.endsWith('/v1/notifications/verify-webhook-signature')) {
     const v = JSON.parse(init.body);
     return res(200, { verification_status: v.transmission_sig === 'good' && v.webhook_id === 'WH-1' && v.webhook_event?.id ? 'SUCCESS' : 'FAILURE' });
@@ -239,8 +287,13 @@ globalThis.fetch = async (url, init = {}) => {
   const saleRefund = u.match(/\/v1\/payments\/sale\/([\w-]+)\/refund$/);
   if (saleRefund) {
     pp.saleRefunds.push(saleRefund[1]);
+    const native=incomeNative.get('/v1/payments/sale/'+saleRefund[1]);if(native)native.state='refunded';
     return res(201, { state: 'completed' });
   }
+  if (u.endsWith('/v2/payments/refunds/REF-1')) return res(200, { id: 'REF-1', status: 'COMPLETED', amount: { value: '10.00', currency_code: 'USD' }, links: [{ rel: 'up', href: 'https://api-m.sandbox.paypal.com/v2/payments/captures/CAP-ORDER2' }] });
+  if (u.endsWith('/v2/payments/captures/CAP-ORDER2')) return res(200, { id: 'CAP-ORDER2', status: 'REFUNDED', amount: { value: '10.00', currency_code: 'USD' } });
+  if (u.endsWith('/v1/payments/refund/RF-9')) return res(200, { id: 'RF-9', sale_id: 'SALE-R2', state: 'completed', amount: { total: '9.99', currency: 'USD' } });
+  if (u.endsWith('/v1/payments/sale/SALE-R2')) return res(200, { id: 'SALE-R2', state: 'refunded', amount: { total: '9.99', currency: 'USD' } });
   if (u.endsWith('/v1/oauth2/token')) return res(200, { access_token: 'pp-token' });
   if (u.endsWith('/v2/checkout/orders') && init.method === 'POST') {
     const id = `ORDER${pp.orders.size + 1}`;
@@ -517,7 +570,7 @@ await check('Reembolso de un pago único: se descuenta de su cobro', async () =>
 await check('Reembolso de una mensualidad: se descuenta y la suscripción se cancela en PayPal', async () => {
   const r = await hook({ event_type: 'PAYMENT.SALE.REFUNDED', resource: { id: 'RF-9', sale_id: 'SALE-R2' } });
   expect(r.status === 200 && db.moneyBack.at(-1).p_ref === 'SALE-R2' && db.moneyBack.at(-1).p_action === 'refund', JSON.stringify(db.moneyBack.at(-1)));
-  expect(pp.cancels.at(-1).id === 'I-SUB2', 'no la canceló');
+  expect(pp.subs.get('I-SUB2').status === 'CANCELLED'&&calls.some(c=>c.u.endsWith('paypal_refund_followup')), 'no confirmó la cancelación');
 });
 
 await check('Disputa: se congela; según PayPal se devuelve al fan o se libera', async () => {
@@ -528,7 +581,7 @@ await check('Disputa: se congela; según PayPal se devuelve al fan o se libera',
   await dispute('CUSTOMER.DISPUTE.RESOLVED', 'RESOLVED_SELLER_FAVOUR');
   expect(db.moneyBack.at(-1).p_action === 'release', 'no liberó');
   await dispute('CUSTOMER.DISPUTE.RESOLVED', 'RESOLVED_BUYER_FAVOUR');
-  expect(db.moneyBack.at(-1).p_action === 'refund', 'no descontó');
+  expect(db.moneyBack.at(-1).p_action === 'dispute', 'debe conciliar los comprobantes, sin suponer una devolución total');
 });
 
 await check('Un pago fallido (suspendida) quita el acceso al momento', async () => {
@@ -607,7 +660,7 @@ await check('Un retiro a un email sin cuenta PayPal se puede cancelar y vuelve a
 });
 
 await check('La service role solo se usa en llamadas del servidor', async () => {
-  const leaked = calls.filter((c) => c.h.apikey === 'sb_secret_test' && !/paypal_(register|fulfill|mark|catalog|self_pay|money_back|subscription_(register|activate|payment|ended)|payout_(start|begin|claim|submission_result|event_receive|event_pending|reconcile_begin|reconcile_finish))|\/rest\/v1\/payouts\?|\/rest\/v1\/paypal_orders\?id=eq\.[^&]+&(status=eq\.created|select=kind,params)$/.test(c.u));
+  const leaked = calls.filter((c) => c.h.apikey === 'sb_secret_test' && !/paypal_(register|fulfill|mark|catalog|self_pay|money_back|income_(receive|claim|context|apply|retry|action_claim|action_confirm|complete)|refund_(receive|apply|followup)|subscription_(register|activate|payment|ended)|payout_(start|begin|claim|submission_result|event_receive|event_pending|reconcile_begin|reconcile_finish))|\/rest\/v1\/payouts\?|\/rest\/v1\/paypal_orders\?id=eq\.[^&]+&(status=eq\.created|select=kind,params)$/.test(c.u));
   expect(leaked.length === 0, leaked.map((c) => c.u).join(', '));
 });
 

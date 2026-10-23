@@ -15,6 +15,7 @@
 
 import { deliverOutbox, logServerError, resendKey } from './_mail.js';
 import type {PayoutProviderControl} from './_payout-provider.js';
+import {createIncomeProcessor,incomingType} from './_income-events.js';
 
 // Public values (same as .env.production); the anon key is meant to be public.
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://odugxvqwuvewsvifwmwb.supabase.co';
@@ -200,13 +201,64 @@ const paysSelf = async (e: Env, userId: string, kind: string, params: unknown, p
   return r.ok && r.data === true;
 };
 
-// A refund, chargeback or dispute PayPal reports (paypal_money_back). A refunded subscription
-// payment ends that subscription, so it is cancelled at PayPal too.
-const moneyBack = async (e: Env, token: string, ref: string, action: 'refund' | 'dispute' | 'release') => {
-  const r = await rpc(e, 'paypal_money_back', { p_ref: ref, p_action: action });
-  if (!r.ok) throw new Error(r.error);
-  const subId = r.data?.subscription;
-  if (typeof subId === 'string' && subId) await cancelAtPaypal(e, token, subId, 'Pago reembolsado en PayPal');
+// Durable incoming reconciliation, independent of the outgoing payout worker.
+const incomeProcessor=(e:Env,token:string)=>createIncomeProcessor({mode:e.mode,sender:e.clientId!,
+  rpc:async(name,args)=>{const r=await rpc(e,name,args);if(!r.ok)throw Error(r.error);return r.data;},
+  get:path=>paypal(e,token,path,undefined,undefined,8000),post:(path,body,key)=>paypal(e,token,path,body,key,8000),refund:(event,deadline)=>refundWebhook(e,token,event,deadline)});
+export async function recoverIncomingEvents(){
+  const e=env();if(!e.clientId||!e.secret||!e.serviceKey)throw Error('Falta la conexión de PayPal');
+  return incomeProcessor(e as Env,await paypalToken(e)).recover();
+}
+
+// Refund amounts come from a canonical provider query, never from an event link.
+// Save the signed notification before HTTP/SQL application so a failed attempt
+// can be repeated without losing the notification or applying the refund twice.
+const refundWebhook = async (e: Env, token: string, event: any, deadline=Date.now()+45000): Promise<Response> => {
+  const query=(path:string,body?:unknown)=>{const remaining=deadline-Date.now();if(remaining<=0)throw Error('REFUND_QUERY_BUDGET_REACHED');return paypal(e,token,path,body,undefined,Math.min(8000,remaining));};
+  const saved = await rpc(e, 'paypal_refund_receive', { p_environment: e.mode, p_sender: e.clientId, p_event: event });
+  if (!saved.ok) throw new Error(saved.error);
+  const receipt = saved.data;
+  if (receipt.state === 'review') return json(200, { ok: true, review: true });
+  let result = receipt.result;
+  if (receipt.state !== 'applied') {
+    const capture = event.event_type === 'PAYMENT.CAPTURE.REFUNDED';
+    const id = String(event.resource?.id ?? '');
+    if (!/^[A-Za-z0-9-]{1,255}$/.test(id)) return json(503, { error: 'Aviso guardado; referencia de devolución por revisar' });
+    const refund = await query(capture ? `/v2/payments/refunds/${encodeURIComponent(id)}` : `/v1/payments/refund/${encodeURIComponent(id)}`);
+    if (refund.status !== 200) return json(503, { error: 'Aviso guardado; comprobante de devolución pendiente' });
+    let ref = capture ? '' : String(refund.data?.sale_id ?? '');
+    if (capture) {
+      const up = (refund.data?.links ?? []).find((link: any) => link.rel === 'up')?.href;
+      try {
+        const url = new URL(up);
+        const hosts = e.mode === 'live' ? ['api-m.paypal.com', 'api.paypal.com'] : ['api-m.sandbox.paypal.com', 'api.sandbox.paypal.com'];
+        if (url.protocol === 'https:' && hosts.includes(url.hostname) && !url.port && !url.search && !url.hash)
+          ref = url.pathname.match(/^\/v2\/payments\/captures\/([A-Za-z0-9-]+)$/)?.[1] ?? '';
+      } catch { /* The saved event remains pending; no untrusted URL is fetched. */ }
+    }
+    if (!/^[A-Za-z0-9-]{1,255}$/.test(ref)) return json(503, { error: 'Aviso guardado; falta vincular el cobro original' });
+    const payment = await query(capture ? `/v2/payments/captures/${encodeURIComponent(ref)}` : `/v1/payments/sale/${encodeURIComponent(ref)}`);
+    if (payment.status !== 200) return json(503, { error: 'Aviso guardado; consulta del cobro pendiente' });
+    const applied = await rpc(e, 'paypal_refund_apply', { p_id: receipt.id, p_ref: ref, p_refund: refund.data, p_payment: payment.data });
+    if (!applied.ok) throw new Error(applied.error);
+    result = applied.data;
+    if (result.state === 'pending') return json(503, { error: 'Aviso guardado; conciliación pendiente' });
+    if (result.state === 'review') return json(200, { ok: true, review: true });
+  }
+  // A partial subscription refund leaves access intact. On a full refund, a lost
+  // cancellation acknowledgement is safely retried even after SQL was committed.
+  if (typeof result?.subscription === 'string' && result.subscription){
+    const path=`/v1/billing/subscriptions/${encodeURIComponent(result.subscription)}`;
+    let stopped=await query(path);
+    if(stopped.status!==200)return json(503,{error:'Devolución registrada; consulta de suscripción pendiente'});
+    if(!['CANCELLED','EXPIRED'].includes(stopped.data?.status)){
+      await query(path+'/cancel',{reason:'Pago reembolsado en PayPal'});
+      stopped=await query(path);
+    }
+    if(stopped.status!==200||!['CANCELLED','EXPIRED'].includes(stopped.data?.status))return json(503,{error:'Devolución registrada; cancelación de suscripción pendiente'});
+    const confirmed=await rpc(e,'paypal_refund_followup',{p_id:receipt.id,p_resource:stopped.data});if(!confirmed.ok)throw Error(confirmed.error);
+  }
+  return json(200, { ok: true });
 };
 
 // Records every completed payment of a subscription (idempotent). Returns how many it saw.
@@ -214,9 +266,11 @@ const syncPayments = async (e: Env, token: string, subscriptionId: string) => {
   const from = new Date(Date.now() - 400 * 864e5).toISOString();
   const to = new Date(Date.now() + 864e5).toISOString();
   const r = await paypal(e, token, `/v1/billing/subscriptions/${encodeURIComponent(subscriptionId)}/transactions?start_time=${from}&end_time=${to}`);
+  if(r.status!==200)throw Error('PayPal todavía no confirmó el historial de cobros de la suscripción');
   const done = ((r.data?.transactions ?? []) as any[]).filter((t) => t?.status === 'COMPLETED' && t?.id);
   for (const t of done) {
-    await rpc(e, 'paypal_subscription_payment', { p_id: subscriptionId, p_sale_id: String(t.id), p_amount: Number(t.amount_with_breakdown?.gross_amount?.value) });
+    const recorded=await rpc(e, 'paypal_subscription_payment', { p_id: subscriptionId, p_sale_id: String(t.id), p_amount: Number(t.amount_with_breakdown?.gross_amount?.value) });
+    if(!recorded.ok||recorded.data!=='recorded')throw Error('El cobro está pendiente de conciliar; conserva su referencia');
   }
   return done.length;
 };
@@ -490,44 +544,11 @@ const webhook = async (request: Request, e: Env): Promise<Response> => {
     return result.retry ? json(503, { error: 'Evento guardado; conciliación pendiente' }) : json(200, { ok: true });
   }
 
-  if (type === 'PAYMENT.SALE.COMPLETED' && res.billing_agreement_id) {
-    const subId = String(res.billing_agreement_id);
-    // The payment can arrive before the fan's browser confirmed the subscription.
-    await rpc(e, 'paypal_subscription_activate', { p_id: subId });
-    const payment = await rpc(e, 'paypal_subscription_payment', { p_id: subId, p_sale_id: String(res.id), p_amount: Number(res.amount?.total) });
-    // A demo profile without an owner or a suspended creator refuses money (guard_demo_creator_money): treat it like an
-    // orphan instead of answering 500, or PayPal would retry forever with the fan already charged.
-    // Same for a payment to the subscriber's own creator account (guard_self_payment).
-    const refused = !payment.ok && (DEMO_REFUSAL.test(payment.error) || SELF_REFUSAL.test(payment.error));
-    const saved = refused ? { ...payment, data: 'orphan' } : must(payment);
-    if (saved.data === 'orphan') {
-      // It no longer gives access here (deleted account or subscription): stop it and give the money back.
-      await cancelAtPaypal(e, token, subId, 'La suscripción ya no existe en Fans Reserve');
-      await paypal(e, token, `/v1/payments/sale/${encodeURIComponent(String(res.id))}/refund`, {}, `refund-${res.id}`);
-      // Refused money gives no access, even if PayPal's activation arrived first.
-      if (refused) await rpc(e, 'paypal_subscription_ended', { p_id: subId, p_now: true });
-    }
-  } else if ((type === 'PAYMENT.SALE.REFUNDED' || type === 'PAYMENT.SALE.REVERSED') && (res.sale_id || res.id)) {
-    // A subscription payment given back (REVERSED: a chargeback). The refund carries the sale it undoes.
-    await moneyBack(e, token, String(res.sale_id ?? res.id), 'refund');
-  } else if (type === 'PAYMENT.CAPTURE.REFUNDED' || type === 'PAYMENT.CAPTURE.REVERSED') {
-    // A refund resource links up to its capture; a reversal is the capture itself.
-    const up = ((res.links ?? []) as any[]).find((l) => l?.rel === 'up')?.href;
-    const captureId = type === 'PAYMENT.CAPTURE.REFUNDED' && typeof up === 'string' ? up.split('/').filter(Boolean).pop() : res.id;
-    if (captureId) await moneyBack(e, token, String(captureId), 'refund');
-  } else if (type.startsWith('CUSTOMER.DISPUTE.')) {
-    // Frozen while PayPal decides; given back if the fan wins, released otherwise.
-    const resolved = type === 'CUSTOMER.DISPUTE.RESOLVED';
-    const action = !resolved ? 'dispute' : res.dispute_outcome?.outcome_code === 'RESOLVED_BUYER_FAVOUR' ? 'refund' : 'release';
-    for (const t of (res.disputed_transactions ?? []) as any[]) {
-      if (t?.seller_transaction_id) await moneyBack(e, token, String(t.seller_transaction_id), action);
-    }
-  } else if (type === 'BILLING.SUBSCRIPTION.ACTIVATED' && res.id) {
-    await rpc(e, 'paypal_subscription_activate', { p_id: String(res.id) });
-  } else if ((type === 'BILLING.SUBSCRIPTION.CANCELLED' || type === 'BILLING.SUBSCRIPTION.EXPIRED') && res.id) {
-    must(await rpc(e, 'paypal_subscription_ended', { p_id: String(res.id), p_now: false }));
-  } else if (type === 'BILLING.SUBSCRIPTION.SUSPENDED' && res.id) {
-    must(await rpc(e, 'paypal_subscription_ended', { p_id: String(res.id), p_now: true }));
+  if (type === 'PAYMENT.SALE.REFUNDED' || type === 'PAYMENT.CAPTURE.REFUNDED') {
+    return refundWebhook(e, token, event);
+  } else if (incomingType(type)) {
+    const result=await incomeProcessor(e,token).receive(event);
+    return json(result.state==='pending'?503:200,{ok:result.state!=='pending',review:result.state==='review'});
   }
   return json(200, { ok: true });
 };

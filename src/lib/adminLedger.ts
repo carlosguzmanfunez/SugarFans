@@ -50,7 +50,7 @@ const CASH_KINDS: Transaction['kind'][] = ['subscription', 'renewal', 'tip', 'vi
 const shareOf = (t: Transaction) => t.share ?? (t.kind === 'gift' ? GIFT_SHARE : t.kind === 'referral' ? 1 : 0.8);
 // What the creator gets from a sale; a refund Fans Reserve covers still counts for them.
 const counts = (t: Transaction) => t.status === 'paid' || (!!t.platformCovers && (t.status === 'refunded' || t.status === 'disputed'));
-const creatorPart = (t: Transaction) => (counts(t) ? round2(t.amount * shareOf(t)) : 0);
+const creatorPart = (t: Transaction) => (counts(t) ? round2(Math.max(0, t.amount * shareOf(t) - (t.platformCovers ? 0 : t.creatorRefundLoss ?? 0))) : 0);
 const purchaseOk = (c: CoinPurchase) => (c.status ?? 'paid') === 'paid';
 
 export interface Summary {
@@ -73,9 +73,9 @@ export const summarize = (txs: Transaction[], coins: CoinPurchase[], period: Per
   const bought = coins.filter((c) => inRange(c.createdAt, range) && purchaseOk(c));
   const gifts = tx.filter((t) => t.kind === 'gift' && t.status === 'paid');
 
-  const cashIn = round2(cash.reduce((s, t) => s + t.amount, 0) + bought.reduce((s, c) => s + c.price, 0));
+  const cashIn = round2(cash.reduce((s, t) => s + t.amount - (t.refundedAmount ?? 0), 0) + bought.reduce((s, c) => s + c.price, 0));
   const paypalFees = round2(
-    cash.reduce((s, t) => s + (t.gatewayFee ?? feeEstimate(t.amount)), 0) + bought.reduce((s, c) => s + feeEstimate(c.price), 0)
+    cash.reduce((s, t) => s + (t.gatewayFee ?? feeEstimate(t.amount)) - (t.refundedGatewayFee ?? 0), 0) + bought.reduce((s, c) => s + feeEstimate(c.price), 0)
   );
   const creators = round2(tx.reduce((s, t) => s + creatorPart(t), 0));
   const lost = tx.filter((t) => t.kind !== 'referral' && (t.status === 'refunded' || t.status === 'disputed'));
@@ -94,7 +94,7 @@ export const summarize = (txs: Transaction[], coins: CoinPurchase[], period: Per
     paypalFees,
     creators,
     platform: round2(cashIn - paypalFees - creators),
-    refunded: round2(lost.filter((t) => t.status === 'refunded').reduce((s, t) => s + t.amount, 0)),
+    refunded: round2(tx.filter((t) => t.kind !== 'referral').reduce((s, t) => s + (t.status === 'refunded' ? t.amount : t.refundedAmount ?? 0), 0)),
     disputed: round2(lost.filter((t) => t.status === 'disputed').reduce((s, t) => s + t.amount, 0)),
     sales: cash.length + bought.length,
     payingFans: new Set([...cash.map((t) => t.payerId), ...bought.map((c) => c.userId)].filter(Boolean)).size,
@@ -159,9 +159,9 @@ export const ledger = (txs: Transaction[], coins: CoinPurchase[], payouts: Payou
   for (const t of txs) {
     if (!inRange(t.createdAt, range)) continue;
     const isCash = CASH_KINDS.includes(t.kind);
-    const fee = isCash && t.status === 'paid' ? round2(t.gatewayFee ?? feeEstimate(t.amount)) : 0;
+    const fee = isCash && t.status === 'paid' ? round2((t.gatewayFee ?? feeEstimate(t.amount)) - (t.refundedGatewayFee ?? 0)) : 0;
     const creator = creatorPart(t);
-    const amount = isCash && t.status === 'paid' ? t.amount : 0;
+    const amount = isCash && t.status === 'paid' ? t.amount - (t.refundedAmount ?? 0) : 0;
     rows.push({
       id: t.id,
       at: t.createdAt,
@@ -173,6 +173,7 @@ export const ledger = (txs: Transaction[], coins: CoinPurchase[], payouts: Payou
       platform: round2(amount - fee - creator),
       status:
         (statusLabel[t.status] ?? t.status) +
+        (t.status === 'paid' && t.refundedAmount ? ` · Devuelto parcialmente $${t.refundedAmount.toFixed(2)}` : '') +
         (isCash && (t.status === 'refunded' || t.status === 'disputed') ? ` $${t.amount.toFixed(2)}` : '') +
         (t.platformCovers && t.status !== 'paid' ? ' (lo cubre Fans Reserve)' : ''),
     });

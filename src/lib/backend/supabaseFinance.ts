@@ -19,6 +19,14 @@ export const createSupabaseFinance=(sb:SupabaseClient):FinanceBackend=>{
    adjust:(user,amount,reason,key,reference,reverses)=>call('finance_creator_adjust',{p_user:user,p_amount:amount,p_reason:reason,p_key:key,p_reference:reference,p_reverses:reverses??null}),
    journal:month=>call('finance_journal_export',{p_month:month}),
    operations:()=>call('finance_operations'),
+   incomeEvents:()=>call('paypal_income_list'),
+   recoverIncome:async()=>{
+     try{const {data}=await sb.auth.getSession();const token=data.session?.access_token;if(!token)return {ok:false,error:'Inicia sesión con tu cuenta administrativa.'};
+       const r=await fetch('/api/payout-job',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json'},body:JSON.stringify({action:'recover-income'})});
+       const result=await r.json();if(!r.ok||!Number.isInteger(result.checked)||!Number.isInteger(result.applied)||!Number.isInteger(result.pending))return {ok:false,error:'No pudimos confirmar la recuperación. Actualiza los avisos.'};
+       return {ok:true,data:result};
+     }catch{return {ok:false,error:'No pudimos conectar. Los avisos guardados se conservan.'};}
+   },
    scheduleStatus:async()=>{
      try{const {data}=await sb.auth.getSession();const token=data.session?.access_token;if(!token)return {ok:false,error:'Inicia sesión con tu cuenta administrativa.'};
        const r=await fetch('/api/payout-job',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json'},body:JSON.stringify({action:'schedule-status'})});
