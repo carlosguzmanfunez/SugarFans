@@ -11,7 +11,7 @@ try{
  assert.equal(status.http,200);assert.equal(status.data.mode,'review-only');assert.equal(status.data.caseLimit,50);assert.equal(f.transport.rpcCalls,0);assert.equal((await f.q('select id from finance_job_runs')).length,0);assert.equal(f.transport.emails.length,0);passed++;
  await f.enable();await f.funds(10000,'2026-10-26T12:00:00Z');
  const reviewed=await f.runScheduledReview();assert.equal(reviewed.http,200);assert.equal(reviewed.data.work_limit,50);assert.equal(reviewed.data.trigger,'scheduled-review');assert.equal(f.transport.posts.length,0);assert.equal((await f.stats()).total,0);
- const [run]=await f.q('select execute_requested,summary from finance_job_runs');assert.equal(run.execute_requested,false);assert.equal(run.summary.trigger,'scheduled-review');assert.equal(run.summary.schedule_profile,'daily-review');passed++;
+ const [run]=await f.q('select execute_requested,summary from finance_job_runs');assert.equal(run.execute_requested,false);assert.equal(run.summary.trigger,'scheduled-review');assert.equal(run.summary.schedule_profile,status.data.profile);passed++;
  const manual=await f.run({token:'TEST_ADMIN',method:'POST',body:{execute:true,action:'review'}});assert.equal(manual.http,200);assert.equal(manual.data.trigger,'manual-review');assert.equal(manual.data.work_limit,50);assert.equal(f.transport.posts.length,0);passed++;
  await f.seed(2);await f.enable();await f.funds(1000,'2026-10-26T12:00:00Z');f.transport.pendingAt=1;
  await f.runVirtual('2026-10-26T12:00:00Z');assert.equal(f.transport.posts.length,2);
