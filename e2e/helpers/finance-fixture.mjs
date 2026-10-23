@@ -42,7 +42,7 @@ export async function financeFixture({beforeMigration,notificationMigration=true
  }
  if(capacityMigration){await db.exec(source('20261021191647_payout_provider_capacity.sql'));await db.exec(source('20261021200143_payout_work_rotation.sql'));if(incidentMigration)await db.exec(source('20261021203712_payout_group_mirrors.sql'));}
  if(capacityMigration&&incidentMigration)await db.exec(source('20261022015657_payout_rejected_cases_and_funding_pause.sql'));
- if(recoveryMigration)await db.exec(source('20261023024853_payout_supervised_recovery.sql'));
+ if(recoveryMigration)await db.exec(source('20261023031247_payout_supervised_recovery.sql'));
  const reset=async()=>{
    const fees=feeResolutionMigration?'finance_fee_holds,finance_fee_reversals,finance_fee_resolutions,finance_private.fee_policy,':'';
    const operations=automationMigration?'finance_alert_tests,finance_alert_queue,finance_incidents,finance_job_runs,finance_execution_reservations,finance_funding_checks,finance_statement_lines,finance_statement_imports,finance_private.automation_settings,':'';

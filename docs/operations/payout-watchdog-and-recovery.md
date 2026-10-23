@@ -14,6 +14,8 @@ Conserva un aviso por episodio y una constancia de recuperación. Los reintentos
 
 Instalar `ops/watchdog/supabase/migrations/` únicamente en el proyecto independiente. No mezclarlo con las migraciones principales. La función autentica su propio token; no expone datos de pagos ni puede iniciar envíos. Programación esperada: `*/5 * * * *`, nombre `finance-independent-watchdog`.
 
+Los archivos conservan las versiones registradas por la instalación remota: recuperación principal `20261023031247`, vigilante QA `20261023030008` y cron QA `20261023031445`. El ensayo previo de recuperación en QA quedó registrado como `20261023030005`; su historial se conserva y no debe ejecutarse `db push` del proyecto principal contra esa base de ensayos. No se reescribe el historial de ninguno de los proyectos para igualarlos.
+
 ## Recuperación supervisada
 
 El ingreso a una ronda de proveedor registra cobertura del protocolo. Antes de cada caso, se guarda su referencia y la ronda en un historial inmutable. Una ronda interrumpida conserva sus reservas.
