@@ -60,6 +60,7 @@ export interface Transaction {
   creatorRefundLoss?: number; // calculated from the original net share, before aggregate rounding
   share?: number; // creator's cut as a fraction of the amount (80% of the net, gifts 60%)
   gatewayFee?: number; // what the payment processor kept (estimated when it didn't say)
+  collectionFeeStatus?: 'verified' | 'estimated' | 'not_applicable';
   giftId?: string;
   methodLabel: string;
   status: 'paid' | 'failed' | 'refunded' | 'disputed'; // disputed: frozen while PayPal decides a dispute

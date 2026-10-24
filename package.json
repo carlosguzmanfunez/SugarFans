@@ -30,6 +30,8 @@
     "test:partial-refunds": "node e2e/partial-refunds.mjs",
     "test:income-events": "node e2e/income-events.mjs",
     "test:income-events-ui": "node e2e/income-events-ui.mjs",
+    "test:collection-cost-db": "node e2e/collection-cost-postgres.mjs",
+    "test:collection-cost-ui": "node e2e/collection-cost-ui.mjs",
     "test:honduras-payout-cost": "node e2e/honduras-payout-cost.mjs",
     "test:honduras-payout-cost-ui": "node e2e/honduras-payout-cost-ui.mjs",
     "test:admin-accounts": "node e2e/admin-accounts.mjs",

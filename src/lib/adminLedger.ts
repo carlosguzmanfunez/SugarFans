@@ -136,6 +136,7 @@ export interface LedgerRow {
   who: string;
   amount: number; // + money in, − money out
   fee: number;
+  feeSource?: 'verified' | 'estimated';
   creator: number;
   platform: number;
   status: string;
@@ -170,9 +171,11 @@ export const ledger = (txs: Transaction[], coins: CoinPurchase[], payouts: Payou
       amount,
       fee,
       creator,
+      ...(isCash ? {feeSource: t.collectionFeeStatus === 'verified' ? 'verified' as const : 'estimated' as const} : {}),
       platform: round2(amount - fee - creator),
       status:
         (statusLabel[t.status] ?? t.status) +
+        (isCash ? (t.collectionFeeStatus === 'verified' ? ' · Costo de PayPal comprobado' : ' · Costo de PayPal estimado') : '') +
         (t.status === 'paid' && t.refundedAmount ? ` · Devuelto parcialmente $${t.refundedAmount.toFixed(2)}` : '') +
         (isCash && (t.status === 'refunded' || t.status === 'disputed') ? ` $${t.amount.toFixed(2)}` : '') +
         (t.platformCovers && t.status !== 'paid' ? ' (lo cubre Fans Reserve)' : ''),
@@ -191,7 +194,8 @@ export const ledger = (txs: Transaction[], coins: CoinPurchase[], payouts: Payou
       fee,
       creator: 0,
       platform: ok ? round2(c.price - fee) : 0,
-      status: statusLabel[c.status ?? 'paid'] ?? String(c.status),
+      feeSource: 'estimated',
+      status: (statusLabel[c.status ?? 'paid'] ?? String(c.status)) + ' · Costo de PayPal estimado',
     });
   }
   for (const p of payouts) {

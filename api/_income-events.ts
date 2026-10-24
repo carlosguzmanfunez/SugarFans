@@ -90,7 +90,7 @@ export function createIncomeProcessor(t:Transport){
     proof.resource=await checked(get(`/v1/payments/sale/${id(resource.id)}`));
     const subId=id(resource.billing_agreement_id);
     proof.subscription=await checked(get(`/v1/billing/subscriptions/${subId}`));
-    if(!proof.resource.billing_agreement_id){
+    if(!proof.resource.billing_agreement_id||!proof.resource.transaction_fee){
      const time=Date.parse(proof.resource.create_time);if(!Number.isFinite(time))throw Error('SALE_DATE_REQUIRED');
      proof.subscription_transactions=await checked(get(`/v1/billing/subscriptions/${subId}/transactions?start_time=${new Date(time-86400000).toISOString()}&end_time=${new Date(time+86400000).toISOString()}`));
     }
@@ -111,7 +111,11 @@ export function createIncomeProcessor(t:Transport){
    return {state:'pending',reason};
   }
  };
- return {process,receive:async(event:any)=>{const saved=await t.rpc('paypal_income_receive',{p_environment:t.mode,p_sender:t.sender,p_event:event});return process(saved.id,true);},
+ const receive=async(event:any,allowSend:boolean)=>{const saved=await t.rpc('paypal_income_receive',{p_environment:t.mode,p_sender:t.sender,p_event:event});return process(saved.id,allowSend);};
+ return {process,receive:(event:any)=>receive(event,true),
+  // A server query is recorded as such, never labelled as a signed webhook.
+  // It cannot initiate an external refund if fulfilment needs human review.
+  query:(event:any)=>receive({...event,origin:'provider-query'},false),
   recover:async()=>{deadline=Date.now()+25000;queriesLeft=12;const results:any[]=[];
    const refunds=async(limit:number)=>{if(!t.refund)return;const pending=await t.rpc('paypal_refund_pending',{p_environment:t.mode,p_sender:t.sender,p_limit:limit});
     for(const refund of pending){try{if(Date.now()>deadline-8000)break;const reply=await t.refund!(refund.body,deadline),body=await reply.json();results.push({state:reply.status===200?(body.review?'review':'applied'):'pending'});}catch{results.push({state:'pending'});}finally{await t.rpc('paypal_refund_recovery_finish',{p_id:refund.id});}}

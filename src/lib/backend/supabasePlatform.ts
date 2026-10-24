@@ -93,6 +93,7 @@ const toTransaction = (r: Row): Transaction => ({
   note: r.note ?? undefined,
   share: r.creator_share == null ? undefined : Number(r.creator_share),
   ...(r.gateway_fee == null ? {} : { gatewayFee: Number(r.gateway_fee) }),
+  collectionFeeStatus: r.collection_fee_status ?? 'estimated',
   giftId: r.gift_id ?? undefined,
   ...(r.platform_covers ? { platformCovers: true } : {}),
 });
