@@ -106,18 +106,10 @@ const paypal = async (e: ReturnType<typeof env>&{payoutControl?:PayoutProviderCo
 };
 
 // The completed capture of an order, if any.
-// `fee` is what PayPal kept for it, when PayPal says so (special accounts deduct it).
-const captureOf = (order: any): { id: string; value: number; currency: string; fee: number | null } | null => {
+// The canonical capture and its cost are queried and checked after this lookup.
+const captureOf = (order: any): { id: string } | null => {
   const c = order?.purchase_units?.[0]?.payments?.captures?.find((x: any) => x?.status === 'COMPLETED');
-  const fee = c?.seller_receivable_breakdown?.paypal_fee;
-  return c
-    ? {
-        id: String(c.id),
-        value: Number(c.amount?.value),
-        currency: String(c.amount?.currency_code),
-        fee: fee?.currency_code === 'USD' && Number.isFinite(Number(fee.value)) ? Number(fee.value) : null,
-      }
-    : null;
+  return c && typeof c.id==='string' && /^[A-Za-z0-9-]{1,255}$/.test(c.id) ? {id:c.id} : null;
 };
 
 // --- Subscriptions --------------------------------------------------------------
@@ -269,8 +261,8 @@ const syncPayments = async (e: Env, token: string, subscriptionId: string) => {
   if(r.status!==200)throw Error('PayPal todavía no confirmó el historial de cobros de la suscripción');
   const done = ((r.data?.transactions ?? []) as any[]).filter((t) => t?.status === 'COMPLETED' && t?.id);
   for (const t of done) {
-    const recorded=await rpc(e, 'paypal_subscription_payment', { p_id: subscriptionId, p_sale_id: String(t.id), p_amount: Number(t.amount_with_breakdown?.gross_amount?.value) });
-    if(!recorded.ok||recorded.data!=='recorded')throw Error('El cobro está pendiente de conciliar; conserva su referencia');
+    const recorded=await incomeProcessor(e,token).query({id:`provider-query/sale/${String(t.id)}`,event_type:'PAYMENT.SALE.COMPLETED',resource:{id:String(t.id),billing_agreement_id:subscriptionId}});
+    if(recorded.state!=='applied')throw Error('El cobro quedó guardado y falta comprobar su resultado o lo que descontó PayPal. No repitas el pago.');
   }
   return done.length;
 };
@@ -679,43 +671,17 @@ export async function POST(request: Request): Promise<Response> {
         return json(402, { error: declined ? 'PayPal rechazó el método de pago. Prueba con otro.' : 'PayPal no completó el pago.' });
       }
 
-      // Paid with the PayPal account of the creator being paid: give it back before it counts.
-      const order = await supabase(`/rest/v1/paypal_orders?id=eq.${encodeURIComponent(orderId)}&select=kind,params`, asServer(e.serviceKey));
-      const placed = Array.isArray(order.data) ? (order.data[0] as { kind: string; params: unknown } | undefined) : undefined;
-      const fanPaysSelf = placed && (await paysSelf(e, userId, placed.kind, placed.params, result.data?.payer?.email_address));
-
-      // Saved first: a special account's Reserve payment deducts it (see set_special_share).
-      if (capture.fee !== null) {
-        await supabase(`/rest/v1/paypal_orders?id=eq.${encodeURIComponent(orderId)}&status=eq.created`, asServer(e.serviceKey), { fee: capture.fee }, 'PATCH');
-      }
-      const done = fanPaysSelf
-        ? { ok: false, error: SELF_PAY.replace(/\.$/, '') }
-        : await supabase('/rest/v1/rpc/paypal_fulfill', asServer(e.serviceKey), {
-            p_order_id: orderId,
-            p_user: userId,
-            p_capture_id: capture.id,
-            p_amount: capture.currency === 'USD' ? capture.value : -1,
-          });
-      if (done.ok) {
+      // Save a recoverable server-query notice, then query and reconcile the
+      // canonical capture and its collection cost through the same path as webhooks.
+      // A missing fee or SQL failure must never cause a refund POST or a second charge.
+      const done=await incomeProcessor(e,ppToken).query({id:`provider-query/capture/${capture.id}`,event_type:'PAYMENT.CAPTURE.COMPLETED',resource:{id:capture.id,supplementary_data:{related_ids:{order_id:orderId}}}});
+      if (done.state==='applied') {
         // A Reserve payment queues its confirmation email: send it now.
         await deliverOutbox(e.serviceKey);
         return json(200, { ok: true, captureId: capture.id });
       }
 
-      // Charged but not fulfilled (e.g. the booking was cancelled meanwhile): give the money back.
-      const refund = await paypal(e, ppToken, `/v2/payments/captures/${encodeURIComponent(capture.id)}/refund`, {}, `refund-${capture.id}`);
-      const refunded = refund.status < 300;
-      await supabase('/rest/v1/rpc/paypal_mark', asServer(e.serviceKey), {
-        p_order_id: orderId,
-        p_status: refunded ? 'refunded' : 'failed',
-        p_capture_id: capture.id,
-        p_error: done.error,
-      });
-      return json(409, {
-        error: refunded
-          ? `${done.error}. Te devolvimos el pago en PayPal.`
-          : `${done.error}. No pudimos devolver el pago automáticamente; escríbenos y lo resolvemos.`,
-      });
+      return json(409,{error:'El cobro quedó guardado y falta comprobar su resultado o lo que descontó PayPal. No repitas el pago; su referencia se conserva para revisión.',captureId:capture.id,pending:true});
     }
 
     if (body.action === 'subscribe') {

@@ -8,7 +8,7 @@ const {createIncomeProcessor}=await import(pathToFileURL(join(dir,'engine.mjs'))
 let native=new Map(),failGet=false,postFailure=false,calls=[],posts=[],passed=0;
 const txid=randomUUID();
 const subscription=(status='ACTIVE',at='2026-10-26T12:00:00Z')=>({id:'I-1',status,status_update_time:at,custom_id:FAN+':creator'});
-const saleProof=(state='completed')=>({id:'SALE-1',state,amount:{total:'100.00',currency:'USD'},billing_agreement_id:'I-1',create_time:'2026-10-26T12:00:00Z',update_time:'2026-10-26T12:00:00Z'});
+const saleProof=(state='completed')=>({id:'SALE-1',state,transaction_fee:{currency:'USD',value:'5.00'},amount:{total:'100.00',currency:'USD'},billing_agreement_id:'I-1',create_time:'2026-10-26T12:00:00Z',update_time:'2026-10-26T12:00:00Z'});
 const dispute=(status='OPEN',outcome,refund,at='2026-10-26T12:00:00Z',disputeId='D-1')=>({dispute_id:disputeId,status,update_time:at,disputed_transactions:[{seller_transaction_id:'CAP-1',gross_amount:{currency_code:'USD',value:'100.00'}}],...(outcome?{dispute_outcome:{outcome_code:outcome,...(refund?{amount_refunded:{currency_code:'USD',value:refund}}:{})}}:{})});
 const event=(type='CUSTOMER.DISPUTE.CREATED',eid=randomUUID(),resource)=>({id:eid,event_type:type,resource:resource??{dispute_id:'D-1',disputed_transactions:[{seller_transaction_id:'CAP-1'}]}});
 const baseArgs={p_environment:'sandbox',p_sender:'QA_APP'};

@@ -39,17 +39,28 @@ globalThis.fetch = async (url, init = {}) => {
   if(u.endsWith('/rest/v1/rpc/paypal_income_receive')){
     if(h.apikey!=='sb_secret_test')return res(401,{});
     const e=body.p_event,r=e.resource??{};incomeEvents.set(e.id,e);
-    if(e.event_type==='PAYMENT.SALE.COMPLETED')incomeNative.set('/v1/payments/sale/'+r.id,{...r,state:'completed',billing_agreement_id:r.billing_agreement_id,amount:{...r.amount,currency:'USD'}});
+    if(e.event_type==='PAYMENT.SALE.COMPLETED'){const sale=pp.subs.get(r.billing_agreement_id)?.sales?.find(x=>x.id===r.id);incomeNative.set('/v1/payments/sale/'+r.id,{...r,state:'completed',transaction_fee:{currency:'USD',value:'0.57'},billing_agreement_id:r.billing_agreement_id,amount:{total:r.amount?.total??sale?.amount_with_breakdown?.gross_amount?.value??'9.99',currency:'USD'}});}
     if(e.event_type.startsWith('CUSTOMER.DISPUTE.'))incomeNative.set('/v1/customer/disputes/'+r.dispute_id,{...r,status:e.event_type.endsWith('RESOLVED')?'RESOLVED':'OPEN',update_time:'2026-10-26T12:00:00Z'});
     if(e.event_type.startsWith('BILLING.SUBSCRIPTION.')){const sub=pp.subs.get(r.id);if(sub)sub.status=e.event_type.endsWith('SUSPENDED')?'SUSPENDED':e.event_type.endsWith('ACTIVATED')?'ACTIVE':'CANCELLED';}
     return res(200,{id:e.id,state:'pending'});
   }
   if(u.endsWith('/rest/v1/rpc/paypal_income_claim'))return res(200,{operation:'work',token:'QA-INCOME-TOKEN',body:incomeEvents.get(body.p_id)});
-  if(u.endsWith('/rest/v1/rpc/paypal_income_context'))return res(200,{orders:[]});
+  if(u.endsWith('/rest/v1/rpc/paypal_income_context'))return res(200,{order:incomeEvents.get(body.p_id)?.resource?.supplementary_data?.related_ids?.order_id,orders:[]});
   if(u.endsWith('/rest/v1/rpc/paypal_income_retry'))return res(200,{state:'pending'});
   if(u.endsWith('/rest/v1/rpc/paypal_income_apply')){
     const event=incomeEvents.get(body.p_id),r=body.p_proof.resource,actions=[];
-    if(event.event_type==='PAYMENT.SALE.COMPLETED'){
+    if(event.event_type==='PAYMENT.CAPTURE.COMPLETED'){
+      const order=body.p_proof.order,o=db.orders.get(order.id);
+      if(db.fulfillError)return res(400,{message:db.fulfillError});
+      if(Number(r.amount.value)!==o.amount||r.amount.currency_code!=='USD')return res(200,{state:'review'});
+      if(order.payer?.email_address==='creator@paypal.test'){
+        const key='refund_capture/'+r.id;incomeActions.set(key,{id:key,kind:'refund_capture',reference:r.id,state:'prepared',amount:Number(r.amount.value),key:'refund-'+r.id});actions.push(key);
+      }else if(o.status==='created'){
+        if(!r.seller_receivable_breakdown?.paypal_fee)return res(200,{state:'pending'});
+        o.fee=Number(r.seller_receivable_breakdown.paypal_fee.value);o.status='completed';o.capture_id=r.id;
+        db.fulfilled.push({p_order_id:order.id,p_user:o.user,p_capture_id:r.id,p_amount:Number(r.amount.value)});
+      }
+    }else if(event.event_type==='PAYMENT.SALE.COMPLETED'){
       const sub=body.p_proof.subscription,id=sub.id,o=db.subs.get(id);
       if(o?.status==='created'){o.status='active';db.access.set(o.user+':'+o.creator,id);}
       const refused=['self-2','demo-2','banned-2'].includes(o?.creator);
@@ -279,7 +290,7 @@ globalThis.fetch = async (url, init = {}) => {
   const incomingPath=new URL(u).pathname;
   if(incomeNative.has(incomingPath))return res(200,incomeNative.get(incomingPath));
   const incomingCapture=u.match(/\/v2\/payments\/captures\/([\w-]+)$/);
-  if(incomingCapture)return res(200,{id:incomingCapture[1],status:'REFUNDED',amount:{value:'100.00',currency_code:'USD'}});
+  if(incomingCapture){const order=pp.orders.get(incomingCapture[1].replace(/^CAP-/,''));return res(200,order?{id:incomingCapture[1],status:'COMPLETED',amount:order.amount,seller_receivable_breakdown:{paypal_fee:{currency_code:'USD',value:'0.57'}}}:{id:incomingCapture[1],status:'REFUNDED',amount:{value:'100.00',currency_code:'USD'}});}
   if (u.endsWith('/v1/notifications/verify-webhook-signature')) {
     const v = JSON.parse(init.body);
     return res(200, { verification_status: v.transmission_sig === 'good' && v.webhook_id === 'WH-1' && v.webhook_event?.id ? 'SUCCESS' : 'FAILURE' });
@@ -305,12 +316,13 @@ globalThis.fetch = async (url, init = {}) => {
     const o = pp.orders.get(cap[1]);
     if (o.captured) return res(422, { name: 'UNPROCESSABLE_ENTITY', details: [{ issue: 'ORDER_ALREADY_CAPTURED' }] });
     o.captured = true;
+    o.payerEmail=pp.payerEmail;
     return res(201, { id: cap[1], status: pp.captureStatus, payer: { email_address: pp.payerEmail }, purchase_units: [{ payments: { captures: [{ id: `CAP-${cap[1]}`, status: pp.captureStatus, amount: o.amount, seller_receivable_breakdown: { paypal_fee: { currency_code: 'USD', value: '0.57' } } }] } }] });
   }
   const get = u.match(/\/v2\/checkout\/orders\/(\w+)$/);
   if (get) {
     const o = pp.orders.get(get[1]);
-    return res(200, { id: get[1], status: 'COMPLETED', purchase_units: [{ payments: { captures: [{ id: `CAP-${get[1]}`, status: 'COMPLETED', amount: o.amount }] } }] });
+    return res(200, { id: get[1], status: 'COMPLETED', payer:{email_address:o.payerEmail},purchase_units: [{ payments: { captures: [{ id: `CAP-${get[1]}`, status: 'COMPLETED', amount: o.amount }] } }] });
   }
   const refund = u.match(/\/v2\/payments\/captures\/([\w-]+)\/refund$/);
   if (refund) {
@@ -409,14 +421,14 @@ await check('Si PayPal no completa el pago, no se entrega nada', async () => {
   expect(r.status === 402 && db.fulfilled.length === n, JSON.stringify(r.data));
 });
 
-await check('Si la compra ya no es válida, se devuelve el dinero', async () => {
+await check('Si falla la entrega, el cobro conserva su referencia sin una devolución ciega', async () => {
   const { data } = await post({ action: 'create', kind: 'booking', params: { bookingId: 'b1', amount: 80 } });
   db.fulfillError = 'Solo puedes pagar una reserva aceptada por el creador';
   const r = await post({ action: 'capture', orderId: data.orderId });
   db.fulfillError = '';
-  expect(r.status === 409 && /devolvimos/.test(r.data.error), JSON.stringify(r.data));
-  expect(pp.refunds.includes(`CAP-${data.orderId}`), 'no reembolsó');
-  expect(db.marks.at(-1).p_status === 'refunded' && db.orders.get(data.orderId).status === 'refunded', 'no marcó el pedido');
+  expect(r.status === 409 && r.data.pending && /No repitas/.test(r.data.error), JSON.stringify(r.data));
+  expect(!pp.refunds.includes(`CAP-${data.orderId}`), 'devolvió sin comprobar el resultado');
+  expect(db.orders.get(data.orderId).status === 'created'&&incomeEvents.has('provider-query/capture/CAP-'+data.orderId),'no conservó el aviso recuperable');
 });
 
 await check('Pagarle a su propia cuenta de creador no llega a PayPal', async () => {
@@ -443,15 +455,15 @@ await check('Con dinero real nadie le paga al perfil de ejemplo de Valentina; en
   expect(sandbox.status === 200 && sandbox.data.orderId, JSON.stringify(sandbox.data));
 });
 
-await check('Pagar con el PayPal del propio creador se devuelve y no cuenta', async () => {
+await check('Pagar con el PayPal del creador conserva la revisión y no cuenta como ganancia', async () => {
   const { data } = await post({ action: 'create', kind: 'tip', params: { creatorProfileId: '4', amount: 5 } });
   const n = db.fulfilled.length;
   pp.payerEmail = 'creator@paypal.test';
   const r = await post({ action: 'capture', orderId: data.orderId });
   pp.payerEmail = 'fan@paypal.test';
-  expect(r.status === 409 && /pagarte a ti mismo.*devolvimos/.test(r.data.error), JSON.stringify(r.data));
-  expect(db.fulfilled.length === n && pp.refunds.includes(`CAP-${data.orderId}`), 'contó o no reembolsó');
-  expect(db.orders.get(data.orderId).status === 'refunded', 'no marcó el pedido');
+  expect(r.status === 409 && r.data.pending, JSON.stringify(r.data));
+  expect(db.fulfilled.length === n && !pp.refunds.includes(`CAP-${data.orderId}`), 'contó o devolvió desde una consulta');
+  expect(incomeActions.has('refund_capture/CAP-'+data.orderId),'no conservó el seguimiento necesario');
 });
 
 await check('Suscribirse crea un solo plan por precio y la suscripción lleva al fan y al perfil', async () => {
