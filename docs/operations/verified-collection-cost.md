@@ -1,6 +1,6 @@
 # Costo comprobado de cobros antes del reparto
 
-Preparado el 23 de octubre y verificado el 24 de octubre de 2026. Trabajo en rama `codex/verified-collection-cost`; no aplicado a Supabase remoto ni fusionado. Depende del PR 104 ya integrado. No activa pagos ni cambia el calendario o los porcentajes contractuales.
+Preparado el 23 de octubre y verificado el 24 de octubre de 2026. Actualización de base aplicada el 24 de octubre a las 12:24 de Honduras, antes de publicar el PR 105. Depende del PR 104 ya integrado. No activa pagos ni cambia el calendario o los porcentajes contractuales.
 
 ## Regla
 
@@ -35,7 +35,9 @@ El libro y su exportación distinguen «Costo de PayPal comprobado» de «Costo 
 - `npm run test:collection-cost-ui`: componentes reales y exportación en móvil/escritorio, ejemplos locales, sin red externa.
 - Compatibilidad: API PayPal, avisos y recuperación administrativa, devoluciones, libros, descuentos, tipos y compilación.
 
-Aplicar `20261023193447_verified_collection_cost.sql` después de las tres migraciones del PR 104 y antes de publicar conjuntamente servidor y cliente. Mantener `execution_enabled=false` y `batch_handoff_enabled=false`. Verificar que las definiciones actuales coincidan con los puntos de comprobación del archivo; si no, revisar la diferencia antes de instalar. No modificar el historial de versiones remoto para forzar coincidencias.
+La actualización `20261024182402_verified_collection_cost.sql` quedó aplicada en el proyecto principal `odugxvqwuvewsvifwmwb`, después de las tres migraciones del PR 104. Su nombre coincide con la versión asignada por Supabase al aplicarla; no se modificó el historial remoto. Se comprobaron permisos privados, comprobación del costo en capturas y suscripciones, y protección de los importes originales. Las huellas de los tres movimientos existentes y del Diario no cambiaron. Cero retiros y cero envíos; `execution_enabled=false` y `batch_handoff_enabled=false`.
+
+Para instalaciones nuevas, aplicar las migraciones en orden antes de publicar conjuntamente servidor y cliente. Mantener ambos controles apagados. Verificar que las definiciones actuales coincidan con los puntos de comprobación del archivo; si no, revisar la diferencia antes de instalar.
 
 Estas pruebas no acreditan una entrega, comisión o devolución nueva en PayPal Sandbox nativo. La autorización comercial y las condiciones específicas de la cuenta siguen pendientes. Un despliegue Preview con el código nuevo tampoco sustituye instalar primero la actualización en una base aislada.
 
