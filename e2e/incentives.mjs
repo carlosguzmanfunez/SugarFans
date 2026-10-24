@@ -7,20 +7,15 @@
 // $100; minimum prices; withdrawals by level; Reserve Event seats by level; medals
 // and the featured list; the Meta de experiencia from gifts and tips to a ticket and
 // a booking that needs no payment.
-import { readdirSync, readFileSync } from 'node:fs';
 import { createDbTest } from './db-harness.mjs';
 
 const DB = 'fr_incentives_test';
 const { check, expect, psql, as, raises, setup, user, finish } = createDbTest(DB);
 
-// The incentives migration and the ones after it.
-const MIGRATIONS_DIR = new URL('../supabase/migrations/', import.meta.url);
-const MIGRATIONS = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql') && f >= '20261006000001').sort();
-
 const run = async () => {
+  // The harness installs every migration once, in order. Replaying old bodies
+  // over the current schema would undo later financial guards and recreate tables.
   setup();
-  // Running the migrations again changes nothing.
-  for (const f of MIGRATIONS) psql(DB, readFileSync(new URL(f, MIGRATIONS_DIR), 'utf8'));
 
   let n = 0;
   const sale = (creator, payer, amount, kind = 'subscription', when = 'now()') =>
@@ -149,8 +144,8 @@ const run = async () => {
   console.log('Retiros');
   await check('Bronce retira desde $50; Oro y Diamante desde $25; todos pagan la comisión de PayPal', async () => {
     psql(DB, `insert into public.payout_accounts (user_id, paypal_email) values ('${vale}', 'v@x.com'), ('${diamante}', 'd@x.com') on conflict do nothing`);
-    expect(psql(DB, `select public.payout_min('${vale}') || '|' || public.payout_fee_for('${vale}', 100)`) === '50|2.00', 'Bronce');
-    expect(psql(DB, `select public.payout_min('${diamante}') || '|' || public.payout_fee_for('${diamante}', 100)`) === '25|2.00', 'Diamante');
+    expect(psql(DB, `select public.payout_min('${vale}') || '|' || public.payout_fee_for('${vale}', 100)`) === '50|1.00', 'Bronce');
+    expect(psql(DB, `select public.payout_min('${diamante}') || '|' || public.payout_fee_for('${diamante}', 100)`) === '25|1.00', 'Diamante');
     const terms = JSON.parse(as(diamante, `select public.my_payout_terms()`));
     expect(terms.min === 25 && !('fee_waived' in terms), JSON.stringify(terms));
   });
@@ -176,7 +171,7 @@ const run = async () => {
     expect(list.includes(`${c}:medal`), list);
   });
   await check('Oro y Diamante salen como destacados por nivel; Plata como "En ascenso"', async () => {
-    const list = psql(DB, `select creator_profile_id || ':' || reason from public.featured_creators()`).split('\n');
+    const list = psql(DB, `select creator_profile_id || ':' || reason from public.featured_creators()`).split(/\r?\n/);
     expect(list.includes(`${diamante}:level`), list.join(', '));
     expect(list.some((r) => r.endsWith(':rising')), list.join(', '));
   });

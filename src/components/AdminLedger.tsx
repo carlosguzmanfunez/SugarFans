@@ -29,7 +29,7 @@ const AdminLedger: React.FC<{ transactions: Transaction[]; coins: CoinPurchase[]
       <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h3 className="font-bold text-gray-900">Libro de movimientos</h3>
-          <p className="text-sm text-gray-600 mt-1">Cada pago, compra de Créditos, regalo y retiro, con lo que se quedó PayPal, el creador y Fans Reserve.</p>
+          <p className="text-sm text-gray-600 mt-1">Cada pago, compra de Créditos, regalo y retiro, con lo que corresponde a PayPal, al creador y a Fans Reserve. En los cobros se indica si el costo de PayPal está comprobado o es una estimación.</p>
         </div>
         <button onClick={download} className="px-3 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium whitespace-nowrap">
           <i aria-hidden="true" className="fas fa-download mr-1"></i> Descargar Excel (CSV)
@@ -74,7 +74,7 @@ const AdminLedger: React.FC<{ transactions: Transaction[]; coins: CoinPurchase[]
                   <p className="text-xs text-gray-500">{r.who}</p>
                 </td>
                 <td className={`py-2 pr-3 text-right font-medium ${r.amount < 0 ? 'text-red-600' : 'text-gray-900'}`}>{signed(r.amount)}</td>
-                <td className="py-2 pr-3 text-right text-gray-500">{r.fee ? `−${money(r.fee)}` : '—'}</td>
+                <td className="py-2 pr-3 text-right text-gray-500">{r.fee ? `−${money(r.fee)}` : r.feeSource ? money(0) : '—'}</td>
                 <td className="py-2 pr-3 text-right text-gray-700">{signed(r.creator)}</td>
                 <td className={`py-2 pr-3 text-right font-medium ${r.platform < 0 ? 'text-red-600' : 'text-green-700'}`}>{signed(r.platform)}</td>
                 <td className="py-2 text-xs text-gray-600">{r.status}</td>
