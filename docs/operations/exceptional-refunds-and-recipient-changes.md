@@ -1,6 +1,6 @@
 # Devoluciones excepcionales y cuenta receptora
 
-Preparado el 24 de octubre de 2026. Cambios aislados desde `main` después del PR105. **Pendiente de publicar y aplicar las dos migraciones.** No habilita envíos ni modifica tarifas, porcentajes, calendario o datos históricos.
+Preparado el 24 de octubre de 2026 y validado en QA el 25 de octubre. Cambios desde `main` después del PR105. La entrega incluye también el estado de cuenta por ciclo; aplicar las cuatro migraciones en el orden de `creator-cycle-statements.md` antes del cliente. No habilita envíos ni modifica tarifas, porcentajes, calendario o datos históricos.
 
 ## Qué puede hacer el administrador
 
@@ -66,4 +66,4 @@ La migración no modifica cuentas existentes ni descuenta devoluciones anteriore
 - Suites existentes de devoluciones, avisos y comisiones; tipos, compilación y calendario de revisión sin pagos.
 - `npm run review:finance-controls`: abre un servidor local con componentes reales y respuestas ficticias para revisión por navegador. No utiliza claves ni habla con PayPal o Supabase. Es una prueba de interfaz separada de las pruebas SQL, no una entrega nativa Sandbox.
 
-Los ensayos SQL exigen `PGHOST=127.0.0.1` o `localhost`, `PGPORT`, `PGUSER` y `psql` en PATH; crean y eliminan únicamente las bases desechables nombradas en cada script. Ninguna prueba envía dinero real. Los cambios nuevos todavía requieren validación integrada en QA publicado antes de producción.
+Los ensayos SQL exigen `PGHOST=127.0.0.1` o `localhost`, `PGPORT`, `PGUSER` y `psql` en PATH; crean y eliminan únicamente las bases desechables nombradas en cada script. Ninguna prueba envía dinero real. La validación integrada publicada pasó ocho comprobaciones de estos controles y seis de estados de cuenta, además de la revisión de escritorio y móvil, en el proyecto separado `fansreserve-qa-payouts`.
