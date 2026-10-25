@@ -39,6 +39,7 @@ create table finance_private.collection_cost_resolutions(
  created_at timestamptz not null default now(),unique(kind,source_id)
 );
 create index collection_cost_resolution_receipt on finance_private.collection_cost_resolutions(receipt_id);
+create index collection_cost_resolution_adjustment on finance_private.collection_cost_resolutions(adjustment_id)where adjustment_id is not null;
 create table finance_private.collection_credit_updates(
  resolution_id uuid not null references finance_private.collection_cost_resolutions(id),revision bigint not null,
  delta numeric(12,2)not null,remaining_credit numeric(12,2)not null check(remaining_credit>=0),
