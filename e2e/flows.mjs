@@ -1255,15 +1255,19 @@ const run = async () => {
       expect(Math.abs(available - (before + 80)) < 0.001, `saldo inesperado: ${available}`);
       expect(Math.abs((await readAmount(page, 'pending-balance')) - (pendingBefore + 40)) < 0.001, 'no quedó por acreditar');
       const label = `Retirar ${money(available)}`;
-      await page.getByRole('button', { name: label }).click();
-      await page.getByText('Añade el email de tu cuenta PayPal para retiros').waitFor();
+      expect(await page.getByRole('button', { name: label }).isDisabled(), 'sin cuenta receptora no se debe permitir retirar');
       await page.getByPlaceholder('Email de tu cuenta PayPal').fill('no-es-email');
       const signup = page.getByRole('link', { name: /Crea tu cuenta PayPal gratis/ });
       expect((await signup.getAttribute('href')) === 'https://www.paypal.com/signup' && (await signup.getAttribute('target')) === '_blank', 'falta el enlace para crear cuenta PayPal');
-      await page.getByRole('button', { name: 'Guardar cuenta' }).click();
+      await page.getByLabel('Confirma el correo de PayPal').fill('no-es-email');
+      await page.getByLabel(/Comprobé en PayPal/).check();
+      await page.getByRole('button', { name: 'Confirmar cuenta receptora' }).click();
       await page.getByText('Escribe el email de tu cuenta PayPal').waitFor();
       await page.getByPlaceholder('Email de tu cuenta PayPal').fill('Valentina.Rose@Example.com');
-      await page.getByRole('button', { name: 'Guardar cuenta' }).click();
+      expect(await page.getByRole('button', { name: 'Confirmar cuenta receptora' }).isDisabled(), 'dos correos distintos no deben guardarse');
+      await page.getByLabel('Confirma el correo de PayPal').fill('Valentina.Rose@Example.com');
+      await page.getByLabel(/Comprobé en PayPal/).check();
+      await page.getByRole('button', { name: 'Confirmar cuenta receptora' }).click();
       await page.getByText('PayPal · va•••@example.com').waitFor();
       // This fixture is above the Honduras USD fee cap threshold.
       expect(available >= 51, 'el saldo de esta prueba debe alcanzar el máximo de envío');

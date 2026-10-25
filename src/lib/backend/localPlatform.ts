@@ -400,7 +400,12 @@ export const createLocalPlatform = (
     },
 
     async setPayoutAccount(user, account) {
-      return commit((s) => ({ ...s, payoutAccounts: { ...s.payoutAccounts, [user.id]: account } }));
+      const s=load(),old=s.payoutAccounts[user.id],email=account.email.trim().toLowerCase();
+      if(!account.requestKey||email!==account.confirmation?.trim().toLowerCase())return fail('Confirma el mismo correo de PayPal.');
+      if((old?.revision??0)!==account.expectedRevision)return fail('La cuenta cambió; actualiza y confirma de nuevo.');
+      if(s.payouts.some(p=>p.userId===user.id&&p.status==='sending')&&email!==old?.email)return fail('Hay un retiro en proceso. Conserva su cuenta original hasta confirmarlo.');
+      const revision=(old?.revision??0)+(email!==old?.email?1:0);
+      return commit(store=>({...store,payoutAccounts:{...store.payoutAccounts,[user.id]:{email,revision,history:[{at:new Date().toISOString(),previous:old?payoutAccountLabel(old):null,current:payoutAccountLabel({email}),revision},...(old?.history??[])].slice(0,5)}}}));
     },
 
     async myPayouts(userId) {

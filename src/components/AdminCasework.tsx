@@ -1,4 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
+import AdminRefundResolution from './AdminRefundResolution';
 import type {FinanceBackend} from '../lib/creatorFinance';
 import {financeReasons} from '../lib/creatorFinance';
 import {operationReasons} from '../lib/payoutOperations';
@@ -49,6 +50,7 @@ export default function AdminCasework({api,refreshKey=0,initialReference,initial
    {data&&<>
     <div><h5 className="font-semibold">{data.title}</h5><p className="text-xs text-gray-500 mt-1 break-all">Expediente {data.incident} · {data.state==='open'?'Pendiente':'Atendido'}</p></div>
     <p className="text-sm text-gray-600">{caseGuidance[data.code]??'Comprueba el origen del problema. Documentar una nota no altera el estado del pago ni sustituye las comprobaciones de seguridad.'}</p>
+    {data.code==='REFUND_REVIEW'&&data.state==='open'&&api.refundPreview&&<AdminRefundResolution key={data.incident} api={api} incident={data.incident} onChanged={()=>{setRevision(x=>x+1);onChanged();}}/>}
     {data.source.transaction&&<div className="rounded-xl bg-gray-50 p-3 text-sm space-y-1"><p className="break-all">Venta: {data.source.transaction}</p><p>Importe de la venta: {money(data.source.amount??0)}</p><p>Estado: {data.source.status==='disputed'?'En disputa':data.source.status==='refunded'?'Reembolsada':'Confirmada'}</p><p>{data.source.covered?'Fans Reserve conserva la parte del creador.':'Se aplica el estado de la venta al saldo del creador.'}</p></div>}
     {data.source.kind&&<p className="text-sm">Motivo: {data.source.reason}. Otros bloqueos activos: {data.source.remaining_holds??0}.</p>}
     {data.code==='PAYOUT_REJECTED'&&<div className="rounded-xl bg-gray-50 p-3 text-sm space-y-1"><p>Creador: {data.source.creator}</p><p>Importe del retiro: {money(data.source.amount??0)} · Envío: {money(data.source.net??0)}</p><p>Motivo conservado: {payoutRejectionLabel(data.source.reason)}</p><p className="text-xs">Código de PayPal: {data.source.reason}</p><p>{data.source.definitive?'El rechazo tiene evidencia final.':'Todavía falta comprobar el resultado final; solo puedes registrar seguimiento.'}</p><p className="break-all text-xs">Retiro original: {data.source.payout}</p></div>}
