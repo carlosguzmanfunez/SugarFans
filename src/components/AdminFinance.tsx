@@ -4,6 +4,7 @@ import { money,platformChanged } from '../lib/platform';
 import { formatPayoutDate,hondurasDateKey } from '../lib/payoutCalendar';
 import { financeJournalCsv,financeReasons,type FinanceBackend,type FinanceOverview,type FinanceBatchDetail,type FinanceJournalRow,type FinanceAdjustment } from '../lib/creatorFinance';
 import AdminPayoutOperations from './AdminPayoutOperations';
+import RecipientReserveRelease from './RecipientReserveRelease';
 
 const button='rounded-xl bg-gray-900 text-white px-4 py-2 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed';
 const input='w-full rounded-xl border border-gray-200 px-3 py-2 bg-white text-sm';
@@ -108,6 +109,7 @@ const AdminFinance:React.FC<{api?:FinanceBackend;caseReference?:string}>=({api=b
            <div className="flex flex-wrap justify-between gap-2"><strong>{i.creator_name}</strong><span className="text-sm">{labelState[i.payout_status??i.state]??i.state}</span></div>
            <p className="text-sm text-gray-600 mt-1">{money(i.gross)} {i.allocations.length?(i.state==='released'?'de reserva original':'apartados'):'sin apartar'} · {money(i.net)} netos previstos · {money(i.fee)} de comisión estimada.</p>
            {i.reason&&<p className="text-sm text-amber-800 mt-1">{explanation(i.reason)}</p>}
+           {i.reason==='RECIPIENT_CHANGED'&&['held','review'].includes(i.state)&&!i.payout_id&&api.releaseRecipientReserve&&<RecipientReserveRelease api={api} item={i.id} onChanged={()=>{setNotice('Elemento anterior liberado del lote. Revisa el saldo y la cuenta actual antes de preparar otro pago.');refresh();platformChanged();}}/>}
            <details className="mt-2 text-xs text-gray-600"><summary className="cursor-pointer">Ver ganancias asignadas ({i.allocations.length})</summary><ul className="mt-2 space-y-1">{i.allocations.map((a,n)=><li key={`${a.source}-${n}`} className="break-all">{a.source} · revisión {a.revision} · {money(a.amount)}</li>)}</ul></details>
          </div>)}
          {detail.state==='frozen'&&!detail.items.some(i=>i.payout_id)&&<div className="border-t pt-4 space-y-2"><label className="block text-sm">Motivo para liberar esta reserva<textarea className={input+' mt-1'} value={cancelReason} onChange={e=>setCancelReason(e.target.value)} minLength={10}/></label><button className={button} disabled={busy||cancelReason.trim().length<10} onClick={cancel}>Liberar reserva sin envíos</button></div>}

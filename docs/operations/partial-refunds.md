@@ -49,3 +49,5 @@ La continuación reemplaza la reversión total del manejador legado de disputas 
 No ejecutar pagos reales para verificar una migración. Mantener `execution_enabled=false` y `batch_handoff_enabled=false`.
 
 Referencias: [devoluciones PayPal](https://developer.paypal.com/checkout/refund-payment), [comprobante de devolución](https://developer.paypal.com/api/payments/v2/refunds-get), [especificación oficial](https://github.com/paypal/paypal-rest-api-specifications/blob/main/openapi/payments_payment_v2.json).
+
+Continuación preparada el 24 de octubre: [conciliación supervisada de excepciones y cambio de destinatario](exceptional-refunds-and-recipient-changes.md). Añade el procedimiento pendiente; requiere sus dos migraciones y publicar el cliente. No cambia el estado de la primera entrega ya publicada.

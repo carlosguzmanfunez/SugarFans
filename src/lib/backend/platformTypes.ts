@@ -71,6 +71,11 @@ export interface Transaction {
 // Withdrawals go to the creator's PayPal account (PayPal Payouts).
 export interface PayoutAccount {
   email: string;
+  revision?: number;
+  confirmation?: string;
+  expectedRevision?: number;
+  requestKey?: string;
+  history?: {at:string;previous:string|null;current:string;revision:number}[];
 }
 
 export interface Payout {

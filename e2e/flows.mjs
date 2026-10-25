@@ -1255,11 +1255,11 @@ const run = async () => {
       expect(Math.abs(available - (before + 80)) < 0.001, `saldo inesperado: ${available}`);
       expect(Math.abs((await readAmount(page, 'pending-balance')) - (pendingBefore + 40)) < 0.001, 'no quedó por acreditar');
       const label = `Retirar ${money(available)}`;
-      await page.getByRole('button', { name: label }).click();
-      await page.getByText('Añade el email de tu cuenta PayPal para retiros').waitFor();
+      expect(await page.getByRole('button', { name: label }).isDisabled(), 'sin cuenta receptora no se debe permitir retirar');
       await page.getByPlaceholder('Email de tu cuenta PayPal').fill('no-es-email');
       const signup = page.getByRole('link', { name: /Crea tu cuenta PayPal gratis/ });
       expect((await signup.getAttribute('href')) === 'https://www.paypal.com/signup' && (await signup.getAttribute('target')) === '_blank', 'falta el enlace para crear cuenta PayPal');
+      expect(await page.getByLabel('Confirma el correo de PayPal').count()===0,'el primer registro no debe pedir doble correo');
       await page.getByRole('button', { name: 'Guardar cuenta' }).click();
       await page.getByText('Escribe el email de tu cuenta PayPal').waitFor();
       await page.getByPlaceholder('Email de tu cuenta PayPal').fill('Valentina.Rose@Example.com');

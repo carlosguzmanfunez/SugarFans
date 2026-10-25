@@ -10,6 +10,7 @@ export interface FinanceJournalRow { id: string; sequence: number; at: string; c
 export interface FinanceBackend {
  mode: 'remote' | 'local';
  balance(): Promise<FinanceResult<CreatorBalance>>;
+ statement?(cycle:string,creator?:string):Promise<FinanceResult<import('./creatorStatement').CreatorStatement>>;
  overview(): Promise<FinanceResult<FinanceOverview>>;
  detail(id: string): Promise<FinanceResult<FinanceBatchDetail>>;
  freeze(key: string,cutoff: string,expected: string): Promise<FinanceResult<{id:string}>>;
@@ -28,6 +29,10 @@ export interface FinanceBackend {
  caseList?(offset:number,reference?:string):Promise<FinanceResult<import('./incidentProcedures').CasePage>>;
  casePreview?(id:string):Promise<FinanceResult<import('./incidentProcedures').CasePreview>>;
  caseAct?(input:import('./incidentProcedures').CaseDecision):Promise<FinanceResult<{id:string;result:Record<string,unknown>}>>;
+ refundPreview?(incident:string,service:number,tax:number):Promise<FinanceResult<import('./refundResolution').RefundPlan>>;
+ resolveRefund?(input:import('./refundResolution').RefundResolution):Promise<FinanceResult<{id:string}>>;
+ recheckRefund?(incident:string,key:string,evidence:string,reason:string):Promise<FinanceResult<null>>;
+ releaseRecipientReserve?(item:string,key:string,evidence:string,reason:string):Promise<FinanceResult<null>>;
  feePreview?(line:string):Promise<FinanceResult<import('./payoutOperations').FeePreview>>;
  resolveFee?(line:string,key:string,expected:string,evidence:string,reason:string):Promise<FinanceResult<{id:string}>>;
  reverseFee?(id:string,key:string,reason:string):Promise<FinanceResult<{id:string}>>;
@@ -35,6 +40,8 @@ export interface FinanceBackend {
  importStatement?(key:string,environment:'sandbox'|'live',test:boolean,rows:import('./payoutOperations').StatementInput[]):Promise<FinanceResult<{id:string}>>;
 }
 export const financeReasons: Record<string,string> = {
+ RECIPIENT_CHANGED:'Cambió el correo receptor. Conservamos este apartado para revisión individual; los demás pagos pueden continuar.',
+ RECIPIENT_CHANGED_RELEASED:'Apartado anterior liberado con comprobantes. Conserva su correo e importes originales en el historial.',
  IDENTITY_REQUIRED:'Falta verificar su identidad',SUSPENDED:'Cuenta suspendida',ACCOUNT_FROZEN:'Retiros en revisión',
  RECIPIENT_REQUIRED:'Falta una cuenta PayPal válida',OWNER_AMBIGUOUS:'Revisar el propietario del perfil',PAYOUT_IN_PROGRESS:'Ya tiene un retiro en proceso',
  DISPUTE_OPEN:'Tiene una disputa pendiente',NEGATIVE_BALANCE:'Tiene un saldo por recuperar',BELOW_MINIMUM:'Aún no llega al mínimo de retiro',SOURCE_CHANGED_AFTER_CLOSE:'Una ganancia cambió después del cierre',

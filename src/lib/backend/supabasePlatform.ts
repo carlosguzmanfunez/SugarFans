@@ -260,21 +260,13 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
   },
 
   async payoutAccount(userId) {
-    const { data } = await sb.from('payout_accounts').select('*').eq('user_id', userId).maybeSingle();
-    // An older bank account counts as none: withdrawals now go to PayPal.
-    return data?.paypal_email ? { email: data.paypal_email } : null;
+    const { data,error } = await sb.rpc('my_payout_account');
+    return !error&&data?.email ? {email:data.email,revision:Number(data.revision),history:data.history??[]} : null;
   },
 
   async setPayoutAccount(user, account) {
-    const { error } = await sb.from('payout_accounts').upsert({
-      user_id: user.id,
-      paypal_email: account.email,
-      holder: null,
-      bank: null,
-      account_last4: null,
-      updated_at: new Date().toISOString(),
-    });
-    return done(error, 'No se pudo guardar la cuenta');
+    const {error}=await sb.rpc('payout_account_set',{p_key:account.requestKey,p_email:account.email,p_confirmation:account.confirmation??null,p_expected:account.expectedRevision});
+    return error?{ok:false,error:error.code==='P0001'?error.message:'No pudimos confirmar el cambio. Actualiza y vuelve a comprobar la cuenta.'}:{ok:true};
   },
 
   async myPayouts(userId) {

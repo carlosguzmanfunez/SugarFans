@@ -9,7 +9,7 @@ export const FINANCE_MIGRATION='20261020032222_creator_ledger_batch_reservations
 export const NOTIFICATION_MIGRATION='20261020231703_payout_notification_wording.sql';
 export async function financeFixture({beforeMigration,notificationMigration=true,incidentMigration=process.env.TEST_INCIDENT_PROCEDURES==='1',feeResolutionMigration=process.env.TEST_FEE_RESOLUTION==='1'||incidentMigration,automationMigration=process.env.TEST_PAYOUT_OPERATIONS==='1'||feeResolutionMigration,capacityMigration=automationMigration,recoveryMigration=false,payoutCostMigration=false}={}) {
  const db=new PGlite();const q=async(sql,args=[]) => (await db.query(sql,args)).rows;
- const source=n=>readFileSync(resolve('supabase/migrations',n),'utf8');
+ const source=n=>readFileSync(resolve('supabase/migrations',n),'utf8').replaceAll('\r\n','\n');
  await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create schema security_private;create table security_private.owner_account(user_id uuid primary key);create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,deleted_at timestamptz,banned_until timestamptz);
  create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
  create or replace function pg_catalog.now() returns timestamptz language sql stable as $$select current_setting('test.clock')::timestamptz$$;

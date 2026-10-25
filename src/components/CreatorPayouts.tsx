@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useRef,useState } from 'react';
 import Notice from './Notice';
 import PayoutCostBreakdown from './PayoutCostBreakdown';
+import CreatorCycleStatement from './CreatorCycleStatement';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -64,6 +65,8 @@ const CreatorPayouts: React.FC = () => {
   // Oro and Diamante withdraw from $25.
   const { data: terms } = usePlatformQuery(() => (user ? rewardsApi.payoutTerms(user) : Promise.resolve({ min: MIN_PAYOUT })), [userId], { min: MIN_PAYOUT });
   const [paypalEmail, setPaypalEmail] = useState('');
+  const [confirmedEmail,setConfirmedEmail]=useState(''),[confirmedAccount,setConfirmedAccount]=useState(false),[savingAccount,setSavingAccount]=useState(false),[accountRevision,setAccountRevision]=useState(0);
+  const accountRequest=useRef<{payload:string;key:string}|null>(null);
   const [editingAccount, setEditingAccount] = useState(false);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -78,9 +81,15 @@ const CreatorPayouts: React.FC = () => {
   const verified = !!user.isVerified;
 
   const saveAccount = async () => {
-    const r = await setPayoutAccount(user, paypalEmail);
-    setNotice(r.ok ? { ok: true, text: 'Cuenta PayPal guardada' } : { ok: false, text: r.error! });
-    if (r.ok) setEditingAccount(false);
+    if(savingAccount||loading||(payoutAccount&&!confirmedAccount))return;setSavingAccount(true);
+    try{
+     const confirmation=payoutAccount?confirmedEmail:undefined;
+     const payload=JSON.stringify([user.id,paypalEmail,confirmation,accountRevision]);
+     if(accountRequest.current?.payload!==payload)accountRequest.current={payload,key:crypto.randomUUID()};
+     const r = await setPayoutAccount(user, paypalEmail,{email:confirmation,expectedRevision:accountRevision,key:accountRequest.current.key});
+     setNotice(r.ok ? { ok: true, text: payoutAccount?'Cuenta PayPal actualizada. Los apartados que tenían otro destinatario quedan para revisión; ningún envío iniciado cambia de cuenta.':'Cuenta PayPal guardada para recibir tus retiros.' } : { ok: false, text: r.error! });
+     if (r.ok){accountRequest.current=null;setEditingAccount(false);setConfirmedAccount(false);setPaypalEmail('');setConfirmedEmail('');}
+    }catch{setNotice({ok:false,text:'No recibimos la confirmación. Reintenta con los mismos datos para conservar la referencia.'});}finally{setSavingAccount(false);}
   };
 
   const withdraw = async () => {
@@ -147,7 +156,7 @@ const CreatorPayouts: React.FC = () => {
               <p className="text-sm font-medium text-gray-900">{payoutAccountLabel(payoutAccount)}</p>
               <p className="text-xs text-gray-500">Aquí recibes tus retiros</p>
             </div>
-            <button type="button" onClick={() => setEditingAccount(true)} className="text-sm text-pink-600">Cambiar</button>
+            <button type="button" onClick={() => {setAccountRevision(payoutAccount.revision??0);setEditingAccount(true);setConfirmedAccount(false);}} className="text-sm text-pink-600">Cambiar</button>
           </div>
         ) : (
           <div className="space-y-3 mb-4 max-w-lg">
@@ -157,18 +166,27 @@ const CreatorPayouts: React.FC = () => {
               type="email"
               autoComplete="email"
               placeholder="Email de tu cuenta PayPal"
+              aria-label="Correo de tu cuenta PayPal"
               value={paypalEmail}
-              onChange={(e) => setPaypalEmail(e.target.value)}
+              disabled={savingAccount||loading}
+              onChange={(e) => {setPaypalEmail(e.target.value);setConfirmedAccount(false);}}
             />
+            {payoutAccount&&<>
+            <label className="block text-sm">Confirma el correo de PayPal<input type="email" className={field+' mt-1'} autoComplete="off" value={confirmedEmail} disabled={savingAccount} onChange={e=>{setConfirmedEmail(e.target.value);setConfirmedAccount(false);}}/></label>
+            <p className="text-xs text-gray-500">Un retiro ya iniciado conserva su destinatario y debe terminar de conciliarse antes de cambiarlo. Los importes apartados que aún no se enviaron quedarán para revisión individual. Escribir el correo no confirma que PayPal haya verificado esa cuenta.</p>
+            <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={confirmedAccount} disabled={savingAccount} onChange={e=>setConfirmedAccount(e.target.checked)}/>Comprobé en PayPal que este es el correo donde quiero recibir mis próximos retiros.</label>
+            </>}
             <p className="text-xs text-gray-500">
               Usa el email con el que entras a PayPal. ¿Aún no tienes cuenta?{' '}
               <a href="https://www.paypal.com/signup" target="_blank" rel="noopener noreferrer" className="font-medium text-blue-700 underline hover:text-blue-800">
                 Crea tu cuenta PayPal gratis<i aria-hidden="true" className="fas fa-arrow-up-right-from-square ml-1 text-[10px]"></i>
               </a>
             </p>
-            <button type="button" onClick={saveAccount} className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium">Guardar cuenta</button>
+            <button type="button" disabled={savingAccount||loading||!paypalEmail.trim()||(!!payoutAccount&&(!confirmedAccount||paypalEmail.trim().toLowerCase()!==confirmedEmail.trim().toLowerCase()))} onClick={saveAccount} className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-40">{savingAccount?'Guardando…':payoutAccount?'Confirmar cuenta receptora':'Guardar cuenta'}</button>
+            {payoutAccount&&<button type="button"disabled={savingAccount}onClick={()=>{setEditingAccount(false);setPaypalEmail('');setConfirmedEmail('');setConfirmedAccount(false);}}className="text-sm underline ml-3 disabled:opacity-40">Cancelar cambio</button>}
           </div>
         )}
+        {!!payoutAccount?.history?.length&&<details className="mb-4 text-xs text-gray-600"><summary className="cursor-pointer">Historial de cuenta receptora</summary><ul className="mt-2 space-y-1">{payoutAccount.history.map((h,n)=><li key={`${h.revision}-${n}`}>{fmtDate(h.at)} · {h.previous?`${h.previous} → `:'Cuenta registrada: '}{h.current}</li>)}</ul></details>}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <button
             type="button"
@@ -221,6 +239,7 @@ const CreatorPayouts: React.FC = () => {
         <ul className="space-y-3">{book.data.fee_adjustments.map(a=><li key={a.id} className="rounded-xl bg-gray-50 p-3 text-sm"><p className="font-medium">{a.reversed_at?'Ajuste revertido':a.creator_delta>0?`${money(a.creator_delta)} a tu favor`:a.creator_delta<0?`${money(-a.creator_delta)} a tu cargo`:'Corrección del reporte, sin cambio de saldo'}</p><p className="text-gray-600">Estimado: {money(a.estimated_fee)} · Confirmado por PayPal: {money(a.actual_fee)} · {fmtDate(a.created_at)}</p></li>)}</ul>
         <p className="text-xs text-gray-500 mt-3">Los créditos nuevos se incorporan al siguiente cierre; los descuentos afectan el saldo disponible. Una reversión conserva la fecha original. Estos ajustes ya están incluidos en tus saldos.</p>
       </div>}
+      <CreatorCycleStatement key={userId}/>
       <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
         <h3 className="font-bold text-gray-900 mb-4">Pagos de tus fans</h3>
         {sales.length === 0 ? (

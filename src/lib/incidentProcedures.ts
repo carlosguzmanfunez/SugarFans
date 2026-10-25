@@ -1,4 +1,4 @@
-export type CaseAction='note'|'coverage'|'release_hold'|'ack_alert'|'close_review';
+export type CaseAction='note'|'coverage'|'release_hold'|'ack_alert'|'close_review'|'refund_resolution'|'refund_recheck';
 export type CaseParty='undetermined'|'creator'|'fan'|'platform'|'provider';
 export type CaseCategory='unresolved'|'human_input'|'service_delivery'|'platform_processing'|'provider_processing'|'other';
 export interface CaseItem {id:string;code:string;title:string;detail:string;state:'open'|'resolved';episode:number;first_seen_at:string;reference:string;followup_at:string|null}
@@ -15,7 +15,7 @@ export interface CasePreview {
 export interface CaseDecision {id:string;key:string;expected:string;action:CaseAction;party:CaseParty;category:CaseCategory;evidence:string;reason:string;notice?:string|null;followup?:string|null}
 export const caseParties:Record<CaseParty,string>={undetermined:'Aún por determinar',creator:'Creador',fan:'Fan',platform:'Fans Reserve (incluye nuestro equipo)',provider:'Proveedor de pagos o servicios'};
 export const caseCategories:Record<CaseCategory,string>={unresolved:'Falta determinar la causa',human_input:'Dato o instrucción humana incorrecta',service_delivery:'Incumplimiento de la experiencia o del servicio',platform_processing:'Fallo de procesamiento de Fans Reserve',provider_processing:'Fallo comprobado del proveedor',other:'Otra causa documentada'};
-export const caseActions:Record<CaseAction,string>={note:'Registrar seguimiento',coverage:'Aplicar cobertura según responsabilidad',release_hold:'Liberar este motivo de bloqueo',ack_alert:'Registrar atención del aviso fallido',close_review:'Cerrar revisión comprobada'};
+export const caseActions:Record<CaseAction,string>={note:'Registrar seguimiento',coverage:'Aplicar cobertura según responsabilidad',release_hold:'Liberar este motivo de bloqueo',ack_alert:'Registrar atención del aviso fallido',close_review:'Cerrar revisión comprobada',refund_resolution:'Devolución excepcional conciliada',refund_recheck:'Nueva consulta de devolución solicitada'};
 export const payoutRejectionLabel=(reason?:string)=>reason==='INSUFFICIENT_FUNDS'?'Saldo insuficiente de la cuenta pagadora de Fans Reserve':reason==='RECEIVER_UNCONFIRMED'?'PayPal indica que falta confirmar el correo de la cuenta receptora.':reason==='FAILED'||reason==='DENIED'?'PayPal rechazó el envío sin indicar una causa específica.':'El proveedor indicó un rechazo; revisa la evidencia conservada.';
 export const caseGuidance:Record<string,string>={
  PAYOUT_REJECTED:'Este expediente conserva el rechazo original. Comprueba la causa antes de atribuir responsabilidades. Cerrar la revisión no vuelve a enviar el pago, no marca una entrega ni descuenta dinero.',
@@ -40,4 +40,6 @@ export const caseEffects=(action:CaseAction,party:CaseParty,code?:string)=>code=
  release_hold:'Se libera este motivo documentado. Si hay otro bloqueo activo, la cuenta seguirá retenida. Esta acción no envía dinero.',
  ack_alert:'Se registra la atención humana; el correo no se marca como entregado. La incidencia que originó el aviso conserva su propio estado.',
  close_review:'Se cierra esta revisión porque la condición comprobada lo permite. El estado informado por PayPal se conserva.',
+ refund_resolution:'Se conserva la conciliación de la devolución y sus comprobantes. La responsabilidad se evalúa por separado.',
+ refund_recheck:'Se consulta otra vez el comprobante original. No se devuelve dinero ni se libera un bloqueo.',
 })[action];

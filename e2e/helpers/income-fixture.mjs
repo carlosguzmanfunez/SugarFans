@@ -5,7 +5,7 @@ export const FAN='00000000-0000-0000-0000-000000000003';
 export const INCOME_MIGRATION='20261023191322_income_event_reconciliation.sql';
 export async function incomeFixture(){
  const f=await financeFixture({incidentMigration:true,recoveryMigration:true}),{db,q}=f;
- const source=n=>readFileSync('supabase/migrations/'+n,'utf8');
+ const source=n=>readFileSync('supabase/migrations/'+n,'utf8').replaceAll('\r\n','\n');
  await db.exec(`alter table transactions add column paypal_ref text,add column gateway_fee numeric default 5,add column service_fee numeric,add column tax_amount numeric,add column creator_name text,add column payer_id uuid,add column payer_name text,add column method_label text,add column reversed_by text;
  alter table transactions alter column id set default gen_random_uuid()::text;alter table transactions alter column creator_share set default .76;alter table transactions alter column created_at set default now();create unique index transaction_income_key on transactions(key);
  create table coin_purchases(id uuid default gen_random_uuid(),user_id uuid,price numeric,status text,coins bigint,paypal_ref text);
