@@ -1,0 +1,8 @@
+import assert from'node:assert/strict';import{build}from'esbuild';
+const compiled=await build({entryPoints:['src/lib/creatorStatement.ts'],bundle:true,platform:'node',format:'esm',write:false,logLevel:'silent'}),{creatorStatementCsv}=await import('data:text/javascript;base64,'+Buffer.from(compiled.outputFiles[0].text).toString('base64'));
+const s={creator:'QA',currency:'USD',version:1,as_of:'2026-10-26T12:00:00Z',cycle:{start:'2026-09-26T06:00:00Z',end:'2026-10-26T06:00:00Z'},totals:{original_earnings:1001,creator_loss:0,adjustments:0,rounding:0,earnings:1001,paid:0,sending:0,reserved:0,unallocated:1001},movements:Array.from({length:1001},(_,i)=>({reference:'UNIQUE-LINE-'+i,at:'2026-10-10T12:00:00Z',kind:'tip',status:'paid',value:1,collection_fee:null,collection_status:'estimated',service:0,tax:0,platform_part:null,original_earnings:1,returned_to_fan:0,returned_collection_fee:0,creator_loss:0,covered_by_platform:0,rounding:0,adjustment:0,earnings:1,note:i===0?'=HYPERLINK("https://example.invalid")':i===1?'Texto con coma, comilla " y\nsalto':null})),payments:[]};
+const csv=creatorStatementCsv(s);
+assert.equal((csv.match(/UNIQUE-LINE-\d+/g)??[]).length,1001);console.log('PASS export includes all 1001 movements beyond the visible page');
+assert.ok(csv.includes('"\'=HYPERLINK(""https://example.invalid"")"'));assert.ok(csv.includes('Texto con coma, comilla "" y\nsalto'));console.log('PASS quoted notes, line breaks and spreadsheet formula injection are handled');
+assert.ok(csv.includes('"1.00","","estimated"'));assert.ok(csv.startsWith('\uFEFF'));console.log('PASS unknown fees remain blank and the Spanish USD export retains its encoding');
+console.log('3/3 export checks');

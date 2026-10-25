@@ -10,6 +10,7 @@ export interface FinanceJournalRow { id: string; sequence: number; at: string; c
 export interface FinanceBackend {
  mode: 'remote' | 'local';
  balance(): Promise<FinanceResult<CreatorBalance>>;
+ statement?(cycle:string,creator?:string):Promise<FinanceResult<import('./creatorStatement').CreatorStatement>>;
  overview(): Promise<FinanceResult<FinanceOverview>>;
  detail(id: string): Promise<FinanceResult<FinanceBatchDetail>>;
  freeze(key: string,cutoff: string,expected: string): Promise<FinanceResult<{id:string}>>;

@@ -13,6 +13,7 @@ export const createSupabaseFinance=(sb:SupabaseClient):FinanceBackend=>{
  };
  return {
    mode:'remote',balance:()=>call('finance_creator_balance'),overview:()=>call('finance_overview'),
+   statement:(cycle,creator)=>call('finance_creator_statement',{p_cycle:cycle,p_creator:creator??null}),
    detail:id=>call('finance_batch_detail',{p_id:id}),
    freeze:(key,cutoff,expected)=>call('finance_batch_freeze',{p_key:key,p_cutoff:cutoff,p_expected:expected}),
    cancel:(id,reason)=>call('finance_batch_cancel',{p_id:id,p_reason:reason}),

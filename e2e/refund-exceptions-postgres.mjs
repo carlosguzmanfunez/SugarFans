@@ -24,7 +24,9 @@ const decision=(r,p,key=randomUUID(),service=0,tax=0)=>[r.incident,key,p.hash,se
 const resolve=(r,p,key,service=0,tax=0)=>admin('finance_refund_resolve',decision(r,p,key,service,tax));
 const n=statement=>Number(psql(DB,statement));
 finish(async()=>{
- setup();owner=user('exceptions-admin@example.invalid','fan');psql(DB,`update profiles set role='admin' where id=${lit(owner)}`);creator=user('exceptions-creator@example.invalid','creator');fan=user('exceptions-fan@example.invalid','fan');cp=psql(DB,'select creator_profile_id from profiles where id='+lit(creator));
+ // Windows Git checkouts can restore CRLF even after the stored body was LF.
+ setup({transformMigration:(name,body)=>name==='20261024202221_supervised_refund_resolution.sql'?body.replaceAll('\r\n','\n').replaceAll('\n','\r\n'):body});
+ owner=user('exceptions-admin@example.invalid','fan');psql(DB,`update profiles set role='admin' where id=${lit(owner)}`);creator=user('exceptions-creator@example.invalid','creator');fan=user('exceptions-fan@example.invalid','fan');cp=psql(DB,'select creator_profile_id from profiles where id='+lit(creator));
  await check('Special service/tax allocation uses original shares and preserves all sale amounts',()=>{
   const s=sale({sql:'update transactions set gateway_fee=3,service_fee=5,tax_amount=15,creator_share=.77 where id=:id'}),before=psql(DB,"select concat_ws('/',amount,gateway_fee,creator_share,created_at) from transactions where id="+lit(s.id));
   const r=refund(s.ref,20);assert.equal(r.applied.state,'review');let p=preview(r,1,3);assert.equal(p.issue,null);assert.equal(p.items[0].loss,16);

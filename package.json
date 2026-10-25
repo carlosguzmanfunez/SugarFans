@@ -31,6 +31,8 @@
     "test:refund-exceptions-db": "node e2e/refund-exceptions-postgres.mjs",
     "test:payout-recipient-db": "node e2e/payout-recipient-postgres.mjs",
     "test:finance-controls": "node e2e/finance-controls-acceptance.mjs",
+    "test:creator-statement": "node e2e/creator-statement-postgres.mjs && node e2e/creator-statement-export.mjs",
+    "test:finance-cycle-rehearsal": "node e2e/finance-cycle-rehearsal-postgres.mjs",
     "review:finance-controls": "node e2e/finance-controls-review.mjs",
     "test:income-events": "node e2e/income-events.mjs",
     "test:income-events-ui": "node e2e/income-events-ui.mjs",

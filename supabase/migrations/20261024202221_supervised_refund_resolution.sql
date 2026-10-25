@@ -52,14 +52,17 @@ end$$;
 
 -- Install only at the two validated exception exits; never bypass the provider checks.
 do $$declare d text;old text;begin
- d:=pg_get_functiondef('public.paypal_refund_apply(uuid,text,jsonb,jsonb)'::regprocedure);
+ -- Stored function bodies can contain Windows line endings from older deploys.
+ d:=replace(pg_get_functiondef('public.paypal_refund_apply(uuid,text,jsonb,jsonb)'::regprocedure),chr(13),'');
  old:=$old$  elsif v_coins.id is not null then
    return finance_private.refund_attention(p_id,p_ref,'Devolución de Créditos: conciliar billetera y regalos antes de aplicar');end if;$old$;
+ old:=replace(old,chr(13),'');
  if position(old in d)=0 then raise exception 'Revisar salida de Créditos antes de instalar';end if;
  d:=replace(d,old,$new$  elsif v_coins.id is not null then
    perform finance_private.remember_refund_exception(p_id,'credits',p_ref,p_refund,p_payment,v_amount,v_fee,v_payment_amount);
    return finance_private.refund_attention(p_id,p_ref,'Devolución de Créditos: conciliar billetera y regalos antes de aplicar');end if;$new$);
  old:=$old$  return finance_private.refund_attention(p_id,p_ref,'La devolución parcial requiere revisar el contrato, descuento o historial especial');end if;$old$;
+ old:=replace(old,chr(13),'');
  if position(old in d)=0 then raise exception 'Revisar salida de contrato antes de instalar';end if;
  d:=replace(d,old,$new$  perform finance_private.remember_refund_exception(p_id,'contract',p_ref,p_refund,p_payment,v_amount,v_fee,v_payment_amount);
   return finance_private.refund_attention(p_id,p_ref,'La devolución parcial requiere revisar el contrato, descuento o historial especial');end if;$new$);
@@ -292,7 +295,7 @@ end$$;
 -- from spending the same wallet balance.
 do $$declare d text;fn text;pos integer;begin
  foreach fn in array array['public.send_gift(text,text,text,text,text,text)','public.buy_coins(text,uuid)'] loop
-  d:=pg_get_functiondef(fn::regprocedure);pos:=position(E'\nbegin\n' in d);
+  d:=replace(pg_get_functiondef(fn::regprocedure),chr(13),'');pos:=position(E'\nbegin\n' in d);
   if pos=0 then raise exception 'Revisar bloqueo de billetera: %',fn;end if;
   d:=overlay(d placing E'\nbegin\n  perform finance_private.lock_book();\n' from pos for 7);
   execute d;

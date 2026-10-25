@@ -66,14 +66,14 @@ export const createDbTest = (DB) => {
   grant usage on schema public to anon, authenticated;
   `;
 
-  const setup = () => {
+  const setup = ({ transformMigration = (_name, sql) => sql } = {}) => {
     psql('postgres', `drop database if exists ${DB};\ncreate database ${DB};`);
     // Roles are cluster-wide: create them only once.
     const roles = psql('postgres', "select count(*) from pg_roles where rolname in ('anon','authenticated','service_role')");
     psql(DB, roles === '3' ? SHIM.replace(/^\s*create role .*$/m, '') : SHIM);
     const dir = new URL('../supabase/migrations/', import.meta.url);
     for (const f of readdirSync(dir).filter((x) => x.endsWith('.sql')).sort())
-      psql(DB, 'begin;\n' + readFileSync(new URL(f, dir), 'utf8').replace(/^create extension if not exists pg_cron;$/m, '') + '\ncommit;');
+      psql(DB, 'begin;\n' + transformMigration(f,readFileSync(new URL(f, dir), 'utf8').replace(/^create extension if not exists pg_cron;$/m, '')) + '\ncommit;');
   };
 
   // Creators come verified (an unverified one can't be paid); pass verified: false to test that.

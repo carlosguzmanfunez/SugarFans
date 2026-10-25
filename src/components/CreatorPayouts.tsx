@@ -1,6 +1,7 @@
 import React, { useRef,useState } from 'react';
 import Notice from './Notice';
 import PayoutCostBreakdown from './PayoutCostBreakdown';
+import CreatorCycleStatement from './CreatorCycleStatement';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -182,6 +183,7 @@ const CreatorPayouts: React.FC = () => {
               </a>
             </p>
             <button type="button" disabled={savingAccount||loading||!paypalEmail.trim()||(!!payoutAccount&&(!confirmedAccount||paypalEmail.trim().toLowerCase()!==confirmedEmail.trim().toLowerCase()))} onClick={saveAccount} className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-40">{savingAccount?'Guardando…':payoutAccount?'Confirmar cuenta receptora':'Guardar cuenta'}</button>
+            {payoutAccount&&<button type="button"disabled={savingAccount}onClick={()=>{setEditingAccount(false);setPaypalEmail('');setConfirmedEmail('');setConfirmedAccount(false);}}className="text-sm underline ml-3 disabled:opacity-40">Cancelar cambio</button>}
           </div>
         )}
         {!!payoutAccount?.history?.length&&<details className="mb-4 text-xs text-gray-600"><summary className="cursor-pointer">Historial de cuenta receptora</summary><ul className="mt-2 space-y-1">{payoutAccount.history.map((h,n)=><li key={`${h.revision}-${n}`}>{fmtDate(h.at)} · {h.previous?`${h.previous} → `:'Cuenta registrada: '}{h.current}</li>)}</ul></details>}
@@ -237,6 +239,7 @@ const CreatorPayouts: React.FC = () => {
         <ul className="space-y-3">{book.data.fee_adjustments.map(a=><li key={a.id} className="rounded-xl bg-gray-50 p-3 text-sm"><p className="font-medium">{a.reversed_at?'Ajuste revertido':a.creator_delta>0?`${money(a.creator_delta)} a tu favor`:a.creator_delta<0?`${money(-a.creator_delta)} a tu cargo`:'Corrección del reporte, sin cambio de saldo'}</p><p className="text-gray-600">Estimado: {money(a.estimated_fee)} · Confirmado por PayPal: {money(a.actual_fee)} · {fmtDate(a.created_at)}</p></li>)}</ul>
         <p className="text-xs text-gray-500 mt-3">Los créditos nuevos se incorporan al siguiente cierre; los descuentos afectan el saldo disponible. Una reversión conserva la fecha original. Estos ajustes ya están incluidos en tus saldos.</p>
       </div>}
+      <CreatorCycleStatement key={userId}/>
       <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
         <h3 className="font-bold text-gray-900 mb-4">Pagos de tus fans</h3>
         {sales.length === 0 ? (
