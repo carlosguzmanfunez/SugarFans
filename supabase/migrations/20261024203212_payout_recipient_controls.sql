@@ -48,7 +48,7 @@ end$$;
 create function public.payout_account_set(p_key uuid,p_email text,p_confirmation text,p_expected bigint) returns jsonb
  language plpgsql security definer set search_path='' as $$
 declare p public.profiles;a public.payout_accounts;c finance_private.payout_account_changes;i public.finance_batch_items;
- email text:=lower(trim(p_email));v_revision bigint;
+ email text:=lower(trim(p_email));v_revision bigint;v_existing boolean;
 begin
  perform finance_private.lock_book();
  select * into p from public.profiles where id=auth.uid();
@@ -56,20 +56,25 @@ begin
   or public.is_suspended(p.id) or not exists(select 1 from auth.users where id=p.id and deleted_at is null and email_confirmed_at is not null and (banned_until is null or banned_until<=now())) then
   raise exception 'Inicia sesión con tu cuenta activa de creador para cambiar el destinatario';end if;
  if p_key is null or p_expected is null or p_expected<0 or length(coalesce(email,'')) not between 3 and 254 or email !~ '^[A-Za-z0-9.!#$%&''*+/=?^_`{|}~-]+@([A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,}$'
-  or email like '%..%' or email ~ '(^[.]|[.]@)' or email is distinct from lower(trim(p_confirmation)) then raise exception 'Escribe dos veces el mismo correo válido de PayPal';end if;
+  or email like '%..%' or email ~ '(^[.]|[.]@)' then raise exception 'Escribe un correo válido de PayPal';end if;
  select * into c from finance_private.payout_account_changes where request_key=p_key;
  if c.request_key is not null then
   if (c.user_id,c.to_email,c.from_revision) is distinct from (p.id,email,p_expected) then raise exception 'Referencia de cambio reutilizada';end if;
+  if nullif(trim(c.from_email),'') is not null and email is distinct from lower(trim(c.from_email))
+   and email is distinct from lower(trim(p_confirmation)) then raise exception 'Escribe dos veces el mismo correo de PayPal para cambiar la cuenta';end if;
   return jsonb_build_object('revision',c.to_revision);
  end if;
  select * into a from public.payout_accounts where user_id=p.id for update;
  if coalesce(a.revision,0)<>p_expected then raise exception 'La cuenta receptora cambió en otra sesión; actualiza y confirma de nuevo';end if;
+ v_existing:=nullif(trim(a.paypal_email),'') is not null;
+ if v_existing and email is distinct from lower(trim(a.paypal_email)) and email is distinct from lower(trim(p_confirmation)) then
+  raise exception 'Escribe dos veces el mismo correo de PayPal para cambiar la cuenta';end if;
  if email is distinct from lower(trim(a.paypal_email)) and exists(select 1 from public.payouts po left join public.paypal_payout_submissions s on s.payout_id=po.id
   where po.user_id=p.id and (po.status='sending' or (po.status<>'paid' and s.state in ('prepared','uncertain','manual_review')))) then
   raise exception 'Hay un retiro iniciado o sin resultado definitivo. Conservaremos su cuenta original hasta conciliarlo; no vuelvas a enviarlo';end if;
  v_revision:=coalesce(a.revision,0)+case when email is distinct from lower(trim(a.paypal_email)) then 1 else 0 end;
  insert into finance_private.payout_account_changes(request_key,user_id,from_email,to_email,from_revision,to_revision,affected_items)
- values(p_key,p.id,a.paypal_email,email,coalesce(a.revision,0),v_revision,case when v_revision=coalesce(a.revision,0) then '[]'::jsonb else coalesce((
+ values(p_key,p.id,a.paypal_email,email,coalesce(a.revision,0),v_revision,case when not v_existing or v_revision=coalesce(a.revision,0) then '[]'::jsonb else coalesce((
   select jsonb_agg(to_jsonb(bi) order by bi.id) from public.finance_batch_items bi join public.finance_batches b on b.id=bi.batch_id
    where bi.user_id=p.id and b.state='frozen' and bi.state in ('reserved','held','review')
     and not exists(select 1 from public.payouts po where po.finance_batch_item_id=bi.id)),'[]'::jsonb) end);
@@ -78,7 +83,7 @@ begin
   on conflict(user_id) do update set paypal_email=excluded.paypal_email,holder=null,bank=null,account_last4=null,revision=excluded.revision,updated_at=excluded.updated_at;
   -- Preserve the frozen recipient and every allocation. Do not silently retarget.
   for i in select bi.* from public.finance_batch_items bi join public.finance_batches b on b.id=bi.batch_id
-   where bi.user_id=p.id and b.state='frozen' and bi.state in ('reserved','held','review')
+   where v_existing and bi.user_id=p.id and b.state='frozen' and bi.state in ('reserved','held','review')
     and not exists(select 1 from public.payouts po where po.finance_batch_item_id=bi.id) loop
    -- A held item never reserved funds. Promoting it to review would make the
    -- balance subtract a phantom reservation, so keep its financial state.

@@ -46,10 +46,11 @@ export const addPaymentMethod = async (user: User, input: PaymentMethodInput): P
 export const removePaymentMethod = (user: User, id: string) => after(p.removePaymentMethod(user, id));
 export const setDefaultPaymentMethod = (user: User, id: string) => after(p.setDefaultPaymentMethod(user, id));
 
-export const setPayoutAccount = async (user: User, paypalEmail: string, confirmation?:{email:string;expectedRevision:number;key:string}): Promise<AuthResult> => {
+export const setPayoutAccount = async (user: User, paypalEmail: string, confirmation?:{email?:string;expectedRevision:number;key:string}): Promise<AuthResult> => {
   const built = buildPayoutAccount(paypalEmail);
   if (!built.account) return { ok: false, error: built.error };
-  if(!confirmation||paypalEmail.trim().toLowerCase()!==confirmation.email.trim().toLowerCase())return {ok:false,error:'Escribe dos veces el mismo correo de PayPal y confirma el cambio.'};
+  if(!confirmation)return {ok:false,error:'Actualiza los datos de tu cuenta antes de guardar.'};
+  if(confirmation.email!==undefined&&paypalEmail.trim().toLowerCase()!==confirmation.email.trim().toLowerCase())return {ok:false,error:'Escribe dos veces el mismo correo de PayPal y confirma el cambio.'};
   return after(p.setPayoutAccount(user, {...built.account,confirmation:confirmation.email,expectedRevision:confirmation.expectedRevision,requestKey:confirmation.key} as PayoutAccount));
 };
 export const requestPayout = (user: User) => after(p.requestPayout(user));

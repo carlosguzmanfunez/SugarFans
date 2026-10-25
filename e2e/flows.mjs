@@ -1259,15 +1259,11 @@ const run = async () => {
       await page.getByPlaceholder('Email de tu cuenta PayPal').fill('no-es-email');
       const signup = page.getByRole('link', { name: /Crea tu cuenta PayPal gratis/ });
       expect((await signup.getAttribute('href')) === 'https://www.paypal.com/signup' && (await signup.getAttribute('target')) === '_blank', 'falta el enlace para crear cuenta PayPal');
-      await page.getByLabel('Confirma el correo de PayPal').fill('no-es-email');
-      await page.getByLabel(/Comprobé en PayPal/).check();
-      await page.getByRole('button', { name: 'Confirmar cuenta receptora' }).click();
+      expect(await page.getByLabel('Confirma el correo de PayPal').count()===0,'el primer registro no debe pedir doble correo');
+      await page.getByRole('button', { name: 'Guardar cuenta' }).click();
       await page.getByText('Escribe el email de tu cuenta PayPal').waitFor();
       await page.getByPlaceholder('Email de tu cuenta PayPal').fill('Valentina.Rose@Example.com');
-      expect(await page.getByRole('button', { name: 'Confirmar cuenta receptora' }).isDisabled(), 'dos correos distintos no deben guardarse');
-      await page.getByLabel('Confirma el correo de PayPal').fill('Valentina.Rose@Example.com');
-      await page.getByLabel(/Comprobé en PayPal/).check();
-      await page.getByRole('button', { name: 'Confirmar cuenta receptora' }).click();
+      await page.getByRole('button', { name: 'Guardar cuenta' }).click();
       await page.getByText('PayPal · va•••@example.com').waitFor();
       // This fixture is above the Honduras USD fee cap threshold.
       expect(available >= 51, 'el saldo de esta prueba debe alcanzar el máximo de envío');

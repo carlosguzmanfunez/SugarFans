@@ -12,12 +12,19 @@ const save=(who,email,revision,key=randomUUID(),confirmation=email)=>json(who,'p
 finish(async()=>{
  setup();psql(DB,"create or replace function pg_catalog.now() returns timestamptz language sql stable as $$select '2026-10-26T12:00:00Z'::timestamptz$$");owner=user('recipient-admin@example.invalid','fan');psql(DB,'update profiles set role=\'admin\' where id='+lit(owner));creator=user('recipient-creator@example.invalid','creator');other=user('recipient-other@example.invalid','creator');fan=user('recipient-fan@example.invalid','fan');cp=psql(DB,'select creator_profile_id from profiles where id='+lit(creator));
  psql(DB,'update auth.users set email_confirmed_at=now()');
- await check('The owner must type matching addresses; normalization and retry preserve one change',()=>{
-  raises(()=>save(creator,'person@example.invalid',0,undefined,'typo@example.invalid'),/dos veces/,'confirmation');
+ await check('First PayPal account needs one valid address; normalization and retry preserve one registration',()=>{
+  raises(()=>save(creator,'invalid',0,undefined,null),/correo válido/,'valid initial email');
   raises(()=>save(fan,'fan@example.invalid',0),/creador/,'fan denied');
-  const key=randomUUID();assert.equal(save(creator,' PERSON@example.invalid ',0,key,'person@example.invalid').revision,1);assert.equal(save(creator,'person@example.invalid',0,key).revision,1);
+  const key=randomUUID();assert.equal(save(creator,' PERSON@example.invalid ',0,key,null).revision,1);assert.equal(save(creator,'person@example.invalid',0,key,null).revision,1);
   assert.equal(psql(DB,'select count(*) from finance_private.payout_account_changes where user_id='+lit(creator)),'1');
   const a=json(creator,'my_payout_account');assert.equal(a.email,'person@example.invalid');assert.equal(a.revision,1);assert.equal(a.history.length,1);assert.equal(json(fan,'my_payout_account'),null);
+ });
+ await check('Changing an existing account needs matching confirmation, including historical revision zero',()=>{
+  raises(()=>save(creator,'new@example.invalid',1,undefined,null),/dos veces/,'missing change confirmation');
+  raises(()=>save(creator,'new@example.invalid',1,undefined,'typo@example.invalid'),/dos veces/,'mismatched change confirmation');
+  const legacy=user('recipient-legacy@example.invalid','creator');psql(DB,'update auth.users set email_confirmed_at=now() where id='+lit(legacy));psql(DB,`insert into payout_accounts(user_id,paypal_email) values(${lit(legacy)},'legacy@example.invalid')`);
+  raises(()=>save(legacy,'legacy-new@example.invalid',0,undefined,null),/dos veces/,'revision zero is not a first registration');
+  assert.equal(save(legacy,'legacy-new@example.invalid',0).revision,1);
  });
  await check('Stale changes, reused keys, direct writes and viewing another account are rejected',()=>{
   raises(()=>save(creator,'new@example.invalid',0),/otra sesión/,'stale version');
@@ -38,6 +45,13 @@ finish(async()=>{
   const ocp=psql(DB,'select creator_profile_id from profiles where id='+lit(other));otherItem=psql(DB,`insert into finance_batch_items(batch_id,user_id,creator_profile_id,creator_name,gross,fee,net,receiver,state) values(${lit(batch)},${lit(other)},${lit(ocp)},'Otro',100,1,99,'other@example.invalid','reserved') returning id`);
   save(creator,'changed@example.invalid',2);assert.equal(psql(DB,'select receiver from finance_batch_items where id='+lit(item)),email);assert.equal(psql(DB,'select gross||\'/\'||fee||\'/\'||net from finance_batch_items where id='+lit(item)),'100.00/1.00/99.00');
   assert.equal(psql(DB,'select reason from finance_batch_items where id='+lit(item)),'RECIPIENT_CHANGED');assert.equal(psql(DB,'select state from finance_batch_items where id='+lit(otherItem)),'reserved');
+ });
+ await check('An initial PayPal account does not open the account-change procedure for a held item',()=>{
+  const who=user('recipient-first@example.invalid','creator'),profile=psql(DB,'select creator_profile_id from profiles where id='+lit(who));psql(DB,'update auth.users set email_confirmed_at=now() where id='+lit(who));
+  const held=psql(DB,`insert into finance_batch_items(batch_id,user_id,creator_profile_id,creator_name,gross,fee,net,receiver,state,reason) values(${lit(batch)},${lit(who)},${lit(profile)},'Cuenta nueva',100,1,99,'','held','RECIPIENT_REQUIRED') returning id`);
+  save(who,'first@example.invalid',0,undefined,null);assert.equal(psql(DB,'select reason from finance_batch_items where id='+lit(held)),'RECIPIENT_REQUIRED');
+  assert.equal(psql(DB,"select count(*) from finance_incidents where code='BATCH_REVIEW' and reference="+lit(held)),'0');
+  assert.equal(psql(DB,'select affected_items from finance_private.payout_account_changes where user_id='+lit(who)),'[]');
  });
  await check('Prepared and uncertain sends block recipient changes without altering their original instructions',()=>{
   // Local fixture emulates an already prepared send. The money gate is reset in

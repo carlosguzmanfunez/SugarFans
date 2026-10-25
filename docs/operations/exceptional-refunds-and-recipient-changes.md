@@ -37,7 +37,7 @@ Los expedientes antiguos retenidos antes de esta mejora pueden solicitar una nue
 
 ## Cambio de cuenta receptora
 
-El creador escribe dos veces el correo y confirma que lo comprobó en PayPal. La base valida la sesión, la propiedad, los datos y la versión de la cuenta. El historial de cambios es inmutable; el creador ve los últimos cinco cambios con direcciones enmascaradas.
+Al registrar su cuenta PayPal por primera vez, el creador escribe el correo una sola vez. El registro habitual en Fans Reserve no añade este procedimiento ni una revisión por cambio de cuenta. Solo al sustituir un correo receptor ya guardado se pide escribir dos veces el correo nuevo y confirmar que lo comprobó en PayPal. La base valida la sesión, la propiedad, los datos y la versión de la cuenta; comprueba si existe un correo anterior, sin deducirlo solamente de la versión. El historial se conserva sin pasos adicionales para el usuario; el creador ve los últimos cinco registros con direcciones enmascaradas.
 
 - Un envío iniciado o incierto impide cambiar el destinatario hasta conciliarlo. Sus instrucciones, importes y referencia permanecen intactos.
 - Un apartado sin envío mantiene su correo e importe originales y pasa a revisión individual. Los demás creadores siguen su proceso.
