@@ -38,7 +38,7 @@ La consulta guarda el comprobante en un registro privado. La conciliación conse
 
 No se calcula un abono cuando faltan la base original, la identificación del propietario o una referencia única. Las ventas que ya tenían devoluciones o disputas antes de esta conciliación conservan su revisión. Cuando existe una bonificación por invitación y habría que aumentar el derecho del creador, hay que revisar primero sus límites e historial; no se deduce su contrato a partir del porcentaje actual del perfil.
 
-Un comprobante contradictorio no reemplaza al primero. El panel muestra el problema. Las correcciones ya aprobadas siguen identificadas y requieren revisión humana si aparece evidencia posterior incompatible.
+Un comprobante contradictorio no reemplaza al primero. El panel muestra el problema incluso si la corrección ya estaba aprobada. En ese caso se abre un expediente y, si corresponde a una venta de creador, se bloquea únicamente a su propietario. No se hace un segundo descuento. Una consulta posterior válida no libera ese bloqueo: requiere revisión humana.
 
 ## Alcance de los libros
 
@@ -48,7 +48,7 @@ Esto no convierte ese resumen en una contabilidad bancaria o fiscal completa. El
 
 ## Instalación y verificación
 
-Aplicar `20261025222155_credit_collection_costs.sql` antes de publicar servidor y cliente. La migración no consulta PayPal, no crea abonos y no reescribe ventas ni compras históricas. No cambiar `execution_enabled` ni `batch_handoff_enabled`.
+Aplicar, en orden, `20261025222155_credit_collection_costs.sql` y `20261025232035_collection_cost_conflict_review.sql` antes de publicar servidor y cliente. Las migraciones no consultan PayPal, no crean abonos y no reescriben ventas ni compras históricas. No cambiar `execution_enabled` ni `batch_handoff_enabled`.
 
 Pruebas reproducibles con Node y PostgreSQL local desechable:
 
