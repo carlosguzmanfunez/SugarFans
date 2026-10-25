@@ -8,6 +8,12 @@ export interface FinanceAdjustment { id: string; user_id: string; name: string; 
 export interface FinanceOverview { cutoff: string; window_open: boolean; quote_hash: string; execution_enabled: boolean; creators: FinanceCreator[]; batches: FinanceBatch[]; adjustments: FinanceAdjustment[]; trial_balance: { code: string; label: string; debit: number; credit: number }[] }
 export interface FinanceJournalRow { id: string; sequence: number; at: string; creator: string; kind: string; reference: string; debit: string; credit: string; amount: number; currency: 'USD' }
 export interface FinanceBackend {
+ creatorTotals?():Promise<FinanceResult<{available:number;recoverable:number;pending:number;reserved:number;sending:number;paid:number}>>;
+ collectionCosts?(offset:number):Promise<FinanceResult<import('./collectionCosts').CollectionPage>>;
+ collectionPreview?(kind:import('./collectionCosts').CollectionKind,id:string):Promise<FinanceResult<import('./collectionCosts').CollectionCost>>;
+ collectionQuery?(kind:import('./collectionCosts').CollectionKind,id:string,key:string):Promise<FinanceResult<{issue:string|null}>>;
+ collectionResolve?(kind:import('./collectionCosts').CollectionKind,id:string,key:string,hash:string,evidence:string,reason:string):Promise<FinanceResult<{id:string;adjustment:string|null}>>;
+ collectionExport?():Promise<FinanceResult<import('./collectionCosts').CollectionCost[]>>;
  mode: 'remote' | 'local';
  balance(): Promise<FinanceResult<CreatorBalance>>;
  statement?(cycle:string,creator?:string):Promise<FinanceResult<import('./creatorStatement').CreatorStatement>>;

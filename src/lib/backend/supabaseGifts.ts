@@ -49,6 +49,10 @@ const toPurchase = (r: Row): CoinPurchase => ({
   price: Number(r.price),
   methodLabel: r.method_label,
   createdAt: r.created_at,
+  ...(r.actual_gateway_fee!=null||r.gateway_fee!=null?{gatewayFee:Number(r.actual_gateway_fee??r.gateway_fee)}:{}),
+  collectionFeeStatus:r.actual_fee_verified||r.collection_fee_status==='verified'?'verified':'estimated',
+  feeVerifiedLater:!!r.fee_verified_later,
+  refundedAmount:Number(r.refunded_amount??0),refundedCoins:Number(r.refunded_coins??0),refundedGatewayFee:Number(r.refunded_gateway_fee??0),
   ...(r.status && r.status !== 'paid' ? { status: r.status } : {}),
 });
 
@@ -155,7 +159,8 @@ export const createSupabaseGifts = (sb: SupabaseClient): GiftsBackend => {
     },
 
     async allCoinPurchases() {
-      const { data } = await sb.from('coin_purchases').select('*').order('created_at', { ascending: false });
+      const {data,error}=await sb.rpc('finance_coin_purchases');
+      if(error)throw Error('No pudimos consultar el costo comprobado de los Créditos. Actualiza antes de utilizar el resumen.');
       return (data ?? []).map(toPurchase);
     },
   };

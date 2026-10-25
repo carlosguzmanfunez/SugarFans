@@ -12,6 +12,17 @@ export const createSupabaseFinance=(sb:SupabaseClient):FinanceBackend=>{
    }catch{return {ok:false,error:'No pudimos conectar. Actualiza los saldos antes de volver a intentarlo.'};}
  };
  return {
+   creatorTotals:()=>call('finance_creator_totals'),
+   collectionCosts:offset=>call('finance_collection_costs',{p_offset:offset}),
+   collectionPreview:(kind,id)=>call('finance_collection_preview',{p_kind:kind,p_id:id}),
+   collectionResolve:(kind,id,key,hash,evidence,reason)=>call('finance_collection_resolve',{p_kind:kind,p_id:id,p_key:key,p_expected:hash,p_evidence:evidence,p_reason:reason}),
+   collectionExport:()=>call('finance_collection_export'),
+   collectionQuery:async(kind,id,key)=>{
+    try{const {data}=await sb.auth.getSession();const token=data.session?.access_token;if(!token)return{ok:false,error:'Inicia sesión con tu cuenta administrativa.'};
+     const r=await fetch('/api/payout-job',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json'},body:JSON.stringify({action:'collection-cost',kind,source:id,key})});
+     const body=await r.json();return r.ok?{ok:true,data:body}:{ok:false,error:body.error||'No se pudo comprobar el costo.'};
+    }catch{return{ok:false,error:'La consulta quedó sin confirmar. El cobro y las ganancias originales se conservan.'};}
+   },
    mode:'remote',balance:()=>call('finance_creator_balance'),overview:()=>call('finance_overview'),
    statement:(cycle,creator)=>call('finance_creator_statement',{p_cycle:cycle,p_creator:creator??null}),
    detail:id=>call('finance_batch_detail',{p_id:id}),

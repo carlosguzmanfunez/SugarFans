@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect,useState } from 'react';
+import {backend}from'../lib/backend';
+import {hondurasDateKey}from'../lib/payoutCalendar';
 import type { User } from '../lib/backend/types';
 import type { Payout, Transaction } from '../lib/platform';
 import { money } from '../lib/platform';
@@ -37,6 +39,10 @@ const AdminOverview: React.FC<Props> = ({ accounts, transactions, coins, payouts
   const calendar = usePayoutCalendar();
   const s = summarize(transactions, coins, period);
   const owed = owedToCreators(transactions, payouts, calendar.at, calendar.data?.legacyCutoff);
+  const [book,setBook]=useState<{available:number;recoverable:number;pending:number;reserved:number;sending:number;paid:number}|null>(null);
+  const [bookError,setBookError]=useState('');const bookDay=hondurasDateKey(calendar.at);
+  useEffect(()=>{if(backend.finance.mode==='local')return;let active=true;setBook(null);setBookError('');backend.finance.creatorTotals?.().then(r=>{if(active){if(r.ok)setBook(r.data);else setBookError(r.error);}}).catch(()=>{if(active)setBookError('No pudimos confirmar los saldos de los libros.');});return()=>{active=false;};},[transactions,payouts,bookDay]);
+  const remote=backend.finance.mode!=='local',bookValue=(value:number|undefined)=>value==null?'—':money(value);
   const [from, to] = periodRange(period);
   const people = accounts.filter((a) => a.role !== 'admin');
   const fresh = people.filter((a) => (!from || a.createdAt >= from) && (!to || a.createdAt < to));
@@ -50,9 +56,9 @@ const AdminOverview: React.FC<Props> = ({ accounts, transactions, coins, payouts
 
   const big = [
     { label: 'Entró de fans', value: s.cashIn, hint: `${s.sales} pagos con PayPal`, tone: 'text-gray-900', icon: 'fa-arrow-down', bg: 'bg-blue-50 text-blue-600' },
-    { label: 'Comisión de PayPal', value: -s.paypalFees, hint: 'Lo que PayPal se quedó', tone: 'text-gray-900', icon: 'fa-receipt', bg: 'bg-gray-100 text-gray-600' },
+    { label: 'Comisión de PayPal', value: -s.paypalFees, hint: s.estimatedCollectionCosts?`Incluye ${s.estimatedCollectionCosts} costos estimados`:'Costos de cobro comprobados, menos lo reintegrado', tone: 'text-gray-900', icon: 'fa-receipt', bg: 'bg-gray-100 text-gray-600' },
     { label: 'Para los creadores', value: -s.creators, hint: 'Su parte de ventas y regalos', tone: 'text-gray-900', icon: 'fa-user-friends', bg: 'bg-purple-50 text-purple-600' },
-    { label: 'Ganancia de Fans Reserve', value: s.platform, hint: 'Lo que queda para nosotros', tone: s.platform >= 0 ? 'text-green-700' : 'text-red-600', icon: 'fa-piggy-bank', bg: 'bg-green-50 text-green-600' },
+    { label: 'Resultado de cobros y repartos', value: s.platform, hint: 'Antes de ajustes y otros gastos; incluye Créditos sin usar', tone: s.platform >= 0 ? 'text-green-700' : 'text-red-600', icon: 'fa-piggy-bank', bg: 'bg-green-50 text-green-600' },
   ];
 
   return (
@@ -84,17 +90,21 @@ const AdminOverview: React.FC<Props> = ({ accounts, transactions, coins, payouts
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        <Card title="Lo que debemos a creadores" hint="Hoy, sin importar el periodo" testId="admin-owed">
-          <Row label="Saldo de ciclos cerrados" value={calendar.data ? money(owed.available) : '—'} strong />
-          <Row label="En acumulación · ciclo 26–25" value={calendar.data ? money(owed.pending) : '—'} />
-          <Row label="Retiros en camino" value={money(owed.sending)} />
-          <Row label="Total ya retirado" value={money(owed.withdrawn)} />
+        <Card title="Lo que debemos a creadores" hint="Hoy, sin importar el periodo; incluye ajustes del libro" testId="admin-owed">
+          <Row label="Saldo de ciclos cerrados sin apartar" value={remote?bookValue(book?.available):calendar.data?money(owed.available):'—'} strong />
+          <Row label="En acumulación · ciclo 26–25" value={remote?bookValue(book?.pending):calendar.data?money(owed.pending):'—'} />
+          {remote&&<Row label="Apartado para lotes" value={bookValue(book?.reserved)}/>}
+          <Row label="Retiros en camino" value={remote?bookValue(book?.sending):money(owed.sending)} />
+          <Row label="Pagos confirmados, con costo apartado" value={remote?bookValue(book?.paid):money(owed.withdrawn)} />
+          {!!book?.recoverable&&<Row label="Saldos por recuperar"value={money(book.recoverable)}/>}
+          {bookError&&<p role="alert"className="text-xs text-amber-900 mt-2">{bookError}</p>}
         </Card>
 
         <Card title="Cuidado con el dinero" hint={periodLabel[period]}>
           <Row label="Reembolsado a fans" value={money(s.refunded)} tone={s.refunded ? 'text-red-600' : undefined} />
           <Row label="En disputa con PayPal" value={money(s.disputed)} tone={s.disputed ? 'text-amber-600' : undefined} />
-          <Row label="Créditos sin gastar (de fans)" value={money(unspentCredits(transactions, coins))} />
+          <Row label="Créditos sin usar (valor de regalos)" value={money(unspentCredits(transactions, coins))} />
+          <p className="text-xs text-gray-500">Incluye los Créditos extra de los paquetes. Es su valor para regalar; no es dinero libre de Fans Reserve.</p>
           <Row label="Fans que pagaron" value={String(s.payingFans)} />
         </Card>
 

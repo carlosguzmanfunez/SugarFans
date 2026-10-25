@@ -67,7 +67,7 @@ const supabase = async (path: string, headers: Record<string, string>, body?: un
 
 // --- PayPal -------------------------------------------------------------------
 
-const paypalAccess = async (e: ReturnType<typeof env>&{payoutControl?:PayoutProviderControl}) => {
+const paypalAccess = async (e: ReturnType<typeof env>&{payoutControl?:PayoutProviderControl},timeoutMs?:number) => {
   await e.payoutControl?.before();
   let r:Response;
   try{r = await fetch(`${e.api}/v1/oauth2/token`, {
@@ -77,7 +77,7 @@ const paypalAccess = async (e: ReturnType<typeof env>&{payoutControl?:PayoutProv
       'content-type': 'application/x-www-form-urlencoded',
     },
     body: 'grant_type=client_credentials',
-    signal: e.payoutControl?AbortSignal.timeout(10000):undefined,
+    signal: e.payoutControl||timeoutMs?AbortSignal.timeout(timeoutMs??10000):undefined,
   });}catch(error){e.payoutControl?.unavailable();throw error;}
   e.payoutControl?.observe(r);
   const data = (await r.json().catch(() => ({}))) as { access_token?: string; error_description?: string;expires_in?:number };
@@ -86,6 +86,26 @@ const paypalAccess = async (e: ReturnType<typeof env>&{payoutControl?:PayoutProv
   return {token:data.access_token,until:(e.payoutControl?.clock.now()??Date.now())+Math.max(0,ttl*1000-5000)};
 };
 const paypalToken=async(e:ReturnType<typeof env>)=>(await paypalAccess(e)).token;
+
+// Cost-only historical lookup: fixed GETs, no checkout fulfillment or payment action.
+export async function queryCollectionCost(kind:unknown,source:unknown,key:unknown,userToken:string){
+ if(!['coins','sale'].includes(String(kind))||typeof source!=='string'||!(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i).test(source)||typeof key!=='string'||!(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i).test(key))throw Error('Elige un cobro válido');
+ const e=env();if(!e.serviceKey||!e.clientId||!e.secret)throw Error('Falta configurar la consulta de PayPal');
+ const context=await supabase('/rest/v1/rpc/finance_collection_context',asUser(userToken),{p_kind:kind,p_id:source},undefined,10000);
+ if(!context.ok)throw Error(context.error);const c=context.data;
+ if(c.issue)return c;
+ const id=(v:unknown)=>{if(typeof v!=='string'||!/^[A-Za-z0-9-]{1,255}$/.test(v))throw Error('Falta una referencia original válida');return v;};
+ const token=(await paypalAccess(e,10000)).token,get=async(path:string)=>{const r=await paypal(e,token,path,undefined,undefined,10000);if(r.status!==200)throw Error('No pudimos consultar el comprobante original de PayPal');return r.data;};
+ const proof:any={resource:await get(c.receipt_kind==='sale'?`/v1/payments/sale/${id(c.reference)}`:`/v2/payments/captures/${id(c.reference)}`)};
+ if(c.receipt_kind==='capture')proof.order=await get(`/v2/checkout/orders/${id(c.order)}`);
+ else{
+  proof.subscription=await get(`/v1/billing/subscriptions/${id(c.subscription)}`);
+  if(!proof.resource.billing_agreement_id||!proof.resource.transaction_fee){const at=Date.parse(proof.resource.create_time);if(!Number.isFinite(at))throw Error('El cobro no tiene una fecha comprobable');
+   proof.subscription_transactions=await get(`/v1/billing/subscriptions/${id(c.subscription)}/transactions?start_time=${new Date(at-86400000).toISOString()}&end_time=${new Date(at+86400000).toISOString()}`);}
+ }
+ const saved=await supabase('/rest/v1/rpc/paypal_collection_cost_store',asServer(e.serviceKey),{p_kind:kind,p_id:source,p_key:key,p_expected:c.hash,p_environment:e.mode,p_sender:e.clientId,p_proof:proof},undefined,12000);
+ if(!saved.ok)throw Error(saved.error);return saved.data;
+}
 
 const paypal = async (e: ReturnType<typeof env>&{payoutControl?:PayoutProviderControl}, token: string, path: string, body?: unknown, requestId?: string, timeoutMs?: number) => {
   await e.payoutControl?.before();

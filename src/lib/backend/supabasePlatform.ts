@@ -92,8 +92,9 @@ const toTransaction = (r: Row): Transaction => ({
   createdAt: r.created_at,
   note: r.note ?? undefined,
   share: r.creator_share == null ? undefined : Number(r.creator_share),
-  ...(r.gateway_fee == null ? {} : { gatewayFee: Number(r.gateway_fee) }),
-  collectionFeeStatus: r.collection_fee_status ?? 'estimated',
+  ...(r.actual_gateway_fee==null&&r.gateway_fee==null?{}:{gatewayFee:Number(r.actual_gateway_fee??r.gateway_fee)}),
+  collectionFeeStatus:r.actual_fee_verified?'verified':r.collection_fee_status??'estimated',
+  feeVerifiedLater:!!r.fee_verified_later,
   giftId: r.gift_id ?? undefined,
   ...(r.platform_covers ? { platformCovers: true } : {}),
 });
@@ -244,7 +245,8 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
   },
 
   async allPayments() {
-    const { data } = await sb.from('transactions').select('*').order('created_at', { ascending: false });
+    const {data,error}=await sb.rpc('finance_admin_payments');
+    if(error)throw Error('No pudimos consultar los costos de cobro. Actualiza antes de utilizar el resumen.');
     return (data ?? []).map(toTransaction);
   },
 

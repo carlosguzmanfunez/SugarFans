@@ -5,6 +5,7 @@ import { formatPayoutDate,hondurasDateKey } from '../lib/payoutCalendar';
 import { financeJournalCsv,financeReasons,type FinanceBackend,type FinanceOverview,type FinanceBatchDetail,type FinanceJournalRow,type FinanceAdjustment } from '../lib/creatorFinance';
 import AdminPayoutOperations from './AdminPayoutOperations';
 import RecipientReserveRelease from './RecipientReserveRelease';
+import AdminCollectionCosts from './AdminCollectionCosts';
 
 const button='rounded-xl bg-gray-900 text-white px-4 py-2 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed';
 const input='w-full rounded-xl border border-gray-200 px-3 py-2 bg-white text-sm';
@@ -65,6 +66,7 @@ const AdminFinance:React.FC<{api?:FinanceBackend;caseReference?:string}>=({api=b
  const gross=ready.reduce((s,c)=>s+Number(c.available),0),fees=ready.reduce((s,c)=>s+Number(c.fee),0);
  const active=data?.batches.some(b=>b.state==='frozen'&&Date.parse(b.cutoff)===Date.parse(data.cutoff));
  return <section className="space-y-5" data-testid="admin-finance">
+  <AdminCollectionCosts api={api}onChanged={()=>{refresh();platformChanged();}}/>
    <div className="flex flex-wrap justify-between gap-3 items-start">
      <div><h2 className="text-xl font-bold">Pagos a creadores</h2><p className="text-sm text-gray-600 mt-1">Revisa lo acumulado, aparta el lote y sigue cada movimiento. Todos los importes están en USD.</p></div>
      <button className={button} disabled={busy} onClick={refresh}>Actualizar cuentas</button>

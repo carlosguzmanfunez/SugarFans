@@ -37,6 +37,8 @@
     "test:income-events": "node e2e/income-events.mjs",
     "test:income-events-ui": "node e2e/income-events-ui.mjs",
     "test:collection-cost-db": "node e2e/collection-cost-postgres.mjs",
+    "test:collection-reconciliation": "node e2e/collection-reconciliation-postgres.mjs && node e2e/collection-reconciliation-api.mjs && node e2e/collection-reconciliation-rules.mjs",
+    "review:collection-costs": "node e2e/collection-reconciliation-review.mjs",
     "test:collection-cost-ui": "node e2e/collection-cost-ui.mjs",
     "test:honduras-payout-cost": "node e2e/honduras-payout-cost.mjs",
     "test:honduras-payout-cost-ui": "node e2e/honduras-payout-cost-ui.mjs",

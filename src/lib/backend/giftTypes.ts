@@ -31,6 +31,12 @@ export interface CoinPurchase {
   createdAt: string;
   status?: 'paid' | 'disputed' | 'refunded'; // refunded or disputed through PayPal: the Créditos don't count
   userName?: string; // filled in by the admin view
+  gatewayFee?: number;
+  collectionFeeStatus?: 'estimated'|'verified';
+  feeVerifiedLater?: boolean;
+  refundedAmount?: number;
+  refundedCoins?: number;
+  refundedGatewayFee?: number;
 }
 
 export interface Wallet {
