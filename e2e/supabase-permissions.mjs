@@ -84,6 +84,34 @@ finish(async () => {
     as(stranger, `select public.submit_report('other',null,'QA','Consulta','El otro fan puede reportar',null)`);
     expect(psql(DB, `select count(*) from public.reports where reporter_id='${stranger}'`) === '1', 'limitó a un fan distinto');
   });
+  await check('Vencimiento de beneficios limitado al fan y al creador correcto', () => {
+    const secondCreator = user('security-second-creator@test.local', 'creator');
+    const secondFan = user('security-second-fan@test.local', 'fan');
+    const cp2 = psql(DB, `select creator_profile_id from public.profiles where id = '${secondCreator}'`);
+    const gift = (key, who, creatorId) => psql(DB, `insert into public.transactions
+      (key,payer_id,payer_name,creator_profile_id,creator_name,kind,amount,method_label,status)
+      values ('${key}','${who}','QA Gift Fan','${creatorId}','QA Gift Creator','gift',5.50,'QA','paid') returning id`);
+    const ownGift = gift('qa-perk-expiry-a',fan,cp);
+    const foreignGift = gift('qa-perk-expiry-b',secondFan,cp2);
+    const expiredPerk = (txn, who, creatorId) => psql(DB, `insert into public.perk_requests
+      (transaction_id,fan_id,fan_name,creator_profile_id,creator_name,kind,request,status,due_at)
+      values ('${txn}','${who}','QA Fan','${creatorId}','QA Creator','video','QA','pending',
+       now() - interval '1 hour')`);
+    expiredPerk(ownGift,fan,cp);
+    expiredPerk(foreignGift,secondFan,cp2);
+    as(fan, 'select public.settle_overdue_perks()');
+    expect(psql(DB, `select status from public.transactions where id='${ownGift}'`) === 'refunded',
+      'fan no puede gestionar sus propios beneficios vencidos');
+    expect(psql(DB, `select status from public.transactions where id='${foreignGift}'`) === 'paid',
+      'un fan cambió las transacciones de otro usuario');
+    expect(psql(DB, `select status from public.perk_requests where transaction_id='${foreignGift}'`) === 'pending',
+      'un fan cerró un beneficio de otro creador');
+    as(secondCreator, 'select public.settle_overdue_perks()');
+    expect(psql(DB, `select status from public.transactions where id='${foreignGift}'`) === 'refunded',
+      'el creador legítimo no puede cerrar sus beneficios vencidos');
+    raises(() => guest('select public.settle_overdue_perks()'), /permission denied/i,
+      'anon no ejecuta la liquidación');
+  });
   await check('Las políticas de órdenes y suscripciones PayPal siguen restringidas por usuario', () => {
     for (const table of ['paypal_orders', 'paypal_subscriptions']) {
       const policy = psql(DB, `select qual from pg_policies where schemaname='public'
