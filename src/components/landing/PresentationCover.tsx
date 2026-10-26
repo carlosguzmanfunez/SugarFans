@@ -36,13 +36,10 @@ const COMMUNITIES = [
   { name: "Educación", photo: "daniel", c: "#67e8f9" },
 ];
 
-// variant "film" (home V3): a calm chapter lower on the page. The film waits for a
-// tap instead of playing on its own; the sign-up form stays beside it on desktop.
-const PresentationCover: React.FC<{ variant?: "cover" | "film" }> = ({ variant = "cover" }) => {
+const PresentationCover: React.FC = () => {
   const video = useRef<HTMLVideoElement>(null);
   const bar = useRef<HTMLDivElement>(null);
-  const filmOnly = variant === "film";
-  const [paused, setPaused] = useState(filmOnly);
+  const [paused, setPaused] = useState(false);
   const [phone, setPhone] = useState(isPhone);
   const { language } = useLanguage();
   const hasFilm = FILM_LANGS.includes(language);
@@ -65,9 +62,9 @@ const PresentationCover: React.FC<{ variant?: "cover" | "film" }> = ({ variant =
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    if (prefersReducedMotion() || filmOnly) v.pause();
+    if (prefersReducedMotion()) v.pause();
     return () => cancelAnimationFrame(raf);
-  }, [phone, hasFilm, filmOnly]);
+  }, [phone, hasFilm]);
 
   const toggle = () => {
     const v = video.current;
@@ -75,51 +72,6 @@ const PresentationCover: React.FC<{ variant?: "cover" | "film" }> = ({ variant =
     if (v.paused) v.play().catch(() => {});
     else v.pause();
   };
-
-  if (filmOnly)
-    return (
-      <div className="pcover v3-filmch" data-testid="presentation-film">
-        <div className="v3-wrap v3-filmch-in">
-          <div className="v3-filmch-main">
-            <p className="v3-eyebrow">Presentación</p>
-            <h2 className="v3-h2 mt-3">
-              Mira cómo funciona <em>en un minuto.</em>
-            </h2>
-            <p className="v3-lead mt-4 max-w-md">
-              Sigue a tus creadores, suscríbete a su contenido exclusivo o reserva una sesión en vivo con ellos. Todo dentro de Fans Reserve.
-            </p>
-            {hasFilm && (
-              <div className="v3-filmch-screen">
-                <video
-                  ref={video}
-                  key={film.src}
-                  src={film.src}
-                  poster={film.poster}
-                  muted
-                  loop
-                  playsInline
-                  preload="none"
-                  onPlay={() => setPaused(false)}
-                  onPause={() => setPaused(true)}
-                  aria-label="Presentación de Fans Reserve: comunidades, cómo funciona y Reserve"
-                />
-                <button type="button" className={paused ? "v3-play" : "v3-play is-on"} onClick={toggle} aria-label={paused ? "Reproducir la presentación" : "Pausar"}>
-                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    {paused ? <path d="M8 5v14l11-7z" /> : <path d="M7 5h4v14H7zM13 5h4v14h-4z" />}
-                  </svg>
-                </button>
-                <div className="pc-bar" ref={bar} />
-              </div>
-            )}
-          </div>
-          {!phone && (
-            <div className="pc-signup v3-filmch-form">
-              <Register embedded />
-            </div>
-          )}
-        </div>
-      </div>
-    );
 
   return (
     <section

@@ -318,8 +318,7 @@ const run = async () => {
       const imgs = await page.evaluate(() => [...document.images].map((i) => ({ src: i.currentSrc || i.src, ok: i.complete && i.naturalWidth > 0 })));
       const external = imgs.filter((i) => !i.src.startsWith(BASE));
       const broken = imgs.filter((i) => !i.ok);
-      // V3 home: the hero photo plus the experience stills (fewer, larger images).
-      expect(imgs.length >= 5, 'la portada no muestra imágenes');
+      expect(imgs.length > 10, 'la portada no muestra imágenes');
       expect(external.length === 0, `imágenes externas: ${external.map((i) => i.src).join(', ')}`);
       expect(broken.length === 0, `imágenes rotas: ${broken.map((i) => i.src).join(', ')}`);
     });

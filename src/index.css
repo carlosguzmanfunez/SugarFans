@@ -20,24 +20,6 @@
 @theme {
   --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-display: "Sora Variable", "Sora", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
-  /* V3 editorial headlines (Instrument Serif, OFL). Controls stay in Inter. */
-  --font-editorial: "Instrument Serif", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-
-  /* V3 "Human Premium" palette, used through the fr-* utilities while screens
-     migrate; the older semantic tokens below stay for unmigrated screens. */
-  --color-fr-canvas: #faf7f5;
-  --color-fr-surface: #ffffff;
-  --color-fr-ink: #18171b;
-  --color-fr-muted: #6f6870;
-  --color-fr-primary: #b01856;
-  --color-fr-primary-hover: #870d40;
-  --color-fr-champagne: #c5a875;
-  --color-fr-border: #eae3e1;
-  --color-fr-soft: #f3eeeb;
-  --radius-fr-sm: 8px;
-  --radius-fr-md: 12px;
-  --radius-fr-lg: 18px;
-  --container-fr: 1280px;
 
   /* Semantic */
   --color-canvas: #faf7f5;

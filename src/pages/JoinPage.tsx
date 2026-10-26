@@ -1,55 +1,55 @@
 import React, { useRef } from 'react';
 import { Link } from 'react-router-dom';
+import BrandLogo from '../components/BrandLogo';
 import PresentationCover from '../components/landing/PresentationCover';
-import { useLandingMotion } from '../components/landing/landingBits';
-import { useCreatorCatalog } from '../lib/catalog';
-import { Arrow, Communities, CreatorInvite, FeaturedExperiences, HomeHero, TrustProcess, VisitorHeader } from '../components/home/HomeV3';
-import Footer from '../components/Footer';
+import HowItWorks from '../components/landing/HowItWorks';
+import { ArrowRight, useLandingMotion } from '../components/landing/landingBits';
 import '../components/landing/landing.css';
 
-// What visitors without a session get at "/" (V3 "Human Premium"): an editorial
-// hero, the real booking process, experiences, communities, the presentation film
-// with the sign-up form, and the invitation for creators. No app menus: a compact
-// header with Explorar, Experiencias, Cómo funciona, Para creadores and FAQ.
+// Sign-up page: what visitors without a session get at "/". Only the presentation
+// film, how it works and the way in (create an account or sign in); no app menus,
+// just three top links (how it works, for creators, FAQ).
 // After signing up, fans land on the main page and creators on their panel.
 const JoinPage: React.FC = () => {
   const root = useRef<HTMLDivElement>(null);
   useLandingMotion(root);
-  const { creators } = useCreatorCatalog();
 
   return (
-    <div ref={root} className="v3 join min-h-screen">
-      <VisitorHeader />
-      <HomeHero
-        creators={creators}
-        primary={{ label: 'Explorar experiencias', to: '/reserve' }}
-        secondary={{ label: 'Soy creador', to: '/register?role=creator' }}
-        note={<>Crear tu cuenta es gratis. <Link to="/register">Crear cuenta gratis</Link></>}
-      />
-      <TrustProcess />
-      <FeaturedExperiences creators={creators} />
-      <Communities />
-      <section className="v3-film" aria-label="Presentación de Fans Reserve">
-        <PresentationCover variant="film" />
-      </section>
-      <CreatorInvite />
-      <section className="v3-end" aria-labelledby="join-end-title">
-        <div className="v3-wrap">
-          <h2 id="join-end-title" className="v3-h2">
-            Tu próxima experiencia <em>comienza aquí.</em>
-          </h2>
-          <p className="v3-lead">Crear tu cuenta es gratis y toma menos de un minuto.</p>
-          <div className="ctas">
-            <Link to="/register" className="v3-btn v3-pri">
-              Crear cuenta gratis <Arrow />
+    <div ref={root} className="lv2 join min-h-screen">
+      <header className="join-top">
+        <div className="wrap join-bar">
+          <BrandLogo size="sm" tone="dark" />
+          <nav className="join-nav" aria-label="Fans Reserve" data-testid="join-nav">
+            <a href="#journey">Cómo funciona</a>
+            <Link to="/recorrido">Para creadores</Link>
+            <Link to="/help">
+              <span className="jn-long">Preguntas frecuentes</span>
+              <span className="jn-short">Ayuda</span>
             </Link>
-            <Link to="/login" className="v3-link">
-              ¿Ya tienes cuenta? Inicia sesión
+          </nav>
+          <Link to="/login" className="join-login">
+            Iniciar sesión
+          </Link>
+        </div>
+      </header>
+      <PresentationCover />
+      <HowItWorks />
+      <section className="join-end" aria-labelledby="join-end-title">
+        <div className="wrap">
+          <h2 id="join-end-title">
+            Tu acceso reservado <em>a quienes te inspiran.</em>
+          </h2>
+          <p>Crear tu cuenta es gratis y toma menos de un minuto.</p>
+          <div className="join-end-ctas">
+            <Link to="/register" className="v-btn v-pri">
+              Crear cuenta gratis <ArrowRight />
+            </Link>
+            <Link to="/login" className="pc-login">
+              ¿Ya tienes cuenta? <b>Inicia sesión</b>
             </Link>
           </div>
         </div>
       </section>
-      <Footer />
     </div>
   );
 };

@@ -10,8 +10,6 @@ import ReactDOM from "react-dom/client";
 // Fonts and icons are bundled with the app (no third-party CDN at runtime).
 import "@fontsource-variable/inter";
 import "@fontsource-variable/sora";
-import "@fontsource/instrument-serif/400.css";
-import "@fontsource/instrument-serif/400-italic.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./index.css";
 import App from "./App.tsx";
