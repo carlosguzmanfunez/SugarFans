@@ -36,6 +36,7 @@ Proyecto QA: `fansreserve-qa-payouts`; migración `20261026223245_prelaunch_fina
 ## Aceptación reproducible
 - Con PostgreSQL local de pruebas configurado: `npm run test:supabase-permissions`. El script crea una base descartable, aplica migraciones, crea cuentas ficticias, verifica RLS, donantes y límites de reportes, y la elimina después. Pendiente ejecutarlo en CI local.
 - `npm run test:db` para flujos de acceso y reservas existentes.
+- `npm run test:errors-email-db` para fuentes confiables del servidor, navegador anónimo y fan autenticado (PostgreSQL local desechable).
 - `npm run typecheck`, `npm run build` y pruebas CI aplicables.
 - Una vez publicada la migración, repetir Supabase Advisors y pruebas de acceso con tokens reales de prueba desde el cliente, con cuentas independientes de fan/creador/admin.
 
@@ -43,7 +44,8 @@ Proyecto QA: `fansreserve-qa-payouts`; migración `20261026223245_prelaunch_fina
 - Los 27 avisos anónimos restantes incluyen funciones de catálogo, disponibilidad y contenidos. **No revocar masivamente**: algunas son necesarias para explorar sin iniciar sesión; revisar cada firma, exposición de datos y propósito.
 - Las 115+ advertencias de `SECURITY DEFINER` invocables por usuarios autenticados requieren triaje, especialmente RPCs administrativas. Contar con EXECUTE no implica por sí solo una falla si hacen autorización interna.
 - Denuncias públicas: topes básicos por remitente probados en QA; falta rate limit a nivel IP/CDN. Revisar abuso y autenticidad de fuentes en la RPC pública de registro de errores.
-- **Hallazgo de integridad de alertas (QA, pendiente):** una llamada anónima a `log_app_error('api', ...)` puede guardar un error con fuente `api` pese a venir de un visitante. Se comprobó en una transacción revertida y no implica acceso a secretos ni cobros. Se requiere separar el registro del cliente del registro privilegiado de servidor o una verificación confiable de origen, conservando los logs anónimos de navegador. No cortar el registro de errores de servidor sin plan de migración y regresión.
+- **Registro de incidentes QA corregido:** migración `20261026225614_prelaunch_log_source_integrity`. Antes, una llamada anónima podía escribir una fila con `source='api'`. Ahora toda llamada de visitante o fan se clasifica `web`, y `api/email` requiere el claim PostgREST `service_role`. Probamos ambas identidades y el servicio en una transacción `BEGIN...ROLLBACK`. Se limita además el contador de errores repetidos a 100000, evitando su desbordamiento.
+- **Pendiente de aceptación antes de producción:** comprobar con un acceso de servicio real por `sb_secret_` y por el formato JWT heredado usado por el servidor que la clasificación legítima de errores `api/email` se conserva. Las pruebas SQL con claims simulados no acreditan por sí solas ese funcionamiento; si falla, bloquear despliegue y adaptar el manejo de fuentes. Mantener los reportes anónimos de errores web.
 - Activar protección contra contraseñas filtradas en Auth (operación en configuración separada).
 - Resolver 403 al consultar logs de Vercel.
 - Alinear QA con todas las migraciones de producción antes de certificar el lanzamiento: la muestra de QA no equivale a validar automáticamente todos los cambios recientes.
