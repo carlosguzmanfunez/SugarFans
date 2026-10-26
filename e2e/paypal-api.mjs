@@ -370,6 +370,8 @@ await check('GET da el Client ID público y nunca el Secret', async () => {
   expect(data.enabled && data.clientId === 'AXclient' && data.env === 'sandbox', JSON.stringify(data));
   expect(!JSON.stringify(data).includes('PP-SECRET-VALUE'), 'muestra el secret');
   expect(!JSON.stringify(data).includes('sb_secret_test'), 'muestra la service role');
+  expect(!('checks' in data), 'el GET público revela diagnósticos internos');
+  expect(Object.keys(data).sort().join(',') === 'clientId,enabled,env', 'se exponen campos de configuración no necesarios');
 });
 
 await check('Sin sesión no se puede pagar', async () => {
