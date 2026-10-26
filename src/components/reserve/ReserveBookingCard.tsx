@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { backend } from '../../lib/backend';
 import { money } from '../../lib/platform';
-import { formatLongDate, reserveStatusOf, typeOf, CUSTOM_EXPERIENCE, MIN_SESSION_MINUTES, MAX_SESSION_MINUTES, type VipBooking } from '../../lib/vip';
+import { formatLongDate, reserveStatusOf, typeOf, CUSTOM_EXPERIENCE, MIN_SESSION_MINUTES, MAX_SESSION_MINUTES, type ReserveReview, type VipBooking } from '../../lib/vip';
+import { viewerSlotLabel, zoneCity } from '../../lib/timeZones';
+import { ReviewBox, Stars } from './ReviewBits';
 import { LOCATION_TYPES, PURPOSES, RESERVE_MODALITIES } from '../../config/reserve';
 import { MODERATION_RULES } from '../../lib/moderation';
 import type { User } from '../../context/AuthContext';
@@ -23,6 +25,8 @@ interface Props {
   onChanged: () => void;
   onPay?: (b: VipBooking) => void;
   testId?: string;
+  // The fan's review of this booking, once they left one.
+  review?: ReserveReview;
 }
 
 const btn = 'inline-flex h-9 items-center justify-center rounded-full px-4 text-xs font-semibold transition';
@@ -30,7 +34,7 @@ const btn = 'inline-flex h-9 items-center justify-center rounded-full px-4 text-
 // One Reserve as either side sees it: what was booked or requested, its state,
 // and the next action (accept, reject, counter-offer / accept or decline the
 // counter-offer, pay, cancel, join, report).
-const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, onPay, testId }) => {
+const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, onPay, testId, review }) => {
   const [countering, setCountering] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [error, setError] = useState('');
@@ -42,6 +46,8 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
   // A seat in a Reserve Event: same day and time for everyone, so no counter-offer.
   const isEvent = d.kind === 'event';
   const modality = d.modality ?? 'virtual';
+  // Booked in the creator's clock; someone elsewhere also sees their own hour.
+  const theirHour = viewerSlotLabel(b.date, b.time, b.timeZone);
 
   const run = async (fn: () => Promise<{ ok: boolean; error?: string }>) => {
     setBusy(true);
@@ -82,8 +88,14 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
           <p className="mt-0.5 text-sm font-semibold text-ink">{b.title}</p>
           <p className="mt-0.5 text-xs text-ink/60 first-letter:uppercase">
             {formatLongDate(b.date)} · {b.time}
+            {theirHour ? ` (hora de ${zoneCity(b.timeZone)})` : ''}
             {b.durationMinutes ? ` · ${b.durationMinutes} min` : ''}
           </p>
+          {theirHour && (
+            <p className="text-xs font-semibold text-ink/75" data-testid="booking-local-time">
+              <i aria-hidden="true" className="fas fa-globe mr-1 text-brand-600"></i>Tu hora: {theirHour}
+            </p>
+          )}
         </div>
         <div className="text-right">
           {d.ticketId ? (
@@ -212,6 +224,14 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
       )}
 
       <WaitingNote booking={b} status={status} as={as} />
+
+      {as === 'fan' && status === 'completed' && <ReviewBox booking={b} user={user} review={review} onSaved={onChanged} />}
+      {as === 'creator' && review && (
+        <div className="mt-3 rounded-xl bg-canvas px-3 py-2.5 text-sm" data-testid="booking-review">
+          <span className="flex items-center gap-2"><Stars rating={review.rating} /><span className="text-xs text-ink/60">Reseña de {b.fanName.split(' ')[0]}</span></span>
+          {review.comment && <p className="mt-1 text-ink/75">“{review.comment}”</p>}
+        </div>
+      )}
 
       {error && <p role="alert" className="mt-2 text-xs text-red-600">{error}</p>}
       {as === 'fan' && b.emailSentAt && (

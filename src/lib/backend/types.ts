@@ -112,6 +112,8 @@ export interface AuthResult {
 export interface Availability {
   days: number[]; // 0 = Sunday … 6 = Saturday
   hours: string[]; // "HH:00"
+  // The creator's clock (IANA zone) the hours are in; missing = the viewer's.
+  timeZone?: string;
 }
 
 export interface TakenSlot {
@@ -196,6 +198,23 @@ export interface VipBooking {
   // Deadline to answer a pending request (creator) or a counter-offer (fan);
   // past it the booking becomes 'expired'.
   respondBy?: string;
+  // Clock the date and time are in (IANA zone); missing = the viewer's.
+  timeZone?: string;
+}
+
+// A fan's rating of a Reserve experience they lived (one per booking).
+export interface ReserveReview {
+  bookingId: string;
+  creatorProfileId: string;
+  experienceId: string;
+  experienceTitle: string;
+  fanId: string;
+  fanName: string; // first name only
+  rating: number; // 1-5
+  comment: string;
+  hidden: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // The creator, title and price come from the experience itself (server side).
@@ -285,6 +304,8 @@ export interface VipExperience extends VipExperienceInput {
   creatorProfileId: string;
   creatorName: string;
   createdAt: string;
+  // Clock an event's date and time are in (IANA zone); missing = the viewer's.
+  timeZone?: string;
 }
 
 export type ProfilePatch = Partial<Pick<User, 'name' | 'email' | 'avatar' | 'bio' | 'subscriptionPrice' | 'settings' | 'ageVerified' | 'country' | 'phone' | 'username'>>;
@@ -338,6 +359,11 @@ export interface Backend {
   getAvailability(creatorProfileId: string): Promise<Availability>;
   setAvailability(creatorProfileId: string, availability: Availability): Promise<AuthResult>;
   takenSlots(creatorProfileId: string): Promise<TakenSlot[]>;
+  // Reviews: visible ones of a creator (newest first), and the fan's own.
+  creatorReviews(creatorProfileId: string): Promise<ReserveReview[]>;
+  fanReviews(fanId: string): Promise<ReserveReview[]>;
+  // The fan rates a booking once the experience has ended; again = edit.
+  submitReview(user: User, bookingId: string, rating: number, comment: string): Promise<AuthResult>;
   createBooking(user: User, input: BookingInput): Promise<AuthResult>;
   // Reserve Event: one seat for the signed-in fan (day and time come from the event).
   bookEventSeat(user: User, experienceId: string, message: string): Promise<AuthResult>;

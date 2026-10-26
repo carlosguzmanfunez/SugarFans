@@ -52,6 +52,8 @@
     "test:reserve-discount-db": "node e2e/reserve-discount-db.mjs",
     "test:moderation-db": "node e2e/media-moderation.mjs",
     "test:moderation": "node e2e/moderate-api.mjs",
+    "test:reserve-reviews-db": "node e2e/reserve-reviews-db.mjs",
+    "test:time-zones": "node e2e/time-zones.mjs",
     "test:become-creator-db": "node e2e/become-creator-db.mjs",
     "test:errors-email-db": "node e2e/errors-email-db.mjs",
     "test:mail": "node e2e/mail-api.mjs",

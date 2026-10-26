@@ -11,6 +11,7 @@ import ReserveBookingDialog from './ReserveBookingDialog';
 import CustomExperienceRequest from './CustomExperienceRequest';
 import { ReserveNotice } from './ReserveBits';
 import { money } from '../../lib/platformRules';
+import { CreatorReviews, Stars, averageOf } from './ReviewBits';
 
 interface Props {
   creator: { id: string; name: string; category?: string };
@@ -23,8 +24,8 @@ interface Props {
 // Reserve's products on a profile, in this order. The 1:1 video call always
 // comes first on every profile: it is where "Habla con …" lands.
 const GROUPS: { id: ReserveProduct; title: string; hint: string }[] = [
-  { id: 'one-to-one', title: RESERVE_FORMATS.private.product, hint: 'Videollamada por Fans Reserve: solo tú y el creador.' },
-  { id: 'event', title: RESERVE_FORMATS.event.product, hint: 'En grupo, con fecha fija y plazas limitadas. Reserva tu plaza.' },
+  { id: 'one-to-one', title: RESERVE_FORMATS.private.product, hint: 'Sesión en vivo por Fans Reserve: solo tú y el creador.' },
+  { id: 'event', title: RESERVE_FORMATS.event.product, hint: 'Sesión en vivo en grupo, con fecha fija y plazas limitadas. Reserva tu plaza.' },
   { id: 'other', title: 'Otras experiencias', hint: 'Presenciales, profesionales o entregadas en la app.' },
 ];
 
@@ -53,6 +54,7 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, use
   // Fans only see events that haven't happened yet; the creator sees all of theirs.
   const experiences = all.filter((e) => isOwner || reserveProductOf(e) !== 'event' || isUpcomingEvent(e));
   const seats = useEventSeats(experiences);
+  const reviews = usePlatformQuery(() => backend.creatorReviews(creator.id), [creator.id], []).data;
   const [open, setOpen] = useState<{ exp: VipExperience; book: boolean } | null>(null);
   const [custom, setCustom] = useState(false);
   const first = creator.name.split(' ')[0];
@@ -78,6 +80,12 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, use
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gold-700"><Icon name="fa-crown" className="mr-1.5 text-gold-500" />Reserve · {category.name}</p>
           <h2 id="reserve-title" className="mt-1 text-xl font-bold text-ink sm:text-2xl">Reserve con {first}</h2>
           <p className="mt-0.5 text-sm font-semibold text-ink/70" data-testid="reserve-summary">{summary}</p>
+          {reviews.length > 0 && (
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-ink/70" data-testid="reserve-rating">
+              <Stars rating={averageOf(reviews)} size="text-xs" />
+              <strong className="text-ink">{averageOf(reviews).toFixed(1)}</strong>· {reviews.length} reseña{reviews.length === 1 ? '' : 's'}
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {isOwner && (
@@ -105,7 +113,7 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, use
       </div>
 
       {expanded && <div id="reserve-body" data-testid="reserve-body">
-      <p className="mt-4 text-sm text-ink/70">Reserve Events en grupo, videollamadas 1:1 por nuestra plataforma y experiencias con fecha, duración, precio y reglas definidas por {first}.</p>
+      <p className="mt-4 text-sm text-ink/70">Sesiones en vivo por nuestra plataforma, 1:1 o en grupo, y experiencias con fecha, duración, precio y reglas definidas por {first}.</p>
       <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-gold-50 px-3 py-1 text-sm font-semibold text-gold-700 ring-1 ring-gold-200" data-testid="reserve-principle">
         <i aria-hidden="true" className="fas fa-shield-halved text-xs"></i>Reserva experiencias, no personas.
       </p>
@@ -169,6 +177,8 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, use
           </button>
         </div>
       )}
+
+      <CreatorReviews reviews={reviews} creatorName={creator.name} />
 
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
         <ReserveNotice kind="subscription" />

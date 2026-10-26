@@ -19,6 +19,7 @@ import {
   needsApproval,
   normalizeAvailability,
   priceFor,
+  reserveStatusOf,
   validateCounter,
   validateCustomRequest,
   validateExperience,
@@ -39,7 +40,8 @@ import {
   validateRegistration,
   validateSignupExtras,
 } from './shared';
-import type { AuthResult, Availability, Backend, BookingInput, BookingStatus, User, VipBooking, VipExperience } from './types';
+import type { AuthResult, Availability, Backend, BookingInput, BookingStatus, ReserveReview, User, VipBooking, VipExperience } from './types';
+import { viewerTimeZone } from '../timeZones';
 import type { InfraUsage } from '../infraUsage';
 import { financeLocal } from '../creatorFinance';
 import { createLocalPlatform } from './localPlatform';
@@ -69,6 +71,7 @@ const BOOKINGS_KEY = 'vip_bookings';
 const INFRA_KEY = 'infra_settings';
 const OUTBOX_KEY = 'email_outbox';
 const EXPERIENCES_KEY = 'vip_experiences_v1';
+const REVIEWS_KEY = 'reserve_reviews';
 const RESETS_KEY = 'password_resets';
 const CHANGE_EVENT = `${BRAND.compactName.toLowerCase()}:local-change`;
 
@@ -281,8 +284,8 @@ const createBooking = async (user: User, input: BookingInput): Promise<AuthResul
     return fail(`Esta experiencia admite hasta ${d.maxParticipants} participante${d.maxParticipants === 1 ? '' : 's'}`);
   const { min, max } = bookingWindow();
   if (input.date < min || input.date > max) return fail('La fecha debe estar dentro de los próximos 3 meses');
-  if (!meetsNotice(input.date, input.time, d.minNoticeHours)) return fail(`Reserva con al menos ${d.minNoticeHours} horas de anticipación`);
   const availability = experienceAvailability(loadAvailability(exp.creatorProfileId), exp);
+  if (!meetsNotice(input.date, input.time, d.minNoticeHours, new Date(), availability.timeZone)) return fail(`Reserva con al menos ${d.minNoticeHours} horas de anticipación`);
   if (!freeHoursOn(availability, takenFor(exp.creatorProfileId), input.date).includes(input.time)) {
     return fail('Ese horario ya no está disponible. Elige otro.');
   }
@@ -300,6 +303,7 @@ const createBooking = async (user: User, input: BookingInput): Promise<AuthResul
       ...(exp.durationMinutes ? { durationMinutes: exp.durationMinutes } : {}),
       date: input.date,
       time: input.time,
+      ...(availability.timeZone ? { timeZone: availability.timeZone } : {}),
       message: input.message.trim().slice(0, 500),
       id,
       fanId: user.id,
@@ -708,7 +712,8 @@ export const localBackend: Backend = {
   async setAvailability(id, availability) {
     if (availability.days.length === 0 || availability.hours.length === 0) return fail('Elige al menos un día y una hora');
     const all = readJSON<Record<string, Availability>>(AVAILABILITY_KEY, {});
-    all[id] = normalizeAvailability(availability);
+    const zone = viewerTimeZone();
+    all[id] = normalizeAvailability({ ...availability, ...(zone ? { timeZone: zone } : {}) });
     writeJSON(AVAILABILITY_KEY, all);
     notify();
     return ok;
@@ -716,6 +721,47 @@ export const localBackend: Backend = {
 
   async takenSlots(id) {
     return takenFor(id);
+  },
+
+  async creatorReviews(id) {
+    return readJSON<ReserveReview[]>(REVIEWS_KEY, [])
+      .filter((r) => r.creatorProfileId === id && !r.hidden)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  },
+
+  async fanReviews(fanId) {
+    return readJSON<ReserveReview[]>(REVIEWS_KEY, []).filter((r) => r.fanId === fanId);
+  },
+
+  async submitReview(user, bookingId, rating, comment) {
+    const b = listBookings().find((x) => x.id === bookingId && x.fanId === user.id);
+    if (!b) return fail('No encontramos esta reserva en tu cuenta');
+    if (b.status !== 'confirmed' && b.status !== 'completed') return fail('Solo puedes reseñar una experiencia confirmada');
+    if (reserveStatusOf(b) !== 'completed') return fail('Podrás dejar tu reseña cuando termine la experiencia');
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) return fail('Elige de 1 a 5 estrellas');
+    const text = comment.trim();
+    if (text.length > 500) return fail('La reseña puede tener hasta 500 caracteres');
+    const note = moderate(text, 'request');
+    if (!note.ok) return fail('Tu reseña incluye contenido que no está permitido en Fans Reserve');
+    const all = readJSON<ReserveReview[]>(REVIEWS_KEY, []);
+    const now = new Date().toISOString();
+    const prev = all.find((r) => r.bookingId === bookingId);
+    const review: ReserveReview = {
+      bookingId,
+      creatorProfileId: b.creatorProfileId,
+      experienceId: b.experienceId,
+      experienceTitle: b.title,
+      fanId: user.id,
+      fanName: user.name.trim().split(/\s+/)[0] || 'Fan',
+      rating,
+      comment: text,
+      hidden: prev?.hidden ?? false,
+      createdAt: prev?.createdAt ?? now,
+      updatedAt: now,
+    };
+    writeJSON(REVIEWS_KEY, [...all.filter((r) => r.bookingId !== bookingId), review]);
+    notify();
+    return ok;
   },
 
   createBooking: (user, input) => createBooking(user, input),
@@ -750,6 +796,7 @@ export const localBackend: Backend = {
         ...(exp.durationMinutes ? { durationMinutes: exp.durationMinutes } : {}),
         date: d.eventDate!,
         time: d.eventTime!,
+        ...(exp.timeZone ? { timeZone: exp.timeZone } : {}),
         message: (message ?? '').trim().slice(0, 500),
         fanId: user.id,
         fanName: user.name,
@@ -965,6 +1012,7 @@ export const localBackend: Backend = {
       ...(input.details ? { details: cleanDetails(input.details) } : {}),
       creatorProfileId: user.creatorProfileId,
       creatorName: user.name,
+      ...(viewerTimeZone() ? { timeZone: viewerTimeZone() } : {}),
     };
     saveExperiences(
       existing

@@ -4,7 +4,7 @@ import { backend } from '../../lib/backend';
 import { usePlatformQuery, platformChanged, money } from '../../lib/platform';
 import { creators as demoCreators } from '../../data/mockData';
 import { categoryFor, RESERVE_COPY, RESERVE_RESPONSE_HOURS } from '../../config/reserve';
-import { detailsOf, experienceCategory, reserveStatusOf, typeOf, type Availability, type VipBooking, type VipExperience } from '../../lib/vip';
+import { detailsOf, experienceCategory, reserveStatusOf, typeOf, type Availability, type ReserveReview, type VipBooking, type VipExperience } from '../../lib/vip';
 import ReserveExperienceWizard from './ReserveExperienceWizard';
 import ReserveBookingCard from './ReserveBookingCard';
 import { ExperienceFacts } from './ReserveBits';
@@ -27,6 +27,7 @@ const CreatorReservePanel: React.FC<Props> = ({ availability, bookings, reloadBo
   const profileId = user?.creatorProfileId ?? '';
   const { data: all, reload } = usePlatformQuery(() => backend.listExperiences(), [], [] as VipExperience[]);
   const mine = all.filter((e) => e.creatorProfileId === profileId);
+  const { data: reviews } = usePlatformQuery(() => (profileId ? backend.creatorReviews(profileId) : Promise.resolve([])), [profileId], [] as ReserveReview[]);
   const [picked, setPicked] = useState<Section | null>(null);
   const [wizard, setWizard] = useState<{ editing?: VipExperience } | null>(null);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
@@ -94,7 +95,7 @@ const CreatorReservePanel: React.FC<Props> = ({ availability, bookings, reloadBo
     ) : (
       <div className="space-y-3">
         {items.map((b) => (
-          <ReserveBookingCard key={b.id} booking={b} user={user} as="creator" onChanged={changed} testId={testId} />
+          <ReserveBookingCard key={b.id} booking={b} user={user} as="creator" onChanged={changed} testId={testId} review={reviews.find((r) => r.bookingId === b.id)} />
         ))}
       </div>
     );
