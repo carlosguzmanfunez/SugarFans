@@ -109,7 +109,7 @@ const stub = () =>
 const loadHandler = async () => {
   const out = join(mkdtempSync(join(tmpdir(), 'live-access-')), 'live-token.mjs');
   await build({ entryPoints: [new URL('../api/live-token.ts', import.meta.url).pathname], bundle: true, format: 'esm', platform: 'node', outfile: out, logLevel: 'silent' });
-  return (await import(pathToFileURL(out).href)).POST;
+  return await import(pathToFileURL(out).href);
 };
 
 // The LiveKit grant inside a token (its payload is plain base64url JSON).
@@ -125,7 +125,7 @@ const run = async () => {
   });
   delete process.env.ENABLE_OPEN_LIVE;
   delete process.env.ENABLE_SUBSCRIBER_LIVE;
-  const POST = await loadHandler();
+  const { GET, POST } = await loadHandler();
   const server = await stub();
   const ask = async (who, body) => {
     const r = await POST(new Request('http://x/api/live-token', { method: 'POST', headers: { authorization: `Bearer ${who}` }, body: JSON.stringify(body) }));
@@ -136,6 +136,16 @@ const run = async () => {
   const refused = (r, what) => expect(r.status >= 400 && !r.token, `${what}: esperaba rechazo y recibió ${r.status}`);
 
   try {
+    await check('GET público no divulga credenciales ni consulta salas de LiveKit', async () => {
+      const r = await GET();
+      const info = await r.json();
+      expect(r.status === 200 && info.configured === true, 'la respuesta de salud no indica configuración');
+      expect(Object.keys(info).length === 1, 'el diagnóstico expone campos internos');
+      const publicResponse = JSON.stringify(info);
+      for (const privateValue of [process.env.LIVEKIT_URL, process.env.LIVEKIT_API_KEY, process.env.LIVEKIT_API_SECRET]) {
+        expect(!publicResponse.includes(privateValue), 'el diagnóstico divulga infraestructura o credenciales');
+      }
+    });
     console.log('Open Live (desactivado por feature flag)');
     await check('El flag central ENABLE_OPEN_LIVE existe y está apagado por defecto', async () => {
       const src = readFileSync(new URL('../src/config/features.ts', import.meta.url), 'utf8');
