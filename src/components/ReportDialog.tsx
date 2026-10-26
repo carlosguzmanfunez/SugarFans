@@ -61,13 +61,14 @@ const ReportDialog: React.FC<Props> = ({ kind, targetId, targetLabel, onClose })
               </select>
               <textarea
                 aria-label="Descripción del reporte"
+                maxLength={4000}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Cuéntanos qué ocurre..."
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-pink-500 h-24 resize-none text-sm"
               />
               {!user && (
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Tu email de contacto" className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-pink-500 text-sm" />
+                <input type="email" maxLength={254} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Tu email de contacto" className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-pink-500 text-sm" />
               )}
               {error && <p role="alert" className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
               <button type="button" onClick={send} className="w-full bg-red-600 text-white py-3 rounded-xl font-medium hover:bg-red-700">
