@@ -185,10 +185,16 @@ export const buildPayoutAccount = (email: string): { account?: PayoutAccount; er
 export const payoutAccountLabel = (account: PayoutAccount) => `PayPal · ${maskEmail(account.email)}`;
 
 export const validateReport = (input: ReportInput, signedIn: boolean): Check => {
-  if (!input.reason) return bad('Elige un motivo');
-  if (input.description.trim().length < 10) return bad('Describe el problema (mínimo 10 caracteres)');
+  if (!input.reason?.trim() || input.reason.trim().length > 200) return bad('Elige un motivo válido (máximo 200 caracteres)');
+  const descriptionLength = input.description.trim().length;
+  if (descriptionLength < 10 || descriptionLength > 4000) return bad('Describe el problema entre 10 y 4000 caracteres');
+  if (input.targetLabel?.trim().length > 200 || (input.targetId?.length ?? 0) > 180) {
+    return bad('La referencia del reporte es demasiado larga');
+  }
   const email = input.contactEmail?.trim();
-  if (!signedIn && !(email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) return bad('Deja un email de contacto válido');
+  if (!signedIn && !(email && email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+    return bad('Deja un email de contacto válido');
+  }
   return good;
 };
 
