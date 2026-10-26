@@ -58,6 +58,32 @@ finish(async () => {
     expect(psql(DB, "select has_function_privilege('authenticated','public.paypal_payout_begin(uuid,text,text)','EXECUTE')") === 'f',
       'PayPal payout begin no debe estar abierto al fan');
   });
+  await check('Soporte anónimo sigue permitido, sin revelar reportes privados', () => {
+    const guestMail = 'qa-guest-report@test.local';
+    guest(`select public.submit_report('support',null,'Soporte','Consulta',
+      'Mensaje de prueba con longitud válida', '${guestMail}')`);
+    expect(psql(DB, `select count(*) from public.reports where contact_email='${guestMail}'`) === '1', 'no se recibió el reporte anónimo');
+    expect(guest('select count(*) from public.reports') === '0', 'los visitantes pueden leer reportes privados');
+    raises(() => guest(`select public.submit_report('support',null,'Soporte','Consulta',
+      repeat('x',4001),'qa-large@test.local')`), /entre 10 y 4000 caracteres/, 'texto de 4001 caracteres');
+  });
+  await check('Reportes repetidos se limitan por identidad sin bloquear a otros', () => {
+    const guestMail = 'qa-guest-report@test.local';
+    for (let i = 2; i <= 5; i++) {
+      guest(`select public.submit_report('support',null,'Soporte','Consulta',
+        'Reporte válido de prueba ' || '${i}', '${guestMail}')`);
+    }
+    raises(() => guest(`select public.submit_report('support',null,'Soporte','Consulta',
+      'Sexta consulta debe bloquearse', '${guestMail}')`),
+      /muchos reportes/i,'tope público de cinco reportes por hora');
+    for (let i = 1; i <= 10; i++) {
+      as(fan, `select public.submit_report('other',null,'QA','Consulta','Reporte válido de fan número ${i}',null)`);
+    }
+    raises(() => as(fan, `select public.submit_report('other',null,'QA','Consulta','Intento once de fan',null)`),
+      /muchos reportes/i,'tope de diez reportes por hora');
+    as(stranger, `select public.submit_report('other',null,'QA','Consulta','El otro fan puede reportar',null)`);
+    expect(psql(DB, `select count(*) from public.reports where reporter_id='${stranger}'`) === '1', 'limitó a un fan distinto');
+  });
   await check('Las políticas de órdenes y suscripciones PayPal siguen restringidas por usuario', () => {
     for (const table of ['paypal_orders', 'paypal_subscriptions']) {
       const policy = psql(DB, `select qual from pg_policies where schemaname='public'
