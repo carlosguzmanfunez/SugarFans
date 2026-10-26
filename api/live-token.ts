@@ -9,7 +9,7 @@
 //   · Reserve 1:1: only the booking's fan and creator get in, and both publish.
 // Gifts never grant access, and a subscription never grants a Reserve.
 // Needs LIVEKIT_URL, LIVEKIT_API_KEY and LIVEKIT_API_SECRET in the Vercel project settings.
-import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
+import { AccessToken } from 'livekit-server-sdk';
 // Node runs this file as an ES module, so the relative import needs its .js extension.
 import { decideBooking, decideBroadcast, type BookingRow, type Decision } from '../src/lib/liveAccess.js';
 
@@ -38,31 +38,12 @@ const livekitEnv = () => ({
   LIVEKIT_API_SECRET: clean(process.env.LIVEKIT_API_SECRET),
 });
 
-// GET /api/live-token: checks the LiveKit settings without revealing them
-// (only the server host, the key's first and last letters and the lengths) and asks
-// LiveKit whether it accepts the key and secret.
+// Public health response: never disclose API key fragments, credential lengths,
+// infrastructure hostnames or provider error details. A public GET must not make
+// a privileged listRooms call; Reserve access is exclusively decided in POST.
 export async function GET(): Promise<Response> {
   const { LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET } = livekitEnv();
-  const checks = {
-    url: LIVEKIT_URL ? LIVEKIT_URL.replace(/^(\w+:\/\/[^/]+).*$/, '$1') : 'FALTA',
-    urlOk: !!LIVEKIT_URL && /^wss?:\/\/|^https?:\/\//.test(LIVEKIT_URL),
-    // The key id isn't secret on its own; its ending lets you match it in LiveKit's key list.
-    key: LIVEKIT_API_KEY ? `${LIVEKIT_API_KEY.slice(0, 3)}…${LIVEKIT_API_KEY.slice(-4)} (${LIVEKIT_API_KEY.length} caracteres)` : 'FALTA',
-    keyOk: !!LIVEKIT_API_KEY && LIVEKIT_API_KEY.startsWith('API'),
-    secret: LIVEKIT_API_SECRET ? `${LIVEKIT_API_SECRET.length} caracteres` : 'FALTA',
-    secretOk: !!LIVEKIT_API_SECRET && LIVEKIT_API_SECRET.length >= 30 && LIVEKIT_API_SECRET !== LIVEKIT_API_KEY,
-    livekit: 'sin comprobar',
-  };
-  if (LIVEKIT_URL && LIVEKIT_API_KEY && LIVEKIT_API_SECRET) {
-    try {
-      await new RoomServiceClient(LIVEKIT_URL.replace(/^ws/, 'http'), LIVEKIT_API_KEY, LIVEKIT_API_SECRET).listRooms();
-      checks.livekit = 'OK: LiveKit acepta la clave y el secreto';
-    } catch (err) {
-      const reason = (err instanceof Error ? err.message : String(err)).replace(/eyJ[\w.-]+/g, '').replace(/[:,\s]+$/, '');
-      checks.livekit = `RECHAZADO: ${reason}`.slice(0, 200);
-    }
-  }
-  return json(200, checks);
+  return json(200, { configured: !!(LIVEKIT_URL && LIVEKIT_API_KEY && LIVEKIT_API_SECRET) });
 }
 
 export async function POST(request: Request): Promise<Response> {
