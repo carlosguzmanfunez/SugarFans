@@ -1,0 +1,5 @@
+import{spawnSync}from'node:child_process';import{mkdirSync,writeFileSync}from'node:fs';import{resolve,join}from'node:path';
+const out=resolve(process.env.FANSRESERVE_QA_OUTPUT||'../../outputs/devoluciones-costo-revisado/tests');mkdirSync(out,{recursive:true});
+const suites=['collection-refund-review-postgres','collection-reconciliation-postgres','monthly-cost-adjustments-postgres','collection-reconciliation-api','collection-reconciliation-rules'];const checks=[];
+for(const name of suites){const r=spawnSync(process.execPath,['e2e/'+name+'.mjs'],{encoding:'utf8',windowsHide:true,timeout:120000});writeFileSync(join(out,name+'.log'),(r.stdout??'')+(r.stderr??''));checks.push({name,exit:r.status,error:r.error?.message??null});console.log((r.status===0?'PASS ':'FAIL ')+name);if(r.status!==0){console.log(((r.stdout??'')+(r.stderr??'')).slice(-2000));break;}}
+writeFileSync(join(out,'RESULTADO-COSTOS.json'),JSON.stringify({at:new Date().toISOString(),provider:'fictitious',database:'disposable-local-postgresql',checks},null,2));if(checks.length!==suites.length||checks.some(r=>r.exit!==0))process.exitCode=1;

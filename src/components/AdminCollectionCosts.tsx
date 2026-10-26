@@ -3,6 +3,7 @@ import type{FinanceBackend}from'../lib/creatorFinance';
 import{collectionCostCsv,type CollectionCost,type CollectionPage}from'../lib/collectionCosts';
 import{money}from'../lib/platformRules';
 import{formatPayoutDate}from'../lib/payoutCalendar';
+import AdminCollectionRefundReview from'./AdminCollectionRefundReview';
 const button='rounded-xl bg-gray-900 text-white px-4 py-2 text-sm disabled:opacity-40';
 export default function AdminCollectionCosts({api,onChanged}:{api:FinanceBackend;onChanged:()=>void}){
  const[open,setOpen]=useState(false),[offset,setOffset]=useState(0),[page,setPage]=useState<CollectionPage|null>(null),[selected,setSelected]=useState(''),[plan,setPlan]=useState<CollectionCost|null>(null),[revision,setRevision]=useState(0);
@@ -35,6 +36,7 @@ export default function AdminCollectionCosts({api,onChanged}:{api:FinanceBackend
     <label className="block">Motivo de la conciliación<textarea className="block border rounded-xl p-2 w-full mt-1"minLength={20}maxLength={2000}required disabled={busy}value={reason}onChange={e=>{setReason(e.target.value);setConfirmed(false);}}/></label>
     <p className="text-xs text-gray-600">Esta explicación aparecerá en el estado de cuenta del creador. Los comprobantes administrativos se conservan por separado.</p>
     <label className="flex gap-2"><input type="checkbox"disabled={busy}checked={confirmed}onChange={e=>setConfirmed(e.target.checked)}/>Revisé el costo, el reparto acordado, la fecha del ajuste y que no se haya corregido ya esta diferencia.</label><button className={button}disabled={busy||!confirmed}>{busy?'Comprobando…':'Registrar ajuste para el pago mensual'}</button></form>}
+   {plan.partial_refund&&<AdminCollectionRefundReview key={plan.partial_refund.hash}plan={plan.partial_refund}api={api}onChanged={()=>{setRevision(n=>n+1);onChanged();}}/>}
   </div>}
  </>}</section>;
 }

@@ -1,4 +1,9 @@
 export type CollectionKind='coins'|'sale';
+export interface CollectionRefundPlan {
+ applicable:boolean;source:string;resolution:string;reference:string;hash:string;issue:string|null;reviewed:boolean;review:string|null;reviewed_at:string|null;explanation:string|null;
+ gross:number;refund:number;fee_returned:number;estimated_fee:number;actual_fee:number;original_earning:number;refund_loss:number;recorded_refund_loss:number;
+ cost_adjustment:number;creator_remaining:number;platform_commission_initial:number;platform_remaining:number;service_remaining:number;tax_remaining:number;covered:boolean;scheduled_from:string|null;
+}
 export interface CollectionCost {
  kind:CollectionKind;id:string;reference:string|null;creator:string;gross:number;recorded_fee:number|null;
  comparison_fee:number|null;comparison_is_estimate:boolean;actual_fee:number|null;receipt:string|null;
@@ -8,6 +13,7 @@ export interface CollectionCost {
  creator_delta:number;creator_debit:number;platform_delta:number;original_earning:number|null;corrected_earning:number|null;
  policy_version:string;eligible_at:string|null;scheduled_from:string|null;scheduled_until:string|null;
  variance_allocation?:'creator-full';platform_commission_before?:number;platform_commission_after?:number;
+ partial_refund?:CollectionRefundPlan;
 }
 export interface CollectionPage{total:number;items:CollectionCost[]}
 export function collectionCostCsv(rows:CollectionCost[]){

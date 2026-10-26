@@ -17,6 +17,7 @@ export const createSupabaseFinance=(sb:SupabaseClient):FinanceBackend=>{
    collectionPreview:(kind,id)=>call('finance_collection_preview',{p_kind:kind,p_id:id}),
    collectionResolve:(kind,id,key,hash,evidence,reason)=>call('finance_collection_resolve',{p_kind:kind,p_id:id,p_key:key,p_expected:hash,p_evidence:evidence,p_reason:reason}),
    collectionExport:()=>call('finance_collection_export'),
+    collectionRefundReview:(source,key,hash,evidence,reason)=>call('finance_collection_refund_review',{p_source:source,p_key:key,p_expected:hash,p_evidence:evidence,p_reason:reason}),
    collectionQuery:async(kind,id,key)=>{
     try{const {data}=await sb.auth.getSession();const token=data.session?.access_token;if(!token)return{ok:false,error:'Inicia sesión con tu cuenta administrativa.'};
      const r=await fetch('/api/payout-job',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json'},body:JSON.stringify({action:'collection-cost',kind,source:id,key})});
