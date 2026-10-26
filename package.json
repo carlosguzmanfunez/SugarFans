@@ -41,6 +41,8 @@
     "test:monthly-costs": "node e2e/monthly-cost-adjustments-postgres.mjs",
     "test:collection-refund-review": "node e2e/collection-refund-acceptance.mjs",
     "review:collection-refund": "node e2e/collection-refund-review-ui.mjs",
+    "test:finance-test-reset": "node e2e/finance-test-reset-postgres.mjs",
+    "review:payments-dashboard": "node e2e/payments-dashboard-review.mjs",
     "review:collection-costs": "node e2e/collection-reconciliation-review.mjs",
     "test:collection-cost-ui": "node e2e/collection-cost-ui.mjs",
     "test:honduras-payout-cost": "node e2e/honduras-payout-cost.mjs",
