@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Icon from '../components/Icon';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
@@ -22,9 +22,7 @@ const formatDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day
 const Profile: React.FC = () => {
   const { user, cancelSubscription } = useAuth();
   const { creators } = useCreatorCatalog();
-  const { data: myBookings, reload: reloadBookings } = useBackendData(() => (user ? backend.fanBookings(user.id) : Promise.resolve([])), [user?.id], []);
-  const { data: myReviews, reload: reloadReviews } = useBackendData(() => (user ? backend.fanReviews(user.id) : Promise.resolve([])), [user?.id], []);
-  const reload = useCallback(() => { reloadBookings(); reloadReviews(); }, [reloadBookings, reloadReviews]);
+  const { data: myBookings, reload } = useBackendData(() => (user ? backend.fanBookings(user.id) : Promise.resolve([])), [user?.id], []);
   // The creator's answer shows up at once.
   const userId = user?.id;
   useEffect(() => (userId ? onNewNotification(userId, reload) : undefined), [userId, reload]);
@@ -121,7 +119,7 @@ const Profile: React.FC = () => {
               <div className="space-y-3">
                 <PushOptIn user={user} />
                 {myBookings.map((b) => (
-                  <ReserveBookingCard key={b.id} booking={b} user={user} as="fan" testId="booking" onChanged={reload} onPay={setPaying} review={myReviews.find((r) => r.bookingId === b.id)} />
+                  <ReserveBookingCard key={b.id} booking={b} user={user} as="fan" testId="booking" onChanged={reload} onPay={setPaying} />
                 ))}
               </div>
             )}

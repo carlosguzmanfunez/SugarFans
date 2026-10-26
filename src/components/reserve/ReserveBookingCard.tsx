@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { backend } from '../../lib/backend';
 import { money } from '../../lib/platform';
-import { formatLongDate, reserveStatusOf, typeOf, CUSTOM_EXPERIENCE, MIN_SESSION_MINUTES, MAX_SESSION_MINUTES, type ReserveReview, type VipBooking } from '../../lib/vip';
+import { formatLongDate, reserveStatusOf, typeOf, CUSTOM_EXPERIENCE, MIN_SESSION_MINUTES, MAX_SESSION_MINUTES, type VipBooking } from '../../lib/vip';
 import { viewerSlotLabel, zoneCity } from '../../lib/timeZones';
-import { ReviewBox, Stars } from './ReviewBits';
 import { LOCATION_TYPES, PURPOSES, RESERVE_MODALITIES } from '../../config/reserve';
 import { MODERATION_RULES } from '../../lib/moderation';
 import type { User } from '../../context/AuthContext';
@@ -25,8 +24,6 @@ interface Props {
   onChanged: () => void;
   onPay?: (b: VipBooking) => void;
   testId?: string;
-  // The fan's review of this booking, once they left one.
-  review?: ReserveReview;
 }
 
 const btn = 'inline-flex h-9 items-center justify-center rounded-full px-4 text-xs font-semibold transition';
@@ -34,7 +31,7 @@ const btn = 'inline-flex h-9 items-center justify-center rounded-full px-4 text-
 // One Reserve as either side sees it: what was booked or requested, its state,
 // and the next action (accept, reject, counter-offer / accept or decline the
 // counter-offer, pay, cancel, join, report).
-const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, onPay, testId, review }) => {
+const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, onPay, testId }) => {
   const [countering, setCountering] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [error, setError] = useState('');
@@ -224,14 +221,6 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
       )}
 
       <WaitingNote booking={b} status={status} as={as} />
-
-      {as === 'fan' && status === 'completed' && <ReviewBox booking={b} user={user} review={review} onSaved={onChanged} />}
-      {as === 'creator' && review && (
-        <div className="mt-3 rounded-xl bg-canvas px-3 py-2.5 text-sm" data-testid="booking-review">
-          <span className="flex items-center gap-2"><Stars rating={review.rating} /><span className="text-xs text-ink/60">Reseña de {b.fanName.split(' ')[0]}</span></span>
-          {review.comment && <p className="mt-1 text-ink/75">“{review.comment}”</p>}
-        </div>
-      )}
 
       {error && <p role="alert" className="mt-2 text-xs text-red-600">{error}</p>}
       {as === 'fan' && b.emailSentAt && (

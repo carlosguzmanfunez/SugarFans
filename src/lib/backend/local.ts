@@ -19,7 +19,6 @@ import {
   needsApproval,
   normalizeAvailability,
   priceFor,
-  reserveStatusOf,
   validateCounter,
   validateCustomRequest,
   validateExperience,
@@ -40,7 +39,7 @@ import {
   validateRegistration,
   validateSignupExtras,
 } from './shared';
-import type { AuthResult, Availability, Backend, BookingInput, BookingStatus, ReserveReview, User, VipBooking, VipExperience } from './types';
+import type { AuthResult, Availability, Backend, BookingInput, BookingStatus, User, VipBooking, VipExperience } from './types';
 import { viewerTimeZone } from '../timeZones';
 import type { InfraUsage } from '../infraUsage';
 import { financeLocal } from '../creatorFinance';
@@ -71,7 +70,6 @@ const BOOKINGS_KEY = 'vip_bookings';
 const INFRA_KEY = 'infra_settings';
 const OUTBOX_KEY = 'email_outbox';
 const EXPERIENCES_KEY = 'vip_experiences_v1';
-const REVIEWS_KEY = 'reserve_reviews';
 const RESETS_KEY = 'password_resets';
 const CHANGE_EVENT = `${BRAND.compactName.toLowerCase()}:local-change`;
 
@@ -721,47 +719,6 @@ export const localBackend: Backend = {
 
   async takenSlots(id) {
     return takenFor(id);
-  },
-
-  async creatorReviews(id) {
-    return readJSON<ReserveReview[]>(REVIEWS_KEY, [])
-      .filter((r) => r.creatorProfileId === id && !r.hidden)
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  },
-
-  async fanReviews(fanId) {
-    return readJSON<ReserveReview[]>(REVIEWS_KEY, []).filter((r) => r.fanId === fanId);
-  },
-
-  async submitReview(user, bookingId, rating, comment) {
-    const b = listBookings().find((x) => x.id === bookingId && x.fanId === user.id);
-    if (!b) return fail('No encontramos esta reserva en tu cuenta');
-    if (b.status !== 'confirmed' && b.status !== 'completed') return fail('Solo puedes reseñar una experiencia confirmada');
-    if (reserveStatusOf(b) !== 'completed') return fail('Podrás dejar tu reseña cuando termine la experiencia');
-    if (!Number.isInteger(rating) || rating < 1 || rating > 5) return fail('Elige de 1 a 5 estrellas');
-    const text = comment.trim();
-    if (text.length > 500) return fail('La reseña puede tener hasta 500 caracteres');
-    const note = moderate(text, 'request');
-    if (!note.ok) return fail('Tu reseña incluye contenido que no está permitido en Fans Reserve');
-    const all = readJSON<ReserveReview[]>(REVIEWS_KEY, []);
-    const now = new Date().toISOString();
-    const prev = all.find((r) => r.bookingId === bookingId);
-    const review: ReserveReview = {
-      bookingId,
-      creatorProfileId: b.creatorProfileId,
-      experienceId: b.experienceId,
-      experienceTitle: b.title,
-      fanId: user.id,
-      fanName: user.name.trim().split(/\s+/)[0] || 'Fan',
-      rating,
-      comment: text,
-      hidden: prev?.hidden ?? false,
-      createdAt: prev?.createdAt ?? now,
-      updatedAt: now,
-    };
-    writeJSON(REVIEWS_KEY, [...all.filter((r) => r.bookingId !== bookingId), review]);
-    notify();
-    return ok;
   },
 
   createBooking: (user, input) => createBooking(user, input),

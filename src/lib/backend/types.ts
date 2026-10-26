@@ -202,21 +202,6 @@ export interface VipBooking {
   timeZone?: string;
 }
 
-// A fan's rating of a Reserve experience they lived (one per booking).
-export interface ReserveReview {
-  bookingId: string;
-  creatorProfileId: string;
-  experienceId: string;
-  experienceTitle: string;
-  fanId: string;
-  fanName: string; // first name only
-  rating: number; // 1-5
-  comment: string;
-  hidden: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
 // The creator, title and price come from the experience itself (server side).
 export interface BookingInput {
   experienceId: string;
@@ -359,11 +344,6 @@ export interface Backend {
   getAvailability(creatorProfileId: string): Promise<Availability>;
   setAvailability(creatorProfileId: string, availability: Availability): Promise<AuthResult>;
   takenSlots(creatorProfileId: string): Promise<TakenSlot[]>;
-  // Reviews: visible ones of a creator (newest first), and the fan's own.
-  creatorReviews(creatorProfileId: string): Promise<ReserveReview[]>;
-  fanReviews(fanId: string): Promise<ReserveReview[]>;
-  // The fan rates a booking once the experience has ended; again = edit.
-  submitReview(user: User, bookingId: string, rating: number, comment: string): Promise<AuthResult>;
   createBooking(user: User, input: BookingInput): Promise<AuthResult>;
   // Reserve Event: one seat for the signed-in fan (day and time come from the event).
   bookEventSeat(user: User, experienceId: string, message: string): Promise<AuthResult>;

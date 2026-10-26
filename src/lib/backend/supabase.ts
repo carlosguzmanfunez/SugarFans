@@ -5,7 +5,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { PAID_WITH_PAYPAL, WRONG_CREDENTIALS, ACCOUNT_SUSPENDED, avatarOrEmpty, cleanPatch, mergeSettings, normalizeEmail, validateRegistration, validateSignupExtras } from './shared';
 import { REJECTED_MESSAGE, inReviewNotice, moderateUpload, moderationOf } from './supabaseModeration';
 import { DEFAULT_AVAILABILITY, cleanDetails, customTitle, normalizeAvailability, validateCounter, validateCustomRequest, validateExperience } from '../vip';
-import type { Backend, BookingDetails, BookingStatus, ExperienceType, ReserveDetails, ReserveReview, SocialProvider, User, UserRole, VipBooking, VipExperience } from './types';
+import type { Backend, BookingDetails, BookingStatus, ExperienceType, ReserveDetails, SocialProvider, User, UserRole, VipBooking, VipExperience } from './types';
 import { viewerTimeZone } from '../timeZones';
 import { creators as demoCreators } from '../../data/mockData';
 import { createSupabasePlatform } from './supabasePlatform';
@@ -101,7 +101,7 @@ interface BookingRow {
   // Missing until migration 20261005000002_reserve_alerts is applied.
   seen_at?: string | null;
   respond_by?: string | null;
-  // Missing until migration 20261026210000_reserve_reviews_time_zones is applied.
+  // Missing until migration 20261026210000_reserve_time_zones is applied.
   time_zone?: string | null;
 }
 
@@ -121,33 +121,6 @@ interface ExperienceRow {
   time_zone?: string | null;
 }
 
-interface ReviewRow {
-  booking_id: string;
-  creator_profile_id: string;
-  experience_id: string;
-  experience_title: string;
-  fan_id: string;
-  fan_name: string;
-  rating: number;
-  comment: string;
-  hidden: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-const toReview = (r: ReviewRow): ReserveReview => ({
-  bookingId: r.booking_id,
-  creatorProfileId: r.creator_profile_id,
-  experienceId: r.experience_id,
-  experienceTitle: r.experience_title,
-  fanId: r.fan_id,
-  fanName: r.fan_name,
-  rating: Number(r.rating),
-  comment: r.comment,
-  hidden: r.hidden,
-  createdAt: r.created_at,
-  updatedAt: r.updated_at,
-});
 
 // Writes that add the creator's time zone retry without it while the column
 // doesn't exist yet (migration 20261026210000 not applied).
@@ -645,30 +618,6 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       let { error } = await sb.from('vip_availability').upsert({ ...row, time_zone: viewerTimeZone() ?? null });
       if (missingTimeZone(error)) ({ error } = await sb.from('vip_availability').upsert(row));
       return error ? dbError(error, 'No se pudieron guardar los horarios') : ok;
-    },
-
-    async creatorReviews(id) {
-      const { data } = await sb
-        .from('reserve_reviews')
-        .select('*')
-        .eq('creator_profile_id', id)
-        .eq('hidden', false)
-        .order('created_at', { ascending: false })
-        .limit(50);
-      return ((data ?? []) as ReviewRow[]).map(toReview);
-    },
-
-    async fanReviews(fanId) {
-      const { data } = await sb.from('reserve_reviews').select('*').eq('fan_id', fanId);
-      return ((data ?? []) as ReviewRow[]).map(toReview);
-    },
-
-    async submitReview(_user, bookingId, rating, comment) {
-      if (!Number.isInteger(rating) || rating < 1 || rating > 5) return fail('Elige de 1 a 5 estrellas');
-      if (comment.trim().length > 500) return fail('La reseña puede tener hasta 500 caracteres');
-      const { error } = await sb.rpc('reserve_submit_review', { p_booking_id: bookingId, p_rating: rating, p_comment: comment.trim() });
-      if (error && /reserve_submit_review/.test(error.message)) return fail('Las reseñas aún no están activadas en la base de datos.');
-      return error ? dbError(error, 'No se pudo guardar tu reseña') : ok;
     },
 
     async takenSlots(id) {

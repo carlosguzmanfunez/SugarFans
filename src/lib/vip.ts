@@ -53,7 +53,6 @@ export type {
   BookingDetails,
   CustomRequestInput,
   CounterInput,
-  ReserveReview,
 } from './backend/types';
 
 export const MAX_BOOKING_MONTHS = 3;
