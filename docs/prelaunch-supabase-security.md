@@ -43,6 +43,7 @@ Proyecto QA: `fansreserve-qa-payouts`; migración `20261026223245_prelaunch_fina
 - Los 27 avisos anónimos restantes incluyen funciones de catálogo, disponibilidad y contenidos. **No revocar masivamente**: algunas son necesarias para explorar sin iniciar sesión; revisar cada firma, exposición de datos y propósito.
 - Las 115+ advertencias de `SECURITY DEFINER` invocables por usuarios autenticados requieren triaje, especialmente RPCs administrativas. Contar con EXECUTE no implica por sí solo una falla si hacen autorización interna.
 - Denuncias públicas: topes básicos por remitente probados en QA; falta rate limit a nivel IP/CDN. Revisar abuso y autenticidad de fuentes en la RPC pública de registro de errores.
+- **Hallazgo de integridad de alertas (QA, pendiente):** una llamada anónima a `log_app_error('api', ...)` puede guardar un error con fuente `api` pese a venir de un visitante. Se comprobó en una transacción revertida y no implica acceso a secretos ni cobros. Se requiere separar el registro del cliente del registro privilegiado de servidor o una verificación confiable de origen, conservando los logs anónimos de navegador. No cortar el registro de errores de servidor sin plan de migración y regresión.
 - Activar protección contra contraseñas filtradas en Auth (operación en configuración separada).
 - Resolver 403 al consultar logs de Vercel.
 - Alinear QA con todas las migraciones de producción antes de certificar el lanzamiento: la muestra de QA no equivale a validar automáticamente todos los cambios recientes.
