@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { backend } from '../../lib/backend';
 import { money } from '../../lib/platform';
 import { formatLongDate, reserveStatusOf, typeOf, CUSTOM_EXPERIENCE, MIN_SESSION_MINUTES, MAX_SESSION_MINUTES, type VipBooking } from '../../lib/vip';
+import { viewerSlotLabel, zoneCity } from '../../lib/timeZones';
 import { LOCATION_TYPES, PURPOSES, RESERVE_MODALITIES } from '../../config/reserve';
 import { MODERATION_RULES } from '../../lib/moderation';
 import type { User } from '../../context/AuthContext';
@@ -42,6 +43,8 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
   // A seat in a Reserve Event: same day and time for everyone, so no counter-offer.
   const isEvent = d.kind === 'event';
   const modality = d.modality ?? 'virtual';
+  // Booked in the creator's clock; someone elsewhere also sees their own hour.
+  const theirHour = viewerSlotLabel(b.date, b.time, b.timeZone);
 
   const run = async (fn: () => Promise<{ ok: boolean; error?: string }>) => {
     setBusy(true);
@@ -82,8 +85,14 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
           <p className="mt-0.5 text-sm font-semibold text-ink">{b.title}</p>
           <p className="mt-0.5 text-xs text-ink/60 first-letter:uppercase">
             {formatLongDate(b.date)} · {b.time}
+            {theirHour ? ` (hora de ${zoneCity(b.timeZone)})` : ''}
             {b.durationMinutes ? ` · ${b.durationMinutes} min` : ''}
           </p>
+          {theirHour && (
+            <p className="text-xs font-semibold text-ink/75" data-testid="booking-local-time">
+              <i aria-hidden="true" className="fas fa-globe mr-1 text-brand-600"></i>Tu hora: {theirHour}
+            </p>
+          )}
         </div>
         <div className="text-right">
           {d.ticketId ? (

@@ -40,6 +40,7 @@ import {
   validateSignupExtras,
 } from './shared';
 import type { AuthResult, Availability, Backend, BookingInput, BookingStatus, User, VipBooking, VipExperience } from './types';
+import { viewerTimeZone } from '../timeZones';
 import type { InfraUsage } from '../infraUsage';
 import { financeLocal } from '../creatorFinance';
 import { createLocalPlatform } from './localPlatform';
@@ -281,8 +282,8 @@ const createBooking = async (user: User, input: BookingInput): Promise<AuthResul
     return fail(`Esta experiencia admite hasta ${d.maxParticipants} participante${d.maxParticipants === 1 ? '' : 's'}`);
   const { min, max } = bookingWindow();
   if (input.date < min || input.date > max) return fail('La fecha debe estar dentro de los próximos 3 meses');
-  if (!meetsNotice(input.date, input.time, d.minNoticeHours)) return fail(`Reserva con al menos ${d.minNoticeHours} horas de anticipación`);
   const availability = experienceAvailability(loadAvailability(exp.creatorProfileId), exp);
+  if (!meetsNotice(input.date, input.time, d.minNoticeHours, new Date(), availability.timeZone)) return fail(`Reserva con al menos ${d.minNoticeHours} horas de anticipación`);
   if (!freeHoursOn(availability, takenFor(exp.creatorProfileId), input.date).includes(input.time)) {
     return fail('Ese horario ya no está disponible. Elige otro.');
   }
@@ -300,6 +301,7 @@ const createBooking = async (user: User, input: BookingInput): Promise<AuthResul
       ...(exp.durationMinutes ? { durationMinutes: exp.durationMinutes } : {}),
       date: input.date,
       time: input.time,
+      ...(availability.timeZone ? { timeZone: availability.timeZone } : {}),
       message: input.message.trim().slice(0, 500),
       id,
       fanId: user.id,
@@ -708,7 +710,8 @@ export const localBackend: Backend = {
   async setAvailability(id, availability) {
     if (availability.days.length === 0 || availability.hours.length === 0) return fail('Elige al menos un día y una hora');
     const all = readJSON<Record<string, Availability>>(AVAILABILITY_KEY, {});
-    all[id] = normalizeAvailability(availability);
+    const zone = viewerTimeZone();
+    all[id] = normalizeAvailability({ ...availability, ...(zone ? { timeZone: zone } : {}) });
     writeJSON(AVAILABILITY_KEY, all);
     notify();
     return ok;
@@ -750,6 +753,7 @@ export const localBackend: Backend = {
         ...(exp.durationMinutes ? { durationMinutes: exp.durationMinutes } : {}),
         date: d.eventDate!,
         time: d.eventTime!,
+        ...(exp.timeZone ? { timeZone: exp.timeZone } : {}),
         message: (message ?? '').trim().slice(0, 500),
         fanId: user.id,
         fanName: user.name,
@@ -965,6 +969,7 @@ export const localBackend: Backend = {
       ...(input.details ? { details: cleanDetails(input.details) } : {}),
       creatorProfileId: user.creatorProfileId,
       creatorName: user.name,
+      ...(viewerTimeZone() ? { timeZone: viewerTimeZone() } : {}),
     };
     saveExperiences(
       existing

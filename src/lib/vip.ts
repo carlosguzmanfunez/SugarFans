@@ -39,6 +39,7 @@ import {
 } from '../config/reserve';
 import { moderate } from './moderation';
 import { isOverdue } from './reserveAlerts';
+import { zonedDate } from './timeZones';
 
 export type {
   Availability,
@@ -91,19 +92,20 @@ export const freeHoursOn = (availability: Availability, taken: TakenSlot[], date
   const { min, max } = bookingWindow();
   if (date < min || date > max || !availability.days.includes(fromISODate(date).getDay())) return [];
   const busy = takenHoursOn(taken, date);
-  return availability.hours.filter((h) => !busy.includes(h) && (!minNoticeHours || meetsNotice(date, h, minNoticeHours)));
+  return availability.hours.filter((h) => !busy.includes(h) && (!minNoticeHours || meetsNotice(date, h, minNoticeHours, new Date(), availability.timeZone)));
 };
 
 export const normalizeAvailability = (a: Availability): Availability => ({
   days: [...new Set(a.days)].sort((x, y) => x - y),
   hours: [...new Set(a.hours)].sort(),
+  ...(a.timeZone ? { timeZone: a.timeZone } : {}),
 });
 
 // Status as Reserve names it: a confirmed experience whose time has passed reads "Realizada".
-export const reserveStatusOf = (b: Pick<VipBooking, 'status' | 'date' | 'time' | 'durationMinutes' | 'respondBy'>, now = new Date()): ReserveStatus => {
+export const reserveStatusOf = (b: Pick<VipBooking, 'status' | 'date' | 'time' | 'durationMinutes' | 'respondBy' | 'timeZone'>, now = new Date()): ReserveStatus => {
   if (isOverdue(b, now)) return 'expired';
   if (b.status === 'confirmed') {
-    const end = liveWindow(b.date, b.time, b.durationMinutes ?? 60).closes;
+    const end = liveWindow(b.date, b.time, b.durationMinutes ?? 60, b.timeZone).closes;
     if (now > end) return 'completed';
   }
   return b.status;
@@ -185,16 +187,13 @@ export type ReserveProduct = 'event' | 'one-to-one' | 'other';
 export const reserveProductOf = (exp: Pick<VipExperience, 'details' | 'durationMinutes'>): ReserveProduct =>
   isEventExperience(exp) ? 'event' : isLiveExperience(exp) ? 'one-to-one' : 'other';
 
-// The event's start in the viewer's clock (the creator sets it in local time).
-export const eventStart = (exp: Pick<VipExperience, 'details'>) => {
+// The event's start as an instant (the creator sets it in their own clock).
+export const eventStart = (exp: Pick<VipExperience, 'details' | 'timeZone'>) => {
   const d = exp.details;
   if (!d?.eventDate || !d.eventTime) return null;
-  const start = fromISODate(d.eventDate);
-  const [h, m] = d.eventTime.split(':').map(Number);
-  start.setHours(h, m || 0, 0, 0);
-  return start;
+  return zonedDate(d.eventDate, d.eventTime, exp.timeZone);
 };
-export const isUpcomingEvent = (exp: Pick<VipExperience, 'details'>, now = new Date()) => {
+export const isUpcomingEvent = (exp: Pick<VipExperience, 'details' | 'timeZone'>, now = new Date()) => {
   const start = eventStart(exp);
   return !!start && start.getTime() > now.getTime();
 };
@@ -317,16 +316,13 @@ export const experienceAvailability = (availability: Availability, exp?: Pick<Vi
   return {
     days: d?.days?.length ? availability.days.filter((x) => d.days!.includes(x)) : availability.days,
     hours: d?.hours?.length ? availability.hours.filter((x) => d.hours!.includes(x)) : availability.hours,
+    ...(availability.timeZone ? { timeZone: availability.timeZone } : {}),
   };
 };
 
 // Earliest start allowed by the minimum notice.
-export const meetsNotice = (date: string, time: string, hours: number, now = new Date()) => {
-  const start = fromISODate(date);
-  const [h, m] = time.split(':').map(Number);
-  start.setHours(h, m || 0, 0, 0);
-  return start.getTime() - now.getTime() >= hours * 3_600_000;
-};
+export const meetsNotice = (date: string, time: string, hours: number, now = new Date(), timeZone?: string) =>
+  zonedDate(date, time, timeZone).getTime() - now.getTime() >= hours * 3_600_000;
 
 // Checks a custom request before it is sent (the server repeats the essentials).
 export const validateCustomRequest = (input: CustomRequestInput, categoryName?: string): { ok: boolean; error?: string; flags?: string[] } => {
@@ -387,10 +383,8 @@ export const demoExperiences = (): VipExperience[] =>
     createdAt: '2024-01-01T00:00:00.000Z',
   }));
 
-export const liveWindow = (date: string, time: string, minutes: number) => {
-  const start = fromISODate(date);
-  const [h, mm] = time.split(':').map(Number);
-  start.setHours(h, mm || 0, 0, 0);
+export const liveWindow = (date: string, time: string, minutes: number, timeZone?: string) => {
+  const start = zonedDate(date, time, timeZone);
   return {
     start,
     opens: new Date(start.getTime() - LIVE_EARLY_MIN * 60_000),
@@ -399,7 +393,7 @@ export const liveWindow = (date: string, time: string, minutes: number) => {
 };
 
 export type LiveState = 'early' | 'open' | 'over';
-export const liveState = (date: string, time: string, minutes: number, now = new Date()): LiveState => {
-  const w = liveWindow(date, time, minutes);
+export const liveState = (date: string, time: string, minutes: number, now = new Date(), timeZone?: string): LiveState => {
+  const w = liveWindow(date, time, minutes, timeZone);
   return now < w.opens ? 'early' : now > w.closes ? 'over' : 'open';
 };

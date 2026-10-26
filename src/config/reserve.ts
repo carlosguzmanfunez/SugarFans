@@ -537,6 +537,6 @@ export const RESERVE_COPY = {
   event: 'Reserve Event: experiencia grupal con fecha, duración, precio y plazas definidas. Tu plaza garantiza el acceso al evento, no tiempo individual.',
   oneToOne: 'Reserve 1:1: videollamada solo entre tú y el creador, dentro de la reserva confirmada.',
   reserve: 'Una Reserve es una experiencia concreta, con fecha, duración, precio y condiciones definidas por el creador, que el creador acepta o rechaza.',
-  payments: 'Pagas con PayPal cuando el creador acepta. Tu pago queda protegido hasta que vivas la experiencia.',
+  payments: 'Pago seguro con PayPal: pagas cuando el creador acepta y recibes una confirmación clara de tu experiencia.',
   legalDraft: 'Borrador. Requiere revisión legal antes del lanzamiento a producción.',
 };

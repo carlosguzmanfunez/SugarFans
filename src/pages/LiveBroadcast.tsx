@@ -49,7 +49,7 @@ const LiveBroadcast: React.FC<{ event?: boolean }> = ({ event: isEvent = false }
       const b = lists.flat().find((x) => x.id === bookingId) ?? null;
       if (!active) return;
       const mins = sessionMinutes(b);
-      const state = b && mins ? liveState(b.date, b.time, mins) : null;
+      const state = b && mins ? liveState(b.date, b.time, mins, new Date(), b.timeZone) : null;
       setSeat(b);
       setSeatProblem(
         !b || b.details?.kind !== 'event'
@@ -57,7 +57,7 @@ const LiveBroadcast: React.FC<{ event?: boolean }> = ({ event: isEvent = false }
           : b.status !== 'confirmed'
             ? 'La sala se abre cuando tu plaza está aceptada y pagada.'
             : state === 'early'
-              ? `La sala se abre el ${formatLongDate(b.date)} a las ${liveWindow(b.date, b.time, mins!).opens.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}.`
+              ? `La sala se abre el ${formatLongDate(b.date)} a las ${liveWindow(b.date, b.time, mins!, b.timeZone).opens.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}.`
               : state === 'over'
                 ? 'Este evento ya terminó.'
                 : ''

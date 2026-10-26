@@ -112,6 +112,8 @@ export interface AuthResult {
 export interface Availability {
   days: number[]; // 0 = Sunday … 6 = Saturday
   hours: string[]; // "HH:00"
+  // The creator's clock (IANA zone) the hours are in; missing = the viewer's.
+  timeZone?: string;
 }
 
 export interface TakenSlot {
@@ -196,6 +198,8 @@ export interface VipBooking {
   // Deadline to answer a pending request (creator) or a counter-offer (fan);
   // past it the booking becomes 'expired'.
   respondBy?: string;
+  // Clock the date and time are in (IANA zone); missing = the viewer's.
+  timeZone?: string;
 }
 
 // The creator, title and price come from the experience itself (server side).
@@ -285,6 +289,8 @@ export interface VipExperience extends VipExperienceInput {
   creatorProfileId: string;
   creatorName: string;
   createdAt: string;
+  // Clock an event's date and time are in (IANA zone); missing = the viewer's.
+  timeZone?: string;
 }
 
 export type ProfilePatch = Partial<Pick<User, 'name' | 'email' | 'avatar' | 'bio' | 'subscriptionPrice' | 'settings' | 'ageVerified' | 'country' | 'phone' | 'username'>>;

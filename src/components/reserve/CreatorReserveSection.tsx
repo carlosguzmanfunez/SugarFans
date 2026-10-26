@@ -23,8 +23,8 @@ interface Props {
 // Reserve's products on a profile, in this order. The 1:1 video call always
 // comes first on every profile: it is where "Habla con …" lands.
 const GROUPS: { id: ReserveProduct; title: string; hint: string }[] = [
-  { id: 'one-to-one', title: RESERVE_FORMATS.private.product, hint: 'Videollamada por Fans Reserve: solo tú y el creador.' },
-  { id: 'event', title: RESERVE_FORMATS.event.product, hint: 'En grupo, con fecha fija y plazas limitadas. Reserva tu plaza.' },
+  { id: 'one-to-one', title: RESERVE_FORMATS.private.product, hint: 'Sesión en vivo por Fans Reserve: solo tú y el creador.' },
+  { id: 'event', title: RESERVE_FORMATS.event.product, hint: 'Sesión en vivo en grupo, con fecha fija y plazas limitadas. Reserva tu plaza.' },
   { id: 'other', title: 'Otras experiencias', hint: 'Presenciales, profesionales o entregadas en la app.' },
 ];
 
@@ -105,7 +105,7 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, use
       </div>
 
       {expanded && <div id="reserve-body" data-testid="reserve-body">
-      <p className="mt-4 text-sm text-ink/70">Reserve Events en grupo, videollamadas 1:1 por nuestra plataforma y experiencias con fecha, duración, precio y reglas definidas por {first}.</p>
+      <p className="mt-4 text-sm text-ink/70">Sesiones en vivo por nuestra plataforma, 1:1 o en grupo, y experiencias con fecha, duración, precio y reglas definidas por {first}.</p>
       <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-gold-50 px-3 py-1 text-sm font-semibold text-gold-700 ring-1 ring-gold-200" data-testid="reserve-principle">
         <i aria-hidden="true" className="fas fa-shield-halved text-xs"></i>Reserva experiencias, no personas.
       </p>

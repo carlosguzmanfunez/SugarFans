@@ -82,11 +82,11 @@ const LiveRoom: React.FC = () => {
       if (!b) setProblem('No encontramos esta reserva en tu cuenta.');
       else if (b.status !== 'confirmed') setProblem('La sala se abre cuando la reserva está aceptada y pagada.');
       else if (!mins) setProblem('Esta experiencia no es una sesión en vivo.');
-      else if (liveState(b.date, b.time, mins) === 'early') {
-        const opens = liveWindow(b.date, b.time, mins).opens;
+      else if (liveState(b.date, b.time, mins, new Date(), b.timeZone) === 'early') {
+        const opens = liveWindow(b.date, b.time, mins, b.timeZone).opens;
         setProblem(`La sala se abre el ${formatLongDate(b.date)} a las ${opens.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}.`);
-      } else if (liveState(b.date, b.time, mins) === 'over') setProblem('Esta sesión ya terminó.');
-      setPhase(!b || b.status !== 'confirmed' || !mins || liveState(b.date, b.time, mins) !== 'open' ? 'unavailable' : 'lobby');
+      } else if (liveState(b.date, b.time, mins, new Date(), b.timeZone) === 'over') setProblem('Esta sesión ya terminó.');
+      setPhase(!b || b.status !== 'confirmed' || !mins || liveState(b.date, b.time, mins, new Date(), b.timeZone) !== 'open' ? 'unavailable' : 'lobby');
     })();
     return () => {
       active = false;
