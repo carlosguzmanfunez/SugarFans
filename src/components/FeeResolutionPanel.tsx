@@ -2,6 +2,7 @@ import React,{useEffect,useRef,useState} from 'react';
 import type {FinanceBackend} from '../lib/creatorFinance';
 import {operationReasons,type FeePreview} from '../lib/payoutOperations';
 import {money} from '../lib/platformRules';
+import {formatPayoutDate}from'../lib/payoutCalendar';
 const button='rounded-xl bg-gray-900 text-white px-4 py-2 text-sm disabled:opacity-40';
 export default function FeeResolutionPanel({line,api,onChanged,onClose}:{line:string;api:FinanceBackend;onChanged:()=>void;onClose:()=>void}){
  const [data,setData]=useState<FeePreview|null>(null),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[revision,setRevision]=useState(0);
@@ -30,6 +31,7 @@ export default function FeeResolutionPanel({line,api,onChanged,onClose}:{line:st
     <p className="text-sm font-medium">{data.creator} · {data.environment==='sandbox'?'Datos de prueba':'Cuenta real'}</p>
     <dl className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm"><div><dt>Estimado al enviar</dt><dd className="font-semibold">{money(data.estimated_fee!)}</dd></div><div><dt>Confirmado por PayPal</dt><dd className="font-semibold">{money(data.actual_fee!)}</dd></div><div><dt>Importado del reporte</dt><dd className="font-semibold">{money(data.reported_fee!)}</dd></div></dl>
     <p className="text-sm text-gray-600">El creador cubre el costo real de su retiro. Esta revisión no cambia el porcentaje de sus ventas ni determina quién tuvo la culpa de una incidencia.</p>
+    {data.scheduled_from&&<p className="text-sm font-medium">El ajuste se incorporará al pago mensual desde el {formatPayoutDate(data.scheduled_from)}, hora de Honduras.</p>}
     {!data.enabled&&<p className="text-sm text-amber-800">La política de resolución aún no está habilitada. Puedes consultar la evidencia, pero no aplicar ajustes.</p>}
    </>}
    {data.history.length>0&&<ul className="text-sm space-y-2">{data.history.map(h=><li key={h.id} className="bg-gray-50 p-3 rounded-xl break-words"><p className="font-medium">{h.reversed?'Resolución revertida':'Resolución vigente'} · {money(h.creator_delta)} de ajuste</p><p>{h.reason}</p><p className="text-xs text-gray-500">Referencia: {h.evidence}</p>{!h.reversed&&<button type="button" className="underline mt-2" disabled={busy} onClick={()=>{setReverse(h.id);setReason('');setConfirm(false);request.current=null;}}>Preparar reversión</button>}</li>)}</ul>}
@@ -37,7 +39,7 @@ export default function FeeResolutionPanel({line,api,onChanged,onClose}:{line:st
     <p className="font-medium text-sm">{reverse?'Revertir la resolución vigente':'Documentar la diferencia'}</p>
     {!reverse&&<label className="block text-sm">Referencia de la evidencia<input className="block border rounded-xl p-2 w-full mt-1" value={evidence} minLength={10} maxLength={1000} required disabled={busy||confirm} onChange={e=>setEvidence(e.target.value)}/></label>}
     <label className="block text-sm">Motivo de la revisión<textarea className="block border rounded-xl p-2 w-full mt-1" value={reason} minLength={20} maxLength={2000} required disabled={busy||confirm} onChange={e=>setReason(e.target.value)}/></label>
-    {!confirm?<button type="submit" className={button} disabled={busy}>{reverse?'Revisar reversión':'Revisar ajuste'}</button>:<div className="bg-amber-50 rounded-xl p-3 space-y-3"><p className="font-medium text-sm">{effect}</p><p className="text-xs">Los créditos nuevos se incorporan al siguiente cierre; los descuentos afectan el disponible actual. Una reversión conserva la fecha del ajuste original. El retiro y el reporte originales se conservan.</p><div className="flex flex-wrap gap-3"><button className={button} type="button" disabled={busy} onClick={()=>void perform()}>{reverse?'Confirmar reversión':'Confirmar ajuste de costo real'}</button><button type="button" disabled={busy} className="text-sm underline" onClick={()=>setConfirm(false)}>Volver a revisar</button></div></div>}
+    {!confirm?<button type="submit" className={button} disabled={busy}>{reverse?'Revisar reversión':'Revisar ajuste'}</button>:<div className="bg-amber-50 rounded-xl p-3 space-y-3"><p className="font-medium text-sm">{effect}</p><p className="text-xs">Las cantidades a favor y los descuentos nuevos se incorporan al pago mensual del mes siguiente, sin otra transferencia. Una reversión conserva la fecha del ajuste original. El retiro y el reporte originales se conservan.</p><div className="flex flex-wrap gap-3"><button className={button} type="button" disabled={busy} onClick={()=>void perform()}>{reverse?'Confirmar reversión':'Confirmar ajuste de costo real'}</button><button type="button" disabled={busy} className="text-sm underline" onClick={()=>setConfirm(false)}>Volver a revisar</button></div></div>}
    </form>}
    <button type="button" className="text-sm underline" disabled={busy} onClick={()=>{setReverse(null);setRevision(x=>x+1);}}>Actualizar evidencia</button>
   </>}

@@ -2,6 +2,7 @@ import React, { useRef,useState } from 'react';
 import Notice from './Notice';
 import PayoutCostBreakdown from './PayoutCostBreakdown';
 import CreatorCycleStatement from './CreatorCycleStatement';
+import CreatorCostAdjustments from './CreatorCostAdjustments';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -234,10 +235,11 @@ const CreatorPayouts: React.FC = () => {
         )}
       </div>
 
-      {!!book.data?.fee_adjustments?.length&&<div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6" data-testid="creator-fee-adjustments">
+      {!!book.data?.cost_adjustments?.length&&<CreatorCostAdjustments items={book.data.cost_adjustments}/>}
+      {!book.data?.cost_adjustments?.length&&!!book.data?.fee_adjustments?.length&&<div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6" data-testid="creator-fee-adjustments">
         <h3 className="font-bold text-gray-900 mb-3">Ajustes del costo de tus retiros</h3>
         <ul className="space-y-3">{book.data.fee_adjustments.map(a=><li key={a.id} className="rounded-xl bg-gray-50 p-3 text-sm"><p className="font-medium">{a.reversed_at?'Ajuste revertido':a.creator_delta>0?`${money(a.creator_delta)} a tu favor`:a.creator_delta<0?`${money(-a.creator_delta)} a tu cargo`:'Corrección del reporte, sin cambio de saldo'}</p><p className="text-gray-600">Estimado: {money(a.estimated_fee)} · Confirmado por PayPal: {money(a.actual_fee)} · {fmtDate(a.created_at)}</p></li>)}</ul>
-        <p className="text-xs text-gray-500 mt-3">Los créditos nuevos se incorporan al siguiente cierre; los descuentos afectan el saldo disponible. Una reversión conserva la fecha original. Estos ajustes ya están incluidos en tus saldos.</p>
+        <p className="text-xs text-gray-500 mt-3">Estos ajustes anteriores conservan su fecha registrada. Una reversión conserva la fecha original. Consulta su explicación en el estado de cuenta.</p>
       </div>}
       <CreatorCycleStatement key={userId}/>
       <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">

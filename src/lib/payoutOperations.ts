@@ -2,7 +2,7 @@ export interface StatementInput {source:'paypal'|'bank';external_id:string;kind:
 export interface StatementResult extends StatementInput {id:string;state:'matched'|'review'|'resolved';reason:string|null;estimated_fee:number|null;expected_net:number|null;actual_fee?:number;creator_delta?:number;resolution_id?:string}
 export interface FeePreview {
  issue:string|null;line?:string;payout?:string;creator?:string;environment?:'live'|'sandbox';reported_fee?:number;estimated_fee?:number;actual_fee?:number;creator_delta?:number;
- proof?:string;policy_version?:string;contract_reference?:string;enabled?:boolean;hash?:string;
+ proof?:string;policy_version?:string;contract_reference?:string;enabled?:boolean;hash?:string;scheduled_from?:string;scheduled_until?:string;
  history:{id:string;creator_delta:number;estimated_fee:number;actual_fee:number;evidence:string;reason:string;created_at:string;reversed:boolean}[];
 }
 export interface PayoutOperations {
