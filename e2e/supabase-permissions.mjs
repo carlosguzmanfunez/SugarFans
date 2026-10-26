@@ -62,7 +62,7 @@ finish(async () => {
     for (const table of ['paypal_orders', 'paypal_subscriptions']) {
       const policy = psql(DB, `select qual from pg_policies where schemaname='public'
          and tablename='${table}' and policyname='${table}: own rows'`);
-      expect(/user_id/i.test(policy) && /select\\s+auth\\.uid\\(\\)/i.test(policy),
+      expect(/user_id/i.test(policy) && /select\s+auth\.uid\(\)/i.test(policy),
         `RLS ${table} tiene política inesperada: ${policy}`);
     }
   });
