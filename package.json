@@ -21,6 +21,7 @@
     "test:didit-db": "node e2e/didit-kyc.mjs",
     "test:access": "node e2e/live-access.mjs",
     "test:db": "node e2e/db-access.mjs",
+    "test:supabase-permissions": "node e2e/supabase-permissions.mjs",
     "test:push": "node e2e/push-api.mjs",
     "test:special": "node e2e/special-accounts.mjs",
     "test:incentives": "node e2e/incentives.mjs",
