@@ -117,7 +117,7 @@ const run = async () => {
     const fans = Array.from({ length: 50 }, (_, i) => user(`f${i}@test.local`, 'fan'));
     psql(DB, fans.map((f, i) => `insert into public.transactions (key, payer_id, payer_name, creator_profile_id, creator_name, kind, amount, method_label, status) values ('t${i}', '${f}', 'F', '${other}', 'Otro', 'tip', 1, 'PayPal', 'paid');`).join('\n'));
     as(admin, `update public.special_accounts set featured = true`);
-    const list = psql(DB, `select creator_profile_id || ':' || reason from public.featured_creators()`).split('\n');
+    const list = psql(DB, `select creator_profile_id || ':' || reason from public.featured_creators()`).split(/\r?\n/);
     expect(list[0] === `${gym}:special` && list[1] === `${other}:level`, `orden: ${list.join(', ')}`);
     as(admin, `update public.special_accounts set featured = false`);
     expect(!psql(DB, `select creator_profile_id from public.featured_creators()`).includes(gym), 'sigue destacado sin visibilidad');

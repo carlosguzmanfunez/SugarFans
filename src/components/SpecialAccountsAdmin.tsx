@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import AdminDataState from './AdminDataState';
+import { AdminConfirmation, type AdminDecision } from './AdminDialog';
 import { usePlatformQuery, money, type Transaction } from '../lib/platform';
 import {
   inviteState,
@@ -35,7 +37,7 @@ const terms = (t: { reserveNet: boolean; taxRate: number; featured: boolean }) =
 // accounts that used them. Reserve al neto = each Reserve payment minus the
 // gateway's fee and the tax; the platform keeps nothing from those sales.
 const SpecialAccountsAdmin: React.FC<{ accounts: User[]; transactions: Transaction[] }> = ({ accounts, transactions }) => {
-  const { data, reload } = usePlatformQuery(
+  const { data, reload, loading, error } = usePlatformQuery(
     async () => {
       const [invites, special] = await Promise.all([specialApi.listInvites(), specialApi.listAccounts()]);
       return { invites, special };
@@ -46,15 +48,11 @@ const SpecialAccountsAdmin: React.FC<{ accounts: User[]; transactions: Transacti
   const [form, setForm] = useState(blank);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
   const [copied, setCopied] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [decision, setDecision] = useState<AdminDecision | null>(null);
+  const [taxDrafts, setTaxDrafts] = useState<Record<string, string>>({});
 
-  const done = (r: { ok: boolean; error?: string }, text: string) => {
-    setNotice(r.ok ? { ok: true, text } : { ok: false, text: r.error || 'No se pudo guardar' });
-    if (r.ok) reload();
-    return r.ok;
-  };
 
-  const create = async (e: React.FormEvent) => {
+  const create = (e: React.FormEvent) => {
     e.preventDefault();
     const input: SpecialInviteInput = {
       label: form.label,
@@ -63,12 +61,12 @@ const SpecialAccountsAdmin: React.FC<{ accounts: User[]; transactions: Transacti
       featured: form.featured,
       maxUses: Number(form.maxUses),
       // End of the chosen day, local time.
-      expiresAt: form.expires ? new Date(`${form.expires}T23:59:59`).toISOString() : undefined,
+      expiresAt: form.expires ? new Date(`${form.expires}T23:59:59-06:00`).toISOString() : undefined,
     };
-    setBusy(true);
-    const r = await specialApi.createInvite(input);
-    setBusy(false);
-    if (done(r, 'Link creado. Cópialo y envíaselo.')) setForm(blank);
+    setDecision({ title: 'Crear invitación con beneficios', person: form.label || 'El creador que utilice esta invitación',
+      effect: `${terms(input)}. Permite ${input.maxUses} uso(s). ${form.expires ? `Vence el ${form.expires} a las 11:59 p. m. de Honduras.` : 'No tiene fecha de vencimiento.'} Si incluye Reserve al neto, Fans Reserve no conservará comisión de esas ventas según este plan.`,
+      after: 'No se enviará la invitación automáticamente. Podrás copiarla o revocarla; quien ya la haya utilizado conserva su plan hasta que lo revises por separado.',
+      label: 'Confirmar invitación', run: async () => { const result = await specialApi.createInvite(input); if (result.ok) setForm(blank); return result; } });
   };
 
   const copy = async (text: string) => {
@@ -80,7 +78,11 @@ const SpecialAccountsAdmin: React.FC<{ accounts: User[]; transactions: Transacti
     }
   };
 
-  const update = async (a: SpecialAccount, patch: SpecialAccountPatch, text: string) => done(await specialApi.updateAccount(a.creatorProfileId, patch), text);
+  const update = (a: SpecialAccount, patch: SpecialAccountPatch, _text: string) => {
+    setDecision({ title: 'Revisar beneficios del creador', person: accounts.find(u => u.creatorProfileId === a.creatorProfileId)?.name || a.label,
+      effect: patch.active === false ? 'Se retirará este plan especial. Sus próximas operaciones volverán a las reglas normales.' : `Se aplicará este plan: ${terms({...a,...patch})}. ${patch.active === true ? 'El plan quedará activo.' : 'Los cambios afectan sus siguientes operaciones según las reglas vigentes.'}`,
+      after: 'No modifica operaciones anteriores ni envía dinero. Podrás revisar los beneficios posteriormente.', label: 'Confirmar beneficios', run: () => specialApi.updateAccount(a.creatorProfileId, patch) });
+  };
 
   const byProfile = new Map(accounts.flatMap((u) => (u.creatorProfileId ? [[u.creatorProfileId, u] as const] : [])));
   const reserveOf = (id: string) => {
@@ -88,6 +90,7 @@ const SpecialAccountsAdmin: React.FC<{ accounts: User[]; transactions: Transacti
     return { count: sales.length, total: sales.reduce((s, t) => s + t.amount, 0) };
   };
 
+  if (loading || error) return <AdminDataState loading={loading} error={error} onRetry={reload}><span /></AdminDataState>;
   return (
     <div className="space-y-6" data-testid="special-admin">
       {notice && (
@@ -133,8 +136,8 @@ const SpecialAccountsAdmin: React.FC<{ accounts: User[]; transactions: Transacti
           </label>
         </div>
         <p className="text-xs text-gray-500">El impuesto queda en 0% hasta que tu contador te diga cuál aplica. Lo puedes cambiar después en cada cuenta.</p>
-        <button type="submit" disabled={busy} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-5 py-2.5 rounded-xl font-bold disabled:opacity-60">
-          {busy ? 'Creando…' : 'Crear link'}
+        <button type="submit" disabled={!!decision} className="bg-gray-900 text-white px-5 py-2.5 rounded-xl font-bold disabled:opacity-60">
+          Revisar invitación
         </button>
       </form>
 
@@ -165,7 +168,7 @@ const SpecialAccountsAdmin: React.FC<{ accounts: User[]; transactions: Transacti
                       </button>
                       <button
                         type="button"
-                        onClick={async () => done(await specialApi.revokeInvite(i.code), `Link «${i.label}» revocado. Quien ya lo usó conserva su plan.`)}
+                        onClick={() => setDecision({title:'Revocar invitación',person:i.label,effect:'La invitación ya no podrá utilizarse. Quienes ya la usaron conservan su plan.',after:'No se modifican beneficios de cuentas existentes ni operaciones anteriores.',label:'Confirmar revocación',run:()=>specialApi.revokeInvite(i.code)})}
                         className="border border-red-200 text-red-600 px-4 py-2 rounded-xl text-sm font-medium hover:bg-red-50"
                       >
                         Revocar
@@ -215,15 +218,13 @@ const SpecialAccountsAdmin: React.FC<{ accounts: User[]; transactions: Transacti
                         min={0}
                         max={50}
                         step={0.01}
-                        defaultValue={+(a.taxRate * 100).toFixed(2)}
+                        value={taxDrafts[a.creatorProfileId] ?? String(+(a.taxRate * 100).toFixed(2))}
                         aria-label={`Impuesto de ${who?.name ?? 'Creador'}`}
                         className="w-20 px-2 py-1 border border-gray-200 rounded-lg"
-                        onBlur={(e) => {
-                          const rate = Number(e.target.value) / 100;
-                          if (rate !== a.taxRate) update(a, { taxRate: rate }, 'Impuesto actualizado');
-                        }}
+                        onChange={e => setTaxDrafts({...taxDrafts,[a.creatorProfileId]:e.target.value})}
                       />
                     </label>
+                    {taxDrafts[a.creatorProfileId] !== undefined && <button type="button" className="min-h-11 border border-gray-300 rounded-lg px-3" onClick={() => update(a,{taxRate:Number(taxDrafts[a.creatorProfileId])/100},'Impuesto actualizado')}>Revisar impuesto</button>}
                     <button
                       type="button"
                       onClick={() => update(a, { active: !on }, on ? 'Plan quitado: sus próximos pagos vuelven a las reglas normales' : 'Plan reactivado')}
@@ -238,6 +239,7 @@ const SpecialAccountsAdmin: React.FC<{ accounts: User[]; transactions: Transacti
           </div>
         )}
       </div>
+      {decision && <AdminConfirmation decision={decision} onClose={() => { setDecision(null); setTaxDrafts({}); }} onDone={() => { setDecision(null); setTaxDrafts({}); setNotice({ok:true,text:'Cambio de beneficios confirmado.'}); void reload(); }} />}
     </div>
   );
 };

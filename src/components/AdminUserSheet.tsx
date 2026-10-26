@@ -1,219 +1,98 @@
 import React, { useState } from 'react';
 import type { User } from '../lib/backend/types';
-import { adminAccountAction, money, type AccountRestriction, type AdminAccountAction, type AdminActionLog, type Transaction } from '../lib/platform';
+import { adminAccountAction, money, transactionLabel, type AccountRestriction, type AdminAccountAction, type AdminActionLog, type Transaction, type Payout, type VerificationRequest } from '../lib/platform';
 import { displayEmail } from '../config/demoAccounts';
 import { countryName } from '../config/countries';
+import { adminDate } from '../lib/adminWorkspace';
+import { AdminConfirmation, AdminDialog, type AdminDecision } from './AdminDialog';
 
 const actionLabel: Record<AdminAccountAction, string> = {
-  suspend: 'Suspendió la cuenta',
-  unsuspend: 'Quitó la suspensión',
-  freeze_payouts: 'Congeló los retiros',
-  unfreeze_payouts: 'Descongeló los retiros',
-  unverify: 'Quitó Verificado',
-  delete: 'Canceló la cuenta',
+  suspend: 'Suspendió la cuenta', unsuspend: 'Quitó la suspensión', freeze_payouts: 'Restringió los retiros',
+  unfreeze_payouts: 'Quitó la restricción de retiros', unverify: 'Quitó la verificación', delete: 'Canceló la cuenta',
 };
-
-const DURATIONS = [
-  { value: '1', label: '1 día' },
-  { value: '7', label: '7 días' },
-  { value: '30', label: '30 días' },
-  { value: '', label: 'Indefinida' },
-];
-
-const day = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
-// Indefinite suspensions are stored 100 years ahead.
-const untilText = (iso: string) => (new Date(iso).getFullYear() - new Date().getFullYear() > 50 ? 'indefinidamente' : `hasta el ${day(iso)}`);
-
+const DURATIONS = [{ value: '1', label: '1 día' }, { value: '7', label: '7 días' }, { value: '30', label: '30 días' }, { value: '', label: 'Indefinida' }];
+const untilText = (iso: string) => new Date(iso).getFullYear() - new Date().getFullYear() > 50 ? 'sin fecha de fin' : `hasta el ${adminDate(iso)}`;
 export const isSuspendedNow = (r?: AccountRestriction) => !!r?.suspendedUntil && r.suspendedUntil > new Date().toISOString();
 
 interface Props {
-  admin: User;
-  target: User;
-  restriction?: AccountRestriction;
-  history: AdminActionLog[];
-  transactions: Transaction[];
-  onClose: () => void;
-  onDone: (text: string) => void;
-  onReviewPayouts?: () => void;
+  admin: User; target: User; restriction?: AccountRestriction; history: AdminActionLog[]; transactions: Transaction[];
+  payouts?: Payout[]; verifications?: VerificationRequest[]; readOnly?: boolean;
+  onClose: () => void; onDone: (text: string) => void; onReviewPayouts?: () => void; onVerification?: () => void;
 }
-
-// Admin: everything about one account and what can be done to it (suspend, freeze
-// withdrawals, take away Verificado, cancel). Each action asks for a reason and is logged.
-const AdminUserSheet: React.FC<Props> = ({ admin, target, restriction, history, transactions, onClose, onDone,onReviewPayouts }) => {
+export default function AdminUserSheet({ admin, target, restriction, history, transactions, payouts = [], verifications = [], readOnly = false, onClose, onDone, onReviewPayouts, onVerification }: Props) {
+  const [view, setView] = useState('summary');
   const [reason, setReason] = useState('');
   const [days, setDays] = useState('7');
   const [confirmDelete, setConfirmDelete] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-
+  const [decision, setDecision] = useState<AdminDecision | null>(null);
   const isCreator = target.role === 'creator';
-  const suspended = isSuspendedNow(restriction);
-  const frozen = !!restriction?.payoutsFrozen;
-  const paid = transactions.filter((t) => t.status === 'paid');
-  const sold = paid.filter((t) => isCreator && t.creatorProfileId === target.creatorProfileId && t.kind !== 'referral');
-  const spent = paid.filter((t) => t.payerId === target.id);
-
-  const run = async (action: AdminAccountAction, done: string) => {
-    setError('');
-    setBusy(true);
-    const r = await adminAccountAction(admin, target.id, action, reason, action === 'suspend' && days ? Number(days) : undefined);
-    setBusy(false);
-    if (!r.ok) return setError(r.error ?? 'No se pudo aplicar la acción');
-    setReason('');
-    onDone(done);
+  const protectedAccount = readOnly || target.role === 'admin' || target.isOwner === true || target.id === admin.id;
+  const suspended = isSuspendedNow(restriction), frozen = !!restriction?.payoutsFrozen;
+  const paid = transactions.filter(t => t.status === 'paid');
+  const sold = paid.filter(t => isCreator && t.creatorProfileId === target.creatorProfileId && t.kind !== 'referral');
+  const spent = paid.filter(t => t.payerId === target.id);
+  const movements = transactions.filter(t => t.payerId === target.id || isCreator && t.creatorProfileId === target.creatorProfileId).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const withdrawals = payouts.filter(p => p.userId === target.id).sort((a, b) => b.requestedAt.localeCompare(a.requestedAt));
+  const btn = 'min-h-11 px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-pink-700';
+  const ask = (action: AdminAccountAction, title: string, effect: string, after: string) => {
+    if (protectedAccount) return;
+    const savedReason = reason.trim(), savedDays = days;
+    if (!savedReason || action === 'delete' && confirmDelete.trim() !== 'ELIMINAR') return;
+    setDecision({ title, person: `${target.name} · ${displayEmail(target.email)}`, effect: `${effect} Motivo: ${savedReason}`,
+      after, label: title, destructive: action === 'delete' || action === 'suspend',
+      run: () => adminAccountAction(admin, target.id, action, savedReason, action === 'suspend' && savedDays ? Number(savedDays) : undefined),
+    });
   };
-
-  const needsReason = !reason.trim();
-  const btn = 'px-3 py-2 rounded-lg text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed';
-
-  return (
-    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={`Gestionar cuenta de ${target.name}`}>
-      <div className="bg-white rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6" data-testid="admin-user-sheet">
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <h3 className="text-lg font-bold text-gray-900">{target.name}</h3>
-            <p className="text-sm text-gray-500">
-              {displayEmail(target.email)} • {isCreator ? 'Creador' : 'Fan'} • {target.country ? countryName(target.country, 'es', 'Otro país') : 'Sin país'}
-              {target.phone ? ` • ${target.phone}` : ''}
-            </p>
-            <p className="text-xs text-gray-400 mt-0.5">Registrado el {day(target.createdAt)}</p>
-          </div>
-          <button onClick={onClose} aria-label="Cerrar" className="text-gray-400 hover:text-gray-600"><i aria-hidden="true" className="fas fa-times"></i></button>
+  return <>
+    <AdminDialog title={`Ficha de ${target.name}`} onClose={onClose} wide>
+      <div data-testid="admin-user-sheet" className="min-w-0">
+        <p className="text-sm text-gray-700 break-words">{displayEmail(target.email)} · {isCreator ? 'Creador' : target.role === 'admin' ? 'Administrador' : 'Fan'} · {target.country ? countryName(target.country, 'es', 'Otro país') : 'Sin país'}{target.phone ? ` · ${target.phone}` : ''}</p>
+        <p className="text-xs text-gray-600 mt-2">Registrado: {adminDate(target.createdAt)}. Fechas en hora de Honduras.</p>
+        <div className="flex flex-wrap gap-2 my-4 text-xs">
+          <span className="px-2 py-1 rounded bg-gray-100">{target.isVerified ? 'Identidad verificada' : 'Identidad sin verificar'}</span>
+          {suspended && <span className="px-2 py-1 rounded bg-red-100 text-red-800">Suspendida {untilText(restriction!.suspendedUntil!)}</span>}
+          {frozen && <span className="px-2 py-1 rounded bg-amber-100 text-amber-900">Retiros restringidos</span>}
+          {!suspended && !frozen && <span className="px-2 py-1 rounded bg-green-100 text-green-800">Sin restricciones de cuenta registradas</span>}
         </div>
-
-        <div className="flex flex-wrap gap-2 mb-4">
-          {target.isVerified && <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">Verificado</span>}
-          {suspended && <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-700">Suspendida {untilText(restriction!.suspendedUntil!)}</span>}
-          {frozen && <span className="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-700">Retiros congelados</span>}
-          {!suspended && !frozen && <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">Sin restricciones</span>}
-        </div>
-        {suspended && restriction?.suspensionReason && <p className="text-sm text-gray-600 mb-4">Motivo de la suspensión: {restriction.suspensionReason}</p>}
-
-        <div className="grid grid-cols-2 gap-3 mb-5">
-          {isCreator ? (
-            <div className="bg-gray-50 rounded-xl p-3">
-              <p className="text-xs text-gray-500">Vendió en total</p>
-              <p className="font-bold text-gray-900">{money(sold.reduce((s, t) => s + t.amount, 0))}</p>
-              <p className="text-xs text-gray-500">{sold.length} ventas</p>
-            </div>
-          ) : null}
-          <div className="bg-gray-50 rounded-xl p-3">
-            <p className="text-xs text-gray-500">Pagó en total</p>
-            <p className="font-bold text-gray-900">{money(spent.reduce((s, t) => s + t.amount, 0))}</p>
-            <p className="text-xs text-gray-500">{spent.length} pagos</p>
-          </div>
-        </div>
-
-        <label className="block text-sm font-medium text-gray-900 mb-1" htmlFor="admin-reason">Motivo</label>
-        <textarea
-          id="admin-reason"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          rows={2}
-          maxLength={500}
-          placeholder="Ej.: publicó contenido prohibido, fraude con pagos, lo pidió por correo…"
-          className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-pink-500 outline-none"
-        />
-        <p className="text-xs text-gray-500 mt-1 mb-4">Queda guardado en el historial. Es obligatorio para suspender, congelar, quitar Verificado o cancelar.</p>
-
-        {error && <p className="text-sm text-red-600 mb-3" role="alert">{error}</p>}
-
-        <div className="space-y-4">
-          <div className="border border-gray-100 rounded-xl p-4">
-            <p className="font-medium text-gray-900 text-sm">Suspender</p>
-            <p className="text-xs text-gray-500 mb-3">
-              No puede entrar a su cuenta.{isCreator ? ' Su perfil desaparece de Explorar, nadie le puede pagar y no puede retirar.' : ''}
-            </p>
-            {suspended ? (
-              <button disabled={busy} onClick={() => run('unsuspend', `${target.name} ya puede volver a entrar`)} className={`${btn} bg-gray-900 text-white`}>
-                Quitar suspensión
-              </button>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                <select aria-label="Duración" value={days} onChange={(e) => setDays(e.target.value)} className="border border-gray-200 rounded-lg px-2 py-2 text-sm">
-                  {DURATIONS.map((d) => (
-                    <option key={d.label} value={d.value}>{d.label}</option>
-                  ))}
-                </select>
-                <button disabled={busy || needsReason} onClick={() => run('suspend', `Cuenta de ${target.name} suspendida`)} className={`${btn} bg-red-600 text-white`}>
-                  Suspender
-                </button>
-              </div>
-            )}
-          </div>
-
-          {isCreator && (
-            <div className="border border-gray-100 rounded-xl p-4">
-              <p className="font-medium text-gray-900 text-sm">Retiros</p>
-              <p className="text-xs text-gray-500 mb-3">Sigue vendiendo con normalidad, pero no puede sacar su dinero mientras lo revisas.</p>
-              {frozen ? (
-                <button disabled={busy} onClick={onReviewPayouts??(() => run('unfreeze_payouts', `${target.name} ya puede retirar`))} className={`${btn} bg-gray-900 text-white`}>
-                  {onReviewPayouts?'Revisar motivos de bloqueo':'Descongelar retiros'}
-                </button>
-              ) : (
-                <button disabled={busy || needsReason} onClick={() => run('freeze_payouts', `Retiros de ${target.name} congelados`)} className={`${btn} bg-amber-500 text-white`}>
-                  Congelar retiros
-                </button>
-              )}
-            </div>
-          )}
-
-          {target.isVerified && (
-            <div className="border border-gray-100 rounded-xl p-4">
-              <p className="font-medium text-gray-900 text-sm">Quitar Verificado</p>
-              <p className="text-xs text-gray-500 mb-3">
-                {isCreator ? 'Deja de poder cobrar hasta que verifique su identidad otra vez.' : 'Pierde la insignia hasta que verifique su identidad otra vez.'}
-              </p>
-              <button disabled={busy || needsReason} onClick={() => run('unverify', `${target.name} ya no está verificado`)} className={`${btn} bg-gray-100 text-gray-800 hover:bg-gray-200`}>
-                Quitar Verificado
-              </button>
-            </div>
-          )}
-
-          <div className="border border-red-200 bg-red-50/50 rounded-xl p-4">
-            <p className="font-medium text-red-700 text-sm">Cancelar cuenta</p>
-            <p className="text-xs text-gray-600 mb-3">
-              Borra la cuenta y sus datos personales para siempre. No se puede deshacer. Sus ventas quedan en el libro, sin su nombre.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <input
-                aria-label="Escribe ELIMINAR para confirmar"
-                value={confirmDelete}
-                onChange={(e) => setConfirmDelete(e.target.value)}
-                placeholder="Escribe ELIMINAR"
-                className="border border-gray-200 rounded-lg px-2 py-2 text-sm"
-              />
-              <button
-                disabled={busy || needsReason || confirmDelete.trim() !== 'ELIMINAR'}
-                onClick={() => run('delete', `Cuenta de ${target.name} cancelada`)}
-                className={`${btn} bg-red-600 text-white`}
-              >
-                Cancelar cuenta
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6">
-          <p className="font-medium text-gray-900 text-sm mb-2">Historial</p>
-          {history.length === 0 ? (
-            <p className="text-sm text-gray-500">Nadie ha tomado acciones sobre esta cuenta</p>
-          ) : (
-            <ul className="space-y-2" data-testid="admin-user-history">
-              {history.map((h) => (
-                <li key={h.id} className="text-sm">
-                  <span className="text-gray-900 font-medium">{actionLabel[h.action]}</span>
-                  {h.action === 'suspend' && h.until ? <span className="text-gray-600"> {untilText(h.until)}</span> : null}
-                  <span className="text-gray-500"> · {h.adminName} · {day(h.createdAt)}</span>
-                  {h.reason && <p className="text-xs text-gray-500">{h.reason}</p>}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <nav aria-label="Secciones de la ficha" className="flex flex-wrap gap-1 border-b pb-3 mb-4">
+          {([['summary', 'Resumen'], ['movements', 'Movimientos'], ['restrictions', 'Restricciones'], ['history', 'Historial']] as const).map(([id, label]) => <button key={id} type="button" onClick={() => setView(id)} aria-current={view === id ? 'page' : undefined} className={`${btn} ${view === id ? 'bg-gray-900 text-white' : 'hover:bg-gray-100'}`}>{label}</button>)}
+        </nav>
+        {view === 'summary' && <div className="space-y-5 text-sm">
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {isCreator && <div><dt className="text-gray-600">Ventas pagadas en esta consulta</dt><dd className="text-lg font-semibold tabular-nums">{money(sold.reduce((sum, t) => sum + t.amount, 0))}</dd></div>}
+            <div><dt className="text-gray-600">Pagos realizados como fan en esta consulta</dt><dd className="text-lg font-semibold tabular-nums">{money(spent.reduce((sum, t) => sum + t.amount, 0))}</dd></div>
+          </dl>
+          <p className="text-gray-600">Son importes de operaciones registradas, antes de descuentos. No representan su saldo disponible.</p>
+          <section><h3 className="font-semibold">Verificación de identidad</h3>
+            {verifications.length ? <ul className="mt-2 space-y-2">{[...verifications].sort((a, b) => b.submittedAt.localeCompare(a.submittedAt)).slice(0, 5).map(v => <li key={v.id}>{v.status === 'approved' ? 'Aprobada' : v.status === 'rejected' ? 'Rechazada' : 'Pendiente de revisión'} · {adminDate(v.submittedAt)}{v.rejectionReason && <p className="text-gray-600">{v.rejectionReason}</p>}</li>)}</ul> : <p className="mt-2 text-gray-600">No hay solicitudes de identidad en esta consulta.</p>}
+            {onVerification && <button type="button" onClick={onVerification} className="min-h-11 mt-2 text-pink-800 underline underline-offset-4">Ir a revisión de identidades</button>}
+          </section>
+          {isCreator && onReviewPayouts && <button type="button" onClick={onReviewPayouts} className={btn}>Abrir revisión de pagos de esta persona</button>}
+        </div>}
+        {view === 'movements' && <div className="space-y-5 text-sm">
+          <section><h3 className="font-semibold">Compras y ventas</h3><p className="text-xs text-gray-600 mt-1">Hasta 30 de las operaciones cargadas, de la más reciente a la más antigua.</p>
+            {!movements.length && <p className="py-4 text-gray-600">No hay compras ni ventas registradas en esta consulta.</p>}
+            <ul className="divide-y mt-2">{movements.slice(0, 30).map(t => <li key={t.id} className="py-3"><div className="flex flex-wrap justify-between gap-2"><strong>{transactionLabel[t.kind]} · {money(t.amount)}</strong><span>{({ paid: 'Pagado', failed: 'Falló', refunded: 'Devuelto', disputed: 'En disputa' })[t.status]}</span></div><p className="text-gray-600 mt-1">{t.payerName} → {t.creatorName} · {adminDate(t.createdAt)}</p></li>)}</ul>
+          </section>
+          <section><h3 className="font-semibold">Envíos al creador</h3>{!withdrawals.length && <p className="py-3 text-gray-600">No hay envíos registrados en esta consulta.</p>}<ul className="divide-y">{withdrawals.slice(0, 30).map(p => <li key={p.id} className="py-3">{money(p.amount)} · {p.status === 'paid' ? 'Pagado' : p.status === 'sending' ? 'Esperando confirmación' : 'No se pudo enviar'}<p className="text-gray-600">{adminDate(p.requestedAt)}</p></li>)}</ul></section>
+        </div>}
+        {view === 'restrictions' && <div className="space-y-5 text-sm">
+          {restriction?.suspensionReason && <p>Motivo de suspensión registrado: {restriction.suspensionReason}</p>}
+          {protectedAccount ? <p className="p-4 bg-gray-50 rounded-lg">Esta cuenta protegida se muestra para consulta. Las acciones de restricción no están disponibles aquí.</p> : <>
+            <label className="block font-semibold" htmlFor="admin-reason">Motivo del cambio</label>
+            <textarea id="admin-reason" value={reason} onChange={e => setReason(e.target.value)} rows={3} maxLength={500} placeholder="Explica qué ocurrió y la evidencia que revisaste." className="w-full border border-gray-300 rounded-lg p-3" />
+            <p className="text-gray-600">El motivo es obligatorio y quedará junto a tu nombre en el historial. El siguiente paso permite revisar las consecuencias.</p>
+            <section className="border-t pt-4"><h3 className="font-semibold">Acceso a la cuenta</h3><p className="text-gray-600 mt-1">La suspensión impide entrar.{isCreator ? ' También oculta su perfil e impide recibir nuevos pagos y retirar ganancias.' : ''}</p>
+              {suspended ? <button disabled={!reason.trim()} className={`${btn} mt-3`} onClick={() => ask('unsuspend', 'Quitar suspensión', 'Se retirará la suspensión de acceso.', 'Las demás restricciones e incidencias se conservan. La decisión quedará en el historial.')}>Revisar quitar suspensión</button> : <div className="flex flex-wrap gap-2 mt-3"><select aria-label="Duración de la suspensión" value={days} onChange={e => setDays(e.target.value)} className="min-h-11 border border-gray-300 rounded-lg p-2">{DURATIONS.map(d => <option key={d.label} value={d.value}>{d.label}</option>)}</select><button disabled={!reason.trim()} className={btn} onClick={() => ask('suspend', 'Confirmar suspensión', `Se suspenderá el acceso durante ${DURATIONS.find(d => d.value === days)?.label.toLowerCase()}.${isCreator ? ' Se ocultará el perfil y no podrá recibir nuevos pagos ni retirar.' : ''}`, 'Podrá revisarse y quitarse la suspensión posteriormente. El motivo quedará registrado.')}>Revisar suspensión</button></div>}
+            </section>
+            {isCreator && <section className="border-t pt-4"><h3 className="font-semibold">Retiros</h3><p className="text-gray-600 mt-1">Restringir los retiros no cambia sus ganancias ni interrumpe sus ventas. Impide retirar mientras se revisa el caso.</p>{frozen && onReviewPayouts ? <button type="button" onClick={onReviewPayouts} className={`${btn} mt-3`}>Revisar motivos de bloqueo</button> : <button disabled={!reason.trim()} className={`${btn} mt-3`} onClick={() => ask(frozen ? 'unfreeze_payouts' : 'freeze_payouts', frozen ? 'Quitar restricción de retiros' : 'Restringir retiros', frozen ? 'Se quitará esta restricción administrativa. Los demás controles seguirán vigentes.' : 'Esta persona no podrá retirar su dinero mientras se revisa el caso.', 'La decisión quedará registrada. No se envía dinero ni se libera una entrega incierta.')}>{frozen ? 'Revisar quitar restricción' : 'Revisar restricción de retiros'}</button>}</section>}
+            {target.isVerified && <section className="border-t pt-4"><h3 className="font-semibold">Identidad verificada</h3><p className="text-gray-600 mt-1">{isCreator ? 'Quitar la verificación impide cobrar hasta verificar de nuevo su identidad.' : 'La persona perderá su insignia de verificación.'}</p><button disabled={!reason.trim()} className={`${btn} mt-3`} onClick={() => ask('unverify', 'Quitar verificación', 'Se retirará su estado de identidad verificada.', 'Para recuperarlo deberá pasar una nueva revisión de identidad.')}>Revisar quitar verificación</button></section>}
+            <details className="border-t pt-4"><summary className="min-h-11 text-red-800 font-semibold cursor-pointer">Cancelar y eliminar la cuenta</summary><p className="my-3">Elimina la cuenta y sus datos personales de forma permanente. Sus operaciones conservan el registro contable. Esta acción no puede deshacerse desde el panel.</p><label className="block">Escribe ELIMINAR<input value={confirmDelete} onChange={e => setConfirmDelete(e.target.value)} className="block min-h-11 w-full border border-gray-300 rounded-lg p-2 mt-2" /></label><button disabled={!reason.trim() || confirmDelete.trim() !== 'ELIMINAR'} className={`${btn} mt-3 text-red-800`} onClick={() => ask('delete', 'Eliminar cuenta definitivamente', 'Se eliminará la cuenta y sus datos personales. Esta acción es permanente.', 'No hay una opción de deshacer. Sus operaciones y la decisión administrativa conservarán su registro.')}>Revisar eliminación</button></details>
+          </>}
+        </div>}
+        {view === 'history' && <section className="text-sm"><h3 className="font-semibold">Historial de decisiones cargadas</h3>{history.length === 0 ? <p className="py-4 text-gray-600">No hay decisiones administrativas para esta persona en esta consulta.</p> : <ul className="divide-y" data-testid="admin-user-history">{[...history].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(h => <li key={h.id} className="py-3"><p className="font-semibold">{actionLabel[h.action]}{h.action === 'suspend' && h.until ? ` ${untilText(h.until)}` : ''}</p><p className="text-gray-600 mt-1">{h.adminName} · {adminDate(h.createdAt)}</p><p className="mt-1">{h.reason || 'Sin motivo registrado en este registro anterior.'}</p></li>)}</ul>}</section>}
       </div>
-    </div>
-  );
-};
-
-export default AdminUserSheet;
+    </AdminDialog>
+    {decision && <AdminConfirmation decision={decision} onClose={() => setDecision(null)} onDone={() => { setDecision(null); onDone('Cambio confirmado y registrado en el historial.'); }} />}
+  </>;
+}

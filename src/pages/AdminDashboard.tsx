@@ -1,5 +1,11 @@
 import { formatPayoutDate } from '../lib/payoutCalendar';
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import AdminNavigation from '../components/AdminNavigation';
+import AdminAttention from '../components/AdminAttention';
+import AdminDataState from '../components/AdminDataState';
+import { AdminConfirmation, AdminDialog, type AdminDecision } from '../components/AdminDialog';
+import { adminSection, type AdminSection } from '../lib/adminWorkspace';
 import { useAuth } from '../context/AuthContext';
 import ManagedProfilesAdmin from '../components/ManagedProfilesAdmin';
 import SpecialAccountsAdmin from '../components/SpecialAccountsAdmin';
@@ -7,8 +13,6 @@ import {
   usePlatformQuery,
   platformApi,
   reviewVerification,
-  resolveReport,
-  restorePost,
   coverRefund,
   creatorCut,
   transactionLabel,
@@ -20,6 +24,7 @@ import {
 import { displayEmail } from '../config/demoAccounts';
 import { giftsApi, type CoinPurchase } from '../lib/gifts';
 import AdminOverview from '../components/AdminOverview';
+import AdminReports from '../components/AdminReports';
 import AdminLedger from '../components/AdminLedger';
 import AdminFinance from '../components/AdminFinance';
 import AdminModeration from '../components/AdminModeration';
@@ -39,14 +44,13 @@ const ago = (iso: string) => {
   return new Date(iso).toLocaleDateString('es');
 };
 
-const kindLabel = { post: 'Publicación', creator: 'Perfil', support: 'Soporte', other: 'Otro' } as const;
-const roleName = { fan: 'Fan', creator: 'Creador', admin: 'Admin' } as const;
+const roleName = { fan: 'Fan', creator: 'Creador', admin: 'Administrador' } as const;
 
 const AdminDashboard: React.FC = () => {
   const [caseReference,setCaseReference]=useState<string>();
   const { user, listAccounts } = useAuth();
-  const { data: accounts, reload: reloadAccounts } = usePlatformQuery(listAccounts, [], []);
-  const { data: platform } = usePlatformQuery(
+  const { data: accounts, reload: reloadAccounts, loading: accountsLoading, error: accountsError } = usePlatformQuery(listAccounts, [], []);
+  const { data: platform, loading: platformLoading, error: platformError, reload: reloadPlatform } = usePlatformQuery(
     async () => {
       const [verifications, reports, payouts, transactions, removedPosts, coins, restrictions, adminActions] = await Promise.all([
         platformApi.listVerifications(),
@@ -72,9 +76,14 @@ const AdminDashboard: React.FC = () => {
       adminActions: [] as Awaited<ReturnType<typeof platformApi.adminActions>>,
     }
   );
-  const { data: moderation } = usePlatformQuery(() => backend.moderationQueue(), [], []);
+  const { data: moderation, loading: moderationLoading, error: moderationError, reload: reloadModeration } = usePlatformQuery(() => backend.moderationQueue(), [], []);
   const pendingMedia = moderation.filter((m) => m.status === 'pending' || m.status === 'review').length;
-  const [activeTab, setActiveTab] = useState('overview');
+  const [params, setParams] = useSearchParams();
+  const activeTab = adminSection(params.get('section'));
+  const setActiveTab = (section: AdminSection) => { setParams(previous => { const next = new URLSearchParams(previous); next.set('section', section); return next; }); setNotice(null); };
+  const [decision, setDecision] = useState<AdminDecision | null>(null);
+  const [userPage, setUserPage] = useState(0);
+  const [userFilter, setUserFilter] = useState('all');
   const [userQuery, setUserQuery] = useState('');
   const [viewing, setViewing] = useState<VerificationRequest | null>(null);
   const [managing, setManaging] = useState<string | null>(null);
@@ -85,19 +94,33 @@ const AdminDashboard: React.FC = () => {
   const reports = [...platform.reports].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const pendingReports = reports.filter((r) => r.status === 'pending');
   const payouts = [...platform.payouts].sort((a, b) => b.requestedAt.localeCompare(a.requestedAt));
-  const pendingTotal = pendingVerifications.length + pendingReports.length + pendingMedia;
   // Sales PayPal gave back to the fan (refund, chargeback) or froze (dispute).
   const moneyBack = platform.transactions.filter((t) => (t.status === 'refunded' || t.status === 'disputed') && t.kind !== 'referral');
-  const toggleCover = async (id: string, cover: boolean) => {
-    const r = await coverRefund(id, cover);
-    setNotice(r.ok ? { ok: true, text: cover ? 'Listo: el creador conserva su parte; la pérdida la asume Fans Reserve' : 'Listo: se le descuenta al creador' } : { ok: false, text: r.error ?? 'No se pudo actualizar la venta' });
+  const reviewMoney = moneyBack.filter(t => t.status === 'disputed').length;
+  const pendingTotal = pendingVerifications.length + pendingReports.length + pendingMedia + reviewMoney;
+  const loading = accountsLoading || platformLoading || moderationLoading;
+  const loadError = accountsError || platformError || moderationError;
+  // A failed content query must not hide the independent payments or error panels.
+  const independent = activeTab === 'finance' || activeTab === 'errors';
+  const sectionLoading = independent ? false : activeTab === 'moderation' ? moderationLoading : activeTab === 'overview' ? loading : accountsLoading || platformLoading;
+  const sectionError = independent ? '' : activeTab === 'moderation' ? moderationError : activeTab === 'overview' ? loadError : accountsError || platformError;
+  const refresh = () => { void Promise.all([reloadAccounts(), reloadPlatform(), reloadModeration()]); };
+  const toggleCover = (id: string, cover: boolean) => {
+    const sale = moneyBack.find(t => t.id === id);
+    if (!sale) return;
+    setDecision({ title: 'Revisar quién asume esta devolución', person: `${sale.creatorName} · Venta ${money(sale.amount)}`,
+      effect: cover ? 'Fans Reserve asumirá la cobertura y el creador conservará la parte prevista por esta operación.' : 'Se retirará la cobertura de Fans Reserve y se reflejará la pérdida correspondiente al creador.',
+      after: 'La responsabilidad debe estar comprobada. La revisión no devuelve ni envía dinero mediante PayPal.', label: 'Confirmar responsabilidad',
+      run: () => coverRefund(id, cover) });
   };
 
-  const recentUsers = [...accounts]
+  const matchingUsers = [...accounts]
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .filter((u) => {
       const q = userQuery.trim().toLowerCase();
-      return !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+      const matches = !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+      const restriction = platform.restrictions.find(r => r.userId === u.id);
+      return matches && (userFilter === 'all' || userFilter === u.role || userFilter === 'restricted' && (isSuspendedNow(restriction) || restriction?.payoutsFrozen));
     })
     .map((u) => ({
       id: u.id,
@@ -112,6 +135,9 @@ const AdminDashboard: React.FC = () => {
       suspended: isSuspendedNow(platform.restrictions.find((r) => r.userId === u.id)),
       frozen: !!platform.restrictions.find((r) => r.userId === u.id)?.payoutsFrozen,
     }));
+  const pageCount = Math.max(1, Math.ceil(matchingUsers.length / 20));
+  const currentPage = Math.min(userPage, pageCount - 1);
+  const recentUsers = matchingUsers.slice(currentPage * 20, currentPage * 20 + 20);
   const managed = accounts.find((a) => a.id === managing);
 
   // Sign-ups per country (fans and creators), most first. Accounts from before
@@ -129,13 +155,13 @@ const AdminDashboard: React.FC = () => {
       }, {})
   ).sort((a, b) => b.fans + b.creators - (a.fans + a.creators) || (a.country ? 0 : 1) - (b.country ? 0 : 1));
 
-  const review = async (v: VerificationRequest, approve: boolean) => {
-    const r = await reviewVerification(v.id, approve, rejectReason);
-    if (!r.ok) return setNotice({ ok: false, text: r.error! });
-    reloadAccounts();
-    setNotice({ ok: true, text: approve ? `Identidad de ${v.userName} aprobada` : `Solicitud de ${v.userName} rechazada` });
-    setViewing(null);
-    setRejectReason('');
+  const review = (v: VerificationRequest, approve: boolean) => {
+    const reason = rejectReason.trim();
+    if (!approve && !reason) { setNotice({ok:false,text:'Explica el motivo antes de rechazar la solicitud.'}); return; }
+    setDecision({ title: approve ? 'Aprobar identidad' : 'Rechazar solicitud de identidad', person: v.userName,
+      effect: approve ? 'Se aprobará su identidad y podrá continuar con las funciones que requieren verificación. Confirma que revisaste su documento, su rostro y su mayoría de edad.' : `La solicitud no se aprobará. Motivo: ${reason}`,
+      after: 'La decisión quedará registrada. No se envía dinero ni se eliminan otros controles de la cuenta.', label: approve ? 'Confirmar identidad aprobada' : 'Confirmar rechazo',
+      run: async () => { const result = await reviewVerification(v.id, approve, reason); if (result.ok) { setViewing(null); setRejectReason(''); } return result; } });
   };
 
   const verificationRow = (v: VerificationRequest, compact = false) => (
@@ -157,7 +183,7 @@ const AdminDashboard: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="admin-workspace min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8">
@@ -165,9 +191,10 @@ const AdminDashboard: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-900">Panel de administración</h1>
             <p className="text-gray-600">Bienvenido, {user?.name}</p>
           </div>
-          <div className="mt-4 sm:mt-0 flex items-center space-x-3">
-            <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-medium">
-              <i aria-hidden="true" className="fas fa-exclamation-circle mr-1"></i> {pendingTotal} pendientes
+          <div className="mt-4 sm:mt-0 flex flex-wrap items-center gap-2">
+            <button type="button" onClick={refresh} disabled={loading} className="min-h-11 whitespace-nowrap px-4 py-2 border border-gray-300 rounded-lg text-sm disabled:opacity-50">{loading ? 'Consultando…' : 'Actualizar todo'}</button>
+            <span className={`${pendingTotal > 0 ? 'bg-amber-100 text-amber-900' : 'bg-gray-100 text-gray-700'} px-3 py-2 rounded-lg text-sm font-medium`}>
+              {loading ? 'Consultando pendientes' : loadError ? 'Pendientes sin confirmar' : `${pendingTotal} pendientes en esta consulta`}
             </span>
           </div>
         </div>
@@ -178,44 +205,24 @@ const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="flex space-x-1 bg-white rounded-xl p-1 shadow-sm mb-8 overflow-x-auto">
-          {[
-            { id: 'overview', label: 'Resumen', icon: 'fa-chart-pie' },
-            { id: 'ledger', label: 'Libro', icon: 'fa-book' },
-            { id: 'finance', label: 'Pagos a creadores', icon: 'fa-layer-group' },
-            { id: 'verifications', label: `Verificaciones (${pendingVerifications.length})`, icon: 'fa-id-card' },
-            { id: 'reports', label: `Reportes (${pendingReports.length})`, icon: 'fa-flag' },
-            { id: 'moderation', label: `Moderación (${pendingMedia})`, icon: 'fa-shield-alt' },
-            { id: 'payouts', label: 'Retiros', icon: 'fa-money-check-alt' },
-            { id: 'managed', label: 'Perfiles gestionados', icon: 'fa-robot' },
-            { id: 'special', label: 'Cuentas especiales', icon: 'fa-star' },
-            { id: 'users', label: 'Usuarios', icon: 'fa-users' },
-            { id: 'errors', label: 'Errores', icon: 'fa-bug' },
-            { id: 'infra', label: 'Consumo', icon: 'fa-server' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => { setActiveTab(tab.id); setNotice(null); }}
-              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
-                activeTab === tab.id ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <i aria-hidden="true" className={`fas ${tab.icon} mr-1`}></i> {tab.label}
-            </button>
-          ))}
-        </div>
+        <AdminNavigation section={activeTab} onOpen={section => { setCaseReference(undefined); setActiveTab(section); }} counts={loading || loadError ? {} : { verifications: pendingVerifications.length, reports: pendingReports.length, moderation: pendingMedia, payouts: reviewMoney }} />
+
+        <AdminDataState loading={sectionLoading} error={sectionError} onRetry={refresh}>
 
         {/* Overview */}
         {activeTab === 'overview' && (
+          <>
+          <AdminAttention counts={{ verifications: pendingVerifications.length, reports: pendingReports.length, moderation: pendingMedia, payouts: reviewMoney }} onOpen={section => { setCaseReference(undefined); setActiveTab(section); }} />
+          <details className="group"><summary className="min-h-11 py-3 font-semibold text-gray-900 cursor-pointer">Ver cuentas y actividad del periodo</summary>
           <AdminOverview
             accounts={accounts}
             transactions={platform.transactions}
             coins={platform.coins}
             payouts={platform.payouts}
             pending={{ verifications: pendingVerifications.length, reports: pendingReports.length, disputes: moneyBack.filter((t) => !t.platformCovers).length, media: pendingMedia }}
-            onOpen={(tab) => { setActiveTab(tab); setNotice(null); }}
+            onOpen={(tab) => { setActiveTab(adminSection(tab)); }}
           />
+          </details></>
         )}
 
         {activeTab === 'moderation' && <AdminModeration />}
@@ -231,7 +238,7 @@ const AdminDashboard: React.FC = () => {
         {activeTab === 'verifications' && (
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden" data-testid="admin-verifications">
             <div className="p-5 border-b border-gray-100">
-              <h3 className="font-bold text-gray-900">Gestión de verificaciones</h3>
+              <h3 className="font-bold text-gray-900">Verificar identidades</h3>
               <p className="text-sm text-gray-600 mt-1">Didit aprueba solo a los creadores mayores de edad. Aquí llegan únicamente los casos que Didit deja en revisión o los del formulario manual de respaldo: compara la cara del selfie con la foto del documento y confirma que es mayor de edad antes de aprobar.</p>
             </div>
             <div className="divide-y divide-gray-100">
@@ -261,73 +268,7 @@ const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Reports */}
-        {activeTab === 'reports' && (
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden" data-testid="admin-reports">
-            <div className="p-5 border-b border-gray-100">
-              <h3 className="font-bold text-gray-900">Gestión de reportes</h3>
-              <p className="text-sm text-gray-600 mt-1">Reportes enviados desde las publicaciones, los perfiles y el Centro de ayuda</p>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase">Razón</th>
-                    <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase">Reportado</th>
-                    <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase">Reportante</th>
-                    <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                    <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase">Estado</th>
-                    <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {reports.length === 0 && (
-                    <tr><td colSpan={6} className="px-5 py-8 text-center text-sm text-gray-500">No hay reportes</td></tr>
-                  )}
-                  {reports.map((r) => (
-                    <tr key={r.id} className="hover:bg-gray-50 align-top">
-                      <td className="px-5 py-4 text-sm text-gray-900">
-                        {r.reason}
-                        <p className="text-xs text-gray-500 mt-1 max-w-xs">{r.description}</p>
-                      </td>
-                      <td className="px-5 py-4 text-sm text-gray-600">
-                        <span className="text-xs text-gray-400 block">{kindLabel[r.kind]}</span>{r.targetLabel}
-                      </td>
-                      <td className="px-5 py-4 text-sm text-gray-600">{r.reporterName}{r.contactEmail && <span className="block text-xs text-gray-400">{r.contactEmail}</span>}</td>
-                      <td className="px-5 py-4 text-sm text-gray-500">{ago(r.createdAt)}</td>
-                      <td className="px-5 py-4">
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          r.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : r.status === 'resolved' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {r.status === 'pending' ? 'Pendiente' : r.resolution}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4">
-                        {r.status === 'pending' ? (
-                          <div className="flex flex-col gap-1 items-start">
-                            {r.kind === 'post' && (
-                              <button onClick={() => resolveReport(r.id, 'remove')} className="text-red-600 hover:text-red-700 text-xs font-medium">
-                                <i aria-hidden="true" className="fas fa-trash mr-1"></i>Retirar contenido
-                              </button>
-                            )}
-                            <button onClick={() => resolveReport(r.id, 'resolve')} className="text-green-600 hover:text-green-700 text-xs font-medium">
-                              <i aria-hidden="true" className="fas fa-check mr-1"></i>Marcar atendido
-                            </button>
-                            <button onClick={() => resolveReport(r.id, 'dismiss')} className="text-gray-500 hover:text-gray-700 text-xs font-medium">
-                              <i aria-hidden="true" className="fas fa-times mr-1"></i>Descartar
-                            </button>
-                          </div>
-                        ) : r.kind === 'post' && r.targetId && platform.removedPosts.includes(r.targetId) ? (
-                          <button onClick={() => restorePost(r.targetId!)} className="text-xs text-pink-600">Restaurar publicación</button>
-                        ) : null}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        {activeTab === 'reports' && <AdminReports reports={reports} removedPosts={platform.removedPosts} />}
 
         {/* Payouts */}
         {activeTab === 'payouts' && (
@@ -397,15 +338,8 @@ const AdminDashboard: React.FC = () => {
 
         {/* Document review */}
         {viewing && (
-          <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Revisar documentos">
-            <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">{viewing.userName}</h3>
-                  <p className="text-sm text-gray-500">{displayEmail(viewing.email)} • {roleName[viewing.role]}</p>
-                </div>
-                <button onClick={() => setViewing(null)} aria-label="Cerrar" className="text-gray-400 hover:text-gray-600"><i aria-hidden="true" className="fas fa-times"></i></button>
-              </div>
+          <AdminDialog title={`Revisar identidad de ${viewing.userName}`} onClose={() => setViewing(null)} wide>
+              <p className="text-sm text-gray-600 mb-4">{displayEmail(viewing.email)} · {roleName[viewing.role]}</p>
               <div className="grid grid-cols-2 gap-3 text-sm mb-4">
                 <p><span className="text-gray-500">Nombre legal:</span> {viewing.legalName}</p>
                 <p><span className="text-gray-500">Nacimiento:</span> {viewing.birthDate ? `${new Date(viewing.birthDate + 'T00:00:00').toLocaleDateString('es')} (${ageFrom(viewing.birthDate)} años)` : 'Sin leer'}</p>
@@ -434,7 +368,7 @@ const AdminDashboard: React.FC = () => {
               <input
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="Motivo del rechazo (obligatorio para rechazar)"
+                aria-label="Motivo del rechazo" placeholder="Motivo del rechazo (obligatorio para rechazar)"
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm mb-3 outline-none focus:ring-2 focus:ring-pink-500"
               />
               {notice && !notice.ok && <p role="alert" className="text-sm text-red-600 mb-3">{notice.text}</p>}
@@ -446,8 +380,7 @@ const AdminDashboard: React.FC = () => {
                   <i aria-hidden="true" className="fas fa-check mr-1"></i> Aprobar identidad
                 </button>
               </div>
-            </div>
-          </div>
+          </AdminDialog>
         )}
 
         {/* Users */}
@@ -457,7 +390,7 @@ const AdminDashboard: React.FC = () => {
 
         {activeTab === 'users' && (
           <div className="space-y-6">
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden" data-testid="admin-countries">
+          <details className="bg-white rounded-2xl shadow-sm overflow-hidden" data-testid="admin-countries"><summary className="p-5 min-h-11 font-semibold cursor-pointer">Ver personas por país</summary>
             <div className="p-5 border-b border-gray-100">
               <h3 className="font-bold text-gray-900">Usuarios por país</h3>
               <p className="text-xs text-gray-500 mt-1">Del registro. El teléfono es opcional y solo lo ve el equipo.</p>
@@ -484,18 +417,19 @@ const AdminDashboard: React.FC = () => {
                 </tbody>
               </table>
             </div>
-          </div>
+          </details>
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-              <h3 className="font-bold text-gray-900">Gestión de usuarios</h3>
+              <h3 className="font-bold text-gray-900">Buscar personas</h3>
               <div className="relative">
                 <i aria-hidden="true" className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                <input type="text" value={userQuery} onChange={(e) => setUserQuery(e.target.value)} placeholder="Buscar usuario..." className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-pink-500 outline-none" />
+                <input aria-label="Buscar por nombre o correo" type="search" value={userQuery} onChange={(e) => { setUserQuery(e.target.value); setUserPage(0); }} placeholder="Nombre o correo" className="min-h-11 w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-pink-500 outline-none" />
               </div>
             </div>
+            <div className="px-5 py-3 flex flex-wrap items-center gap-3 text-sm border-b border-gray-100"><label>Mostrar <select aria-label="Tipo de persona" value={userFilter} onChange={e => { setUserFilter(e.target.value); setUserPage(0); }} className="min-h-11 border border-gray-300 rounded-lg px-2 ml-2"><option value="all">Todas</option><option value="creator">Creadores</option><option value="fan">Fans</option><option value="admin">Administradores</option><option value="restricted">Con restricciones</option></select></label><p className="text-gray-600">{matchingUsers.length} resultados entre las personas cargadas.</p></div>
             <div className="divide-y divide-gray-100">
               {recentUsers.length === 0 && (
-                <p className="p-6 text-center text-sm text-gray-500">No hay usuarios que coincidan con la búsqueda</p>
+                <p className="p-6 text-center text-sm text-gray-500">No hay personas que coincidan con estos filtros. Prueba otro nombre, correo o tipo de cuenta.</p>
               )}
               {recentUsers.map((u) => (
                 <div key={u.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-gray-50" data-testid="admin-user-row">
@@ -520,15 +454,16 @@ const AdminDashboard: React.FC = () => {
                     }`}>
                       {u.status === 'active' ? 'Activo' : u.status === 'verified' ? 'Verificado' : 'Pendiente'}
                     </span>
-                    {!u.isAdmin && (
-                      <button onClick={() => setManaging(u.id)} className="px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-700">
-                        <i aria-hidden="true" className="fas fa-user-cog mr-1"></i> Gestionar
+                    {(
+                      <button onClick={() => setManaging(u.id)} className="min-h-11 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-700">
+                        Abrir ficha
                       </button>
                     )}
                   </div>
                 </div>
               ))}
             </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-t border-gray-100 text-sm"><p>Página {currentPage + 1} de {pageCount}</p><div className="flex gap-2"><button type="button" disabled={currentPage === 0} onClick={() => setUserPage(currentPage - 1)} className="min-h-11 px-3 border rounded-lg disabled:opacity-40">Anterior</button><button type="button" disabled={currentPage >= pageCount - 1} onClick={() => setUserPage(currentPage + 1)} className="min-h-11 px-3 border rounded-lg disabled:opacity-40">Siguiente</button></div></div>
           </div>
           </div>
         )}
@@ -540,6 +475,10 @@ const AdminDashboard: React.FC = () => {
             restriction={platform.restrictions.find((r) => r.userId === managed.id)}
             history={platform.adminActions.filter((a) => a.userId === managed.id)}
             transactions={platform.transactions}
+            payouts={platform.payouts}
+            verifications={platform.verifications.filter(v => v.userId === managed.id)}
+            readOnly={managed.role === 'admin' || managed.isOwner === true || managed.id === user.id}
+            onVerification={() => { setManaging(null); setActiveTab('verifications'); }}
             onClose={() => setManaging(null)}
             onReviewPayouts={backend.finance.caseList?()=>{setCaseReference(managed.id);setActiveTab('finance');setManaging(null);}:undefined}
             onDone={(text) => {
@@ -549,6 +488,9 @@ const AdminDashboard: React.FC = () => {
             }}
           />
         )}
+
+        {decision && <AdminConfirmation decision={decision} onClose={() => setDecision(null)} onDone={() => { setDecision(null); refresh(); setNotice({ ok: true, text: 'Cambio confirmado y guardado.' }); }} />}
+        </AdminDataState>
 
       </div>
     </div>

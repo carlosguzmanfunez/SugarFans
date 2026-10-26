@@ -411,7 +411,8 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
         .in('status', ['pending', 'review', 'rejected'])
         .order('created_at', { ascending: false })
         .limit(200);
-      if (error || !data) return [];
+      if (error) throw Error('No pudimos consultar los archivos por revisar.');
+      if (!data) return [];
       const privatePaths = data.filter((r) => r.bucket === 'post-media').map((r) => r.path as string);
       const signed = new Map<string, string>();
       if (privatePaths.length) {
@@ -442,7 +443,8 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
         .select('id, source, message, detail, url, user_agent, count, first_seen, last_seen, user:profiles!app_errors_user_id_fkey(name)')
         .order('last_seen', { ascending: false })
         .limit(200);
-      if (error || !data) return [];
+      if (error) throw Error('No pudimos consultar los problemas de la página.');
+      if (!data) return [];
       return data.map((r) => {
         const user = (Array.isArray(r.user) ? r.user[0] : r.user) as { name?: string } | null;
         return {
@@ -462,7 +464,8 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
 
     async infraUsage() {
       const { data, error } = await sb.rpc('infra_usage');
-      return error || !data ? null : fromRpc(data as Record<string, unknown>);
+      if (error) throw Error('No pudimos consultar los costos y límites.');
+      return !data ? null : fromRpc(data as Record<string, unknown>);
     },
 
     async setInfraSettings(plans, fundPct) {
@@ -584,7 +587,8 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
     },
 
     async listAccounts() {
-      const { data } = await sb.from('profiles').select('*').order('created_at', { ascending: false });
+      const { data, error } = await sb.from('profiles').select('*').order('created_at', { ascending: false });
+      if (error) throw Error('No pudimos consultar las personas.');
       return (data ?? []).map((p) => toUser(p as ProfileRow));
     },
 

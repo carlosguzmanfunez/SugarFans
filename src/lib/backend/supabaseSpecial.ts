@@ -22,10 +22,11 @@ const toAccount = (r: Row): SpecialAccount => ({
 
 export const createSupabaseSpecial = (sb: SupabaseClient): SpecialBackend => ({
   async listInvites() {
-    const [{ data: invites }, { data: uses }] = await Promise.all([
+    const [{ data: invites, error: invitesError }, { data: uses, error: usesError }] = await Promise.all([
       sb.from('special_invites').select('*').order('created_at', { ascending: false }),
       sb.from('special_accounts').select('invite_code'),
     ]);
+    if (invitesError || usesError) throw Error('No pudimos consultar las invitaciones y sus usos.');
     const count = new Map<string, number>();
     for (const u of (uses ?? []) as Row[]) if (u.invite_code) count.set(u.invite_code, (count.get(u.invite_code) ?? 0) + 1);
     return ((invites ?? []) as Row[]).map((r) => ({
@@ -67,7 +68,8 @@ export const createSupabaseSpecial = (sb: SupabaseClient): SpecialBackend => ({
   },
 
   async listAccounts() {
-    const { data } = await sb.from('special_accounts').select('*').order('since', { ascending: false });
+    const { data, error } = await sb.from('special_accounts').select('*').order('since', { ascending: false });
+    if (error) throw Error('No pudimos consultar las cuentas especiales.');
     return ((data ?? []) as Row[]).map(toAccount);
   },
 

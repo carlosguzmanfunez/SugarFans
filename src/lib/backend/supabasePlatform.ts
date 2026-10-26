@@ -159,7 +159,8 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
   },
 
   async listVerifications() {
-    const { data } = await sb.from('identity_verifications').select('*').order('submitted_at', { ascending: false });
+    const { data, error } = await sb.from('identity_verifications').select('*').order('submitted_at', { ascending: false });
+    if (error) throw Error('No pudimos consultar las verificaciones.');
     return (data ?? []).map(toVerification);
   },
 
@@ -324,7 +325,8 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
   },
 
   async listPayouts() {
-    const { data } = await sb.from('payouts').select('*').order('requested_at', { ascending: false });
+    const { data, error } = await sb.from('payouts').select('*').order('requested_at', { ascending: false });
+    if (error) throw Error('No pudimos consultar los retiros.');
     return (data ?? []).map(toPayout);
   },
 
@@ -343,7 +345,8 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
   },
 
   async listReports() {
-    const { data } = await sb.from('reports').select('*').order('created_at', { ascending: false });
+    const { data, error } = await sb.from('reports').select('*').order('created_at', { ascending: false });
+    if (error) throw Error('No pudimos consultar las denuncias y solicitudes.');
     return (data ?? []).map(toReport);
   },
 
@@ -352,7 +355,8 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
   },
 
   async removedPosts() {
-    const { data } = await sb.from('removed_posts').select('post_id');
+    const { data, error } = await sb.from('removed_posts').select('post_id');
+    if (error) throw Error('No pudimos consultar las publicaciones retiradas.');
     return (data ?? []).map((r) => r.post_id as string);
   },
 
@@ -365,7 +369,8 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
   },
 
   async accountRestrictions() {
-    const { data } = await sb.from('account_restrictions').select('*');
+    const { data, error } = await sb.from('account_restrictions').select('*');
+    if (error) throw Error('No pudimos consultar las restricciones.');
     return (data ?? []).map(
       (r): AccountRestriction => ({
         userId: r.user_id,
@@ -378,7 +383,8 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
   },
 
   async adminActions() {
-    const { data } = await sb.from('admin_actions').select('*').order('created_at', { ascending: false }).limit(500);
+    const { data, error } = await sb.from('admin_actions').select('*').order('created_at', { ascending: false }).limit(500);
+    if (error) throw Error('No pudimos consultar el historial administrativo.');
     return (data ?? []).map(
       (r): AdminActionLog => ({
         id: r.id,
@@ -418,7 +424,8 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
   async managedProfiles(includeHidden = false) {
     let query = sb.from('managed_profiles').select('*').order('created_at', { ascending: false });
     if (!includeHidden) query = query.eq('hidden', false);
-    const { data } = await query;
+    const { data, error } = await query;
+    if (error && includeHidden) throw Error('No pudimos consultar los perfiles de la plataforma.');
     return (data ?? []).map(toManaged);
   },
 

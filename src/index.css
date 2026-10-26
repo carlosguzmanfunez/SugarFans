@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* Administration keeps long names readable and controls usable on phones. */
+.admin-workspace { overflow-wrap: anywhere; }
+.admin-workspace button, .admin-workspace select, .admin-workspace input:not([type="checkbox"]) { min-height: 2.75rem; }
+.admin-workspace input, .admin-workspace textarea, .admin-workspace select { max-width: 100%; }
+.admin-workspace :is(button, input, select, textarea, summary, a):focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+.admin-workspace ::selection { background: var(--color-pink-100); color: var(--color-ink); }
+.admin-workspace input, .admin-workspace textarea { caret-color: var(--color-primary); }
+.admin-workspace button:disabled { cursor: not-allowed; }
+
 /* ==========================================================================
    Fans Reserve design tokens
    Semantic colours (canvas, surface, ink, muted, line, primary, secondary,
