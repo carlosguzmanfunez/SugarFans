@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { backend } from '../lib/backend';
 import type { ModerationItem } from '../lib/backend/socialTypes';
 import { platformChanged, usePlatformQuery } from '../lib/platform';
+import AdminDataState from './AdminDataState';
+import { AdminConfirmation, type AdminDecision } from './AdminDialog';
 
 const kindLabel: Record<ModerationItem['kind'], string> = {
   post: 'Publicación',
@@ -22,30 +24,26 @@ type Filter = 'open' | 'rejected';
 // Admin tab: photos and videos the automatic scan held back (doubtful, not scanned)
 // or blocked. Nothing here is visible to the public until an admin approves it.
 const AdminModeration: React.FC = () => {
-  const { data: items, reload } = usePlatformQuery(() => backend.moderationQueue(), [], [] as ModerationItem[]);
+  const { data: items, reload, loading, error } = usePlatformQuery(() => backend.moderationQueue(), [], [] as ModerationItem[]);
+  const [decision, setDecision] = useState<AdminDecision | null>(null);
   const [filter, setFilter] = useState<Filter>('open');
-  const [busy, setBusy] = useState('');
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
 
   const open = items.filter((i) => i.status === 'pending' || i.status === 'review');
   const rejected = items.filter((i) => i.status === 'rejected');
   const shown = filter === 'open' ? open : rejected;
 
-  const decide = async (item: ModerationItem, approve: boolean) => {
-    setBusy(item.path);
-    const r = await backend.reviewMedia(item.bucket, item.path, approve);
-    setBusy('');
-    setNotice(r.ok ? { ok: true, text: approve ? 'Aprobado: ya es visible.' : 'Bloqueado: no se mostrará.' } : { ok: false, text: r.error || 'No se pudo guardar' });
-    if (r.ok) {
-      reload();
-      platformChanged();
-    }
+  const decide = (item: ModerationItem, approve: boolean) => {
+    setDecision({ title: approve ? 'Aprobar este archivo' : 'Bloquear este archivo', person: item.ownerName || 'La persona que subió este archivo',
+      effect: approve ? 'El archivo quedará aprobado para mostrarse según el acceso de su publicación o perfil. No cambia quién puede ver contenido de pago.' : 'Este archivo no se mostrará. La cuenta de su autor no se suspende con esta decisión.',
+      after: 'El archivo conserva su revisión. Un archivo bloqueado puede volver a revisarse desde esta sección.', label: approve ? 'Confirmar aprobación' : 'Confirmar bloqueo', destructive: !approve,
+      run: () => backend.reviewMedia(item.bucket, item.path, approve) });
   };
 
   return (
     <div className="bg-white rounded-2xl shadow-sm" data-testid="admin-moderation">
       <div className="p-6 border-b border-gray-100">
-        <h2 className="text-xl font-bold mb-1">Moderación de fotos y videos</h2>
+        <h2 className="text-xl font-bold mb-1">Revisar fotos y videos</h2>
         <p className="text-sm text-gray-500">
           Cada archivo que se sube se escanea antes de mostrarse. Aquí llegan los dudosos, los que no se pudieron escanear y los bloqueados.
         </p>
@@ -67,6 +65,7 @@ const AdminModeration: React.FC = () => {
           </p>
         )}
       </div>
+      <AdminDataState loading={loading} error={error} onRetry={reload}>
       {shown.length === 0 ? (
         <p className="p-6 text-sm text-gray-500">{filter === 'open' ? 'No hay nada pendiente.' : 'No hay archivos bloqueados.'}</p>
       ) : (
@@ -99,7 +98,6 @@ const AdminModeration: React.FC = () => {
                 <div className="mt-auto flex gap-2 pt-2">
                   <button
                     type="button"
-                    disabled={busy === item.path}
                     onClick={() => decide(item, true)}
                     className="flex-1 px-3 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-50"
                   >
@@ -108,7 +106,6 @@ const AdminModeration: React.FC = () => {
                   {item.status !== 'rejected' && (
                     <button
                       type="button"
-                      disabled={busy === item.path}
                       onClick={() => decide(item, false)}
                       className="flex-1 px-3 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50"
                     >
@@ -121,6 +118,8 @@ const AdminModeration: React.FC = () => {
           ))}
         </div>
       )}
+      </AdminDataState>
+      {decision && <AdminConfirmation decision={decision} onClose={() => setDecision(null)} onDone={() => { setDecision(null); setNotice({ok:true,text:'Decisión guardada. Actualizando la lista…'}); void reload(); platformChanged(); }} />}
     </div>
   );
 };

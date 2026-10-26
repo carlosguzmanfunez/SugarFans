@@ -4,6 +4,8 @@ import { usePlatformQuery, money, type Transaction } from '../lib/platform';
 import type { CoinPurchase } from '../lib/gifts';
 import { summarize } from '../lib/adminLedger';
 import { PROVIDERS, currentPlan, monthlyBill, usageRows, type InfraUsage, type ProviderId } from '../lib/infraUsage';
+import AdminDataState from './AdminDataState';
+import { AdminConfirmation, type AdminDecision } from './AdminDialog';
 
 interface Props {
   transactions: Transaction[];
@@ -17,7 +19,8 @@ const barTone = (level: number) => (level >= 90 ? 'bg-red-500' : level >= 70 ? '
 // is on, and the provider fund: a share of what Fans Reserve keeps, set aside to
 // pay for bigger plans before anything gets paused.
 const AdminInfra: React.FC<Props> = ({ transactions, coins }) => {
-  const { data: usage, reload } = usePlatformQuery(() => backend.infraUsage(), [], null as InfraUsage | null);
+  const { data: usage, reload, loading, error } = usePlatformQuery(() => backend.infraUsage(), [], null as InfraUsage | null);
+  const [decision, setDecision] = useState<AdminDecision | null>(null);
   const [plans, setPlans] = useState<InfraUsage['plans']>({});
   const [fundPct, setFundPct] = useState(10);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
@@ -28,10 +31,10 @@ const AdminInfra: React.FC<Props> = ({ transactions, coins }) => {
     setFundPct(usage.fundPct);
   }, [usage]);
 
-  if (!usage) {
+  if (loading || error || !usage) {
     return (
       <div className="bg-white rounded-2xl shadow-sm p-6 text-sm text-gray-500" data-testid="admin-infra">
-        Cargando el consumo… Si no aparece, falta aplicar la migración de consumo en Supabase.
+        <AdminDataState loading={loading} error={error || (!loading ? 'No hay una medición disponible para esta consulta.' : undefined)} onRetry={reload}><span /></AdminDataState>
       </div>
     );
   }
@@ -44,30 +47,32 @@ const AdminInfra: React.FC<Props> = ({ transactions, coins }) => {
   const fundAll = (all * fundPct) / 100;
   const dirty = fundPct !== usage.fundPct || JSON.stringify(plans) !== JSON.stringify(usage.plans);
 
-  const save = async () => {
-    const r = await backend.setInfraSettings(plans, fundPct);
-    setNotice(r.ok ? { ok: true, text: 'Guardado' } : { ok: false, text: r.error ?? 'No se pudo guardar' });
-    if (r.ok) reload();
+  const save = () => {
+    const recordedPlans = { ...plans }, recordedPercent = fundPct;
+    setDecision({ title: 'Revisar los planes registrados', person: 'La planificación de costos de Fans Reserve',
+      effect: `Se registrará una reserva prevista del ${recordedPercent}% y estos planes: ${Object.entries(recordedPlans).map(([id, plan]) => `${PROVIDERS[id as ProviderId].name}: ${plan}`).join(', ') || 'planes por defecto'}. Los límites y avisos usarán esa selección.`,
+      after: 'Esto no contrata planes, no modifica la factura del proveedor y no mueve dinero. Puedes corregir estos datos después.',
+      label: 'Guardar esta planificación', run: () => backend.setInfraSettings(recordedPlans, recordedPercent) });
   };
 
   return (
     <div className="space-y-6" data-testid="admin-infra">
       <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6" data-testid="infra-fund">
-        <h2 className="text-xl font-bold mb-1">Fondo para proveedores</h2>
+        <h2 className="text-xl font-bold mb-1">Reserva prevista para servicios</h2>
         <p className="text-sm text-gray-500 mb-4">
-          El {fundPct}% de lo que gana Fans Reserve se aparta para pagar planes más grandes antes de llegar a un límite.
+          Calculamos el {fundPct}% del resultado de cobros y repartos para planificar los servicios. Es una estimación; no separa dinero en PayPal ni en el banco.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="rounded-xl bg-gray-50 p-4">
-            <p className="text-xs text-gray-500">Apartado este mes</p>
+            <p className="text-xs text-gray-600">Reserva calculada este mes</p>
             <p className="text-2xl font-bold text-gray-900" data-testid="fund-month">{money(fundMonth)}</p>
           </div>
           <div className="rounded-xl bg-gray-50 p-4">
-            <p className="text-xs text-gray-500">Apartado desde el inicio</p>
+            <p className="text-xs text-gray-600">Reserva calculada desde el inicio</p>
             <p className="text-2xl font-bold text-gray-900" data-testid="fund-all">{money(fundAll)}</p>
           </div>
           <div className="rounded-xl bg-gray-50 p-4">
-            <p className="text-xs text-gray-500">Planes actuales al mes</p>
+            <p className="text-xs text-gray-600">Costo mensual orientativo</p>
             <p className="text-2xl font-bold text-gray-900" data-testid="infra-bill">{money(bill)}</p>
             <p className="text-xs text-gray-500 mt-1">
               {bill === 0 ? 'Todo en planes gratis' : fundMonth >= bill ? 'El fondo del mes cubre los planes' : `Este mes faltan ${money(bill - fundMonth)}`}
@@ -92,7 +97,7 @@ const AdminInfra: React.FC<Props> = ({ transactions, coins }) => {
       <div className="bg-white rounded-2xl shadow-sm">
         <div className="p-5 sm:p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div>
-            <h2 className="text-xl font-bold mb-1">Consumo de proveedores</h2>
+            <h2 className="text-xl font-bold mb-1">Costos y límites de servicios</h2>
             <p className="text-sm text-gray-500">
               Uso de este mes frente al límite de cada plan. Cada día se revisa solo y te llega un correo al pasar el 70% y el 90%.
             </p>
@@ -128,12 +133,12 @@ const AdminInfra: React.FC<Props> = ({ transactions, coins }) => {
         </ul>
         <p className="px-5 sm:px-6 pb-5 text-xs text-gray-500">
           No se ven desde aquí: el tráfico de Vercel y de Supabase (se avisan solos por correo en sus planes de pago) y los correos de inicio de sesión que Supabase manda por Resend.
-          Medido: {new Date(usage.measuredAt).toLocaleString('es')}.
+          La factura del proveedor confirma el costo real, incluidos impuestos y consumos adicionales. Medido: {new Date(usage.measuredAt).toLocaleString('es-HN', {timeZone:'America/Tegucigalpa'})}, hora de Honduras.
         </p>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6" data-testid="infra-plans">
-        <h2 className="text-xl font-bold mb-1">Planes contratados</h2>
+        <h2 className="text-xl font-bold mb-1">Planes que tenemos registrados</h2>
         <p className="text-sm text-gray-500 mb-4">Cuando subas de plan en la web del proveedor, márcalo aquí para que los límites y los avisos se ajusten.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {(Object.keys(PROVIDERS) as ProviderId[]).map((id) => (
@@ -161,6 +166,7 @@ const AdminInfra: React.FC<Props> = ({ transactions, coins }) => {
           Guardar cambios
         </button>
       </div>
+      {decision && <AdminConfirmation decision={decision} onClose={() => setDecision(null)} onDone={() => { setDecision(null); setNotice({ ok: true, text: 'Planificación guardada. No se contrató ningún servicio.' }); void reload(); }} />}
     </div>
   );
 };

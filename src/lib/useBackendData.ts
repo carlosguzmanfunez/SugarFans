@@ -6,32 +6,37 @@ import { backend } from './backend';
 export function useBackendData<T>(load: () => Promise<T>, deps: unknown[], initial: T) {
   const [data, setData] = useState<T>(initial);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const request = useRef(0);
   const loadRef = useRef(load);
   loadRef.current = load;
 
   const reload = useCallback(async () => {
-    const value = await loadRef.current();
-    setData(value);
-    setLoading(false);
+    const id = ++request.current;
+    setLoading(true); setError('');
+    try {
+      const value = await loadRef.current();
+      if (id === request.current) setData(value);
+    } catch {
+      if (id === request.current) setError('No pudimos consultar la información. Actualiza para volver a comprobarla.');
+    } finally {
+      if (id === request.current) setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    loadRef.current().then((value) => {
-      if (!active) return;
-      setData(value);
-      setLoading(false);
-    });
+    void reload();
     const unsubscribe = backend.onChange(() => {
       if (active) reload();
     });
     return () => {
       active = false;
+      request.current += 1;
       unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
-  return { data, loading, reload };
+  return { data, loading, error, reload };
 }

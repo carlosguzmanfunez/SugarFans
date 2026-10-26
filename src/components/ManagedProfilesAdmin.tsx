@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import Notice from './Notice';
+import AdminDataState from './AdminDataState';
+import { AdminConfirmation, type AdminDecision } from './AdminDialog';
 import Avatar from './Avatar';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -72,10 +74,10 @@ const ImagePicker: React.FC<{ name: string; label: string; value: string; maxSiz
 // AI personas carry a small "P-IA" tag.
 const ManagedProfilesAdmin: React.FC<{ transactions: Transaction[] }> = ({ transactions }) => {
   const { user } = useAuth();
-  const { data: profiles } = usePlatformQuery(() => platformApi.managedProfiles(true), [], [] as ManagedProfile[]);
+  const { data: profiles, loading, error, reload } = usePlatformQuery(() => platformApi.managedProfiles(true), [], [] as ManagedProfile[]);
+  const [decision, setDecision] = useState<AdminDecision | null>(null);
   const [editing, setEditing] = useState<{ id?: string; input: ManagedProfileInput } | null>(null);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
-  const [saving, setSaving] = useState(false);
 
   if (!user) return null;
 
@@ -87,20 +89,20 @@ const ManagedProfilesAdmin: React.FC<{ transactions: Transaction[] }> = ({ trans
   const set = <K extends keyof ManagedProfileInput>(key: K, value: ManagedProfileInput[K]) =>
     setEditing((e) => (e ? { ...e, input: { ...e.input, [key]: value } } : e));
 
-  const save = async () => {
+  const save = () => {
     if (!editing) return;
-    setSaving(true);
-    const r = await saveManagedProfile(user, editing.input, editing.id);
-    setSaving(false);
-    if (!r.ok) return setNotice({ ok: false, text: r.error || 'No se pudo guardar el perfil' });
-    setNotice({ ok: true, text: editing.id ? 'Perfil actualizado' : 'Perfil creado y publicado en Explorar' });
-    setEditing(null);
+    const draft = { ...editing.input }, id = editing.id;
+    setDecision({ title: 'Guardar perfil de la plataforma', person: draft.name || 'Perfil nuevo',
+      effect: `Se guardará el perfil @${draft.username}, categoría ${draft.category}, con suscripción de ${money(draft.subscriptionPrice)} al mes. ${draft.isAi ? 'Llevará la etiqueta P-IA.' : 'No llevará etiqueta P-IA.'}`,
+      after: 'Un perfil nuevo se publica en Explorar. Un perfil existente conserva su estado de visibilidad. Podrás editarlo u ocultarlo después.',
+      label: 'Confirmar perfil', run: async () => { const result = await saveManagedProfile(user, draft, id); if (result.ok) setEditing(null); return result; } });
   };
 
-  const act = async (p: Promise<{ ok: boolean; error?: string }>, okText: string) => {
-    const r = await p;
-    setNotice(r.ok ? { ok: true, text: okText } : { ok: false, text: r.error || 'No se pudo completar la acción' });
+  const act = (name: string, effect: string, run: AdminDecision['run'], destructive = false) => {
+    setDecision({ title: 'Revisar cambio del perfil', person: name, effect, after: destructive ? 'La eliminación no se puede deshacer desde este panel.' : 'Podrás volver a cambiar su visibilidad desde esta lista.', label: destructive ? 'Eliminar perfil definitivamente' : 'Confirmar visibilidad', destructive, run });
   };
+
+  if (loading || error) return <AdminDataState loading={loading} error={error} onRetry={reload}><span /></AdminDataState>;
 
   return (
     <div className="space-y-4" data-testid="managed-profiles">
@@ -164,7 +166,7 @@ const ManagedProfilesAdmin: React.FC<{ transactions: Transaction[] }> = ({ trans
           </label>
           <div className="flex gap-2 justify-end">
             <button type="button" onClick={() => setEditing(null)} className="px-4 py-2 text-sm text-gray-600">Cancelar</button>
-            <button type="button" onClick={save} disabled={saving} className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium">
+            <button type="button" onClick={save} className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium">
               Guardar perfil
             </button>
           </div>
@@ -189,7 +191,7 @@ const ManagedProfilesAdmin: React.FC<{ transactions: Transaction[] }> = ({ trans
                   <p className="text-xs text-gray-500">{stats.fans} fans han pagado • {money(stats.revenue)} cobrados</p>
                 </div>
               </div>
-              <div className="flex gap-2 text-xs">
+              <div className="flex flex-wrap gap-2 text-xs">
                 <Link to={`/creator/${m.id}`} className="px-3 py-1.5 bg-gray-100 rounded-lg hover:bg-gray-200">Ver</Link>
                 <button
                   type="button"
@@ -204,14 +206,14 @@ const ManagedProfilesAdmin: React.FC<{ transactions: Transaction[] }> = ({ trans
                 </button>
                 <button
                   type="button"
-                  onClick={() => act(setManagedProfileHidden(user, m.id, !m.hidden), m.hidden ? 'Perfil visible de nuevo' : 'Perfil oculto de Explorar')}
+                  onClick={() => act(m.name, m.hidden ? 'El perfil volverá a aparecer en Explorar.' : 'El perfil dejará de aparecer en Explorar. No se elimina su información.', () => setManagedProfileHidden(user, m.id, !m.hidden))}
                   className="px-3 py-1.5 bg-gray-100 rounded-lg hover:bg-gray-200"
                 >
                   {m.hidden ? 'Mostrar' : 'Ocultar'}
                 </button>
                 <button
                   type="button"
-                  onClick={() => window.confirm(`¿Eliminar el perfil ${m.name}?`) && act(deleteManagedProfile(user, m.id), 'Perfil eliminado')}
+                  onClick={() => act(m.name, 'Se eliminará este perfil administrado por la plataforma. No se elimina una cuenta de usuario.', () => deleteManagedProfile(user, m.id), true)}
                   className="px-3 py-1.5 bg-red-50 text-red-700 rounded-lg hover:bg-red-100"
                 >
                   Eliminar
@@ -221,6 +223,7 @@ const ManagedProfilesAdmin: React.FC<{ transactions: Transaction[] }> = ({ trans
           );
         })}
       </div>
+      {decision && <AdminConfirmation decision={decision} onClose={() => setDecision(null)} onDone={() => { setDecision(null); setNotice({ok:true,text:'Cambio del perfil confirmado.'}); void reload(); }} />}
     </div>
   );
 };

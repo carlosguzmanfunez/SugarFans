@@ -26,8 +26,8 @@ finish(async () => {
   const fan = user('fan@test.com', 'fan');
 
   await check('Solo un admin gestiona cuentas, y nunca otra cuenta admin', async () => {
-    raises(() => act(fan, lola, 'suspend'), /no está permitida/, 'un fan');
-    raises(() => act(lola, fan, 'suspend'), /no está permitida/, 'un creador');
+    raises(() => act(fan, lola, 'suspend'), /administradores/, 'un fan');
+    raises(() => act(lola, fan, 'suspend'), /administradores/, 'un creador');
     const admin2 = user('admin2@test.com', 'fan');
     psql(DB, `update public.profiles set role = 'admin' where id = '${admin2}'`);
     raises(() => act(admin, admin2, 'suspend'), /administrador/, 'otro admin');
@@ -58,15 +58,16 @@ finish(async () => {
     expect(psql(DB, `select banned_until > now() + interval '50 years' from auth.users where id = '${fan}'`) === 't', 'no es indefinida');
     act(admin, fan, 'unsuspend', '');
   });
-  await check('Congelar retiros: la creadora sigue vendiendo pero no puede retirar', async () => {
+  await check('Congelar retiros permite vender; desbloquear requiere expediente con evidencia', async () => {
     psql(DB, `insert into public.payout_accounts (user_id, holder, bank, account_last4, paypal_email) values ('${lola}', 'Lola', 'PayPal', 'abcd', 'lola@pp.com')`);
     act(admin, lola, 'freeze_payouts', 'Revisión de pagos');
     raises(() => psql(DB, `select public.payout_checks('${lola}')`), /en revisión/, 'retiro congelado');
     tip('o-3', fan, cp);
-    act(admin, lola, 'unfreeze_payouts', '');
-    const nextGuard = psql(DB, 'select public.payout_window_open(now())') === 't'
-      ? /Necesitas al menos/ : /26 al 1/;
-    raises(() => psql(DB, `select public.payout_checks('${lola}')`), nextGuard, 'no pasó el control de descongelación');
+    const before = as(admin, 'select count(*) from public.admin_actions');
+    raises(() => act(admin, lola, 'unfreeze_payouts', 'Revisión sin expediente'), /expediente con evidencia/, 'desbloqueo directo');
+    expect(as(admin, 'select count(*) from public.admin_actions') === before, 'un rechazo creó una decisión');
+    expect(psql(DB, `select payouts_frozen from public.account_restrictions where user_id='${lola}'`) === 't', 'el rechazo liberó los retiros');
+    raises(() => psql(DB, `select public.payout_checks('${lola}')`), /en revisión/, 'se liberó el pago');
   });
   await check('Quitar Verificado', async () => {
     act(admin, lola, 'unverify', 'Documento falso');
@@ -78,6 +79,6 @@ finish(async () => {
     expect(psql(DB, `select count(*) from auth.users where id = '${bye}'`) === '0', 'sigue existiendo');
     expect(psql(DB, `select count(*) from public.profiles where id = '${bye}'`) === '0', 'el perfil sigue');
     expect(as(admin, `select action || ':' || reason from public.admin_actions where user_id = '${bye}'`) === 'delete:Pidió borrar su cuenta', 'sin historial');
-    expect(Number(as(admin, `select count(*) from public.admin_actions`)) >= 8, 'faltan acciones en el historial');
+    expect(Number(as(admin, `select count(*) from public.admin_actions`)) >= 7, 'faltan acciones en el historial');
   });
 });
