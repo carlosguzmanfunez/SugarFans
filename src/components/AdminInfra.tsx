@@ -34,7 +34,7 @@ const AdminInfra: React.FC<Props> = ({ transactions, coins }) => {
   if (loading || error || !usage) {
     return (
       <div className="bg-white rounded-2xl shadow-sm p-6 text-sm text-gray-500" data-testid="admin-infra">
-        <AdminDataState loading={loading} error={error || 'No hay una medición disponible para esta consulta.'} onRetry={reload}><span /></AdminDataState>
+        <AdminDataState loading={loading} error={error || (!loading ? 'No hay una medición disponible para esta consulta.' : undefined)} onRetry={reload}><span /></AdminDataState>
       </div>
     );
   }
