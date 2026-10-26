@@ -24,6 +24,14 @@ Proyecto QA: `fansreserve-qa-payouts`; migración `20261026223245_prelaunch_fina
 - Pruebas SQL con `BEGIN…ROLLBACK`: invitado puede reportar, el sexto reporte se rechaza, usuario autenticado puede enviar diez y el undécimo se rechaza, texto mayor de 4000 se rechaza. Sin efectos persistentes.
 - **Limitación conocida**: esto no equivale a limitación por IP. Un atacante con múltiples correos puede intentar evadir el tope; para cierre de producción falta protección por IP/CDN o verificación antispam compatible con reportes legítimos.
 
+## Aislamiento de liquidación de beneficios de regalos (QA)
+- **Hallazgo de seguridad:** `public.settle_overdue_perks()` con `SECURITY DEFINER` era ejecutable por cualquier cuenta autenticada y actualizaba transacciones `status='refunded'` de **todos** los creadores cuyos beneficios estuvieran vencidos. No había un filtro por actor.
+- **Migración probada solo en QA:** `20261026231108_prelaunch_scope_overdue_perk_settlement`. Una cuenta fan procesa exclusivamente regalos donde `perk_requests.fan_id = auth.uid()`; una cuenta creadora también procesa los de su `my_creator_profile_id()`. Un visitante sin sesión no puede iniciarlo.
+- `src/lib/backend/supabaseGifts.ts` llama esta RPC cuando el fan consulta su billetera o las solicitudes de beneficio. Conservar la RPC para usuarios autenticados evita romper esos accesos. `schedule_perk_call` y `deliver_perk_video` también la llaman internamente.
+- **Evidencia:** prueba de aislamiento con dos creadores, dos fans y dos transacciones de regalo ficticias dentro de `BEGIN…ROLLBACK`. El fan A cambió solo su transacción; la del fan B y su beneficio permanecieron intactos. El creador B pudo procesar después su beneficio.
+- **Límite de negocio:** el mecanismo heredado cambia el estado contable a `refunded` sin solicitar por sí mismo un reembolso PayPal. Esto ya ocurría antes de nuestra migración; se debe revisar la semántica financiera de esos regalos y sus conciliaciones antes de certificar pagos reales. No inferir devolución al medio de pago a partir del estado de esta función.
+- **Límite operativo:** al restringir el alcance a la identidad que inicia la RPC, una solicitud vencida de una cuenta inactiva no se procesa por visitas de otros usuarios. Revisar un trabajo de mantenimiento controlado por servidor si se necesita expiración automática global.
+
 ## Evidencia (comprobada en QA)
 - Supabase Advisors: advertencias de funciones privilegiadas ejecutables anónimamente: **28 → 27**; advertencias `auth_rls_initplan` en las dos tablas de PayPal: **2 → 0**.
 - Probar una transacción de regalo con datos ficticios dentro de `BEGIN...ROLLBACK` dio:
@@ -34,7 +42,7 @@ Proyecto QA: `fansreserve-qa-payouts`; migración `20261026223245_prelaunch_fina
 - En producción, **sin cambios de esquema ni datos**, pruebas de roles solo de lectura confirmaron que anon y fans ajenos no ven reservas/payouts y que una identidad sin privilegios no supera el control administrativo financiero.
 
 ## Aceptación reproducible
-- Con PostgreSQL local de pruebas configurado: `npm run test:supabase-permissions`. El script crea una base descartable, aplica migraciones, crea cuentas ficticias, verifica RLS, donantes y límites de reportes, y la elimina después. Pendiente ejecutarlo en CI local.
+- Con PostgreSQL local de pruebas configurado: `npm run test:supabase-permissions`. El script crea una base descartable, aplica migraciones, crea cuentas ficticias, verifica RLS, donantes, límites de reportes y aislamiento de vencimientos de beneficios, y la elimina después. Pendiente ejecutarlo en CI local.
 - `npm run test:db` para flujos de acceso y reservas existentes.
 - `npm run test:errors-email-db` para fuentes confiables del servidor, navegador anónimo y fan autenticado (PostgreSQL local desechable).
 - `npm run typecheck`, `npm run build` y pruebas CI aplicables.
