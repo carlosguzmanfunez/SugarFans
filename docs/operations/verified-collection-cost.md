@@ -6,7 +6,9 @@ Preparado el 23 de octubre y verificado el 24 de octubre de 2026. Actualización
 
 Para nuevas propinas, suscripciones, renovaciones y Reserve, la API actual registra las ganancias después de comprobar cuánto retuvo PayPal en ese cobro individual. Un costo ausente no equivale a cero. El cobro queda pendiente, con su referencia y la respuesta consultada; no se calcula una ganancia usando una comisión inventada. Un cero explícito en un comprobante válido sí se acepta.
 
-Ejemplo ficticio: fan paga USD 100 y el comprobante informa USD 3 de costo. Quedan USD 97. En el reparto ordinario, USD 97 × 80% = USD 77,60 para el creador y USD 97 × 20% = USD 19,40 para Fans Reserve. USD 3 + USD 77,60 + USD 19,40 = USD 100. Los USD 3 son un ejemplo de prueba, no una nueva tarifa comercial.
+Ejemplo ficticio con costo conocido antes del reparto inicial: fan paga USD 100 y el comprobante informa USD 3 de costo. Quedan USD 97. En el reparto ordinario, USD 97 × 80% = USD 77,60 para el creador y USD 97 × 20% = USD 19,40 para Fans Reserve. USD 3 + USD 77,60 + USD 19,40 = USD 100. Los USD 3 son un ejemplo de prueba, no una nueva tarifa comercial.
+
+Si el costo real se conoce después de un reparto ya fijado con una estimación, la regla nueva es distinta: la comisión inicial se conserva y toda la diferencia posterior queda a favor o a cargo del creador, en el pago del mes siguiente. Ver [correcciones posteriores](../collection-cost-reconciliation.md). No se vuelve a calcular el reparto inicial ni se confunden ambas situaciones.
 
 Las recompensas, bonos por invitación, descuentos de Reserve y reglas de cuentas especiales conservan sus fórmulas. Cambia el costo que reciben esas fórmulas, no sus porcentajes. El cobro por enviar después el retiro es otro concepto y mantiene la regla de Honduras publicada en el PR 104.
 

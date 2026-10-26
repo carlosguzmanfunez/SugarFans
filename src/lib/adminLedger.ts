@@ -56,6 +56,7 @@ const purchaseOk = (c: CoinPurchase) => (c.status ?? 'paid') === 'paid';
 export interface Summary {
   cashIn: number; // what fans paid through PayPal
   paypalFees: number;
+  estimatedCollectionCosts: number;
   creators: number; // creators' part of sales, gifts and invite bonuses
   platform: number; // what Fans Reserve keeps
   refunded: number;
@@ -71,11 +72,13 @@ export const summarize = (txs: Transaction[], coins: CoinPurchase[], period: Per
   const tx = txs.filter((t) => inRange(t.createdAt, range));
   const cash = tx.filter((t) => CASH_KINDS.includes(t.kind) && t.status === 'paid');
   const bought = coins.filter((c) => inRange(c.createdAt, range) && purchaseOk(c));
+  const costSales=tx.filter(t=>CASH_KINDS.includes(t.kind)&&t.status!=='failed');
+  const costCoins=coins.filter(c=>inRange(c.createdAt,range));
   const gifts = tx.filter((t) => t.kind === 'gift' && t.status === 'paid');
 
-  const cashIn = round2(cash.reduce((s, t) => s + t.amount - (t.refundedAmount ?? 0), 0) + bought.reduce((s, c) => s + c.price, 0));
+  const cashIn = round2(cash.reduce((s, t) => s + t.amount - (t.refundedAmount ?? 0), 0) + bought.reduce((s, c) => s + c.price-(c.refundedAmount??0), 0));
   const paypalFees = round2(
-    cash.reduce((s, t) => s + (t.gatewayFee ?? feeEstimate(t.amount)) - (t.refundedGatewayFee ?? 0), 0) + bought.reduce((s, c) => s + feeEstimate(c.price), 0)
+    costSales.reduce((s, t) => s + (t.gatewayFee ?? feeEstimate(t.amount)) - (t.refundedGatewayFee ?? 0), 0) + costCoins.reduce((s, c) => s + (c.gatewayFee??feeEstimate(c.price))-(c.refundedGatewayFee??0), 0)
   );
   const creators = round2(tx.reduce((s, t) => s + creatorPart(t), 0));
   const lost = tx.filter((t) => t.kind !== 'referral' && (t.status === 'refunded' || t.status === 'disputed'));
@@ -92,6 +95,7 @@ export const summarize = (txs: Transaction[], coins: CoinPurchase[], period: Per
   return {
     cashIn,
     paypalFees,
+    estimatedCollectionCosts:costSales.filter(t=>t.collectionFeeStatus!=='verified').length+costCoins.filter(c=>c.collectionFeeStatus!=='verified').length,
     creators,
     platform: round2(cashIn - paypalFees - creators),
     refunded: round2(tx.filter((t) => t.kind !== 'referral').reduce((s, t) => s + (t.status === 'refunded' ? t.amount : t.refundedAmount ?? 0), 0)),
@@ -125,9 +129,14 @@ export const owedToCreators = (txs: Transaction[], payouts: Payout[], at = new D
   };
 };
 
-// Créditos bought and not spent yet (money fans still hold inside Fans Reserve).
-export const unspentCredits = (txs: Transaction[], coins: CoinPurchase[]) =>
-  round2(Math.max(0, coins.filter(purchaseOk).reduce((s, c) => s + c.price, 0) - txs.filter((t) => t.kind === 'gift' && t.status === 'paid').reduce((s, t) => s + t.amount, 0)));
+// Nominal gift value of each fan's remaining units, including pack bonuses and
+// partial refunds. A negative wallet never consumes another fan's balance.
+export const unspentCredits = (txs: Transaction[], coins: CoinPurchase[]) => {
+  const wallets=new Map<string|null,number>();
+  for(const c of coins.filter(purchaseOk))wallets.set(c.userId,(wallets.get(c.userId)??0)+c.coins-(c.refundedCoins??0));
+  for(const t of txs.filter(t=>t.kind==='gift'&&t.status==='paid'))wallets.set(t.payerId,(wallets.get(t.payerId)??0)-Math.round((t.amount-(t.refundedAmount??0))*100));
+  return round2([...wallets.values()].reduce((sum,units)=>sum+Math.max(0,units)/100,0));
+};
 
 export interface LedgerRow {
   id: string;
@@ -160,7 +169,7 @@ export const ledger = (txs: Transaction[], coins: CoinPurchase[], payouts: Payou
   for (const t of txs) {
     if (!inRange(t.createdAt, range)) continue;
     const isCash = CASH_KINDS.includes(t.kind);
-    const fee = isCash && t.status === 'paid' ? round2((t.gatewayFee ?? feeEstimate(t.amount)) - (t.refundedGatewayFee ?? 0)) : 0;
+    const fee = isCash && t.status !== 'failed' ? round2((t.gatewayFee ?? feeEstimate(t.amount)) - (t.refundedGatewayFee ?? 0)) : 0;
     const creator = creatorPart(t);
     const amount = isCash && t.status === 'paid' ? t.amount - (t.refundedAmount ?? 0) : 0;
     rows.push({
@@ -175,7 +184,7 @@ export const ledger = (txs: Transaction[], coins: CoinPurchase[], payouts: Payou
       platform: round2(amount - fee - creator),
       status:
         (statusLabel[t.status] ?? t.status) +
-        (isCash ? (t.collectionFeeStatus === 'verified' ? ' · Costo de PayPal comprobado' : ' · Costo de PayPal estimado') : '') +
+        (isCash ? (t.collectionFeeStatus === 'verified' ? (t.feeVerifiedLater?' · Costo de PayPal comprobado posteriormente; reparto original conservado':' · Costo de PayPal comprobado') : ' · Costo de PayPal estimado') : '') +
         (t.status === 'paid' && t.refundedAmount ? ` · Devuelto parcialmente $${t.refundedAmount.toFixed(2)}` : '') +
         (isCash && (t.status === 'refunded' || t.status === 'disputed') ? ` $${t.amount.toFixed(2)}` : '') +
         (t.platformCovers && t.status !== 'paid' ? ' (lo cubre Fans Reserve)' : ''),
@@ -184,18 +193,19 @@ export const ledger = (txs: Transaction[], coins: CoinPurchase[], payouts: Payou
   for (const c of coins) {
     if (!inRange(c.createdAt, range)) continue;
     const ok = purchaseOk(c);
-    const fee = ok ? feeEstimate(c.price) : 0;
+    const fee = round2((c.gatewayFee??feeEstimate(c.price))-(c.refundedGatewayFee??0));
+    const amount=ok?round2(c.price-(c.refundedAmount??0)):0;
     rows.push({
       id: c.id,
       at: c.createdAt,
       type: 'Compra de Créditos',
       who: c.userName ?? 'Fan',
-      amount: ok ? c.price : 0,
+      amount,
       fee,
       creator: 0,
-      platform: ok ? round2(c.price - fee) : 0,
-      feeSource: 'estimated',
-      status: (statusLabel[c.status ?? 'paid'] ?? String(c.status)) + ' · Costo de PayPal estimado',
+      platform: round2(amount-fee),
+      feeSource: c.collectionFeeStatus==='verified'?'verified':'estimated',
+      status: (statusLabel[c.status ?? 'paid'] ?? String(c.status)) + (c.collectionFeeStatus==='verified'?(c.feeVerifiedLater?' · Costo de PayPal comprobado posteriormente':' · Costo de PayPal comprobado'):' · Costo de PayPal estimado')+(c.refundedAmount&&ok?` · Devuelto parcialmente $${c.refundedAmount.toFixed(2)}`:''),
     });
   }
   for (const p of payouts) {

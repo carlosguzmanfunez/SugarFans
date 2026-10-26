@@ -1,5 +1,6 @@
 export type FinanceResult<T> = { ok: true; data: T } | { ok: false; error: string };
-export interface CreatorBalance { cutoff: string; available: number; reserved: number; pending: number; total_earned: number; holds?:{id:string;kind:'fee'|'safety'|'manual';created_at:string}[]; fee_adjustments?:{id:string;payout_id:string;estimated_fee:number;actual_fee:number;creator_delta:number;created_at:string;reversed_at:string|null}[] }
+export interface CreatorCostAdjustment {id:string;amount:number;estimated_fee:number;actual_fee:number;kind:'collection'|'payout';source_reference:string;reason:string;created_at:string;eligible_at:string;scheduled_from:string|null;pending:boolean;reversed:boolean;policy_version?:string}
+export interface CreatorBalance { cutoff: string; available: number; reserved: number; pending: number; total_earned: number; holds?:{id:string;kind:'fee'|'safety'|'manual';created_at:string}[]; fee_adjustments?:{id:string;payout_id:string;estimated_fee:number;actual_fee:number;creator_delta:number;created_at:string;reversed_at:string|null}[];cost_adjustments?:CreatorCostAdjustment[] }
 export interface FinanceCreator { user_id: string; creator_profile_id: string; name: string; available: number; next_cycle: number; fee: number; account: string; reason: string | null }
 export interface FinanceBatch { id: string; cutoff: string; version: number; state: 'frozen' | 'cancelled'; created_at: string; gross: number; items: number; held: number; paid: number; sending: number; reserved: number }
 export interface FinanceItem { id: string; user_id: string; creator_name: string; gross: number; fee: number; net: number; account: string; state: 'reserved' | 'held' | 'review' | 'released' | 'submitted'; reason: string | null; payout_status: string | null; payout_id: string | null; allocations: { source: string; kind: string; revision: number; amount: number }[] }
@@ -8,6 +9,12 @@ export interface FinanceAdjustment { id: string; user_id: string; name: string; 
 export interface FinanceOverview { cutoff: string; window_open: boolean; quote_hash: string; execution_enabled: boolean; creators: FinanceCreator[]; batches: FinanceBatch[]; adjustments: FinanceAdjustment[]; trial_balance: { code: string; label: string; debit: number; credit: number }[] }
 export interface FinanceJournalRow { id: string; sequence: number; at: string; creator: string; kind: string; reference: string; debit: string; credit: string; amount: number; currency: 'USD' }
 export interface FinanceBackend {
+ creatorTotals?():Promise<FinanceResult<{available:number;recoverable:number;pending:number;reserved:number;sending:number;paid:number}>>;
+ collectionCosts?(offset:number):Promise<FinanceResult<import('./collectionCosts').CollectionPage>>;
+ collectionPreview?(kind:import('./collectionCosts').CollectionKind,id:string):Promise<FinanceResult<import('./collectionCosts').CollectionCost>>;
+ collectionQuery?(kind:import('./collectionCosts').CollectionKind,id:string,key:string):Promise<FinanceResult<{issue:string|null}>>;
+ collectionResolve?(kind:import('./collectionCosts').CollectionKind,id:string,key:string,hash:string,evidence:string,reason:string):Promise<FinanceResult<{id:string;adjustment:string|null}>>;
+ collectionExport?():Promise<FinanceResult<import('./collectionCosts').CollectionCost[]>>;
  mode: 'remote' | 'local';
  balance(): Promise<FinanceResult<CreatorBalance>>;
  statement?(cycle:string,creator?:string):Promise<FinanceResult<import('./creatorStatement').CreatorStatement>>;

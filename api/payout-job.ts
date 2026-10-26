@@ -1,7 +1,7 @@
 // Bounded, resumable scheduled review. Deployment never enables money gates.
 import {timingSafeEqual} from 'node:crypto';
 import {sendEmail,logServerError} from './_mail.js';
-import {createStoredPayoutSession,recoverIncomingEvents} from './paypal.js';
+import {createStoredPayoutSession,recoverIncomingEvents,queryCollectionCost} from './paypal.js';
 import {createPayoutControl,payoutClock,payoutWorkLimit,type PayoutClock} from './_payout-provider.js';
 import {reviewScheduleStatus} from '../src/lib/payoutSchedule.js';
 const clean=(s:string|undefined)=>s?.trim().replace(/^["']|["']$/g,'').trim()||undefined;
@@ -100,7 +100,10 @@ export async function POST(request:Request):Promise<Response>{
  const identity=await user.json() as {id:string};
  const role=await fetch(e.url+'/rest/v1/rpc/is_admin',{method:'POST',headers:authHeaders,body:'{}',signal:AbortSignal.timeout(10000)});
  if(!role.ok||await role.json()!==true)return json(403,{error:'Esta revisión solo está disponible para administradores'});
- const body=await request.json().catch(()=>({})) as {action?:string};
+ const body=await request.json().catch(()=>({})) as {action?:string;kind?:unknown;source?:unknown;key?:unknown};
+ if(body.action==='collection-cost'){
+  try{return json(200,await queryCollectionCost(body.kind,body.source,body.key,token));}catch{return json(503,{error:'No pudimos comprobar el costo. El cobro, los Créditos y las ganancias originales se conservan.'});}
+ }
  if(body.action==='schedule-status')return json(200,reviewScheduleStatus());
  if(body.action==='recover-income'){
   try{return json(200,await recoverIncomingEvents());}catch{return json(503,{error:'No pudimos comprobar los avisos pendientes. Sus referencias se conservan.'});}
