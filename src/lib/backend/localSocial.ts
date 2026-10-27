@@ -216,5 +216,9 @@ export const createLocalSocial = (deps: Deps): SocialBackend => {
         return { ...st, follows: { ...st.follows, [creatorProfileId]: follow ? [...ids, user.id] : ids } };
       });
     },
+
+    async myFollows(user) {
+      return Object.entries(load().follows ?? {}).filter(([, ids]) => ids.includes(user.id)).map(([id]) => id);
+    },
   };
 };

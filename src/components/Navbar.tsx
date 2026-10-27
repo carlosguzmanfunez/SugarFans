@@ -64,7 +64,9 @@ const Navbar: React.FC = () => {
   // is explained in "Cómo funciona" (and offered on each creator's profile), so it has no
   // menu entry of its own. Live is not a pillar either (Open Live only with ENABLE_OPEN_LIVE).
   // #live is the "Está pasando ahora" section, so it also needs ENABLE_HAPPENING_NOW.
-  const onLanding = location.pathname === '/';
+  // A signed-in fan's Inicio is their own home, without the landing sections.
+  const onLanding = location.pathname === '/' && (!isAuthenticated || user?.role === 'creator');
+  const fanHome = isAuthenticated && user?.role !== 'creator';
   // A creator's requests, one tap away, with a red dot while some wait for an answer.
   const isCreator = isAuthenticated && user?.role === 'creator';
   const waiting = useReserveInbox(isCreator ? user : null);
@@ -239,7 +241,7 @@ const Navbar: React.FC = () => {
                   <Icon name="fa-star" className="w-5 text-iris-600" /> Para creadores
                 </Link>
               )}
-              <Link to="/#journey" className={mobileLinkCls('/#journey')} onClick={() => setShowMobile(false)}>
+              <Link to={fanHome ? '/help' : '/#journey'} className={mobileLinkCls(fanHome ? '/help' : '/#journey')} onClick={() => setShowMobile(false)}>
                 <Icon name="fa-circle-question" className="w-5 text-ink/40" /> Cómo funciona
               </Link>
               {isCreator && (

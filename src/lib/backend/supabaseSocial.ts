@@ -166,6 +166,11 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
     return error ? fail('No se pudo actualizar. Inténtalo de nuevo.') : ok;
   },
 
+  async myFollows(user) {
+    const { data } = await sb.from('follows').select('creator_profile_id').eq('user_id', user.id);
+    return ((data as Row[] | null) ?? []).map((r) => r.creator_profile_id as string);
+  },
+
   async publicCreators() {
     // Usernames stay empty until migration 20261010000004_creator_username_socials is applied.
     const [{ data }, names] = await Promise.all([sb.rpc('public_creators'), sb.rpc('creator_usernames')]);

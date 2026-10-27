@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { useCreatorCatalog } from '../lib/catalog';
 import Hero from '../components/landing/Hero';
 import CreatorHome from '../components/landing/CreatorHome';
+import FanHome from '../components/landing/FanHome';
 import { useAuth } from '../context/AuthContext';
 import CategoryGrid from '../components/landing/CategoryGrid';
 import HappeningNow from '../components/landing/HappeningNow';
@@ -17,6 +18,9 @@ const Landing: React.FC = () => {
   const { user } = useAuth();
   const root = useRef<HTMLDivElement>(null);
   useLandingMotion(root);
+
+  // Fans get their own home: their Reserves, their creators, what's new.
+  if (user && user.role !== 'creator') return <FanHome creators={creators} />;
 
   return (
     <div ref={root} className="lv2 min-h-screen">
