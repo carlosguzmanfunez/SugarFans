@@ -100,7 +100,7 @@ export interface GiftsBackend {
   sentGifts(user: User): Promise<SentGift[]>;
   giftSettings(creatorProfileId: string): Promise<CreatorGiftSettings>;
   saveGiftSettings(user: User, settings: CreatorGiftSettings): Promise<AuthResult>;
-  // Perks the fan is owed (fan) or owes (creator). Refunds the overdue ones first.
+  // Historic benefits owed to a fan / by a creator; expiry is not an automatic refund.
   perkRequests(user: User): Promise<PerkRequest[]>;
   deliverVideo(user: User, perkId: string, media: MediaUpload): Promise<AuthResult>;
   scheduleCall(user: User, perkId: string, date: string, time: string): Promise<AuthResult>;
