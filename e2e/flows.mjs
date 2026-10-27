@@ -515,7 +515,7 @@ const run = async () => {
       await page.getByTestId('fan-home').waitFor();
       expect(await page.locator('a[href^="/register"]').count() === 0, 'la portada enlaza al registro con sesión iniciada');
       expect(!(await page.locator('body').innerText()).includes('Crear cuenta gratis'), 'sigue apareciendo Crear cuenta gratis');
-      await page.getByTestId('home-search').waitFor();
+      await page.getByTestId('home-feed').waitFor();
       expect(await page.locator('#creator-cta-title').count() === 0, 'un fan ve la invitación a registrarse como creador');
     });
     await check('Cerrar sesión funciona y persiste tras recargar', async () => {
