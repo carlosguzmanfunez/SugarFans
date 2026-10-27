@@ -17,6 +17,13 @@ const body=()=>({requestKey:randomUUID(),kind:'support',targetLabel:'Ayuda',reas
 const call=(data=body(),headers={})=>api.POST(new Request('https://fansreserve.example.invalid/api/reports',{method:'POST',headers:{'content-type':'application/json','x-vercel-forwarded-for':'203.0.113.10',...headers},body:typeof data==='string'?data:JSON.stringify(data)}));
 const check=async(name,fn)=>{requests=[];await fn();passed++;console.log('PASS '+name);};
 try{
+ await check('Public defaults work without Vite runtime variables; a missing private key still closes the route',async()=>{
+  const saved={SUPABASE_URL:process.env.SUPABASE_URL,SUPABASE_ANON_KEY:process.env.SUPABASE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY:process.env.SUPABASE_SERVICE_ROLE_KEY};
+  delete process.env.SUPABASE_URL;delete process.env.SUPABASE_ANON_KEY;
+  assert.equal((await call({requestKey:'invalid'})).status,400);assert.equal(requests.length,0);
+  delete process.env.SUPABASE_SERVICE_ROLE_KEY;assert.equal((await call()).status,503);assert.equal(requests.length,0);
+  Object.assign(process.env,saved);
+ });
  await check('Guest support uses a keyed IP hash and the service-only writer',async()=>{assert.equal((await call()).status,200);const r=requests[0];assert.equal(r.body.p_actor,null);assert.match(r.body.p_ip_key,/^[a-f0-9]{64}$/);assert.ok(!JSON.stringify(r.body).includes('203.0.113.10'));assert.equal(r.headers.apikey,'sb_secret_qa_private');});
  await check('A forged body actor or IP is ignored; Auth supplies the real actor',async()=>{assert.equal((await call({...body(),p_actor:randomUUID(),p_ip_key:'a'.repeat(64)},{authorization:'Bearer QA_TOKEN'})).status,200);assert.equal(requests[0].path,'/auth/v1/user');assert.equal(requests[1].body.p_actor,user);assert.notEqual(requests[1].body.p_ip_key,'a'.repeat(64));assert.equal(requests[1].headers.authorization,undefined);});
  await check('An expired or malformed login never becomes an anonymous submission',async()=>{authOk=false;assert.equal((await call(body(),{authorization:'Bearer EXPIRED'})).status,401);assert.equal(requests.length,1);authOk=true;requests=[];assert.equal((await call(body(),{authorization:'Invalid'})).status,401);assert.equal(requests.length,0);});

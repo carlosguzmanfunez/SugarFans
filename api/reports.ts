@@ -11,8 +11,11 @@ const serverHeaders=(key:string):Record<string,string>=>key.startsWith('eyJ')?{a
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export async function POST(request:Request){
  const service=clean(process.env.SUPABASE_SERVICE_ROLE_KEY);
- const base=clean(process.env.SUPABASE_URL||process.env.VITE_SUPABASE_URL);
- const publicKey=clean(process.env.SUPABASE_ANON_KEY||process.env.VITE_SUPABASE_ANON_KEY);
+ // Public defaults match the tracked .env.production and existing API routes.
+ // Vite reads that file at build time; Node Functions do not load it at runtime.
+ // QA always supplies an explicit URL/key; the private service key has no default.
+ const base=clean(process.env.SUPABASE_URL||process.env.VITE_SUPABASE_URL)||'https://odugxvqwuvewsvifwmwb.supabase.co';
+ const publicKey=clean(process.env.SUPABASE_ANON_KEY||process.env.VITE_SUPABASE_ANON_KEY)||'sb_publishable_vuRosXd_owmQ4KeeExEAPQ_d32g6WEL';
  if(!service||!base||!publicKey)return json(503,{ok:false,error:'El soporte no está disponible temporalmente. Intenta de nuevo más tarde.'});
  try{
   const origin=request.headers.get('origin');
