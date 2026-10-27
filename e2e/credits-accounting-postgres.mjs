@@ -33,10 +33,9 @@ finish(async () => {
     giftId = as(payer, `select public.send_gift('${cp}','QA Creator','tarta',
       null,'QA gift no promised perk',null)`);
     expect(balance() === 1500, `saldo del fan incorrecto: ${balance()}`);
-    const gift = psql(DB,`select amount || ':' || creator_share || ':' || status
+    const giftOk = psql(DB,`select (amount=5 AND creator_share=0.6 AND status='paid')
       from public.transactions where id='${giftId}'`);
-    expect(gift === '5.00:0.6:paid' || gift === '5.00:0.60:paid' || gift === '5:0.6:paid',
-      `venta no corresponde a $5 y 60%: ${gift}`);
+    expect(giftOk === 't', 'el regalo no registra $5, 60% y pago confirmado');
     const delta = Number((creatorAccrued() - creatorBefore).toFixed(2));
     expect(delta === 3, `la cuenta del creador no recibió USD 3: ${delta}`);
     expect(psql(DB,`select count(*) from public.perk_requests where transaction_id='${giftId}'`) === '0',
