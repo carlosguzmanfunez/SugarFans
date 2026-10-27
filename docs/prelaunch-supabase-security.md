@@ -1,5 +1,7 @@
 # Preparación de lanzamiento: seguridad de Supabase
 
+> Actualización del 27 de octubre: las seis protecciones de PR113 ya se aplicaron a producción y se comprobó que los saldos no variaron y los envíos permanecen apagados. Las secciones siguientes describen la preparación histórica. El control adicional por conexión se desarrolla y prueba en QA; su orden de publicación y resultados están en [Protección de reportes](operations/report-submission-gateway.md).
+
 ## Alcance activo (26 oct 2026)
 1. Autorización por roles / RLS y privacidad financiera.
 2. Seguridad y pruebas de reservas, videollamadas y datos.

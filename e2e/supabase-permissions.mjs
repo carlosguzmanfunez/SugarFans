@@ -3,10 +3,18 @@
 // test as anon, fan, creator and admin. NEVER connects to production or PayPal.
 // Usage: npm run test:supabase-permissions
 import { createDbTest } from './db-harness.mjs';
+import { randomUUID, createHash } from 'node:crypto';
 
 const DB = 'fr_permission_audit_test';
 const { check, expect, psql, as, raises, setup, user, finish } = createDbTest(DB);
 const guest = (sql) => psql(DB, `begin; set local role anon; ${sql}; commit;`);
+const lit = v => v == null ? 'null' : "'" + String(v).replaceAll("'", "''") + "'";
+const report = (actor, email, description = 'Mensaje de soporte válido de QA') => {
+  const request = randomUUID();
+  const ipKey = createHash('sha256').update(request).digest('hex');
+  return psql(DB, `set role service_role; select public.report_submit_checked(
+    ${lit(actor)},${lit(ipKey)},${lit(request)},'support',null,'Ayuda','Consulta',${lit(description)},${lit(email)})`);
+};
 
 finish(async () => {
   setup();
@@ -60,28 +68,26 @@ finish(async () => {
   });
   await check('Soporte anónimo sigue permitido, sin revelar reportes privados', () => {
     const guestMail = 'qa-guest-report@test.local';
-    guest(`select public.submit_report('support',null,'Soporte','Consulta',
-      'Mensaje de prueba con longitud válida', '${guestMail}')`);
+    report(null, guestMail);
     expect(psql(DB, `select count(*) from public.reports where contact_email='${guestMail}'`) === '1', 'no se recibió el reporte anónimo');
     expect(guest('select count(*) from public.reports') === '0', 'los visitantes pueden leer reportes privados');
     raises(() => guest(`select public.submit_report('support',null,'Soporte','Consulta',
-      repeat('x',4001),'qa-large@test.local')`), /entre 10 y 4000 caracteres/, 'texto de 4001 caracteres');
+      'Mensaje de prueba con longitud válida','qa-direct@test.local')`), /permission denied/i, 'el acceso antiguo no evita el filtro');
+    raises(() => report(null, 'qa-large@test.local', 'x'.repeat(4001)), /entre 10 y 4000 caracteres/, 'texto de 4001 caracteres');
   });
   await check('Reportes repetidos se limitan por identidad sin bloquear a otros', () => {
     const guestMail = 'qa-guest-report@test.local';
     for (let i = 2; i <= 5; i++) {
-      guest(`select public.submit_report('support',null,'Soporte','Consulta',
-        'Reporte válido de prueba ' || '${i}', '${guestMail}')`);
+      report(null, guestMail);
     }
-    raises(() => guest(`select public.submit_report('support',null,'Soporte','Consulta',
-      'Sexta consulta debe bloquearse', '${guestMail}')`),
+    raises(() => report(null, guestMail),
       /muchos reportes/i,'tope público de cinco reportes por hora');
     for (let i = 1; i <= 10; i++) {
-      as(fan, `select public.submit_report('other',null,'QA','Consulta','Reporte válido de fan número ${i}',null)`);
+      report(fan, null);
     }
-    raises(() => as(fan, `select public.submit_report('other',null,'QA','Consulta','Intento once de fan',null)`),
+    raises(() => report(fan, null),
       /muchos reportes/i,'tope de diez reportes por hora');
-    as(stranger, `select public.submit_report('other',null,'QA','Consulta','El otro fan puede reportar',null)`);
+    report(stranger, null);
     expect(psql(DB, `select count(*) from public.reports where reporter_id='${stranger}'`) === '1', 'limitó a un fan distinto');
   });
   await check('Un beneficio heredado vencido NO reembolsa regalos ni devuelve Créditos', () => {
