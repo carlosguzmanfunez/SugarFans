@@ -77,3 +77,7 @@ Proyecto QA: `fansreserve-qa-payouts`; migración `20261026223245_prelaunch_fina
 - Resolver 403 al consultar logs de Vercel.
 - Alinear QA con todas las migraciones de producción antes de certificar el lanzamiento: la muestra de QA no equivale a validar automáticamente todos los cambios recientes.
 - Revisar y aprobar cualquier cambio de permisos en una pull request; no automatizar su despliegue a producción desde esta auditoría.
+
+
+## Cierre técnico de QA (26 oct Honduras / 27 oct UTC)
+Las comprobaciones que este documento dejaba pendientes se ejecutaron después. **305/305 comprobaciones en 18 suites aprobadas**, junto con typecheck y build; véase [certificación detallada](qa-certification-pr113.md). Se alinearon horarios y protección de referencias archivadas solo en QA. El acceso real detectó y permitió corregir la clasificación de errores con ambas claves de servicio mediante `20261027015737_prelaunch_verified_log_source.sql`. Se confirmó además en QA una compra, regalo y dos devoluciones ficticias con decisiones simultáneas, sin saldos duplicados. Producción y PayPal no se modificaron; la PR permanece sin fusionar y el lanzamiento comercial continúa NO-GO.

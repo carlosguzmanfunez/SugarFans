@@ -4,6 +4,9 @@ import { spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 
 export const createDbTest = (DB) => {
+  if (!['127.0.0.1', 'localhost', '::1'].includes(process.env.PGHOST)
+      || !/^fr_[a-z0-9_]+$/.test(DB))
+    throw new Error('Database tests require explicit local PGHOST and a disposable fr_* database');
   const results = [];
   const check = async (name, fn) => {
     try {
@@ -20,9 +23,10 @@ export const createDbTest = (DB) => {
   };
 
   const psql = (db, input) => {
-    const r = spawnSync('psql', ['-X', '-q', '-At', '-v', 'ON_ERROR_STOP=1', '-d', db], { input, encoding: 'utf8' });
+    const sql = process.platform === 'win32' ? input.replaceAll('\\g /dev/null', '\\g NUL') : input;
+    const r = spawnSync('psql', ['-X', '-q', '-At', '-v', 'ON_ERROR_STOP=1', '-d', db], { input: sql, encoding: 'utf8' });
     if (r.status !== 0) throw new Error((r.stderr || r.stdout).trim());
-    return r.stdout.trim();
+    return r.stdout.replaceAll('\r\n', '\n').trim();
   };
   // Runs as a signed-in user through row security, like the app does.
   const nullSink = process.platform === 'win32' ? 'NUL' : '/dev/null';
@@ -48,9 +52,9 @@ export const createDbTest = (DB) => {
   create table auth.sessions (id uuid primary key default gen_random_uuid(), user_id uuid references auth.users(id) on delete cascade);
   create table auth.refresh_tokens (id bigserial primary key, user_id text, session_id uuid references auth.sessions(id) on delete cascade);
   create table auth.identities (id uuid primary key default gen_random_uuid(), user_id uuid, provider text);
-  create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
-  create function auth.role() returns text language sql stable as $$ select current_setting('request.jwt.claim.role', true) $$;
-  create function auth.jwt() returns jsonb language sql stable as $$ select '{}'::jsonb $$;
+  create function auth.uid() returns uuid language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claim.sub', true), ''),nullif(current_setting('request.jwt.claims', true), '')::jsonb->>'sub')::uuid $$;
+  create function auth.role() returns text language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claim.role', true), ''),nullif(current_setting('request.jwt.claims', true), '')::jsonb->>'role') $$;
+  create function auth.jwt() returns jsonb language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claims', true), '')::jsonb,'{}'::jsonb) $$;
   grant usage on schema auth to anon, authenticated;
   create schema storage;
   create table storage.buckets (id text primary key, name text, public boolean default false, file_size_limit bigint, allowed_mime_types text[]);

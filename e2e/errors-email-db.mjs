@@ -67,6 +67,20 @@ finish(async () => {
       order by source`).split('\n');
     expect(labels.join(',') === 'api,email', `el servidor perdió su clasificación: ${labels}`);
   });
+  await check('El contexto JSON real de PostgREST reconoce al servicio y rechaza al fan', () => {
+    for (const role of ['service_role', 'authenticated']) {
+      for (const source of ['api', 'email']) {
+        const message = `QA JSON claims ${role} ${source}`;
+        psql(DB, `begin; set local role ${role};
+          set local request.jwt.claim.role='';
+          set local request.jwt.claim.sub='';
+          set local request.jwt.claims='${JSON.stringify({role, ...(role === 'authenticated' ? {sub: fan} : {})})}';
+          select public.log_app_error('${source}','${message}','','',''); commit;`);
+        expect(psql(DB, `select source from public.app_errors where message='${message}'`) ===
+          (role === 'service_role' ? source : 'web'), 'origen incorrecto con claims JSON');
+      }
+    }
+  });
   await check('Más de 500 errores distintos en una hora no llenan la base', async () => {
     psql(DB, `select public.log_app_error('api', 'lote ' || md5(i::text) || 'zz' || chr(65 + i % 26) || chr(65 + i / 26 % 26), '', '', '') from generate_series(1, 600) i`);
     const n = Number(psql(DB, `select count(*) from public.app_errors where hour = date_trunc('hour', now())`));
