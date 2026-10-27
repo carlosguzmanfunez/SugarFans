@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';import {randomUUID} from 'node:crypto';
-import {mkdtempSync,rmSync} from 'node:fs';import {tmpdir} from 'node:os';import {join} from 'node:path';import {pathToFileURL} from 'node:url';import {build} from 'esbuild';
+import {mkdtempSync,rmSync,writeFileSync} from 'node:fs';import {tmpdir} from 'node:os';import {join} from 'node:path';import {pathToFileURL} from 'node:url';import {build} from 'esbuild';
 const dir=mkdtempSync(join(tmpdir(),'report-gateway-'));
-await build({entryPoints:['api/reports.ts'],outfile:join(dir,'api.mjs'),bundle:true,platform:'node',format:'esm',logLevel:'silent'});
+// Preserve native ESM imports, matching Vercel's runtime rather than hiding
+// missing frontend dependencies inside an esbuild bundle.
+writeFileSync(join(dir,'package.json'),'{"type":"module"}');
+await build({entryPoints:['api/reports.ts','api/_mail.ts','src/lib/reportRules.ts'],outbase:'.',outdir:dir,bundle:false,platform:'node',format:'esm',logLevel:'silent'});
 Object.assign(process.env,{VERCEL:'1',SUPABASE_URL:'https://qa-reports.example.invalid',SUPABASE_ANON_KEY:'sb_publishable_qa',SUPABASE_SERVICE_ROLE_KEY:'sb_secret_qa_private'});
-const api=await import(pathToFileURL(join(dir,'api.mjs')).href),real=globalThis.fetch;let requests=[],authOk=true,storageStatus=200,storageBody={},passed=0;
+const api=await import(pathToFileURL(join(dir,'api/reports.js')).href),real=globalThis.fetch;let requests=[],authOk=true,storageStatus=200,storageBody={},passed=0;
 const user=randomUUID(),result=(status,data)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json'}});
 globalThis.fetch=async(input,init={})=>{const u=new URL(String(input));assert.equal(u.origin,process.env.SUPABASE_URL,'No external network');requests.push({path:u.pathname,headers:init.headers,body:init.body?JSON.parse(init.body):null});
  if(u.pathname==='/auth/v1/user')return result(authOk?200:401,authOk?{id:user}:{});

@@ -2,7 +2,7 @@
 // from this server, never from fields supplied by the browser.
 import {createHmac} from 'node:crypto';
 import {isIP} from 'node:net';
-import {validateReport} from '../src/lib/platformRules.js';
+import {validateReport} from '../src/lib/reportRules.js';
 import type {ReportInput} from '../src/lib/backend/platformTypes.js';
 import {logServerError} from './_mail.js';
 const clean=(v:string|undefined)=>v?.trim().replace(/^["']|["']$/g,'').trim();
