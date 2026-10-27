@@ -43,6 +43,14 @@ Proyecto QA: `fansreserve-qa-payouts`; migración `20261026223245_prelaunch_fina
 - **Cobros reales:** política comercial sin devolución voluntaria no elimina los derechos irrenunciables del consumidor ni las facultades de PayPal/issuer para revertir transacciones según sus términos.
 - **Atención:** la migración de esta sección sustituye en orden a `20261026231108_prelaunch_scope_overdue_perk_settlement`; esta última queda superada en su parte de caducidad. No aplicar la migración nueva fuera de orden.
 
+## Certificación contable básica de Créditos y regalos (QA, sin PayPal LIVE)
+- **Compra y regalo normal:** prueba SQL directamente en QA, con usuario sintético y `BEGIN…ROLLBACK`: compra de 2000 Créditos por USD 19.99; regalo de 500 Créditos (USD 5); quedan 1500 Créditos. `public.finance_sources` incrementó **USD 3** para el creador (60%) y el regalo no generó beneficios nuevos.
+- **Reversión excepcional interna:** una segunda prueba SQL llamó al procedimiento financiero `finance_private.income_money_back` con referencia ficticia; la compra pasó a `refunded`, se revirtieron los regalos pagados con esos Créditos, el saldo se concilió a 0 y la variación en el libro del creador volvió a 0. Repetir la rutina no generó un segundo ajuste. **Se revirtió todo con ROLLBACK.**
+- **Limitaciones de alcance:** esta simulación invocó una rutina interna y no certifica la validación de firma, la prueba del proveedor ni todas las restricciones diferidas que pueden ejecutarse al hacer COMMIT. Un intento posterior de forzar la validación inmediata de restricciones en QA fue bloqueado por controles de la herramienta; **no puede declararse una prueba de reembolso completo aprobada**.
+- La interfaz no debe ofrecer reembolsos voluntarios por no usar Créditos; pero el módulo de disputa/contracargo de PayPal debe permanecer operativo para excepciones reales.
+- Nueva prueba automatizada propuesta: `npm run test:credits-ledger`. Usa un PostgreSQL local desechable con migraciones y escenarios sintéticos. **Aún no ejecutada:** este entorno no tiene `psql`, por tanto su resultado está pendiente; el chequeo de Vercel no es sustituto de la suite.
+- **Antes del lanzamiento:** verificar las reglas de reconocimientos contables de Créditos prepagados, los saldos de los creadores ante contracargos, los registros del libro financiero y la repetición del mismo webhook. Para aceptar una devolución excepcional como conciliada se necesita evidencia del proveedor y ejecución completa de la transacción con validaciones diferidas.
+
 ## Evidencia (comprobada en QA)
 - Supabase Advisors: advertencias de funciones privilegiadas ejecutables anónimamente: **28 → 27**; advertencias `auth_rls_initplan` en las dos tablas de PayPal: **2 → 0**.
 - Probar una transacción de regalo con datos ficticios dentro de `BEGIN...ROLLBACK` dio:
