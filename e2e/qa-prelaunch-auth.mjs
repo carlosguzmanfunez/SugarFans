@@ -50,7 +50,8 @@ for(const u of accounts)await check(`Sesión real y permisos de ${u.role}`,async
   const message=`QA113 ${u.role} spoof ${randomUUID()}`;
   assert.equal((await c.rpc('log_app_error',{p_source:'api',p_message:message})).error,null);
   const row=await service.from('app_errors').select('source').eq('message',message).single();assert.equal(row.error,null);assert.equal(row.data.source,'web');
- }finally{await c.auth.signOut();}
+ // End only this test session; other QA runs may use the same synthetic actor.
+ }finally{await c.auth.signOut({scope:'local'});}
 });
 await check('El visitante no consulta reservas ni importes del ranking privado',async()=>{
  const c=client(pub),rows=await c.from('vip_bookings').select('id').limit(1);assert.equal(rows.error,null);assert.equal(rows.data.length,0);
