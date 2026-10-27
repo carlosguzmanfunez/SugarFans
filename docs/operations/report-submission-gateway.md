@@ -30,7 +30,7 @@ QA ya tiene ambas fases. La llamada HTTP local a la nueva ruta utilizó Auth y a
 | Comprobación | Resultado |
 | --- | --- |
 | PostgreSQL local: límites, atribución, referencias y concurrencia independiente | 10/10 |
-| Ruta HTTP con proveedor de almacenamiento simulado | 11/11 |
+| Ruta HTTP nativa ESM con proveedor de almacenamiento simulado | 12/12 |
 | Permisos completos del visitante, fan, creador y administrador | 9/9 |
 | Nueva ruta con Auth y almacenamiento alojados en Supabase QA | 5/5 |
 | Auth real de QA, claves del servidor y separación de permisos | 10/10 |
@@ -48,4 +48,5 @@ La protección de contraseñas filtradas figura pendiente. Supabase la ofrece en
 ## Estado de producción
 
 Las seis protecciones anteriores de PR113 se aplicaron el 27 de octubre. Los saldos y libros conservaron sus cantidades y los dos controles de envío permanecieron apagados. Las dos migraciones **nuevas de este cambio** se probaron en QA; no se aplicaron a producción.
+
 
