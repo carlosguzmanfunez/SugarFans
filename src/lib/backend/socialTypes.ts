@@ -126,6 +126,4 @@ export interface SocialBackend {
   creatorCountries(): Promise<Record<string, string>>;
   followState(creatorProfileId: string, viewer: User | null): Promise<FollowState>;
   setFollow(user: User, creatorProfileId: string, follow: boolean): Promise<AuthResult>;
-  // Creator profile ids the user follows (their own follows only).
-  myFollows(user: User): Promise<string[]>;
 }

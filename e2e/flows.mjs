@@ -512,10 +512,10 @@ const run = async () => {
     });
     await check('Con sesión de fan la portada no ofrece crear cuenta ni empezar como creador', async () => {
       await page.goto(`${BASE}/`);
-      await page.getByTestId('fan-home').waitFor();
+      await page.locator('#hero-title').waitFor();
       expect(await page.locator('a[href^="/register"]').count() === 0, 'la portada enlaza al registro con sesión iniciada');
       expect(!(await page.locator('body').innerText()).includes('Crear cuenta gratis'), 'sigue apareciendo Crear cuenta gratis');
-      await page.getByTestId('home-feed').waitFor();
+      await page.locator('#hero-title').locator('..').getByRole('link', { name: /Explorar creadores/ }).waitFor();
       expect(await page.locator('#creator-cta-title').count() === 0, 'un fan ve la invitación a registrarse como creador');
     });
     await check('Cerrar sesión funciona y persiste tras recargar', async () => {
@@ -3165,7 +3165,7 @@ const run = async () => {
       await login(p, 'fan@sugarfans.com', 'demo1234');
       await p.waitForURL((u) => new URL(u).pathname !== '/login');
       await p.goto(`${BASE}/`);
-      await p.getByTestId('fan-home').waitFor();
+      await p.locator('#hero-title').waitFor();
       expect((await p.locator('.pcover').count()) === 0, 'un fan con sesión ve la presentación en video');
       await ctx.close();
     });
@@ -3173,7 +3173,7 @@ const run = async () => {
       const ctx = await newContext(browser, { viewport: { width: 1366, height: 768 }, locale: 'es-ES' });
       const p = await newPage(ctx);
       await register(p, { name: 'Fan Portada', email: `portada${Date.now()}@test.com`, password: 'secreta123', from: '/' });
-      await p.getByTestId('fan-home').waitFor();
+      await p.locator('#hero-title').waitFor();
       expect(new URL(p.url()).pathname === '/', 'tras registrarse en la portada no queda en /');
       await ctx.close();
     });
