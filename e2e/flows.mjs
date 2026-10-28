@@ -2884,7 +2884,7 @@ const run = async () => {
       await tabs.getByRole('link', { name: 'Explorar', exact: true }).tap();
       await waitPath(m, '/explore');
       await m.getByTestId('category-rail').waitFor();
-      await m.getByTestId('explore-shelves').waitFor();
+      await m.getByTestId('explore-mosaic').waitFor();
       expect((await tabs.getByRole('link', { name: 'Explorar', exact: true }).getAttribute('aria-current')) === 'page', 'Explorar no queda marcada');
       await tabs.getByRole('link', { name: 'Reserve', exact: true }).tap();
       await waitPath(m, '/reserve');
@@ -2905,7 +2905,7 @@ const run = async () => {
         });
       };
       await m.goto(`${BASE}/explore`);
-      await m.getByTestId('explore-shelves').waitFor();
+      await m.getByTestId('explore-mosaic').waitFor();
       await bottom();
       await tabs.getByRole('link', { name: 'Inicio', exact: true }).tap();
       await waitPath(m, '/');
@@ -2915,7 +2915,7 @@ const run = async () => {
       await tabs.getByRole('link', { name: 'Explorar', exact: true }).tap();
       await waitPath(m, '/explore');
       expect((await scrolled()) === 0, 'Explorar no abrió desde arriba');
-      await m.getByTestId('explore-shelves').waitFor();
+      await m.getByTestId('explore-mosaic').waitFor();
       await m.goto(`${BASE}/reserve`);
       await bottom();
       await tabs.getByRole('link', { name: 'Reserve', exact: true }).tap();

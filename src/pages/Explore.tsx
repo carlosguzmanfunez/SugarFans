@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { categories, posts } from '../data/mockData';
 import { useCreatorCatalog, useCreatorCountries, useVipCreatorIds } from '../lib/catalog';
-import CreatorCard from '../components/CreatorCard';
+import { CreatorTile } from '../components/CreatorCard';
 import Avatar from '../components/Avatar';
 import { CoverImage } from '../components/CoverArt';
 import { categoryFor, isKnownCategory } from '../config/reserve';
@@ -11,7 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { usePlatformQuery, platformApi, isCutOff } from '../lib/platform';
 import { useLiveCreatorIds } from '../lib/live';
 import { CategoryRail, LiveRail } from '../components/AppRails';
-import { CategoryHeader, CategoryShelf, shelvesFor } from '../components/ExploreShelves';
+import { CategoryHeader } from '../components/CategoryHeader';
 import { ENABLE_OPEN_LIVE } from '../config/features';
 import { useLanguage } from '../context/LanguageContext';
 import { countryName } from '../config/countries';
@@ -56,7 +56,6 @@ const Explore: React.FC = () => {
   const liveOnly = ENABLE_OPEN_LIVE && params.has('live');
   const visibleCreators = creators.filter((c) => !hidden(c.id));
   const liveIds = useLiveCreatorIds(visibleCreators.map((c) => c.id));
-  const browsing = !searchQuery && !selectedCategory && !selectedCountry && !liveOnly;
 
   const filteredCreators = featuredFirst(creators, featured).filter(c => {
     if (hidden(c.id)) return false;
@@ -78,21 +77,6 @@ const Explore: React.FC = () => {
   // Only categories that have creators get a circle (the selected one always stays).
   const usedCategories = new Set<string>(visibleCreators.filter((c) => c.category).map((c) => categoryFor(c.category).id));
   const railCategories = categories.filter((c) => usedCategories.has(c.id) || c.name === selectedCategory);
-  const pickCategory = (name: string) => {
-    setSelectedCategory(name);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-  const card = (creator: (typeof creators)[number]) => (
-    <CreatorCard
-      key={creator.id}
-      creator={creator}
-      level={featuredIds.get(creator.id)}
-      featured={featuredIds.has(creator.id)}
-      featuredLabel={rising.has(creator.id) ? 'En ascenso' : 'Destacado'}
-      vip={vipIds.has(creator.id)}
-      className="w-full"
-    />
-  );
 
   const topPlace = [selectedCategory, selectedCountry && nameOf(selectedCountry)].filter(Boolean).join(' · ');
 
@@ -212,25 +196,19 @@ const Explore: React.FC = () => {
           </section>
         )}
 
-        {/* Nothing picked yet: one shelf per category, Netflix-style. */}
-        {viewMode === 'creators' && browsing && (
-          <div className="space-y-9 sm:space-y-12" data-testid="explore-shelves">
-            {shelvesFor(filteredCreators).map((shelf) => (
-              <CategoryShelf
-                key={shelf.category.id}
-                category={shelf.category}
-                members={shelf.members}
-                onSeeAll={shelf.filterable ? () => pickCategory(shelf.category.name) : undefined}
-                renderCard={card}
+        {/* Every creator as a small tile, two per row on a phone. */}
+        {viewMode === 'creators' && (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5" data-testid="explore-mosaic">
+            {filteredCreators.map((creator) => (
+              <CreatorTile
+                key={creator.id}
+                creator={creator}
+                level={featuredIds.get(creator.id)}
+                featured={featuredIds.has(creator.id)}
+                featuredLabel={rising.has(creator.id) ? 'En ascenso' : 'Destacado'}
+                vip={vipIds.has(creator.id)}
               />
             ))}
-          </div>
-        )}
-
-        {/* A category, a country or a search: every match in one grid. */}
-        {viewMode === 'creators' && !browsing && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {filteredCreators.map(card)}
           </div>
         )}
 

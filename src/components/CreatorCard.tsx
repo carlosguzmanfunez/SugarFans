@@ -91,4 +91,62 @@ const CreatorCard: React.FC<{
   );
 };
 
+// Small tile for Explorar's mosaic: two per row on a phone, so a screen shows six
+// to eight creators. Same badges and test ids as the full card.
+export const CreatorTile: React.FC<{
+  creator: Creator;
+  level?: LevelId;
+  featured?: boolean;
+  featuredLabel?: string;
+  vip?: boolean;
+}> = ({ creator, level, featured = false, featuredLabel = 'Destacado', vip = false }) => {
+  const visual = creator.category ? categoryVisual(creator.category) : null;
+  return (
+    <Link
+      to={`/creator/${creator.id}`}
+      className="card card-hover group relative flex flex-col overflow-hidden"
+      data-testid="creator-card"
+    >
+      <CoverImage src={creator.cover} seed={creator.id + creator.name} className="h-16 sm:h-20">
+        <div className="absolute inset-x-2 top-2 flex justify-end gap-1">
+          {featured && (
+            <span data-testid="featured-tag" className="rounded-full bg-white/90 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-brand-700">
+              {featuredLabel}
+            </span>
+          )}
+          {vip && (
+            <span className="inline-flex items-center rounded-full bg-night-900/80 px-1.5 py-0.5 text-[9px] text-gold-200 ring-1 ring-gold-300/30" title="Tiene Reserve">
+              <i className="fas fa-ticket" aria-hidden="true"></i>
+              <span className="sr-only">Reserve</span>
+            </span>
+          )}
+        </div>
+      </CoverImage>
+      <div className="relative flex flex-1 flex-col px-3 pb-3">
+        <Avatar src={creator.avatar} name={creator.name} size={52} className="-mt-7 ring-[3px] ring-white shadow-md" />
+        <div className="mt-2 flex min-w-0 items-center gap-1">
+          <h3 className="truncate text-sm font-semibold text-ink">{creator.name}</h3>
+          {creator.isVerified && !isDemoProfile(creator) && (
+            <i className="fas fa-circle-check shrink-0 text-[11px] text-iris-600" role="img" title="Identidad verificada" aria-label="Identidad verificada"></i>
+          )}
+        </div>
+        {creator.category && (
+          <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-muted">
+            <i className={`fas ${visual!.icon} text-[10px]`} aria-hidden="true"></i>
+            <span className="truncate">{categoryFor(creator.category).name}</span>
+          </p>
+        )}
+        <div className="flex flex-wrap items-center gap-1 [&>*]:ml-0">
+          <ManagedBadge creator={creator} />
+          <LevelBadge level={level} />
+        </div>
+        <p className="mt-auto pt-2 text-xs font-semibold text-ink">
+          {formatPrice(creator.subscriptionPrice)}
+          <span className="font-normal text-muted">/mes</span>
+        </p>
+      </div>
+    </Link>
+  );
+};
+
 export default CreatorCard;
