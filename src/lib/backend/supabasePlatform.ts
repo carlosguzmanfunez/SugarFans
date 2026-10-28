@@ -333,15 +333,19 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
   async submitReport(reporter, input) {
     const check = validateReport(input, !!reporter);
     if (!check.ok) return check;
-    const { error } = await sb.rpc('submit_report', {
-      p_kind: input.kind,
-      p_target_id: input.targetId ?? null,
-      p_target_label: input.targetLabel,
-      p_reason: input.reason,
-      p_description: input.description,
-      p_contact_email: input.contactEmail ?? null,
-    });
-    return done(error, 'No se pudo enviar el reporte');
+    try {
+      const token = (await sb.auth.getSession()).data.session?.access_token;
+      if (reporter && !token) return fail('Tu sesión venció. Vuelve a iniciar sesión.');
+      const response = await fetch('/api/reports', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ ...input, requestKey: crypto.randomUUID() }),
+      });
+      const result = await response.json().catch(() => null) as AuthResult | null;
+      return response.ok && result?.ok ? ok : fail(result && !result.ok && result.error ? result.error : 'No se pudo enviar el reporte. Intenta de nuevo más tarde.');
+    } catch {
+      return fail('No se pudo enviar el reporte. Revisa tu conexión e intenta de nuevo.');
+    }
   },
 
   async listReports() {
