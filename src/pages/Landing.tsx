@@ -22,7 +22,8 @@ const Landing: React.FC = () => {
     <div ref={root} className="lv2 min-h-screen">
       {/* Creators get their own top: their day, not the fans' pitch. */}
       {user?.role === 'creator' ? <CreatorHome /> : <Hero creators={creators} />}
-      <CategoryGrid creators={creators} />
+      {/* Fans find categories in Explorar; the grid stays only on the creators' home. */}
+      {user?.role === 'creator' && <CategoryGrid creators={creators} />}
       {/* "Está pasando ahora" is off until further notice (ENABLE_HAPPENING_NOW). */}
       {ENABLE_HAPPENING_NOW && <HappeningNow creators={creators} />}
       <HowItWorks />

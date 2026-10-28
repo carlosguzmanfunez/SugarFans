@@ -10,7 +10,8 @@ import { featuredFirst, rewardsApi, useFeatured } from '../lib/rewards';
 import { useAuth } from '../context/AuthContext';
 import { usePlatformQuery, platformApi, isCutOff } from '../lib/platform';
 import { useLiveCreatorIds } from '../lib/live';
-import { CategoryRail, LiveRail, ReserveRail, RailHeading } from '../components/AppRails';
+import { CategoryRail, LiveRail } from '../components/AppRails';
+import { CategoryHeader, CategoryShelf, shelvesFor } from '../components/ExploreShelves';
 import { ENABLE_OPEN_LIVE } from '../config/features';
 import { useLanguage } from '../context/LanguageContext';
 import { countryName } from '../config/countries';
@@ -74,6 +75,25 @@ const Explore: React.FC = () => {
         .slice(0, 3)
     : [];
 
+  // Only categories that have creators get a circle (the selected one always stays).
+  const usedCategories = new Set<string>(visibleCreators.filter((c) => c.category).map((c) => categoryFor(c.category).id));
+  const railCategories = categories.filter((c) => usedCategories.has(c.id) || c.name === selectedCategory);
+  const pickCategory = (name: string) => {
+    setSelectedCategory(name);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  const card = (creator: (typeof creators)[number]) => (
+    <CreatorCard
+      key={creator.id}
+      creator={creator}
+      level={featuredIds.get(creator.id)}
+      featured={featuredIds.has(creator.id)}
+      featuredLabel={rising.has(creator.id) ? 'En ascenso' : 'Destacado'}
+      vip={vipIds.has(creator.id)}
+      className="w-full"
+    />
+  );
+
   const topPlace = [selectedCategory, selectedCountry && nameOf(selectedCountry)].filter(Boolean).join(' · ');
 
   return (
@@ -107,7 +127,7 @@ const Explore: React.FC = () => {
 
           {/* Categories, as round icons (they replaced the creator avatars and the pills). */}
           <nav aria-label="Categorías" className="mx-auto mt-6 max-w-5xl">
-            <CategoryRail categories={categories} selected={selectedCategory} onSelect={setSelectedCategory} className="md:justify-center" />
+            <CategoryRail categories={railCategories} selected={selectedCategory} onSelect={setSelectedCategory} className="md:justify-center" />
           </nav>
 
           {countryOptions.length > 0 && (
@@ -133,13 +153,6 @@ const Explore: React.FC = () => {
             </div>
           )}
         </div>
-
-        {browsing && (
-          <section aria-labelledby="reserve-rail-title" className="mb-6 sm:mb-10">
-            <RailHeading id="reserve-rail-title" title="Reserve disponible" to="/reserve" icon="fa-ticket" tone="text-gold-600" />
-            <ReserveRail creators={visibleCreators} />
-          </section>
-        )}
 
         {liveOnly && filteredCreators.length === 0 && (
           <div className="mb-6 rounded-3xl border border-line bg-white px-5 py-8 sm:mb-10 sm:px-6 sm:py-10 text-center" data-testid="live-empty">
@@ -172,8 +185,10 @@ const Explore: React.FC = () => {
               <i aria-hidden="true" className="fas fa-th mr-1"></i> Publicaciones
             </button>
           </div>
-          <span className="whitespace-nowrap text-xs text-muted sm:text-sm">{filteredCreators.length} resultados</span>
+          <span className="whitespace-nowrap text-xs text-muted sm:text-sm">{filteredCreators.length} {filteredCreators.length === 1 ? 'resultado' : 'resultados'}</span>
         </div>}
+
+        {viewMode === 'creators' && selectedCategory && !liveOnly && <CategoryHeader name={selectedCategory} count={filteredCreators.length} />}
 
         {viewMode === 'creators' && topOfMonth.length > 0 && (
           <section aria-labelledby="top-month-title" className="mb-8 rounded-3xl border border-gold-200 bg-gold-50/60 p-5" data-testid="top-month">
@@ -197,19 +212,25 @@ const Explore: React.FC = () => {
           </section>
         )}
 
-        {/* Creators Grid */}
-        {viewMode === 'creators' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {filteredCreators.map((creator) => (
-              <CreatorCard
-                key={creator.id}
-                creator={creator}
-                level={featuredIds.get(creator.id)}
-                featured={featuredIds.has(creator.id)}
-                featuredLabel={rising.has(creator.id) ? 'En ascenso' : 'Destacado'}
-                vip={vipIds.has(creator.id)}
+        {/* Nothing picked yet: one shelf per category, Netflix-style. */}
+        {viewMode === 'creators' && browsing && (
+          <div className="space-y-9 sm:space-y-12" data-testid="explore-shelves">
+            {shelvesFor(filteredCreators).map((shelf) => (
+              <CategoryShelf
+                key={shelf.category.id}
+                category={shelf.category}
+                members={shelf.members}
+                onSeeAll={shelf.filterable ? () => pickCategory(shelf.category.name) : undefined}
+                renderCard={card}
               />
             ))}
+          </div>
+        )}
+
+        {/* A category, a country or a search: every match in one grid. */}
+        {viewMode === 'creators' && !browsing && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {filteredCreators.map(card)}
           </div>
         )}
 

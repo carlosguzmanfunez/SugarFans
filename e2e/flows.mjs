@@ -2525,13 +2525,11 @@ const run = async () => {
       await resF.getByTestId('creator-card').filter({ hasText: 'Valentina Rose' }).waitFor();
       await resF.goto(`${BASE}/`);
       await resF.getByText('Suscríbete a tus creadores y reserva eventos y videollamadas 1:1 con fecha, precio y reglas claras.').waitFor();
-      // Fans get a message for fans; creators keep "Cada creador trae a su comunidad".
-      await resF.locator('#categories-title').getByText('Encuentra a los creadores que sigues').waitFor();
-      await resF.locator('#categories-title').getByText('y a los que vas a seguir').waitFor();
-      expect((await resF.getByText('Trae a tu comunidad de TikTok o Instagram').count()) === 0, 'el fan ve el texto para creadores en Tu gente');
+      // Fans find the categories in Explorar; only the creators' home keeps the grid.
+      await resF.locator('section[aria-labelledby=how-title]').waitFor({ state: 'attached' });
+      expect((await resF.locator('#comunidades').count()) === 0, 'el Inicio del fan sigue mostrando las categorías');
       await resC.goto(`${BASE}/`);
       await resC.locator('#categories-title').getByText('sea cual sea su contenido').waitFor();
-      await resF.locator('#comunidades').getByRole('link', { name: /Tu gente/ }).waitFor();
       const how = resF.locator('section[aria-labelledby=how-title]');
       for (const p of ['Sigue', 'Suscríbete', 'Reserva', 'Reserve Event', 'Reserve 1:1']) await how.getByText(p, { exact: true }).first().waitFor({ state: 'attached' });
       expect((await how.locator('article.ap').count()) === 3, 'Cómo funciona no tiene los 3 pasos del video');
@@ -2886,7 +2884,7 @@ const run = async () => {
       await tabs.getByRole('link', { name: 'Explorar', exact: true }).tap();
       await waitPath(m, '/explore');
       await m.getByTestId('category-rail').waitFor();
-      await m.getByTestId('reserve-rail').waitFor();
+      await m.getByTestId('explore-shelves').waitFor();
       expect((await tabs.getByRole('link', { name: 'Explorar', exact: true }).getAttribute('aria-current')) === 'page', 'Explorar no queda marcada');
       await tabs.getByRole('link', { name: 'Reserve', exact: true }).tap();
       await waitPath(m, '/reserve');
@@ -2907,7 +2905,7 @@ const run = async () => {
         });
       };
       await m.goto(`${BASE}/explore`);
-      await m.getByTestId('reserve-rail').waitFor();
+      await m.getByTestId('explore-shelves').waitFor();
       await bottom();
       await tabs.getByRole('link', { name: 'Inicio', exact: true }).tap();
       await waitPath(m, '/');
@@ -2917,7 +2915,7 @@ const run = async () => {
       await tabs.getByRole('link', { name: 'Explorar', exact: true }).tap();
       await waitPath(m, '/explore');
       expect((await scrolled()) === 0, 'Explorar no abrió desde arriba');
-      await m.getByTestId('reserve-rail').waitFor();
+      await m.getByTestId('explore-shelves').waitFor();
       await m.goto(`${BASE}/reserve`);
       await bottom();
       await tabs.getByRole('link', { name: 'Reserve', exact: true }).tap();
