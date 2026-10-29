@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Icon from '../Icon';
 import type { User } from '../../context/AuthContext';
-import { socialApi, compactCount } from '../../lib/social';
+import { socialApi } from '../../lib/social';
 import { usePlatformQuery } from '../../lib/platform';
 import { Link } from 'react-router-dom';
 import { useCurrentLive, useLiveAlerts, setLiveAlerts } from '../../lib/live';
@@ -30,9 +30,9 @@ interface Props {
   editsPrice?: boolean;
 }
 
-// How to get closer to a creator, from free to most personal:
-// Seguir → Suscribirse (exclusive content) → Reserve (Reserve Event, Reserve 1:1).
-// Each one says what it gives and what it doesn't. Live is not a step of its own.
+// How to get closer to a creator: Suscribirse (exclusive content) → Proponer (the
+// fan's own idea, date and value) → Reserve (Reserve Event, Reserve 1:1). Following
+// is the button in the profile header. Live is not a step of its own.
 const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, following, experiences, onSubscribe, editsPrice = false }) => {
   // Only a Live whose mode is on offer (useCurrentLive filters by the feature flags).
   const live = useCurrentLive(creator.id);
@@ -52,32 +52,8 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
     <section id="acceso" aria-labelledby="access-title" className="mb-6 scroll-mt-24" data-testid="access-ladder">
       <h2 id="access-title" className="sr-only">Formas de acceso</h2>
       <ol className="grid grid-cols-3 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 sm:[&>li:last-child]:col-span-2 lg:[&>li:last-child]:col-span-1">
-        <li className={step}>
-          <span className={`${eyebrow} text-muted`}>1 · Seguir</span>
-          <span className="mt-1 text-sm font-semibold text-ink">Gratis</span>
-          <span className={blurb}>Contenido público y novedades.</span>
-          {!isOwner && following && (
-            <span className="mt-3 inline-flex items-center text-xs font-semibold text-ink/70" data-testid="ladder-following">
-              <Icon name="fa-check" className="mr-1.5 text-emerald-600" /><span className="sm:hidden">Siguiendo</span><span className="max-sm:hidden">Ya lo sigues</span>
-            </span>
-          )}
-          {isOwner && <span className="mt-3 text-xs text-muted">{compactCount(creator.followers)} seguidores</span>}
-          {ENABLE_CREATOR_LIVE && !isOwner && following && user && (
-            <button
-              type="button"
-              onClick={() => setLiveAlerts(user, creator.id, !alerts)}
-              aria-pressed={alerts}
-              data-testid="live-alerts"
-              className="mt-2 inline-flex items-start gap-1.5 self-start text-left text-xs font-medium text-ink/70 hover:text-ink"
-            >
-              <Icon name={alerts ? 'fa-bell' : 'fa-bell-slash'} className={`mt-0.5 ${alerts ? 'text-brand-600' : ''}`} />
-              <span className="sm:hidden">{alerts ? 'Avisos de Live' : 'Avisos apagados'}</span>
-              <span className="max-sm:hidden">{alerts ? 'Te avisaremos cuando esté en Live' : 'Avisos de Live desactivados'}</span>
-            </button>
-          )}
-        </li>
         <li className={`${step} ${live ? 'border-iris-200 bg-iris-50/40' : ''}`} data-testid="ladder-subscribe">
-          <span className={`${eyebrow} text-muted`}>2 · Suscribirse</span>
+          <span className={`${eyebrow} text-muted`}>1 · Suscribirse</span>
           {editsPrice && user ? (
             <PriceEditor price={user.subscriptionPrice ?? creator.subscriptionPrice} />
           ) : (
@@ -114,20 +90,39 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
               <i aria-hidden="true" className="fas fa-lock mr-1"></i>Exclusivo para suscriptores
             </span>
           )}
+          {ENABLE_CREATOR_LIVE && !isOwner && following && user && (
+            <button
+              type="button"
+              onClick={() => setLiveAlerts(user, creator.id, !alerts)}
+              aria-pressed={alerts}
+              data-testid="live-alerts"
+              className="mt-2 inline-flex items-start gap-1.5 self-start text-left text-xs font-medium text-ink/70 hover:text-ink"
+            >
+              <Icon name={alerts ? 'fa-bell' : 'fa-bell-slash'} className={`mt-0.5 ${alerts ? 'text-brand-600' : ''}`} />
+              <span className="sm:hidden">{alerts ? 'Avisos de Live' : 'Avisos apagados'}</span>
+              <span className="max-sm:hidden">{alerts ? 'Te avisaremos cuando esté en Live' : 'Avisos de Live desactivados'}</span>
+            </button>
+          )}
+        </li>
+        <li className={step} data-testid="ladder-propose-step">
+          <span className={`${eyebrow} text-muted`}>2 · Proponer</span>
+          <span className="mt-1 text-sm font-semibold text-ink">A tu medida</span>
+          <span className={blurb}>
+            {canPropose
+              ? `Propón tu idea, la fecha y el valor por la experiencia. ${creator.name.split(' ')[0]} acepta, rechaza o te hace una contraoferta.`
+              : 'Los fans proponen su idea, la fecha y el valor por la experiencia.'}
+          </span>
+          {canPropose && (
+            <button type="button" onClick={openCustomRequest} className={`${goldButton} mt-auto self-start max-sm:mt-2 sm:mt-3`} data-testid="ladder-propose">
+              <Icon name="fa-wand-magic-sparkles" className="text-xs" />Proponer<span className="max-sm:hidden"> experiencia</span>
+            </button>
+          )}
         </li>
         <li className={`${step.replace('border-line bg-white', '')} border-gold-300 bg-gradient-to-br from-gold-100 via-gold-50 to-white shadow-md shadow-gold-400/25 ring-1 ring-gold-300`} data-testid="ladder-reserve">
           <span className={`${eyebrow} text-gold-700`}><Icon name="fa-crown" className="mr-1 text-[9px] text-gold-500 sm:text-[10px]" />3 · Reserve</span>
-          <span className="mt-1 text-sm font-semibold text-ink">{experiences ? `${experiences} ${experiences === 1 ? 'experiencia' : 'experiencias'}` : 'A medida'}</span>
+          <span className="mt-1 text-sm font-semibold text-ink">{experiences ? `${experiences} ${experiences === 1 ? 'experiencia' : 'experiencias'}` : 'Aún sin experiencias'}</span>
           <span className={blurb}>Reserve Events en grupo y videollamadas 1:1 con {creator.name.split(' ')[0]}, con fecha, precio y reglas.</span>
-          <span className="mt-auto flex flex-wrap gap-1.5 max-sm:mt-2 max-sm:flex-col max-sm:items-start sm:mt-3 sm:gap-2">
-            <a href="#reserve" onClick={(e) => { e.preventDefault(); openReserve(); }} className={goldButton}>Ver<span className="max-sm:hidden"> experiencias</span> <Icon name="fa-arrow-right" className="text-xs" /></a>
-            {/* Fans can also propose their own idea, date and value; the creator answers. */}
-            {canPropose && (
-              <button type="button" onClick={openCustomRequest} className={goldButton} data-testid="ladder-propose">
-                <Icon name="fa-wand-magic-sparkles" className="text-xs" />Proponer<span className="max-sm:hidden"> experiencia</span>
-              </button>
-            )}
-          </span>
+          <a href="#reserve" onClick={(e) => { e.preventDefault(); openReserve(); }} className={`${goldButton} mt-auto self-start max-sm:mt-2 sm:mt-3`}>Ver<span className="max-sm:hidden"> experiencias</span> <Icon name="fa-arrow-right" className="text-xs" /></a>
         </li>
       </ol>
     </section>

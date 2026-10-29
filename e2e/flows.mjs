@@ -1160,7 +1160,7 @@ const run = async () => {
       expect((await socials.getByRole('link', { name: 'Instagram' }).getAttribute('href')) === 'https://www.instagram.com/lola.baila', 'enlace de Instagram');
       expect((await socials.getByRole('link', { name: 'TikTok' }).getAttribute('href')) === 'https://www.tiktok.com/@lolabaila', 'enlace de TikTok');
       await page.getByText('@lola_baila').first().waitFor();
-      // On their own profile the creator changes the subscription price right in "2 · Suscribirse".
+      // On their own profile the creator changes the subscription price right in "1 · Suscribirse".
       const sub = page.getByTestId('ladder-subscribe');
       await sub.getByTestId('edit-sub-price').click();
       await sub.getByLabel('Precio mensual de tu suscripción').fill('2');
@@ -2547,10 +2547,12 @@ const run = async () => {
       await resF.goto(`${BASE}/explore?live=1`);
       await resF.getByTestId('creator-card').filter({ hasText: 'Valentina Rose' }).waitFor();
     });
-    await check('Perfil: Seguir → Suscribirse → Reserve, y seguir persiste', async () => {
+    await check('Perfil: Suscribirse → Proponer → Reserve, y seguir persiste', async () => {
       await resF.goto(`${BASE}/creator/1`);
       const ladder = resF.getByTestId('access-ladder');
-      for (const s of ['1 · Seguir', '2 · Suscribirse', '3 · Reserve']) await ladder.getByText(s).waitFor();
+      for (const s of ['1 · Suscribirse', '2 · Proponer', '3 · Reserve']) await ladder.getByText(s).waitFor();
+      await ladder.getByTestId('ladder-propose').click();
+      await resF.getByRole('dialog').getByRole('button', { name: 'Cerrar', exact: true }).click();
       expect((await ladder.getByText(/· Live$/).count()) === 0, 'el perfil tiene un paso Live');
       await resF.getByTestId('creator-reserve').getByRole('heading', { name: 'Reserve con Valentina' }).waitFor();
       // Reserve starts folded (one row with count and lowest price); "Ver experiencias" unfolds it.
