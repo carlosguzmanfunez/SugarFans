@@ -63,20 +63,26 @@ export const CategoryRail: React.FC<{
         const on = selected === it.name;
         return (
           <li key={it.key} className="w-[76px] shrink-0">
+            {/* Hovering a category lights its ring and name in its own color. */}
             <button
               type="button"
               onClick={() => onSelect(it.name)}
               aria-pressed={on}
-              className="tab-press flex w-full flex-col items-center gap-1.5 text-center"
+              className="tab-press group flex w-full flex-col items-center gap-1.5 text-center"
+              style={{ ['--cat' as string]: it.ink }}
             >
-              <span className="rounded-full p-[3px] transition" style={{ background: on ? it.ink : 'var(--color-line)' }}>
+              <span className={`rounded-full p-[3px] transition-colors duration-200 ${on ? 'bg-[var(--cat)]' : 'bg-line group-hover:bg-[var(--cat)] group-focus-visible:bg-[var(--cat)]'}`}>
                 <span className="block rounded-full bg-canvas p-[2px]">
-                  <span className="flex size-[60px] items-center justify-center rounded-full text-xl" style={{ background: it.tint, color: it.ink }}>
+                  <span className="flex size-[60px] items-center justify-center rounded-full text-xl transition-transform duration-200 group-hover:scale-105" style={{ background: it.tint, color: it.ink }}>
                     <i className={`fas ${it.icon}`} aria-hidden="true"></i>
                   </span>
                 </span>
               </span>
-              <span className={`line-clamp-2 w-full text-[11.5px] leading-tight ${on ? 'font-semibold text-ink' : 'font-medium text-ink/75'}`}>{it.label}</span>
+              <span
+                className={`line-clamp-2 w-full text-[11.5px] leading-tight transition-colors ${on ? 'font-semibold text-ink' : 'font-medium text-ink/75 group-hover:text-[var(--cat)]'}`}
+              >
+                {it.label}
+              </span>
             </button>
           </li>
         );

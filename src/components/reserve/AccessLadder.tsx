@@ -8,7 +8,7 @@ import { useCurrentLive, useLiveAlerts, setLiveAlerts } from '../../lib/live';
 import { ENABLE_CREATOR_LIVE, ENABLE_SUBSCRIBER_LIVE } from '../../config/features';
 import { useAuth } from '../../context/AuthContext';
 import { MIN_SUBSCRIPTION } from '../../lib/platformRules';
-import { openReserve } from './CreatorReserveSection';
+import { openCustomRequest, openReserve } from './CreatorReserveSection';
 
 export const useFollow = (creatorProfileId: string | undefined, user: User | null) =>
   usePlatformQuery(
@@ -43,6 +43,9 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
   const step = 'flex min-w-0 flex-col rounded-2xl border border-line bg-white px-2.5 py-3 sm:p-4';
   const eyebrow = 'whitespace-nowrap text-[10px] font-semibold uppercase tracking-normal sm:whitespace-normal sm:text-[11px] sm:tracking-[0.14em]';
   const blurb = 'text-xs text-ink/60 max-sm:hidden';
+  const goldButton = 'btn-gold inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold sm:px-4 sm:py-1.5 sm:text-sm';
+  // Same rule as the request inside the Reserve section: fans and visitors, not creators.
+  const canPropose = !isOwner && user?.role !== 'creator' && user?.role !== 'admin';
   const action = 'mt-3 inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition';
 
   return (
@@ -116,7 +119,15 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
           <span className={`${eyebrow} text-gold-700`}><Icon name="fa-crown" className="mr-1 text-[9px] text-gold-500 sm:text-[10px]" />3 · Reserve</span>
           <span className="mt-1 text-sm font-semibold text-ink">{experiences ? `${experiences} ${experiences === 1 ? 'experiencia' : 'experiencias'}` : 'A medida'}</span>
           <span className={blurb}>Reserve Events en grupo y videollamadas 1:1 con {creator.name.split(' ')[0]}, con fecha, precio y reglas.</span>
-          <a href="#reserve" onClick={(e) => { e.preventDefault(); openReserve(); }} className="btn-gold mt-auto inline-flex items-center gap-1.5 self-start rounded-full px-3 py-1 text-xs font-bold max-sm:mt-2 sm:mt-3 sm:px-4 sm:py-1.5 sm:text-sm">Ver<span className="max-sm:hidden"> experiencias</span> <Icon name="fa-arrow-right" className="text-xs" /></a>
+          <span className="mt-auto flex flex-wrap gap-1.5 max-sm:mt-2 max-sm:flex-col max-sm:items-start sm:mt-3 sm:gap-2">
+            <a href="#reserve" onClick={(e) => { e.preventDefault(); openReserve(); }} className={goldButton}>Ver<span className="max-sm:hidden"> experiencias</span> <Icon name="fa-arrow-right" className="text-xs" /></a>
+            {/* Fans can also propose their own idea, date and value; the creator answers. */}
+            {canPropose && (
+              <button type="button" onClick={openCustomRequest} className={goldButton} data-testid="ladder-propose">
+                <Icon name="fa-wand-magic-sparkles" className="text-xs" />Proponer<span className="max-sm:hidden"> experiencia</span>
+              </button>
+            )}
+          </span>
         </li>
       </ol>
     </section>

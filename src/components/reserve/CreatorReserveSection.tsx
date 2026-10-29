@@ -38,6 +38,7 @@ export const useEventSeats = (experiences: VipExperience[]) => {
 // that point at it ("Habla con …", "Ver experiencias", /creator/:id#reserve)
 // unfold it and scroll there.
 const OPEN_EVENT = 'reserve:open';
+const CUSTOM_EVENT = 'reserve:custom';
 // `to: 'one-to-one'` ("Habla con …") lands on the creator's 1:1 video calls when
 // they offer any, otherwise on the top of the section.
 export const openReserve = (to?: ReserveProduct) => {
@@ -46,6 +47,10 @@ export const openReserve = (to?: ReserveProduct) => {
     (document.getElementById(`reserve-${to}`) ?? document.getElementById('reserve'))?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   );
 };
+
+// "Proponer experiencia" from outside the section (the Reserve step of the access
+// ladder): opens the same structured request the section offers.
+export const openCustomRequest = () => window.dispatchEvent(new Event(CUSTOM_EVENT));
 
 // "Reserve con {creator}": Reserve Events, Reserve 1:1 and the other experiences
 // this creator offers, each fully defined, plus a structured request for something tailored.
@@ -66,6 +71,12 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, use
     window.addEventListener('hashchange', onHash);
     return () => { window.removeEventListener(OPEN_EVENT, unfold); window.removeEventListener('hashchange', onHash); };
   }, []);
+  useEffect(() => {
+    if (!canRequest) return;
+    const propose = () => (user ? setCustom(true) : onNeedLogin());
+    window.addEventListener(CUSTOM_EVENT, propose);
+    return () => window.removeEventListener(CUSTOM_EVENT, propose);
+  }, [canRequest, user, onNeedLogin]);
   const from = experiences.length ? Math.min(...experiences.map((e) => e.price)) : 0;
   const summary = experiences.length
     ? `${experiences.length} ${experiences.length === 1 ? 'experiencia' : 'experiencias'} · desde ${money(from)}`
