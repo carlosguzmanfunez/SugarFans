@@ -45,7 +45,9 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
   const blurb = 'text-xs text-ink/60 max-sm:hidden';
   const goldButton = 'btn-gold inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold sm:px-4 sm:py-1.5 sm:text-sm';
   // Same rule as the request inside the Reserve section: fans and visitors, not creators.
-  const canPropose = !isOwner && user?.role !== 'creator' && user?.role !== 'admin';
+  // Wait for the session to load, so a creator's button doesn't flash before hiding.
+  const { loading } = useAuth();
+  const canPropose = !loading && !isOwner && user?.role !== 'creator' && user?.role !== 'admin';
   const action = 'mt-3 inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition';
 
   return (
