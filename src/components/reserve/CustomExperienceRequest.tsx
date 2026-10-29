@@ -6,7 +6,7 @@ import BookingCalendar from '../BookingCalendar';
 import { backend } from '../../lib/backend';
 import { money } from '../../lib/platform';
 import { moderate } from '../../lib/moderation';
-import { DEFAULT_AVAILABILITY, formatLongDate, validateCustomRequest, type Availability, type CustomRequestInput, type TakenSlot } from '../../lib/vip';
+import { DEFAULT_AVAILABILITY, formatLongDate, proposalAvailability, validateCustomRequest, type Availability, type CustomRequestInput, type TakenSlot } from '../../lib/vip';
 import {
   LOCATION_TYPES,
   isHomeService,
@@ -63,7 +63,7 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
 
   useEffect(() => {
     Promise.all([backend.getAvailability(creator.id), backend.takenSlots(creator.id)]).then(([a, t]) => {
-      setAvailability(a);
+      setAvailability(proposalAvailability(a));
       setTaken(t);
     });
   }, [creator.id]);
