@@ -2499,7 +2499,12 @@ const run = async () => {
       }
       const offBrand = /adult|explicit|xxx|sexy|er[oó]tic|onlyfans|escort|terron|coins?\b|tokens?\b|moedas|pi[eè]ces|monete/i;
       const values = [...body.matchAll(/'[\w.]+': '((?:[^'\\]|\\.)*)'/g)].map((m) => m[1]).filter((v) => !v.includes('@sugarfans.com'));
-      const bad = values.filter((v) => offBrand.test(v));
+      // Amount placeholders are replaced before display (ReserveBookingCard).
+      // Still reject a literal forbidden label beside the interpolated amount.
+      const visibleCopy = (value) => value.replace(/\{coins\}/g, '100');
+      expect(!offBrand.test(visibleCopy('Pagar con {coins} Créditos')), 'confunde la cantidad interna con texto visible');
+      expect(offBrand.test(visibleCopy('Pagar con {coins} coins')), 'deja pasar una etiqueta visible fuera de marca');
+      const bad = values.filter((v) => offBrand.test(visibleCopy(v)));
       expect(!bad.length, `fuera de marca: ${bad.join(' | ')}`);
     });
     await check('Tu gente (antes Modelos) existe y marca la línea de contenido', async () => {
