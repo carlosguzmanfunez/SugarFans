@@ -33,6 +33,8 @@ interface Deps {
   listAccounts(): User[];
   // Adds a confirmed booking (the gifted video call); fails when the slot is taken.
   addBooking(b: VipBooking): AuthResult;
+  // Créditos given back by cancelled Reserves minus those spent on Reserves.
+  reserveCredits(userId: string): number;
   notify(): void;
 }
 
@@ -56,7 +58,8 @@ export const createLocalGifts = (deps: Deps): GiftsBackend & { purgeUser(userId:
     deps.ledger.transactions().filter((t) => t.kind === 'gift' && t.payerId === userId && t.status === 'paid');
   const balance = (s: Store, userId: string) =>
     s.purchases.filter((p) => p.userId === userId).reduce((sum, p) => sum + p.coins, 0) -
-    giftsFrom(userId).reduce((sum, t) => sum + Math.round(t.amount * 100), 0);
+    giftsFrom(userId).reduce((sum, t) => sum + Math.round(t.amount * 100), 0) +
+    deps.reserveCredits(userId);
   // Retired gift perks may remain contractually owed; passing a due date is not
   // a refund of the gift or a restoration of the fan's spent Credits.
   // Keep this hook for backwards-compatible wallet/perk flows without changing

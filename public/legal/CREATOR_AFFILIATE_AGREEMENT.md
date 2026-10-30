@@ -97,7 +97,7 @@ Este Contrato para Creadores y Afiliados ("Contrato") constituye un acuerdo lega
 
 3.3.2. **Comunicación**: No está obligado a responder mensajes ni a aceptar solicitudes; puede rechazar, bloquear o reportar a cualquier usuario.
 
-3.3.3. **Experiencias de Reserve**: Debe cumplir las experiencias confirmadas en la fecha, hora y lugar acordados, ofrecer solo servicios con un propósito definido y respetar el Acuerdo de Creator (Reserve) y la política de Servicios Prohibidos. Si no cumple, el fan recibe el reembolso completo previa verificación y ese importe no se le acredita.
+3.3.3. **Experiencias de Reserve**: Debe cumplir las experiencias confirmadas en la fecha, hora y lugar acordados, ofrecer solo servicios con un propósito definido y respetar el Acuerdo de Creator (Reserve) y la política de Servicios Prohibidos. Si no cumple, el fan recibe el reembolso completo previa verificación y ese importe no se le acredita. Se aplica una sola regla de cancelación para todas las experiencias: si el fan cancela 24 horas o más antes, recibe el 100% en Créditos y la venta no se le acredita; si cancela con menos de 24 horas, recibe el 50% en Créditos y usted conserva la mitad de su ganancia de esa venta; si el fan no se presenta, usted conserva su ganancia completa. Si usted cancela una reserva pagada, el fan recibe el 100% en Créditos, la venta no se le acredita y la cancelación cuenta en su historial de fiabilidad y puede bajar su nivel. Si la ganancia ya se le pagó, el ajuste se descuenta de sus ingresos futuros, como en 6.2.3. El fan puede pedir un cambio de fecha gratis por reserva 1:1 con 24 horas o más de anticipación; usted lo acepta o lo rechaza.
 
 ### 3.4. Conducta Profesional
 

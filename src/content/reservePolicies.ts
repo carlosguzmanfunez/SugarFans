@@ -1,6 +1,6 @@
 // Reserve policy drafts shown in /legal. Every one is a DRAFT: it requires legal
 // review before production launch, and the page says so on each document.
-import { PROHIBITED_EXPERIENCES, PROFESSIONAL_SERVICES_ALLOWED, CANCELLATION_POLICIES, PROHIBITED_LOCATIONS } from '../config/reserve';
+import { PROHIBITED_EXPERIENCES, PROFESSIONAL_SERVICES_ALLOWED, CANCELLATION_RULE, PROHIBITED_LOCATIONS } from '../config/reserve';
 
 export interface PolicySection {
   heading: string;
@@ -157,8 +157,9 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
     intro: 'Qué pasa cuando una reserva se cancela o una de las partes no se presenta.',
     sections: [
       {
-        heading: 'Políticas que elige el creador',
-        bullets: Object.values(CANCELLATION_POLICIES).map((p) => `${p.label}: ${p.summary}`),
+        heading: 'Una sola regla para todas las experiencias',
+        paragraphs: ['La regla es la misma en toda Reserve y se aplica sola desde "Mis reservas". Cuenta la hora de inicio en el horario del creador. Las devoluciones se hacen en Créditos, que sirven para otra Reserve o para regalos y no se pueden cambiar por dinero.'],
+        bullets: CANCELLATION_RULE.bullets,
       },
       {
         heading: 'Antes del pago',
@@ -169,21 +170,21 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
         bullets: [
           'El creador no se presenta, llega más de 15 minutos tarde, cambia por su cuenta la fecha, la hora o el lugar, o la experiencia no corresponde a lo publicado: el fan recibe el reembolso completo, previa verificación.',
           'Live 1:1 y videollamadas: si el creador no entra a la sala en los primeros 10 minutos, o la sesión no se puede dar por un fallo de su lado, el fan recibe el reembolso completo.',
-          'El fan es responsable de cumplir lo que el creador publicó: fecha, hora, lugar, requisitos y condiciones. Si no se presenta, llega tarde o no cumple los requisitos, se aplica la política de cancelación de la experiencia y el tiempo perdido no se repone.',
+          'El fan es responsable de cumplir lo que el creador publicó: fecha, hora, lugar, requisitos y condiciones. Si no se presenta, llega tarde o no cumple los requisitos, no hay devolución y el tiempo perdido no se repone.',
           'Para pedir el reembolso, el fan abre una revisión con "Reportar" en Mis reservas dentro de las 48 horas siguientes a la hora programada. El equipo revisa la reserva y lo que aporten ambas partes y resuelve en un máximo de 7 días.',
         ],
       },
       {
         heading: 'Créditos, regalos y contracargos',
         bullets: [
-          'Los Créditos y los regalos no son reembolsables, salvo cobro duplicado, error técnico o cuando la ley lo exija.',
+          'Los Créditos y los regalos no son reembolsables en dinero, salvo cobro duplicado, error técnico o cuando la ley lo exija. Los Créditos que recibes por una cancelación funcionan igual que los comprados.',
           'Si un fan abre un contracargo con su banco por una experiencia que sí se dio, la cuenta puede suspenderse mientras se revisa.',
           'Mientras PayPal resuelve una disputa, la parte del creador de esa venta queda congelada. Si el fan gana, se descuenta del saldo del creador (de sus ingresos futuros si ya la retiró); si el equipo determina que no fue culpa del creador, Fans Reserve asume el importe. Si el fan pierde, la parte del creador se libera.',
         ],
       },
       {
         heading: 'Cómo se devuelve el dinero',
-        paragraphs: ['Los reembolsos se hacen con PayPal al mismo medio con el que pagó el fan.'],
+        paragraphs: ['Las cancelaciones se devuelven en Créditos al instante, en tu billetera de Fans Reserve. Si el creador no se presenta o la experiencia no corresponde a lo publicado, tras la revisión el reembolso completo se hace en Créditos o, si el fan lo pide, con PayPal al mismo medio con el que pagó.'],
       },
     ],
   },

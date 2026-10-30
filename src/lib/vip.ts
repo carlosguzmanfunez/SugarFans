@@ -15,7 +15,7 @@ import type {
 import { vipExperiences } from '../data/mockData';
 import { CALL_MINUTES } from './giftRules';
 import {
-  CANCELLATION_POLICIES,
+  CANCELLATION_POLICY_IDS,
   CREATOR_CATEGORIES,
   LOCATION_TYPES,
   MAX_LIST_ITEMS,
@@ -264,7 +264,7 @@ export const validateExperience = (input: VipExperienceInput, categoryName?: str
     } else if (!Number.isInteger(d.maxParticipants) || d.maxParticipants < 1 || d.maxParticipants > Math.min(MAX_PARTICIPANTS, type.maxParticipants))
       return { ok: false, error: `Máximo ${Math.min(MAX_PARTICIPANTS, type.maxParticipants)} participantes para esta experiencia` };
     if (!MIN_NOTICE_OPTIONS.includes(d.minNoticeHours)) return { ok: false, error: 'Elige la anticipación mínima' };
-    if (!CANCELLATION_POLICIES[d.cancellationPolicy]) return { ok: false, error: 'Elige la política de cancelación' };
+    if (!CANCELLATION_POLICY_IDS.includes(d.cancellationPolicy)) return { ok: false, error: 'Elige la política de cancelación' };
     if (d.approval !== 'manual' && d.approval !== 'automatic') return { ok: false, error: 'Elige cómo apruebas las reservas' };
     if (d.subscriberDiscount !== undefined && !SUBSCRIBER_DISCOUNTS.includes(d.subscriberDiscount)) return { ok: false, error: 'Descuento no válido' };
     if (type.minutes && input.durationMinutes === undefined) return { ok: false, error: 'Indica la duración' };

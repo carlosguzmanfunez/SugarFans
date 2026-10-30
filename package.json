@@ -58,6 +58,8 @@
     "test:moderation": "node e2e/moderate-api.mjs",
     "test:time-zones": "node e2e/time-zones.mjs",
     "test:reserve-time-zones-db": "node e2e/reserve-time-zones-postgres.mjs",
+    "test:reserve-cancellation-db": "node e2e/reserve-cancellation-postgres.mjs",
+    "test:reserve-cancellation-ui": "vite build --mode offline && node e2e/reserve-cancellation-ui.mjs",
     "test:become-creator-db": "node e2e/become-creator-db.mjs",
     "test:errors-email-db": "node e2e/errors-email-db.mjs",
     "test:mail": "node e2e/mail-api.mjs",
