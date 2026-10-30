@@ -1,0 +1,42 @@
+name: API security
+
+on:
+  pull_request:
+    paths:
+      - 'api/**'
+      - 'src/lib/liveAccess.ts'
+      - 'src/lib/paypal.ts'
+      - 'src/config/features.ts'
+      - 'e2e/live-access.mjs'
+      - 'e2e/paypal-api.mjs'
+      - 'e2e/public-provider-config.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/api-security.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: api-security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  public-config-and-payments:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PAYPAL_ENV: sandbox
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run test:public-config
+      - run: npm run test:access
+      - run: npm run e2e:paypal
+      - run: npm run build

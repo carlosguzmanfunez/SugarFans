@@ -567,32 +567,13 @@ const webhook = async (request: Request, e: Env): Promise<Response> => {
 
 // --- Handlers -----------------------------------------------------------------
 
-// GET /api/paypal: what the browser needs to show the buttons (the client id is
-// public), plus a check of the settings that never reveals a secret.
+// Browser configuration only. The PayPal client ID is intentionally public;
+// no secret metadata, key lengths or OAuth diagnostic errors are exposed here.
+// An enabled response indicates configuration is present, not PayPal approval.
 export async function GET(): Promise<Response> {
   const e = env();
   const enabled = !!(e.clientId && e.secret && e.serviceKey);
-  let paypalCheck = 'sin comprobar';
-  if (e.clientId && e.secret) {
-    try {
-      await paypalToken(e);
-      paypalCheck = 'OK: PayPal acepta el Client ID y el Secret';
-    } catch (err) {
-      paypalCheck = `RECHAZADO: ${err instanceof Error ? err.message : String(err)}`.slice(0, 200);
-    }
-  }
-  return json(200, {
-    enabled,
-    clientId: enabled ? e.clientId : null,
-    env: e.mode,
-    checks: {
-      clientId: e.clientId ? `${e.clientId.slice(0, 4)}…${e.clientId.slice(-4)} (${e.clientId.length} caracteres)` : 'FALTA',
-      secret: e.secret ? `${e.secret.length} caracteres` : 'FALTA',
-      serviceRoleKey: e.serviceKey ? `${e.serviceKey.length} caracteres` : 'FALTA',
-      paypal: paypalCheck,
-      resend: resendKey() ? 'OK' : 'FALTA',
-    },
-  });
+  return json(200, { enabled, clientId: enabled ? e.clientId : null, env: e.mode });
 }
 
 // POST /api/paypal {action: 'create', kind, params} → {orderId}
