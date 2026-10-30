@@ -75,7 +75,8 @@ const Navbar: React.FC = () => {
     { href: '/', label: t('nav.home') },
     // Explorar is a page (all the creators), not the communities section of Inicio.
     { href: '/explore', label: 'Explorar' },
-    { href: '#reserve', label: 'Reserve' },
+    // A creator's "Reserve" is their own Reserve panel; everyone else gets the public page.
+    { href: isCreator ? CREATOR_RESERVE_LINK : '#reserve', label: 'Reserve' },
     ...(ENABLE_OPEN_LIVE && ENABLE_HAPPENING_NOW ? [{ href: '#live', label: 'Live' }] : []),
     ...(showCreators ? [{ href: '#creadores', label: 'Para creadores' }] : []),
     { href: '#journey', label: 'Cómo funciona' },
@@ -126,7 +127,7 @@ const Navbar: React.FC = () => {
             <Link to="/explore" className={linkCls('/explore')}>
               {t('nav.explore')}
             </Link>
-            <Link to="/reserve" className={linkCls('/reserve')}>
+            <Link to={isCreator ? CREATOR_RESERVE_LINK : '/reserve'} data-testid="nav-reserve" className={isCreator ? linkCls(onReservas ? location.pathname : '-') : linkCls('/reserve')}>
               Reserve
             </Link>
               </>
@@ -136,7 +137,7 @@ const Navbar: React.FC = () => {
                 to="/creator/dashboard"
                 data-testid="nav-dashboard"
                 aria-label={waiting ? `${t('nav.dashboard')}, ${waiting} reservas por responder` : undefined}
-                className={`${linkCls('/creator/dashboard')} inline-flex items-center gap-1.5`}
+                className={`${linkCls(onReservas ? '-' : '/creator/dashboard')} inline-flex items-center gap-1.5`}
               >
                 {t('nav.dashboard')}
                 {/* Reservas lives in the panel now; the red count stays visible from any page. */}

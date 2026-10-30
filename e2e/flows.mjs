@@ -2715,7 +2715,7 @@ const run = async () => {
       await card.getByText('Presencial').waitFor();
       await card.getByRole('button', { name: 'Ver detalles' }).click();
       const dialog = resF.getByTestId('reserve-dialog');
-      for (const t of ['Incluye', 'No incluye', /Cancelación/, 'Solo fans verificados', 'El creador aprueba cada solicitud', /Reserva con 72 horas de anticipación/]) await dialog.getByText(t).first().waitFor();
+      for (const t of ['Incluye', 'No incluye', /Cancelación/, 'El creador aprueba cada solicitud', /Reserva con 72 horas de anticipación/]) await dialog.getByText(t).first().waitFor();
       await dialog.getByTestId('notice-reserve').waitFor();
       await resF.keyboard.press('Escape');
     });

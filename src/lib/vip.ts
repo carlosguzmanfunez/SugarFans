@@ -303,8 +303,9 @@ export const cleanDetails = (d: ReserveDetails): ReserveDetails => ({
   includes: cleanList(d.includes),
   excludes: cleanList(d.excludes),
   requirements: {
-    verifiedFans: !!d.requirements.verifiedFans,
-    subscribersOnly: !!d.requirements.subscribersOnly,
+    // Anyone registered (18+) can book: no "verified fans" or "subscribers only" limits.
+    verifiedFans: false,
+    subscribersOnly: false,
     ...(d.requirements.notes?.trim() ? { notes: d.requirements.notes.trim() } : {}),
   },
   minNoticeHours: d.minNoticeHours,
@@ -325,8 +326,9 @@ export const cleanDetails = (d: ReserveDetails): ReserveDetails => ({
 export const experienceAvailability = (availability: Availability, exp?: Pick<VipExperience, 'details'> | null): Availability => {
   const d = exp?.details;
   return {
-    days: d?.days?.length ? availability.days.filter((x) => d.days!.includes(x)) : availability.days,
-    hours: d?.hours?.length ? availability.hours.filter((x) => d.hours!.includes(x)) : availability.hours,
+    // Its own days and hours (any day, any hour) replace the general schedule.
+    days: d?.days?.length ? [...d.days].sort((a, b) => a - b) : availability.days,
+    hours: d?.hours?.length ? ALL_HOURS.filter((h) => d.hours!.includes(h)) : availability.hours,
     ...(availability.timeZone ? { timeZone: availability.timeZone } : {}),
   };
 };

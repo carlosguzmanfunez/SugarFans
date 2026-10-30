@@ -134,8 +134,8 @@ const CreatorReservePanel: React.FC<Props> = ({ availability, bookings, reloadBo
         </nav>
       </div>
 
-      {/* Always in sight, whatever section is open: phone alerts for new requests. */}
-      <PushOptIn user={user} />
+      {/* Phone alerts for new requests: in sight until they're on (turn off in Ajustes). */}
+      <PushOptIn user={user} untilOn />
 
       {message && (
         <div role="status" className={`rounded-xl border px-4 py-3 text-sm ${message.ok ? 'border-green-200 bg-green-50 text-green-700' : 'border-red-200 bg-red-50 text-red-700'}`}>
