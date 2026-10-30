@@ -303,8 +303,9 @@ export const cleanDetails = (d: ReserveDetails): ReserveDetails => ({
   includes: cleanList(d.includes),
   excludes: cleanList(d.excludes),
   requirements: {
-    verifiedFans: !!d.requirements.verifiedFans,
-    subscribersOnly: !!d.requirements.subscribersOnly,
+    // Anyone registered (18+) can book: no "verified fans" or "subscribers only" limits.
+    verifiedFans: false,
+    subscribersOnly: false,
     ...(d.requirements.notes?.trim() ? { notes: d.requirements.notes.trim() } : {}),
   },
   minNoticeHours: d.minNoticeHours,

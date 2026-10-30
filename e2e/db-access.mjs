@@ -7,7 +7,7 @@
 // Subscriber Live alerts only active subscribers; Reserve Event seats (capacity, one
 // per fan, several fans at the same time, payment); Reserve 1:1 keeps one booking per
 // slot; guards on event seats; Reserve alerts, read receipts and the answer deadline;
-// subscriptions and gifts create no access; money only through PayPal and never to
+// Reserve open to every fan; subscriptions and gifts create no access; money only through PayPal and never to
 // demo profiles without an owner.
 import { readdirSync, readFileSync } from 'node:fs';
 import { createDbTest } from './db-harness.mjs';
@@ -107,15 +107,15 @@ const run = async () => {
     raises(() => as(fanC, `select public.reserve_create_booking('${ev}', current_date + 5, '20:00', '', 1)`), /plaza desde el evento|horario/, 'reserva 1:1 de un evento');
     raises(() => psql(DB, `update public.vip_bookings set date = date + 1 where fan_id = '${fanB}'`), /no se cambia/, 'mover una plaza');
   });
-  await check('Un evento solo para suscriptores pide suscripción; la suscripción no da plaza por sí sola', async () => {
-    const subsOnly = as(
+  await check('Reserve es para cualquier fan registrado: sin "solo suscriptores" ni "solo verificados"', async () => {
+    const open = as(
       creator,
-      `insert into public.vip_experiences (creator_profile_id, creator_name, title, type, price, duration_minutes, details) values ('${cp}', 'x', 'Q&A para suscriptores', 'qa-session', 10, 45, ${eventDetails(5, ",'requirements',jsonb_build_object('verifiedFans',false,'subscribersOnly',true)")}) returning id`
+      `insert into public.vip_experiences (creator_profile_id, creator_name, title, type, price, duration_minutes, details) values ('${cp}', 'x', 'Q&A abierto', 'qa-session', 10, 45, ${eventDetails(5, ",'requirements',jsonb_build_object('verifiedFans',true,'subscribersOnly',true)")}) returning id`
     );
-    raises(() => as(fanC, `select public.reserve_book_event_seat('${subsOnly}', '')`), /solo para suscriptores/, 'no suscriptor');
+    expect(psql(DB, `select (details->'requirements'->>'subscribersOnly') || (details->'requirements'->>'verifiedFans') from public.vip_experiences where id = '${open}'`) === 'falsefalse', 'quedó un requisito para fans');
     expect(psql(DB, `select count(*) from public.vip_bookings where fan_id = '${sub}'`) === '0', 'la suscripción creó una reserva');
-    as(sub, `select public.reserve_book_event_seat('${subsOnly}', '')`);
-    expect(psql(DB, `select status from public.vip_bookings where fan_id = '${sub}'`) === 'accepted', 'la suscriptora no reservó su plaza (pagada aparte)');
+    as(fanC, `select public.reserve_book_event_seat('${open}', '')`);
+    expect(psql(DB, `select count(*) from public.vip_bookings where fan_id = '${fanC}' and experience_id = '${open}'`) === '1', 'un fan sin suscripción no pudo reservar');
   });
 
   console.log('Reserve 1:1');
@@ -126,7 +126,7 @@ const run = async () => {
     raises(() => psql(DB, row(fanB)), /vip_bookings_active_slot/, 'dos reservas 1:1 en el mismo horario');
   });
   await check('Las reservas solo las ve su fan y su creator (la sala 1:1 se decide con esto)', async () => {
-    expect(as(fanC, `select count(*) from public.vip_bookings`) === '0', 'un tercero ve reservas ajenas');
+    expect(as(fanC, `select count(*) from public.vip_bookings where fan_id <> '${fanC}'`) === '0', 'un tercero ve reservas ajenas');
     expect(as(sub, `select count(*) from public.vip_bookings where fan_id <> '${sub}'`) === '0', 'una suscriptora ve reservas ajenas');
     expect(Number(as(creator, `select count(*) from public.vip_bookings`)) >= 4, 'el creator no ve sus reservas');
   });

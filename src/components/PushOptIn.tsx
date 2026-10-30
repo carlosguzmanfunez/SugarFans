@@ -7,8 +7,9 @@ const btn = 'inline-flex h-9 items-center justify-center rounded-full px-4 text-
 
 // "Avisos en este celular": turns on phone alerts for this device, so a new Reserve
 // request (or an answer, for a fan) arrives like any app notification. Red until
-// they are on, green once they are, so it can't be missed.
-const PushOptIn: React.FC<{ user: User }> = ({ user }) => {
+// they are on, green once they are, so it can't be missed. With `untilOn` (Reserve
+// panels) it disappears once alerts are on; Ajustes > Notificaciones always shows it.
+const PushOptIn: React.FC<{ user: User; untilOn?: boolean }> = ({ user, untilOn = false }) => {
   const [state, setState] = useState<PushState | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -25,6 +26,8 @@ const PushOptIn: React.FC<{ user: User }> = ({ user }) => {
   if (!state || state === 'local') return null;
   const creator = user.role === 'creator';
   const on = state === 'on';
+  // Just turned on here: keep the green card (and "Probar aviso") until they leave.
+  if (untilOn && on && !msg) return null;
 
   const run = async (fn: () => Promise<{ ok: boolean; error?: string } | void>, okText: string) => {
     setBusy(true);
