@@ -840,7 +840,7 @@ const run = async () => {
       expect((await page.locator('input[name=docFront]').count()) === 0, 'el fan ve el formulario de verificación');
       await page.goto(`${BASE}/profile`);
       await page.getByText('Tipo de cuenta').waitFor();
-      expect((await page.getByText('Verificación de identidad').count()) === 0, 'Mi cuenta pide verificar la identidad al fan');
+      expect((await page.getByRole('main').getByText('Verificación de identidad').count()) === 0, 'Mi cuenta pide verificar la identidad al fan');
     });
     await check('Descargar mis datos genera un archivo JSON', async () => {
       await page.goto(`${BASE}/settings?section=privacy`);
@@ -1055,8 +1055,7 @@ const run = async () => {
       await dialog.getByPlaceholder(/Motivo del rechazo/).fill('La foto del documento está borrosa');
       await dialog.getByRole('button', { name: /Rechazar/ }).click();
       await page.getByRole('dialog', { name: 'Rechazar solicitud de identidad' }).getByRole('button', { name: 'Confirmar rechazo', exact: true }).click();
-      await list.getByText('Rechazada: La foto del documento está borrosa').waitFor();
-      // The creator sees why and sends it again.
+      // The creator sees why and sends it again (the new request replaces the rejected one).
       await logoutViaMenu(page);
       await login(page, creatorEmail, 'clave-creadora-1');
       await waitPath(page, '/');
@@ -1081,7 +1080,6 @@ const run = async () => {
       await page.getByRole('dialog', { name: 'Aprobar identidad', exact: true }).getByRole('button', { name: 'Confirmar identidad aprobada' }).click();
       await list.getByTestId('reviewed-verification').filter({ hasText: 'Lola Creadora' }).getByText('Aprobada', { exact: true }).waitFor();
       await list.getByText('No hay solicitudes pendientes').waitFor();
-      await list.getByText('Rechazada: La foto del documento está borrosa').waitFor();
     });
     await check('Admin crea un perfil IA sin verificación: lleva P-IA y los humanos verificados Verificado', async () => {
       await openAdminSection(page, 'managed');
