@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { sessionMinutes, liveState, liveWindow, isLiveBooking, isEventBooking, type VipBooking } from '../lib/vip';
+import { differsFromViewer } from '../lib/timeZones';
 
 // "Join live session" for a confirmed booking of a live experience (virtual, with a duration):
 // a Reserve 1:1 opens the private room, a Reserve Event seat opens the event's group room.
@@ -15,7 +16,7 @@ const LiveRoomButton: React.FC<{ booking: VipBooking }> = ({ booking }) => {
   const minutes = sessionMinutes(booking);
   if (!minutes || booking.status !== 'confirmed' || !isLiveBooking(booking)) return null;
 
-  const state = liveState(booking.date, booking.time, minutes, now);
+  const state = liveState(booking.date, booking.time, minutes, now, booking.timeZone);
   if (state === 'open') {
     return (
       <Link
@@ -29,11 +30,12 @@ const LiveRoomButton: React.FC<{ booking: VipBooking }> = ({ booking }) => {
     );
   }
   if (state === 'early') {
-    const opens = liveWindow(booking.date, booking.time, minutes).opens;
+    const opens = liveWindow(booking.date, booking.time, minutes, booking.timeZone).opens;
     return (
       <span className="text-xs text-gray-500" data-testid="live-later">
-        <i aria-hidden="true" className="fas fa-video mr-1"></i>Sala en vivo disponible desde las{' '}
-        {opens.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })} de ese día
+        <i aria-hidden="true" className="fas fa-video mr-1"></i>Sala en vivo disponible desde el{' '}
+        {opens.toLocaleString('es', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(/\./g, '')}
+        {differsFromViewer(opens, booking.timeZone) ? ' (tu hora)' : ''}
       </span>
     );
   }

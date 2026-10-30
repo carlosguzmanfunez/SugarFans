@@ -119,7 +119,7 @@ const Profile: React.FC = () => {
               <div className="space-y-3">
                 <PushOptIn user={user} />
                 {myBookings.map((b) => (
-                  <ReserveBookingCard key={b.id} booking={b} user={user} as="fan" testId="booking" onChanged={reload} onPay={setPaying} />
+                  <ReserveBookingCard key={b.id} booking={b} user={user} as="fan" testId="booking" onChanged={reload} onPay={setPaying} credits={coins} />
                 ))}
               </div>
             )}

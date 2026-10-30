@@ -4,6 +4,7 @@ import type { User } from '../context/AuthContext';
 import BuyCoinsDialog from './BuyCoinsDialog';
 import GiftArt from './GiftArt';
 import CoinIcon from './CoinIcon';
+import OnDemandVideo from './OnDemandVideo';
 import { VIRTUAL_CURRENCY, currencyWord, displayMethodLabel } from '../config/currency';
 import { usePlatformQuery, money } from '../lib/platform';
 import { DAILY_UNVERIFIED_LIMIT, formatCoins, giftById, giftsApi, packById, type PerkRequest, type SentGift, type Wallet } from '../lib/gifts';
@@ -57,7 +58,7 @@ const WalletPanel: React.FC<{ user: User }> = ({ user }) => {
               <div key={p.id} className="py-3 text-sm" data-testid="my-perk">
                 <p className="font-medium text-gray-900">{p.kind === 'video' ? 'Video personalizado' : 'Videollamada 1:1'} de {p.creatorName}</p>
                 <p className="text-xs text-gray-500">{perkLabel(p)}</p>
-                {p.status === 'delivered' && p.mediaUrl && <video src={p.mediaUrl} controls playsInline className="mt-2 w-full max-w-sm rounded-xl" />}
+                {p.status === 'delivered' && p.mediaUrl && <OnDemandVideo src={p.mediaUrl} seed={`perk-${p.id}`} className="mt-2 max-w-sm rounded-xl overflow-hidden" videoClassName="w-full" />}
                 {p.status === 'scheduled' && p.bookingId && (
                   <Link to={`/live/${p.bookingId}`} className="inline-block mt-2 text-xs bg-pink-600 text-white px-3 py-1.5 rounded-lg">Ir a la sala</Link>
                 )}

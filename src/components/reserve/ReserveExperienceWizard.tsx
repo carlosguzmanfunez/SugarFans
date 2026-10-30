@@ -19,7 +19,7 @@ import {
   type VipExperienceInput,
 } from '../../lib/vip';
 import {
-  CANCELLATION_POLICIES,
+  CANCELLATION_RULE,
   CREATOR_CATEGORIES,
   LOCATION_TYPES,
   MIN_NOTICE_OPTIONS,
@@ -514,15 +514,14 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category: profileCateg
       )}
 
       {step === 11 && (
-        <div className="grid gap-2" role="radiogroup" aria-label="Política de cancelación">
-          {(Object.keys(CANCELLATION_POLICIES) as (keyof typeof CANCELLATION_POLICIES)[]).map((p) => (
-            <button key={p} type="button" role="radio" aria-checked={d.cancellationPolicy === p} onClick={() => setD({ cancellationPolicy: p })} className={option(d.cancellationPolicy === p)}>
-              <span>
-                <span className="block text-sm font-semibold text-ink">{CANCELLATION_POLICIES[p].label}</span>
-                <span className="block text-xs text-ink/60">{CANCELLATION_POLICIES[p].summary}</span>
-              </span>
-            </button>
-          ))}
+        <div className="rounded-2xl border border-line bg-gray-50 p-4" data-testid="cancellation-rule">
+          <p className="text-sm font-semibold text-ink">{CANCELLATION_RULE.label}</p>
+          <p className="mt-1 text-xs text-ink/60">La misma para todas las experiencias: no tienes que elegir nada. Las devoluciones se hacen en Créditos y se aplican solas.</p>
+          <ul className="mt-3 space-y-1.5 text-sm text-ink/80">
+            {CANCELLATION_RULE.bullets.map((x) => (
+              <li key={x} className="flex gap-2"><i aria-hidden="true" className="fas fa-check mt-1 text-[11px] text-emerald-600"></i><span>{x}</span></li>
+            ))}
+          </ul>
         </div>
       )}
 

@@ -23,8 +23,8 @@ interface Props {
 // Reserve's products on a profile, in this order. The 1:1 video call always
 // comes first on every profile: it is where "Habla con …" lands.
 const GROUPS: { id: ReserveProduct; title: string; hint: string }[] = [
-  { id: 'one-to-one', title: RESERVE_FORMATS.private.product, hint: 'Videollamada por Fans Reserve: solo tú y el creador.' },
-  { id: 'event', title: RESERVE_FORMATS.event.product, hint: 'En grupo, con fecha fija y plazas limitadas. Reserva tu plaza.' },
+  { id: 'one-to-one', title: RESERVE_FORMATS.private.product, hint: 'Sesión en vivo por Fans Reserve: solo tú y el creador.' },
+  { id: 'event', title: RESERVE_FORMATS.event.product, hint: 'Sesión en vivo en grupo, con fecha fija y plazas limitadas. Reserva tu plaza.' },
   { id: 'other', title: 'Otras experiencias', hint: 'Presenciales, profesionales o entregadas en la app.' },
 ];
 
@@ -38,6 +38,7 @@ export const useEventSeats = (experiences: VipExperience[]) => {
 // that point at it ("Habla con …", "Ver experiencias", /creator/:id#reserve)
 // unfold it and scroll there.
 const OPEN_EVENT = 'reserve:open';
+const CUSTOM_EVENT = 'reserve:custom';
 // `to: 'one-to-one'` ("Habla con …") lands on the creator's 1:1 video calls when
 // they offer any, otherwise on the top of the section.
 export const openReserve = (to?: ReserveProduct) => {
@@ -46,6 +47,10 @@ export const openReserve = (to?: ReserveProduct) => {
     (document.getElementById(`reserve-${to}`) ?? document.getElementById('reserve'))?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   );
 };
+
+// "Proponer experiencia" from outside the section (the Reserve step of the access
+// ladder): opens the same structured request the section offers.
+export const openCustomRequest = () => window.dispatchEvent(new Event(CUSTOM_EVENT));
 
 // "Reserve con {creator}": Reserve Events, Reserve 1:1 and the other experiences
 // this creator offers, each fully defined, plus a structured request for something tailored.
@@ -66,6 +71,12 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, use
     window.addEventListener('hashchange', onHash);
     return () => { window.removeEventListener(OPEN_EVENT, unfold); window.removeEventListener('hashchange', onHash); };
   }, []);
+  useEffect(() => {
+    if (!canRequest) return;
+    const propose = () => (user ? setCustom(true) : onNeedLogin());
+    window.addEventListener(CUSTOM_EVENT, propose);
+    return () => window.removeEventListener(CUSTOM_EVENT, propose);
+  }, [canRequest, user, onNeedLogin]);
   const from = experiences.length ? Math.min(...experiences.map((e) => e.price)) : 0;
   const summary = experiences.length
     ? `${experiences.length} ${experiences.length === 1 ? 'experiencia' : 'experiencias'} · desde ${money(from)}`
@@ -105,7 +116,7 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, use
       </div>
 
       {expanded && <div id="reserve-body" data-testid="reserve-body">
-      <p className="mt-4 text-sm text-ink/70">Reserve Events en grupo, videollamadas 1:1 por nuestra plataforma y experiencias con fecha, duración, precio y reglas definidas por {first}.</p>
+      <p className="mt-4 text-sm text-ink/70">Sesiones en vivo por nuestra plataforma, 1:1 o en grupo, y experiencias con fecha, duración, precio y reglas definidas por {first}.</p>
       <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-gold-50 px-3 py-1 text-sm font-semibold text-gold-700 ring-1 ring-gold-200" data-testid="reserve-principle">
         <i aria-hidden="true" className="fas fa-shield-halved text-xs"></i>Reserva experiencias, no personas.
       </p>

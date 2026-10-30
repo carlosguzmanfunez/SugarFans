@@ -219,7 +219,7 @@ const HowItWorks: React.FC = () => {
     : [
         follow,
         sub,
-        { key: 'both', cls: 'p-res p-both', label: 'Reserva', price: 'Desde $15.99', title: 'Habla contigo, cara a cara', sub: 'Elige cómo: un evento en grupo con plazas o una videollamada 1:1, solo tú y el creador.', icon: TICKET },
+        { key: 'both', cls: 'p-res p-both', label: 'Reserva', price: 'Desde $15.99', title: 'Habla contigo, cara a cara', sub: 'Sesiones en vivo a tu medida: un evento en grupo con plazas o una videollamada 1:1, solo tú y el creador.', icon: TICKET },
       ];
   const faceWho = ENABLE_OPEN_LIVE ? [byId('1').avatar, byId('2').avatar, byId('5').avatar, byId('3').avatar] : [byId('1').avatar, byId('2').avatar, byId('3').avatar];
   const count = panels.length;

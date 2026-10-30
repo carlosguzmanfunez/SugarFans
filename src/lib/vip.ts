@@ -15,7 +15,7 @@ import type {
 import { vipExperiences } from '../data/mockData';
 import { CALL_MINUTES } from './giftRules';
 import {
-  CANCELLATION_POLICIES,
+  CANCELLATION_POLICY_IDS,
   CREATOR_CATEGORIES,
   LOCATION_TYPES,
   MAX_LIST_ITEMS,
@@ -39,6 +39,7 @@ import {
 } from '../config/reserve';
 import { moderate } from './moderation';
 import { isOverdue } from './reserveAlerts';
+import { zonedDate } from './timeZones';
 
 export type {
   Availability,
@@ -57,7 +58,10 @@ export type {
 export const MAX_BOOKING_MONTHS = 3;
 
 export const WEEKDAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-export const ALL_HOURS = Array.from({ length: 15 }, (_, i) => `${String(i + 8).padStart(2, '0')}:00`); // 08:00–22:00
+// Every hour of the day: creators choose their own (fans in other time zones may
+// want a call at what is night for the creator).
+export const ALL_HOURS = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`); // 00:00–23:00
+export const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 
 export const DEFAULT_AVAILABILITY: Availability = {
   days: [1, 2, 3, 4, 5],
@@ -91,19 +95,28 @@ export const freeHoursOn = (availability: Availability, taken: TakenSlot[], date
   const { min, max } = bookingWindow();
   if (date < min || date > max || !availability.days.includes(fromISODate(date).getDay())) return [];
   const busy = takenHoursOn(taken, date);
-  return availability.hours.filter((h) => !busy.includes(h) && (!minNoticeHours || meetsNotice(date, h, minNoticeHours)));
+  return availability.hours.filter((h) => !busy.includes(h) && (!minNoticeHours || meetsNotice(date, h, minNoticeHours, new Date(), availability.timeZone)));
 };
+
+// A fan's proposal is not bound to the creator's schedule: any day and any hour
+// (in the creator's time zone). The creator accepts, rejects or counters.
+export const proposalAvailability = (a: Availability): Availability => ({
+  days: ALL_DAYS,
+  hours: ALL_HOURS,
+  ...(a.timeZone ? { timeZone: a.timeZone } : {}),
+});
 
 export const normalizeAvailability = (a: Availability): Availability => ({
   days: [...new Set(a.days)].sort((x, y) => x - y),
   hours: [...new Set(a.hours)].sort(),
+  ...(a.timeZone ? { timeZone: a.timeZone } : {}),
 });
 
 // Status as Reserve names it: a confirmed experience whose time has passed reads "Realizada".
-export const reserveStatusOf = (b: Pick<VipBooking, 'status' | 'date' | 'time' | 'durationMinutes' | 'respondBy'>, now = new Date()): ReserveStatus => {
+export const reserveStatusOf = (b: Pick<VipBooking, 'status' | 'date' | 'time' | 'durationMinutes' | 'respondBy' | 'timeZone'>, now = new Date()): ReserveStatus => {
   if (isOverdue(b, now)) return 'expired';
   if (b.status === 'confirmed') {
-    const end = liveWindow(b.date, b.time, b.durationMinutes ?? 60).closes;
+    const end = liveWindow(b.date, b.time, b.durationMinutes ?? 60, b.timeZone).closes;
     if (now > end) return 'completed';
   }
   return b.status;
@@ -185,16 +198,13 @@ export type ReserveProduct = 'event' | 'one-to-one' | 'other';
 export const reserveProductOf = (exp: Pick<VipExperience, 'details' | 'durationMinutes'>): ReserveProduct =>
   isEventExperience(exp) ? 'event' : isLiveExperience(exp) ? 'one-to-one' : 'other';
 
-// The event's start in the viewer's clock (the creator sets it in local time).
-export const eventStart = (exp: Pick<VipExperience, 'details'>) => {
+// The event's start as an instant (the creator sets it in their own clock).
+export const eventStart = (exp: Pick<VipExperience, 'details' | 'timeZone'>) => {
   const d = exp.details;
   if (!d?.eventDate || !d.eventTime) return null;
-  const start = fromISODate(d.eventDate);
-  const [h, m] = d.eventTime.split(':').map(Number);
-  start.setHours(h, m || 0, 0, 0);
-  return start;
+  return zonedDate(d.eventDate, d.eventTime, exp.timeZone);
 };
-export const isUpcomingEvent = (exp: Pick<VipExperience, 'details'>, now = new Date()) => {
+export const isUpcomingEvent = (exp: Pick<VipExperience, 'details' | 'timeZone'>, now = new Date()) => {
   const start = eventStart(exp);
   return !!start && start.getTime() > now.getTime();
 };
@@ -265,7 +275,7 @@ export const validateExperience = (input: VipExperienceInput, categoryName?: str
     } else if (!Number.isInteger(d.maxParticipants) || d.maxParticipants < 1 || d.maxParticipants > Math.min(MAX_PARTICIPANTS, type.maxParticipants))
       return { ok: false, error: `Máximo ${Math.min(MAX_PARTICIPANTS, type.maxParticipants)} participantes para esta experiencia` };
     if (!MIN_NOTICE_OPTIONS.includes(d.minNoticeHours)) return { ok: false, error: 'Elige la anticipación mínima' };
-    if (!CANCELLATION_POLICIES[d.cancellationPolicy]) return { ok: false, error: 'Elige la política de cancelación' };
+    if (!CANCELLATION_POLICY_IDS.includes(d.cancellationPolicy)) return { ok: false, error: 'Elige la política de cancelación' };
     if (d.approval !== 'manual' && d.approval !== 'automatic') return { ok: false, error: 'Elige cómo apruebas las reservas' };
     if (d.subscriberDiscount !== undefined && !SUBSCRIBER_DISCOUNTS.includes(d.subscriberDiscount)) return { ok: false, error: 'Descuento no válido' };
     if (type.minutes && input.durationMinutes === undefined) return { ok: false, error: 'Indica la duración' };
@@ -317,16 +327,13 @@ export const experienceAvailability = (availability: Availability, exp?: Pick<Vi
   return {
     days: d?.days?.length ? availability.days.filter((x) => d.days!.includes(x)) : availability.days,
     hours: d?.hours?.length ? availability.hours.filter((x) => d.hours!.includes(x)) : availability.hours,
+    ...(availability.timeZone ? { timeZone: availability.timeZone } : {}),
   };
 };
 
 // Earliest start allowed by the minimum notice.
-export const meetsNotice = (date: string, time: string, hours: number, now = new Date()) => {
-  const start = fromISODate(date);
-  const [h, m] = time.split(':').map(Number);
-  start.setHours(h, m || 0, 0, 0);
-  return start.getTime() - now.getTime() >= hours * 3_600_000;
-};
+export const meetsNotice = (date: string, time: string, hours: number, now = new Date(), timeZone?: string) =>
+  zonedDate(date, time, timeZone).getTime() - now.getTime() >= hours * 3_600_000;
 
 // Checks a custom request before it is sent (the server repeats the essentials).
 export const validateCustomRequest = (input: CustomRequestInput, categoryName?: string): { ok: boolean; error?: string; flags?: string[] } => {
@@ -387,10 +394,8 @@ export const demoExperiences = (): VipExperience[] =>
     createdAt: '2024-01-01T00:00:00.000Z',
   }));
 
-export const liveWindow = (date: string, time: string, minutes: number) => {
-  const start = fromISODate(date);
-  const [h, mm] = time.split(':').map(Number);
-  start.setHours(h, mm || 0, 0, 0);
+export const liveWindow = (date: string, time: string, minutes: number, timeZone?: string) => {
+  const start = zonedDate(date, time, timeZone);
   return {
     start,
     opens: new Date(start.getTime() - LIVE_EARLY_MIN * 60_000),
@@ -399,7 +404,7 @@ export const liveWindow = (date: string, time: string, minutes: number) => {
 };
 
 export type LiveState = 'early' | 'open' | 'over';
-export const liveState = (date: string, time: string, minutes: number, now = new Date()): LiveState => {
-  const w = liveWindow(date, time, minutes);
+export const liveState = (date: string, time: string, minutes: number, now = new Date(), timeZone?: string): LiveState => {
+  const w = liveWindow(date, time, minutes, timeZone);
   return now < w.opens ? 'early' : now > w.closes ? 'over' : 'open';
 };

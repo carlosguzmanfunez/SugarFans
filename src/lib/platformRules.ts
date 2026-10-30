@@ -9,7 +9,6 @@ import type {
   PaymentKind,
   Payout,
   PayoutAccount,
-  ReportInput,
   Transaction,
   VerificationInput,
 } from './backend/platformTypes';
@@ -184,13 +183,7 @@ export const buildPayoutAccount = (email: string): { account?: PayoutAccount; er
 };
 export const payoutAccountLabel = (account: PayoutAccount) => `PayPal · ${maskEmail(account.email)}`;
 
-export const validateReport = (input: ReportInput, signedIn: boolean): Check => {
-  if (!input.reason) return bad('Elige un motivo');
-  if (input.description.trim().length < 10) return bad('Describe el problema (mínimo 10 caracteres)');
-  const email = input.contactEmail?.trim();
-  if (!signedIn && !(email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) return bad('Deja un email de contacto válido');
-  return good;
-};
+export { validateReport } from './reportRules';
 
 // What the creator earns from one payment: 80%, or 60% of a gift.
 export const creatorCut = (t: Pick<Transaction, 'amount' | 'share' | 'creatorRefundLoss' | 'platformCovers'>) =>

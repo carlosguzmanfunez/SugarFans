@@ -33,6 +33,8 @@ interface Deps {
   listAccounts(): User[];
   // Adds a confirmed booking (the gifted video call); fails when the slot is taken.
   addBooking(b: VipBooking): AuthResult;
+  // Créditos given back by cancelled Reserves minus those spent on Reserves.
+  reserveCredits(userId: string): number;
   notify(): void;
 }
 
@@ -56,20 +58,13 @@ export const createLocalGifts = (deps: Deps): GiftsBackend & { purgeUser(userId:
     deps.ledger.transactions().filter((t) => t.kind === 'gift' && t.payerId === userId && t.status === 'paid');
   const balance = (s: Store, userId: string) =>
     s.purchases.filter((p) => p.userId === userId).reduce((sum, p) => sum + p.coins, 0) -
-    giftsFrom(userId).reduce((sum, t) => sum + Math.round(t.amount * 100), 0);
-  // A perk not delivered in time refunds the whole gift (coins back, creator's cut removed).
-  const settle = () => {
-    const s = load();
-    const overdue = s.perks.filter((p) => p.status === 'pending' && p.dueAt < now());
-    if (!overdue.length) return;
-    const refunded = new Set(overdue.map((p) => p.transactionId));
-    // Mark the perks first: saving notifies listeners, which reload and settle again.
-    commit((st) => ({
-      ...st,
-      perks: st.perks.map((p) => (refunded.has(p.transactionId) && p.status === 'pending' ? { ...p, status: 'refunded' } : p)),
-    }));
-    refunded.forEach((id) => deps.ledger.refund(id));
-  };
+    giftsFrom(userId).reduce((sum, t) => sum + Math.round(t.amount * 100), 0) +
+    deps.reserveCredits(userId);
+  // Retired gift perks may remain contractually owed; passing a due date is not
+  // a refund of the gift or a restoration of the fan's spent Credits.
+  // Keep this hook for backwards-compatible wallet/perk flows without changing
+  // historical obligations or the gift ledger.
+  const settle = () => {};
 
   const withUrl = async <T extends { mediaPath?: string }>(x: T): Promise<T & { mediaUrl?: string }> =>
     x.mediaPath ? { ...x, mediaUrl: await fileUrl(x.mediaPath) } : x;

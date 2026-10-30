@@ -6,6 +6,7 @@ import { PAID_WITH_PAYPAL, WRONG_CREDENTIALS, ACCOUNT_SUSPENDED, avatarOrEmpty, 
 import { REJECTED_MESSAGE, inReviewNotice, moderateUpload, moderationOf } from './supabaseModeration';
 import { DEFAULT_AVAILABILITY, cleanDetails, customTitle, normalizeAvailability, validateCounter, validateCustomRequest, validateExperience } from '../vip';
 import type { Backend, BookingDetails, BookingStatus, ExperienceType, ReserveDetails, SocialProvider, User, UserRole, VipBooking, VipExperience } from './types';
+import { viewerTimeZone } from '../timeZones';
 import { creators as demoCreators } from '../../data/mockData';
 import { createSupabasePlatform } from './supabasePlatform';
 import { createSupabaseSocial } from './supabaseSocial';
@@ -100,6 +101,8 @@ interface BookingRow {
   // Missing until migration 20261005000002_reserve_alerts is applied.
   seen_at?: string | null;
   respond_by?: string | null;
+  // Missing until migration 20261026210000_reserve_time_zones is applied.
+  time_zone?: string | null;
 }
 
 interface ExperienceRow {
@@ -115,7 +118,13 @@ interface ExperienceRow {
   active: boolean;
   created_at: string;
   details?: Partial<ReserveDetails> | null;
+  time_zone?: string | null;
 }
+
+
+// Writes that add the creator's time zone retry without it while the column
+// doesn't exist yet (migration 20261026210000 not applied).
+const missingTimeZone = (error: { message?: string } | null) => !!error && /time_zone/.test(error.message ?? '');
 
 const hasDetails = (d: object | null | undefined): d is object => !!d && Object.keys(d).length > 0;
 
@@ -132,6 +141,7 @@ const toExperience = (e: ExperienceRow): VipExperience => ({
   active: e.active,
   createdAt: e.created_at,
   ...(hasDetails(e.details) ? { details: e.details as ReserveDetails } : {}),
+  ...(e.time_zone ? { timeZone: e.time_zone } : {}),
 });
 
 const toUser = (p: ProfileRow, extra?: Pick<User, 'subscriptions' | 'createdPosts' | 'authProvider' | 'isOwner' | 'role'>): User => ({
@@ -185,6 +195,7 @@ const toBooking = (b: BookingRow): VipBooking => ({
   ...(hasDetails(b.details) ? { details: b.details as BookingDetails } : {}),
   ...(b.seen_at ? { seenAt: b.seen_at } : {}),
   ...(b.respond_by ? { respondBy: b.respond_by } : {}),
+  ...(b.time_zone ? { timeZone: b.time_zone } : {}),
 });
 
 const ok = { ok: true } as const;
@@ -193,7 +204,7 @@ const fail = (error: string) => ({ ok: false, error });
 // Postgres raises our own Spanish messages; pass those through, hide the rest.
 const dbError = (error: { message?: string } | null, fallback: string) => {
   const msg = error?.message ?? '';
-  return fail(/[áéíóúñ¿]|Debes|Esta acción|Ese horario|La fecha|No puedes|No tienes|Reserva|Solo|Elige|Experiencia|Este perfil|Esta experiencia|Fans Reserve|Las experiencias|Mantén|El presupuesto|La duración|Entre|No quedan|Ya tienes|Evento|Este evento|Un Reserve Event|Indica|Tu cuenta|Esta cuenta|Termina|Las cuentas demo/.test(msg) ? msg : fallback);
+  return fail(/[áéíóúñ¿]|Debes|Esta acción|Ese horario|La fecha|No puedes|No tienes|Reserva|Solo|Elige|Experiencia|Este perfil|Esta experiencia|Fans Reserve|Las experiencias|Mantén|El presupuesto|La duración|Entre|No quedan|Ya tienes|Evento|Este evento|Un Reserve Event|Indica|Tu cuenta|Esta cuenta|Termina|Las cuentas demo|Esta reserva|Ya usaste|Ya pediste|Este pago|El cambio|La nueva/.test(msg) ? msg : fallback);
 };
 
 const translateAuthError = (message: string): string => {
@@ -593,16 +604,19 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
     },
 
     async getAvailability(id) {
-      const { data } = await sb.from('vip_availability').select('days, hours').eq('creator_profile_id', id).maybeSingle();
-      return data ? { days: data.days, hours: data.hours } : DEFAULT_AVAILABILITY;
+      let { data, error } = await sb.from('vip_availability').select('days, hours, time_zone').eq('creator_profile_id', id).maybeSingle();
+      if (missingTimeZone(error)) ({ data } = await sb.from('vip_availability').select('days, hours').eq('creator_profile_id', id).maybeSingle());
+      const row = data as { days: number[]; hours: string[]; time_zone?: string | null } | null;
+      return row ? { days: row.days, hours: row.hours, ...(row.time_zone ? { timeZone: row.time_zone } : {}) } : DEFAULT_AVAILABILITY;
     },
 
     async setAvailability(id, availability) {
       if (availability.days.length === 0 || availability.hours.length === 0) return fail('Elige al menos un día y una hora');
       const a = normalizeAvailability(availability);
-      const { error } = await sb
-        .from('vip_availability')
-        .upsert({ creator_profile_id: id, days: a.days, hours: a.hours, updated_at: new Date().toISOString() });
+      // The hours are in the clock of whoever saves them: the creator's.
+      const row = { creator_profile_id: id, days: a.days, hours: a.hours, updated_at: new Date().toISOString() };
+      let { error } = await sb.from('vip_availability').upsert({ ...row, time_zone: viewerTimeZone() ?? null });
+      if (missingTimeZone(error)) ({ error } = await sb.from('vip_availability').upsert(row));
       return error ? dbError(error, 'No se pudieron guardar los horarios') : ok;
     },
 
@@ -687,6 +701,27 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       return error ? dbError(error, 'No se pudo actualizar la reserva') : ok;
     },
 
+    async payBookingWithCredits(_user, bookingId) {
+      const { error } = await sb.rpc('reserve_pay_with_credits', { p_booking_id: bookingId });
+      return error ? dbError(error, 'No se pudo pagar con créditos') : ok;
+    },
+
+    async cancelBooking(_user, bookingId) {
+      const { data, error } = await sb.rpc('reserve_cancel', { p_booking_id: bookingId });
+      if (error) return dbError(error, 'No se pudo cancelar la reserva');
+      return { ok: true, refundCoins: Number(data?.refundCoins ?? 0), refundPercent: Number(data?.refundPercent ?? 0) };
+    },
+
+    async requestReschedule(_user, bookingId, input) {
+      const { error } = await sb.rpc('reserve_request_reschedule', { p_booking_id: bookingId, p_date: input.date, p_time: input.time, p_note: input.note });
+      return error ? dbError(error, 'No se pudo pedir el cambio de fecha') : ok;
+    },
+
+    async respondReschedule(_user, bookingId, accept) {
+      const { error } = await sb.rpc('reserve_respond_reschedule', { p_booking_id: bookingId, p_accept: accept });
+      return error ? dbError(error, 'No se pudo responder al cambio de fecha') : ok;
+    },
+
     async payBooking(_user, bookingId, methodId) {
       if (methodId === PAID_WITH_PAYPAL) return ok; // the server already charged and confirmed it
       const { error } = await sb.rpc('vip_pay_booking', { p_booking_id: bookingId, p_method_id: methodId });
@@ -715,9 +750,10 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
         creator_profile_id: user.creatorProfileId,
         creator_name: user.name,
       };
-      const { error } = id
-        ? await sb.from('vip_experiences').update(row).eq('id', id)
-        : await sb.from('vip_experiences').insert(row);
+      // An event's date and time are in the clock of whoever saves it.
+      const save = (r: object) => (id ? sb.from('vip_experiences').update(r).eq('id', id) : sb.from('vip_experiences').insert(r));
+      let { error } = await save({ ...row, time_zone: viewerTimeZone() ?? null });
+      if (missingTimeZone(error)) ({ error } = await save(row));
       return error ? dbError(error, 'No se pudo guardar la experiencia') : ok;
     },
 

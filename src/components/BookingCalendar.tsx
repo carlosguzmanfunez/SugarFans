@@ -11,6 +11,7 @@ import {
   type Availability,
   type TakenSlot,
 } from '../lib/vip';
+import { differsFromViewer, viewerSlotLabel, zoneCity, zonedDate } from '../lib/timeZones';
 
 interface Props {
   availability: Availability;
@@ -51,6 +52,9 @@ const BookingCalendar: React.FC<Props> = ({ availability, taken: takenSlots, cre
   const monthLabel = month.toLocaleDateString('es', { month: 'long', year: 'numeric' });
   const taken = date ? takenHoursOn(takenSlots, date) : [];
   const free = date ? freeHoursOn(availability, takenSlots, date, minNoticeHours) : [];
+  // Hours are in the creator's clock; a fan elsewhere also sees theirs.
+  const zone = availability.timeZone;
+  const otherClock = !!zone && differsFromViewer(zonedDate(date || min, availability.hours[0] ?? '12:00', zone), zone);
 
   if (availability.days.length === 0 || availability.hours.length === 0) {
     return (
@@ -123,6 +127,11 @@ const BookingCalendar: React.FC<Props> = ({ availability, taken: takenSlots, cre
       {date && (
         <div>
           <p className="text-sm font-semibold text-gray-700 mb-2 first-letter:uppercase">{formatLongDate(date)}</p>
+          {otherClock && (
+            <p className="text-xs text-gray-500 mb-2" data-testid="slot-time-zone">
+              <i aria-hidden="true" className="fas fa-globe mr-1"></i>Horario de {creatorName}: hora de {zoneCity(zone)}. Debajo de cada hora ves la tuya.
+            </p>
+          )}
           <div className="flex flex-wrap gap-2" data-testid="time-slots">
             {availability.hours.map((h) => {
               const isTaken = taken.includes(h);
@@ -144,6 +153,11 @@ const BookingCalendar: React.FC<Props> = ({ availability, taken: takenSlots, cre
                   }`}
                 >
                   {h}
+                  {otherClock && isFree && (
+                    <span className={`block text-[11px] font-normal ${time === h ? 'text-white/85' : 'text-gray-500'}`}>
+                      {viewerSlotLabel(date, h, zone)} tu hora
+                    </span>
+                  )}
                 </button>
               );
             })}

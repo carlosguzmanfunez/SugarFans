@@ -36,6 +36,51 @@ finish(async () => {
     expect(Number(as(admin, `select count(*) from public.app_errors`)) === 3, 'el admin no los ve');
     raises(() => as(fan, `insert into public.app_errors (source, message, fingerprint, hour) values ('web', 'x', 'x', now())`), /permission|policy|row-level/, 'insert directo');
   });
+  await check('Un visitante nunca puede marcar sus errores como API o email', async () => {
+    anon(`select public.log_app_error('api', 'QA spoofed api alert', '', '', '')`);
+    anon(`select public.log_app_error('email', 'QA spoofed email alert', '', '', '')`);
+    const labels = psql(DB, `select source from public.app_errors
+      where message in ('QA spoofed api alert','QA spoofed email alert')
+      order by message`).split('\n');
+    expect(labels.length === 2 && labels.every((v) => v === 'web'),
+      `se falsificó el origen de los errores: ${labels}`);
+  });
+  await check('Un fan tampoco puede falsificar fuentes del servidor', async () => {
+    const sent = psql(DB, `begin;
+      set local role authenticated;
+      select set_config('request.jwt.claim.role','authenticated',true) \\g /dev/null
+      select set_config('request.jwt.claim.sub','${fan}',true) \\g /dev/null
+      select public.log_app_error('api','QA signed-in spoofed api alert','','','');
+      commit;`);
+    const label = psql(DB, `select source from public.app_errors where message = 'QA signed-in spoofed api alert'`);
+    expect(label === 'web', `el fan falsificó un incidente API: ${label}`);
+  });
+  await check('La identidad de servicio conserva fuentes API y email', async () => {
+    psql(DB, `begin;
+      set local role service_role;
+      select set_config('request.jwt.claim.role','service_role',true) \\g /dev/null
+      select public.log_app_error('api','QA trusted api incident','','','');
+      select public.log_app_error('email','QA trusted email incident','','','');
+      commit;`);
+    const labels = psql(DB, `select source from public.app_errors where
+      message in ('QA trusted api incident','QA trusted email incident')
+      order by source`).split('\n');
+    expect(labels.join(',') === 'api,email', `el servidor perdió su clasificación: ${labels}`);
+  });
+  await check('El contexto JSON real de PostgREST reconoce al servicio y rechaza al fan', () => {
+    for (const role of ['service_role', 'authenticated']) {
+      for (const source of ['api', 'email']) {
+        const message = `QA JSON claims ${role} ${source}`;
+        psql(DB, `begin; set local role ${role};
+          set local request.jwt.claim.role='';
+          set local request.jwt.claim.sub='';
+          set local request.jwt.claims='${JSON.stringify({role, ...(role === 'authenticated' ? {sub: fan} : {})})}';
+          select public.log_app_error('${source}','${message}','','',''); commit;`);
+        expect(psql(DB, `select source from public.app_errors where message='${message}'`) ===
+          (role === 'service_role' ? source : 'web'), 'origen incorrecto con claims JSON');
+      }
+    }
+  });
   await check('Más de 500 errores distintos en una hora no llenan la base', async () => {
     psql(DB, `select public.log_app_error('api', 'lote ' || md5(i::text) || 'zz' || chr(65 + i % 26) || chr(65 + i / 26 % 26), '', '', '') from generate_series(1, 600) i`);
     const n = Number(psql(DB, `select count(*) from public.app_errors where hour = date_trunc('hour', now())`));

@@ -182,18 +182,18 @@ const Help: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="report-target">Perfil o enlace reportado</label>
-                  <input id="report-target" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="@usuario o enlace a la publicación" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none" />
+                  <input id="report-target" maxLength={200} value={target} onChange={(e) => setTarget(e.target.value)} placeholder="@usuario o enlace a la publicación" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none" />
                 </div>
               </>
             )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="report-description">{reportKind === 'support' ? 'Tu mensaje' : 'Descripción'}</label>
-              <textarea id="report-description" value={description} onChange={(e) => setDescription(e.target.value)} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none h-24 resize-none" placeholder="Describe el problema..."></textarea>
+              <textarea id="report-description" maxLength={4000} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none h-24 resize-none" placeholder="Describe el problema..."></textarea>
             </div>
             {!user && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="report-email">Tu email</label>
-                <input id="report-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="para poder responderte" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none" />
+                <input id="report-email" type="email" maxLength={254} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="para poder responderte" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none" />
               </div>
             )}
             {reportResult && (

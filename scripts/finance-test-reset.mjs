@@ -4,7 +4,8 @@ export const RESET_TABLES=[
  'public.transactions','public.coin_purchases','public.subscriptions','public.paypal_orders','public.paypal_subscriptions',
  'public.finance_journal','public.finance_sources','public.finance_source_revisions','public.finance_adjustments',
  'public.perk_requests','public.finance_allocations','public.finance_fee_resolutions','public.finance_fee_reversals',
- 'finance_private.collection_cost_resolutions','finance_private.collection_credit_updates','finance_private.collection_refund_reviews'
+ 'finance_private.collection_cost_resolutions','finance_private.collection_credit_updates','finance_private.collection_refund_reviews',
+ 'public.credit_grants','public.credit_spends'
 ];
 export const resetSnapshotSql=(existing=RESET_TABLES)=>`select jsonb_object_agg(name,part)as snapshot from(${RESET_TABLES.map(name=>existing.includes(name)?`select '${name}'as name,jsonb_build_object('count',count(*),'hash',md5(coalesce(jsonb_agg(to_jsonb(t)order by to_jsonb(t)::text),'[]')::text),'data',coalesce(jsonb_agg(to_jsonb(t)order by to_jsonb(t)::text),'[]'))as part from ${name} t`:`select '${name}'as name,jsonb_build_object('count',0,'hash',md5('[]'),'data','[]'::jsonb)as part`).join(' union all ')})parts`;
 const lit=v=>"'"+String(v).replaceAll("'","''")+"'";
