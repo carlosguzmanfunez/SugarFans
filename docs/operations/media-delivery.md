@@ -1,6 +1,6 @@
 # Fotos y videos: reducir descargas sin contratar Pro
 
-Primera entrega preparada para revisión interna. No requiere migraciones, cambios de plan ni modificaciones de los archivos subidos.
+Implementación comprobada con ensayos internos. No requiere migraciones, cambios de plan ni modificaciones de los archivos subidos.
 
 ## Comportamiento
 
@@ -41,7 +41,11 @@ En Chromium, tanto a 1366×900 como a 390×844, una lista de 20 fotos solicitó 
 
 Estos resultados no significan un 90% de ahorro en toda la factura: quien recorra las 20 fotos seguirá descargando las 20. Tampoco certifican Safari, una CDN real, todos los permisos de la base ni toda la aplicación.
 
-La batería general histórica `e2e/flows.mjs` no quedó certificada: su ejecución mostró comprobaciones fallidas de Ayuda, país preseleccionado, suscripción de demostración y navegación; se interrumpió al no progresar. Las comprobaciones específicas de esta entrega y el recorrido offline de fotos y videos son independientes de esa batería. Los dos pasos del recorrido histórico afectados por «Reproducir video» se actualizaron, pero eso no equivale a aprobar toda su ejecución.
+La revisión posterior corrigió el bloqueo real de `PlatformSync`: al terminar de comprobar renovaciones se recargaba el catálogo, su indicador de carga cambiaba y la misma comprobación se iniciaba otra vez. Ahora cada combinación de usuario y suscripciones se comprueba una sola vez; una respuesta de un estado anterior no vuelve a refrescar un conjunto diferente de suscripciones.
+
+También se actualizaron las expectativas de Ayuda, la prioridad de zona horaria al elegir país, los menús administrativos, las confirmaciones y la selección de elementos repetidos en historiales. Se preservan las decisiones y las confirmaciones del producto. La batería histórica revisada completó **212/212 recorridos**; la regresión específica comprueba un solo cargo offline y navegación normal después de suscribirse.
+
+El ejecutor usa la API de Vite compatible con Windows y rutas `fileURLToPath`. Solo acepta servidores HTTP locales, comprueba que se trata de la aplicación offline y bloquea las solicitudes externas. Guarda el resultado de cada comprobación, distingue una ejecución incompleta de una aprobada y corta un paso atascado a los 30 segundos. Los errores inesperados de consola también impiden aprobar la ejecución. `E2E_RESULTS_DIR` elige la carpeta de evidencias; `E2E_FAIL_FAST=1` permite detener un diagnóstico en el primer fallo sin declararlo aprobado.
 
 ## Al disponer de Pro
 
