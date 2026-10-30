@@ -12,6 +12,7 @@ import {
   detailsOf,
   experienceAvailability,
   freeHoursOn,
+  proposalAvailability,
   formatLongDate,
   isEventExperience,
   isUpcomingEvent,
@@ -810,7 +811,7 @@ export const localBackend: Backend = {
     if (!check.ok) return fail(check.error!);
     const { min, max } = bookingWindow();
     if (input.date < min || input.date > max) return fail('La fecha debe estar dentro de los próximos 3 meses');
-    if (!freeHoursOn(loadAvailability(input.creatorProfileId), takenFor(input.creatorProfileId), input.date).includes(input.time))
+    if (!freeHoursOn(proposalAvailability(loadAvailability(input.creatorProfileId)), takenFor(input.creatorProfileId), input.date).includes(input.time))
       return fail('Ese horario ya no está disponible. Elige otro.');
     const now = new Date().toISOString();
     saveBookings([

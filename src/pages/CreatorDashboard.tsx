@@ -562,7 +562,7 @@ const CreatorDashboard: React.FC = () => {
               <div className="bg-white rounded-2xl border border-line p-4 sm:p-6" data-testid="vip-availability">
                 <h3 className="font-bold text-gray-900 mb-1">Horarios generales de Reserve</h3>
                 <p className="text-sm text-gray-500 mb-5">
-                  Los fans solo podrán reservar en estos días y horas, con hasta {MAX_BOOKING_MONTHS} meses de antelación. Cada experiencia puede limitarlos aún más.
+                  Los fans solo podrán reservar en estos días y horas (en tu zona horaria), con hasta {MAX_BOOKING_MONTHS} meses de antelación. Cada experiencia puede limitarlos aún más. Las propuestas de los fans pueden pedir cualquier día y hora: tú decides si las aceptas.
                 </p>
                 <p className="text-sm font-medium text-gray-700 mb-2">Días</p>
                 <div className="flex flex-wrap gap-2 mb-5">

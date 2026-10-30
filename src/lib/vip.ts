@@ -58,7 +58,10 @@ export type {
 export const MAX_BOOKING_MONTHS = 3;
 
 export const WEEKDAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-export const ALL_HOURS = Array.from({ length: 15 }, (_, i) => `${String(i + 8).padStart(2, '0')}:00`); // 08:00–22:00
+// Every hour of the day: creators choose their own (fans in other time zones may
+// want a call at what is night for the creator).
+export const ALL_HOURS = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`); // 00:00–23:00
+export const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 
 export const DEFAULT_AVAILABILITY: Availability = {
   days: [1, 2, 3, 4, 5],
@@ -94,6 +97,14 @@ export const freeHoursOn = (availability: Availability, taken: TakenSlot[], date
   const busy = takenHoursOn(taken, date);
   return availability.hours.filter((h) => !busy.includes(h) && (!minNoticeHours || meetsNotice(date, h, minNoticeHours, new Date(), availability.timeZone)));
 };
+
+// A fan's proposal is not bound to the creator's schedule: any day and any hour
+// (in the creator's time zone). The creator accepts, rejects or counters.
+export const proposalAvailability = (a: Availability): Availability => ({
+  days: ALL_DAYS,
+  hours: ALL_HOURS,
+  ...(a.timeZone ? { timeZone: a.timeZone } : {}),
+});
 
 export const normalizeAvailability = (a: Availability): Availability => ({
   days: [...new Set(a.days)].sort((x, y) => x - y),

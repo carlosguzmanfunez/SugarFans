@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { categories, posts } from '../data/mockData';
 import { useCreatorCatalog, useCreatorCountries, useVipCreatorIds } from '../lib/catalog';
-import CreatorCard from '../components/CreatorCard';
+import { CreatorTile } from '../components/CreatorCard';
 import Avatar from '../components/Avatar';
 import { CoverImage } from '../components/CoverArt';
 import { categoryFor, isKnownCategory } from '../config/reserve';
@@ -10,7 +10,9 @@ import { featuredFirst, rewardsApi, useFeatured } from '../lib/rewards';
 import { useAuth } from '../context/AuthContext';
 import { usePlatformQuery, platformApi, isCutOff } from '../lib/platform';
 import { useLiveCreatorIds } from '../lib/live';
-import { CategoryRail, LiveRail, ReserveRail, RailHeading } from '../components/AppRails';
+import { CategoryRail, LiveRail } from '../components/AppRails';
+import { CategoryHeader } from '../components/CategoryHeader';
+import { ExploreHeading, NewActivity } from '../components/ExploreActivity';
 import { ENABLE_OPEN_LIVE } from '../config/features';
 import { useLanguage } from '../context/LanguageContext';
 import { countryName } from '../config/countries';
@@ -55,7 +57,6 @@ const Explore: React.FC = () => {
   const liveOnly = ENABLE_OPEN_LIVE && params.has('live');
   const visibleCreators = creators.filter((c) => !hidden(c.id));
   const liveIds = useLiveCreatorIds(visibleCreators.map((c) => c.id));
-  const browsing = !searchQuery && !selectedCategory && !selectedCountry && !liveOnly;
 
   const filteredCreators = featuredFirst(creators, featured).filter(c => {
     if (hidden(c.id)) return false;
@@ -73,6 +74,25 @@ const Explore: React.FC = () => {
         .sort((a, b) => (newFans[b.id] ?? 0) - (newFans[a.id] ?? 0))
         .slice(0, 3)
     : [];
+
+  // Only categories that have creators get a circle (the selected one always stays).
+  const usedCategories = new Set<string>(visibleCreators.filter((c) => c.category).map((c) => categoryFor(c.category).id));
+  const railCategories = categories.filter((c) => usedCategories.has(c.id) || c.name === selectedCategory);
+
+  // Featured and the latest posts show while browsing everyone or one category;
+  // a search or a country goes straight to the matching creators.
+  const showActivity = !searchQuery && !selectedCountry && !liveOnly;
+  const featuredHere = filteredCreators.filter((c) => featuredIds.has(c.id)).slice(0, 4);
+  const tile = (creator: (typeof creators)[number]) => (
+    <CreatorTile
+      key={creator.id}
+      creator={creator}
+      level={featuredIds.get(creator.id)}
+      featured={featuredIds.has(creator.id)}
+      featuredLabel={rising.has(creator.id) ? 'En ascenso' : 'Destacado'}
+      vip={vipIds.has(creator.id)}
+    />
+  );
 
   const topPlace = [selectedCategory, selectedCountry && nameOf(selectedCountry)].filter(Boolean).join(' · ');
 
@@ -107,7 +127,7 @@ const Explore: React.FC = () => {
 
           {/* Categories, as round icons (they replaced the creator avatars and the pills). */}
           <nav aria-label="Categorías" className="mx-auto mt-6 max-w-5xl">
-            <CategoryRail categories={categories} selected={selectedCategory} onSelect={setSelectedCategory} className="md:justify-center" />
+            <CategoryRail categories={railCategories} selected={selectedCategory} onSelect={setSelectedCategory} className="md:justify-center" />
           </nav>
 
           {countryOptions.length > 0 && (
@@ -133,13 +153,6 @@ const Explore: React.FC = () => {
             </div>
           )}
         </div>
-
-        {browsing && (
-          <section aria-labelledby="reserve-rail-title" className="mb-6 sm:mb-10">
-            <RailHeading id="reserve-rail-title" title="Reserve disponible" to="/reserve" icon="fa-ticket" tone="text-gold-600" />
-            <ReserveRail creators={visibleCreators} />
-          </section>
-        )}
 
         {liveOnly && filteredCreators.length === 0 && (
           <div className="mb-6 rounded-3xl border border-line bg-white px-5 py-8 sm:mb-10 sm:px-6 sm:py-10 text-center" data-testid="live-empty">
@@ -172,8 +185,10 @@ const Explore: React.FC = () => {
               <i aria-hidden="true" className="fas fa-th mr-1"></i> Publicaciones
             </button>
           </div>
-          <span className="whitespace-nowrap text-xs text-muted sm:text-sm">{filteredCreators.length} resultados</span>
+          <span className="whitespace-nowrap text-xs text-muted sm:text-sm">{filteredCreators.length} {filteredCreators.length === 1 ? 'resultado' : 'resultados'}</span>
         </div>}
+
+        {viewMode === 'creators' && selectedCategory && !liveOnly && <CategoryHeader name={selectedCategory} count={filteredCreators.length} />}
 
         {viewMode === 'creators' && topOfMonth.length > 0 && (
           <section aria-labelledby="top-month-title" className="mb-8 rounded-3xl border border-gold-200 bg-gold-50/60 p-5" data-testid="top-month">
@@ -197,20 +212,33 @@ const Explore: React.FC = () => {
           </section>
         )}
 
-        {/* Creators Grid */}
+        {/* Destacados and Lo nuevo (of everyone, or of the picked category); then every
+            other creator as a small tile, two per row on a phone. */}
+        {viewMode === 'creators' && showActivity && featuredHere.length > 0 && (
+          <section aria-labelledby="featured-title" className="mb-8 sm:mb-10" data-testid="explore-featured">
+            <ExploreHeading id="featured-title" title={selectedCategory ? `Destacados en ${categoryFor(selectedCategory).name}` : 'Perfiles destacados'} icon="fa-star" tone="text-gold-600" />
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">{featuredHere.map(tile)}</div>
+          </section>
+        )}
+
+        {viewMode === 'creators' && showActivity && (
+          <NewActivity
+            creators={filteredCreators}
+            catalogPosts={visiblePosts}
+            removedPosts={platform.removedPosts}
+            title={selectedCategory ? `Lo nuevo en ${categoryFor(selectedCategory).name}` : 'Lo nuevo'}
+          />
+        )}
+
         {viewMode === 'creators' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {filteredCreators.map((creator) => (
-              <CreatorCard
-                key={creator.id}
-                creator={creator}
-                level={featuredIds.get(creator.id)}
-                featured={featuredIds.has(creator.id)}
-                featuredLabel={rising.has(creator.id) ? 'En ascenso' : 'Destacado'}
-                vip={vipIds.has(creator.id)}
-              />
-            ))}
-          </div>
+          <section aria-labelledby={showActivity ? 'all-creators-title' : undefined}>
+            {showActivity && (
+              <ExploreHeading id="all-creators-title" title={featuredHere.length ? 'Descubre más creadores' : 'Todos los creadores'} icon="fa-users" />
+            )}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5" data-testid="explore-mosaic">
+              {(showActivity ? filteredCreators.filter((c) => !featuredHere.includes(c)) : filteredCreators).map(tile)}
+            </div>
+          </section>
         )}
 
         {/* Posts Grid */}
