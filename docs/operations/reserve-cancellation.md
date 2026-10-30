@@ -27,4 +27,4 @@ La hora de inicio se cuenta en la zona del creador (`vip_bookings.time_zone`; Ho
 
 Constantes: `reserve_cancel_hours()` y `reserve_late_refund_percent()` en `supabase/migrations/20261030000001_reserve_cancellation.sql`, y `src/lib/reserveCancellation.ts`. Cambia ambos.
 
-Pruebas: `npm run test:reserve-cancellation-db` (PostgreSQL local) y los recorridos de `e2e/flows.mjs`.
+Pruebas: `npm run test:reserve-cancellation-db` (PostgreSQL local) y `npm run test:reserve-cancellation-ui` (app sin conexión, fan y creadora).
