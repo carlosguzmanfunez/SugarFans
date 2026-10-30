@@ -125,6 +125,13 @@ const run = async () => {
     psql(DB, row(fanA));
     raises(() => psql(DB, row(fanB)), /vip_bookings_active_slot/, 'dos reservas 1:1 en el mismo horario');
   });
+  await check('Una experiencia puede usar cualquier día y hora, aunque no estén en los horarios generales', async () => {
+    const details = `jsonb_build_object('modality','virtual','locationTypes',jsonb_build_array('online'),'includes','[]'::jsonb,'excludes','[]'::jsonb,'requirements',jsonb_build_object('verifiedFans',false,'subscribersOnly',false),'minNoticeHours',24,'maxParticipants',1,'approval','manual','cancellationPolicy','moderate','days',jsonb_build_array(0),'hours',jsonb_build_array('03:00'))`;
+    const exp = as(creator, `insert into public.vip_experiences (creator_profile_id, creator_name, title, type, price, duration_minutes, details) values ('${cp}', 'x', 'Madrugada', 'video-call', 20, 30, ${details}) returning id`);
+    const sunday = `current_date + (7 - extract(dow from current_date)::int) + 7`;
+    as(fanB, `select public.reserve_create_booking('${exp}', ${sunday}, '03:00', '', 1)`);
+    raises(() => as(fanB, `select public.reserve_create_booking('${exp}', ${sunday} + 1, '10:00', '', 1)`), /no está disponible/, 'fuera de los días de la experiencia');
+  });
   await check('Las reservas solo las ve su fan y su creator (la sala 1:1 se decide con esto)', async () => {
     expect(as(fanC, `select count(*) from public.vip_bookings where fan_id <> '${fanC}'`) === '0', 'un tercero ve reservas ajenas');
     expect(as(sub, `select count(*) from public.vip_bookings where fan_id <> '${sub}'`) === '0', 'una suscriptora ve reservas ajenas');

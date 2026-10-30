@@ -176,6 +176,7 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category: profileCateg
     if (i === 1) return input.title.trim().length < 3 || input.title.trim().length > 80 ? 'El nombre debe tener entre 3 y 80 caracteres' : mod([input.title]);
     if (i === 2) return input.description.trim().length < 10 ? 'Describe la experiencia (mínimo 10 caracteres)' : mod([input.description]);
     if (i === 6 && isEvent && (!d.eventDate || !d.eventTime)) return 'Indica la fecha y la hora del evento';
+    if (i === 6 && !isEvent && (d.days?.length === 0 || d.hours?.length === 0)) return 'Elige al menos un día y una hora';
     if (i === 5 && (!Number.isFinite(input.price) || input.price < MIN_EXPERIENCE_PRICE || input.price > MAX_EXPERIENCE_PRICE))
       return `El precio debe estar entre $${MIN_EXPERIENCE_PRICE} y $${MAX_EXPERIENCE_PRICE}`;
     if (i === 7 && d.modality !== 'virtual') {
@@ -392,15 +393,14 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category: profileCateg
 
       {step === 6 && !isEvent && (
         <div className="space-y-4">
-          <p className="text-sm text-ink/70">Por defecto usa tus horarios generales. Puedes limitar esta experiencia a algunos días u horas.</p>
+          <p className="text-sm text-ink/70">Elige cualquier día de la semana y cualquier hora del día. Empieza marcado con tus horarios generales.</p>
           <div>
             <p className="mb-2 text-sm font-semibold text-ink">Días</p>
             <div className="flex flex-wrap gap-2">
               {WEEKDAYS.map((w, i) => {
                 const on = (d.days ?? availability.days).includes(i);
-                const offered = availability.days.includes(i);
                 return (
-                  <button key={w} type="button" disabled={!offered} aria-pressed={on && offered} onClick={() => setD({ days: toggle(d.days ?? availability.days, i) })} className={`h-10 w-12 rounded-xl border text-sm font-medium ${on && offered ? 'border-ink bg-ink text-white' : 'border-line text-ink/70'} disabled:opacity-30`}>
+                  <button key={w} type="button" aria-pressed={on} onClick={() => setD({ days: toggle(d.days ?? availability.days, i) })} className={`h-10 w-12 rounded-xl border text-sm font-medium ${on ? 'border-ink bg-ink text-white' : 'border-line text-ink/70'}`}>
                     {w}
                   </button>
                 );
@@ -410,7 +410,7 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category: profileCateg
           <div>
             <p className="mb-2 text-sm font-semibold text-ink">Horas</p>
             <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-              {ALL_HOURS.filter((h) => availability.hours.includes(h)).map((h) => {
+              {ALL_HOURS.map((h) => {
                 const on = (d.hours ?? availability.hours).includes(h);
                 return (
                   <button key={h} type="button" aria-pressed={on} onClick={() => setD({ hours: toggle(d.hours ?? availability.hours, h) })} className={`h-10 rounded-xl border text-sm font-medium ${on ? 'border-brand-600 bg-brand-600 text-white' : 'border-line text-ink/70'}`}>

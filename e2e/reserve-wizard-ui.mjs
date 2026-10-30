@@ -81,6 +81,19 @@ try {
     await next();
   });
 
+  await check('Disponibilidad ofrece los 7 días y las 24 horas', async () => {
+    await form.getByText(/Paso 7 de 14/).waitFor();
+    const days = form.getByRole('button', { name: /^(Dom|Lun|Mar|Mié|Jue|Vie|Sáb)$/ });
+    expect((await days.count()) === 7, 'faltan días');
+    const hours = form.getByRole('button', { name: /^\d\d:00$/ });
+    expect((await hours.count()) === 24, 'no están las 24 horas');
+    for (const b of [...(await days.all()), ...(await hours.all())]) expect(await b.isEnabled(), 'hay días u horas bloqueados');
+    await form.getByRole('button', { name: 'Dom' }).click();
+    await form.getByRole('button', { name: '03:00' }).click();
+    expect((await form.getByRole('button', { name: '03:00' }).getAttribute('aria-pressed')) === 'true', 'no se marcó las 03:00');
+    await shot('7-disponibilidad');
+  });
+
   await check('Requisitos solo pide condiciones adicionales', async () => {
     for (let i = 0; i < 3; i++) await next();
     await form.getByText(/Paso 10 de 14/).waitFor();
@@ -99,6 +112,7 @@ try {
     expect(exp.price === 25, `precio guardado: ${exp.price}`);
     expect(!exp.details.requirements.verifiedFans && !exp.details.requirements.subscribersOnly, 'quedó un requisito para fans');
     expect(exp.details.conditions === 'Llega 10 minutos antes.', 'no guardó las condiciones');
+    expect(exp.details.days?.includes(0) && exp.details.hours?.includes('03:00'), 'no guardó domingo a las 03:00');
   });
 } finally {
   await browser.close();
