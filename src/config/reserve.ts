@@ -455,11 +455,22 @@ export const purposesFor = (category: CreatorCategory, modality: ReserveModality
 export type ApprovalMode = 'manual' | 'automatic';
 export type CancellationPolicyId = 'flexible' | 'moderate' | 'strict';
 
-// LEGAL: refund terms are drafts and no refund is executed yet (no live PSP).
-export const CANCELLATION_POLICIES: Record<CancellationPolicyId, { label: string; summary: string }> = {
-  flexible: { label: 'Flexible', summary: 'Cancelación sin coste hasta 24 h antes.' },
-  moderate: { label: 'Moderada', summary: 'Cancelación sin coste hasta 72 h antes; después, se retiene el 50%.' },
-  strict: { label: 'Estricta', summary: 'Sin reembolso una vez confirmada, salvo que el creador cancele.' },
+// One cancellation rule for every Reserve (Carlos, 2026-10-29), applied by the
+// server (reserve_cancel) and previewed by src/lib/reserveCancellation.ts.
+// Experiences saved earlier still carry a cancellationPolicy id; it no longer
+// changes anything. LEGAL: requires legal review before production launch.
+export const CANCELLATION_POLICY_IDS: CancellationPolicyId[] = ['flexible', 'moderate', 'strict'];
+export const CANCELLATION_RULE = {
+  label: 'Regla única de Fans Reserve',
+  summary: 'Hasta 24 h antes, el fan recibe el 100% en Créditos; con menos de 24 h, el 50%. Si el creador cancela, el fan recibe el 100%.',
+  bullets: [
+    'El fan cancela 24 horas o más antes: recibe el 100% de lo que pagó en Créditos, al instante.',
+    'El fan cancela con menos de 24 horas: recibe el 50% en Créditos; el creador conserva la mitad de su ganancia.',
+    'El fan no se presenta: no hay devolución.',
+    'El creador cancela una reserva pagada: el fan recibe el 100% en Créditos, el creador no cobra esa reserva y cuenta en su historial.',
+    'Un cambio de fecha gratis por reserva 1:1, pedido con 24 horas o más de anticipación; el creador lo acepta o lo rechaza.',
+    'Antes de pagar, cancelar no tiene costo.',
+  ],
 };
 
 export const MIN_NOTICE_OPTIONS = [24, 48, 72, 168];

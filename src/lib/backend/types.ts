@@ -170,7 +170,24 @@ export interface BookingDetails {
   // Booked with a Meta de experiencia ticket (no payment), and the wheel's extra.
   ticketId?: string;
   ticketBonus?: string;
+  // Cancellation (see src/lib/reserveCancellation.ts): who cancelled, and what came back.
+  cancellation?: BookingCancellation;
+  // The fan's one free date change: pending (reschedule) and used (rescheduled).
+  reschedule?: { date: string; time: string; note?: string; at: string };
+  rescheduled?: boolean;
+  rescheduledFrom?: { date: string; time: string };
 }
+
+export interface BookingCancellation {
+  by: 'fan' | 'creator';
+  at: string;
+  paid: boolean;
+  refundPercent?: number;
+  refundCoins?: number;
+  ticketBack?: boolean;
+}
+
+export type CancelResult = AuthResult & { refundCoins?: number; refundPercent?: number };
 
 export interface VipBooking {
   id: string;
@@ -358,6 +375,14 @@ export interface Backend {
   respondCounter(user: User, bookingId: string, accept: boolean): Promise<AuthResult>;
   // Charges an accepted booking to a saved payment method and confirms it.
   payBooking(user: User, bookingId: string, methodId: string): Promise<AuthResult>;
+  // Pays an accepted booking with the fan's Créditos (all of it) and confirms it.
+  payBookingWithCredits(user: User, bookingId: string): Promise<AuthResult>;
+  // Cancels a booking (either side). After payment the fan gets Créditos back by
+  // the single rule in src/lib/reserveCancellation.ts.
+  cancelBooking(user: User, bookingId: string): Promise<CancelResult>;
+  // The fan's one free date change and the creator's answer.
+  requestReschedule(user: User, bookingId: string, input: { date: string; time: string; note: string }): Promise<AuthResult>;
+  respondReschedule(user: User, bookingId: string, accept: boolean): Promise<AuthResult>;
   // Active experiences of every creator, plus the signed-in creator's inactive ones.
   listExperiences(): Promise<VipExperience[]>;
   saveExperience(user: User, input: VipExperienceInput, id?: string): Promise<AuthResult>;

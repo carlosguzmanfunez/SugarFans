@@ -41,6 +41,8 @@ import {
 } from './shared';
 import type { AuthResult, Availability, Backend, BookingInput, BookingStatus, User, VipBooking, VipExperience } from './types';
 import { viewerTimeZone } from '../timeZones';
+import { VIRTUAL_CURRENCY, currencyWord } from '../../config/currency';
+import { CANCEL_FULL_REFUND_HOURS, bookingStart, canRequestReschedule, cancellationOutcome, hoursUntil } from '../reserveCancellation';
 import type { InfraUsage } from '../infraUsage';
 import { financeLocal } from '../creatorFinance';
 import { createLocalPlatform } from './localPlatform';
@@ -236,7 +238,8 @@ const saveBookings = (bookings: VipBooking[]) => {
   }
   writeJSON(BOOKINGS_KEY, bookings);
   for (const b of bookings)
-    if (b.details?.ticketId && before.get(b.id)?.status !== b.status) rewards.syncTicket(b.id, b.details.ticketId, b.status);
+    if (b.details?.ticketId && before.get(b.id)?.status !== b.status && b.details.cancellation?.ticketBack !== false)
+      rewards.syncTicket(b.id, b.details.ticketId, b.status);
   for (const b of bookings) {
     const alert = bookingAlert(before.get(b.id), b);
     if (!alert) continue;
@@ -401,8 +404,24 @@ const social = createLocalSocial({
   notify,
 });
 
+// Créditos given back by cancelled Reserves (grants) and spent on Reserves
+// (spends), like the credit_grants / credit_spends tables.
+const RESERVE_CREDITS_KEY = 'reserve_credits';
+interface ReserveCreditMove { userId: string; coins: number; bookingId: string; at: string }
+const reserveCreditMoves = () => readJSON<{ grants: ReserveCreditMove[]; spends: ReserveCreditMove[] }>(RESERVE_CREDITS_KEY, { grants: [], spends: [] });
+const addReserveCreditMove = (kind: 'grants' | 'spends', move: ReserveCreditMove) => {
+  const all = reserveCreditMoves();
+  writeJSON(RESERVE_CREDITS_KEY, { ...all, [kind]: [...all[kind], move] });
+};
+const reserveCredits = (userId: string) => {
+  const { grants, spends } = reserveCreditMoves();
+  const sum = (list: ReserveCreditMove[]) => list.filter((m) => m.userId === userId).reduce((s, m) => s + m.coins, 0);
+  return sum(grants) - sum(spends);
+};
+
 const gifts = createLocalGifts({
   ledger: platform.ledger,
+  reserveCredits,
   listAccounts: () => loadAccounts().map(toPublic),
   addBooking: (b) => {
     if (takenFor(b.creatorProfileId).some((t) => t.date === b.date && t.time === b.time))
@@ -938,6 +957,126 @@ export const localBackend: Backend = {
       },
     ]);
     saveBookings(bookings);
+    return ok;
+  },
+
+  async payBookingWithCredits(user, bookingId) {
+    const bookings = listBookings();
+    const b = bookings.find((x) => x.id === bookingId);
+    if (!b || b.fanId !== user.id) return fail('Reserva no encontrada');
+    if (b.status !== 'accepted') return fail('Solo puedes pagar una reserva aceptada por el creador');
+    if (b.details?.ticketId) return fail('Esta reserva usa un ticket de Meta de experiencia');
+    if (bookingStart(b) <= new Date()) return fail('Esta reserva ya empezó');
+    const coins = Math.round(b.price * 100);
+    const wallet = await gifts.wallet(user);
+    if (wallet.coins < coins) return fail(`No tienes suficientes ${currencyWord} para pagar esta reserva`);
+    const now = new Date().toISOString();
+    const amount = round2(b.price);
+    const normal = rewards.shareFor(user.id, b.creatorProfileId, new Date(), amount);
+    const special_ = special.reserveShare(b.creatorProfileId, amount);
+    const charged = platform.ledger.addTransaction({
+      key: `vip:${b.id}`,
+      payerId: user.id,
+      payerName: b.fanName,
+      creatorProfileId: b.creatorProfileId,
+      creatorName: b.creatorName,
+      kind: 'vip',
+      amount,
+      ...(special_ === undefined
+        ? { ...normal, share: absorbDiscount(normal.share, amount, normal.gatewayFee, b.details?.listPrice) }
+        : { share: absorbSpecialDiscount(special_, amount, b.details?.listPrice), gatewayFee: normal.gatewayFee }),
+      note: b.title,
+      methodLabel: VIRTUAL_CURRENCY.displayName,
+      status: 'paid',
+      createdAt: now,
+    });
+    if (!charged.ok) return charged;
+    addReserveCreditMove('spends', { userId: user.id, coins, bookingId: b.id, at: now });
+    b.status = 'confirmed';
+    b.updatedAt = now;
+    b.paidAt = now;
+    b.emailSentAt = now;
+    saveBookings(bookings);
+    return ok;
+  },
+
+  async cancelBooking(user, bookingId) {
+    const bookings = listBookings();
+    const b = bookings.find((x) => x.id === bookingId);
+    const isFan = !!b && b.fanId === user.id;
+    const isCreator = !!b && !!user.creatorProfileId && b.creatorProfileId === user.creatorProfileId;
+    if (!b || !(isFan || isCreator)) return fail('Reserva no encontrada');
+    const by = isCreator && !isFan ? 'creator' : 'fan';
+    const outcome = cancellationOutcome(b, by);
+    if (!outcome) return fail(b.status === 'confirmed' ? 'La experiencia ya empezó: ya no se puede cancelar. Si hubo un problema, repórtalo.' : 'Esta reserva ya no se puede cancelar');
+    const now = new Date().toISOString();
+    if (outcome.paid && !outcome.ticket) {
+      const tx = platform.ledger.transactions().find((t) => (t as { key?: string }).key === `vip:${b.id}` && t.kind === 'vip');
+      if (!tx) return fail('No encontramos el pago de esta reserva. Escríbenos a soporte.');
+      if (tx.status !== 'paid' || tx.refundedAmount || tx.creatorRefundLoss) return fail('Este pago tiene una devolución o disputa en curso. Escríbenos a soporte.');
+      platform.ledger.setRefundLoss(tx.id, (tx.amount * (tx.share ?? 0) * outcome.refundPercent) / 100);
+      addReserveCreditMove('grants', { userId: b.fanId, coins: outcome.refundCoins, bookingId: b.id, at: now });
+    }
+    const { reschedule: _pending, ...rest } = b.details ?? {};
+    b.details = {
+      ...rest,
+      cancellation: { by, at: now, paid: outcome.paid, refundPercent: outcome.refundPercent, refundCoins: outcome.refundCoins, ...(outcome.ticket ? { ticketBack: outcome.ticketBack } : {}) },
+    };
+    b.status = 'cancelled';
+    b.updatedAt = now;
+    saveBookings(bookings);
+    if (outcome.paid) {
+      const when = `${b.date.slice(8, 10)}/${b.date.slice(5, 7)} · ${b.time}`;
+      if (by === 'fan')
+        for (const a of loadAccounts().filter((x) => x.role === 'creator' && x.creatorProfileId === b.creatorProfileId))
+          addLocalNotification(a.id, { kind: 'reserve_request', creatorProfileId: b.creatorProfileId, title: `${b.fanName.split(' ')[0]} canceló su reserva`, body: `${b.title} · ${when}`, link: '/creator/dashboard?tab=vip' });
+      else
+        addLocalNotification(b.fanId, { kind: 'reserve_update', creatorProfileId: b.creatorProfileId, title: `${b.creatorName.split(' ')[0]} canceló tu reserva`, body: `${b.title} · ${when}. Te devolvimos ${outcome.refundCoins} ${currencyWord}.`, link: '/profile#mis-reservas' });
+    }
+    return { ok: true, refundCoins: outcome.refundCoins, refundPercent: outcome.refundPercent };
+  },
+
+  async requestReschedule(user, bookingId, input) {
+    const bookings = listBookings();
+    const b = bookings.find((x) => x.id === bookingId);
+    if (!b || b.fanId !== user.id) return fail('Reserva no encontrada');
+    if (b.details?.reschedule) return fail('Ya pediste un cambio de fecha: espera la respuesta del creador');
+    if (b.details?.rescheduled) return fail('Ya usaste tu cambio de fecha gratis en esta reserva');
+    if (!canRequestReschedule(b)) return fail('El cambio de fecha se pide con al menos 24 horas de anticipación');
+    if (!input.date || !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.time)) return fail('Elige la nueva fecha y hora');
+    if (hoursUntil({ date: input.date, time: input.time, timeZone: b.timeZone }) < CANCEL_FULL_REFUND_HOURS) return fail('La nueva fecha debe ser al menos 24 horas después de ahora');
+    if (input.date === b.date && input.time === b.time) return fail('Elige una fecha u hora distinta');
+    b.details = { ...b.details, reschedule: { date: input.date, time: input.time, note: input.note.trim().slice(0, 300), at: new Date().toISOString() } };
+    b.updatedAt = new Date().toISOString();
+    saveBookings(bookings);
+    for (const a of loadAccounts().filter((x) => x.role === 'creator' && x.creatorProfileId === b.creatorProfileId))
+      addLocalNotification(a.id, { kind: 'reserve_request', creatorProfileId: b.creatorProfileId, title: `${b.fanName.split(' ')[0]} pide cambiar la fecha`, body: `${b.title} · ${b.time} → ${input.date} ${input.time}`, link: '/creator/dashboard?tab=vip' });
+    return ok;
+  },
+
+  async respondReschedule(user, bookingId, accept) {
+    const bookings = listBookings();
+    const b = bookings.find((x) => x.id === bookingId);
+    if (!b || !user.creatorProfileId || b.creatorProfileId !== user.creatorProfileId) return fail('Reserva no encontrada');
+    const r = b.details?.reschedule;
+    if (b.status !== 'confirmed' || !r) return fail('Esta reserva no tiene un cambio de fecha pendiente');
+    const { reschedule: _done, ...rest } = b.details ?? {};
+    if (accept) {
+      if (takenFor(b.creatorProfileId).some((t) => t.date === r.date && t.time === r.time))
+        return fail('Ya tienes otra reserva a esa hora: rechaza el cambio o libera ese horario');
+      b.details = { ...rest, rescheduled: true, rescheduledFrom: { date: b.date, time: b.time } };
+      b.date = r.date;
+      b.time = r.time;
+    } else b.details = rest;
+    b.updatedAt = new Date().toISOString();
+    saveBookings(bookings);
+    addLocalNotification(b.fanId, {
+      kind: 'reserve_update',
+      creatorProfileId: b.creatorProfileId,
+      title: `${b.creatorName.split(' ')[0]} ${accept ? 'aceptó el cambio de fecha' : 'no puede en la nueva fecha'}`,
+      body: b.title,
+      link: '/profile#mis-reservas',
+    });
     return ok;
   },
 

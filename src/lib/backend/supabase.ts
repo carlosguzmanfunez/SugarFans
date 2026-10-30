@@ -204,7 +204,7 @@ const fail = (error: string) => ({ ok: false, error });
 // Postgres raises our own Spanish messages; pass those through, hide the rest.
 const dbError = (error: { message?: string } | null, fallback: string) => {
   const msg = error?.message ?? '';
-  return fail(/[áéíóúñ¿]|Debes|Esta acción|Ese horario|La fecha|No puedes|No tienes|Reserva|Solo|Elige|Experiencia|Este perfil|Esta experiencia|Fans Reserve|Las experiencias|Mantén|El presupuesto|La duración|Entre|No quedan|Ya tienes|Evento|Este evento|Un Reserve Event|Indica|Tu cuenta|Esta cuenta|Termina|Las cuentas demo/.test(msg) ? msg : fallback);
+  return fail(/[áéíóúñ¿]|Debes|Esta acción|Ese horario|La fecha|No puedes|No tienes|Reserva|Solo|Elige|Experiencia|Este perfil|Esta experiencia|Fans Reserve|Las experiencias|Mantén|El presupuesto|La duración|Entre|No quedan|Ya tienes|Evento|Este evento|Un Reserve Event|Indica|Tu cuenta|Esta cuenta|Termina|Las cuentas demo|Esta reserva|Ya usaste|Ya pediste|Este pago|El cambio|La nueva/.test(msg) ? msg : fallback);
 };
 
 const translateAuthError = (message: string): string => {
@@ -699,6 +699,27 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
     async updateBooking(_user, bookingId, next) {
       const { error } = await sb.rpc('vip_update_booking', { p_booking_id: bookingId, p_next: next });
       return error ? dbError(error, 'No se pudo actualizar la reserva') : ok;
+    },
+
+    async payBookingWithCredits(_user, bookingId) {
+      const { error } = await sb.rpc('reserve_pay_with_credits', { p_booking_id: bookingId });
+      return error ? dbError(error, 'No se pudo pagar con créditos') : ok;
+    },
+
+    async cancelBooking(_user, bookingId) {
+      const { data, error } = await sb.rpc('reserve_cancel', { p_booking_id: bookingId });
+      if (error) return dbError(error, 'No se pudo cancelar la reserva');
+      return { ok: true, refundCoins: Number(data?.refundCoins ?? 0), refundPercent: Number(data?.refundPercent ?? 0) };
+    },
+
+    async requestReschedule(_user, bookingId, input) {
+      const { error } = await sb.rpc('reserve_request_reschedule', { p_booking_id: bookingId, p_date: input.date, p_time: input.time, p_note: input.note });
+      return error ? dbError(error, 'No se pudo pedir el cambio de fecha') : ok;
+    },
+
+    async respondReschedule(_user, bookingId, accept) {
+      const { error } = await sb.rpc('reserve_respond_reschedule', { p_booking_id: bookingId, p_accept: accept });
+      return error ? dbError(error, 'No se pudo responder al cambio de fecha') : ok;
     },
 
     async payBooking(_user, bookingId, methodId) {

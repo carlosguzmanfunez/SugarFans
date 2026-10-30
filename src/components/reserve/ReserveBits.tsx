@@ -1,5 +1,5 @@
 import React from 'react';
-import { CANCELLATION_POLICIES, RESERVE_COPY, RESERVE_MODALITIES, RESERVE_STATUSES, noticeLabel, type ReserveStatus } from '../../config/reserve';
+import { CANCELLATION_RULE, RESERVE_COPY, RESERVE_MODALITIES, RESERVE_STATUSES, noticeLabel, type ReserveStatus } from '../../config/reserve';
 import { detailsOf, eventStart, isEventExperience, locationSummary, needsApproval, seatsLeft, type VipExperience } from '../../lib/vip';
 import { money } from '../../lib/platform';
 
@@ -78,7 +78,6 @@ export const PriceTag: React.FC<{ exp: VipExperience; size?: 'md' | 'lg' }> = ({
 // Includes / not included / conditions / cancellation, as a definition list.
 export const ExperienceTerms: React.FC<{ exp: VipExperience }> = ({ exp }) => {
   const d = detailsOf(exp);
-  const policy = CANCELLATION_POLICIES[d.cancellationPolicy];
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <div>
@@ -102,8 +101,8 @@ export const ExperienceTerms: React.FC<{ exp: VipExperience }> = ({ exp }) => {
         </ul>
       </div>
       <div>
-        <h4 className="mb-1 text-sm font-semibold text-ink">Cancelación · {policy.label}</h4>
-        <p className="text-sm text-ink/70">{policy.summary}</p>
+        <h4 className="mb-1 text-sm font-semibold text-ink">Cancelación</h4>
+        <p className="text-sm text-ink/70">{CANCELLATION_RULE.summary}</p>
       </div>
       {(d.conditions || d.requirements.notes) && (
         <div>

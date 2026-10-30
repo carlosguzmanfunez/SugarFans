@@ -80,6 +80,8 @@ export interface LocalLedger {
   reports(): Report[];
   addTransaction(t: Omit<Transaction, 'id'> & { key: string }): AuthResult & { id?: string };
   refund(transactionId: string): void;
+  // A Reserve cancelled after payment: the creator loses part or all of the sale.
+  setRefundLoss(transactionId: string, loss: number): void;
 }
 
 export const createLocalPlatform = (
@@ -150,6 +152,9 @@ export const createLocalPlatform = (
       const id = newId();
       const r = commit((s) => ({ ...s, transactions: [...s.transactions, { ...t, id }] }));
       return r.ok ? { ...r, id } : r;
+    },
+    setRefundLoss(transactionId, loss) {
+      commit((s) => ({ ...s, transactions: s.transactions.map((t) => (t.id === transactionId ? { ...t, creatorRefundLoss: loss } : t)) }));
     },
     refund(transactionId) {
       commit((s) => ({
