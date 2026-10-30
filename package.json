@@ -23,6 +23,7 @@
     "test:access": "node e2e/live-access.mjs",
     "test:public-config": "node e2e/public-provider-config.mjs",
     "test:db": "node e2e/db-access.mjs",
+    "test:role-buttons": "vite build --mode offline && node e2e/role-buttons.mjs",
     "test:supabase-permissions": "node e2e/supabase-permissions.mjs",
     "test:report-gateway": "node e2e/report-gateway-postgres.mjs && node e2e/report-gateway-api.mjs",
     "test:qa-prelaunch-auth": "node e2e/qa-prelaunch-auth.mjs",

@@ -214,6 +214,10 @@ const CreatorProfile: React.FC = () => {
   const isSubscribed = hasSubscription(creator.id) && !iBlocked && !blockedMe;
   const mySub = subscriptionOf(creator.id);
   const canView = (p: DisplayPost) => !p.isLocked || isSubscribed || isOwner;
+  // A creator who hasn't verified yet can't be paid (the server refuses it), so no payment buttons.
+  const acceptsPayments = !(!catalogCreator && signedUp && !signedUp.isVerified);
+  // Subscribing is for fans (visitors are sent to log in); creators and admins don't subscribe.
+  const canSubscribe = !isOwner && !iBlocked && acceptsPayments && user?.role !== 'creator' && user?.role !== 'admin';
   // What the full-screen viewer swipes through: photos and videos this visitor may see.
   const viewable = creatorPosts.filter((p) => p.mediaUrl && canView(p));
   const totalLikes = creator.likes + Object.values(feed.engagement).reduce((sum, e) => sum + e.likes, 0);
@@ -444,7 +448,7 @@ const CreatorProfile: React.FC = () => {
                 <button onClick={handleBlock} className="col-span-3 px-6 py-3 rounded-full font-bold bg-gray-200 text-gray-700 hover:bg-gray-300">
                   <Icon name="fa-unlock" className="mr-2" />Desbloquear
                 </button>
-              ) : isAuthenticated && user?.role !== 'creator' && !isOwner ? (
+              ) : isAuthenticated && (canSubscribe || isSubscribed) ? (
                 <button
                   onClick={handleSubscribe}
                   className={`btn btn-lg col-span-3 order-first md:order-none ${isSubscribed ? 'bg-ink/5 text-ink hover:bg-ink/10' : 'btn-primary'}`}
@@ -461,7 +465,7 @@ const CreatorProfile: React.FC = () => {
                     <><Icon name="fa-star" className="mr-2" />Suscribirse ${creator.subscriptionPrice}/mes</>
                   )}
                 </button>
-              ) : !isAuthenticated ? (
+              ) : !isAuthenticated && canSubscribe ? (
                 <Link to="/login" state={{ from: location.pathname }} className="btn btn-primary btn-lg col-span-3 order-first md:order-none">
                   Suscribirse ${creator.subscriptionPrice}/mes
                 </Link>
@@ -490,7 +494,7 @@ const CreatorProfile: React.FC = () => {
                   <Icon name="fa-plus" className="mr-2" />Nueva publicación
                 </Link>
               )}
-              {!isOwner && !iBlocked && (
+              {!isOwner && !iBlocked && acceptsPayments && (
                 <button
                   onClick={() => openGift()}
                   aria-label="Enviar regalo"
@@ -513,6 +517,7 @@ const CreatorProfile: React.FC = () => {
                   </button>
                   {moreOpen && (
                     <div role="menu" className="menu-pop absolute right-0 top-12 z-50 w-56 overflow-hidden rounded-2xl border border-line bg-white py-1.5 shadow-xl">
+                      {acceptsPayments && (
                       <button
                         type="button"
                         role="menuitem"
@@ -522,6 +527,7 @@ const CreatorProfile: React.FC = () => {
                       >
                         <Icon name="fa-hand-holding-dollar" className="w-4 text-ink/45" />Enviar propina
                       </button>
+                      )}
                       <button
                         type="button"
                         role="menuitem"
@@ -598,7 +604,7 @@ const CreatorProfile: React.FC = () => {
             />
             <CreatorReserveSection creator={creator} experiences={experiences} user={user} isOwner={isOwner} onNeedLogin={goLogin} />
             {!isOwner && <ExperienceGoalCard creatorProfileId={creator.id} creatorName={creator.name} experiences={experiences} user={user} onNeedLogin={goLogin} onGift={() => openGift()} />}
-            <UpcomingAccess creatorId={creator.id} experiences={experiences} liveTitle={currentLive?.mode === 'subscriber' ? currentLive.title : null} />
+            <UpcomingAccess isOwner={isOwner} creatorId={creator.id} experiences={experiences} liveTitle={currentLive?.mode === 'subscriber' ? currentLive.title : null} />
           </>
         )}
 
@@ -654,7 +660,7 @@ const CreatorProfile: React.FC = () => {
                 canView={canView(post)}
                 isOwner={isOwner}
                 subscribeLabel={`Suscribirse $${creator.subscriptionPrice}/mes`}
-                onSubscribe={handleSubscribe}
+                onSubscribe={canSubscribe ? handleSubscribe : undefined}
                 onNeedLogin={goLogin}
                 onTip={() => openTip(post.id)}
                 onGift={() => openGift(post.id)}
@@ -731,9 +737,11 @@ const CreatorProfile: React.FC = () => {
             </div>
             <hr className="my-6" />
             <div className="flex space-x-4">
-              <button onClick={() => handleReport('creator', creator.id, `Perfil de ${creator.name}`)} className="text-gray-500 hover:text-pink-500 transition">
-                <Icon name="fa-flag" className="text-sm" /> Reportar perfil
-              </button>
+              {!isOwner && (
+                <button onClick={() => handleReport('creator', creator.id, `Perfil de ${creator.name}`)} className="text-gray-500 hover:text-pink-500 transition">
+                  <Icon name="fa-flag" className="text-sm" /> Reportar perfil
+                </button>
+              )}
               <button onClick={shareProfile} className="text-gray-500 hover:text-pink-500 transition" data-testid="share-profile">
                 <i aria-hidden="true" className="fas fa-share text-sm"></i> {shared ? 'Enlace copiado' : 'Compartir perfil'}
               </button>

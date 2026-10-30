@@ -199,7 +199,7 @@ export default CreatorReserveSection;
 
 // "Próximamente": the creator's Subscriber Live on air and their next Reserve Events,
 // each labelled with who it is for. Nothing shows when there is nothing scheduled.
-export const UpcomingAccess: React.FC<{ creatorId: string; experiences: VipExperience[]; liveTitle?: string | null }> = ({ creatorId, experiences, liveTitle }) => {
+export const UpcomingAccess: React.FC<{ creatorId: string; experiences: VipExperience[]; liveTitle?: string | null; isOwner?: boolean }> = ({ creatorId, experiences, liveTitle, isOwner = false }) => {
   const events = experiences
     .filter((e) => reserveProductOf(e) === 'event' && isUpcomingEvent(e))
     .sort((a, b) => (eventStart(a)?.getTime() ?? 0) - (eventStart(b)?.getTime() ?? 0))
@@ -231,7 +231,10 @@ export const UpcomingAccess: React.FC<{ creatorId: string; experiences: VipExper
                 </span>
                 <span className="block truncate text-sm font-semibold text-ink">{e.title}</span>
               </span>
-              <a href="#reserve" onClick={(ev) => { ev.preventDefault(); openReserve('event'); }} className="inline-flex h-9 items-center rounded-full border border-ink px-4 text-xs font-semibold text-ink">Reservar plaza</a>
+              {/* The creator doesn't book their own event. */}
+              {!isOwner && (
+                <a href="#reserve" onClick={(ev) => { ev.preventDefault(); openReserve('event'); }} className="inline-flex h-9 items-center rounded-full border border-ink px-4 text-xs font-semibold text-ink">Reservar plaza</a>
+              )}
             </li>
           );
         })}

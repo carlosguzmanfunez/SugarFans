@@ -269,6 +269,9 @@ const Navbar: React.FC = () => {
                   <Link to="/settings" className={mobileLinkCls('/settings')}>
                     <Icon name="fa-gear" className="w-5 text-ink/40" /> {t('nav.settings')}
                   </Link>
+                  <Link to="/help" className={mobileLinkCls('/help')}>
+                    <Icon name="fa-circle-question" className="w-5 text-ink/40" /> {t('nav.help')}
+                  </Link>
                   <button onClick={handleLogout} className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] font-medium text-danger hover:bg-red-50">
                     <Icon name="fa-arrow-right-from-bracket" className="w-5" /> {t('nav.logout')}
                   </button>

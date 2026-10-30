@@ -76,7 +76,7 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
               Entrar al Live
             </Link>
           )}
-          {!isOwner && user?.role !== 'creator' && (isSubscribed ? (
+          {!isOwner && user?.role !== 'creator' && user?.role !== 'admin' && (isSubscribed ? (
             <span className="mt-3 inline-flex items-center text-xs font-semibold text-ink/70 sm:text-sm" data-testid="ladder-subscribed">
               <Icon name="fa-check" className="mr-1.5 text-emerald-600" /><span className="sm:hidden">Suscrito</span><span className="max-sm:hidden">Tu suscripción está activa</span>
             </span>
