@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Avatar from './Avatar';
 import { CoverImage, isPlaceholderImage } from './CoverArt';
 import type { DisplayPost } from './PostCard';
+import OnDemandVideo from './OnDemandVideo';
+import VideoPreview from './VideoPreview';
 
 interface Props {
   posts: DisplayPost[]; // only the ones with a photo or video the viewer may see
@@ -55,13 +57,6 @@ const MediaViewer: React.FC<Props> = ({ posts, startId, onClose }) => {
       window.removeEventListener('keydown', onKey);
     };
   }, [go, onClose]);
-
-  // Only the video on screen keeps playing.
-  useEffect(() => {
-    frame.current?.querySelectorAll('video').forEach((v) => {
-      if (v.dataset.index !== String(index)) v.pause();
-    });
-  }, [index]);
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.pointerType === 'mouse') return; // computers use the arrows
@@ -140,15 +135,13 @@ const MediaViewer: React.FC<Props> = ({ posts, startId, onClose }) => {
             <div key={p.id} className="w-full h-full shrink-0 flex items-center justify-center" aria-hidden={i !== index}>
               {Math.abs(i - index) <= 1 &&
                 (p.mediaType === 'video' && p.mediaUrl ? (
-                  <video
+                  // Leaving a slide unmounts its player, stopping playback and downloads.
+                  i === index ? <OnDemandVideo
                     src={p.mediaUrl}
-                    data-index={i}
-                    controls
-                    playsInline
-                    preload="metadata"
-                    className="max-w-full max-h-full"
-                    data-testid="media-viewer-video"
-                  />
+                    seed={`post-${p.id}`}
+                    videoClassName="max-w-full max-h-full"
+                    testId="media-viewer-video"
+                  /> : <VideoPreview seed={`post-${p.id}`} />
                 ) : p.mediaUrl && !isPlaceholderImage(p.mediaUrl) ? (
                   <img src={p.mediaUrl} alt={p.content || 'Foto'} draggable={false} className="max-w-full max-h-full object-contain" data-testid="media-viewer-image" />
                 ) : (

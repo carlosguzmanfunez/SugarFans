@@ -1,28 +1,53 @@
 // End-to-end check of every user flow in a real Chromium.
-// Usage: npm run e2e (offline, browser-only store) or npm run e2e:supabase
-// (against the Supabase project; needs network access to supabase.co and
-// "Confirm email" disabled). Serves dist/ with `vite preview`.
+// Usage: npm run e2e (offline, browser-only store). This historical suite uses
+// local fixtures and simulated methods, so it must never target a remote site.
+// Serves dist/ with Vite's portable preview API.
 import { chromium } from 'playwright';
-import { spawn } from 'node:child_process';
-import { readFileSync, mkdtempSync } from 'node:fs';
+import { readFileSync, mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 
 const PORT = 4173;
 const BASE = process.env.E2E_BASE_URL || `http://localhost:${PORT}`;
+const target = new URL(BASE);
+if (target.protocol !== 'http:' || !['localhost', '127.0.0.1', '[::1]'].includes(target.hostname)) {
+  throw new Error('This offline suite only accepts a local HTTP server. Use the dedicated QA suites for connected environments.');
+}
+const output = process.env.E2E_RESULTS_DIR;
+if (output) mkdirSync(output, { recursive: true });
 const results = [];
 const consoleErrors = [];
+const testPages = [];
+let complete = false;
+const saveResults = () => {
+  const unexpectedErrors = consoleErrors.filter((error) => !error.includes('net::ERR_FAILED'));
+  if (output) writeFileSync(join(output, 'flows-results.json'), JSON.stringify({
+    date: new Date().toISOString(), complete,
+    passed: complete && !results.some((result) => !result.ok) && !unexpectedErrors.length,
+    results, consoleErrors,
+  }, null, 2));
+};
+saveResults();
 
 const check = async (name, fn) => {
+  let timer;
   try {
-    await fn();
+    await Promise.race([fn(), new Promise((_, reject) => {
+      timer = setTimeout(() => reject(Object.assign(new Error(`The step did not finish within 30 seconds: ${name}`), { stalled: true })), 30000);
+    })]);
     results.push({ name, ok: true });
     console.log(`  ✓ ${name}`);
   } catch (err) {
-    results.push({ name, ok: false, error: String(err.message || err).split('\n')[0] });
+    results.push({ name, ok: false, error: String(err.message || err) });
     console.log(`  ✗ ${name}\n      ${String(err.message || err).split('\n').slice(0, 3).join('\n      ')}`);
+    if (output) await Promise.all(testPages.filter((page) => !page.isClosed()).slice(-3).map((page, index) =>
+      page.screenshot({ path: join(output, `failure-${results.length}-${index}.png`), timeout: 1500, animations: 'disabled' }).catch(() => {})));
+    if (err.stalled || process.env.E2E_FAIL_FAST === '1') throw err;
+  } finally {
+    clearTimeout(timer);
+    saveResults();
   }
 };
 
@@ -33,7 +58,7 @@ const loadReserveRules = async () => {
   await build({
     stdin: {
       contents: "export * from './src/config/reserve.ts'; export * from './src/lib/moderation.ts'; export { validateExperience, defaultDetails, experienceCategory, cleanDetails } from './src/lib/vip.ts';",
-      resolveDir: new URL('..', import.meta.url).pathname,
+      resolveDir: fileURLToPath(new URL('..', import.meta.url)),
       loader: 'ts',
     },
     bundle: true,
@@ -49,7 +74,7 @@ const loadReserveRules = async () => {
 const loadRewardRules = async () => {
   const out = join(mkdtempSync(join(tmpdir(), 'reward-rules-')), 'rules.mjs');
   await build({
-    stdin: { contents: "export * from './src/lib/rewardRules.ts';", resolveDir: new URL('..', import.meta.url).pathname, loader: 'ts' },
+    stdin: { contents: "export * from './src/lib/rewardRules.ts';", resolveDir: fileURLToPath(new URL('..', import.meta.url)), loader: 'ts' },
     bundle: true,
     format: 'esm',
     platform: 'node',
@@ -62,7 +87,7 @@ const loadRewardRules = async () => {
 const loadSpecialRules = async () => {
   const out = join(mkdtempSync(join(tmpdir(), 'special-rules-')), 'rules.mjs');
   await build({
-    stdin: { contents: "export * from './src/lib/specialRules.ts';", resolveDir: new URL('..', import.meta.url).pathname, loader: 'ts' },
+    stdin: { contents: "export * from './src/lib/specialRules.ts';", resolveDir: fileURLToPath(new URL('..', import.meta.url)), loader: 'ts' },
     bundle: true,
     format: 'esm',
     platform: 'node',
@@ -85,21 +110,13 @@ const unfoldReserve = async (page) => {
 
 const startServer = async () => {
   if (process.env.E2E_BASE_URL) return null;
-  const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'pipe' });
-  for (let i = 0; i < 50; i++) {
-    try {
-      const res = await fetch(BASE);
-      if (res.ok) return server;
-    } catch {
-      // not up yet
-    }
-    await new Promise((r) => setTimeout(r, 200));
-  }
-  throw new Error('preview server did not start');
+  const { preview } = await import('vite');
+  return preview({ mode: 'offline', preview: { host: '127.0.0.1', port: PORT, strictPort: true, open: false } });
 };
 
 const newPage = async (context) => {
   const page = await context.newPage();
+  testPages.push(page);
   page.on('console', (m) => m.type() === 'error' && consoleErrors.push(`${page.url()}: ${m.text()}`));
   page.on('pageerror', (e) => consoleErrors.push(`${page.url()}: ${e.message}`));
   page.on('dialog', (d) => d.accept());
@@ -107,18 +124,31 @@ const newPage = async (context) => {
 };
 
 const newContext = async (browser, opts = {}) => {
-  const context = await browser.newContext(opts);
+  const context = await browser.newContext({ timezoneId: 'America/Tegucigalpa', ...opts });
   context.setDefaultTimeout(5000);
   // Keep the run offline and fast: only the app itself is loaded.
   await context.route('**/*', (route) => {
     const url = route.request().url();
-    return url.startsWith(BASE) ? route.continue() : route.abort();
+    return new URL(url).origin === target.origin ? route.continue() : route.abort();
   });
   return context;
 };
 
 const path = (page) => new URL(page.url()).pathname;
 const waitPath = (page, p) => page.waitForURL((u) => new URL(u).pathname === p, { timeout: 5000 });
+
+const openAdminSection = async (page, section) => {
+  const labels = {
+    users: ['Personas', 'Buscar personas'], verifications: ['Personas', 'Verificar identidades'],
+    managed: ['Personas', 'Perfiles de la plataforma'], special: ['Personas', 'Cuentas especiales'],
+    reports: ['Contenido', 'Denuncias y solicitudes'], payouts: ['Dinero', 'Retiros y devoluciones'],
+    ledger: ['Dinero', 'Todos los movimientos'], errors: ['Estado del servicio', 'Problemas de la página'],
+    infra: ['Estado del servicio', 'Costos y límites de servicios'],
+  };
+  const [area, label] = labels[section];
+  await page.getByRole('navigation', { name: 'Áreas de administración' }).getByRole('button', { name: new RegExp(`^${area}`) }).click();
+  await page.getByRole('navigation', { name: `Secciones de ${area}` }).getByRole('button', { name: new RegExp(`^${label}`) }).click();
+};
 
 const login = async (page, email, password, { remember = true } = {}) => {
   await page.goto(`${BASE}/login`);
@@ -294,6 +324,13 @@ const run = async () => {
   const creatorEmail = `nueva.creadora.${stamp}@test.com`;
 
   try {
+    const guardContext = await newContext(browser);
+    try {
+      await guardContext.addInitScript(() => localStorage.setItem('fansreserve_age_verified', 'true'));
+      const guardPage = await guardContext.newPage();
+      await guardPage.goto(`${BASE}/login`);
+      await guardPage.getByRole('button', { name: 'Demo Fan', exact: true }).waitFor();
+    } finally { await guardContext.close(); }
     const context = await newContext(browser, { locale: 'es-ES' });
     const page = await newPage(context);
 
@@ -382,9 +419,13 @@ const run = async () => {
     });
     await check('Ayuda: cada categoría filtra sus preguntas y el buscador busca en las respuestas', async () => {
       await page.goto(`${BASE}/help`);
-      await page.getByRole('button', { name: /Para creadores/ }).click();
+      const category = page.getByRole('button', { name: /Para creadores/ });
+      const expected = Number((await category.innerText()).match(/(\d+) artículos/)[1]);
+      expect(expected > 0, 'la categoría no anuncia sus artículos');
+      await category.click();
       await page.getByText('¿Cuándo recibo mis pagos?').waitFor();
-      expect((await page.locator('details').count()) === 4, 'la categoría no filtra');
+      await page.waitForFunction((n) => document.querySelectorAll('details').length === n, expected);
+      expect((await page.getByText('¿Cómo creo una cuenta?', { exact: true }).count()) === 0, 'la categoría mezcla preguntas de otra sección');
       await page.getByRole('button', { name: /Para creadores/ }).click();
       await page.fill('input[placeholder="Buscar en la ayuda..."]', 'selfie');
       await page.getByText('¿Cómo verifico mi identidad?').waitFor();
@@ -568,8 +609,10 @@ const run = async () => {
     });
     await check('Registro pide país (preseleccionado) y teléfono opcional con el código del país', async () => {
       await page.goto(`${BASE}/register`);
-      // The browser is es-ES: Spain comes pre-selected, with its +34 next to the phone.
-      expect((await page.inputValue('[data-testid=signup-country]')) === 'ES', 'no preseleccionó el país');
+      // Country detection prioritizes the time zone over the browser language.
+      expect((await page.inputValue('[data-testid=signup-country]')) === 'HN', 'no preseleccionó Honduras según la zona horaria');
+      await page.getByText('+504', { exact: true }).waitFor();
+      await page.selectOption('[data-testid=signup-country]', 'ES');
       await page.getByText('+34', { exact: true }).waitFor();
       await page.selectOption('[data-testid=signup-country]', 'HN');
       await page.getByText('+504', { exact: true }).waitFor();
@@ -769,7 +812,7 @@ const run = async () => {
       await page.getByRole('button', { name: 'Reportar publicación' }).first().click();
       const dialog = page.getByRole('dialog', { name: 'Reportar' });
       await dialog.getByRole('button', { name: 'Enviar reporte' }).click();
-      await dialog.getByText(/mínimo 10 caracteres/).waitFor();
+      await dialog.getByText('Describe el problema entre 10 y 4000 caracteres').waitFor();
       await dialog.getByLabel('Descripción del reporte').fill('Esta publicación incumple las normas');
       await dialog.getByRole('button', { name: 'Enviar reporte' }).click();
       await dialog.getByText('Reporte enviado').waitFor();
@@ -997,24 +1040,26 @@ const run = async () => {
       await login(page, 'admin@sugarfans.com', 'demo1234');
       await waitPath(page, '/');
       await page.goto(`${BASE}/admin`);
-      await page.getByRole('button', { name: /Verificaciones \(2\)/ }).click();
+      await openAdminSection(page, 'verifications');
       const list = page.getByTestId('admin-verifications');
       await list.locator('div.p-4', { hasText: 'Ana Editada' }).getByRole('button', { name: /Revisar documentos/ }).click();
-      const dialog = page.getByRole('dialog', { name: 'Revisar documentos' });
+      const dialog = page.getByRole('dialog', { name: /Revisar identidad de/ });
       await dialog.getByRole('img', { name: 'Selfie' }).waitFor();
       await dialog.getByRole('button', { name: /Rechazar/ }).click();
-      await dialog.getByText('Indica el motivo del rechazo').waitFor();
+      await dialog.getByText('Explica el motivo antes de rechazar la solicitud.').waitFor();
       await dialog.getByPlaceholder(/Motivo del rechazo/).fill('La foto del documento está borrosa');
       await dialog.getByRole('button', { name: /Rechazar/ }).click();
+      await page.getByRole('dialog', { name: 'Rechazar solicitud de identidad' }).getByRole('button', { name: 'Confirmar rechazo', exact: true }).click();
       await list.locator('div.p-4', { hasText: 'Lola Creadora' }).getByRole('button', { name: /Revisar documentos/ }).click();
-      await dialog.getByText('España').or(dialog.getByText('México')).first().waitFor();
+      await dialog.getByText(/País:.*(MX|México)/).waitFor();
       await dialog.getByRole('button', { name: /Aprobar identidad/ }).click();
-      await page.getByText('Identidad de Lola Creadora aprobada').waitFor();
+      await page.getByRole('dialog', { name: 'Aprobar identidad', exact: true }).getByRole('button', { name: 'Confirmar identidad aprobada' }).click();
+      await list.getByTestId('reviewed-verification').filter({ hasText: 'Lola Creadora' }).getByText('Aprobada', { exact: true }).waitFor();
       await list.getByText('No hay solicitudes pendientes').waitFor();
       await list.getByText('Rechazada: La foto del documento está borrosa').waitFor();
     });
     await check('Admin crea un perfil IA sin verificación: lleva P-IA y los humanos verificados Verificado', async () => {
-      await page.getByRole('button', { name: /Perfiles gestionados/ }).click();
+      await openAdminSection(page, 'managed');
       const box = page.getByTestId('managed-profiles');
       await box.getByRole('button', { name: /Nuevo perfil/ }).click();
       await page.fill('input[name=managedName]', 'Luna Neón');
@@ -1023,10 +1068,12 @@ const run = async () => {
       await page.fill('input[name=managedPrice]', '7.5');
       await page.setInputFiles('input[name=managedAvatar]', photo('luna.png'));
       await box.getByRole('button', { name: 'Guardar perfil' }).click();
-      await box.getByText('Ese nombre de usuario ya existe').waitFor();
+      await page.getByRole('dialog').getByRole('button', { name: 'Confirmar perfil', exact: true }).click();
+      await page.getByRole('dialog').getByText('Ese nombre de usuario ya existe').waitFor();
+      await page.getByRole('dialog').getByRole('button', { name: 'Volver sin cambiar' }).click();
       await page.fill('input[name=managedUsername]', 'luna_neon');
       await box.getByRole('button', { name: 'Guardar perfil' }).click();
-      await box.getByText('Perfil creado y publicado en Explorar').waitFor();
+      await page.getByRole('dialog').getByRole('button', { name: 'Confirmar perfil', exact: true }).click();
       await box.getByTestId('managed-row').filter({ hasText: 'Luna Neón' }).getByText('P-IA').waitFor();
       await page.goto(`${BASE}/explore`);
       const card = page.locator('a', { hasText: 'Luna Neón' });
@@ -1058,25 +1105,31 @@ const run = async () => {
     });
     await check('Admin oculta y elimina un perfil gestionado', async () => {
       await page.goto(`${BASE}/admin`);
-      await page.getByRole('button', { name: /Perfiles gestionados/ }).click();
+      await openAdminSection(page, 'managed');
       const row = page.getByTestId('managed-row').filter({ hasText: 'Luna Neón' });
       await row.getByRole('button', { name: 'Ocultar' }).click();
+      await page.getByRole('dialog').getByRole('button', { name: 'Confirmar visibilidad' }).click();
       await row.getByText('Oculto').waitFor();
       await page.goto(`${BASE}/explore`);
       await page.getByText('Valentina Rose').first().waitFor();
       expect((await page.getByText('Luna Neón').count()) === 0, 'el perfil oculto sigue en Explorar');
       await page.goto(`${BASE}/admin`);
-      await page.getByRole('button', { name: /Perfiles gestionados/ }).click();
+      await openAdminSection(page, 'managed');
       await page.getByTestId('managed-row').filter({ hasText: 'Luna Neón' }).getByRole('button', { name: 'Eliminar' }).click();
-      await page.getByText('Perfil eliminado').waitFor();
+      await page.getByRole('dialog').getByRole('button', { name: 'Eliminar perfil definitivamente' }).click();
+      await page.getByRole('dialog', { name: 'Revisar cambio del perfil' }).waitFor({ state: 'detached' });
+      await page.getByTestId('managed-profiles').waitFor();
       expect((await page.getByTestId('managed-row').count()) === 0, 'no se eliminó');
     });
     await check('Admin ve el reporte y retira la publicación reportada', async () => {
-      await page.getByRole('button', { name: /Reportes \(2\)/ }).click();
+      await openAdminSection(page, 'reports');
       const table = page.getByTestId('admin-reports');
       await table.getByText('Esta publicación incumple las normas').waitFor();
-      await table.getByRole('button', { name: /Retirar contenido/ }).click();
-      await table.getByText('Contenido retirado').waitFor();
+      await table.getByRole('button', { name: 'Revisar retiro del contenido' }).click();
+      await page.getByRole('dialog', { name: 'Retirar contenido', exact: true }).getByRole('button', { name: 'Retirar contenido', exact: true }).click();
+      await page.getByRole('dialog', { name: 'Retirar contenido', exact: true }).waitFor({ state: 'detached' });
+      await table.getByRole('combobox').selectOption('resolved');
+      await table.getByText('Atendida', { exact: true }).waitFor();
       await page.goto(`${BASE}/creator/1`);
       await page.getByRole('button', { name: 'Reportar publicación' }).first().waitFor();
       const remaining = await page.getByRole('button', { name: 'Reportar publicación' }).count();
@@ -1268,7 +1321,7 @@ const run = async () => {
       await page.getByText('Escribe el email de tu cuenta PayPal').waitFor();
       await page.getByPlaceholder('Email de tu cuenta PayPal').fill('Valentina.Rose@Example.com');
       await page.getByRole('button', { name: 'Guardar cuenta' }).click();
-      await page.getByText('PayPal · va•••@example.com').waitFor();
+      await page.getByText('PayPal · va•••@example.com', { exact: true }).waitFor();
       // This fixture is above the Honduras USD fee cap threshold.
       expect(available >= 51, 'el saldo de esta prueba debe alcanzar el máximo de envío');
       const fee = 1;
@@ -1333,7 +1386,7 @@ const run = async () => {
       await login(page, 'admin@sugarfans.com', 'demo1234');
       await waitPath(page, '/');
       await page.goto(`${BASE}/admin`);
-      await page.getByRole('button', { name: 'Retiros', exact: true }).click();
+      await openAdminSection(page, 'payouts');
       const box = page.getByTestId('admin-payouts');
       await box.getByText(/Valentina Rose · \$/).first().waitFor();
       await box.getByText('Pagado', { exact: true }).waitFor();
@@ -1349,24 +1402,25 @@ const run = async () => {
         return t.id;
       });
       await page.reload();
-      await page.getByRole('button', { name: 'Retiros', exact: true }).click();
+      await openAdminSection(page, 'payouts');
       const box = page.getByTestId('admin-money-back');
       await box.getByText(/Reembolsado al fan/).first().waitFor();
       await box.getByRole('button', { name: 'No fue culpa del creador' }).first().click();
-      await page.getByText(/el creador conserva su parte/).waitFor();
+      await page.getByRole('dialog').getByRole('button', { name: 'Confirmar responsabilidad' }).click();
       await box.getByRole('button', { name: /Lo cubre Fans Reserve/ }).first().waitFor();
       const covered = await page.evaluate((tid) => JSON.parse(localStorage.getItem('fansreserve_platform')).transactions.find((x) => x.id === tid).platformCovers, id);
       expect(covered === true, 'no quedó cubierta');
     });
     await check('Admin: el resumen muestra el dinero del periodo y el libro se descarga', async () => {
       await page.goto(`${BASE}/admin`);
+      await page.getByText('Ver cuentas y actividad del periodo', { exact: true }).click();
       const money = page.getByTestId('admin-money');
       await money.getByText('Entró de fans').waitFor();
-      await money.getByText('Ganancia de Fans Reserve').waitFor();
+      await money.getByText('Resultado de cobros y repartos').waitFor();
       await page.getByTestId('admin-owed').getByText('Saldo de ciclos cerrados').waitFor();
       await page.getByRole('button', { name: 'Todo', exact: true }).click();
       expect(!(await money.innerText()).includes('$0.00\nEntró de fans'), 'no cuenta ningún pago');
-      await page.getByRole('button', { name: 'Libro', exact: true }).click();
+      await openAdminSection(page, 'ledger');
       await page.getByRole('group', { name: 'Periodo del libro' }).getByRole('button', { name: 'Todo', exact: true }).click();
       const rows = page.getByTestId('ledger-row');
       await rows.first().waitFor();
@@ -1376,14 +1430,14 @@ const run = async () => {
     });
     await check('Admin: la pestaña Errores abre (sin errores en la versión de prueba)', async () => {
       await page.goto(`${BASE}/admin`);
-      await page.getByRole('button', { name: 'Errores', exact: true }).click();
+      await openAdminSection(page, 'errors');
       await page.getByTestId('admin-errors').getByText('Sin errores registrados').waitFor();
     });
     await check('Admin: la pestaña Consumo muestra el fondo, los límites y guarda el plan', async () => {
       await page.goto(`${BASE}/admin`);
-      await page.getByRole('button', { name: 'Consumo', exact: true }).click();
+      await openAdminSection(page, 'infra');
       const tab = page.getByTestId('admin-infra');
-      await tab.getByText('Fondo para proveedores').waitFor();
+      await tab.getByText('Reserva prevista para servicios').waitFor();
       expect((await page.getByTestId('infra-row').count()) >= 6, 'faltan filas de consumo');
       expect((await page.getByTestId('infra-bill').innerText()) === '$0.00', 'los planes gratis deberían sumar $0');
       await tab.getByText('Correos hoy').waitFor();
@@ -1391,9 +1445,10 @@ const run = async () => {
       await page.getByLabel('Plan de Resend').selectOption('pro');
       await page.getByLabel('Porcentaje del fondo').fill('15');
       await tab.getByRole('button', { name: 'Guardar cambios' }).click();
-      await tab.getByText('Guardado', { exact: true }).waitFor();
+      await page.getByRole('dialog').getByRole('button', { name: 'Guardar esta planificación' }).click();
+      await page.getByRole('dialog').waitFor({ state: 'detached' });
       await page.reload();
-      await page.getByRole('button', { name: 'Consumo', exact: true }).click();
+      await openAdminSection(page, 'infra');
       await page.getByTestId('infra-bill').getByText('$45.00').waitFor();
       expect((await page.getByLabel('Porcentaje del fondo').inputValue()) === '15', 'no guardó el porcentaje');
       expect((await page.getByTestId('admin-infra').getByText('Correos hoy').count()) === 0, 'Resend Pro no tiene tope diario');
@@ -1403,12 +1458,13 @@ const run = async () => {
       await login(page, 'admin@sugarfans.com', 'demo1234');
       await waitPath(page, '/');
       await page.goto(`${BASE}/admin`);
-      await page.getByRole('button', { name: /Usuarios/ }).click();
+      await openAdminSection(page, 'users');
       await page.getByText(creatorEmail).waitFor();
       // Sign-ups per country: Ana registered from Honduras with a phone.
       const byCountry = page.getByTestId('admin-countries');
+      await byCountry.locator('summary').click();
       await byCountry.getByText(/Honduras/).waitFor();
-      await page.fill('input[placeholder="Buscar usuario..."]', 'lola');
+      await page.fill('input[placeholder="Nombre o correo"]', 'lola');
       await page.getByText(creatorEmail).waitFor();
       expect((await page.getByText(fanEmail).count()) === 0, 'el filtro no funciona');
       await logoutViaMenu(page);
@@ -1417,15 +1473,16 @@ const run = async () => {
       await login(page, 'admin@sugarfans.com', 'demo1234');
       await waitPath(page, '/');
       await page.goto(`${BASE}/admin`);
-      await page.getByRole('button', { name: /Usuarios/ }).click();
-      await page.fill('input[placeholder="Buscar usuario..."]', fanEmail);
-      await page.getByTestId('admin-user-row').getByRole('button', { name: /Gestionar/ }).click();
+      await openAdminSection(page, 'users');
+      await page.fill('input[placeholder="Nombre o correo"]', fanEmail);
+      await page.getByTestId('admin-user-row').getByRole('button', { name: 'Abrir ficha', exact: true }).click();
       const sheet = page.getByTestId('admin-user-sheet');
-      expect(await sheet.getByRole('button', { name: 'Suspender', exact: true }).isDisabled(), 'deja suspender sin motivo');
-      await sheet.getByLabel('Motivo').fill('Prueba de suspensión');
-      await sheet.getByLabel('Duración').selectOption('1');
-      await sheet.getByRole('button', { name: 'Suspender', exact: true }).click();
-      await page.getByText(/suspendida$/).first().waitFor();
+      await sheet.getByRole('button', { name: 'Restricciones', exact: true }).click();
+      expect(await sheet.getByRole('button', { name: 'Revisar suspensión', exact: true }).isDisabled(), 'deja suspender sin motivo');
+      await sheet.getByLabel('Motivo del cambio').fill('Prueba de suspensión');
+      await sheet.getByLabel('Duración de la suspensión').selectOption('1');
+      await sheet.getByRole('button', { name: 'Revisar suspensión', exact: true }).click();
+      await page.getByRole('dialog', { name: 'Confirmar suspensión', exact: true }).getByRole('button', { name: 'Confirmar suspensión', exact: true }).click();
       await page.getByTestId('admin-user-row').getByText('Suspendida').waitFor();
       await logoutViaMenu(page);
       await login(page, fanEmail, 'nueva-clave-2');
@@ -1433,12 +1490,16 @@ const run = async () => {
       await login(page, 'admin@sugarfans.com', 'demo1234');
       await waitPath(page, '/');
       await page.goto(`${BASE}/admin`);
-      await page.getByRole('button', { name: /Usuarios/ }).click();
-      await page.fill('input[placeholder="Buscar usuario..."]', fanEmail);
-      await page.getByTestId('admin-user-row').getByRole('button', { name: /Gestionar/ }).click();
+      await openAdminSection(page, 'users');
+      await page.fill('input[placeholder="Nombre o correo"]', fanEmail);
+      await page.getByTestId('admin-user-row').getByRole('button', { name: 'Abrir ficha', exact: true }).click();
+      await sheet.getByRole('button', { name: 'Historial', exact: true }).click();
       await page.getByTestId('admin-user-history').getByText('Prueba de suspensión').waitFor();
-      await sheet.getByRole('button', { name: 'Quitar suspensión' }).click();
-      await page.getByText(/ya puede volver a entrar/).waitFor();
+      await sheet.getByRole('button', { name: 'Restricciones', exact: true }).click();
+      await sheet.getByLabel('Motivo del cambio').fill('Revisión completada: se levanta la suspensión de prueba.');
+      await sheet.getByRole('button', { name: 'Revisar quitar suspensión', exact: true }).click();
+      await page.getByRole('dialog', { name: 'Quitar suspensión', exact: true }).getByRole('button', { name: 'Quitar suspensión', exact: true }).click();
+      await sheet.waitFor({ state: 'detached' });
       await logoutViaMenu(page);
       await login(page, fanEmail, 'nueva-clave-2');
       await waitPath(page, '/');
@@ -1690,6 +1751,8 @@ const run = async () => {
       await viewer.getByTestId('media-viewer-image').waitFor();
       await viewer.getByRole('button', { name: 'Publicación anterior' }).click();
       await viewer.getByTestId('media-viewer-caption').getByText('Video solo para suscriptores').waitFor();
+      expect((await viewer.locator('video').count()) === 0, 'el visor carga el video antes de reproducir');
+      await viewer.getByRole('button', { name: 'Reproducir video' }).click();
       await viewer.getByTestId('media-viewer-video').waitFor();
       await cp.keyboard.press('ArrowRight');
       await viewer.getByTestId('media-viewer-caption').getByText('Foto nueva desde la playa').waitFor();
@@ -1967,6 +2030,7 @@ const run = async () => {
       await video.locator('input[name=perkVideo]').setInputFiles({ name: 'saludo.webm', mimeType: 'video/webm', buffer: webm });
       await gc.getByText('Video entregado a Carlos M.').waitFor();
       await gf.goto(`${BASE}/settings?section=wallet`);
+      await gf.getByTestId('my-perk').filter({ hasText: 'Video entregado' }).getByRole('button', { name: 'Reproducir video' }).click();
       await gf.getByTestId('my-perk').filter({ hasText: 'Video entregado' }).locator('video').waitFor();
     });
     await check('El creador cobra el 60% de los regalos', async () => {
@@ -2293,12 +2357,12 @@ const run = async () => {
       await login(sa, 'admin@sugarfans.com', 'demo1234', { remember: false });
       await waitPath(sa, '/');
       await sa.goto(`${BASE}/admin`);
-      await sa.getByRole('button', { name: 'Cuentas especiales' }).click();
+      await openAdminSection(sa, 'special');
       const box = sa.getByTestId('special-admin');
       await box.locator('input[name=label]').fill('Gimnasio de Juan');
       await box.locator('input[name=tax]').fill('10');
-      await box.getByRole('button', { name: 'Crear link' }).click();
-      await box.getByText('Link creado. Cópialo y envíaselo.').waitFor();
+      await box.getByRole('button', { name: 'Revisar invitación' }).click();
+      await sa.getByRole('dialog').getByRole('button', { name: 'Confirmar invitación' }).click();
       const row = box.getByTestId('special-invite-row').filter({ hasText: 'Gimnasio de Juan' });
       await row.getByText('Activo', { exact: true }).waitFor();
       await row.getByText(/Reserve al neto \(−10% impuesto\) · Visibilidad extra · usado 0 de 1/).waitFor();
@@ -2336,11 +2400,12 @@ const run = async () => {
     });
     await check('El admin ve la cuenta, y al quitar el plan el creador deja de tenerlo', async () => {
       await sa.reload();
-      await sa.getByRole('button', { name: 'Cuentas especiales' }).click();
+      await openAdminSection(sa, 'special');
       const acc = sa.getByTestId('special-account-row').filter({ hasText: 'Juan Gimnasio' });
       await acc.getByText('Plan activo').waitFor();
       await sa.getByTestId('special-invite-row').filter({ hasText: 'Gimnasio de Juan' }).getByText('Usado', { exact: true }).waitFor();
       await acc.getByRole('button', { name: 'Quitar plan' }).click();
+      await sa.getByRole('dialog').getByRole('button', { name: 'Confirmar beneficios' }).click();
       await acc.getByText('Plan quitado').waitFor();
       await logoutViaMenu(sc);
       await login(sc, `juan.gym.${stamp}@test.com`, 'password123', { remember: false });
@@ -3184,9 +3249,10 @@ const run = async () => {
     await mobile.close();
   } finally {
     await browser.close();
-    server?.kill();
+    if (server) await new Promise((resolve) => server.httpServer.close(resolve));
   }
 
+  complete = true;
   const failed = results.filter((r) => !r.ok);
   console.log(`\n${results.length - failed.length}/${results.length} flujos OK`);
   const errors = consoleErrors.filter((e) => !e.includes('net::ERR_FAILED'));
@@ -3194,7 +3260,8 @@ const run = async () => {
     console.log(`\nErrores de consola (${errors.length}):`);
     [...new Set(errors)].slice(0, 20).forEach((e) => console.log('  - ' + e));
   }
-  process.exit(failed.length ? 1 : 0);
+  saveResults();
+  process.exit(failed.length || errors.length ? 1 : 0);
 };
 
 run().catch((e) => {
