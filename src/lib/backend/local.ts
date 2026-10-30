@@ -279,8 +279,6 @@ const createBooking = async (user: User, input: BookingInput): Promise<AuthResul
   if (platform.ledger.cutOff(user.id, exp.creatorProfileId)) return fail('No puedes reservar con este perfil');
   const d = detailsOf(exp);
   const subscribed = user.subscriptions.some((s) => s.creatorId === exp.creatorProfileId);
-  if (d.requirements.verifiedFans && !user.isVerified) return fail('Esta experiencia es solo para fans con identidad verificada');
-  if (d.requirements.subscribersOnly && !subscribed) return fail('Esta experiencia es solo para suscriptores');
   const participants = input.participants ?? 1;
   if (!Number.isInteger(participants) || participants < 1 || participants > d.maxParticipants)
     return fail(`Esta experiencia admite hasta ${d.maxParticipants} participante${d.maxParticipants === 1 ? '' : 's'}`);
@@ -753,8 +751,6 @@ export const localBackend: Backend = {
     if (!note.ok) return fail(note.error!);
     const d = detailsOf(exp);
     const subscribed = user.subscriptions.some((s) => s.creatorId === exp.creatorProfileId);
-    if (d.requirements.verifiedFans && !user.isVerified) return fail('Este evento es solo para fans con identidad verificada');
-    if (d.requirements.subscribersOnly && !subscribed) return fail('Este evento es solo para suscriptores');
     if (!isUpcomingEvent(exp)) return fail('Este evento ya pasó');
     const seats = listBookings().filter((b) => b.experienceId === exp.id && b.details?.kind === 'event' && ACTIVE_STATUSES.includes(b.status));
     if (seats.some((b) => b.fanId === user.id)) return fail('Ya tienes una plaza en este evento');

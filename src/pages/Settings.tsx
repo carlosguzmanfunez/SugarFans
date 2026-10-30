@@ -27,6 +27,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { SOCIALS, normalizeUsername, parseSocial, profileLink, type SocialKey, type SocialLinks } from '../lib/creatorLinks';
 import ProfileImageButton from '../components/ProfileImageButton';
 import BecomeCreatorCard from '../components/BecomeCreatorCard';
+import PushOptIn from '../components/PushOptIn';
 import { EMPTY_AVATAR, avatarOrEmpty } from '../lib/backend/shared';
 import { backend } from '../lib/backend';
 
@@ -405,6 +406,9 @@ const Settings: React.FC = () => {
             {activeSection === 'notifications' && (
               <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
                 <h2 className="text-lg font-bold text-gray-900 mb-6">Notificaciones</h2>
+                <div className="mb-6">
+                  {user && <PushOptIn user={user} />}
+                </div>
                 <div className="space-y-4">
                   {notificationItems.map((item) => (
                     <div key={item.key} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">

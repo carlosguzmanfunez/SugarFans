@@ -85,15 +85,15 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category: profileCateg
       title: '',
       description: '',
       type: initialType?.id ?? 'video-call',
-      price: 50,
+      price: 0,
       durationMinutes: initialType?.minutes ? initialType.defaultMinutes : undefined,
       image: DEFAULT_EXPERIENCE_IMAGE,
       active: true,
     };
     return { ...base, details: { ...defaultDetails(), ...(editing?.details ?? {}), categoryId: editing?.details?.categoryId ?? profileCategory.id } };
   });
-  const [includes, setIncludes] = useState(input.details.includes.join('\n'));
-  const [excludes, setExcludes] = useState(input.details.excludes.join('\n'));
+  // The price as typed, so "0" → "25" doesn't become "025" and clearing the field works.
+  const [priceText, setPriceText] = useState(String(input.price));
 
   const category = experienceCategory(input, profileCategory.id);
   const allowedTypes = experienceTypesFor(category);
@@ -150,8 +150,21 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category: profileCateg
     if (first) pickType(first.id, selected);
   };
 
-  const lines = (text: string) => text.split('\n').map((x) => x.trim()).filter(Boolean);
-  const current = (): VipExperienceInput => ({ ...input, details: { ...d, includes: lines(includes), excludes: lines(excludes) } });
+  const typePrice = (raw: string) => {
+    let v = raw.replace(',', '.').replace(/[^\d.]/g, '');
+    const dot = v.indexOf('.');
+    if (dot >= 0) v = v.slice(0, dot + 1) + v.slice(dot + 1).replace(/\./g, '').slice(0, 2);
+    v = v.replace(/^0+(?=\d)/, '');
+    if (v.startsWith('.')) v = `0${v}`;
+    setPriceText(v);
+    set({ price: v === '' ? NaN : Number(v) });
+  };
+  // Fans only confirm they're 18+ at sign-up and anyone registered can book, so an
+  // experience never limits who books it; "Incluye / No incluye" left the wizard too.
+  const current = (): VipExperienceInput => ({
+    ...input,
+    details: { ...d, includes: [], excludes: [], requirements: { verifiedFans: false, subscribersOnly: false, notes: d.requirements.notes } },
+  });
 
   // What each step needs before moving on; "Cancelación" (the last editable step) runs the full validation.
   const stepError = (i: number): string | null => {
@@ -163,13 +176,14 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category: profileCateg
     if (i === 1) return input.title.trim().length < 3 || input.title.trim().length > 80 ? 'El nombre debe tener entre 3 y 80 caracteres' : mod([input.title]);
     if (i === 2) return input.description.trim().length < 10 ? 'Describe la experiencia (mínimo 10 caracteres)' : mod([input.description]);
     if (i === 6 && isEvent && (!d.eventDate || !d.eventTime)) return 'Indica la fecha y la hora del evento';
+    if (i === 6 && !isEvent && (d.days?.length === 0 || d.hours?.length === 0)) return 'Elige al menos un día y una hora';
     if (i === 5 && (!Number.isFinite(input.price) || input.price < MIN_EXPERIENCE_PRICE || input.price > MAX_EXPERIENCE_PRICE))
       return `El precio debe estar entre $${MIN_EXPERIENCE_PRICE} y $${MAX_EXPERIENCE_PRICE}`;
     if (i === 7 && d.modality !== 'virtual') {
       if (!d.locationTypes.length || (d.city ?? '').trim().length < 2) return 'Elige el tipo de lugar e indica la ciudad';
       return mod([d.venue, d.city]);
     }
-    if (i === 9) return mod([d.requirements.notes, ...lines(includes)]);
+    if (i === 9) return mod([d.conditions]);
     if (i === 11) {
       const check = validateExperience(current(), category.id);
       return check.ok ? null : check.error!;
@@ -323,7 +337,17 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category: profileCateg
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block text-sm">
             <span className="font-semibold text-ink">Precio (USD)</span>
-            <input name="expPrice" type="number" min={MIN_EXPERIENCE_PRICE} max={MAX_EXPERIENCE_PRICE} step="0.01" value={Number.isFinite(input.price) ? input.price : ''} onChange={(e) => set({ price: Number(e.target.value) })} className={field} />
+            <input
+              name="expPrice"
+              type="text"
+              inputMode="decimal"
+              autoComplete="off"
+              value={priceText}
+              onFocus={(e) => priceText === '0' && e.target.select()}
+              onChange={(e) => typePrice(e.target.value)}
+              className={field}
+            />
+            <span className="mt-1 block text-xs text-muted">Entre ${MIN_EXPERIENCE_PRICE} y ${MAX_EXPERIENCE_PRICE}.</span>
           </label>
           <div className="block text-sm sm:col-span-2" data-testid="discount-box">
             <label className="flex cursor-pointer items-center justify-between gap-3">
@@ -369,15 +393,14 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category: profileCateg
 
       {step === 6 && !isEvent && (
         <div className="space-y-4">
-          <p className="text-sm text-ink/70">Por defecto usa tus horarios generales. Puedes limitar esta experiencia a algunos días u horas.</p>
+          <p className="text-sm text-ink/70">Elige cualquier día de la semana y cualquier hora del día. Empieza marcado con tus horarios generales.</p>
           <div>
             <p className="mb-2 text-sm font-semibold text-ink">Días</p>
             <div className="flex flex-wrap gap-2">
               {WEEKDAYS.map((w, i) => {
                 const on = (d.days ?? availability.days).includes(i);
-                const offered = availability.days.includes(i);
                 return (
-                  <button key={w} type="button" disabled={!offered} aria-pressed={on && offered} onClick={() => setD({ days: toggle(d.days ?? availability.days, i) })} className={`h-10 w-12 rounded-xl border text-sm font-medium ${on && offered ? 'border-ink bg-ink text-white' : 'border-line text-ink/70'} disabled:opacity-30`}>
+                  <button key={w} type="button" aria-pressed={on} onClick={() => setD({ days: toggle(d.days ?? availability.days, i) })} className={`h-10 w-12 rounded-xl border text-sm font-medium ${on ? 'border-ink bg-ink text-white' : 'border-line text-ink/70'}`}>
                     {w}
                   </button>
                 );
@@ -387,7 +410,7 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category: profileCateg
           <div>
             <p className="mb-2 text-sm font-semibold text-ink">Horas</p>
             <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-              {ALL_HOURS.filter((h) => availability.hours.includes(h)).map((h) => {
+              {ALL_HOURS.map((h) => {
                 const on = (d.hours ?? availability.hours).includes(h);
                 return (
                   <button key={h} type="button" aria-pressed={on} onClick={() => setD({ hours: toggle(d.hours ?? availability.hours, h) })} className={`h-10 rounded-xl border text-sm font-medium ${on ? 'border-brand-600 bg-brand-600 text-white' : 'border-line text-ink/70'}`}>
@@ -468,24 +491,6 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category: profileCateg
 
       {step === 9 && (
         <div className="space-y-4">
-          <label className="flex items-center gap-3 text-sm text-ink">
-            <input type="checkbox" checked={d.requirements.verifiedFans} onChange={(e) => setD({ requirements: { ...d.requirements, verifiedFans: e.target.checked } })} />
-            Solo fans con identidad verificada
-          </label>
-          <label className="flex items-center gap-3 text-sm text-ink">
-            <input type="checkbox" checked={d.requirements.subscribersOnly} onChange={(e) => setD({ requirements: { ...d.requirements, subscribersOnly: e.target.checked } })} />
-            Solo suscriptores
-          </label>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block text-sm">
-              <span className="font-semibold text-ink">Incluye (uno por línea)</span>
-              <textarea name="expIncludes" rows={3} value={includes} onChange={(e) => setIncludes(e.target.value)} className={field} />
-            </label>
-            <label className="block text-sm">
-              <span className="font-semibold text-ink">No incluye (uno por línea)</span>
-              <textarea name="expExcludes" rows={3} value={excludes} onChange={(e) => setExcludes(e.target.value)} className={field} />
-            </label>
-          </div>
           <label className="block text-sm">
             <span className="font-semibold text-ink">Condiciones adicionales (opcional)</span>
             <textarea name="expConditions" rows={2} maxLength={400} value={d.conditions ?? ''} onChange={(e) => setD({ conditions: e.target.value })} placeholder="Ej.: llega 10 minutos antes; se requiere acreditación del evento." className={field} />
