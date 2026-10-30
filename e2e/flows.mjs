@@ -241,7 +241,7 @@ const addCard = async (scope, number = '4242 4242 4242 4242') => {
 
 // Pay an accepted VIP booking: the dialog preselects a saved card, or asks for one.
 const payBooking = async (page, booking) => {
-  await booking.getByRole('button', { name: /Pagar/ }).click();
+  await booking.getByRole('button', { name: /^Pagar \$/ }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByRole('button', { name: /Confirmar pago/ }).waitFor();
   if (await dialog.getByPlaceholder('Número de tarjeta').count()) await addCard(dialog);
@@ -881,7 +881,11 @@ const run = async () => {
     });
     await check('Cancelar una reserva pendiente persiste', async () => {
       await page.goto(`${BASE}/profile`);
-      await page.getByTestId('booking').filter({ hasText: '18:00' }).getByRole('button', { name: 'Cancelar' }).click();
+      const pending = page.getByTestId('booking').filter({ hasText: '18:00' });
+      await pending.getByTestId('cancel-open').click();
+      await pending.getByTestId('cancel-panel').getByText('Todavía no pagaste: cancelar no tiene costo.').waitFor();
+      await pending.getByTestId('cancel-confirm').click();
+      await pending.getByText('Cancelada').waitFor();
       await page.reload();
       await page.getByTestId('booking').filter({ hasText: '18:00' }).getByText('Cancelada').waitFor();
     });

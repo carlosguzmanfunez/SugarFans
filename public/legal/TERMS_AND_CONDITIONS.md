@@ -32,7 +32,7 @@ Bienvenido a Fans Reserve ("la Plataforma", "nosotros", "nuestro"). Estos Térmi
 
 1.7. **"Experiencia" o "Reserve"** se refiere a un servicio definido que un Creador publica para ser reservado (por ejemplo una clase, una sesión de coaching, una videollamada en la sala de la Plataforma, una aparición en un evento o una sesión de fotos en estudio), con tipo, modalidad, duración, precio, lugar y reglas propias. Fans Reserve permite reservar experiencias, no personas.
 
-1.8. **"Créditos"** se refiere a la moneda virtual de la Plataforma, que solo sirve para enviar regalos a Creadores.
+1.8. **"Créditos"** se refiere a la moneda virtual de la Plataforma. Sirve para enviar regalos a Creadores y para pagar experiencias de Reserve. No se puede cambiar por dinero.
 
 ---
 
@@ -153,9 +153,16 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 5.2. **Reservas y Pagos**:
 - El fan envía una solicitud; el Creador la acepta, la rechaza o hace una contraoferta
 - El pago se realiza solo después de la aceptación
-- Cada experiencia tiene su política de cancelación (ver Cancelación y No-show)
+- Una sola regla de cancelación para todas las experiencias (ver Cancelación y No-show), contada desde la hora de inicio en el horario del Creador:
+  - El fan cancela 24 horas o más antes: recibe el 100% de lo pagado en Créditos
+  - El fan cancela con menos de 24 horas: recibe el 50% en Créditos y el Creador conserva la mitad de su ganancia
+  - El fan no se presenta: no hay devolución
+  - El Creador cancela una reserva pagada: el fan recibe el 100% en Créditos
+  - Antes de pagar, cancelar no tiene costo
+- El fan tiene un cambio de fecha gratis por reserva 1:1, pedido con 24 horas o más de anticipación; el Creador lo acepta o lo rechaza
+- Las devoluciones por cancelación se hacen en Créditos, no en dinero, salvo cuando la ley lo exija
 - Si el creador no cumple (no se presenta, llega más de 15 minutos tarde, cambia por su cuenta fecha, hora o lugar, o la experiencia no corresponde a lo publicado; en Live 1:1, si no entra a la sala en los primeros 10 minutos), el fan recibe el reembolso completo, previa verificación
-- El fan es responsable de cumplir lo publicado por el creador; si no lo hace, se aplica la política de cancelación
+- El fan es responsable de cumplir lo publicado por el creador; si no lo hace, se aplica la regla de cancelación y, si no se presenta, no hay devolución
 - Las experiencias presenciales ocurren en venues, estudios, eventos y lugares públicos o profesionales. En todas las categorías menos Tu gente, los servicios profesionales también pueden darse en el lugar del creador o en el que proponga el fan, siempre con aprobación manual del creador. Nunca en hoteles ni lugares discretos
 
 5.3. **Conducta Esperada**:
@@ -186,7 +193,7 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 - No hay reembolsos por períodos parciales
 
 6.3. **Créditos y Regalos**:
-- Los Créditos se compran en paquetes y solo sirven para enviar regalos dentro de la Plataforma
+- Los Créditos se compran en paquetes o se reciben como devolución por la cancelación de una Reserve, y sirven para enviar regalos y pagar experiencias de Reserve dentro de la Plataforma
 - Un regalo es apoyo voluntario: no da acceso, contenido, videollamadas ni experiencias, y no garantiza respuesta
 - Los Créditos y los regalos no son reembolsables, salvo cobro duplicado, error técnico o cuando la ley lo exija
 
