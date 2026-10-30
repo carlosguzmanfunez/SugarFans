@@ -833,14 +833,14 @@ const run = async () => {
       await page.goto(`${BASE}/explore`);
       await page.getByText('Diego Torres').first().waitFor();
     });
-    await check('Un fan puede solicitar la verificación y ve el estado "en revisión"', async () => {
-      await submitVerification(page, { birth: '2015-01-01' });
-      await page.getByText('Debes ser mayor de 18 años').waitFor();
-      await page.fill('input[name=birthDate]', '1992-03-04');
-      await page.getByRole('button', { name: 'Enviar para verificación' }).click();
-      await page.getByText('Solicitud en revisión').waitFor();
-      await page.reload();
-      await page.getByText('Solicitud en revisión').waitFor();
+    await check('Un fan no verifica su identidad: no ve Verificación en Ajustes ni en Mi cuenta', async () => {
+      await page.goto(`${BASE}/settings?section=verification`);
+      await page.getByRole('button', { name: 'Guardar cambios' }).waitFor();
+      expect((await page.getByTestId('settings-nav').getByRole('button', { name: 'Verificación' }).count()) === 0, 'el fan ve la pestaña Verificación');
+      expect((await page.locator('input[name=docFront]').count()) === 0, 'el fan ve el formulario de verificación');
+      await page.goto(`${BASE}/profile`);
+      await page.getByText('Tipo de cuenta').waitFor();
+      expect((await page.getByRole('main').getByText('Verificación de identidad').count()) === 0, 'Mi cuenta pide verificar la identidad al fan');
     });
     await check('Descargar mis datos genera un archivo JSON', async () => {
       await page.goto(`${BASE}/settings?section=privacy`);
@@ -1024,7 +1024,12 @@ const run = async () => {
       expect((await page.locator('input[type=file]').count()) === 2, 'la verificación debe pedir solo 2 fotos');
     });
     await check('Verificación: el creador envía documento y selfie', async () => {
-      await submitVerification(page, { name: 'Lola Creadora' });
+      await submitVerification(page, { name: 'Lola Creadora', birth: '2015-01-01' });
+      await page.getByText('Debes ser mayor de 18 años').waitFor();
+      await page.fill('input[name=birthDate]', '1995-07-07');
+      await page.getByRole('button', { name: 'Enviar para verificación' }).click();
+      await page.getByText('Solicitud en revisión').waitFor();
+      await page.reload();
       await page.getByText('Solicitud en revisión').waitFor();
       await page.goto(`${BASE}/creator/dashboard`);
       await page.getByTestId('verification-banner').getByText(/en revisión/).waitFor();
@@ -1035,14 +1040,14 @@ const run = async () => {
       expect((await page.getByTestId('didit-return').count()) === 0, 'sigue el aviso de Didit');
       expect(!page.url().includes('didit='), `la dirección conserva didit: ${page.url()}`);
     });
-    await check('Admin ve los documentos, rechaza la del fan con motivo y aprueba la del creador', async () => {
+    await check('Admin ve los documentos, rechaza con motivo, el creador reenvía y el admin aprueba', async () => {
       await logoutViaMenu(page);
       await login(page, 'admin@sugarfans.com', 'demo1234');
       await waitPath(page, '/');
       await page.goto(`${BASE}/admin`);
       await openAdminSection(page, 'verifications');
       const list = page.getByTestId('admin-verifications');
-      await list.locator('div.p-4', { hasText: 'Ana Editada' }).getByRole('button', { name: /Revisar documentos/ }).click();
+      await list.locator('div.p-4', { hasText: 'Lola Creadora' }).getByRole('button', { name: /Revisar documentos/ }).click();
       const dialog = page.getByRole('dialog', { name: /Revisar identidad de/ });
       await dialog.getByRole('img', { name: 'Selfie' }).waitFor();
       await dialog.getByRole('button', { name: /Rechazar/ }).click();
@@ -1050,13 +1055,31 @@ const run = async () => {
       await dialog.getByPlaceholder(/Motivo del rechazo/).fill('La foto del documento está borrosa');
       await dialog.getByRole('button', { name: /Rechazar/ }).click();
       await page.getByRole('dialog', { name: 'Rechazar solicitud de identidad' }).getByRole('button', { name: 'Confirmar rechazo', exact: true }).click();
+      // The creator sees why and sends it again (the new request replaces the rejected one).
+      await logoutViaMenu(page);
+      await login(page, creatorEmail, 'clave-creadora-1');
+      await waitPath(page, '/');
+      await page.goto(`${BASE}/settings?section=verification`);
+      await page.getByText('Motivo: La foto del documento está borrosa').waitFor();
+      await page.getByRole('button', { name: 'Enviar de nuevo' }).click();
+      await page.fill('input[name=legalName]', 'Lola Creadora');
+      await page.fill('input[name=birthDate]', '1995-07-07');
+      await page.selectOption('select[name=country]', 'MX');
+      await page.setInputFiles('input[name=docFront]', photo('frente.png'));
+      await page.setInputFiles('input[name=selfie]', photo('selfie.png'));
+      await page.getByRole('button', { name: 'Enviar para verificación' }).click();
+      await page.getByText('Solicitud en revisión').waitFor();
+      await logoutViaMenu(page);
+      await login(page, 'admin@sugarfans.com', 'demo1234');
+      await waitPath(page, '/');
+      await page.goto(`${BASE}/admin`);
+      await openAdminSection(page, 'verifications');
       await list.locator('div.p-4', { hasText: 'Lola Creadora' }).getByRole('button', { name: /Revisar documentos/ }).click();
       await dialog.getByText(/País:.*(MX|México)/).waitFor();
       await dialog.getByRole('button', { name: /Aprobar identidad/ }).click();
       await page.getByRole('dialog', { name: 'Aprobar identidad', exact: true }).getByRole('button', { name: 'Confirmar identidad aprobada' }).click();
       await list.getByTestId('reviewed-verification').filter({ hasText: 'Lola Creadora' }).getByText('Aprobada', { exact: true }).waitFor();
       await list.getByText('No hay solicitudes pendientes').waitFor();
-      await list.getByText('Rechazada: La foto del documento está borrosa').waitFor();
     });
     await check('Admin crea un perfil IA sin verificación: lleva P-IA y los humanos verificados Verificado', async () => {
       await openAdminSection(page, 'managed');

@@ -86,7 +86,9 @@ const Settings: React.FC = () => {
   // The section lives in the address, so the coin pill or "Créditos" in the menu
   // switch it even while Settings is already open.
   const requestedSection = searchParams.get('section');
-  const activeSection = requestedSection && sections.includes(requestedSection) ? requestedSection : 'profile';
+  // Only creators verify their identity (Didit); fans just confirm they are 18+ at sign-up.
+  const visibleSections = user?.role === 'creator' ? sections : sections.filter((s) => s !== 'verification');
+  const activeSection = requestedSection && visibleSections.includes(requestedSection) ? requestedSection : 'profile';
   const [saved, setSaved] = useState('');
   const [error, setError] = useState('');
 
@@ -239,7 +241,7 @@ const Settings: React.FC = () => {
                 { id: 'payments', label: 'Pagos', icon: 'fa-credit-card' },
                 { id: 'wallet', label: VIRTUAL_CURRENCY.displayName, icon: 'fa-coins' },
                 { id: 'blocking', label: 'Bloqueos', icon: 'fa-ban' },
-              ].map((item) => (
+              ].filter((item) => visibleSections.includes(item.id)).map((item) => (
                 <button
                   key={item.id}
                   onClick={(e) => { setActiveSection(item.id); e.currentTarget.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }); }}

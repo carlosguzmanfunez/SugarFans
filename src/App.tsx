@@ -251,7 +251,7 @@ const AppRoutes: React.FC = () => {
       } />
       <Route path="/creator/dashboard" element={
         <AppLayout>
-          <ProtectedRoute roles={['creator', 'admin']}><CreatorDashboard /></ProtectedRoute>
+          <ProtectedRoute roles={['creator']}><CreatorDashboard /></ProtectedRoute>
         </AppLayout>
       } />
       <Route path="/admin" element={

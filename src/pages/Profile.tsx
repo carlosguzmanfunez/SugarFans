@@ -209,6 +209,8 @@ const Profile: React.FC = () => {
                 <p className="font-medium text-yellow-600"><i aria-hidden="true" className="fas fa-clock mr-1"></i> Pendiente</p>
               )}
             </div>
+            {/* Only creators verify their identity. */}
+            {user.role === 'creator' && (
             <div>
               <p className="text-gray-500">Verificación de identidad</p>
               {user.isVerified ? (
@@ -221,6 +223,7 @@ const Profile: React.FC = () => {
                 </Link>
               )}
             </div>
+            )}
             <div>
               <p className="text-gray-500">Miembro desde</p>
               <p className="font-medium text-gray-900">{new Date(user.createdAt).toLocaleDateString('es', { month: 'long', year: 'numeric' })}</p>

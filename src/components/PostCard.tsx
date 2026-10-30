@@ -38,7 +38,7 @@ interface Props {
   canView: boolean; // unlocked, subscribed, or the creator's own post
   isOwner: boolean;
   subscribeLabel: string;
-  onSubscribe: () => void;
+  onSubscribe?: () => void; // left out when this viewer can't subscribe (creators, admins)
   onNeedLogin: () => void;
   onTip: () => void;
   onGift?: () => void;
@@ -137,7 +137,7 @@ const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner,
               <i aria-hidden="true" className="fas fa-lock text-4xl mb-3"></i>
               <p className="font-bold text-lg">Contenido exclusivo para suscriptores</p>
               <p className="text-sm mt-2 text-pink-200">Suscríbete para desbloquear todo el contenido</p>
-              {!isOwner && (
+              {!isOwner && onSubscribe && (
                 <button onClick={onSubscribe} className="mt-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-2 rounded-full font-medium hover:opacity-90">
                   {subscribeLabel}
                 </button>
