@@ -6,6 +6,9 @@ import { setLike, compactCount } from '../lib/social';
 import CommentsPanel from './CommentsPanel';
 import Avatar from './Avatar';
 import { CoverImage, isPlaceholderImage } from './CoverArt';
+import DeferredImage from './DeferredImage';
+import VideoPreview from './VideoPreview';
+import OnDemandVideo from './OnDemandVideo';
 
 // A post from the demo catalogue or one a creator published from their panel.
 export interface DisplayPost {
@@ -80,20 +83,12 @@ const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner,
   const opens = !!onOpen && canView && !!post.mediaUrl;
   const shown = post.mediaUrl && canView
     ? opens && post.mediaType === 'video'
-      // A still preview: tapping it opens the viewer, where it plays.
-      ? <span className="relative block bg-black">
-          <video src={`${post.mediaUrl}#t=0.1`} muted playsInline preload="metadata" className="w-full max-h-[32rem] object-contain pointer-events-none" data-testid="post-video" />
-          <span className="absolute inset-0 flex items-center justify-center">
-            <span className="w-16 h-16 rounded-full bg-black/55 text-white flex items-center justify-center text-2xl">
-              <i aria-hidden="true" className="fas fa-play ml-1"></i>
-            </span>
-          </span>
-        </span>
+      ? <VideoPreview seed={`post-${post.id}`} testId="post-video" />
       : post.mediaType === 'video'
-      ? <video src={post.mediaUrl} controls playsInline preload="metadata" className="w-full max-h-[32rem] bg-black" data-testid="post-video" />
+      ? <OnDemandVideo src={post.mediaUrl} seed={`post-${post.id}`} videoClassName="w-full max-h-[32rem] bg-black" testId="post-video" />
       : isPlaceholderImage(post.mediaUrl)
         ? <CoverImage seed={`post-${post.id}`} className="w-full h-72" />
-        : <img src={post.mediaUrl} alt="" className="w-full max-h-[32rem] object-cover" data-testid="post-image" />
+        : <DeferredImage src={post.mediaUrl} alt="" style={{ aspectRatio: 'auto 4 / 3' }} className="w-full max-h-[32rem] object-cover" data-testid="post-image" />
     : post.mediaUrl || post.mediaType
       ? <CoverImage seed={`post-${post.id}`} className="w-full h-72" />
       : null;

@@ -13,6 +13,7 @@
     "test:payout-operational-recovery": "node e2e/payout-supervised-recovery.mjs && node e2e/payout-watchdog.mjs && node e2e/payout-review-runtime.mjs",
     "test:payout-operational-recovery-ui": "node e2e/payout-operational-recovery-ui.mjs",
     "typecheck": "tsc --noEmit",
+    "test:media-delivery": "vite build --mode offline && node e2e/media-delivery.mjs && node e2e/media-profile.mjs",
     "e2e": "vite build --mode offline && node e2e/flows.mjs",
     "e2e:supabase": "vite build && node e2e/flows.mjs",
     "e2e:live": "node e2e/live-livekit.mjs",

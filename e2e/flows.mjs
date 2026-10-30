@@ -1686,6 +1686,8 @@ const run = async () => {
       await viewer.getByTestId('media-viewer-image').waitFor();
       await viewer.getByRole('button', { name: 'Publicación anterior' }).click();
       await viewer.getByTestId('media-viewer-caption').getByText('Video solo para suscriptores').waitFor();
+      expect((await viewer.locator('video').count()) === 0, 'el visor carga el video antes de reproducir');
+      await viewer.getByRole('button', { name: 'Reproducir video' }).click();
       await viewer.getByTestId('media-viewer-video').waitFor();
       await cp.keyboard.press('ArrowRight');
       await viewer.getByTestId('media-viewer-caption').getByText('Foto nueva desde la playa').waitFor();
@@ -1963,6 +1965,7 @@ const run = async () => {
       await video.locator('input[name=perkVideo]').setInputFiles({ name: 'saludo.webm', mimeType: 'video/webm', buffer: webm });
       await gc.getByText('Video entregado a Carlos M.').waitFor();
       await gf.goto(`${BASE}/settings?section=wallet`);
+      await gf.getByTestId('my-perk').filter({ hasText: 'Video entregado' }).getByRole('button', { name: 'Reproducir video' }).click();
       await gf.getByTestId('my-perk').filter({ hasText: 'Video entregado' }).locator('video').waitFor();
     });
     await check('El creador cobra el 60% de los regalos', async () => {

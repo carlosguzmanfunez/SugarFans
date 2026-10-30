@@ -18,6 +18,7 @@ import CheckoutDialog from '../components/CheckoutDialog';
 import ReportDialog from '../components/ReportDialog';
 import PostCard, { type DisplayPost } from '../components/PostCard';
 import MediaViewer from '../components/MediaViewer';
+import VideoPreview from '../components/VideoPreview';
 import ProfileImageButton from '../components/ProfileImageButton';
 import ProfileImageViewer from '../components/ProfileImageViewer';
 import TipDialog from '../components/TipDialog';
@@ -685,7 +686,7 @@ const CreatorProfile: React.FC = () => {
                 data-testid="media-tile"
                 className="relative aspect-square rounded-xl overflow-hidden group cursor-pointer">
                 {post.mediaType === 'video' && post.mediaUrl && canView(post) ? (
-                  <video src={post.mediaUrl} muted playsInline preload="metadata" className="w-full h-full object-cover" />
+                  <VideoPreview seed={`post-${post.id}`} className="w-full h-full" />
                 ) : (
                   <CoverImage
                     src={canView(post) && !isPlaceholderImage(post.mediaUrl) ? post.mediaUrl : null}

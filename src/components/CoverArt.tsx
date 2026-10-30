@@ -1,5 +1,6 @@
 import React, { useId, useState } from 'react';
 import { COVER_PALETTES, COVER_STYLES, hashSeed, type CoverStyle } from '../config/theme';
+import DeferredImage from './DeferredImage';
 
 // Generated, on-brand artwork for creator covers, VIP experiences and demo media.
 // Each seed always renders the same style and palette, so profiles look different
@@ -136,11 +137,9 @@ export const CoverImage: React.FC<{
     <div className={`relative overflow-hidden ${className}`}>
       <CoverArt seed={seed} />
       {usePhoto && (
-        <img
+        <DeferredImage
           src={src!}
           alt={alt}
-          loading="lazy"
-          decoding="async"
           onError={() => setFailed(true)}
           className={`absolute inset-0 h-full w-full object-cover ${imgClassName}`}
         />
