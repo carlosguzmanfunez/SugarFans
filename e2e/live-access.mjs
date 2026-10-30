@@ -13,7 +13,7 @@ import { createServer } from 'node:http';
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 
 const STUB_PORT = 54331;
@@ -76,7 +76,7 @@ const BOOKINGS = {
 };
 
 const stub = () =>
-  new Promise((resolve) => {
+  new Promise((resolve, reject) => {
     const server = createServer((req, res) => {
       const token = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '');
       const url = new URL(req.url, 'http://x');
@@ -103,12 +103,13 @@ const stub = () =>
       }
       send(404, {});
     });
-    server.listen(STUB_PORT, () => resolve(server));
+    server.once('error', reject);
+    server.listen(STUB_PORT, '127.0.0.1', () => resolve(server));
   });
 
 const loadHandler = async () => {
   const out = join(mkdtempSync(join(tmpdir(), 'live-access-')), 'live-token.mjs');
-  await build({ entryPoints: [new URL('../api/live-token.ts', import.meta.url).pathname], bundle: true, format: 'esm', platform: 'node', outfile: out, logLevel: 'silent' });
+  await build({ entryPoints: [fileURLToPath(new URL('../api/live-token.ts', import.meta.url))], bundle: true, format: 'esm', platform: 'node', outfile: out, logLevel: 'silent' });
   return await import(pathToFileURL(out).href);
 };
 

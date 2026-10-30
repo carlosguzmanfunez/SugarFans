@@ -365,6 +365,7 @@ const expect = (cond, msg) => {
 console.log('API de PayPal (con PayPal y Supabase simulados)');
 
 await check('GET da el Client ID público y nunca el Secret', async () => {
+  const callsBefore = calls.length;
   const r = await api.GET();
   const data = await r.json();
   expect(data.enabled && data.clientId === 'AXclient' && data.env === 'sandbox', JSON.stringify(data));
@@ -372,6 +373,7 @@ await check('GET da el Client ID público y nunca el Secret', async () => {
   expect(!JSON.stringify(data).includes('sb_secret_test'), 'muestra la service role');
   expect(!('checks' in data), 'el GET público revela diagnósticos internos');
   expect(Object.keys(data).sort().join(',') === 'clientId,enabled,env', 'se exponen campos de configuración no necesarios');
+  expect(calls.length === callsBefore, 'la consulta pública contacta a PayPal o Supabase');
 });
 
 await check('Sin sesión no se puede pagar', async () => {
