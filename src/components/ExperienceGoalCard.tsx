@@ -1,3 +1,5 @@
+import { useReserveDestination } from './reserve/ReserveCitySelector';
+import { visibleAtLocation } from '../lib/reserveLocation';
 import React, { useState } from 'react';
 import ReserveModal from './reserve/ReserveModal';
 import ReserveBookingDialog from './reserve/ReserveBookingDialog';
@@ -21,7 +23,9 @@ const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: '
 // Creator profile: the fan's own Meta de experiencia. Gifts and tips fill it; a
 // full goal lets the fan pick one of the creator's experiences and book it with a
 // ticket choosing only the day and time.
-const ExperienceGoalCard: React.FC<Props> = ({ creatorProfileId, creatorName, experiences, user, onNeedLogin, onGift }) => {
+const ExperienceGoalCard: React.FC<Props> = ({ creatorProfileId, creatorName, experiences: allExperiences, user, onNeedLogin, onGift }) => {
+  const destination = useReserveDestination();
+  const experiences = allExperiences.filter((e) => visibleAtLocation(e, destination));
   const { data: goal, reload } = usePlatformQuery(() => rewardsApi.goal(creatorProfileId, user), [creatorProfileId, user?.id], null);
   const { data: tickets, reload: reloadTickets } = usePlatformQuery(
     async () => (user ? (await rewardsApi.myTickets(user)).filter((t) => t.creatorProfileId === creatorProfileId) : []),
@@ -43,7 +47,7 @@ const ExperienceGoalCard: React.FC<Props> = ({ creatorProfileId, creatorName, ex
 
   const claim = async () => {
     if (!user) return onNeedLogin();
-    if (!choice) return setError('Elige la experiencia que quieres');
+    if (!choice || !experiences.some((e) => e.id === choice)) return setError('Elige una experiencia disponible en tu ciudad o una virtual.');
     setError('');
     const r = await rewardsApi.claimTicket(user, creatorProfileId, choice);
     if (!r.ok || !r.ticket) return setError(r.error || 'No se pudo crear tu ticket');
@@ -81,7 +85,7 @@ const ExperienceGoalCard: React.FC<Props> = ({ creatorProfileId, creatorName, ex
         <div className="mt-1.5 h-3 overflow-hidden rounded-full bg-white" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pctFilled} aria-label="Progreso de tu meta">
           <div className="h-full rounded-full bg-gradient-to-r from-pink-500 to-purple-500 transition-[width] duration-700" style={{ width: `${pctFilled}%` }}></div>
         </div>
-        <p className="mt-2 text-xs text-ink/60">Se puede ganar: {goal.experiences.map((e) => e.title).join(' · ')}</p>
+        <p className="mt-2 text-xs text-ink/60">Se puede ganar: {goal.experiences.filter((e) => experiences.some((v) => v.id === e.id)).map((e) => e.title).join(' · ')}</p>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
         {full ? (
@@ -103,9 +107,12 @@ const ExperienceGoalCard: React.FC<Props> = ({ creatorProfileId, creatorName, ex
                 <p className="text-xs text-ink/60">Vence el {fmtDate(t.expiresAt)}</p>
               </div>
               {t.status === 'active' ? (
-                <button type="button" onClick={() => setBooking(t)} data-testid="goal-ticket-book" className="h-9 rounded-full bg-ink px-4 text-xs font-semibold text-white">
+                <div>
+                <button type="button" disabled={!experiences.some((e) => e.id === t.experienceId)} onClick={() => setBooking(t)} data-testid="goal-ticket-book" className="h-9 rounded-full bg-ink px-4 text-xs font-semibold text-white disabled:opacity-50">
                   Reservar con mi ticket
                 </button>
+                {!experiences.some((e) => e.id === t.experienceId) && <p className="mt-1 text-xs text-ink/70">Esta experiencia no está disponible con la ciudad seleccionada. Cambia la ciudad en Reserve o consulta al creador.</p>}
+                </div>
               ) : (
                 <span className="text-xs font-semibold text-iris-700">Reserva enviada</span>
               )}
@@ -142,7 +149,7 @@ const ExperienceGoalCard: React.FC<Props> = ({ creatorProfileId, creatorName, ex
           ) : (
             <div className="space-y-3">
               <p className="text-sm text-ink/70">Elige la experiencia que quieres con {first}. Luego eliges día y hora.</p>
-              {goal.experiences.map((e) => (
+              {goal.experiences.filter((e) => experiences.some((v) => v.id === e.id)).map((e) => (
                 <label key={e.id} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-sm ${choice === e.id ? 'border-pink-400 bg-pink-50' : 'border-line'}`}>
                   <input type="radio" name="goal-experience" value={e.id} checked={choice === e.id} onChange={() => setChoice(e.id)} data-testid="goal-choice" />
                   <span className="flex-1 font-medium text-ink">{e.title}</span>

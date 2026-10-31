@@ -62,6 +62,8 @@
     "test:time-zones": "node e2e/time-zones.mjs",
     "test:reserve-time-zones-db": "node e2e/reserve-time-zones-postgres.mjs",
     "test:proposal-hours-db": "node e2e/proposal-hours-postgres.mjs",
+    "test:reserve-city-db": "node e2e/reserve-city-postgres.mjs",
+    "test:reserve-city-ui": "vite build --mode offline && node e2e/reserve-city-ui.mjs",
     "test:reserve-cancellation-db": "node e2e/reserve-cancellation-postgres.mjs",
     "test:reserve-cancellation-ui": "vite build --mode offline && node e2e/reserve-cancellation-ui.mjs",
     "test:reserve-wizard-ui": "vite build --mode offline && node e2e/reserve-wizard-ui.mjs",

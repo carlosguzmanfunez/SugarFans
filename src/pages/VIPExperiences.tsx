@@ -1,3 +1,5 @@
+import ReserveCitySelector, { useReserveDestination } from '../components/reserve/ReserveCitySelector';
+import { visibleAtLocation } from '../lib/reserveLocation';
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -25,6 +27,7 @@ const PRODUCTS: { id: ReserveProduct | 'all'; label: string; icon: string }[] = 
 
 const ReservePage: React.FC = () => {
   const { user } = useAuth();
+  const destination = useReserveDestination();
   const navigate = useNavigate();
   const location = useLocation();
   const [modality, setModality] = useState<ReserveModality | 'all'>('all');
@@ -44,6 +47,7 @@ const ReservePage: React.FC = () => {
 
   const visible = experiences
     .filter((e) => e.active)
+    .filter((e) => visibleAtLocation(e, destination))
     // Events that already happened aren't bookable.
     .filter((e) => reserveProductOf(e) !== 'event' || isUpcomingEvent(e))
     .filter((e) => product === 'all' || reserveProductOf(e) === product)
@@ -86,6 +90,7 @@ const ReservePage: React.FC = () => {
             placeholder="Buscar creadores o experiencias..."
           />
         </div>
+        <ReserveCitySelector experiences={experiences} />
         <div className="mb-6 space-y-3 sm:mb-8">
           <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0" role="group" aria-label="Tipo de Reserve" data-testid="reserve-products">
             {PRODUCTS.map((p) => (
@@ -185,7 +190,7 @@ const ReservePage: React.FC = () => {
         </section>
       </div>
 
-      {open && <ReserveBookingDialog exp={open.exp} user={user} startBooking={open.book} seatsTaken={seats[open.exp.id] ?? 0} onNeedLogin={goLogin} onClose={() => setOpen(null)} />}
+      {open && visibleAtLocation(open.exp, destination) && <ReserveBookingDialog exp={open.exp} user={user} startBooking={open.book} seatsTaken={seats[open.exp.id] ?? 0} onNeedLogin={goLogin} onClose={() => setOpen(null)} />}
     </div>
   );
 };
