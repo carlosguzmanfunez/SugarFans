@@ -111,21 +111,21 @@ const t = (x: ReserveExperienceType) => x;
 export const RESERVE_EXPERIENCE_TYPES: ReserveExperienceType[] = [
   // Virtual, shared by several categories
   t({ id: 'video-call', name: 'Videollamada 1:1', icon: 'fa-video', description: 'Videollamada dentro de Fans Reserve, solo tú y el creador.', modalities: ['virtual'], locations: [], minutes: [10, 60], defaultMinutes: 20, maxParticipants: 1 }),
-  t({ id: 'live-1-1', name: 'Live 1:1', icon: 'fa-tower-broadcast', description: 'Un Live solo para ti, con chat y regalos.', modalities: ['virtual'], locations: [], minutes: [10, 60], defaultMinutes: 15, maxParticipants: 1 }),
-  t({ id: 'qa-session', name: 'Q&A en vivo', icon: 'fa-comments', description: 'Pregunta lo que quieras sobre su trabajo.', modalities: ['virtual'], locations: [], minutes: [10, 60], defaultMinutes: 20, maxParticipants: 3, legacy: true }),
+  t({ id: 'live-1-1', name: 'Plática en vivo 1:1', icon: 'fa-tower-broadcast', description: 'Conversa sobre intereses compartidos, proyectos y preguntas sobre el trabajo del creador.', modalities: ['virtual'], locations: [], minutes: [10, 60], defaultMinutes: 15, maxParticipants: 1 }),
+  t({ id: 'qa-session', name: 'Preguntas y respuestas en vivo', icon: 'fa-comments', description: 'Haz tus preguntas sobre el trabajo y los proyectos del creador.', modalities: ['virtual'], locations: [], minutes: [10, 60], defaultMinutes: 20, maxParticipants: 3, legacy: true }),
   t({ id: 'personal-greeting', name: 'Saludo personalizado', icon: 'fa-hand-sparkles', description: 'Un video con tu nombre, entregado en la app.', modalities: ['virtual'], locations: [], minutes: null, maxParticipants: 1 }),
   t({ id: 'custom-content', name: 'Contenido personalizado', icon: 'fa-wand-magic-sparkles', description: 'Contenido hecho para ti, dentro de las políticas.', modalities: ['virtual'], locations: [], minutes: null, maxParticipants: 1, legacy: true }),
   t({ id: 'early-access', name: 'Acceso anticipado', icon: 'fa-bolt', description: 'Estrenos y lanzamientos antes que nadie.', modalities: ['virtual'], locations: [], minutes: null, maxParticipants: 1, legacy: true }),
   t({ id: 'themed-talk', name: 'Conversación temática', icon: 'fa-comment-dots', description: 'Una charla sobre un tema concreto que el creador domina.', modalities: ['virtual'], locations: [], minutes: [15, 60], defaultMinutes: 30, maxParticipants: 2 }),
-  t({ id: 'coaching', name: 'Coaching', icon: 'fa-bullseye', description: 'Sesión guiada con objetivos concretos.', modalities: ['virtual'], locations: [], minutes: [20, 90], defaultMinutes: 45, maxParticipants: 1 }),
+  t({ id: 'coaching', name: 'Asesoría', icon: 'fa-bullseye', description: 'Sesión guiada con objetivos concretos.', modalities: ['virtual'], locations: [], minutes: [20, 90], defaultMinutes: 45, maxParticipants: 1 }),
   t({ id: 'mentoring', name: 'Mentoría', icon: 'fa-chalkboard-user', description: 'Orientación profesional sobre tu proyecto.', modalities: ['virtual'], locations: [], minutes: [20, 90], defaultMinutes: 45, maxParticipants: 2 }),
   t({ id: 'creative-session', name: 'Sesión creativa', icon: 'fa-lightbulb', description: 'Crear juntos: ideas, bocetos o maquetas.', modalities: ['virtual'], locations: [], minutes: [30, 120], defaultMinutes: 60, maxParticipants: 2 }),
   t({ id: 'feedback', name: 'Feedback', icon: 'fa-list-check', description: 'Revisión de tu trabajo con comentarios concretos.', modalities: ['virtual'], locations: [], minutes: [15, 60], defaultMinutes: 30, maxParticipants: 1 }),
-  t({ id: 'fashion-beauty-talk', name: 'Fashion & beauty talk', icon: 'fa-shirt', description: 'Moda, estilo y belleza, con consejos para ti.', modalities: ['virtual'], locations: [], minutes: [15, 60], defaultMinutes: 20, maxParticipants: 2 }),
+  t({ id: 'fashion-beauty-talk', name: 'Charla de moda y belleza', icon: 'fa-shirt', description: 'Moda, estilo y belleza, con consejos para ti.', modalities: ['virtual'], locations: [], minutes: [15, 60], defaultMinutes: 20, maxParticipants: 2 }),
   t({ id: 'behind-the-scenes', name: 'Behind the scenes', icon: 'fa-clapperboard', description: 'Detrás de cámaras de una sesión o producción.', modalities: ['virtual'], locations: [], minutes: [15, 60], defaultMinutes: 20, maxParticipants: 5 }),
 
   // In person, events and professional work
-  t({ id: 'meet-greet', name: 'Meet & Greet', icon: 'fa-handshake', description: 'Saludo y fotos con tu creador de contenido en un lugar público o evento.', modalities: ['virtual', 'presencial', 'evento'], locations: ['public-place', 'event-venue', 'convention', 'commercial-space', 'restaurant', 'gaming-venue'], minutes: [10, 60], defaultMinutes: 30, maxParticipants: 4, legacy: true }),
+  t({ id: 'meet-greet', name: 'Saludo y fotos', icon: 'fa-handshake', description: 'Saludo y fotos con tu creador de contenido durante una actividad en un lugar público.', modalities: ['virtual', 'presencial', 'evento'], locations: ['public-place', 'event-venue', 'convention', 'commercial-space', 'restaurant', 'gaming-venue'], minutes: [10, 60], defaultMinutes: 30, maxParticipants: 4, legacy: true }),
   t({ id: 'workshop', name: 'Workshop', icon: 'fa-people-group', description: 'Taller práctico en grupo.', modalities: ['virtual', 'presencial', 'evento'], locations: ['event-venue', 'studio', 'gym', 'salon', 'culinary-space', 'art-space', 'commercial-space'], minutes: [45, 180], defaultMinutes: 90, maxParticipants: 30 }),
   t({ id: 'event', name: 'Evento', icon: 'fa-calendar-check', description: 'Evento programado con público.', modalities: ['evento'], locations: ['event-venue', 'convention', 'gym', 'restaurant', 'gaming-venue', 'commercial-space', 'art-space'], minutes: [30, 180], defaultMinutes: 120, maxParticipants: 50 }),
   t({ id: 'appearance', name: 'Aparición', icon: 'fa-star', description: 'Presencia del creador en tu evento o convención.', modalities: ['evento'], locations: ['event-venue', 'convention', 'commercial-space', 'gaming-venue'], minutes: [30, 180], defaultMinutes: 60, maxParticipants: 50, alwaysManual: true }),
@@ -211,7 +211,7 @@ export type PurposeId =
   | 'other';
 
 export const PURPOSES: Record<PurposeId, { label: string; icon: string; modalities: ReserveModality[] }> = {
-  'meet-greet': { label: 'Meet & Greet', icon: 'fa-handshake', modalities: ['virtual', 'presencial', 'evento'] },
+  'meet-greet': { label: 'Saludo y fotos', icon: 'fa-handshake', modalities: ['virtual', 'presencial', 'evento'] },
   class: { label: 'Clase', icon: 'fa-chalkboard-user', modalities: ['virtual', 'presencial'] },
   session: { label: 'Sesión', icon: 'fa-video', modalities: ['virtual', 'presencial', 'profesional'] },
   coaching: { label: 'Coaching', icon: 'fa-bullseye', modalities: ['virtual', 'presencial'] },

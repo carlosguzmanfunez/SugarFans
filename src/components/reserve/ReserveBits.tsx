@@ -2,6 +2,8 @@ import React from 'react';
 import { CANCELLATION_RULE, RESERVE_COPY, RESERVE_MODALITIES, RESERVE_STATUSES, noticeLabel, type ReserveStatus } from '../../config/reserve';
 import { detailsOf, eventStart, isEventExperience, locationSummary, needsApproval, seatsLeft, type VipExperience } from '../../lib/vip';
 import { money } from '../../lib/platform';
+import { experienceCopy } from '../../content/reserveCatalog';
+import { useReserveLanguage } from './ReserveLanguageSelector';
 
 // Status with icon and text (never colour alone).
 export const ReserveStatusBadge: React.FC<{ status: ReserveStatus }> = ({ status }) => {
@@ -76,6 +78,7 @@ export const PriceTag: React.FC<{ exp: VipExperience; size?: 'md' | 'lg' }> = ({
 // Includes / not included / conditions / cancellation, as a definition list.
 export const ExperienceTerms: React.FC<{ exp: VipExperience }> = ({ exp }) => {
   const d = detailsOf(exp);
+  const language = useReserveLanguage();
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <div>
@@ -87,14 +90,14 @@ export const ExperienceTerms: React.FC<{ exp: VipExperience }> = ({ exp }) => {
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-muted">{exp.description || 'Lo que describe la experiencia.'}</p>
+          <p lang={language} className="text-sm text-muted">{experienceCopy(exp, language).description || 'Lo que describe la experiencia.'}</p>
         )}
       </div>
       <div>
         <h4 className="mb-2 text-sm font-semibold text-ink">No incluye</h4>
         <ul className="space-y-1.5 text-sm text-ink/80">
           {(d.excludes.length ? d.excludes : ['Nada fuera de lo descrito']).map((x) => (
-            <li key={x} className="flex gap-2"><i aria-hidden="true" className="fas fa-minus mt-1 text-[11px] text-muted"></i><span>{x}</span></li>
+            <li key={x} className="flex gap-2"><i aria-hidden="true" className="fas fa-minus mt-1 text-[11px] text-muted"></i><span>{x === 'Encuentros fuera del venue' ? 'Actividades fuera del lugar acordado' : x}</span></li>
           ))}
         </ul>
       </div>
