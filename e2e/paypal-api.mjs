@@ -79,7 +79,14 @@ globalThis.fetch = async (url, init = {}) => {
   if(u.endsWith('/rest/v1/rpc/paypal_income_complete'))return res(200,{state:'applied'});
   if(u.endsWith('/rest/v1/rpc/paypal_refund_followup'))return res(204,null);
   if (u.endsWith('/auth/v1/user')) return h.authorization === 'Bearer fan-token' ? res(200, { id: 'fan-1' }) : res(401, { msg: 'bad jwt' });
-  if (u.endsWith('/rest/v1/rpc/reserve_assert_order_attendance')) return db.attendanceError ? res(400, { message: db.attendanceError }) : res(204, null);
+  if (u.endsWith('/rest/v1/rpc/reserve_assert_order_attendance')) {
+    if (init.method !== 'POST' || typeof body?.p_order_id !== 'string' || !body.p_order_id)
+      return res(404, { message: 'Missing owned order reference in attendance RPC' });
+    const order = db.orders.get(body.p_order_id);
+    if (!order || order.user !== 'fan-1' || h.authorization !== 'Bearer fan-token')
+      return res(400, { message: 'Pedido no encontrado' });
+    return db.attendanceError ? res(400, { message: db.attendanceError }) : res(204, null);
+  }
   if (u.endsWith('/rest/v1/rpc/paypal_quote')) {
     if (body.p_kind === 'tip' && body.p_params.amount > 500) return res(400, { message: 'La propina debe estar entre $1 y $500' });
     return res(200, { amount: body.p_kind === 'coins' ? 4.99 : body.p_params.amount, description: 'Prueba' });
