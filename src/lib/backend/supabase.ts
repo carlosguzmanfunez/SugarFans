@@ -625,6 +625,16 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       return (data ?? []) as { date: string; time: string }[];
     },
 
+    async selectAttendanceLocation(_user, location) {
+      const { error } = await sb.rpc('reserve_select_attendance_city', { p_country: location.country, p_region: location.region, p_city: location.city });
+      return error ? dbError(error, 'No se pudo guardar la ciudad de asistencia') : ok;
+    },
+
+    async confirmBookingAttendance(_user, bookingId) {
+      const { error } = await sb.rpc('reserve_confirm_booking_attendance', { p_booking_id: bookingId });
+      return error ? dbError(error, 'Confirma la ciudad de asistencia antes de pagar') : ok;
+    },
+
     async createBooking(_user, input) {
       if (!input.date) return fail('Elige un día en el calendario');
       if (!input.time) return fail('Elige una hora disponible');

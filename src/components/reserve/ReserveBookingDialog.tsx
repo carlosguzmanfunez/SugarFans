@@ -1,3 +1,4 @@
+import { attendanceLocation, attendanceError, inPerson, locationLabel, visibleAtLocation } from '../../lib/reserveLocation';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ReserveModal from './ReserveModal';
@@ -63,6 +64,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
+  const [willAttend, setWillAttend] = useState(false);
 
   useEffect(() => {
     if (isEventExperience(exp)) {
@@ -85,6 +87,8 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
 
   const submit = async () => {
     if (!user) return onNeedLogin();
+    if (!visibleAtLocation(exp, attendanceLocation(user))) return setError(attendanceError);
+    if (inPerson(d) && !willAttend) return setError('Confirma que asistirás presencialmente antes de reservar.');
     if (!date) return setError('Elige un día en el calendario');
     if (!time) return setError('Elige una hora disponible');
     const check = moderate(message, 'request', { homeAllowed: isHomeService(d.locationTypes ?? []) });
@@ -157,7 +161,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
             <button type="button" onClick={() => setStep('details')} className="h-11 rounded-full border border-line px-5 text-sm font-semibold text-ink">
               Volver a los detalles
             </button>
-            <button type="button" onClick={submit} disabled={sending} className="h-11 rounded-full bg-gradient-to-r from-brand-600 to-iris-600 px-6 text-sm font-semibold text-white disabled:opacity-60">
+            <button type="button" onClick={submit} disabled={sending || (inPerson(d) && !willAttend)} className="h-11 rounded-full bg-gradient-to-r from-brand-600 to-iris-600 px-6 text-sm font-semibold text-white disabled:opacity-60">
               {ticket ? 'Reservar con mi ticket' : <>{isEvent ? (approval ? 'Solicitar plaza' : 'Reservar plaza') : approval ? 'Enviar solicitud' : 'Confirmar reserva'} · {money(price)}</>}
             </button>
           </div>
@@ -216,6 +220,10 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
               </select>
             </label>
           )}
+          {inPerson(d) && <label className="flex items-start gap-2 rounded-xl border border-line p-3 text-sm text-ink">
+            <input type="checkbox" checked={willAttend} onChange={(e) => setWillAttend(e.target.checked)} className="mt-1 h-4 w-4 shrink-0" />
+            <span>Confirmo que asistiré presencialmente en {locationLabel(d)}. Esta experiencia requiere mi presencia.</span>
+          </label>}
           <label className="block text-sm">
             <span className="font-semibold text-ink">Mensaje para {exp.creatorName.split(' ')[0]} (opcional)</span>
             <textarea

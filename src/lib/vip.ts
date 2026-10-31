@@ -1,5 +1,6 @@
 // VIP experience scheduling helpers: booking window, availability math and labels.
 // Data access lives in the backend (src/lib/backend).
+import { inPerson, locationLabel, validReserveLocation } from './reserveLocation';
 import type {
   Availability,
   BookingStatus,
@@ -222,10 +223,10 @@ export const priceFor = (exp: Pick<VipExperience, 'price' | 'details'>, isSubscr
   return Math.round(exp.price * (100 - pct)) / 100;
 };
 
-export const locationSummary = (d: Pick<ReserveDetails, 'modality' | 'locationTypes' | 'city' | 'venue'>) => {
+export const locationSummary = (d: Pick<ReserveDetails, 'modality' | 'locationTypes' | 'city' | 'region' | 'country' | 'venue'>) => {
   if (d.modality === 'virtual') return 'Online · Fans Reserve';
   const kinds = d.locationTypes.map((l) => LOCATION_TYPES[l]?.label).filter(Boolean).join(' o ');
-  return [d.venue, kinds, d.city].filter(Boolean).join(' · ');
+  return [d.venue, kinds, locationLabel(d)].filter(Boolean).join(' · ');
 };
 
 const cleanList = (items: string[] | undefined) => (items ?? []).map((x) => x.trim()).filter(Boolean).slice(0, MAX_LIST_ITEMS);
@@ -280,6 +281,7 @@ export const validateExperience = (input: VipExperienceInput, categoryName?: str
     if (d.subscriberDiscount !== undefined && !SUBSCRIBER_DISCOUNTS.includes(d.subscriberDiscount)) return { ok: false, error: 'Descuento no válido' };
     if (type.minutes && input.durationMinutes === undefined) return { ok: false, error: 'Indica la duración' };
     if (d.days && d.days.some((x) => x < 0 || x > 6)) return { ok: false, error: 'Días no válidos' };
+    if (inPerson(d) && !validReserveLocation(d)) return { ok: false, error: 'Indica el país, el departamento o estado y la ciudad de la experiencia' };
     if ((d.city ?? '').length > 60 || (d.venue ?? '').length > 80) return { ok: false, error: 'La ciudad o el venue son demasiado largos' };
     if ((d.conditions ?? '').length > 400 || (d.requirements.notes ?? '').length > 300) return { ok: false, error: 'Las condiciones son demasiado largas' };
     if ([...d.includes, ...d.excludes].some((x) => x.length > 80)) return { ok: false, error: 'Cada punto de "incluye" admite hasta 80 caracteres' };
@@ -298,6 +300,8 @@ export const cleanDetails = (d: ReserveDetails): ReserveDetails => ({
   ...(d.categoryId ? { categoryId: d.categoryId } : {}),
   modality: d.modality,
   locationTypes: [...new Set(d.locationTypes)],
+  ...(d.country ? { country: d.country } : {}),
+  ...(d.region?.trim() ? { region: d.region.trim() } : {}),
   ...(d.city?.trim() ? { city: d.city.trim() } : {}),
   ...(d.venue?.trim() ? { venue: d.venue.trim() } : {}),
   includes: cleanList(d.includes),

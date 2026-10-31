@@ -663,6 +663,12 @@ export async function POST(request: Request): Promise<Response> {
       if (row.status === 'completed') return json(200, { ok: true, captureId: row.capture_id });
       if (row.status !== 'created') return json(409, { error: 'Este pedido ya no está pendiente.' });
 
+      const attendance = await supabase('/rest/v1/rpc/reserve_assert_order_attendance', asUser(token, { p_order_id: orderId }));
+      if (!attendance.ok) return json(409, {
+        error: attendance.data?.message || 'No se pudo comprobar la ciudad de esta reserva. No repitas el pago; revisa la reserva antes de continuar.',
+        orderId,
+      });
+
       let result = await paypal(e, ppToken, `/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`, {}, `capture-${orderId}`);
       // Captured already (a repeated call): read the order instead.
       if (result.status === 422) result = await paypal(e, ppToken, `/v2/checkout/orders/${encodeURIComponent(orderId)}`);

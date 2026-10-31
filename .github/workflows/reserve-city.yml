@@ -1,0 +1,56 @@
+name: Reserve attendance city
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'api/paypal.ts'
+      - 'supabase/migrations/**'
+      - 'e2e/reserve-city-*.mjs'
+      - 'e2e/db-harness.mjs'
+      - 'package*.json'
+      - '.github/workflows/reserve-city.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reserve-city-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  attendance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: local_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: local_ci_only
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run test:reserve-city-db
+      - run: npm run test:reserve-cancellation-db
+      - run: npm run test:reserve-time-zones-db
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:reserve-city-ui

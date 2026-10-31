@@ -1,3 +1,5 @@
+import ReserveCitySelector, { useReserveDestination } from './ReserveCitySelector';
+import { visibleAtLocation } from '../../lib/reserveLocation';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from '../Icon';
@@ -56,7 +58,8 @@ export const openCustomRequest = () => window.dispatchEvent(new Event(CUSTOM_EVE
 // this creator offers, each fully defined, plus a structured request for something tailored.
 const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, user, isOwner, onNeedLogin }) => {
   // Fans only see events that haven't happened yet; the creator sees all of theirs.
-  const experiences = all.filter((e) => isOwner || reserveProductOf(e) !== 'event' || isUpcomingEvent(e));
+  const destination = useReserveDestination();
+  const experiences = all.filter((e) => isOwner || visibleAtLocation(e, destination)).filter((e) => isOwner || reserveProductOf(e) !== 'event' || isUpcomingEvent(e));
   const seats = useEventSeats(experiences);
   const [open, setOpen] = useState<{ exp: VipExperience; book: boolean } | null>(null);
   const [custom, setCustom] = useState(false);
@@ -115,6 +118,7 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, use
         </div>
       </div>
 
+      {!isOwner && <ReserveCitySelector experiences={all} />}
       {expanded && <div id="reserve-body" data-testid="reserve-body">
       <p className="mt-4 text-sm text-ink/70">Sesiones en vivo por nuestra plataforma, 1:1 o en grupo, y experiencias con fecha, duración, precio y reglas definidas por {first}.</p>
       <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-gold-50 px-3 py-1 text-sm font-semibold text-gold-700 ring-1 ring-gold-200" data-testid="reserve-principle">
@@ -160,7 +164,7 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, use
           </div>
         ) : (
           <p className="mt-5 rounded-2xl border border-dashed border-line p-5 text-center text-sm text-muted">
-            {`${first} aún no publica experiencias. Puedes enviar una solicitud personalizada.`}
+            {`${first} no tiene experiencias disponibles con la ciudad seleccionada. Puedes cambiar de ciudad o enviar una solicitud virtual.`}
           </p>
         )
       )}
@@ -187,7 +191,7 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, use
       </div>
       </div>}
 
-      {open && (
+      {open && (isOwner || visibleAtLocation(open.exp, destination)) && (
         <ReserveBookingDialog exp={open.exp} user={user} startBooking={open.book} seatsTaken={seats[open.exp.id] ?? 0} onNeedLogin={onNeedLogin} onClose={() => setOpen(null)} />
       )}
       {custom && user && <CustomExperienceRequest creator={creator} user={user} onClose={() => setCustom(false)} />}
@@ -200,7 +204,9 @@ export default CreatorReserveSection;
 // "Próximamente": the creator's Subscriber Live on air and their next Reserve Events,
 // each labelled with who it is for. Nothing shows when there is nothing scheduled.
 export const UpcomingAccess: React.FC<{ creatorId: string; experiences: VipExperience[]; liveTitle?: string | null; isOwner?: boolean }> = ({ creatorId, experiences, liveTitle, isOwner = false }) => {
+  const destination = useReserveDestination();
   const events = experiences
+    .filter((e) => isOwner || visibleAtLocation(e, destination))
     .filter((e) => reserveProductOf(e) === 'event' && isUpcomingEvent(e))
     .sort((a, b) => (eventStart(a)?.getTime() ?? 0) - (eventStart(b)?.getTime() ?? 0))
     .slice(0, 3);

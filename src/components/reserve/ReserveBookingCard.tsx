@@ -1,3 +1,5 @@
+import { inPerson, locationLabel, bookingHasAttendance } from '../../lib/reserveLocation';
+import ReserveCitySelector from './ReserveCitySelector';
 import React, { useState } from 'react';
 import { backend } from '../../lib/backend';
 import { money } from '../../lib/platform';
@@ -49,6 +51,7 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
   const [reporting, setReporting] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [willAttend, setWillAttend] = useState(false);
   const [counter, setCounter] = useState({ price: String(b.price), date: b.date, time: b.time, duration: String(b.durationMinutes ?? 30), note: '' });
   const d = b.details ?? {};
   const status = reserveStatusOf(b);
@@ -61,16 +64,18 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
 
   const run = async (fn: () => Promise<{ ok: boolean; error?: string }>) => {
     setBusy(true);
-    const r = await fn();
-    setBusy(false);
-    setError(r.ok ? '' : r.error || 'No se pudo completar la acción');
-    if (r.ok) {
-      setCountering(false);
-      setPanel(null);
-      // Créditos may have moved (paid with them, or given back).
-      platformChanged();
-      onChanged();
-    }
+    try {
+      const r = await fn();
+      setError(r.ok ? '' : r.error || 'No se pudo completar la acción');
+      if (r.ok) {
+        setCountering(false);
+        setPanel(null);
+        // Créditos may have moved (paid with them, or given back).
+        platformChanged();
+        onChanged();
+      }
+    } catch { setError('No pudimos comprobar el resultado. Recarga para ver el estado antes de repetir la acción.'); }
+    finally { setBusy(false); }
   };
   const outcome = cancellationOutcome(b, as);
   const priceCoins = Math.round(b.price * 100);
@@ -94,7 +99,7 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
   const where =
     modality === 'virtual'
       ? isEvent ? 'Online · sala del evento' : 'Online · Sala 1:1'
-      : [d.venue, d.locationType ? LOCATION_TYPES[d.locationType]?.label : '', d.city].filter(Boolean).join(' · ');
+      : [d.venue, d.locationType ? LOCATION_TYPES[d.locationType]?.label : '', locationLabel(d)].filter(Boolean).join(' · ');
 
   return (
     <div data-testid={testId} className="rounded-2xl border border-line bg-white p-4">
@@ -159,6 +164,13 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
         </div>
       )}
 
+      {as === 'fan' && b.status === 'accepted' && inPerson(d) && <div className="mt-3 space-y-2">
+        {!bookingHasAttendance(d) && <ReserveCitySelector experiences={[{ active: true, details: d }]} />}
+        <label className="flex min-h-11 items-start gap-2 text-sm text-ink">
+          <input type="checkbox" checked={willAttend} onChange={(e) => setWillAttend(e.target.checked)} className="mt-1 h-4 w-4 shrink-0" />
+          <span>Confirmo que asistiré presencialmente en {locationLabel(d)} antes de pagar.</span>
+        </label>
+      </div>}
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
         <ReserveStatusBadge status={status} />
         <div className="flex flex-wrap items-center gap-2">
@@ -189,7 +201,17 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
             </>
           )}
           {as === 'fan' && b.status === 'accepted' && onPay && (
-            <button type="button" onClick={() => onPay(b)} className={`${btn} bg-gradient-to-r from-brand-600 to-iris-600 text-white`}>
+            <button type="button" disabled={busy || (inPerson(d) && !willAttend)} onClick={async () => {
+              if (inPerson(d)) {
+                setBusy(true);
+                try {
+                  const r = await backend.confirmBookingAttendance(user, b.id);
+                  if (!r.ok) return setError(r.error || 'Confirma la ciudad antes de pagar.');
+                } catch { return setError('No se pudo comprobar la ciudad. Inténtalo de nuevo.'); }
+                finally { setBusy(false); }
+              }
+              onPay(b);
+            }} className={`${btn} bg-gradient-to-r from-brand-600 to-iris-600 text-white disabled:opacity-50`}>
               Pagar {money(b.price)}
             </button>
           )}
@@ -286,7 +308,14 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
           <p className="mt-1 text-xs text-ink/60">{t('reserveCancel.policy')}</p>
           <div className="mt-2 flex justify-end gap-2">
             <button type="button" onClick={() => setPanel(null)} className={`${btn} border border-line bg-white text-ink/70`}>{t('reserveCancel.back')}</button>
-            <button type="button" disabled={busy} onClick={() => run(() => backend.payBookingWithCredits(user, b.id))} className={`${btn} btn-gold`} data-testid="pay-credits-confirm">
+            <button type="button" disabled={busy || (inPerson(d) && !willAttend)} onClick={() => run(async () => {
+              if (inPerson(d)) {
+                if (!willAttend) return { ok: false, error: 'Confirma que asistirás presencialmente antes de pagar.' };
+                const r = await backend.confirmBookingAttendance(user, b.id);
+                if (!r.ok) return r;
+              }
+              return backend.payBookingWithCredits(user, b.id);
+            })} className={`${btn} btn-gold`} data-testid="pay-credits-confirm">
               {t('reserveCancel.payCreditsConfirm')}
             </button>
           </div>

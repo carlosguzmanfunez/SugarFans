@@ -1,3 +1,6 @@
+import ReserveCitySelector, { useReserveDestination } from './ReserveCitySelector';
+import { attendanceError, inPerson, locationLabel, visibleAtLocation } from '../../lib/reserveLocation';
+import { usePlatformQuery } from '../../lib/platform';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ReserveModal from './ReserveModal';
@@ -35,6 +38,10 @@ const DURATIONS = [15, 20, 30, 45, 60, 90, 120, 180];
 const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) => {
   const category = categoryFor(creator.category);
   const first = creator.name.split(' ')[0];
+  const destination = useReserveDestination();
+  const { data: allExperiences } = usePlatformQuery(() => backend.listExperiences(), [], [] as import('../../lib/vip').VipExperience[]);
+  const experiences = allExperiences.filter((e) => e.creatorProfileId === creator.id);
+  const physicalAvailable = experiences.some((e) => e.active && inPerson(e.details) && visibleAtLocation(e, destination));
   const [step, setStep] = useState(0);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
@@ -80,6 +87,7 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
 
   // Each step checks only its own fields; the last runs the full validation.
   const stepError = (i: number): string | null => {
+    if (form.modality !== 'virtual' && !physicalAvailable) return attendanceError;
     if (i === 1 && form.purpose === 'other' && form.purposeNote.trim().length < 5) return 'Describe brevemente el propósito';
     if (i === 1 && form.purpose === 'other') {
       const m = moderate(form.purposeNote, 'request', { homeAllowed });
@@ -88,7 +96,7 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
     if (i === 2) {
       if (!form.date) return 'Elige un día en el calendario';
       if (!form.time) return 'Elige una hora disponible';
-      if (form.modality !== 'virtual' && form.city.trim().length < 2) return 'Indica la ciudad';
+      if (form.modality !== 'virtual' && !destination) return 'Indica la ciudad';
       const m = moderate([form.city, form.venue], 'request', { homeAllowed });
       if (!m.ok) return m.error!;
     }
@@ -103,10 +111,12 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
   };
 
   const send = async () => {
-    const check = validateCustomRequest(form, creator.category);
+    if (form.modality !== 'virtual' && !physicalAvailable) return setError(attendanceError);
+    const input = { ...form, city: form.modality === 'virtual' ? '' : destination?.city ?? '' };
+    const check = validateCustomRequest(input, creator.category);
     if (!check.ok) return setError(check.error!);
     setSending(true);
-    const result = await backend.requestCustomExperience(user, form);
+    const result = await backend.requestCustomExperience(user, input);
     setSending(false);
     if (!result.ok) return setError(result.error || 'No se pudo enviar la solicitud');
     setDone(true);
@@ -172,10 +182,11 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
       </ol>
       <p className="mb-4 text-sm font-semibold text-ink" data-testid="custom-step">Paso {step + 1} de {STEPS.length} · {STEPS[step]}</p>
 
+      <ReserveCitySelector experiences={experiences} />
       {step === 0 && (
         <fieldset className="grid gap-2 sm:grid-cols-2">
           <legend className="sr-only">Modalidad</legend>
-          {category.modalities.map((m) => (
+          {category.modalities.filter((m) => m === 'virtual' || physicalAvailable).map((m) => (
             <button key={m} type="button" aria-pressed={form.modality === m} onClick={() => pickModality(m)} className={option(form.modality === m)}>
               <i aria-hidden="true" className={`fas ${RESERVE_MODALITIES[m].icon} mt-0.5 text-brand-600`}></i>
               <span>
@@ -249,7 +260,7 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block text-sm">
                   <span className="font-semibold text-ink">Ciudad</span>
-                  <input name="city" maxLength={60} value={form.city} onChange={(e) => set({ city: e.target.value })} className="mt-1 block w-full rounded-xl border border-line px-3 py-2.5" />
+                  <p className="mt-1 text-sm text-ink">{destination ? locationLabel(destination) : "Selecciona y confirma la ciudad de asistencia."}</p>
                 </label>
                 <label className="block text-sm">
                   <span className="font-semibold text-ink">{homeAllowed ? 'Venue o dirección (opcional)' : 'Venue (opcional)'}</span>
@@ -285,7 +296,7 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
             <dt className="text-ink/60">Propósito</dt><dd className="font-medium text-ink">{form.purpose === 'other' ? form.purposeNote : PURPOSES[form.purpose].label}</dd>
             <dt className="text-ink/60">Fecha</dt><dd className="font-medium text-ink first-letter:uppercase">{form.date ? `${formatLongDate(form.date)} · ${form.time}` : '—'}</dd>
             <dt className="text-ink/60">Duración</dt><dd className="font-medium text-ink">{form.durationMinutes} min · {form.participants} {form.participants === 1 ? 'persona' : 'personas'}</dd>
-            <dt className="text-ink/60">Lugar</dt><dd className="font-medium text-ink">{form.modality === 'virtual' ? 'Online' : [LOCATION_TYPES[form.locationType].label, form.city].filter(Boolean).join(' · ')}</dd>
+            <dt className="text-ink/60">Lugar</dt><dd className="font-medium text-ink">{form.modality === 'virtual' ? 'Online' : [LOCATION_TYPES[form.locationType].label, destination ? locationLabel(destination) : ''].filter(Boolean).join(' · ')}</dd>
             <dt className="text-ink/60">Presupuesto</dt><dd className="font-medium text-ink">{money(form.budget)}</dd>
           </dl>
           <ReserveNotice kind="reserve" />
