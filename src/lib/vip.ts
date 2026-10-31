@@ -281,7 +281,7 @@ export const validateExperience = (input: VipExperienceInput, categoryName?: str
     if (d.subscriberDiscount !== undefined && !SUBSCRIBER_DISCOUNTS.includes(d.subscriberDiscount)) return { ok: false, error: 'Descuento no válido' };
     if (type.minutes && input.durationMinutes === undefined) return { ok: false, error: 'Indica la duración' };
     if (d.days && d.days.some((x) => x < 0 || x > 6)) return { ok: false, error: 'Días no válidos' };
-    if (inPerson(d) && !validReserveLocation(d)) return { ok: false, error: 'Indica el país, el departamento o estado y la ciudad de la experiencia' };
+    if (input.active && inPerson(d) && !validReserveLocation(d)) return { ok: false, error: 'Indica el país, el departamento o estado y la ciudad de la experiencia' };
     if ((d.city ?? '').length > 60 || (d.venue ?? '').length > 80) return { ok: false, error: 'La ciudad o el venue son demasiado largos' };
     if ((d.conditions ?? '').length > 400 || (d.requirements.notes ?? '').length > 300) return { ok: false, error: 'Las condiciones son demasiado largas' };
     if ([...d.includes, ...d.excludes].some((x) => x.length > 80)) return { ok: false, error: 'Cada punto de "incluye" admite hasta 80 caracteres' };

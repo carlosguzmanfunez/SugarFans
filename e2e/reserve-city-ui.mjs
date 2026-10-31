@@ -101,6 +101,25 @@ try {
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'desbordamiento horizontal');
     await page.getByTestId('creator-reserve').screenshot({path:join(out,`perfil-${device}.png`)});
   });
+  await page.evaluate(()=>{localStorage.removeItem('fansreserve_session');sessionStorage.removeItem('fansreserve_session');});
+  await page.goto(`${base}/login`);await page.locator('input[type=email]').fill('creator@sugarfans.com');await page.locator('input[type=password]').fill('demo1234');
+  await page.locator('form button[type=submit]').click();await page.waitForURL(u=>u.pathname!=='/login');
+  await page.goto(`${base}/creator/dashboard?tab=vip`);
+  await check(`${device}: el creador puede ocultar una oferta antigua incompleta`,async()=>{
+    const old=page.getByTestId('my-experience').filter({hasText:'QA ciudad-incompleta'});
+    await old.getByRole('button',{name:'Ocultar',exact:true}).click();await old.getByRole('button',{name:'Mostrar',exact:true}).waitFor();
+  });
+  await check(`${device}: el editor exige y conserva país, departamento y ciudad`,async()=>{
+    const own=page.getByTestId('my-experience').filter({hasText:'QA ciudad-hn'});
+    await own.getByRole('button',{name:'Editar',exact:true}).click();
+    await page.getByRole('button',{name:'Paso 8: Ubicación',exact:true}).click();
+    assert.equal(await page.locator('select[name=expCountry]').inputValue(),'HN');
+    assert.equal(await page.locator('input[name=expRegion]').inputValue(),'Francisco Morazán');
+    await page.locator('select[name=expCountry]').selectOption('');
+    await page.getByRole('button',{name:/Siguiente/}).click();
+    await page.getByRole('alert').filter({hasText:/Indica el país/}).waitFor();
+    await page.screenshot({path:join(out,`editor-ubicacion-${device}.png`),animations:'disabled'});
+  });
   await context.close();
  }
  assert.deepEqual(errors,[],'errores de página');
