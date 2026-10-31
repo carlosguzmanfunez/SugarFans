@@ -2,6 +2,7 @@ import React, { useEffect, useId, useRef } from 'react';
 
 interface Props {
   title: string;
+  titleLanguage?: string;
   subtitle?: React.ReactNode;
   onClose: () => void;
   children: React.ReactNode;
@@ -13,7 +14,7 @@ interface Props {
 // Accessible dialog for Reserve: a bottom sheet on phones, a centred card from
 // `sm` up. Labelled by its title, closes with Escape, keeps focus inside and
 // returns it to the opener, and locks the page scroll while open.
-const ReserveModal: React.FC<Props> = ({ title, subtitle, onClose, children, footer, size = 'lg', testId }) => {
+const ReserveModal: React.FC<Props> = ({ title, titleLanguage, subtitle, onClose, children, footer, size = 'lg', testId }) => {
   const titleId = useId();
   const panel = useRef<HTMLDivElement>(null);
 
@@ -59,7 +60,7 @@ const ReserveModal: React.FC<Props> = ({ title, subtitle, onClose, children, foo
       >
         <div className="flex items-start justify-between gap-3 border-b border-line px-5 pb-4 pt-5 sm:px-6">
           <div className="min-w-0">
-            <h2 id={titleId} className="text-lg font-bold leading-tight text-ink sm:text-xl">{title}</h2>
+            <h2 id={titleId} lang={titleLanguage} className="text-lg font-bold leading-tight text-ink sm:text-xl">{title}</h2>
             {subtitle && <div className="mt-1 text-sm text-muted">{subtitle}</div>}
           </div>
           <button type="button" onClick={onClose} aria-label="Cerrar" className="-mr-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted hover:bg-gray-100 hover:text-ink">

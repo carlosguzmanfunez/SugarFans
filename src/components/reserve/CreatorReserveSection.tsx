@@ -13,6 +13,8 @@ import ReserveBookingDialog from './ReserveBookingDialog';
 import CustomExperienceRequest from './CustomExperienceRequest';
 import { ReserveNotice } from './ReserveBits';
 import { money } from '../../lib/platformRules';
+import ReserveLanguageSelector, { useReserveLanguage } from './ReserveLanguageSelector';
+import { catalogOrder, experienceCopy } from '../../content/reserveCatalog';
 
 interface Props {
   creator: { id: string; name: string; category?: string };
@@ -59,7 +61,7 @@ export const openCustomRequest = () => window.dispatchEvent(new Event(CUSTOM_EVE
 const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, user, isOwner, onNeedLogin }) => {
   // Fans only see events that haven't happened yet; the creator sees all of theirs.
   const destination = useReserveDestination();
-  const experiences = all.filter((e) => isOwner || visibleAtLocation(e, destination)).filter((e) => isOwner || reserveProductOf(e) !== 'event' || isUpcomingEvent(e));
+  const experiences = all.filter((e) => isOwner || visibleAtLocation(e, destination)).filter((e) => isOwner || reserveProductOf(e) !== 'event' || isUpcomingEvent(e)).sort(catalogOrder);
   const seats = useEventSeats(experiences);
   const [open, setOpen] = useState<{ exp: VipExperience; book: boolean } | null>(null);
   const [custom, setCustom] = useState(false);
@@ -119,6 +121,7 @@ const CreatorReserveSection: React.FC<Props> = ({ creator, experiences: all, use
       </div>
 
       {!isOwner && <ReserveCitySelector experiences={all} />}
+      <ReserveLanguageSelector />
       {expanded && <div id="reserve-body" data-testid="reserve-body">
       <p className="mt-4 text-sm text-ink/70">Sesiones en vivo por nuestra plataforma, 1:1 o en grupo, y experiencias con fecha, duración, precio y reglas definidas por {first}.</p>
       <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-gold-50 px-3 py-1 text-sm font-semibold text-gold-700 ring-1 ring-gold-200" data-testid="reserve-principle">
@@ -205,6 +208,7 @@ export default CreatorReserveSection;
 // each labelled with who it is for. Nothing shows when there is nothing scheduled.
 export const UpcomingAccess: React.FC<{ creatorId: string; experiences: VipExperience[]; liveTitle?: string | null; isOwner?: boolean }> = ({ creatorId, experiences, liveTitle, isOwner = false }) => {
   const destination = useReserveDestination();
+  const language = useReserveLanguage();
   const events = experiences
     .filter((e) => isOwner || visibleAtLocation(e, destination))
     .filter((e) => reserveProductOf(e) === 'event' && isUpcomingEvent(e))
@@ -235,7 +239,7 @@ export const UpcomingAccess: React.FC<{ creatorId: string; experiences: VipExper
                   Reserve Event · <span className="capitalize">{start.toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'short' })}</span>{' '}
                   {start.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
                 </span>
-                <span className="block truncate text-sm font-semibold text-ink">{e.title}</span>
+                <span lang={language} className="block truncate text-sm font-semibold text-ink">{experienceCopy(e, language).title}</span>
               </span>
               {/* The creator doesn't book their own event. */}
               {!isOwner && (
