@@ -52,6 +52,7 @@ import { blobToDataUrl } from '../profileImage';
 import { createLocalGifts } from './localGifts';
 import { createLocalRewards } from './localRewards';
 import { createLocalSpecial } from './localSpecial';
+import { createLocalProspects } from './localProspects';
 import { createLocalLive, addLocalNotification } from './localLive';
 import { bookingAlert, isOverdue, respondByFrom } from '../reserveAlerts';
 import { creators as demoCreators } from '../../data/mockData';
@@ -397,6 +398,17 @@ const special = createLocalSpecial({
   notify,
 });
 
+const prospects = createLocalProspects({
+  currentUser: () => {
+    const id = readSession();
+    const account = id ? loadAccounts().find((a) => a.id === id) : undefined;
+    return account ? toPublic(account) : null;
+  },
+  accounts: () => loadAccounts().map(toPublic),
+  hasRecentSale: (creatorProfileId) => platform.ledger.transactions().some((t) =>
+    t.creatorProfileId === creatorProfileId && t.status === 'paid' && Date.now() - new Date(t.createdAt).getTime() <= 90 * 86400000),
+});
+
 const social = createLocalSocial({
   listAccounts: () => loadAccounts().map(toPublic),
   viewer: () => loadAccounts().find((a) => a.id === readSession()),
@@ -456,6 +468,7 @@ export const localBackend: Backend = {
   gifts,
   rewards,
   special,
+  prospects,
   live,
 
   async getCurrentUser() {

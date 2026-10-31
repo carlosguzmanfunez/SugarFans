@@ -5,6 +5,7 @@ import type { GiftsBackend } from './giftTypes';
 import type { RewardsBackend } from './rewardTypes';
 import type { LiveBackend } from './liveTypes';
 import type { SpecialBackend } from './specialTypes';
+import type { ProspectsBackend } from './prospectTypes';
 import type { SocialLinks } from '../creatorLinks';
 import type { InfraUsage } from '../infraUsage';
 import type { FinanceBackend } from '../creatorFinance';
@@ -405,6 +406,8 @@ export interface Backend {
   rewards: RewardsBackend;
   // Special accounts: admin links with Reserve al neto and extra visibility (see specialTypes.ts).
   special: SpecialBackend;
+  // Admins: creators the team invites to join ("Captar creadores", see prospectTypes.ts).
+  prospects: ProspectsBackend;
   // Free Live state, the fans' bell and their notifications (see liveTypes.ts).
   live: LiveBackend;
 }

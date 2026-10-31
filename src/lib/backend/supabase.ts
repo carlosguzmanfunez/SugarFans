@@ -14,6 +14,7 @@ import { createSupabaseLive } from './supabaseLive';
 import { createSupabaseGifts } from './supabaseGifts';
 import { createSupabaseRewards } from './supabaseRewards';
 import { createSupabaseSpecial } from './supabaseSpecial';
+import { createSupabaseProspects } from './supabaseProspects';
 import { BRAND } from '../../config/brand';
 import { fromRpc } from '../infraUsage';
 import { createSupabaseFinance } from './supabaseFinance';
@@ -243,6 +244,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
     gifts: createSupabaseGifts(sb),
     rewards: createSupabaseRewards(sb),
     special: createSupabaseSpecial(sb),
+    prospects: createSupabaseProspects(sb),
     live: createSupabaseLive(sb, url, anonKey),
 
     async getCurrentUser() {

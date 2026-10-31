@@ -100,7 +100,10 @@
     "test:finance-concurrency": "node e2e/finance-concurrency.mjs",
     "test:payout-funding": "node e2e/payout-funding-followups.mjs",
     "test:payout-funding-ui": "node e2e/payout-funding-ui.mjs",
-    "test:payout-funding-concurrency": "node e2e/payout-funding-concurrency.mjs"
+    "test:payout-funding-concurrency": "node e2e/payout-funding-concurrency.mjs",
+    "test:prospects": "node e2e/prospects-rules.mjs && node e2e/prospects-api.mjs",
+    "test:prospects-db": "node e2e/prospects-db.mjs",
+    "test:prospects-ui": "vite build --mode offline && node e2e/prospects-ui.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",

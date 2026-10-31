@@ -8,7 +8,7 @@ export default function AdminNavigation({ section, onOpen, counts }: {
   const current = adminArea(section);
   const button = 'min-h-11 px-3 py-2 rounded-lg text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-700';
   return <div className="mb-6 space-y-3">
-    <nav aria-label="Áreas de administración" className="grid grid-cols-2 sm:grid-cols-5 gap-1 bg-white p-1 rounded-xl border border-gray-200">
+    <nav aria-label="Áreas de administración" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1 bg-white p-1 rounded-xl border border-gray-200">
       {adminAreas.map(area => {
         const count = area.tabs.reduce((sum, tab) => sum + (counts[tab] ?? 0), 0);
         return <button key={area.id} type="button" aria-current={current.id === area.id ? 'true' : undefined}
