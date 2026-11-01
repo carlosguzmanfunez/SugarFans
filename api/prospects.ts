@@ -50,7 +50,7 @@ const zoho = () => {
   const limit = Number(clean(process.env.ZOHO_DAILY_LIMIT) ?? DEFAULT_DAILY);
   return {
     user: clean(process.env.ZOHO_SMTP_USER)?.toLowerCase(),
-    password: clean(process.env.ZOHO_SMTP_PASSWORD),
+    password: clean(process.env.ZOHO_SMTP_PASSWORD)?.replace(/\s+/g, ''), // Zoho shows app passwords in groups; the spaces are not part of it
     host: clean(process.env.ZOHO_SMTP_HOST) ?? 'smtppro.zoho.com',
     port: Number.isInteger(port) && port > 0 ? port : 465,
     name: clean(process.env.ZOHO_FROM_NAME) ?? 'Carlos de Fans Reserve',

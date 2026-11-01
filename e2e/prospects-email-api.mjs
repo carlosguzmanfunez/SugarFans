@@ -37,7 +37,11 @@ const smtp = net.createServer((sock) => {
       }
       const cmd = line.slice(0, 4).toUpperCase();
       if (cmd === 'EHLO' || cmd === 'HELO') sock.write('250-fake.zoho\r\n250 AUTH PLAIN\r\n');
-      else if (cmd === 'AUTH') sock.write(smtpAuth === 'ok' ? '235 Authentication successful\r\n' : '535 Authentication Failed\r\n');
+      else if (cmd === 'AUTH') {
+        // AUTH PLAIN <base64(\0user\0password)>: the spaces Zoho shows must not reach the server.
+        const [, user, pass] = Buffer.from(line.split(' ')[2] ?? '', 'base64').toString('utf8').split('\0');
+        sock.write(smtpAuth === 'ok' && user === 'carlos@fansreserve.com' && pass === 'secreto-app' ? '235 Authentication successful\r\n' : '535 Authentication Failed\r\n');
+      }
       else if (cmd === 'MAIL') { cur.from = line; sock.write('250 Ok\r\n'); }
       else if (cmd === 'RCPT') { if (line.includes('rebota')) sock.write('550 5.1.1 User does not exist\r\n'); else { cur.to.push(line); sock.write('250 Ok\r\n'); } }
       else if (cmd === 'DATA') { inData = true; sock.write('354 End data with <CR><LF>.<CR><LF>\r\n'); }
@@ -99,7 +103,7 @@ try {
   });
 
   process.env.ZOHO_SMTP_USER = ' Carlos@FansReserve.com ';
-  process.env.ZOHO_SMTP_PASSWORD = '"secreto-app"';
+  process.env.ZOHO_SMTP_PASSWORD = '"secr eto-app"';
   process.env.ZOHO_SMTP_HOST = '127.0.0.1';
   process.env.ZOHO_SMTP_PORT = String(smtpPort);
 
