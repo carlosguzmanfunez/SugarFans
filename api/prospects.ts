@@ -10,8 +10,9 @@
 //
 // Needs in the Vercel project settings: INSTAGRAM_BUSINESS_ID (the id of Fans
 // Reserve's own professional Instagram account) and INSTAGRAM_ACCESS_TOKEN (a
-// long-lived token of the Meta app with instagram_basic, pages_show_list and
-// pages_read_engagement; it lasts 60 days). Optional: INSTAGRAM_GRAPH_VERSION.
+// long-lived token of the Meta app with instagram_basic, instagram_manage_insights,
+// pages_show_list, pages_read_engagement, business_management and ads_read; it
+// lasts 60 days). Optional: INSTAGRAM_GRAPH_VERSION.
 import type { InstagramLookup } from '../src/lib/backend/prospectTypes.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://odugxvqwuvewsvifwmwb.supabase.co';
@@ -30,7 +31,7 @@ const clean = (v: string | undefined) => v?.trim().replace(/^["']|["']$/g, '').t
 const env = () => ({
   igId: clean(process.env.INSTAGRAM_BUSINESS_ID),
   token: clean(process.env.INSTAGRAM_ACCESS_TOKEN),
-  version: clean(process.env.INSTAGRAM_GRAPH_VERSION) ?? 'v23.0',
+  version: clean(process.env.INSTAGRAM_GRAPH_VERSION) ?? 'v26.0',
 });
 
 export async function GET(): Promise<Response> {

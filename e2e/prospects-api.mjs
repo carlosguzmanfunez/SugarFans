@@ -22,7 +22,7 @@ globalThis.fetch = async (url, init = {}) => {
   const u = String(url);
   const h = init.headers ?? {};
   if (u.endsWith('/rest/v1/rpc/is_admin')) return h.authorization === 'Bearer admin' ? res(200, true) : h.authorization === 'Bearer fan' ? res(200, false) : res(401, {});
-  if (u.startsWith('https://graph.facebook.com/v23.0/17841400000')) {
+  if (u.startsWith('https://graph.facebook.com/v26.0/17841400000')) {
     graphCalls++;
     assert.match(u, /access_token=tok/);
     if (graphError) return res(400, { error: graphError });
