@@ -13,6 +13,7 @@ import Register from './pages/Register';
 import Explore from './pages/Explore';
 import PlatformSync from './components/PlatformSync';
 import SpecialInviteClaimer from './components/SpecialInviteClaimer';
+import ProspectInviteClaimer from './components/ProspectInviteClaimer';
 import { openedFromRecoveryLink } from './lib/backend';
 import LaunchGate from './components/LaunchGate';
 import HandleLink from './pages/HandleLink';
@@ -21,6 +22,7 @@ import HandleLink from './pages/HandleLink';
 const CreatorProfile = lazy(() => import('./pages/CreatorProfile'));
 const ReferralLink = lazy(() => import('./pages/ReferralLink'));
 const SpecialInviteLink = lazy(() => import('./pages/SpecialInviteLink'));
+const ProspectInvite = lazy(() => import('./pages/ProspectInvite'));
 const CreatorDashboard = lazy(() => import('./pages/CreatorDashboard'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const OwnerPanel = lazy(() => import('./pages/OwnerPanel'));
@@ -166,6 +168,7 @@ const AppRoutes: React.FC = () => {
     <RecoveryRedirect />
     <PendingSignupRedirect />
     <SpecialInviteClaimer />
+    <ProspectInviteClaimer />
     <Routes>
       {/* Age verification */}
       <Route path="/age-verification" element={
@@ -207,6 +210,7 @@ const AppRoutes: React.FC = () => {
       } />
       <Route path="/r/:id" element={<ReferralLink />} />
       <Route path="/especial/:code" element={<AppLayout><SpecialInviteLink /></AppLayout>} />
+      <Route path="/c/:code" element={<ProspectInvite />} />
       <Route path="/pricing" element={<Navigate to="/register?role=creator" replace />} />
       <Route path="/recorrido" element={
         <AppLayout><SalesTour /></AppLayout>

@@ -19,7 +19,7 @@ const checks=[];
 for(const[name,read]of reads){fail=false;assert.deepEqual(await read(),[],`${name}: empty success`);checks.push(`${name}: consulta vacía confirmada`);fail=true;await assert.rejects(read(),/No pudimos/);checks.push(`${name}: error no se confunde con lista vacía`);}
 await assert.rejects(backend.infraUsage(),/No pudimos/);checks.push('Costos: consulta fallida identificada');
 assert.equal(adminSection('__proto__'),'overview');assert.equal(adminSection('constructor'),'overview');assert.equal(adminSection('not-a-section'),'overview');checks.push('Secciones inválidas no abren funciones ajenas');
-assert.deepEqual(adminAreas.flatMap(area=>area.tabs).sort(),['overview','users','verifications','managed','special','reports','moderation','finance','payouts','ledger','errors','infra'].sort());checks.push('Las doce secciones siguen accesibles en cinco áreas');
+assert.deepEqual(adminAreas.flatMap(area=>area.tabs).sort(),['overview','users','verifications','managed','special','reports','moderation','finance','payouts','ledger','prospects','errors','infra'].sort());checks.push('Las trece secciones siguen accesibles en seis áreas');
 assert.ok(!queried.some(name=>/^(admin_account_action|review_|set_|delete_|paypal_fulfill|payout_submit)/.test(name)));checks.push('Las consultas no ejecutaron acciones ni pagos');
 writeFileSync(join(out,'RESULTADO-DATOS.json'),JSON.stringify({environment:'fake-sdk',providerCalls:0,productionModified:false,passed:checks.length,checks},null,2));
 console.log(`${checks.length} comprobaciones correctas. Sin red ni cambios en producción.`);

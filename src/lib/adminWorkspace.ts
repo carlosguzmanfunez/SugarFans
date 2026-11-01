@@ -3,6 +3,7 @@ export const adminAreas = [
   { id: 'people', label: 'Personas', tabs: ['users', 'verifications', 'managed', 'special'] },
   { id: 'content', label: 'Contenido', tabs: ['reports', 'moderation'] },
   { id: 'money', label: 'Dinero', tabs: ['finance', 'payouts', 'ledger'] },
+  { id: 'growth', label: 'Crecimiento', tabs: ['prospects'] },
   { id: 'service', label: 'Estado del servicio', tabs: ['errors', 'infra'] },
 ] as const;
 
@@ -11,6 +12,7 @@ export const adminSections = {
   managed: 'Perfiles de la plataforma', special: 'Cuentas especiales',
   reports: 'Denuncias y solicitudes', moderation: 'Revisar fotos y videos',
   finance: 'Pagos a creadores', payouts: 'Retiros y devoluciones', ledger: 'Todos los movimientos',
+  prospects: 'Captar creadores',
   errors: 'Problemas de la página', infra: 'Costos y límites de servicios',
 } as const;
 export type AdminSection = keyof typeof adminSections;

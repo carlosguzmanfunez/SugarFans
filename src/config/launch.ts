@@ -16,5 +16,7 @@ export const ACCESS_CODE_SHA256 = 'd1ceab3226896484c00d03baa6fe8d5e629b903423d53
 
 // Paths anyone can open while the gate is up. /reset-password: the link in the
 // "recuperar contraseña" email works on any device, not only on one that opened
-// the private link (the page needs the one-time token from that email).
-export const PUBLIC_PATHS = ['/legal', '/policies', '/reset-password'];
+// the private link (the page needs the one-time token from that email). /c/: the
+// personal invite links we send to creators (they can say "quiero participar" or
+// unsubscribe before the launch).
+export const PUBLIC_PATHS = ['/legal', '/policies', '/reset-password', '/c/'];
