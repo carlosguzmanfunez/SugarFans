@@ -36,6 +36,10 @@ export interface Prospect {
   enrichedAt?: string;
   enrichNote?: string;
   matchedProfileId?: string;
+  inviteCode?: string; // their personal link: /c/<code>
+  openedAt?: string; // first time they opened the link
+  openCount?: number;
+  interestedAt?: string; // pressed "Quiero participar" on the link
   createdAt: string;
 }
 
@@ -358,6 +362,27 @@ export const prospectsCsv = (list: Prospect[]) =>
     ...list.map((p) => [p.country, p.network, p.handle, NETWORKS[p.network].url(p.handle), p.displayName, p.category, p.followers, p.engagement,
       p.score, p.email, STATUSES[p.status].label, p.channel, p.contactedAt?.slice(0, 10), p.followUps, p.notes].map(csvCell).join(','))].join('\n');
 
+/* ---------- Invite links ---------- */
+
+export const SITE = 'https://fansreserve.com';
+// Links point to fansreserve.com, except when testing on a preview or locally.
+export const inviteBase = () =>
+  typeof window !== 'undefined' && !/(^|\.)fansreserve\.com$/.test(window.location.hostname) ? window.location.origin : SITE;
+export const INVITE_CODE = /^[a-f0-9]{12}$/;
+export const inviteUrl = (code: string, base = inviteBase()) => `${base}/c/${code}`;
+export const unsubscribeUrl = (code: string, base = inviteBase()) => `${base}/c/${code}?baja=1`;
+
+// Steps recorded in prospect_events, for the "last 24 hours" box.
+export type ProspectEvent = 'contactado' | 'seguimiento' | 'correo' | 'abrio' | 'interesado' | 'registrado' | 'verificado' | 'activo' | 'baja';
+export const EVENTS: { id: ProspectEvent; label: string }[] = [
+  { id: 'abrio', label: 'Abrieron su link' },
+  { id: 'interesado', label: 'Quieren participar' },
+  { id: 'registrado', label: 'Se registraron' },
+  { id: 'verificado', label: 'Se verificaron' },
+  { id: 'activo', label: 'Primeras ventas' },
+  { id: 'baja', label: 'Pidieron no recibir más' },
+];
+
 /* ---------- Messages ---------- */
 
 export interface Templates { dm: string; emailSubject: string; email: string; followUp: string }
@@ -365,11 +390,11 @@ export interface Templates { dm: string; emailSubject: string; email: string; fo
 export const DEFAULT_TEMPLATES: Templates = {
   dm: 'Hola {nombre} 👋 Me encanta tu contenido de {categoria}. Soy Carlos, de Fans Reserve: una plataforma nueva donde tus seguidores reservan videollamadas 1:1, Meet & Greet y eventos contigo, pagan seguro y tú cobras por PayPal.\n\nVamos a lanzar en {pais} y te queremos invitar a participar en el lanzamiento. Los creadores que alcancen ciertas metas en sus primeros 90 días se convierten en Creadores Fundadores, con mejores ganancias y beneficios.\n\n¿Te cuento más? Si no te interesa, dímelo y no te escribo de nuevo.',
   emailSubject: '{nombre}, te invitamos al lanzamiento de Fans Reserve en {pais}',
-  email: 'Hola {nombre}:\n\nVi tu cuenta @{usuario} y me gustó mucho tu contenido de {categoria}. Soy Carlos, de Fans Reserve, una plataforma nueva donde los seguidores reservan experiencias con sus creadores favoritos: videollamadas 1:1, Meet & Greet y eventos. El pago es seguro y el creador cobra por PayPal.\n\nEstamos preparando el lanzamiento en {pais} y queremos invitarte a participar. Quienes alcancen ciertas metas en sus primeros 90 días se convierten en Creadores Fundadores, con mejores ganancias, una insignia en su perfil y prioridad en Explorar.\n\nSi te interesa, responde este correo y te cuento los detalles.\n\nUn saludo,\nCarlos · Fans Reserve\n\nSi prefieres que no te escribamos más, responde "no" y te sacamos de la lista.',
-  followUp: 'Hola {nombre}, te escribo de nuevo por si se perdió mi mensaje 🙂 Seguimos armando el grupo de creadores para el lanzamiento de Fans Reserve en {pais}. ¿Te interesa que te cuente cómo funciona? Si no, todo bien y no te escribo más.',
+  email: 'Hola {nombre}:\n\nVi tu cuenta @{usuario} y me gustó mucho tu contenido de {categoria}. Soy Carlos, de Fans Reserve, una plataforma nueva donde los seguidores reservan experiencias con sus creadores favoritos: videollamadas 1:1, Meet & Greet y eventos. El pago es seguro y el creador cobra por PayPal.\n\nEstamos preparando el lanzamiento en {pais} y queremos invitarte a participar. Quienes alcancen ciertas metas en sus primeros 90 días se convierten en Creadores Fundadores, con mejores ganancias, una insignia en su perfil y prioridad en Explorar.\n\nAquí te dejo los detalles y puedes apartar tu lugar: {link}\n\nO si prefieres, responde este correo y te cuento.\n\nUn saludo,\nCarlos · Fans Reserve\n\nSi prefieres que no te escribamos más, entra aquí: {baja}',
+  followUp: 'Hola {nombre}, te escribo de nuevo por si se perdió mi mensaje 🙂 Seguimos armando el grupo de creadores para el lanzamiento de Fans Reserve en {pais}. Aquí te dejo cómo funciona y puedes apartar tu lugar: {link}\n\nSi no te interesa, todo bien y no te escribo más.',
 };
 
-export const fillTemplate = (template: string, p: Prospect) => {
+export const fillTemplate = (template: string, p: Prospect, base = inviteBase()) => {
   const first = (p.displayName ?? '').trim().split(/\s+/)[0];
   const name = first && first.length > 1 && !/^[@\d]/.test(first) ? first : `@${p.handle}`;
   const category = p.category?.trim().toLowerCase();
@@ -378,7 +403,9 @@ export const fillTemplate = (template: string, p: Prospect) => {
     .replace(/{nombre}/g, name)
     .replace(/{usuario}/g, p.handle)
     .replace(/{pais}/g, p.country ? countryLabel(p.country) : 'tu país')
-    .replace(/{categoria}/g, category || 'tu contenido');
+    .replace(/{categoria}/g, category || 'tu contenido')
+    .replace(/{link}/g, p.inviteCode ? inviteUrl(p.inviteCode, base) : base)
+    .replace(/{baja}/g, p.inviteCode ? unsubscribeUrl(p.inviteCode, base) : 'responde "no" y te sacamos de la lista');
 };
 
 // An email batch for a sending tool (Instantly, Smartlead): one row per creator with

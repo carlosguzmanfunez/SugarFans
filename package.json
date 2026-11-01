@@ -101,8 +101,8 @@
     "test:payout-funding": "node e2e/payout-funding-followups.mjs",
     "test:payout-funding-ui": "node e2e/payout-funding-ui.mjs",
     "test:payout-funding-concurrency": "node e2e/payout-funding-concurrency.mjs",
-    "test:prospects": "node e2e/prospects-rules.mjs && node e2e/prospects-api.mjs",
-    "test:prospects-db": "node e2e/prospects-db.mjs",
+    "test:prospects": "node e2e/prospects-rules.mjs && node e2e/prospects-api.mjs && node e2e/prospects-email-api.mjs",
+    "test:prospects-db": "node e2e/prospects-db.mjs && node e2e/prospect-invites-db.mjs",
     "test:prospects-ui": "vite build --mode offline && node e2e/prospects-ui.mjs"
   },
   "dependencies": {
@@ -115,6 +115,7 @@
     "livekit-client": "^2.22.3",
     "livekit-server-sdk": "^2.19.1",
     "lucide-react": "^1.52.0",
+    "nodemailer": "^10.3.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.30.6",
@@ -124,6 +125,7 @@
     "@electric-sql/pglite": "0.3.16",
     "@tailwindcss/vite": "^4.1.7",
     "@types/node": "^20.19.43",
+    "@types/nodemailer": "^8.0.2",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@types/web-push": "^3.6.4",

@@ -4,7 +4,7 @@
 // See supabase/migrations/20261101000001_creator_prospects.sql.
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { FOLLOW_UP_DAYS, type Prospect } from '../prospects';
-import type { ProspectFilter, ProspectsBackend } from './prospectTypes';
+import type { ProspectFilter, ProspectServerStatus, ProspectsBackend } from './prospectTypes';
 
 type Row = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -17,6 +17,7 @@ const toProspect = (r: Row): Prospect => ({
   contactedAt: r.contacted_at ?? undefined, repliedAt: r.replied_at ?? undefined, followUps: r.follow_ups ?? 0,
   lastFollowUpAt: r.last_follow_up_at ?? undefined, notes: r.notes ?? undefined, score: r.score ?? 0,
   enrichedAt: r.enriched_at ?? undefined, enrichNote: r.enrich_note ?? undefined, matchedProfileId: r.matched_profile_id ?? undefined,
+  inviteCode: r.invite_code ?? undefined, openedAt: r.opened_at ?? undefined, openCount: r.open_count ?? 0, interestedAt: r.interested_at ?? undefined,
   createdAt: r.created_at,
 });
 
@@ -53,7 +54,8 @@ export const createSupabaseProspects = (sb: SupabaseClient): ProspectsBackend =>
       return {
         byCountry: ((d.by_country ?? []) as Row[]).map((r) => ({ country: r.country ?? '', status: r.status, count: Number(r.count) })),
         contactedToday: Number(d.contacted_today ?? 0), followUpsDue: Number(d.follow_ups_due ?? 0),
-        toEnrich: Number(d.to_enrich ?? 0), measuredAt: d.measured_at,
+        toEnrich: Number(d.to_enrich ?? 0), last24h: (d.last_24h ?? {}) as Row, emailsToday: Number(d.emails_today ?? 0),
+        lastAutoSync: d.last_auto_sync ?? undefined, measuredAt: d.measured_at,
       };
     },
 
@@ -117,14 +119,65 @@ export const createSupabaseProspects = (sb: SupabaseClient): ProspectsBackend =>
       return error ? { ok: false, error: 'No pudimos buscar quiénes ya se registraron.' } : { ok: true, moved: Number(data ?? 0) };
     },
 
-    async instagramStatus() {
+    async serverStatus(): Promise<ProspectServerStatus> {
       try {
         const r = await fetch('/api/prospects', { cache: 'no-store' });
         const body = await r.json();
-        return body?.checks?.instagram === 'OK' ? 'ok' : 'missing';
+        return {
+          instagram: body?.checks?.instagram === 'OK' ? 'ok' : 'missing',
+          email: body?.checks?.email === 'OK' ? 'ok' : 'missing',
+          emailLimit: Number(body?.emailLimit ?? 0),
+          emailFrom: typeof body?.emailFrom === 'string' ? body.emailFrom : undefined,
+        };
       } catch {
-        return 'unknown';
+        return { instagram: 'unknown', email: 'unknown', emailLimit: 0 };
       }
+    },
+
+    async sendEmails(emails, followUp, base) {
+      const token = await session();
+      if (!token) return { ok: false, error: 'Inicia sesión con tu cuenta administrativa.' };
+      try {
+        const r = await fetch('/api/prospects', {
+          method: 'POST',
+          headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+          body: JSON.stringify({ action: 'email', emails, followUp, base }),
+        });
+        const body = await r.json().catch(() => ({}));
+        const error = typeof body.error === 'string' ? body.error : undefined;
+        if (!r.ok && !Array.isArray(body.sent)) return { ok: false, error: error ?? 'No se pudieron enviar los correos. Intenta de nuevo.' };
+        return { ok: true, sent: body.sent ?? [], skipped: body.skipped ?? [], failed: body.failed ?? [], remaining: Number(body.remaining ?? 0), warning: error };
+      } catch {
+        return { ok: false, error: 'Sin conexión con el servidor.' };
+      }
+    },
+
+    async invite(code) {
+      const { data, error } = await sb.rpc('prospect_invite', { p_code: code });
+      if (error) throw Error('No pudimos abrir la invitación.');
+      if (!data) return null;
+      const d = data as Row;
+      return {
+        handle: d.handle, network: d.network, name: d.name ?? undefined, country: d.country ?? undefined,
+        interested: !!d.interested, registered: !!d.registered, unsubscribed: !!d.unsubscribed,
+      };
+    },
+
+    async interest(code, email) {
+      const { data, error } = await sb.rpc('prospect_interest', { p_code: code, p_email: email?.trim() || null });
+      if (error) return { ok: false, error: /correo/.test(error.message) ? error.message : 'No se pudo guardar. Intenta de nuevo.' };
+      return data ? { ok: true } : { ok: false, error: 'Esta invitación ya no está activa.' };
+    },
+
+    async unsubscribe(code) {
+      const { data, error } = await sb.rpc('prospect_unsubscribe', { p_code: code });
+      if (error) return { ok: false, error: 'No se pudo guardar. Intenta de nuevo.' };
+      return data ? { ok: true } : { ok: false, error: 'Esta invitación ya no está activa.' };
+    },
+
+    async claim(code) {
+      const { data, error } = await sb.rpc('prospect_claim', { p_code: code });
+      return !error && data === true;
     },
 
     async lookupInstagram(handles) {

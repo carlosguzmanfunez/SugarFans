@@ -102,4 +102,20 @@ ok('El lote de correos lleva asunto y mensaje escritos para cada uno', () => {
   assert.match(p.emailBatchCsv([{ ...base, handle: 'x', email: 'x@x.com' }], p.DEFAULT_TEMPLATES, true), /\nx@x\.com,,x,instagram,,,"Re: @x, te invitamos[^"]+","Hola @x, te escribo de nuevo/);
 });
 
-console.log(`\n${passed}/9 comprobaciones de reglas`);
+ok('El correo y el seguimiento llevan su link personal y el de baja; el primer DM no lleva enlaces', () => {
+  const base = { id: '1', network: 'instagram', handle: 'ana.fit', source: 'heepsy', status: 'nuevo', followUps: 0, score: 0, createdAt: '', inviteCode: '0123456789ab' };
+  const site = 'https://fansreserve.com';
+  const email = p.fillTemplate(p.DEFAULT_TEMPLATES.email, base, site);
+  assert.match(email, /apartar tu lugar: https:\/\/fansreserve\.com\/c\/0123456789ab\n/);
+  assert.match(email, /entra aquí: https:\/\/fansreserve\.com\/c\/0123456789ab\?baja=1$/);
+  assert.match(p.fillTemplate(p.DEFAULT_TEMPLATES.followUp, base, 'https://x.vercel.app'), /https:\/\/x\.vercel\.app\/c\/0123456789ab/);
+  assert.doesNotMatch(p.fillTemplate(p.DEFAULT_TEMPLATES.dm, base, site), /https?:/);
+  // Without a code (an old list) the text still reads well, with no braces left.
+  const old = p.fillTemplate(p.DEFAULT_TEMPLATES.email, { ...base, inviteCode: undefined }, site);
+  assert.doesNotMatch(old, /\{/);
+  assert.match(old, /responde "no"/);
+  assert.equal(p.inviteBase(), 'https://fansreserve.com');
+  assert.ok(p.INVITE_CODE.test('0123456789ab') && !p.INVITE_CODE.test('0123'));
+});
+
+console.log(`\n${passed}/10 comprobaciones de reglas`);

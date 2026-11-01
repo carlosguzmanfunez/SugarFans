@@ -2,10 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { backend } from '../lib/backend';
 import { readJSON, writeJSON } from '../lib/storage';
 import {
-  DEFAULT_TEMPLATES, NETWORKS, PILOT_COUNTRIES, SOURCES, STATUSES, TEMPLATE_HEADER, compact, countryLabel, emailBatchCsv, fillTemplate, parseProspectList,
-  type Prospect, type ProspectNetwork, type ProspectSource, type Templates,
+  DEFAULT_TEMPLATES, NETWORKS, PILOT_COUNTRIES, SOURCES, STATUSES, TEMPLATE_HEADER, compact, countryLabel, emailBatchCsv, fillTemplate, inviteBase, inviteUrl,
+  parseProspectList, type Prospect, type ProspectNetwork, type ProspectSource, type Templates,
 } from '../lib/prospects';
-import type { ProspectFilter } from '../lib/backend/prospectTypes';
+import type { ProspectFilter, ProspectServerStatus } from '../lib/backend/prospectTypes';
 import { AdminDialog } from './AdminDialog';
 
 const TEMPLATES_KEY = 'prospect_templates';
@@ -25,6 +25,27 @@ const download = (name: string, text: string) => {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 export { download };
+
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+type Outgoing = { p: Prospect; subject: string; body: string };
+type SendTotals = { sent: number; skipped: number; failed: number; warning?: string };
+
+// Emails go out from Zoho 5 at a time with a short pause, and stop at the daily
+// limit or at the first problem (wrong password, Zoho slowing us down).
+export async function sendInGroups(list: Outgoing[], followUp: boolean, onProgress: (done: number) => void): Promise<SendTotals> {
+  const t: SendTotals = { sent: 0, skipped: 0, failed: 0 };
+  for (let i = 0; i < list.length; i += 5) {
+    if (i) await wait(1500);
+    const group = list.slice(i, i + 5);
+    const r = await backend.prospects.sendEmails(group.map((x) => ({ id: x.p.id, subject: x.subject, body: x.body })), followUp, inviteBase());
+    if (!r.ok) { t.warning = r.error; break; }
+    t.sent += r.sent.length; t.skipped += r.skipped.length; t.failed += r.failed.length;
+    onProgress(Math.min(list.length, i + group.length));
+    if (r.warning) { t.warning = r.warning; break; }
+    if (r.remaining <= 0 && i + 5 < list.length) { t.warning = 'Se llegó al límite de correos de hoy. Sigue mañana con los que faltan.'; break; }
+  }
+  return t;
+}
 
 /* ---------- Import ---------- */
 
@@ -119,7 +140,9 @@ export function ImportDialog({ onClose, onDone, country }: { onClose: () => void
 
 type Kind = 'dm' | 'email' | 'followUp';
 
-export function MessageDialog({ prospect, onClose, onChanged }: { prospect: Prospect; onClose: () => void; onChanged: (text: string) => void }) {
+export function MessageDialog({ prospect, server, emailsToday, onClose, onChanged }: {
+  prospect: Prospect; server?: ProspectServerStatus; emailsToday?: number; onClose: () => void; onChanged: (text: string) => void;
+}) {
   const templates = loadTemplates();
   const first: Kind = prospect.status === 'contactado' ? 'followUp' : prospect.email && prospect.network !== 'instagram' && prospect.network !== 'tiktok' ? 'email' : 'dm';
   const [kind, setKind] = useState<Kind>(first);
@@ -130,8 +153,25 @@ export function MessageDialog({ prospect, onClose, onChanged }: { prospect: Pros
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [confirm, setConfirm] = useState<'no_contactar' | 'remove' | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
   const blocked = prospect.status === 'no_contactar';
   const network = NETWORKS[prospect.network];
+  const zohoLeft = server?.email === 'ok' ? Math.max(0, server.emailLimit - (emailsToday ?? 0)) : 0;
+  // Zoho sends the first email, and the follow-up of whoever we first wrote by email.
+  const zohoKind = !!prospect.email && server?.email === 'ok' && (kind === 'email' ? prospect.status === 'nuevo' : kind === 'followUp' && prospect.channel === 'email');
+
+  const copyLink = async () => {
+    if (!prospect.inviteCode) return;
+    try { await navigator.clipboard.writeText(inviteUrl(prospect.inviteCode)); setLinkCopied(true); } catch { setError('No se pudo copiar el link.'); }
+  };
+  const sendZoho = async () => {
+    setBusy(true); setError('');
+    const followUp = kind === 'followUp';
+    const r = await sendInGroups([{ p: prospect, subject: followUp ? `Re: ${subject}` : subject, body: text }], followUp, () => {});
+    setBusy(false);
+    if (r.sent) { onChanged(`Correo enviado a @${prospect.handle} desde Zoho.`); return; }
+    setError(r.warning ?? (r.skipped ? 'No se envió: ya estaba contactado o no tiene correo.' : 'Zoho no aceptó este correo. Revisa la dirección.'));
+  };
 
   useEffect(() => {
     setText(fillTemplate(kind === 'dm' ? templates.dm : kind === 'email' ? templates.email : templates.followUp, prospect));
@@ -187,6 +227,10 @@ export function MessageDialog({ prospect, onClose, onChanged }: { prospect: Pros
         <span>{flag(prospect.country)} {countryLabel(prospect.country)}</span>
         <span className="tabular-nums">{compact(prospect.followers)} seguidores</span>
         <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUSES[prospect.status].tone}`}>{STATUSES[prospect.status].label}</span>
+        {prospect.openedAt && <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-900">Abrió su link</span>}
+        {prospect.interestedAt && <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-900">Quiere participar</span>}
+        {prospect.inviteCode && !blocked && <button type="button" onClick={() => void copyLink()} className="ml-auto min-h-11 rounded-lg px-2 text-sm font-medium text-pink-800 underline underline-offset-4">
+          <i aria-hidden="true" className={`fas ${linkCopied ? 'fa-check' : 'fa-link'} mr-1`} />{linkCopied ? 'Link copiado' : 'Copiar su link'}</button>}
       </div>
 
       {blocked ? <p className="rounded-lg bg-red-50 border border-red-200 p-3 text-red-800">Pidió que no le escribamos. No le envíes mensajes.</p> : <>
@@ -198,8 +242,15 @@ export function MessageDialog({ prospect, onClose, onChanged }: { prospect: Pros
         <div>
           <label className={label} htmlFor="msg-text">Mensaje <span className="font-normal text-gray-500">(puedes ajustarlo antes de copiar)</span></label>
           <textarea id="msg-text" rows={kind === 'email' ? 11 : 8} className={field} value={text} onChange={(e) => { setText(e.target.value); setCopied(false); }} />
-          <p className="mt-1 text-xs text-gray-500">Sin enlaces en el primer mensaje: el enlace va cuando responda. Así es menos probable que lo tomen como spam.</p>
+          <p className="mt-1 text-xs text-gray-500">{kind === 'dm'
+            ? 'Sin enlaces en el primer DM: cuando responda, mándale su link con "Copiar su link". Así es menos probable que lo tomen como spam.'
+            : 'Lleva su link personal: así vemos si lo abre y si quiere participar, sin preguntarle.'}</p>
         </div>
+        {zohoKind && <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-emerald-900">Envíalo desde <b>{server?.emailFrom}</b>. {zohoLeft ? `Hoy quedan ${zohoLeft} de ${server?.emailLimit}.` : 'Ya se llegó al límite de hoy.'}</p>
+          <button type="button" className={primary} disabled={busy || !zohoLeft} onClick={() => void sendZoho()} data-testid="zoho-send-one">
+            <i aria-hidden="true" className="fas fa-paper-plane mr-2" />{busy ? 'Enviando…' : 'Enviar ahora'}</button>
+        </div>}
         <ol className="grid gap-2 sm:grid-cols-3">
           <li><button type="button" className={`${secondary} w-full`} onClick={() => void copy()}>
             <i aria-hidden="true" className={`fas ${copied ? 'fa-check text-emerald-600' : 'fa-copy'} mr-2`} />{copied ? 'Copiado' : '1. Copiar mensaje'}</button></li>
@@ -242,7 +293,7 @@ export function TemplatesDialog({ onClose }: { onClose: () => void }) {
   const set = (k: keyof Templates) => (e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => { setT({ ...t, [k]: e.target.value }); setSaved(false); };
   return <AdminDialog title="Plantillas de mensajes" onClose={onClose} wide>
     <div className="space-y-4 text-sm">
-      <p className="text-gray-600">Se completan solas con los datos de cada creador: <code className="rounded bg-gray-100 px-1">{'{nombre}'}</code> (su primer nombre), <code className="rounded bg-gray-100 px-1">{'{usuario}'}</code>, <code className="rounded bg-gray-100 px-1">{'{pais}'}</code> y <code className="rounded bg-gray-100 px-1">{'{categoria}'}</code>. Se guardan en este navegador.</p>
+      <p className="text-gray-600">Se completan solas con los datos de cada creador: <code className="rounded bg-gray-100 px-1">{'{nombre}'}</code> (su primer nombre), <code className="rounded bg-gray-100 px-1">{'{usuario}'}</code>, <code className="rounded bg-gray-100 px-1">{'{pais}'}</code>, <code className="rounded bg-gray-100 px-1">{'{categoria}'}</code>, <code className="rounded bg-gray-100 px-1">{'{link}'}</code> (su link personal de invitación) y <code className="rounded bg-gray-100 px-1">{'{baja}'}</code> (el enlace para no recibir más). Se guardan en este navegador.</p>
       <div><label className={label} htmlFor="tpl-dm">Primer mensaje por Instagram, TikTok o Facebook</label><textarea id="tpl-dm" rows={7} className={field} value={t.dm} onChange={set('dm')} /></div>
       <div><label className={label} htmlFor="tpl-subject">Asunto del correo</label><input id="tpl-subject" className={field} value={t.emailSubject} onChange={set('emailSubject')} /></div>
       <div><label className={label} htmlFor="tpl-email">Correo</label><textarea id="tpl-email" rows={10} className={field} value={t.email} onChange={set('email')} /></div>
@@ -393,26 +444,56 @@ export function BatchDmDialog({ filter, sentToday, safeDaily, onClose, onDone }:
   </AdminDialog>;
 }
 
-// Emails do go out in batches, from a sending tool with warmed-up mailboxes on a
-// separate domain (never from fansreserve.com or Resend).
-export function BatchEmailDialog({ filter, onClose, onDone }: { filter: ProspectFilter; onClose: () => void; onDone: (text: string) => void }) {
+// Emails go out in batches: straight from the team's Zoho mailbox (with a safe daily
+// limit, set up in Vercel) or as a file for a sending tool like Instantly.
+export function BatchEmailDialog({ filter, server, emailsToday, onClose, onDone }: {
+  filter: ProspectFilter; server: ProspectServerStatus; emailsToday: number; onClose: () => void; onDone: (text: string) => void;
+}) {
+  const zoho = server.email === 'ok';
+  const left = zoho ? Math.max(0, server.emailLimit - emailsToday) : 0;
+  const sizes = zoho ? [5, 10, 25, 50].filter((n) => n < left).concat(left ? [left] : []) : [25, 50, 100, 250, 500];
   const [kind, setKind] = useState<BatchKind>('first');
-  const [size, setSize] = useState(50);
+  const [size, setSize] = useState(zoho ? Math.min(10, left || 10) : 50);
   const [batch, setBatch] = useState<Prospect[] | null>(null);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
+  const [total, setTotal] = useState(0);
   const [error, setError] = useState('');
 
+  const pick = async () => {
+    const rows = (await backend.prospects.exportRows({ ...batchFilter(filter, kind), withEmail: true }))
+      // A follow-up email only goes to who we first wrote by email.
+      .filter((p) => kind === 'first' || p.channel === 'email').slice(0, size);
+    if (!rows.length) setError(kind === 'first' ? 'No hay creadores por contactar con correo público con estos filtros.' : 'No hay seguimientos de correo pendientes con estos filtros.');
+    return rows;
+  };
   const prepare = async () => {
     setBusy(true); setError('');
     try {
-      const rows = (await backend.prospects.exportRows({ ...batchFilter(filter, kind), withEmail: true })).slice(0, size);
-      if (!rows.length) setError(kind === 'first' ? 'No hay creadores por contactar con correo público con estos filtros.' : 'No hay seguimientos pendientes con correo con estos filtros.');
-      else {
+      const rows = await pick();
+      if (rows.length) {
         setBatch(rows);
         download(`lote-correos-${kind === 'first' ? 'primer-mensaje' : 'seguimiento'}-${new Date().toISOString().slice(0, 10)}.csv`, emailBatchCsv(rows, loadTemplates(), kind === 'followUp'));
       }
     } catch { setError('No pudimos preparar el lote.'); }
     setBusy(false);
+  };
+  const sendNow = async () => {
+    setBusy(true); setError('');
+    try {
+      const rows = await pick();
+      if (!rows.length) { setBusy(false); return; }
+      const t = loadTemplates();
+      const followUp = kind === 'followUp';
+      setTotal(rows.length);
+      setProgress(0);
+      const r = await sendInGroups(rows.map((p) => ({
+        p, subject: followUp ? `Re: ${fillTemplate(t.emailSubject, p)}` : fillTemplate(t.emailSubject, p), body: fillTemplate(followUp ? t.followUp : t.email, p),
+      })), followUp, setProgress);
+      setBusy(false); setProgress(null);
+      if (!r.sent && r.warning) { setError(r.warning); return; }
+      onDone([`Salieron ${r.sent} ${r.sent === 1 ? 'correo' : 'correos'} desde Zoho`, r.skipped ? `${r.skipped} se saltaron` : '', r.failed ? `${r.failed} rebotaron` : ''].filter(Boolean).join(', ') + '.' + (r.warning ? ` ${r.warning}` : ''));
+    } catch { setBusy(false); setProgress(null); setError('No pudimos terminar el envío. Lo que salió quedó marcado.'); }
   };
   const markAll = async () => {
     if (!batch) return;
@@ -425,15 +506,33 @@ export function BatchEmailDialog({ filter, onClose, onDone }: { filter: Prospect
     onDone(`${batch.length} ${batch.length === 1 ? 'creador quedó' : 'creadores quedaron'} como ${kind === 'first' ? 'contactados por correo' : 'con seguimiento enviado'}.`);
   };
 
+  if (progress !== null) return <AdminDialog title="Enviando correos" onClose={() => {}} busy>
+    <div className="space-y-3 text-sm" role="status">
+      <p>Enviando desde <b>{server.emailFrom}</b>… {progress} de {total}</p>
+      <div className="h-2 rounded-full bg-gray-100 overflow-hidden"><div className="h-full rounded-full bg-gray-900 transition-[width] duration-300" style={{ width: `${(progress / Math.max(1, total)) * 100}%` }} /></div>
+      <p className="text-xs text-gray-500">No cierres esta ventana. Salen de 5 en 5 con una pausa corta.</p>
+    </div>
+  </AdminDialog>;
+
   return <AdminDialog title="Lote de correos" onClose={onClose} busy={busy}>
     <div className="space-y-4 text-sm">
       {!batch ? <>
-        <p className="text-gray-600">Descarga un archivo con cada correo ya escrito (asunto y mensaje con su nombre y país) para subirlo a <b>Instantly</b> o <b>Smartlead</b>, que los mandan solos en tandas desde buzones calentados.</p>
-        <BatchSetup kind={kind} setKind={setKind} size={size} setSize={setSize} sizes={[25, 50, 100, 250, 500]} />
-        <p className="text-xs text-gray-500">Solo creadores con correo público, con los filtros de la lista y por mejor puntaje. Nunca los mandes desde fansreserve.com ni con Resend.</p>
+        {zoho
+          ? <p className="text-gray-600">Salen directo desde <b>{server.emailFrom}</b>, uno por uno, con el nombre, el país y el <b>link personal</b> de cada creador, y el enlace para darse de baja. Se marcan solos como contactados.</p>
+          : <p className="text-gray-600">Descarga un archivo con cada correo ya escrito (asunto y mensaje con su nombre, país y link personal) para subirlo a <b>Instantly</b> o <b>Smartlead</b>. Para enviarlos desde aquí, conecta Zoho en Vercel (ZOHO_SMTP_USER y ZOHO_SMTP_PASSWORD).</p>}
+        <BatchSetup kind={kind} setKind={setKind} size={size} setSize={setSize} sizes={sizes.length ? sizes : [0]} />
+        {zoho && <div className={`rounded-lg p-3 ${left ? 'bg-gray-50 text-gray-700' : 'bg-amber-50 border border-amber-200 text-amber-900'}`}>
+          {left ? <>Hoy van <b>{emailsToday}</b> de <b>{server.emailLimit}</b> correos. Un buzón nuevo que escribe a desconocidos se marca rápido como spam: sube el límite poco a poco.</> : <>Ya salieron los {server.emailLimit} correos de hoy. Sigue mañana.</>}
+        </div>}
+        <p className="text-xs text-gray-500">Solo creadores con correo público, con los filtros de la lista y por mejor puntaje. Nunca con Resend.</p>
         {error && <p role="alert" className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-amber-900">{error}</p>}
-        <div className="flex justify-end gap-2"><button type="button" className={secondary} onClick={onClose}>Cancelar</button>
-          <button type="button" className={primary} disabled={busy} onClick={() => void prepare()}>{busy ? 'Preparando…' : 'Descargar el lote'}</button></div>
+        <div className="flex flex-wrap justify-end gap-2">
+          <button type="button" className={secondary} onClick={onClose}>Cancelar</button>
+          {zoho && <button type="button" className="min-h-11 px-2 text-gray-600 underline underline-offset-4 disabled:opacity-50" disabled={busy} onClick={() => void prepare()}>Solo descargar el archivo</button>}
+          {zoho
+            ? <button type="button" className={primary} disabled={busy || !left || !size} onClick={() => void sendNow()} data-testid="zoho-send-batch"><i aria-hidden="true" className="fas fa-paper-plane mr-2" />{busy ? 'Preparando…' : `Enviar ${size} desde Zoho`}</button>
+            : <button type="button" className={primary} disabled={busy} onClick={() => void prepare()}>{busy ? 'Preparando…' : 'Descargar el lote'}</button>}
+        </div>
       </> : <>
         <p className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-emerald-900">Se descargó el archivo con <b>{batch.length} correos</b>.</p>
         <ol className="list-decimal pl-5 space-y-1 text-gray-700">

@@ -191,6 +191,129 @@ try {
     assert.equal(byEmail, count);
   });
 
+
+  // The personal invite link, opened by a visitor in another browser.
+  const store = async (from) => from.evaluate(() => ({
+    list: localStorage.getItem('fansreserve_creator_prospects'), events: localStorage.getItem('fansreserve_prospect_events') ?? '[]',
+  }));
+  const load = async (to, data) => to.evaluate((d) => {
+    localStorage.setItem('fansreserve_creator_prospects', d.list); localStorage.setItem('fansreserve_prospect_events', d.events);
+  }, data);
+  const prospects = async (from) => from.evaluate(() => JSON.parse(localStorage.getItem('fansreserve_creator_prospects')));
+  let invited, link;
+
+  await ok('Cada creador tiene su link: se copia, y si lo abre el equipo no cuenta', async () => {
+    await tool.getByLabel('Estado').selectOption('nuevo');
+    await page.waitForTimeout(300);
+    await tool.getByRole('button', { name: 'Escribir', exact: true }).first().click();
+    const dialog = page.getByRole('dialog', { name: /^Escribir a @/ });
+    invited = (await dialog.getByRole('heading').innerText()).replace(/^Escribir a @/, '');
+    await dialog.getByRole('button', { name: 'Copiar su link' }).click();
+    await dialog.getByRole('button', { name: 'Link copiado' }).waitFor();
+    link = await page.evaluate(() => navigator.clipboard.readText());
+    assert.match(link, new RegExp(`^${BASE}/c/[a-f0-9]{12}$`));
+    await dialog.getByRole('button', { name: 'Cerrar' }).first().click();
+    await tool.getByLabel('Estado').selectOption('open');
+    await page.goto(link);
+    await page.getByTestId('invite-team-preview').waitFor();
+    assert.equal((await prospects(page)).find((p) => p.handle === invited).openedAt, undefined);
+  });
+
+  const visitor = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true });
+  const v = await visitor.newPage();
+  v.on('pageerror', (e) => errors.push(String(e)));
+
+  await ok('Antes del lanzamiento, el creador abre su link (sin cuenta) y aparta su lugar', async () => {
+    await v.goto(BASE);
+    await load(v, await store(page));
+    await v.evaluate(() => localStorage.setItem('fansreserve_forceLaunchGate', 'true'));
+    await v.goto(link);
+    const invite = v.getByTestId('prospect-invite');
+    await invite.getByRole('heading', { name: /Te invitamos al lanzamiento de Fans Reserve/ }).waitFor();
+    await invite.getByText(/^Hola, .+ 👋$/).waitFor();
+    if (shots) await v.screenshot({ path: join(shots, 'movil-3-invitacion.png'), fullPage: true });
+    await invite.getByLabel(/Tu correo/).fill('malo@sinpunto');
+    await invite.getByRole('button', { name: 'Quiero participar' }).click();
+    await invite.getByRole('alert').getByText(/correo no parece válido/).waitFor();
+    await invite.getByLabel(/Tu correo/).fill('creadora@correo.com');
+    await invite.getByRole('button', { name: 'Quiero participar' }).click();
+    await invite.getByTestId('invite-joined').getByText('¡Listo! Tu lugar está apartado 🎉').waitFor();
+    if (shots) await v.screenshot({ path: join(shots, 'movil-4-lugar-apartado.png') });
+    const me = (await prospects(v)).find((p) => p.handle === invited);
+    assert.ok(me.openedAt && me.interestedAt && me.status === 'respondio' && me.email === 'creadora@correo.com', JSON.stringify(me));
+    // The home page is still "Muy pronto" for them.
+    await v.goto(BASE);
+    await v.getByTestId('coming-soon').waitFor();
+  });
+
+  await ok('Desde el link puede pedir no recibir más mensajes', async () => {
+    const other = (await prospects(v)).find((p) => p.email && p.status !== 'no_contactar' && p.handle !== invited);
+    await v.goto(`${BASE}/c/${other.inviteCode}?baja=1`);
+    await v.getByRole('heading', { name: '¿No quieres recibir más mensajes de Fans Reserve?' }).waitFor();
+    await v.getByTestId('invite-leave-confirm').click();
+    await v.getByRole('heading', { name: 'Listo, no te volveremos a escribir' }).waitFor();
+    const after = (await prospects(v)).find((p) => p.id === other.id);
+    assert.equal(after.status, 'no_contactar');
+    assert.equal(after.email, undefined);
+  });
+
+  await ok('Al iniciar sesión, su cuenta queda conectada a la invitación (Registrado)', async () => {
+    await v.goto(link);
+    await v.getByTestId('invite-joined').waitFor();
+    await v.evaluate(() => localStorage.removeItem('fansreserve_forceLaunchGate'));
+    await v.goto(`${BASE}/login`);
+    await v.fill('input[type=email]', 'creator@sugarfans.com');
+    await v.fill('input[type=password]', 'demo1234');
+    await v.click('form button[type=submit]');
+    await v.waitForURL((u) => new URL(u).pathname !== '/login');
+    await v.waitForFunction((h) => JSON.parse(localStorage.getItem('fansreserve_creator_prospects')).find((p) => p.handle === h)?.status === 'registrado', invited);
+    assert.equal(await v.evaluate(() => localStorage.getItem('fansreserve_prospectInvite')), null);
+  });
+
+  await ok('El equipo lo ve en la lista y en "Últimas 24 horas"', async () => {
+    await page.goto(BASE);
+    await load(page, await store(v));
+    await page.goto(`${BASE}/admin?section=prospects`);
+    const box = tool.getByTestId('prospects-last24h');
+    await box.getByText('Abrieron su link').waitFor();
+    const text = (await box.innerText()).replace(/\s+/g, ' ');
+    assert.match(text, /Abrieron su link 2/);
+    assert.match(text, /Quieren participar 1/);
+    assert.match(text, /Se registraron 1/);
+    assert.match(text, /Pidieron no recibir más 1/);
+    await tool.getByLabel('Buscar').fill(invited);
+    const row = tool.locator('ul[aria-busy] > li').filter({ hasText: `@${invited}` });
+    await row.getByText('Quiere participar').waitFor();
+    await row.getByText(/^Abrió su link/).waitFor();
+    await row.getByText('Registrado').waitFor();
+    await tool.getByLabel('Buscar').fill('');
+  });
+
+  await ok('Con Zoho conectado, el lote de correos sale desde la consola con su link y respeta el límite', async () => {
+    await page.evaluate(() => localStorage.setItem('fansreserve_prospectsFakeZoho', 'true'));
+    await page.reload();
+    await tool.getByRole('button', { name: 'Importar lista' }).click();
+    const imp = page.getByRole('dialog', { name: 'Importar una lista de creadores' });
+    await imp.getByLabel('Lista', { exact: true }).fill('usuario,email,pais\n@nueva.uno,uno@correo.com,Honduras\n@nueva.dos,dos@correo.com,Honduras\n@nueva.tres,tres@correo.com,México');
+    await imp.getByRole('button', { name: /^Importar 3/ }).click();
+    await tool.getByText(/^Listo: 3 creadores nuevos/).waitFor();
+    await tool.getByRole('button', { name: 'Lote de correos' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Lote de correos' });
+    await dialog.getByText('carlos@fansreserve.com').first().waitFor();
+    await dialog.getByText(/Hoy van 0 de 30 correos/).waitFor();
+    await dialog.getByLabel('Cuántos').selectOption('5');
+    if (shots) await page.screenshot({ path: join(shots, 'escritorio-5-correos-zoho.png') });
+    const waiting = await page.evaluate(() => JSON.parse(localStorage.getItem('fansreserve_creator_prospects')).filter((p) => p.status === 'nuevo' && p.email).length);
+    await dialog.getByTestId('zoho-send-batch').click();
+    const sent = Math.min(5, waiting);
+    assert.ok(sent >= 3, `por contactar con correo: ${waiting}`);
+    await tool.getByText(new RegExp(`^Salieron ${sent} correos? desde Zoho`)).waitFor();
+    const events = await page.evaluate(() => JSON.parse(localStorage.getItem('fansreserve_prospect_events')).filter((e) => e.kind === 'correo').length);
+    assert.equal(events, sent);
+    await page.evaluate(() => localStorage.removeItem('fansreserve_prospectsFakeZoho'));
+    await page.reload();
+  });
+
   if (shots) {
     await page.reload();
     await tool.getByText('Avance por país').waitFor();
@@ -209,7 +332,7 @@ try {
   }
 
   assert.deepEqual(errors, []);
-  console.log(`\n${passed}/9 comprobaciones en el navegador`);
+  console.log(`\n${passed}/15 comprobaciones en el navegador`);
 } finally {
   await browser.close();
   await new Promise((resolve) => server.httpServer.close(resolve));

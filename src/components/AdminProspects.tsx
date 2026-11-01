@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { backend } from '../lib/backend';
 import { useBackendData } from '../lib/useBackendData';
-import type { ProspectFilter, ProspectSummary } from '../lib/backend/prospectTypes';
+import type { ProspectFilter, ProspectServerStatus, ProspectSummary } from '../lib/backend/prospectTypes';
 import {
-  AUTOMATIC, CAMPAIGN_DAYS, GOALS, NETWORKS, PILOT_COUNTRIES, STATUSES, compact, contactsNeeded, countryLabel, countryProgress,
+  AUTOMATIC, CAMPAIGN_DAYS, EVENTS, GOALS, NETWORKS, PILOT_COUNTRIES, STATUSES, compact, contactsNeeded, countryLabel, countryProgress,
   emptyProgress, followUpDue, measuredRates, prospectsCsv, scoreReasons, scoreTone, sumProgress,
   type CountryProgress, type Prospect, type ProspectInput, type ProspectNetwork, type ProspectStatus,
 } from '../lib/prospects';
@@ -25,7 +25,23 @@ const SIZES = [
   { id: 'big', label: 'Más de 150 mil', min: 150001 },
 ] as const;
 
-const emptySummary: ProspectSummary = { byCountry: [], contactedToday: 0, followUpsDue: 0, toEnrich: 0, measuredAt: '' };
+const emptySummary: ProspectSummary = { byCountry: [], contactedToday: 0, followUpsDue: 0, toEnrich: 0, last24h: {}, emailsToday: 0, measuredAt: '' };
+const unknownServer: ProspectServerStatus = { instagram: 'unknown', email: 'unknown', emailLimit: 0 };
+const hour = (iso: string) => new Date(iso).toLocaleString('es-HN', { timeZone: 'America/Tegucigalpa', weekday: 'short', hour: 'numeric', minute: '2-digit' });
+
+// What moved in the last 24 hours (invite links, sign-ups) and when the automatic check last ran.
+function Last24h({ s }: { s: ProspectSummary }) {
+  const any = EVENTS.some((e) => s.last24h[e.id]);
+  return <div className="rounded-xl border border-gray-200 p-3" data-testid="prospects-last24h">
+    <p className="text-sm font-medium text-gray-900">Últimas 24 horas</p>
+    {any ? <ul className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
+      {EVENTS.filter((e) => s.last24h[e.id]).map((e) => <li key={e.id} className="flex items-baseline justify-between gap-2 text-xs text-gray-700">
+        <span>{e.label}</span><span className="font-bold tabular-nums text-gray-900">{n(s.last24h[e.id] ?? 0)}</span></li>)}
+    </ul> : <p className="mt-1 text-xs text-gray-500">Todavía nada. Aquí verás quién abrió su link, quién quiere participar y quién se registró.</p>}
+    <p className="mt-2 border-t border-gray-100 pt-2 text-[11px] leading-snug text-gray-500">
+      <i aria-hidden="true" className="fas fa-rotate mr-1" />Revisión automática todos los días a las 6:00 a. m.{s.lastAutoSync ? ` Última: ${hour(s.lastAutoSync)}.` : ''}</p>
+  </div>;
+}
 
 function Bar({ value, goal, tone = 'bg-pink-600' }: { value: number; goal: number; tone?: string }) {
   return <div className="h-2 rounded-full bg-gray-100 overflow-hidden" role="presentation">
@@ -106,7 +122,10 @@ function Row({ p, onWrite }: { p: Prospect; onWrite: () => void }) {
         <p className="text-xs text-gray-600 mt-0.5">
           {flag(p.country)} {p.city ? `${p.city}, ` : ''}{countryLabel(p.country)}{p.category ? ` · ${p.category}` : ''}{p.email ? ' · ' : ''}{p.email && <span className="text-gray-800">{p.email}</span>}
         </p>
-        {(reasons.length > 0 || p.enrichNote) && <p className="mt-1.5 flex flex-wrap gap-1">
+        {(reasons.length > 0 || p.enrichNote || p.openedAt) && <p className="mt-1.5 flex flex-wrap gap-1">
+          {p.interestedAt && <span className="rounded-md bg-violet-100 px-1.5 py-0.5 text-[11px] font-medium text-violet-900"><i aria-hidden="true" className="fas fa-hand mr-1" />Quiere participar</span>}
+          {p.openedAt && <span className="rounded-md bg-sky-100 px-1.5 py-0.5 text-[11px] font-medium text-sky-900" title={`Primera vez: ${hour(p.openedAt)}`}>
+            <i aria-hidden="true" className="fas fa-link mr-1" />Abrió su link{(p.openCount ?? 0) > 1 ? ` · ${p.openCount} veces` : ''}</span>}
           {reasons.map((r) => <span key={r} className="rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-700">{r}</span>)}
           {p.enrichNote && <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] text-amber-900">{p.enrichNote}</span>}
         </p>}
@@ -157,7 +176,8 @@ export default function AdminProspects() {
   const key = JSON.stringify(filter);
   const summary = useBackendData(() => backend.prospects.summary(), [], emptySummary);
   const list = useBackendData(() => backend.prospects.list(filter, page, PAGE), [key, page], { rows: [] as Prospect[], total: 0 });
-  const instagram = useBackendData(() => backend.prospects.instagramStatus(), [], 'unknown' as const as 'ok' | 'missing' | 'unknown');
+  const server = useBackendData(() => backend.prospects.serverStatus(), [], unknownServer);
+  const instagram = { data: server.data.instagram };
   const reload = () => { void summary.reload(); void list.reload(); };
 
   const progress = useMemo(() => countryProgress(summary.data.byCountry), [summary.data]);
@@ -222,7 +242,7 @@ export default function AdminProspects() {
     <header className={`${card} p-4 sm:p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4`}>
       <div className="max-w-2xl">
         <h2 className="text-xl font-bold text-gray-900">Captar creadores</h2>
-        <p className="text-sm text-gray-600 mt-1">Invitamos a creadores al lanzamiento con listas de perfiles públicos (Heepsy, Modash, TikTok One o hechas a mano). Cuando alguien se registra con la misma red social en su perfil, lo detectamos solos.</p>
+        <p className="text-sm text-gray-600 mt-1">Invitamos a creadores al lanzamiento con listas de perfiles públicos (Heepsy, Modash, TikTok One o hechas a mano). Cada uno tiene su link personal: vemos cuándo lo abre, si quiere participar y cuándo se registra, verifica y vende, sin revisar a mano.</p>
       </div>
       <div className="flex flex-wrap gap-2">
         <button type="button" className={`${button} bg-gray-900 text-white hover:bg-gray-800`} onClick={() => setDialog('import')}><i aria-hidden="true" className="fas fa-file-import" />Importar lista</button>
@@ -270,6 +290,7 @@ export default function AdminProspects() {
                   {working.startsWith('instagram') ? `Revisando ${working.split(':')[1] ?? ''}…` : 'Revisar con Instagram'}</button></>
               : <p className="text-xs text-gray-600 mt-1">{instagram.data === 'missing' ? 'Falta conectar la API oficial de Instagram en Vercel (INSTAGRAM_BUSINESS_ID e INSTAGRAM_ACCESS_TOKEN). Mientras tanto, la lista funciona igual con los datos importados.' : 'Comprobando la conexión con Instagram…'}</p>}
           </div>
+          <Last24h s={summary.data} />
         </section>
       </div>
       {country === undefined && <div className="mt-5"><Countries list={pilot} onPick={setCountry} /></div>}
@@ -334,7 +355,7 @@ export default function AdminProspects() {
     {dialog === 'import' && <ImportDialog country={country || undefined} onClose={() => setDialog(null)} onDone={(text) => done(text)} />}
     {dialog === 'templates' && <TemplatesDialog onClose={() => setDialog(null)} />}
     {dialog === 'batchDm' && <BatchDmDialog filter={filter} sentToday={today} safeDaily={SAFE_DAILY} onClose={() => setDialog(null)} onDone={(text) => done(text)} />}
-    {dialog === 'batchEmail' && <BatchEmailDialog filter={filter} onClose={() => setDialog(null)} onDone={(text) => done(text)} />}
-    {writing && <MessageDialog prospect={writing} onClose={() => setWriting(null)} onChanged={(text) => done(text)} />}
+    {dialog === 'batchEmail' && <BatchEmailDialog filter={filter} server={server.data} emailsToday={summary.data.emailsToday} onClose={() => setDialog(null)} onDone={(text) => done(text)} />}
+    {writing && <MessageDialog prospect={writing} server={server.data} emailsToday={summary.data.emailsToday} onClose={() => setWriting(null)} onChanged={(text) => done(text)} />}
   </div>;
 }

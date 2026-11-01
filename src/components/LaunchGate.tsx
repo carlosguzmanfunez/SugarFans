@@ -16,6 +16,8 @@ const sha256 = async (text: string) => {
 };
 
 const gatedHere = () => !LAUNCHED && (GATED_HOSTS.includes(window.location.hostname) || readJSON(FORCE_KEY, false));
+// Whether this device can use the whole site (sign up, sign in) right now.
+export const siteOpenHere = () => !gatedHere() || readJSON(ACCESS_KEY, false);
 
 // Until launch, the public sees "Muy pronto"; a device that opened the private link sees the site.
 const LaunchGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {

@@ -2,7 +2,7 @@
 // database, see supabase/migrations/20261101000001_creator_prospects.sql.
 // The official Instagram API only answers on the published site.
 import { readJSON, writeJSON } from '../storage';
-import { FOLLOW_UP_DAYS, FUNNEL, prospectScore, type Prospect, type ProspectStatus } from '../prospects';
+import { FOLLOW_UP_DAYS, FUNNEL, prospectScore, type Prospect, type ProspectEvent, type ProspectStatus } from '../prospects';
 import type { ProspectFilter, ProspectsBackend } from './prospectTypes';
 import type { User } from './types';
 
@@ -13,7 +13,13 @@ interface Deps {
 }
 
 const KEY = 'creator_prospects';
+const EVENTS_KEY = 'prospect_events';
+const FAKE_ZOHO_KEY = 'prospectsFakeZoho';
 const HANDLE = /^[a-z0-9._-]{1,50}$/;
+const newCode = () => crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+type Logged = { prospectId: string; kind: ProspectEvent; at: string };
+const log = (prospectId: string, kind: ProspectEvent) =>
+  writeJSON(EVENTS_KEY, [...readJSON<Logged[]>(EVENTS_KEY, []).filter((e) => Date.now() - new Date(e.at).getTime() < 7 * 86400000), { prospectId, kind, at: new Date().toISOString() }]);
 
 const hondurasDay = () => {
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Tegucigalpa', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
@@ -40,7 +46,15 @@ const sorter = (sort: ProspectFilter['sort']) => (a: Prospect, b: Prospect) =>
       : b.score - a.score || (b.followers ?? -1) - (a.followers ?? -1);
 
 export const createLocalProspects = (deps: Deps): ProspectsBackend => {
-  const load = () => readJSON<Prospect[]>(KEY, []);
+  // Lists saved before invite links existed get a code the first time they load.
+  const load = () => {
+    const list = readJSON<Prospect[]>(KEY, []);
+    if (!list.some((p) => !p.inviteCode)) return list;
+    const fixed = list.map((p) => (p.inviteCode ? p : { ...p, inviteCode: newCode(), openCount: 0 }));
+    writeJSON(KEY, fixed);
+    return fixed;
+  };
+  const byCode = (code: string) => load().find((p) => p.inviteCode === code.trim().toLowerCase());
   const save = (list: Prospect[]) => writeJSON(KEY, list);
   const isAdmin = () => deps.currentUser()?.role === 'admin';
   const denied = { ok: false as const, error: 'Solo un administrador puede hacer esto' };
@@ -53,7 +67,8 @@ export const createLocalProspects = (deps: Deps): ProspectsBackend => {
       if (next.status === 'contactado' && !next.contactedAt) next.contactedAt = now;
       if (next.status === 'respondio' && !next.repliedAt) next.repliedAt = now;
     }
-    if (before && next.followUps > before.followUps) next.lastFollowUpAt = now;
+    if (before && next.followUps > before.followUps) { next.lastFollowUpAt = now; log(next.id, 'seguimiento'); }
+    if (before && before.status !== next.status && (['contactado', 'registrado', 'verificado', 'activo'] as ProspectStatus[]).includes(next.status)) log(next.id, next.status as ProspectEvent);
     next.score = prospectScore(next);
     return next;
   };
@@ -70,6 +85,9 @@ export const createLocalProspects = (deps: Deps): ProspectsBackend => {
         contactedToday: list.filter((p) => p.contactedAt && new Date(p.contactedAt).getTime() >= today).length,
         followUpsDue: list.filter((p) => matches(p, { status: 'follow_up' })).length,
         toEnrich: list.filter((p) => p.network === 'instagram' && !p.enrichedAt && matches(p, { status: 'open' })).length,
+        last24h: readJSON<Logged[]>(EVENTS_KEY, []).filter((e) => Date.now() - new Date(e.at).getTime() < 86400000)
+          .reduce<Partial<Record<ProspectEvent, number>>>((acc, e) => ({ ...acc, [e.kind]: (acc[e.kind] ?? 0) + 1 }), {}),
+        emailsToday: readJSON<Logged[]>(EVENTS_KEY, []).filter((e) => e.kind === 'correo' && new Date(e.at).getTime() >= today).length,
         measuredAt: new Date().toISOString(),
       };
     },
@@ -99,7 +117,7 @@ export const createLocalProspects = (deps: Deps): ProspectsBackend => {
         };
         const at = index.get(`${r.network}:${handle}`);
         if (at === undefined) {
-          const p: Prospect = { id: crypto.randomUUID(), network: r.network, handle, source, status: 'nuevo', followUps: 0, score: 0, createdAt: new Date().toISOString(), ...fresh };
+          const p: Prospect = { id: crypto.randomUUID(), network: r.network, handle, source, status: 'nuevo', followUps: 0, score: 0, inviteCode: newCode(), openCount: 0, createdAt: new Date().toISOString(), ...fresh };
           index.set(`${r.network}:${handle}`, list.length);
           list.push(touch(p));
           inserted++;
@@ -152,7 +170,7 @@ export const createLocalProspects = (deps: Deps): ProspectsBackend => {
       const accounts = deps.accounts().filter((a) => a.role !== 'admin');
       let moved = 0;
       const list = load().map((p) => {
-        const found = accounts.find((a) => a.settings.socials?.[p.network]?.toLowerCase() === p.handle);
+        const found = accounts.find((a) => a.id === p.matchedProfileId) ?? accounts.find((a) => a.settings.socials?.[p.network]?.toLowerCase() === p.handle);
         if (!found) return p;
         const target: ProspectStatus = found.role === 'creator' && found.isVerified
           ? (found.creatorProfileId && deps.hasRecentSale(found.creatorProfileId) ? 'activo' : 'verificado') : 'registrado';
@@ -165,8 +183,78 @@ export const createLocalProspects = (deps: Deps): ProspectsBackend => {
       return { ok: true, moved };
     },
 
-    async instagramStatus() {
-      return 'missing';
+    // Offline there is no server: the e2e suite turns on a stand-in Zoho with this flag.
+    async serverStatus() {
+      const fake = readJSON(FAKE_ZOHO_KEY, false);
+      return { instagram: 'missing' as const, email: fake ? 'ok' as const : 'missing' as const, emailLimit: fake ? 30 : 0, emailFrom: fake ? 'carlos@fansreserve.com' : undefined };
+    },
+
+    async sendEmails(emails, followUp) {
+      if (!isAdmin()) return denied;
+      if (!readJSON(FAKE_ZOHO_KEY, false)) return { ok: false as const, error: 'Los correos desde Zoho solo salen en la página publicada.' };
+      const list = load();
+      const sentToday = readJSON<Logged[]>(EVENTS_KEY, []).filter((e) => e.kind === 'correo' && new Date(e.at).getTime() >= hondurasDay()).length;
+      let remaining = Math.max(0, 30 - sentToday);
+      const sent: string[] = [];
+      const skipped: { id: string; reason: string }[] = [];
+      for (const m of emails.slice(0, 5)) {
+        const p = list.find((x) => x.id === m.id);
+        const reason = !p ? 'Ya no está en la lista' : p.status === 'no_contactar' ? 'Pidió que no le escribamos' : p.status === 'descartado' ? 'Está descartado'
+          : !p.email ? 'No tiene correo' : followUp ? (p.status !== 'contactado' ? 'No está esperando seguimiento' : '') : p.status !== 'nuevo' ? 'Ya estaba contactado' : !remaining ? 'Se llegó al límite de hoy' : '';
+        if (reason) { skipped.push({ id: m.id, reason }); continue; }
+        sent.push(m.id);
+        remaining--;
+      }
+      save(list.map((p) => (sent.includes(p.id) ? touch(followUp ? { ...p, followUps: Math.min(5, p.followUps + 1) } : { ...p, status: 'contactado', channel: 'email' }, p) : p)));
+      sent.forEach((id) => log(id, 'correo'));
+      return { ok: true as const, sent, skipped, failed: [], remaining };
+    },
+
+    async invite(code) {
+      const p = byCode(code);
+      if (!p) return null;
+      if (p.status === 'no_contactar') return { handle: p.handle, network: p.network, interested: false, registered: false, unsubscribed: true };
+      if (!isAdmin()) {
+        const now = new Date().toISOString();
+        save(load().map((x) => (x.id === p.id ? { ...x, openedAt: x.openedAt ?? now, openCount: (x.openCount ?? 0) + 1 } : x)));
+        if (!p.openedAt) log(p.id, 'abrio');
+      }
+      return {
+        handle: p.handle, network: p.network, name: p.displayName, country: p.country,
+        interested: !!p.interestedAt, registered: FUNNEL.indexOf(p.status) >= 3, unsubscribed: false,
+      };
+    },
+
+    async interest(code, email) {
+      const clean = email?.trim().toLowerCase() || undefined;
+      if (clean && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean)) return { ok: false, error: 'Ese correo no parece válido' };
+      const p = byCode(code);
+      if (!p || p.status === 'no_contactar') return { ok: false, error: 'Esta invitación ya no está activa.' };
+      if (isAdmin()) return { ok: true };
+      save(load().map((x) => (x.id === p.id ? touch({
+        ...x, interestedAt: x.interestedAt ?? new Date().toISOString(), email: x.email ?? clean,
+        status: x.status === 'nuevo' || x.status === 'contactado' ? 'respondio' : x.status,
+      }, x) : x)));
+      if (!p.interestedAt) log(p.id, 'interesado');
+      return { ok: true };
+    },
+
+    async unsubscribe(code) {
+      const p = byCode(code);
+      if (!p) return { ok: false, error: 'Esta invitación ya no está activa.' };
+      if (p.status !== 'no_contactar') {
+        save(load().map((x) => (x.id === p.id ? touch({ ...x, status: 'no_contactar' }, x) : x)));
+        log(p.id, 'baja');
+      }
+      return { ok: true };
+    },
+
+    async claim(code) {
+      const me = deps.currentUser();
+      const p = byCode(code);
+      if (!me || me.role === 'admin' || !p || (p.matchedProfileId && p.matchedProfileId !== me.id)) return false;
+      save(load().map((x) => (x.id === p.id ? touch({ ...x, matchedProfileId: me.id, status: FUNNEL.indexOf(x.status) < 3 ? 'registrado' : x.status }, x) : x)));
+      return true;
     },
 
     async lookupInstagram() {
