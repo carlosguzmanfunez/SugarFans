@@ -1,4 +1,5 @@
 import type { ReserveDetails } from '../lib/backend/types';
+import { RESERVE_CATALOG } from '../content/reserveCatalog';
 import { CREATOR_CATEGORIES } from '../config/reserve';
 
 export interface Creator {
@@ -314,7 +315,7 @@ const nextFriday = () => {
 const noRecording = 'Grabación de la sesión';
 const offPlatform = 'Contacto o pagos fuera de Fans Reserve';
 
-export const vipExperiences: VIPExperience[] = [
+const pilotExperiences: VIPExperience[] = [
   {
     id: '1',
     creatorId: '1',
@@ -398,32 +399,6 @@ export const vipExperiences: VIPExperience[] = [
     tags: ['Tutorial', 'Arte digital'],
   },
   {
-    id: '4',
-    creatorId: '4',
-    creatorName: 'Mariana Silva',
-    creatorAvatar: '/creators/photos/mariana.jpg',
-    title: 'Acceso anticipado a mi próximo proyecto',
-    description: 'Acceso anticipado a mi próximo proyecto de baile y un video exclusivo del proceso creativo, entregado en la app.',
-    type: 'early-access',
-    details: {
-      ...online,
-      includes: ['Estreno 7 días antes', 'Video del proceso creativo'],
-      excludes: ['Sesión en vivo'],
-      requirements: { verifiedFans: false, subscribersOnly: false },
-      minNoticeHours: 24,
-      maxParticipants: 1,
-      approval: 'automatic',
-      cancellationPolicy: 'strict',
-    },
-    price: 15.99,
-    availableSlots: 10,
-    totalSlots: 20,
-    rating: 4.7,
-    reviews: 56,
-    image: '',
-    tags: ['Acceso anticipado', 'Baile'],
-  },
-  {
     id: '5',
     creatorId: '6',
     creatorName: 'Camila Reyes',
@@ -463,7 +438,7 @@ export const vipExperiences: VIPExperience[] = [
       locationTypes: ['public-place', 'event-venue'],
       city: 'Miami',
       includes: ['Foto juntos', 'Saludo personal'],
-      excludes: ['Encuentros fuera del venue', 'Transporte'],
+      excludes: ['Actividades fuera del lugar acordado', 'Transporte'],
       requirements: { verifiedFans: true, subscribersOnly: false },
       minNoticeHours: 72,
       maxParticipants: 2,
@@ -477,7 +452,7 @@ export const vipExperiences: VIPExperience[] = [
     rating: 5.0,
     reviews: 12,
     image: '',
-    tags: ['Meet & Greet', 'Miami'],
+    tags: ['Saludo y fotos', 'Miami'],
   },
   {
     id: '7',
@@ -567,4 +542,16 @@ export const vipExperiences: VIPExperience[] = [
     image: '',
     tags: ['Q&A', 'Belleza', 'Grupal'],
   },
+  {
+    id: 'demo-interest-talk', creatorId: '1', creatorName: 'Valentina Rose', creatorAvatar: '/creators/photos/valentina.jpg',
+    ...RESERVE_CATALOG.conversation.copy.es,
+    type: 'live-1-1',
+    details: { ...online, includes: [], excludes: [noRecording, offPlatform], requirements: { verifiedFans: false, subscribersOnly: false }, minNoticeHours: 24, maxParticipants: 1, approval: 'automatic', cancellationPolicy: 'moderate' },
+    price: 25, duration: '15 min', availableSlots: 5, totalSlots: 5, rating: 0, reviews: 0, image: '', tags: ['Conversación', 'En vivo'],
+  },
 ];
+
+export const vipExperiences: VIPExperience[] = pilotExperiences.map((experience) => {
+  const edition = Object.values(RESERVE_CATALOG).find((entry) => entry.type === experience.type);
+  return edition ? { ...experience, ...edition.copy.es } : experience;
+});

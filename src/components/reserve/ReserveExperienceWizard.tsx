@@ -1,3 +1,5 @@
+import { COUNTRIES, countryName } from '../../config/countries';
+import { validReserveLocation } from '../../lib/reserveLocation';
 import React, { useState } from 'react';
 import { BRAND } from '../../config/brand';
 import { backend } from '../../lib/backend';
@@ -180,6 +182,7 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category: profileCateg
     if (i === 5 && (!Number.isFinite(input.price) || input.price < MIN_EXPERIENCE_PRICE || input.price > MAX_EXPERIENCE_PRICE))
       return `El precio debe estar entre $${MIN_EXPERIENCE_PRICE} y $${MAX_EXPERIENCE_PRICE}`;
     if (i === 7 && d.modality !== 'virtual') {
+      if (!validReserveLocation(d)) return 'Indica el país, el departamento o estado y la ciudad de la experiencia';
       if (!d.locationTypes.length || (d.city ?? '').trim().length < 2) return 'Elige el tipo de lugar e indica la ciudad';
       return mod([d.venue, d.city]);
     }
@@ -457,6 +460,15 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category: profileCateg
               </p>
             </fieldset>
             <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-sm"><span className="font-semibold text-ink">País de la experiencia</span>
+                <select name="expCountry" value={d.country ?? ''} onChange={(e) => setD({ country: e.target.value })} className={`${field} text-base`}>
+                  <option value="">Selecciona un país</option>
+                  {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{countryName(c.code, 'es', '')}</option>)}
+                </select>
+              </label>
+              <label className="block text-sm"><span className="font-semibold text-ink">Departamento o estado</span>
+                <input name="expRegion" maxLength={60} value={d.region ?? ''} onChange={(e) => setD({ region: e.target.value })} className={`${field} text-base`} />
+              </label>
               <label className="block text-sm">
                 <span className="font-semibold text-ink">Ciudad</span>
                 <input name="expCity" maxLength={60} value={d.city ?? ''} onChange={(e) => setD({ city: e.target.value })} className={field} />

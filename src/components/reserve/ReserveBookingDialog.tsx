@@ -1,3 +1,4 @@
+import { attendanceLocation, attendanceError, inPerson, locationLabel, visibleAtLocation } from '../../lib/reserveLocation';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ReserveModal from './ReserveModal';
@@ -25,6 +26,8 @@ import {
 import type { User } from '../../context/AuthContext';
 import { rewardsApi, type ExperienceTicket } from '../../lib/rewards';
 import { RESERVE_COPY, RESERVE_FLOW, RESERVE_RESPONSE_HOURS, isHomeService } from '../../config/reserve';
+import { experienceCopy, reserveTypeName, RESERVE_READING } from '../../content/reserveCatalog';
+import { useReserveLanguage } from './ReserveLanguageSelector';
 
 interface Props {
   exp: VipExperience;
@@ -45,6 +48,9 @@ interface Props {
 const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeedLogin, onClose, seatsTaken = 0, ticket }) => {
   const d = detailsOf(exp);
   const type = typeOf(exp.type);
+  const language = useReserveLanguage();
+  const copy = experienceCopy(exp, language);
+  const text = RESERVE_READING[language];
   // A Reserve Event has its own day and time: the fan books a seat, not a slot.
   const isEvent = isEventExperience(exp);
   const product = reserveProductOf(exp);
@@ -63,6 +69,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
+  const [willAttend, setWillAttend] = useState(false);
 
   useEffect(() => {
     if (isEventExperience(exp)) {
@@ -85,6 +92,8 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
 
   const submit = async () => {
     if (!user) return onNeedLogin();
+    if (!visibleAtLocation(exp, attendanceLocation(user))) return setError(attendanceError);
+    if (inPerson(d) && !willAttend) return setError('Confirma que asistirás presencialmente antes de reservar.');
     if (!date) return setError('Elige un día en el calendario');
     if (!time) return setError('Elige una hora disponible');
     const check = moderate(message, 'request', { homeAllowed: isHomeService(d.locationTypes ?? []) });
@@ -105,7 +114,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
     setStep('done');
   };
 
-  const verb = bookLabel(exp);
+  const verb = bookLabel(exp, language);
 
   if (step === 'done') {
     return (
@@ -114,7 +123,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
           <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
             <i aria-hidden="true" className="fas fa-check text-xl"></i>
           </span>
-          <p className="font-semibold text-ink">{exp.title}</p>
+          <p lang={copy.language} className="font-semibold text-ink">{copy.title}</p>
           <p className="mt-1 text-sm text-ink/70">
             <span className="first-letter:uppercase">{formatLongDate(date)}</span> · {time}
           </p>
@@ -138,8 +147,9 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
 
   return (
     <ReserveModal
-      title={step === 'book' ? `${verb}: ${exp.title}` : exp.title}
-      subtitle={<>{product === 'event' ? 'Reserve Event' : product === 'one-to-one' ? 'Reserve 1:1' : type.name} · con {exp.creatorName}</>}
+      title={step === 'book' ? `${verb}: ${copy.title}` : copy.title}
+      titleLanguage={copy.language}
+      subtitle={<>{product === 'event' ? 'Reserve Event' : product === 'one-to-one' ? 'Reserve 1:1' : reserveTypeName(exp.type, language, type.name)} · con {exp.creatorName}</>}
       onClose={onClose}
       testId="reserve-dialog"
       footer={
@@ -147,8 +157,8 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
           <div className="flex items-center justify-between gap-3">
             <PriceTag exp={exp} />
             {!isOwn && (
-              <button type="button" onClick={begin} disabled={full} className="h-11 rounded-full bg-ink px-6 text-sm font-semibold text-white hover:bg-night-800 disabled:opacity-50">
-                {full ? 'Sin plazas' : verb}
+              <button lang={language} type="button" onClick={begin} disabled={full} className="min-h-11 rounded-full bg-ink px-6 py-2 text-sm font-semibold text-white hover:bg-night-800 disabled:opacity-50">
+                {full ? text.full : verb}
               </button>
             )}
           </div>
@@ -157,7 +167,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
             <button type="button" onClick={() => setStep('details')} className="h-11 rounded-full border border-line px-5 text-sm font-semibold text-ink">
               Volver a los detalles
             </button>
-            <button type="button" onClick={submit} disabled={sending} className="h-11 rounded-full bg-gradient-to-r from-brand-600 to-iris-600 px-6 text-sm font-semibold text-white disabled:opacity-60">
+            <button type="button" onClick={submit} disabled={sending || (inPerson(d) && !willAttend)} className="h-11 rounded-full bg-gradient-to-r from-brand-600 to-iris-600 px-6 text-sm font-semibold text-white disabled:opacity-60">
               {ticket ? 'Reservar con mi ticket' : <>{isEvent ? (approval ? 'Solicitar plaza' : 'Reservar plaza') : approval ? 'Enviar solicitud' : 'Confirmar reserva'} · {money(price)}</>}
             </button>
           </div>
@@ -166,7 +176,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
     >
       {step === 'details' ? (
         <div className="space-y-5">
-          <p className="text-sm leading-relaxed text-ink/80">{exp.description}</p>
+          <p lang={copy.language} className="text-sm leading-relaxed text-ink/80" data-testid="experience-description">{copy.description}</p>
           {isEvent && <EventFacts exp={exp} seatsTaken={seatsTaken} />}
           <ExperienceFacts exp={exp} />
           <ExperienceTerms exp={exp} />
@@ -216,6 +226,10 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
               </select>
             </label>
           )}
+          {inPerson(d) && <label className="flex items-start gap-2 rounded-xl border border-line p-3 text-sm text-ink">
+            <input type="checkbox" checked={willAttend} onChange={(e) => setWillAttend(e.target.checked)} className="mt-1 h-4 w-4 shrink-0" />
+            <span>Confirmo que asistiré presencialmente en {locationLabel(d)}. Esta experiencia requiere mi presencia.</span>
+          </label>}
           <label className="block text-sm">
             <span className="font-semibold text-ink">Mensaje para {exp.creatorName.split(' ')[0]} (opcional)</span>
             <textarea

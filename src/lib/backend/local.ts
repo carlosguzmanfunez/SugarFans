@@ -1,5 +1,6 @@
 // Browser-only backend (localStorage). Used when Supabase is not configured,
 // e.g. local development and the offline E2E suite. Data is per browser.
+import { attendanceLocation, attendanceError, bookingHasAttendance, inPerson, sameReserveLocation, validReserveLocation, visibleAtLocation } from '../reserveLocation';
 import { readJSON, writeJSON, removeKey, hashPassword, newId } from '../storage';
 import {
   ACTIVE_STATUSES,
@@ -279,6 +280,7 @@ const createBooking = async (user: User, input: BookingInput): Promise<AuthResul
   if (!note.ok) return fail(note.error!);
   if (platform.ledger.cutOff(user.id, exp.creatorProfileId)) return fail('No puedes reservar con este perfil');
   const d = detailsOf(exp);
+  if (!visibleAtLocation(exp, attendanceLocation(user))) return fail(attendanceError);
   const subscribed = user.subscriptions.some((s) => s.creatorId === exp.creatorProfileId);
   const participants = input.participants ?? 1;
   if (!Number.isInteger(participants) || participants < 1 || participants > d.maxParticipants)
@@ -319,7 +321,7 @@ const createBooking = async (user: User, input: BookingInput): Promise<AuthResul
         typeId: exp.type,
         modality: d.modality,
         participants,
-        ...(d.modality !== 'virtual' ? { locationType: d.locationTypes[0], city: d.city, venue: d.venue } : {}),
+        ...(d.modality !== 'virtual' ? { locationType: d.locationTypes[0], city: d.city, country: d.country, region: d.region, venue: d.venue, attendance: attendanceLocation(user)! } : {}),
         ...(price !== exp.price ? { listPrice: exp.price, discountPercent: d.subscriberDiscount } : {}),
       },
     },
@@ -752,6 +754,23 @@ export const localBackend: Backend = {
     return takenFor(id);
   },
 
+  async selectAttendanceLocation(user, location) {
+    if (!validReserveLocation(location)) return fail('Indica el país, el departamento o estado y la ciudad');
+    return this.updateProfile(user, { settings: { ...user.settings, reserveAttendance: { ...location, confirmedAt: new Date().toISOString() } } });
+  },
+
+  async confirmBookingAttendance(user, bookingId) {
+    const bookings = listBookings();
+    const b = bookings.find((x) => x.id === bookingId && x.fanId === user.id);
+    if (!b) return fail('Reserva no encontrada');
+    if (!inPerson(b.details)) return ok;
+    const where = attendanceLocation(user);
+    if (!bookingHasAttendance(b.details) && !sameReserveLocation(b.details, where)) return fail(attendanceError);
+    b.details = { ...b.details, attendance: { country: b.details!.country!, region: b.details!.region!, city: b.details!.city!, confirmedAt: new Date().toISOString() } };
+    saveBookings(bookings);
+    return ok;
+  },
+
   createBooking: (user, input) => createBooking(user, input),
 
   async bookEventSeat(user, experienceId, message) {
@@ -763,6 +782,7 @@ export const localBackend: Backend = {
     const note = moderate(message ?? '', 'request');
     if (!note.ok) return fail(note.error!);
     const d = detailsOf(exp);
+    if (!visibleAtLocation(exp, attendanceLocation(user))) return fail(attendanceError);
     const subscribed = user.subscriptions.some((s) => s.creatorId === exp.creatorProfileId);
     if (!isUpcomingEvent(exp)) return fail('Este evento ya pasó');
     const seats = listBookings().filter((b) => b.experienceId === exp.id && b.details?.kind === 'event' && ACTIVE_STATUSES.includes(b.status));
@@ -795,7 +815,7 @@ export const localBackend: Backend = {
           typeId: exp.type,
           modality: d.modality,
           participants: 1,
-          ...(d.modality !== 'virtual' ? { locationType: d.locationTypes[0], city: d.city, venue: d.venue } : {}),
+          ...(d.modality !== 'virtual' ? { locationType: d.locationTypes[0], city: d.city, country: d.country, region: d.region, venue: d.venue, attendance: attendanceLocation(user)! } : {}),
           ...(price !== exp.price ? { listPrice: exp.price, discountPercent: d.subscriberDiscount } : {}),
         },
       },
@@ -812,6 +832,8 @@ export const localBackend: Backend = {
   },
 
   async requestCustomExperience(user, input) {
+    const where = attendanceLocation(user);
+    if (input.modality !== 'virtual' && (!where || input.city.trim() !== where.city || !listExperiences().some((e) => e.active && e.creatorProfileId === input.creatorProfileId && inPerson(e.details) && visibleAtLocation(e, where)))) return fail(attendanceError);
     if (user.creatorProfileId === input.creatorProfileId) return fail('No puedes enviarte una solicitud a ti mismo');
     if (platform.ledger.cutOff(user.id, input.creatorProfileId)) return fail('No puedes reservar con este perfil');
     const owner = creatorAccount(input.creatorProfileId);
@@ -848,7 +870,7 @@ export const localBackend: Backend = {
           purpose: input.purpose,
           participants: input.participants,
           locationType: input.locationType,
-          ...(input.modality !== 'virtual' ? { city: input.city.trim(), venue: input.venue.trim() } : {}),
+          ...(input.modality !== 'virtual' ? { city: input.city.trim(), country: where!.country, region: where!.region, venue: input.venue.trim(), attendance: where! } : {}),
           ...(check.flags?.length ? { flags: check.flags } : {}),
         },
       },
@@ -924,6 +946,7 @@ export const localBackend: Backend = {
     const b = bookings.find((x) => x.id === bookingId);
     if (!b || b.fanId !== user.id) return fail('Reserva no encontrada');
     if (b.status !== 'accepted') return fail('Solo puedes pagar una reserva aceptada por el creador');
+    if (!bookingHasAttendance(b.details)) return fail(attendanceError);
     const methodLabel = platform.ledger.methodLabel(user.id, methodId);
     if (!methodLabel) return fail('Elige un método de pago');
     const now = new Date().toISOString();
@@ -975,6 +998,7 @@ export const localBackend: Backend = {
     const b = bookings.find((x) => x.id === bookingId);
     if (!b || b.fanId !== user.id) return fail('Reserva no encontrada');
     if (b.status !== 'accepted') return fail('Solo puedes pagar una reserva aceptada por el creador');
+    if (!bookingHasAttendance(b.details)) return fail(attendanceError);
     if (b.details?.ticketId) return fail('Esta reserva usa un ticket de Meta de experiencia');
     if (bookingStart(b) <= new Date()) return fail('Esta reserva ya empezó');
     const coins = Math.round(b.price * 100);

@@ -1,3 +1,5 @@
+import ReserveCitySelector, { useReserveDestination } from '../components/reserve/ReserveCitySelector';
+import { visibleAtLocation } from '../lib/reserveLocation';
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -11,6 +13,8 @@ import { CREATOR_CATEGORIES, MODALITY_IDS, RESERVE_COPY, RESERVE_FLOW, RESERVE_M
 import ReserveExperienceCard from '../components/reserve/ReserveExperienceCard';
 import ReserveBookingDialog from '../components/reserve/ReserveBookingDialog';
 import { ReserveNotice } from '../components/reserve/ReserveBits';
+import ReserveLanguageSelector, { useReserveLanguage } from '../components/reserve/ReserveLanguageSelector';
+import { catalogOrder, experienceCopy } from '../content/reserveCatalog';
 
 // Reserve: experiences fans can book with creators. Each one is defined by its
 // creator (type, modality, duration, price, venue, rules) and approved by them.
@@ -25,6 +29,8 @@ const PRODUCTS: { id: ReserveProduct | 'all'; label: string; icon: string }[] = 
 
 const ReservePage: React.FC = () => {
   const { user } = useAuth();
+  const language = useReserveLanguage();
+  const destination = useReserveDestination();
   const navigate = useNavigate();
   const location = useLocation();
   const [modality, setModality] = useState<ReserveModality | 'all'>('all');
@@ -40,16 +46,18 @@ const ReservePage: React.FC = () => {
   // Search by creator (name or @username) or by the experience's title, like Explorar.
   const query = search.trim().toLowerCase();
   const matchesSearch = (e: VipExperience) =>
-    !query || [e.creatorName, creatorOf(e)?.username ?? '', e.title].some((text) => text.toLowerCase().includes(query));
+    !query || [e.creatorName, creatorOf(e)?.username ?? '', e.title, experienceCopy(e, language).title, experienceCopy(e, language).description].some((text) => text.toLowerCase().includes(query));
 
   const visible = experiences
     .filter((e) => e.active)
+    .filter((e) => visibleAtLocation(e, destination))
     // Events that already happened aren't bookable.
     .filter((e) => reserveProductOf(e) !== 'event' || isUpcomingEvent(e))
     .filter((e) => product === 'all' || reserveProductOf(e) === product)
     .filter((e) => modality === 'all' || detailsOf(e).modality === modality)
     .filter((e) => category === 'all' || experienceCategory(e, creatorOf(e)?.category).id === category)
-    .filter((e) => matchesSearch(e));
+    .filter((e) => matchesSearch(e))
+    .sort(catalogOrder);
 
   const seats = useEventSeats(visible);
   const chip = (active: boolean) =>
@@ -86,6 +94,8 @@ const ReservePage: React.FC = () => {
             placeholder="Buscar creadores o experiencias..."
           />
         </div>
+        <ReserveCitySelector experiences={experiences} />
+        <ReserveLanguageSelector />
         <div className="mb-6 space-y-3 sm:mb-8">
           <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0" role="group" aria-label="Tipo de Reserve" data-testid="reserve-products">
             {PRODUCTS.map((p) => (
@@ -185,7 +195,7 @@ const ReservePage: React.FC = () => {
         </section>
       </div>
 
-      {open && <ReserveBookingDialog exp={open.exp} user={user} startBooking={open.book} seatsTaken={seats[open.exp.id] ?? 0} onNeedLogin={goLogin} onClose={() => setOpen(null)} />}
+      {open && visibleAtLocation(open.exp, destination) && <ReserveBookingDialog exp={open.exp} user={user} startBooking={open.book} seatsTaken={seats[open.exp.id] ?? 0} onNeedLogin={goLogin} onClose={() => setOpen(null)} />}
     </div>
   );
 };

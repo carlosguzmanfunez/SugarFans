@@ -9,6 +9,7 @@ import type { ProspectsBackend } from './prospectTypes';
 import type { SocialLinks } from '../creatorLinks';
 import type { InfraUsage } from '../infraUsage';
 import type { FinanceBackend } from '../creatorFinance';
+import type { ReserveLocation, AttendanceLocation } from '../reserveLocation';
 import type { ApprovalMode, CancellationPolicyId, CreatorCategoryId, LocationType, PurposeId, ReserveModality } from '../../config/reserve';
 export type * from './platformTypes';
 export type * from './socialTypes';
@@ -33,6 +34,7 @@ export interface UserSettings {
   category?: string;
   // A creator's social networks (handles only), shown on their profile.
   socials?: SocialLinks;
+  reserveAttendance?: AttendanceLocation;
 }
 
 export interface Subscription {
@@ -153,6 +155,9 @@ export interface CounterOffer {
 // What a Reserve booking was for (vip_bookings.details). Empty on bookings made
 // before Reserve: those are virtual, for one person.
 export interface BookingDetails {
+  country?: string;
+  region?: string;
+  attendance?: AttendanceLocation;
   // event = one seat in a Reserve Event (same day and time for every participant).
   kind?: 'experience' | 'custom' | 'event';
   typeId?: string;
@@ -262,6 +267,8 @@ export type ExperienceType = string;
 // How an experience is offered (vip_experiences.details). Experiences created
 // before Reserve have none: they read as virtual, online, manual approval.
 export interface ReserveDetails {
+  country?: string;
+  region?: string;
   // This experience's category, independent of its creator's profile category.
   // Absent on older experiences, which keep the profile category as a fallback.
   categoryId?: CreatorCategoryId;
@@ -363,6 +370,8 @@ export interface Backend {
   setAvailability(creatorProfileId: string, availability: Availability): Promise<AuthResult>;
   takenSlots(creatorProfileId: string): Promise<TakenSlot[]>;
   createBooking(user: User, input: BookingInput): Promise<AuthResult>;
+  selectAttendanceLocation(user: User, location: ReserveLocation): Promise<AuthResult>;
+  confirmBookingAttendance(user: User, bookingId: string): Promise<AuthResult>;
   // Reserve Event: one seat for the signed-in fan (day and time come from the event).
   bookEventSeat(user: User, experienceId: string, message: string): Promise<AuthResult>;
   // Seats already held per event (pending, accepted or confirmed), without who holds them.

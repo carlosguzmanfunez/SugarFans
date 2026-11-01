@@ -1,3 +1,5 @@
+import { useReserveDestination } from '../components/reserve/ReserveCitySelector';
+import { visibleAtLocation } from '../lib/reserveLocation';
 import React, { useCallback, useEffect, useState } from 'react';
 import Icon from '../components/Icon';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
@@ -117,6 +119,8 @@ const CreatorProfile: React.FC = () => {
     [id],
     [] as VipExperience[]
   );
+  const reserveDestination = useReserveDestination();
+  const visibleExperiences = experiences.filter((e) => visibleAtLocation(e, reserveDestination));
   // Links to /creator/:id#reserve (the Reserve rails) land on the experiences once they load.
   useEffect(() => {
     if (location.hash === '#reserve' && experiences.length) document.getElementById('reserve')?.scrollIntoView({ block: 'start' });
@@ -471,7 +475,7 @@ const CreatorProfile: React.FC = () => {
                 </Link>
               ) : null}
               {/* "Habla con …": straight to the creator's Reserve 1:1 video calls. */}
-              {!isOwner && !iBlocked && experiences.length > 0 && (
+              {!isOwner && !iBlocked && visibleExperiences.length > 0 && (
                 <button
                   type="button"
                   onClick={() => openReserve('one-to-one')}
@@ -597,7 +601,7 @@ const CreatorProfile: React.FC = () => {
               isOwner={isOwner}
               isSubscribed={isSubscribed}
               following={follow.following}
-              experiences={experiences.length}
+              experiences={isOwner ? experiences.length : visibleExperiences.length}
               onSubscribe={handleSubscribe}
               onNeedLogin={goLogin}
               editsPrice={isOwner && !managesProfile}
