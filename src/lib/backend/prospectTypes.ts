@@ -48,6 +48,8 @@ export interface ProspectsBackend {
   exportRows(filter: ProspectFilter): Promise<Prospect[]>;
   importRows(rows: ProspectInput[], source: ProspectSource): Promise<ImportResult>;
   update(id: string, patch: ProspectPatch): Promise<AuthResult>;
+  // The same change for a whole batch (e.g. everyone in a downloaded email batch is now contacted).
+  updateMany(ids: string[], patch: Pick<ProspectPatch, 'status' | 'channel'>): Promise<AuthResult>;
   remove(id: string): Promise<AuthResult>;
   // Links prospects to the account that lists the same handle and moves them forward.
   sync(): Promise<{ ok: true; moved: number } | { ok: false; error: string }>;

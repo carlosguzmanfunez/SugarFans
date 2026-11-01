@@ -380,3 +380,15 @@ export const fillTemplate = (template: string, p: Prospect) => {
     .replace(/{pais}/g, p.country ? countryLabel(p.country) : 'tu país')
     .replace(/{categoria}/g, category || 'tu contenido');
 };
+
+// An email batch for a sending tool (Instantly, Smartlead): one row per creator with
+// the subject and message already written for them. In the tool's sequence the
+// subject is {{subject}} and the message is {{body}}.
+export const emailBatchCsv = (list: Prospect[], t: Templates, followUp = false) =>
+  ['email,first_name,username,network,country,category,subject,body',
+    ...list.filter((p) => p.email).map((p) => {
+      const first = fillTemplate('{nombre}', p).replace(/^@.*/, '');
+      const subject = followUp ? `Re: ${fillTemplate(t.emailSubject, p)}` : fillTemplate(t.emailSubject, p);
+      return [p.email, first, p.handle, p.network, p.country ? countryLabel(p.country) : '', p.category ?? '', subject, fillTemplate(followUp ? t.followUp : t.email, p)]
+        .map(csvCell).join(',');
+    })].join('\n');

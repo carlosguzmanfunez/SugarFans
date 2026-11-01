@@ -150,6 +150,47 @@ try {
     await tool.getByLabel('Estado').selectOption('open');
   });
 
+  await ok('Lote de DMs: copia, abre el perfil y pasa al siguiente marcando a cada uno', async () => {
+    await page.evaluate(() => { window.open = (url) => { window.__opened = [...(window.__opened ?? []), url]; return null; }; });
+    const before = await page.evaluate(() => JSON.parse(localStorage.getItem('fansreserve_creator_prospects')).filter((p) => p.status === 'contactado').length);
+    await tool.getByRole('button', { name: 'Lote de DMs' }).click();
+    let dialog = page.getByRole('dialog', { name: 'Lote de DMs' });
+    await dialog.getByLabel('Cuántos').selectOption('10');
+    await dialog.getByRole('button', { name: 'Empezar el lote' }).click();
+    dialog = page.getByRole('dialog', { name: /^Lote de DMs · 1 de 10/ });
+    assert.match(await dialog.getByLabel('Mensaje').inputValue(), /^Hola .+ 👋/);
+    await dialog.getByRole('button', { name: '1. Copiar y abrir su perfil' }).click();
+    if (shots) await page.screenshot({ path: join(shots, 'escritorio-4-lote-dms.png') });
+    await dialog.getByRole('button', { name: /2\. Enviado, siguiente/ }).click();
+    await page.getByRole('dialog', { name: /^Lote de DMs · 2 de 10/ }).getByRole('button', { name: 'Saltar' }).click();
+    await page.getByRole('dialog', { name: /^Lote de DMs · 3 de 10/ }).getByRole('button', { name: /2\. Enviado, siguiente/ }).click();
+    await page.getByRole('dialog', { name: /^Lote de DMs · 4 de 10/ }).getByRole('button', { name: 'Terminar aquí' }).click();
+    await tool.getByText('Lote terminado: 2 mensajes enviados, 1 descartados o saltados.').waitFor();
+    const opened = await page.evaluate(() => window.__opened);
+    assert.equal(opened.length, 1);
+    assert.match(opened[0], /^https:\/\/www\.(instagram|tiktok)\.com\//);
+    const after = await page.evaluate(() => JSON.parse(localStorage.getItem('fansreserve_creator_prospects')).filter((p) => p.status === 'contactado').length);
+    assert.equal(after, before + 2);
+  });
+
+  await ok('Lote de correos: descarga cada correo ya escrito y marca el lote como contactado', async () => {
+    await tool.getByRole('button', { name: 'Lote de correos' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Lote de correos' });
+    await dialog.getByLabel('Cuántos').selectOption('25');
+    const [file] = await Promise.all([page.waitForEvent('download'), dialog.getByRole('button', { name: 'Descargar el lote' }).click()]);
+    const csv = (await import('node:fs')).readFileSync(await file.path(), 'utf8').replace(/^\uFEFF/, '');
+    const lines = csv.split('\n');
+    assert.equal(lines[0], 'email,first_name,username,network,country,category,subject,body');
+    assert.match(csv, /@correo\.com,[A-Z][a-z]+,/);
+    assert.match(csv, /te invitamos al lanzamiento de Fans Reserve en (Honduras|México|Colombia|Guatemala|El Salvador|Costa Rica|Panamá)/);
+    const count = Number((await dialog.getByText(/Se descargó el archivo con/).innerText()).match(/(\d+) correos/)[1]);
+    assert.ok(count > 0 && count <= 25);
+    await dialog.getByRole('button', { name: new RegExp(`^Marcar los ${count} como contactados`) }).click();
+    await tool.getByText(`${count} creadores quedaron como contactados por correo.`).waitFor();
+    const byEmail = await page.evaluate(() => JSON.parse(localStorage.getItem('fansreserve_creator_prospects')).filter((p) => p.channel === 'email' && p.status === 'contactado').length);
+    assert.equal(byEmail, count);
+  });
+
   if (shots) {
     await page.reload();
     await tool.getByText('Avance por país').waitFor();
@@ -168,7 +209,7 @@ try {
   }
 
   assert.deepEqual(errors, []);
-  console.log(`\n${passed}/7 comprobaciones en el navegador`);
+  console.log(`\n${passed}/9 comprobaciones en el navegador`);
 } finally {
   await browser.close();
   await new Promise((resolve) => server.httpServer.close(resolve));

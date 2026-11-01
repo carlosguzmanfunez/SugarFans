@@ -89,4 +89,17 @@ ok('El archivo exportado escapa comas y comillas', () => {
   assert.match(csv.split('\n')[1], /Contactado/);
 });
 
-console.log(`\n${passed}/8 comprobaciones de reglas`);
+ok('El lote de correos lleva asunto y mensaje escritos para cada uno', () => {
+  const base = { id: '1', network: 'instagram', source: 'heepsy', status: 'nuevo', followUps: 0, score: 0, createdAt: '' };
+  const csv = p.emailBatchCsv([
+    { ...base, handle: 'ana.fit', displayName: 'Ana María', email: 'ana@x.com', country: 'HN', category: 'Fitness' },
+    { ...base, handle: 'sin.correo' },
+  ], p.DEFAULT_TEMPLATES);
+  const lines = csv.split('\n');
+  assert.equal(lines[0], 'email,first_name,username,network,country,category,subject,body');
+  assert.match(lines[1], /^ana@x\.com,Ana,ana\.fit,instagram,Honduras,Fitness,"?Ana, te invitamos al lanzamiento de Fans Reserve en Honduras"?,"Hola Ana:/);
+  assert.doesNotMatch(csv, /sin\.correo/);
+  assert.match(p.emailBatchCsv([{ ...base, handle: 'x', email: 'x@x.com' }], p.DEFAULT_TEMPLATES, true), /\nx@x\.com,,x,instagram,,,"Re: @x, te invitamos[^"]+","Hola @x, te escribo de nuevo/);
+});
+
+console.log(`\n${passed}/9 comprobaciones de reglas`);

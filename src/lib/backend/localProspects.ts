@@ -134,6 +134,13 @@ export const createLocalProspects = (deps: Deps): ProspectsBackend => {
       return { ok: true };
     },
 
+    async updateMany(ids, patch) {
+      if (!isAdmin()) return denied;
+      const wanted = new Set(ids);
+      save(load().map((p) => (wanted.has(p.id) ? touch({ ...p, ...(patch.status ? { status: patch.status } : {}), ...(patch.channel !== undefined ? { channel: patch.channel ?? undefined } : {}) }, p) : p)));
+      return { ok: true };
+    },
+
     async remove(id) {
       if (!isAdmin()) return denied;
       save(load().filter((p) => p.id !== id));

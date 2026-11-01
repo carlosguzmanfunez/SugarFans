@@ -8,7 +8,7 @@ import {
   type CountryProgress, type Prospect, type ProspectInput, type ProspectNetwork, type ProspectStatus,
 } from '../lib/prospects';
 import AdminDataState from './AdminDataState';
-import { ImportDialog, MessageDialog, TemplatesDialog, download, flag } from './AdminProspectDialogs';
+import { BatchDmDialog, BatchEmailDialog, ImportDialog, MessageDialog, TemplatesDialog, download, flag } from './AdminProspectDialogs';
 
 const PAGE = 25;
 const SAFE_DAILY = 150; // first messages a day from the team's accounts before the risk of blocks grows
@@ -141,7 +141,7 @@ export default function AdminProspects() {
   const [typed, setTyped] = useState('');
   const [sort, setSort] = useState<NonNullable<ProspectFilter['sort']>>('score');
   const [page, setPage] = useState(0);
-  const [dialog, setDialog] = useState<'import' | 'templates' | null>(null);
+  const [dialog, setDialog] = useState<'import' | 'templates' | 'batchDm' | 'batchEmail' | null>(null);
   const [writing, setWriting] = useState<Prospect | null>(null);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
   const [working, setWorking] = useState('');
@@ -279,8 +279,12 @@ export default function AdminProspects() {
       <div className="p-4 sm:p-5 border-b border-gray-100 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 id="list-title" className="text-base font-bold text-gray-900">Creadores {country !== undefined ? `de ${countryLabel(country)}` : 'de todos los países'}</h3>
-          <button type="button" className="min-h-11 text-sm text-pink-800 underline underline-offset-4 disabled:opacity-50" disabled={working === 'export' || !list.data.total} onClick={() => void exportCsv()}>
-            {working === 'export' ? 'Preparando…' : 'Descargar esta lista (CSV)'}</button>
+          <span className="flex flex-wrap items-center gap-2">
+            <button type="button" className={`${button} bg-gray-900 text-white hover:bg-gray-800`} disabled={!summary.data.byCountry.length} onClick={() => setDialog('batchDm')}><i aria-hidden="true" className="fas fa-paper-plane" />Lote de DMs</button>
+            <button type="button" className={`${button} border border-gray-300 bg-white text-gray-800 hover:bg-gray-50`} disabled={!summary.data.byCountry.length} onClick={() => setDialog('batchEmail')}><i aria-hidden="true" className="fas fa-envelope" />Lote de correos</button>
+            <button type="button" className="min-h-11 px-2 text-sm text-pink-800 underline underline-offset-4 disabled:opacity-50" disabled={working === 'export' || !list.data.total} onClick={() => void exportCsv()}>
+              {working === 'export' ? 'Preparando…' : 'Descargar CSV'}</button>
+          </span>
         </div>
         <div className="grid grid-cols-2 gap-2 lg:grid-cols-[minmax(12rem,1.4fr)_repeat(4,minmax(0,1fr))]">
           <div className="relative col-span-2 lg:col-span-1">
@@ -329,6 +333,8 @@ export default function AdminProspects() {
 
     {dialog === 'import' && <ImportDialog country={country || undefined} onClose={() => setDialog(null)} onDone={(text) => done(text)} />}
     {dialog === 'templates' && <TemplatesDialog onClose={() => setDialog(null)} />}
+    {dialog === 'batchDm' && <BatchDmDialog filter={filter} sentToday={today} safeDaily={SAFE_DAILY} onClose={() => setDialog(null)} onDone={(text) => done(text)} />}
+    {dialog === 'batchEmail' && <BatchEmailDialog filter={filter} onClose={() => setDialog(null)} onDone={(text) => done(text)} />}
     {writing && <MessageDialog prospect={writing} onClose={() => setWriting(null)} onChanged={(text) => done(text)} />}
   </div>;
 }

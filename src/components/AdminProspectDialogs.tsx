@@ -2,9 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { backend } from '../lib/backend';
 import { readJSON, writeJSON } from '../lib/storage';
 import {
-  DEFAULT_TEMPLATES, NETWORKS, PILOT_COUNTRIES, SOURCES, STATUSES, TEMPLATE_HEADER, compact, countryLabel, fillTemplate, parseProspectList,
+  DEFAULT_TEMPLATES, NETWORKS, PILOT_COUNTRIES, SOURCES, STATUSES, TEMPLATE_HEADER, compact, countryLabel, emailBatchCsv, fillTemplate, parseProspectList,
   type Prospect, type ProspectNetwork, type ProspectSource, type Templates,
 } from '../lib/prospects';
+import type { ProspectFilter } from '../lib/backend/prospectTypes';
 import { AdminDialog } from './AdminDialog';
 
 const TEMPLATES_KEY = 'prospect_templates';
@@ -253,6 +254,199 @@ export function TemplatesDialog({ onClose }: { onClose: () => void }) {
           <button type="button" className={primary} onClick={() => { writeJSON(TEMPLATES_KEY, t); setSaved(true); }}>{saved ? 'Guardado ✓' : 'Guardar plantillas'}</button>
         </div>
       </div>
+    </div>
+  </AdminDialog>;
+}
+
+/* ---------- Batches ---------- */
+
+type BatchKind = 'first' | 'followUp';
+const SIZES = [10, 25, 50];
+
+function BatchSetup({ kind, setKind, size, setSize, sizes, children }: {
+  kind: BatchKind; setKind: (k: BatchKind) => void; size: number; setSize: (n: number) => void; sizes: number[]; children?: React.ReactNode;
+}) {
+  return <div className="grid gap-3 sm:grid-cols-2">
+    <div><label className={label} htmlFor="batch-kind">Qué mensaje</label>
+      <select id="batch-kind" className={field} value={kind} onChange={(e) => setKind(e.target.value as BatchKind)}>
+        <option value="first">Primer mensaje (por contactar)</option>
+        <option value="followUp">Seguimiento (contactados hace 5+ días)</option>
+      </select></div>
+    <div><label className={label} htmlFor="batch-size">Cuántos</label>
+      <select id="batch-size" className={field} value={size} onChange={(e) => setSize(Number(e.target.value))}>
+        {sizes.map((n) => <option key={n} value={n}>{n}</option>)}
+      </select></div>
+    {children}
+  </div>;
+}
+
+const batchFilter = (filter: ProspectFilter, kind: BatchKind): ProspectFilter => ({ ...filter, status: kind === 'first' ? 'nuevo' : 'follow_up', sort: 'score' });
+
+// DMs can't be sent automatically (no official API for first messages), so the batch
+// takes the admin through each creator: copy and open the profile, paste, mark it.
+export function BatchDmDialog({ filter, sentToday, safeDaily, onClose, onDone }: {
+  filter: ProspectFilter; sentToday: number; safeDaily: number; onClose: () => void; onDone: (text: string) => void;
+}) {
+  const [network, setNetwork] = useState<ProspectNetwork>(filter.network && filter.network !== 'youtube' ? filter.network : 'instagram');
+  const [kind, setKind] = useState<BatchKind>('first');
+  const [size, setSize] = useState(25);
+  const [queue, setQueue] = useState<Prospect[] | null>(null);
+  const [at, setAt] = useState(0);
+  const [text, setText] = useState('');
+  const [opened, setOpened] = useState(false);
+  const [sent, setSent] = useState(0);
+  const [skipped, setSkipped] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const templates = useMemo(loadTemplates, []);
+  const current = queue?.[at];
+
+  useEffect(() => {
+    if (current) setText(fillTemplate(kind === 'first' ? templates.dm : templates.followUp, current));
+    setOpened(false);
+  }, [current, kind, templates]);
+
+  const start = async () => {
+    setBusy(true); setError('');
+    try {
+      const rows = (await backend.prospects.exportRows({ ...batchFilter(filter, kind), network })).slice(0, size);
+      if (!rows.length) setError(kind === 'first' ? `No hay creadores de ${NETWORKS[network].label} por contactar con estos filtros.` : 'No hay seguimientos pendientes con estos filtros.');
+      else { setQueue(rows); setAt(0); }
+    } catch { setError('No pudimos preparar el lote.'); }
+    setBusy(false);
+  };
+  const copyAndOpen = async () => {
+    if (!current) return;
+    try { await navigator.clipboard.writeText(text); } catch { setError('No se pudo copiar. Selecciona el texto y cópialo a mano.'); }
+    window.open(NETWORKS[current.network].url(current.handle), '_blank', 'noopener,noreferrer');
+    setOpened(true);
+  };
+  const next = () => setAt((i) => i + 1);
+  const mark = async (patch: Parameters<typeof backend.prospects.update>[1], counted: boolean) => {
+    if (!current) return;
+    setBusy(true); setError('');
+    const r = await backend.prospects.update(current.id, patch);
+    setBusy(false);
+    if (!r.ok) { setError(r.error ?? 'No se pudo guardar.'); return; }
+    if (counted) setSent((n) => n + 1); else setSkipped((n) => n + 1);
+    next();
+  };
+  const finished = queue && at >= queue.length;
+  const close = () => (sent || skipped ? onDone(`Lote terminado: ${sent} ${kind === 'first' ? 'mensajes enviados' : 'seguimientos enviados'}${skipped ? `, ${skipped} descartados o saltados` : ''}.`) : onClose());
+  const over = kind === 'first' && sentToday + sent >= safeDaily;
+
+  if (!queue) return <AdminDialog title="Lote de DMs" onClose={onClose} busy={busy}>
+    <div className="space-y-4 text-sm">
+      <p className="text-gray-600">Instagram y TikTok no permiten enviar DMs automáticos: un bot nos cerraría la cuenta. Aquí te pasamos los creadores uno tras otro con su mensaje listo: <b>copias y abres su perfil</b> con un toque, pegas en su chat, y con otro toque pasas al siguiente.</p>
+      <BatchSetup kind={kind} setKind={setKind} size={size} setSize={setSize} sizes={SIZES}>
+        <div className="sm:col-span-2"><label className={label} htmlFor="batch-network">Red</label>
+          <select id="batch-network" className={field} value={network} onChange={(e) => setNetwork(e.target.value as ProspectNetwork)}>
+            {(['instagram', 'tiktok', 'facebook'] as ProspectNetwork[]).map((n) => <option key={n} value={n}>{NETWORKS[n].label}</option>)}
+          </select></div>
+      </BatchSetup>
+      <p className="text-xs text-gray-500">Usa los filtros de la lista (país, tamaño, búsqueda) y empieza por el mejor puntaje. Hoy van {sentToday} primeros mensajes; más de {safeDaily} al día aumenta el riesgo de bloqueo.</p>
+      {error && <p role="alert" className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-amber-900">{error}</p>}
+      <div className="flex justify-end gap-2"><button type="button" className={secondary} onClick={onClose}>Cancelar</button>
+        <button type="button" className={primary} disabled={busy} onClick={() => void start()}>{busy ? 'Preparando…' : 'Empezar el lote'}</button></div>
+    </div>
+  </AdminDialog>;
+
+  return <AdminDialog title={finished ? 'Lote terminado' : `Lote de DMs · ${at + 1} de ${queue.length}`} onClose={close} busy={busy} wide>
+    <div className="space-y-4 text-sm">
+      <div className="h-2 rounded-full bg-gray-100 overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={queue.length} aria-valuenow={at} aria-label="Avance del lote">
+        <div className="h-full rounded-full bg-gray-900 transition-[width] duration-300" style={{ width: `${(at / queue.length) * 100}%` }} />
+      </div>
+      {finished || !current ? <div className="text-center py-6">
+        <p className="text-4xl" aria-hidden="true">🎉</p>
+        <p className="mt-2 text-lg font-bold">{sent} {kind === 'first' ? 'mensajes enviados' : 'seguimientos enviados'}</p>
+        {skipped > 0 && <p className="text-gray-600">{skipped} descartados o saltados</p>}
+        <button type="button" className={`${primary} mt-4`} onClick={close}>Listo</button>
+      </div> : <>
+        <div className="flex items-start justify-between gap-3 rounded-xl bg-gray-50 p-3">
+          <div className="min-w-0">
+            <p className="text-lg font-bold text-gray-900 truncate">@{current.handle}</p>
+            <p className="text-gray-600">{current.displayName ? `${current.displayName} · ` : ''}{flag(current.country)} {countryLabel(current.country)}{current.category ? ` · ${current.category}` : ''}</p>
+          </div>
+          <p className="shrink-0 text-right"><span className="block font-bold tabular-nums">{compact(current.followers)}</span><span className="text-xs text-gray-500">seguidores</span></p>
+        </div>
+        {current.notes && <p className="text-xs text-gray-700 italic">“{current.notes}”</p>}
+        <div><label className={label} htmlFor="batch-text">Mensaje</label>
+          <textarea id="batch-text" rows={7} className={field} value={text} onChange={(e) => setText(e.target.value)} /></div>
+        {over && <p className="rounded-lg bg-red-50 border border-red-200 p-3 text-red-800">Ya van {sentToday + sent} primeros mensajes hoy. Te recomiendo parar y seguir mañana para que no bloqueen la cuenta.</p>}
+        {error && <p role="alert" className="rounded-lg bg-red-50 border border-red-200 p-3 text-red-800">{error}</p>}
+        <div className="grid gap-2 sm:grid-cols-2">
+          <button type="button" className={`${opened ? secondary : primary} w-full`} onClick={() => void copyAndOpen()}>
+            <i aria-hidden="true" className={`${NETWORKS[current.network].icon} mr-2`} />{opened ? 'Copiar y abrir otra vez' : '1. Copiar y abrir su perfil'}</button>
+          <button type="button" className={`${opened ? primary : secondary} w-full`} disabled={busy}
+            onClick={() => void mark(kind === 'first' ? { status: 'contactado', channel: 'dm' } : { followUps: current.followUps + 1 }, true)}>
+            2. Enviado, siguiente <i aria-hidden="true" className="fas fa-arrow-right ml-2" /></button>
+        </div>
+        <div className="flex flex-wrap justify-between gap-2 border-t border-gray-100 pt-3">
+          <span className="flex gap-2">
+            <button type="button" className={secondary} disabled={busy} onClick={() => { setSkipped((n) => n + 1); next(); }}>Saltar</button>
+            <button type="button" className={secondary} disabled={busy} onClick={() => void mark({ status: 'descartado' }, false)}>No encaja</button>
+          </span>
+          <button type="button" className="min-h-11 px-3 text-gray-600 underline underline-offset-4" onClick={close}>Terminar aquí</button>
+        </div>
+      </>}
+    </div>
+  </AdminDialog>;
+}
+
+// Emails do go out in batches, from a sending tool with warmed-up mailboxes on a
+// separate domain (never from fansreserve.com or Resend).
+export function BatchEmailDialog({ filter, onClose, onDone }: { filter: ProspectFilter; onClose: () => void; onDone: (text: string) => void }) {
+  const [kind, setKind] = useState<BatchKind>('first');
+  const [size, setSize] = useState(50);
+  const [batch, setBatch] = useState<Prospect[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const prepare = async () => {
+    setBusy(true); setError('');
+    try {
+      const rows = (await backend.prospects.exportRows({ ...batchFilter(filter, kind), withEmail: true })).slice(0, size);
+      if (!rows.length) setError(kind === 'first' ? 'No hay creadores por contactar con correo público con estos filtros.' : 'No hay seguimientos pendientes con correo con estos filtros.');
+      else {
+        setBatch(rows);
+        download(`lote-correos-${kind === 'first' ? 'primer-mensaje' : 'seguimiento'}-${new Date().toISOString().slice(0, 10)}.csv`, emailBatchCsv(rows, loadTemplates(), kind === 'followUp'));
+      }
+    } catch { setError('No pudimos preparar el lote.'); }
+    setBusy(false);
+  };
+  const markAll = async () => {
+    if (!batch) return;
+    setBusy(true); setError('');
+    const r = kind === 'first'
+      ? await backend.prospects.updateMany(batch.map((p) => p.id), { status: 'contactado', channel: 'email' })
+      : await Promise.all(batch.map((p) => backend.prospects.update(p.id, { followUps: p.followUps + 1 }))).then((all) => all.find((x) => !x.ok) ?? { ok: true });
+    setBusy(false);
+    if (!r.ok) { setError(r.error ?? 'No se pudo guardar.'); return; }
+    onDone(`${batch.length} ${batch.length === 1 ? 'creador quedó' : 'creadores quedaron'} como ${kind === 'first' ? 'contactados por correo' : 'con seguimiento enviado'}.`);
+  };
+
+  return <AdminDialog title="Lote de correos" onClose={onClose} busy={busy}>
+    <div className="space-y-4 text-sm">
+      {!batch ? <>
+        <p className="text-gray-600">Descarga un archivo con cada correo ya escrito (asunto y mensaje con su nombre y país) para subirlo a <b>Instantly</b> o <b>Smartlead</b>, que los mandan solos en tandas desde buzones calentados.</p>
+        <BatchSetup kind={kind} setKind={setKind} size={size} setSize={setSize} sizes={[25, 50, 100, 250, 500]} />
+        <p className="text-xs text-gray-500">Solo creadores con correo público, con los filtros de la lista y por mejor puntaje. Nunca los mandes desde fansreserve.com ni con Resend.</p>
+        {error && <p role="alert" className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-amber-900">{error}</p>}
+        <div className="flex justify-end gap-2"><button type="button" className={secondary} onClick={onClose}>Cancelar</button>
+          <button type="button" className={primary} disabled={busy} onClick={() => void prepare()}>{busy ? 'Preparando…' : 'Descargar el lote'}</button></div>
+      </> : <>
+        <p className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-emerald-900">Se descargó el archivo con <b>{batch.length} correos</b>.</p>
+        <ol className="list-decimal pl-5 space-y-1 text-gray-700">
+          <li>En Instantly: <b>Leads → Import → CSV</b> y sube el archivo.</li>
+          <li>En la secuencia pon <code className="rounded bg-gray-100 px-1">{'{{subject}}'}</code> como asunto y <code className="rounded bg-gray-100 px-1">{'{{body}}'}</code> como mensaje.</li>
+          <li>Cuando la campaña quede programada, marca el lote aquí abajo.</li>
+        </ol>
+        {error && <p role="alert" className="rounded-lg bg-red-50 border border-red-200 p-3 text-red-800">{error}</p>}
+        <div className="flex flex-wrap justify-end gap-2">
+          <button type="button" className={secondary} onClick={onClose} disabled={busy}>Lo marco después</button>
+          <button type="button" className={primary} disabled={busy} onClick={() => void markAll()}>{busy ? 'Guardando…' : `Marcar los ${batch.length} como ${kind === 'first' ? 'contactados' : 'con seguimiento'}`}</button>
+        </div>
+      </>}
     </div>
   </AdminDialog>;
 }

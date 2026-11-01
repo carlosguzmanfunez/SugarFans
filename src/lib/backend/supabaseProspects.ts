@@ -96,6 +96,17 @@ export const createSupabaseProspects = (sb: SupabaseClient): ProspectsBackend =>
       return error ? { ok: false, error: 'No se pudo guardar el cambio.' } : { ok: true };
     },
 
+    async updateMany(ids, patch) {
+      const row: Row = {};
+      if (patch.status !== undefined) row.status = patch.status;
+      if (patch.channel !== undefined) row.channel = patch.channel;
+      for (let i = 0; i < ids.length; i += 200) {
+        const { error } = await sb.from('creator_prospects').update(row).in('id', ids.slice(i, i + 200));
+        if (error) return { ok: false, error: 'No se pudo guardar el cambio en todo el lote.' };
+      }
+      return { ok: true };
+    },
+
     async remove(id) {
       const { error } = await sb.from('creator_prospects').delete().eq('id', id);
       return error ? { ok: false, error: 'No se pudo borrar.' } : { ok: true };
