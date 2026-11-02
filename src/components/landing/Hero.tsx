@@ -1,72 +1,35 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { creators as demoCreators, type Creator } from '../../data/mockData';
-import { HERO } from '../../content/landing';
+import { HERO, HERO_EXPERIENCES } from '../../content/landing';
 import { useAuth } from '../../context/AuthContext';
-import { useVipCreatorIds } from '../../lib/catalog';
-import { useLiveCreatorIds } from '../../lib/live';
 import { ENABLE_OPEN_LIVE } from '../../config/features';
-import { CREATOR_CATEGORIES, categoryFor } from '../../config/reserve';
-import { formatPrice } from '../CreatorCard';
+import Icon from '../Icon';
 import { ArrowRight, prefersReducedMotion } from './landingBits';
-import { useLevels, type LevelId } from '../../lib/rewards';
 
-// Each pass gets its own cover so the deck reads as different worlds.
-const COVERS = [
-  { bg: 'radial-gradient(420px 300px at 80% 0%,rgba(227,169,58,.55),transparent 60%),linear-gradient(160deg,#851244,#160d1f)', fig: '#ffe3ee' },
-  { bg: 'radial-gradient(420px 300px at 20% 0%,rgba(130,89,243,.6),transparent 60%),linear-gradient(160deg,#3e2483,#160d1f)', fig: '#dff3ea' },
-  { bg: 'radial-gradient(420px 300px at 70% 10%,rgba(242,215,146,.55),transparent 60%),linear-gradient(160deg,#8f5318,#160d1f)', fig: '#fdf1dc' },
-  { bg: 'radial-gradient(420px 300px at 30% 0%,rgba(247,99,155,.55),transparent 60%),linear-gradient(160deg,#6d133b,#21152d)', fig: '#e5e7f5' },
-  { bg: 'radial-gradient(420px 300px at 80% 0%,rgba(229,51,122,.5),transparent 60%),linear-gradient(160deg,#4b27a3,#160d1f)', fig: '#fde6dc' },
-  { bg: 'radial-gradient(420px 300px at 25% 0%,rgba(242,215,146,.5),transparent 60%),linear-gradient(160deg,#5b1a73,#160d1f)', fig: '#efe4ff' },
-  { bg: 'radial-gradient(420px 300px at 75% 5%,rgba(247,99,155,.5),transparent 60%),linear-gradient(160deg,#8f1d4f,#21152d)', fig: '#ffe6ef' },
-  { bg: 'radial-gradient(420px 300px at 30% 0%,rgba(227,169,58,.5),transparent 60%),linear-gradient(160deg,#6b3f12,#160d1f)', fig: '#fff0d9' },
-  { bg: 'radial-gradient(420px 300px at 70% 0%,rgba(130,89,243,.55),transparent 60%),linear-gradient(160deg,#2f2a7a,#160d1f)', fig: '#e3e8ff' },
-];
-const DEMO_IDS = new Set(demoCreators.map((c) => c.id));
-
-// One pass per category, in the category order. A creator who signed up takes
-// the place of the demo creator of their category.
-// A Diamante creator goes first in their category.
-const pickDeck = (creators: Creator[], levels: Record<string, LevelId>) =>
-  CREATOR_CATEGORIES.map((cat) => {
-    const inCat = creators.filter((c) => c.avatar && categoryFor(c.category).id === cat.id);
-    return inCat.find((c) => !DEMO_IDS.has(c.id) && levels[c.id] === 'diamante') ?? inCat.find((c) => !DEMO_IDS.has(c.id)) ?? inCat[0];
-  }).filter((c): c is Creator => !!c);
 const AUTOPLAY_MS = 4200;
+const deck = HERO_EXPERIENCES;
+const n = deck.length;
 
-// Hero: the headline names the creator in front of the deck. The deck is a set of
-// creator passes you can drag either way (or wait: it advances on its own).
-const Hero: React.FC<{ creators: Creator[] }> = ({ creators }) => {
+// Four product examples keep the original draggable, tilting deck interaction.
+const Hero: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const member = user ? HERO.member[user.role] : null;
-  const levels = useLevels(creators.filter((c) => !DEMO_IDS.has(c.id)).map((c) => c.id));
-  const deck = useMemo(() => pickDeck(creators, levels), [creators, levels]);
-  const vip = useVipCreatorIds();
-  const live = useLiveCreatorIds(deck.map((c) => c.id));
-  const n = deck.length;
-
   const [cur, setCur] = useState(0);
-  const [prev, setPrev] = useState<number | null>(null);
   const [drag, setDrag] = useState(0);
   const [tilt, setTilt] = useState<{ x: number; y: number } | null>(null);
   const drag0 = useRef<number | null>(null);
   const dragged = useRef(false);
   const timer = useRef<number>();
+  const focusWithin = useRef(false);
 
-  // The name that just left slides up and out of the headline.
-  const last = useRef(0);
-  useEffect(() => {
-    if (last.current !== cur) setPrev(last.current);
-    last.current = cur;
-  }, [cur]);
-
-  const go = useCallback((to: number) => n && setCur(((to % n) + n) % n), [n]);
+  const go = useCallback((to: number) => setCur(((to % n) + n) % n), []);
   const restart = useCallback(() => {
     window.clearInterval(timer.current);
-    if (!prefersReducedMotion() && n > 1) timer.current = window.setInterval(() => setCur((c) => (c + 1) % n), AUTOPLAY_MS);
-  }, [n]);
+    if (!prefersReducedMotion() && !focusWithin.current) {
+      timer.current = window.setInterval(() => setCur((c) => (c + 1) % n), AUTOPLAY_MS);
+    }
+  }, []);
   useEffect(() => {
     restart();
     return () => window.clearInterval(timer.current);
@@ -133,122 +96,89 @@ const Hero: React.FC<{ creators: Creator[] }> = ({ creators }) => {
   };
 
   return (
-    <header className="hero" aria-labelledby="hero-title">
+    <header className="hero hero-experiences" aria-labelledby="hero-title" data-testid="experience-hero">
       <div className="wrap hero-grid">
         <div>
-          <h1 id="hero-title">
-            Tu acceso reservado a{' '}
-            <span className="rot" aria-live="polite">
-              {deck.map((c, i) => (
-                <span key={c.id} className={i === cur ? 'on' : i === prev ? 'out' : ''}>
-                  {c.name.split(' ')[0]}.
-                </span>
-              ))}
-            </span>
-          </h1>
+          <h1 id="hero-title">{HERO.titleLead} <span className="hero-title-accent">{HERO.titleAccent}</span></h1>
           <p className="lead">{HERO.subtitle}</p>
           <div className="ctas">
             {member ? (
               <>
-                <Link to={member.primary.to} className="v-btn v-pri magnet">
-                  {member.primary.label} <ArrowRight />
-                </Link>
-                <Link to={member.secondary.to} className="v-btn v-ghost">
-                  {member.secondary.label}
-                </Link>
+                <Link to={member.primary.to} className="v-btn v-pri magnet">{member.primary.label} <ArrowRight /></Link>
+                <Link to={member.secondary.to} className="v-btn v-ghost">{member.secondary.label}</Link>
               </>
             ) : (
               <>
-                <Link to="/register" className="v-btn v-pri magnet">
-                  {HERO.primaryCta} <ArrowRight />
-                </Link>
-                <Link to={ENABLE_OPEN_LIVE ? '/explore?live=1' : HERO.secondaryTo} className="v-btn v-ghost">
-                  {ENABLE_OPEN_LIVE ? HERO.openLiveCta : HERO.secondaryCta}
-                </Link>
+                <Link to="/register" className="v-btn v-pri magnet">{HERO.primaryCta} <ArrowRight /></Link>
+                <Link to={ENABLE_OPEN_LIVE ? '/explore?live=1' : HERO.secondaryTo} className="v-btn v-ghost">{ENABLE_OPEN_LIVE ? HERO.openLiveCta : HERO.secondaryCta}</Link>
               </>
             )}
           </div>
         </div>
-
         <div
           className="deck"
           aria-roledescription="carrusel"
-          aria-label="Creadores destacados"
+          aria-label="Lo que puedes hacer en Fans Reserve"
+          data-testid="experience-deck"
           onPointerDown={onDown}
           onPointerMove={onMove}
           onPointerUp={onUp}
           onPointerCancel={onUp}
           onPointerLeave={() => setTilt(null)}
           onDragStart={(e) => e.preventDefault()}
+          onFocusCapture={() => { focusWithin.current = true; window.clearInterval(timer.current); }}
+          onBlurCapture={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+              focusWithin.current = false;
+              restart();
+            }
+          }}
         >
-          <img className="float-gift" src="/gifts/rosas.png" alt="" style={{ left: '2%', top: '12%' }} />
-          <img className="float-gift" src="/gifts/champan.png" alt="" style={{ right: 0, top: '58%', animationDelay: '-2s' }} />
-          <img className="float-gift" src="/gifts/estrella.png" alt="" style={{ left: '8%', bottom: '16%', animationDelay: '-4s', width: 48, height: 48 }} />
-          {deck.map((c, i) => {
-            const cover = COVERS[i % COVERS.length];
+          {deck.map((experience, i) => {
             const front = i === cur;
             return (
               <article
-                key={c.id}
-                className={`pass ${front ? 'is-front' : ''}`}
+                key={experience.id}
+                className={`pass pass-experience ${front ? 'is-front' : ''}`}
                 style={passStyle(i)}
-                aria-label={c.name}
-                onClick={() => {
-                  if (dragged.current) {
-                    dragged.current = false;
-                    return;
-                  }
-                  if (front) navigate(`/creator/${c.id}`);
-                  else {
-                    go(i);
-                    restart();
-                  }
+                aria-label={experience.title}
+                aria-hidden={!front}
+                data-experience={experience.id}
+                onClick={(e) => {
+                  if (dragged.current) { e.preventDefault(); dragged.current = false; return; }
+                  if (front) navigate(experience.to);
+                  else { go(i); restart(); }
                 }}
               >
-                <div className="cover" style={{ background: cover.bg }} />
-                <div className="top">
-                  <span className="chip">{categoryFor(c.category).name}</span>
-                  {live.has(c.id) ? (
-                    <span className="chip live">
-                      <span className="bars"><i></i><i></i><i></i></span> LIVE
-                    </span>
-                  ) : vip.has(c.id) ? (
-                    <span className="chip gold">Reserve</span>
-                  ) : null}
+                <div className="fig">
+                  <img src={experience.image} alt={experience.alt} draggable={false} loading={i === 0 ? 'eager' : 'lazy'} decoding="async" fetchPriority={i === 0 ? 'high' : 'auto'} />
                 </div>
-                <div className="fig" style={{ background: cover.fig }}>
-                  <img src={c.avatar} alt="" draggable={false} />
-                </div>
+                <div className="top"><span className="chip"><Icon name={experience.icon} />{experience.badge}</span></div>
                 <div className="info">
-                  <h3>{c.name}</h3>
-                  <p className="meta">{categoryFor(c.category).blurb}</p>
+                  <h3>{experience.title}</h3>
+                  <p className="meta">{experience.description}</p>
                   <div className="slot">
-                    <div>
-                      <small>Suscripción</small>
-                      <strong>{formatPrice(c.subscriptionPrice)} al mes</strong>
-                    </div>
-                    <strong aria-hidden="true">Ver perfil</strong>
+                    <Link
+                      to={experience.to}
+                      tabIndex={front ? 0 : -1}
+                      className="pass-link"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (dragged.current) { e.preventDefault(); dragged.current = false; return; }
+                        if (!front) { e.preventDefault(); go(i); restart(); }
+                      }}
+                    >{experience.action}<ArrowRight /></Link>
                   </div>
                 </div>
                 <div className="shine" />
               </article>
             );
           })}
-          <div className="deck-ui">
-            <div className="dots">
-              {deck.map((c, i) => (
-                <i
-                  key={c.id}
-                  className={i === cur ? 'on' : ''}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={() => {
-                    go(i);
-                    restart();
-                  }}
-                ></i>
-              ))}
-            </div>
-          </div>
+          <div className="deck-ui"><div className="dots" aria-hidden="true">
+            {deck.map((experience, i) => (
+              <i key={experience.id} className={i === cur ? 'on' : ''} onPointerDown={(e) => e.stopPropagation()} onClick={() => { go(i); restart(); }} />
+            ))}
+          </div></div>
         </div>
       </div>
     </header>

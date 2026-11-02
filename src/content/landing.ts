@@ -8,6 +8,8 @@ export const THESIS =
   'Fans Reserve no busca reemplazar las redes sociales donde los creadores construyen su audiencia. Fans Reserve existe para ayudarles a monetizar acceso, experiencias y relaciones estructuradas con esa audiencia.';
 
 export const HERO = {
+  titleLead: 'Tu acceso reservado a',
+  titleAccent: 'tu creador de contenido favorito.',
   subtitle: 'Reserva videollamadas 1:1 y eventos con tus creadores favoritos. Suscríbete también a su contenido exclusivo.',
   primaryCta: 'Crear cuenta gratis',
   secondaryCta: 'Explorar Reserve',
@@ -21,6 +23,54 @@ export const HERO = {
     admin: { primary: { label: 'Panel de administración', to: '/admin', icon: 'fa-shield-halved' }, secondary: { label: 'Explorar creadores', to: '/explore', icon: 'fa-compass' } },
   },
 };
+
+// Product examples in the hero; these do not represent bookable creator profiles.
+export const HERO_EXPERIENCES = [
+  {
+    id: 'one-to-one',
+    title: 'Platiquemos 1:1',
+    description: 'Una conversación sobre lo que te interesa.',
+    badge: 'Videollamada 1:1',
+    icon: 'fa-video',
+    image: '/hero-experiences/one-to-one.webp',
+    alt: 'Una persona conversa por videollamada con una creadora desde su laptop.',
+    action: 'Explorar Reserve',
+    to: '/reserve',
+  },
+  {
+    id: 'group-experience',
+    title: 'Aprende y participa',
+    description: 'Clases, talleres y eventos con tus creadores.',
+    badge: 'Experiencias en grupo',
+    icon: 'fa-people-group',
+    image: '/hero-experiences/group-experience.webp',
+    alt: 'Una creadora enseña a preparar pasta a dos participantes en una clase de cocina.',
+    action: 'Ver experiencias',
+    to: '/reserve',
+  },
+  {
+    id: 'exclusive-content',
+    title: 'Contenido exclusivo',
+    description: 'Fotos y videos para su comunidad de suscriptores.',
+    badge: 'Suscripción mensual',
+    icon: 'fa-star',
+    image: '/hero-experiences/exclusive-content.webp',
+    alt: 'Una creadora graba un video de su trabajo en un estudio de cerámica.',
+    action: 'Ver creadores',
+    to: '/explore',
+  },
+  {
+    id: 'your-proposal',
+    title: 'Tu idea también cuenta',
+    description: 'Propón una experiencia, una fecha y un presupuesto.',
+    badge: 'A tu medida',
+    icon: 'fa-pen-to-square',
+    image: '/hero-experiences/your-proposal.webp',
+    alt: 'Una persona prepara su idea en una libreta junto a su laptop y un calendario.',
+    action: 'Elegir creador',
+    to: '/explore',
+  },
+];
 
 // Fans read an invitation to find creators; creators keep the "bring your
 // community" message, which is about them.
@@ -36,10 +86,8 @@ export const CATEGORIES = {
 };
 
 export const HOW = {
-  eyebrow: 'Cómo funciona',
-  titleLead: 'Cada paso te acerca más,',
-  titleAccent: 'hasta hablar cara a cara',
-  subtitle: 'Abre cada una y pruébala aquí mismo.',
+  titleLead: 'Elige cómo',
+  titleAccent: 'conectar',
 };
 
 export const LIVE_NOW = {
@@ -50,19 +98,11 @@ export const LIVE_NOW = {
 };
 
 export const VIP = {
-  eyebrow: 'Reserve',
   titleLead: 'Reserva experiencias,',
   titleAccent: 'no personas',
   subtitle:
-    'Cada creador define qué ofrece: modalidad, duración, precio, lugar y reglas. Tú eliges, el creador aprueba y la experiencia queda confirmada.',
+    'Clases, conversaciones y actividades con tus creadores favoritos. Encuentra una experiencia que vaya contigo.',
   cta: 'Explorar Reserve',
-  perks: [
-    { title: 'Reserve Events', text: 'Q&A, masterclass, workshops y gaming en grupo, con plazas.' },
-    { title: 'Reserve 1:1', text: 'Videollamada solo con el creador, en la sala de Fans Reserve.' },
-    { title: 'Clases y coaching', text: 'Cocina, fitness, música, arte y más.' },
-    { title: 'A medida', text: 'Propón tu experiencia; el creador decide.' },
-  ],
-  steps: ['Eliges la experiencia', 'El creador la aprueba', 'Pagas y queda confirmada'],
 };
 
 export const CREATOR_CTA = {

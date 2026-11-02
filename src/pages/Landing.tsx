@@ -7,7 +7,6 @@ import CategoryGrid from '../components/landing/CategoryGrid';
 import HappeningNow from '../components/landing/HappeningNow';
 import HowItWorks from '../components/landing/HowItWorks';
 import VipShowcase from '../components/landing/VipShowcase';
-import SubscriptionShowcase from '../components/landing/SubscriptionShowcase';
 import CreatorCta from '../components/landing/CreatorCta';
 import { ENABLE_HAPPENING_NOW } from '../config/features';
 import { useLandingMotion } from '../components/landing/landingBits';
@@ -22,14 +21,13 @@ const Landing: React.FC = () => {
   return (
     <div ref={root} className="lv2 min-h-screen">
       {/* Creators get their own top: their day, not the fans' pitch. */}
-      {user?.role === 'creator' ? <CreatorHome /> : <Hero creators={creators} />}
+      {user?.role === 'creator' ? <CreatorHome /> : <Hero />}
       {/* Fans find categories in Explorar; the grid stays only on the creators' home. */}
       {user?.role === 'creator' && <CategoryGrid creators={creators} />}
       {/* "Está pasando ahora" is off until further notice (ENABLE_HAPPENING_NOW). */}
       {ENABLE_HAPPENING_NOW && <HappeningNow creators={creators} />}
       <HowItWorks />
       <VipShowcase />
-      <SubscriptionShowcase creators={creators} />
       <CreatorCta />
     </div>
   );
