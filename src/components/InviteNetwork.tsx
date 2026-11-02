@@ -130,13 +130,10 @@ const InviteNetwork: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           </div>
         </div>
 
-        {list.length > 0 ? (
-          <div className="mt-4"><InviteMap list={list} now={now} /></div>
-        ) : (
-          <div className="mt-6 flex flex-col items-center text-center">
-            <Avatar src={user.avatar} name={user.name} size={72} decorative />
-            <p className="mt-3 max-w-sm text-sm text-ink/70">Comparte tu enlace con creadores que conozcas. Aquí los verás avanzar por tu mapa, del Campamento al Castillo.</p>
-          </div>
+        {/* The map shows even before the first invite, so the road ahead is clear. */}
+        <div className="mt-4"><InviteMap list={list} now={now} /></div>
+        {list.length === 0 && (
+          <p className="mt-3 text-center text-sm text-ink/70">Comparte tu enlace con creadores que conozcas. Aquí los verás avanzar por tu mapa, del Campamento al Castillo.</p>
         )}
 
         <div className="mt-5 flex flex-col sm:flex-row gap-2">
