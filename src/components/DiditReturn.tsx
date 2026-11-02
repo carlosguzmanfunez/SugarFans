@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { platformApi } from '../lib/platform';
+import { FIRST_STEPS_PATH, clearSetupVerification, hasSetupVerification } from '../lib/creatorSetup';
 
 // Didit sends people back to Settings > Verificación. Its webhook usually lands a
 // few seconds later, so we wait for our own record: approved → green check, then
@@ -19,6 +20,7 @@ const DiditReturn: React.FC<{ onDone: () => void }> = ({ onDone }) => {
   const [phase, setPhase] = useState<'checking' | 'approved'>('checking');
   const verified = useRef(false);
   verified.current = !!user?.isVerified;
+  const fromSetup = useRef(!!user && user.role === 'creator' && hasSetupVerification(user.id));
 
   useEffect(() => {
     if (!user) return;
@@ -26,7 +28,8 @@ const DiditReturn: React.FC<{ onDone: () => void }> = ({ onDone }) => {
     let timer: ReturnType<typeof setTimeout>;
     const started = Date.now();
     const finish = () => {
-      setSearchParams({ section: 'verification' }, { replace: true });
+      clearSetupVerification();
+      setSearchParams(fromSetup.current ? { section: 'verification', setup: 'verify' } : { section: 'verification' }, { replace: true });
       onDone();
     };
     const poll = async () => {
@@ -35,9 +38,16 @@ const DiditReturn: React.FC<{ onDone: () => void }> = ({ onDone }) => {
       if (request?.status === 'approved' || verified.current) {
         setPhase('approved');
         await refreshUser();
-        timer = setTimeout(() => alive && navigate('/', { replace: true }), SHOW_MS);
+        timer = setTimeout(() => {
+          if (!alive) return;
+          clearSetupVerification();
+          navigate(fromSetup.current ? FIRST_STEPS_PATH : '/', { replace: true, state: fromSetup.current ? { creatorSetupNotice: 'Identidad verificada. Continúa con tus primeros pasos.' } : null });
+        }, SHOW_MS);
       } else if (request?.status === 'rejected' || request?.status === 'pending' || Date.now() - started > GIVE_UP_MS) {
-        finish();
+        if (request?.status === 'pending' && fromSetup.current) {
+          clearSetupVerification();
+          navigate(FIRST_STEPS_PATH, { replace: true, state: { creatorSetupNotice: 'Tu identidad está en revisión. Puedes continuar con los demás pasos.' } });
+        } else finish();
       } else {
         await refreshUser();
         timer = setTimeout(poll, POLL_MS);
@@ -60,7 +70,7 @@ const DiditReturn: React.FC<{ onDone: () => void }> = ({ onDone }) => {
               <i aria-hidden="true" className="fas fa-check text-4xl text-white"></i>
             </div>
             <h2 className="text-2xl font-bold text-gray-900">¡Identidad verificada!</h2>
-            <p className="text-sm text-gray-600 mt-2">Ya tienes la insignia <span className="text-blue-700 font-medium">Verificado</span>. Te llevamos al inicio…</p>
+            <p className="text-sm text-gray-600 mt-2">Ya tienes la insignia <span className="text-blue-700 font-medium">Verificado</span>. {fromSetup.current ? 'Te llevamos a Primeros pasos…' : 'Te llevamos al inicio…'}</p>
           </>
         ) : (
           <>

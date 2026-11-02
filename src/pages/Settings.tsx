@@ -31,6 +31,8 @@ import TikTokConnectCard from '../components/TikTokConnectCard';
 import PushOptIn from '../components/PushOptIn';
 import { EMPTY_AVATAR, avatarOrEmpty } from '../lib/backend/shared';
 import { backend } from '../lib/backend';
+import { useCreatorSetup } from '../hooks/useCreatorSetup';
+import { FIRST_STEPS_PATH } from '../lib/creatorSetup';
 
 const notificationItems: { key: string; label: string }[] = [
   { key: 'newPosts', label: 'Nuevas publicaciones de creadores que sigues' },
@@ -50,6 +52,7 @@ const fmtDate = (iso: string | Date) => new Date(iso).toLocaleDateString('es', {
 const PROVIDER_LABELS: Record<string, string> = { google: 'Google', azure: 'Microsoft' };
 
 const Settings: React.FC = () => {
+  const setup = useCreatorSetup();
   const { user, updateUser, changePassword, deleteAccount, cancelSubscription } = useAuth();
   // Accounts created with Google/Microsoft have no password to change or confirm.
   const socialProvider = user?.authProvider && user.authProvider !== 'email' ? PROVIDER_LABELS[user.authProvider] ?? user.authProvider : null;
@@ -173,6 +176,7 @@ const Settings: React.FC = () => {
     }
     const result = await updateUser(data);
     showResult(result, result.notice || undefined);
+    if (result.ok) setup.finish('socials', result.notice || 'Perfil y redes guardados. Continúa con tus primeros pasos.');
   };
 
   const handleSaveSecurity = async () => {
@@ -224,6 +228,7 @@ const Settings: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-8">Configuración</h1>
+        {setup.step && <Link to={FIRST_STEPS_PATH} className="mb-4 inline-flex min-h-11 items-center text-sm font-semibold text-brand-700 underline underline-offset-4">Volver a Primeros pasos</Link>}
 
         {saved && <Notice ok text={saved} onClose={() => setSaved('')} />}
         {error && <Notice ok={false} text={error} onClose={() => setError('')} />}

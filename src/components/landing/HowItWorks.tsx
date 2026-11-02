@@ -1,334 +1,74 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { creators } from '../../data/mockData';
 import { HOW } from '../../content/landing';
-import { ENABLE_OPEN_LIVE } from '../../config/features';
-import { formatPrice } from '../CreatorCard';
-import { clearAvatar, LiveChip, prefersReducedMotion, trackSpot } from './landingBits';
+import { ArrowRight, clearAvatar } from './landingBits';
 
-const byId = (id: string) => creators.find((c) => c.id === id) ?? creators[0];
-const PLUS = <path d="M12 5v14M5 12h14" />;
-const REACTIONS = [
-  { id: 'corazon', label: 'Corazón' },
-  { id: 'aplauso', label: 'Aplauso' },
-  { id: 'fuego', label: 'Fuego' },
-  { id: 'diamante', label: 'Diamante' },
+// Independent options, rather than steps the fan has to complete in order.
+const options = [
+  {
+    key: 'subscription',
+    title: 'Suscríbete',
+    description: 'Fotos, videos y publicaciones exclusivas de tu creador, cada mes.',
+    action: 'Ver creadores',
+    to: '/explore',
+    creatorId: '2',
+  },
+  {
+    key: 'reserve',
+    title: 'Reserve',
+    description: 'Videollamadas 1:1, eventos y actividades con fecha y precio definidos.',
+    action: 'Explorar experiencias',
+    to: '/reserve',
+    creatorId: '1',
+  },
+  {
+    key: 'proposal',
+    title: 'Propón tu experiencia',
+    description: 'Propón una idea, fecha y presupuesto. El creador responde y acuerdan los detalles.',
+    action: 'Elegir creador',
+    to: '/explore',
+    creatorId: '3',
+  },
 ];
-const DAYS = [
-  { d: 'Jue', n: 14 },
-  { d: 'Vie', n: 15 },
-  { d: 'Sáb', n: 16 },
-  { d: 'Dom', n: 17 },
-  { d: 'Lun', n: 18 },
-];
-const HOURS = ['12:00', '16:00', '18:00'];
 
-// The person on a panel: the cut-out illustration when there is one, otherwise
-// the photo as a portrait card that fades into the panel.
-const WhoImg: React.FC<{ src: string }> = ({ src }) => {
-  const clear = clearAvatar(src);
-  return <img className={`who ${clear ? '' : 'photo'}`} src={clear ?? src} alt="" />;
-};
-
-// Mini demos inside the open panel: they show what each step feels like.
-const FollowDemo: React.FC = () => {
-  const c = byId('1');
-  const [on, setOn] = useState(false);
-  return (
-    <div className="mini">
-      <div className="row">
-        <div className="av"><img src={c.avatar} alt="" /></div>
-        <div className="v-grow">
-          <b>{c.name}</b>
-          <span><span className="count">{(c.followers + (on ? 1 : 0)).toLocaleString('es')}</span> seguidores</span>
-        </div>
-        <button type="button" className={`v-btn v-pri v-sm follow-btn ${on ? 'on' : ''}`} aria-pressed={on} onClick={() => setOn(!on)}>
-          {on ? 'Siguiendo' : 'Seguir'}
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const SubscribeDemo: React.FC = () => {
-  const c = byId('2');
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="mini">
-      <div className="row">
-        <div className="av" style={{ background: '#dff3ea' }}><img src={c.avatar} alt="" /></div>
-        <div className="v-grow"><b>{c.name}</b><span>{c.category}</span></div>
-      </div>
-      <div className={`posts ${open ? 'open' : ''}`}>
-        <div style={{ backgroundImage: 'linear-gradient(135deg,#6d3ce6,#f7639b)' }} />
-        <div style={{ backgroundImage: 'linear-gradient(135deg,#e3a93a,#c81b63)' }} />
-        <div style={{ backgroundImage: 'linear-gradient(135deg,#2f2140,#8259f3)' }} />
-      </div>
-      <div className="lock">
-        <span style={{ fontWeight: 600 }}>{formatPrice(c.subscriptionPrice)} al mes</span>
-        <button type="button" className="v-btn v-pri v-sm" onClick={() => setOpen(!open)}>
-          {open ? 'Así se ve suscrito' : 'Ver cómo se desbloquea'}
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const LiveDemo: React.FC<{ panel: React.RefObject<HTMLElement> }> = ({ panel }) => {
-  const c = byId('5');
-  const send = (e: React.MouseEvent<HTMLButtonElement>, id: string) => {
-    const host = panel.current;
-    if (!host) return;
-    const pr = host.getBoundingClientRect();
-    const br = e.currentTarget.getBoundingClientRect();
-    for (let k = 0; k < 3; k++) {
-      const im = document.createElement('img');
-      im.src = `/gifts/${id}.png`;
-      im.className = 'burst';
-      im.alt = '';
-      im.style.left = `${br.left - pr.left + 6 + k * 6}px`;
-      im.style.top = `${br.top - pr.top - 10}px`;
-      im.style.setProperty('--dx', `${Math.random() * 80 - 40}px`);
-      im.style.animationDelay = `${k * 0.12}s`;
-      host.appendChild(im);
-      window.setTimeout(() => im.remove(), 1800);
-    }
-  };
-  return (
-    <div className="mini">
-      <div className="livevid">
-        <img src={clearAvatar(c.avatar) ?? c.avatar} alt="" className={clearAvatar(c.avatar) ? undefined : 'photo'} />
-        <div className="tl"><LiveChip /></div>
-      </div>
-      <div className="reacts" aria-label="Enviar una reacción">
-        {REACTIONS.map((r) => (
-          <button type="button" key={r.id} aria-label={r.label} onClick={(e) => send(e, r.id)}>
-            <img src={`/gifts/${r.id}.png`} alt="" />
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// Reserve Event: a group experience with a fixed date, seats and a price per seat.
-const EventDemo: React.FC = () => {
-  const c = byId('1');
-  const SEATS = 20;
-  const [taken, setTaken] = useState(14);
-  const mine = taken > 14;
-  return (
-    <div className="mini">
-      <div className="row">
-        <div className="av"><img src={c.avatar} alt="" /></div>
-        <div className="v-grow"><b>Beauty Q&amp;A con {c.name.split(' ')[0]}</b><span>Vie 20:00 · 60 min · virtual</span></div>
-      </div>
-      <div className="seats" aria-label={`${SEATS - taken} plazas libres de ${SEATS}`}>
-        {Array.from({ length: SEATS }, (_, i) => (
-          <i key={i} className={i < taken ? (mine && i === taken - 1 ? 'me' : 'on') : ''} />
-        ))}
-      </div>
-      <div className="total">
-        <div><small>Por participante</small><strong>$15.99</strong></div>
-        <button type="button" className="v-btn v-gold v-sm" aria-pressed={mine} onClick={() => setTaken(mine ? 14 : 15)}>
-          {mine ? 'Plaza reservada' : 'Reservar plaza'}
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const ReserveDemo: React.FC = () => {
-  const c = byId('1');
-  const [day, setDay] = useState(16);
-  const [hour, setHour] = useState('16:00');
-  const [sent, setSent] = useState(false);
-  useEffect(() => {
-    if (!sent) return;
-    const t = window.setTimeout(() => setSent(false), 2200);
-    return () => window.clearTimeout(t);
-  }, [sent]);
-  return (
-    <div className="mini">
-      <div className="row">
-        <div className="av"><img src={c.avatar} alt="" /></div>
-        <div className="v-grow"><b>Videollamada 1:1</b><span>{c.name}, 20 min, solo tú y {c.name.split(' ')[0]}</span></div>
-      </div>
-      <div className="calendar">
-        {DAYS.map((d) => (
-          <button type="button" key={d.n} className={d.n === day ? 'on' : ''} aria-pressed={d.n === day} onClick={() => setDay(d.n)}>
-            {d.d}<b>{d.n}</b>
-          </button>
-        ))}
-      </div>
-      <div className="hours">
-        {HOURS.map((h) => (
-          <button type="button" key={h} className={h === hour ? 'on' : ''} aria-pressed={h === hour} onClick={() => setHour(h)}>{h}</button>
-        ))}
-      </div>
-      <div className="total">
-        <div><small>Total</small><strong>$19.99</strong></div>
-        <button type="button" className="v-btn v-gold v-sm" onClick={() => setSent(true)}>{sent ? 'Solicitud enviada' : 'Reservar videollamada'}</button>
-      </div>
-    </div>
-  );
-};
-
-// Step 3 holds both ways to reserve: a group event or a private 1:1 call.
-const ReserveBothDemo: React.FC = () => {
-  const [mode, setMode] = useState<'event' | 'one'>('one');
-  return (
-    <>
-      <div className="res-modes" role="group" aria-label="Tipo de Reserve">
-        <button type="button" aria-pressed={mode === 'event'} className={mode === 'event' ? 'on' : ''} onClick={() => setMode('event')}>Reserve Event</button>
-        <button type="button" aria-pressed={mode === 'one'} className={mode === 'one' ? 'on' : ''} onClick={() => setMode('one')}>Reserve 1:1</button>
-      </div>
-      {mode === 'event' ? <EventDemo /> : <ReserveDemo />}
-    </>
-  );
-};
-
-type Panel = {
-  key: string;
-  cls: string;
-  label: string;
-  price: string;
-  title: string;
-  sub: string;
-  who?: string;
-  icon: React.ReactNode;
-};
-
-const TICKET = <><path d="M3 9a2 2 0 0 0 0 6v3a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-3a2 2 0 0 0 0-6V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1z" /><path d="M14 5v14" strokeDasharray="2 2.5" /></>;
-
-// "Cada paso te acerca más": panels in the brand colours, the same three steps as the
-// presentation film (Sigue → Suscríbete → Reserva). The open one is a working demo and
-// advances to the next on its own while the section is in view (it waits while you are
-// trying it). Reserva offers both Reserve Event and Reserve 1:1.
-// The free public Live panel only comes back with ENABLE_OPEN_LIVE.
 const HowItWorks: React.FC = () => {
-  const follow: Panel = { key: 'follow', cls: 'p-follow', label: 'Sigue', price: 'Gratis', title: 'Te enteras de todo', sub: 'Ves sus publicaciones públicas y sus novedades, gratis.', who: byId('1').avatar, icon: <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" /> };
-  const sub: Panel = { key: 'sub', cls: 'p-sub', label: 'Suscríbete', price: `${formatPrice(byId('2').subscriptionPrice)} al mes`, title: 'Ves lo que no publica en otro lado', sub: 'Su contenido exclusivo, solo para suscriptores. Cancelas cuando quieras.', who: byId('2').avatar, icon: <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" /> };
-  const panels: Panel[] = ENABLE_OPEN_LIVE
-    ? [
-        follow,
-        sub,
-        { key: 'live', cls: 'p-live', label: 'Live', price: 'Gratis', title: 'En vivo, con su comunidad', sub: 'Lives gratis para todos. Reacciona con un regalo y aparece en pantalla.', icon: <><circle cx="12" cy="12" r="2.5" /><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2" /></> },
-        { key: 'res', cls: 'p-res', label: 'Reserve', price: 'Desde $15.99', title: 'Experiencias con fecha y precio', sub: 'Cada creador define qué ofrece. Tú eliges, el creador aprueba y queda confirmada.', icon: TICKET },
-      ]
-    : [
-        follow,
-        sub,
-        { key: 'both', cls: 'p-res p-both', label: 'Reserva', price: 'Desde $15.99', title: 'Habla contigo, cara a cara', sub: 'Sesiones en vivo a tu medida: un evento en grupo con plazas o una videollamada 1:1, solo tú y el creador.', icon: TICKET },
-      ];
-  const faceWho = ENABLE_OPEN_LIVE ? [byId('1').avatar, byId('2').avatar, byId('5').avatar, byId('3').avatar] : [byId('1').avatar, byId('2').avatar, byId('3').avatar];
-  const count = panels.length;
   const { hash } = useLocation();
 
-  const [cur, setCur] = useState(0);
-  const [cycle, setCycle] = useState(0); // restarts the progress bar
-  const [hovering, setHovering] = useState(false);
-  const [visible, setVisible] = useState(false);
-  const section = useRef<HTMLElement>(null);
-  const livePanel = useRef<HTMLElement>(null);
-  const reduce = prefersReducedMotion();
-
-  useEffect(() => {
-    const el = section.current;
-    if (!el || !('IntersectionObserver' in window)) return;
-    const io = new IntersectionObserver((es) => setVisible(es[0].isIntersecting), { threshold: 0.35 });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-
-  const open = useCallback((i: number) => {
-    setCur((i + count) % count);
-    setCycle((c) => c + 1);
-  }, [count]);
-
-  // "Suscribirse" in the menu lands here with that step open.
+  // Preserve menu links without opening a panel or starting a timer.
   useEffect(() => {
     const go = () => {
-      if (window.location.hash !== '#suscribirse') return;
-      open(1);
-      document.getElementById('suscribirse')?.scrollIntoView({ block: 'start' });
+      if (window.location.hash === '#suscribirse') {
+        document.getElementById('suscribirse')?.scrollIntoView({ block: 'start' });
+      }
     };
     go();
     window.addEventListener('hashchange', go);
     return () => window.removeEventListener('hashchange', go);
-  }, [hash, open]);
-  const paused = reduce || hovering || !visible;
-  const fine = () => window.matchMedia('(pointer:fine)').matches;
+  }, [hash]);
 
   return (
-    <section
-      ref={section}
-      className={`sec journey ${paused ? 'paused' : ''}`}
-      id="journey"
-      aria-labelledby="how-title"
-      onFocus={(e) => (e.target as HTMLElement).closest('.ap-body') && setHovering(true)}
-      onBlur={() => setHovering(false)}
-    >
-      <span id="suscribirse" className="block scroll-mt-28" aria-hidden="true" />
+    <section className="sec journey" id="journey" aria-labelledby="how-title" data-testid="how-it-works">
       <div className="wrap">
-        <div className="j-head v-reveal">
-          <span className="v-eyebrow">{HOW.eyebrow}</span>
-          <h2 id="how-title">
-            {HOW.titleLead} <em>{HOW.titleAccent}</em>
-          </h2>
-          <p>{HOW.subtitle}</p>
+        <div className="j-head">
+          <h2 id="how-title">{HOW.titleLead} <em>{HOW.titleAccent}</em></h2>
         </div>
-        <div className="acc v-reveal">
-          {panels.map((p, i) => {
-            const on = i === cur;
+        <div className="journey-options" data-testid="journey-options">
+          {options.map((option) => {
+            const creator = creators.find((person) => person.id === option.creatorId) ?? creators[0];
+            const portrait = clearAvatar(creator.avatar);
             return (
-              <article
-                key={p.key}
-                ref={p.key === 'live' ? livePanel : undefined}
-                className={`ap ${p.cls} ${on ? 'on' : ''}`}
-                onPointerMove={trackSpot}
-                onPointerEnter={() => on && fine() && setHovering(true)}
-                onPointerLeave={() => setHovering(false)}
-              >
-                <span className="big" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
-                <button
-                  type="button"
-                  className="ap-face"
-                  id={`jt${i}`}
-                  aria-expanded={on}
-                  aria-controls={`jb${i}`}
-                  onClick={() => {
-                    open(i);
-                    setHovering(fine());
-                  }}
-                >
-                  <span className="ico-b">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{p.icon}</svg>
-                  </span>
-                  <span className="more">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{PLUS}</svg>
-                  </span>
-                  <WhoImg src={faceWho[i]} />
-                  <span className="lbl">
-                    <small>Paso {i + 1}</small>
-                    <b>{p.label}</b>
-                    <span className="price">{p.price}</span>
-                  </span>
-                </button>
-                <div className="ap-body" id={`jb${i}`} role="region" aria-labelledby={`jt${i}`} {...(on ? {} : { inert: '' })}>
-                  {p.who && <WhoImg src={p.who} />}
-                  <span className="step">{p.label}</span>
-                  <h3>{p.title}</h3>
-                  <p className="sub">{p.sub}</p>
-                  {p.key === 'follow' && <FollowDemo />}
-                  {p.key === 'sub' && <SubscribeDemo />}
-                  {p.key === 'live' && <LiveDemo panel={livePanel} />}
-                  {p.key === 'res' && <ReserveDemo />}
-                  {p.key === 'both' && <ReserveBothDemo />}
+              <article key={option.key} id={option.key === 'subscription' ? 'suscribirse' : undefined} className={`journey-option journey-${option.key}`} aria-labelledby={`how-${option.key}`}>
+                <div className="journey-copy">
+                  <h3 id={`how-${option.key}`}>{option.title}</h3>
+                  <p>{option.description}</p>
                 </div>
-                <span className="jbar" aria-hidden="true">
-                  <i key={on ? cycle : -1} onAnimationEnd={() => on && !reduce && open(cur + 1)}></i>
-                </span>
+                <div className="journey-portrait" aria-hidden="true">
+                  <img src={portrait ?? creator.avatar} className={portrait ? 'cutout' : 'photo'} alt="" loading="lazy" decoding="async" />
+                </div>
+                <div className="journey-action">
+                  <Link to={option.to} className="v-btn">{option.action}<ArrowRight /></Link>
+                </div>
               </article>
             );
           })}

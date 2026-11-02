@@ -9,6 +9,7 @@ import ReserveExperienceWizard from './ReserveExperienceWizard';
 import ReserveBookingCard from './ReserveBookingCard';
 import { ExperienceFacts } from './ReserveBits';
 import PushOptIn from '../PushOptIn';
+import { useCreatorSetup } from '../../hooks/useCreatorSetup';
 
 interface Props {
   availability: Availability;
@@ -23,6 +24,7 @@ type Section = 'experiences' | 'requests' | 'availability' | 'upcoming' | 'histo
 // The creator's Reserve: what they offer, who asked, when they are available,
 // what is coming up and what already happened.
 const CreatorReservePanel: React.FC<Props> = ({ availability, bookings, reloadBookings, availabilityEditor }) => {
+  const setup = useCreatorSetup();
   const { user } = useAuth();
   const profileId = user?.creatorProfileId ?? '';
   const { data: all, reload } = usePlatformQuery(() => backend.listExperiences(), [], [] as VipExperience[]);
@@ -152,7 +154,7 @@ const CreatorReservePanel: React.FC<Props> = ({ availability, bookings, reloadBo
               availability={availability}
               editing={wizard.editing}
               onCancel={() => setWizard(null)}
-              onSaved={(text) => { setWizard(null); setMessage({ ok: true, text }); changed(); }}
+              onSaved={(text) => { setWizard(null); setMessage({ ok: true, text }); changed(); setup.finish('reserve', text); }}
             />
           ) : mine.length === 0 ? (
             <div className="rounded-2xl bg-white p-8 text-center shadow-sm">

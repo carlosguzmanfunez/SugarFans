@@ -28,6 +28,8 @@ import GiftDialog from '../components/GiftDialog';
 import NewPostForm from '../components/NewPostForm';
 import AccessLadder, { useFollow } from '../components/reserve/AccessLadder';
 import CreatorSubscriptionSummary from '../components/CreatorSubscriptionSummary';
+import { useCreatorSetup } from '../hooks/useCreatorSetup';
+import { FIRST_STEPS_PATH } from '../lib/creatorSetup';
 import CreatorReserveSection, { UpcomingAccess, openReserve } from '../components/reserve/CreatorReserveSection';
 import { useCurrentLive } from '../lib/live';
 import { ReserveNotice } from '../components/reserve/ReserveBits';
@@ -51,6 +53,7 @@ const formatDay = (iso: string) => new Date(iso).toLocaleDateString('es', { day:
 const formatShortDay = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' }).replace('.', '');
 
 const CreatorProfile: React.FC = () => {
+  const setup = useCreatorSetup();
   const { id } = useParams();
   const { isAuthenticated, user, isSubscribed: hasSubscription, toggleSubscription, cancelSubscription, subscriptionOf, refreshUser, deletePost } = useAuth();
   const navigate = useNavigate();
@@ -317,6 +320,7 @@ const CreatorProfile: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-canvas">
+      {setup.step === 'photo' && <div className="mx-auto max-w-4xl px-4 py-3"><Link to={FIRST_STEPS_PATH} className="inline-flex min-h-11 items-center text-sm font-semibold text-brand-700 underline underline-offset-4">Volver a Primeros pasos</Link><p className="text-sm text-muted">Añade tu foto de perfil y tu portada. Cuando ambas estén guardadas, volverás a la lista.</p></div>}
       {viewing && viewable.some((p) => p.id === viewing) && (
         <MediaViewer posts={viewable} startId={viewing} onClose={closeViewer} />
       )}

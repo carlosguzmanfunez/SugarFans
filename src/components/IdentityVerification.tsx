@@ -6,6 +6,8 @@ import { diditEnabled, startDidit } from '../lib/didit';
 import DiditReturn, { returnedFromDidit } from './DiditReturn';
 import { useLanguage } from '../context/LanguageContext';
 import { countryName, isCountryCode, sortedCountries } from '../config/countries';
+import { useCreatorSetup } from '../hooks/useCreatorSetup';
+import { clearSetupVerification, rememberSetupVerification } from '../lib/creatorSetup';
 
 const field = 'w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-sm';
 
@@ -52,6 +54,7 @@ const PhotoInput: React.FC<{
 
 // Settings > Verificación: upload an ID document + selfie, then follow the review status.
 const IdentityVerification: React.FC = () => {
+  const setup = useCreatorSetup();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   // Back from Didit: wait for its decision, then celebrate or show the status.
@@ -105,13 +108,17 @@ const IdentityVerification: React.FC = () => {
     setRetry(false);
     setDocFront('');
     setSelfie('');
+    setup.finish('verify', 'Solicitud de verificación enviada. Puedes continuar con los demás pasos mientras se revisa.');
   };
 
   const openDidit = async () => {
     setSending(true);
     try {
+      if (setup.step === 'verify') rememberSetupVerification(user.id);
+      else clearSetupVerification();
       await startDidit();
     } catch (err) {
+      clearSetupVerification();
       setError((err as Error).message);
       setSending(false);
     }

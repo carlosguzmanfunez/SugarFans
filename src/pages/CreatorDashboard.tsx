@@ -32,12 +32,15 @@ import { posts as catalogPosts } from '../data/mockData';
 import { BRAND, displayPayer } from '../config/brand';
 import { usePayoutCalendar } from '../lib/usePayoutCalendar';
 import { hondurasMidnight, hondurasParts, PAYOUT_TIME_ZONE } from '../lib/payoutCalendar';
+import { useCreatorSetup } from '../hooks/useCreatorSetup';
+import { FIRST_STEPS_PATH } from '../lib/creatorSetup';
 
 // "Dinero" in the tab bar: income, gifts and rewards.
 const MONEY_TABS = ['earnings', 'gifts', 'rewards', 'invites'];
 
 const CreatorDashboard: React.FC = () => {
   const { user, deletePost, updateUser } = useAuth();
+  const setup = useCreatorSetup();
   const calendar = usePayoutCalendar();
   // The open tab lives in the address (?tab=vip), so "Reservas" in the menus opens
   // it even when the panel is already on screen, and back/forward move between tabs.
@@ -45,7 +48,7 @@ const CreatorDashboard: React.FC = () => {
   const activeTab = searchParams.get('tab') || 'overview';
   const setActiveTab = (id: string) => setSearchParams(id === 'overview' ? {} : { tab: id }, { replace: true });
   // "Contenido" in the phone tab bar links to #panel-tabs: jump past the Live box to the tabs.
-  const { hash } = useLocation();
+  const { hash, state } = useLocation();
   useEffect(() => {
     if (hash === '#panel-tabs') document.getElementById('panel-tabs')?.scrollIntoView({ block: 'start' });
   }, [hash, activeTab]);
@@ -53,6 +56,7 @@ const CreatorDashboard: React.FC = () => {
   const [showNewPost, setShowNewPost] = useState(hash === '#nuevo');
   useEffect(() => {
     if (hash === '#nuevo') setShowNewPost(true);
+    else if (hash === '#primeros-pasos') setShowNewPost(false);
   }, [hash]);
   // The form sits above the tabs: when it opens from further down (Contenido's
   // "Subir foto o video"), bring it into view so the tap visibly does something.
@@ -63,6 +67,10 @@ const CreatorDashboard: React.FC = () => {
     newPostRef.current?.scrollIntoView({ block: 'start', behavior: reduced ? 'auto' : 'smooth' });
   }, [showNewPost]);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
+  useEffect(() => {
+    if (typeof state?.creatorSetupNotice === 'string') setNotice({ ok: true, text: state.creatorSetupNotice });
+    else setNotice(null);
+  }, [state]);
 
   const [displayName, setDisplayName] = useState(user?.name ?? '');
   const [bio, setBio] = useState(user?.bio ?? '');
@@ -132,6 +140,8 @@ const CreatorDashboard: React.FC = () => {
 
   const handlePublished = (inReview?: boolean) => {
     setShowNewPost(false);
+    const message = !verified ? 'Publicación guardada como borrador. Se publicará cuando verifiques tu identidad.' : inReview ? 'Publicación guardada. Su archivo está en revisión.' : 'Publicación creada.';
+    if (setup.finish('post', message)) return;
     setActiveTab('content');
     show(
       { ok: true },
@@ -161,6 +171,7 @@ const CreatorDashboard: React.FC = () => {
       settings: { ...user!.settings, category },
     });
     show(result, 'Cambios guardados exitosamente');
+    if (result.ok) setup.finish('bio', 'Bio y categoría guardadas. Continúa con tus primeros pasos.');
   };
 
   const subscribers = (live?.subs ?? []).map((sub) => ({ ...sub, since: monthName(sub.since), plan: 'Mensual' }));
@@ -235,6 +246,8 @@ const CreatorDashboard: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {setup.step && <Link to={FIRST_STEPS_PATH} className="mb-4 inline-flex min-h-11 items-center text-sm font-semibold text-brand-700 underline underline-offset-4">Volver a Primeros pasos</Link>}
 
         {/* Just signed up: identity verification as the last step (now or later). */}
         {!verified && searchParams.has('bienvenida') && (
@@ -353,7 +366,7 @@ const CreatorDashboard: React.FC = () => {
         {/* Stats Grid */}
         {activeTab === 'overview' && (
           <>
-            {user && <CreatorFirstSteps user={user} onOpenTab={(tab) => { setActiveTab(tab); setNotice(null); }} onNewPost={() => setShowNewPost(true)} />}
+            {user && <CreatorFirstSteps user={user} />}
             <CreatorGoalsSummary onOpenTab={(tab) => { setActiveTab(tab); setNotice(null); window.scrollTo({ top: 0 }); }} />
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-8">
               {stats.map((stat) => (

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { VIP } from '../../content/landing';
-import { ArrowRight, CheckIcon, prefersReducedMotion } from './landingBits';
+import { ArrowRight, prefersReducedMotion } from './landingBits';
 
 // Example experiences, each a short stock clip (Pexels License, see
 // public/reserve-clips/LICENSE.txt). The cards never name the people in the clips.
@@ -14,18 +14,11 @@ const CLIPS = [
   { k: 'creador', cat: 'Tu gente', title: 'Cómo grabo mis videos', tags: ['Virtual', '30 min', 'Videollamada Fans Reserve'], price: '$17.99', when: 'Sáb 16 · 11:00 · Virtual' },
   { k: 'artista', cat: 'Arte & Creatividad', title: 'Sesión de pintura en vivo', tags: ['Presencial', '90 min', 'Estudio de arte'], price: '$29.99', when: 'Dom 17 · 15:00 · Estudio' },
 ];
-const PERK_ICONS: React.ReactNode[] = [
-  <><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></>,
-  <><rect x="2.5" y="6" width="13" height="12" rx="2.5" /><path d="M15.5 10.5l6-3.5v10l-6-3.5" /></>,
-  <><rect x="3" y="5" width="18" height="16" rx="2.5" /><path d="M3 10h18M8 3v4M16 3v4M9 15l2 2 4-4" /></>,
-  <><path d="M15 4l5 5L9 20H4v-5z" /><path d="M13 6l5 5" /></>,
-];
 
 // The clip stack: one experience after another slides over the previous one, like
 // a video. It is only a showcase: the cursor does not pause, move or open it.
 const ClipStack: React.FC = () => {
   const [cur, setCur] = useState(0);
-  const [toast, setToast] = useState({ show: true, when: CLIPS[0].when });
   const [inView, setInView] = useState(false);
   // The clip coming to the front first jumps (unanimated) to its start position
   // at the right, then slides in over the stack.
@@ -66,26 +59,10 @@ const ClipStack: React.FC = () => {
         v.play()?.catch(() => {});
       } else v.pause();
     });
-    setToast((t) => ({ ...t, show: false }));
-    const t = window.setTimeout(() => setToast({ show: true, when: CLIPS[cur].when }), 650);
-    return () => window.clearTimeout(t);
   }, [cur, inView]);
 
   return (
     <div className="scene" ref={scene} role="img" aria-label="Ejemplos de experiencias que puedes reservar: clases, coaching y sesiones">
-      <div className="halo" />
-      <div className="orbit" />
-      <div className="layer seal" aria-hidden="true">
-        <svg viewBox="0 0 100 100">
-          <defs>
-            <path id="sealp" d="M50,50 m-38,0 a38,38 0 1,1 76,0 a38,38 0 1,1 -76,0" />
-          </defs>
-          <text fontSize="8.5" fontWeight="700" letterSpacing="3" fill="#3a2708">
-            <textPath href="#sealp">EXPERIENCIA VERIFICADA · FANS RESERVE ·</textPath>
-          </text>
-        </svg>
-        <span style={{ position: 'relative', fontSize: 22 }}>R</span>
-      </div>
       <div className="layer clips" aria-hidden="true">
         {CLIPS.map((c, k) => {
           const pos = (cur - k + n) % n;
@@ -116,14 +93,11 @@ const ClipStack: React.FC = () => {
               <div className="info">
                 <h3>{c.title}</h3>
                 <div className="tags">
-                  {c.tags.map((t) => (
+                  {c.tags.slice(0, 2).map((t) => (
                     <span key={t}>{t}</span>
                   ))}
                 </div>
-                <div className="pr">
-                  <div><small>Desde</small><strong>{c.price}</strong></div>
-                  <span className="chip gold">Reserve</span>
-                </div>
+                <p className="clip-price">Desde <strong>{c.price}</strong></p>
               </div>
             </article>
           );
@@ -134,50 +108,21 @@ const ClipStack: React.FC = () => {
           ))}
         </div>
       </div>
-      <div className="layer toast t1" aria-hidden="true" style={toast.show ? undefined : { opacity: 0, transform: 'translateY(10px)' }}>
-        <span className="ok"><CheckIcon /></span>
-        <div>
-          <b>Tu reserva fue aprobada</b>
-          <span>{toast.when}</span>
-        </div>
-      </div>
     </div>
   );
 };
 
 // The premium chapter of the landing: dark, gold accents, and the clip stack.
 const VipShowcase: React.FC = () => (
-  <section className="rsv" id="reserve" aria-labelledby="vip-title">
+  <section className="rsv" id="reserve" aria-labelledby="vip-title" data-testid="reserve-showcase">
     <div className="rsv-line" />
     <div className="wrap rsv-grid">
-      <div className="v-reveal">
-        <span className="v-eyebrow">{VIP.eyebrow}</span>
+      <div>
         <h2 id="vip-title">
           {VIP.titleLead} <em>{VIP.titleAccent}</em>
         </h2>
         <p className="lead">{VIP.subtitle}</p>
-        <div className="perks">
-          {VIP.perks.map((perk, i) => (
-            <div key={perk.title} className="perk">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                {PERK_ICONS[i]}
-              </svg>
-              <div>
-                <b>{perk.title}</b>
-                <span>{perk.text}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-        <ol className="rsteps">
-          {VIP.steps.map((s, i) => (
-            <li key={s}>
-              <i>{i + 1}</i>
-              {s}
-            </li>
-          ))}
-        </ol>
-        <Link to="/reserve" className="v-btn v-gold magnet">
+        <Link to="/reserve" className="v-btn v-gold">
           {VIP.cta} <ArrowRight />
         </Link>
       </div>
