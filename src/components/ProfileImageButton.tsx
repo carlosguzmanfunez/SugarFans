@@ -4,6 +4,9 @@ import { backend } from '../lib/backend';
 import { platformChanged } from '../lib/platform';
 import { checkProfileImage, loadImage, type ProfileImageKind } from '../lib/profileImage';
 import AvatarCropper from './AvatarCropper';
+import { useCreatorSetup } from '../hooks/useCreatorSetup';
+import { hasOwnAvatar } from '../lib/backend/shared';
+import { isPlaceholderImage } from './CoverArt';
 
 interface Props {
   kind: ProfileImageKind;
@@ -15,6 +18,7 @@ interface Props {
 
 // Camera button that changes the profile photo or the cover photo, like Facebook's.
 const ProfileImageButton: React.FC<Props> = ({ kind, onDone, className = '', withLabel = false }) => {
+  const setup = useCreatorSetup();
   const { user, refreshUser } = useAuth();
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -30,10 +34,18 @@ const ProfileImageButton: React.FC<Props> = ({ kind, onDone, className = '', wit
       const result = await backend.setProfileImage(user, kind, image);
       if (!result.ok) return onDone(result.error || 'No se pudo guardar la foto', false);
       // Held for moderation: the current photo stays until it's approved.
-      if (result.notice) return onDone(result.notice, true);
+      if (result.notice) {
+        onDone(result.notice, true);
+        setup.finish('photo', result.notice);
+        return;
+      }
       await refreshUser();
       platformChanged();
       onDone(kind === 'avatar' ? 'Foto de perfil actualizada' : 'Portada actualizada', true);
+      if (setup.step === 'photo') {
+        const current = await backend.getCurrentUser().catch(() => null);
+        if (current && hasOwnAvatar(current.avatar) && !isPlaceholderImage(current.avatar) && !isPlaceholderImage(current.cover)) setup.finish('photo', 'Foto de perfil y portada guardadas. Continúa con tus primeros pasos.');
+      }
     } catch (err) {
       onDone(err instanceof Error ? err.message : 'No se pudo guardar la foto', false);
     } finally {

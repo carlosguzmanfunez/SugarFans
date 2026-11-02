@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import type { User } from '../lib/backend/types';
 import { backend } from '../lib/backend';
 import { usePlatformQuery, platformApi } from '../lib/platform';
@@ -8,21 +8,21 @@ import { readJSON, writeJSON } from '../lib/storage';
 import { profileLink } from '../lib/creatorLinks';
 import { isPlaceholderImage } from './CoverArt';
 import { hasOwnAvatar } from '../lib/backend/shared';
+import { setupPath } from '../lib/creatorSetup';
 
 interface Props {
   user: User;
-  onOpenTab: (tab: string) => void;
-  onNewPost: () => void;
 }
 
-type Step = { id: string; title: string; hint: string; done: boolean } & ({ to: string } | { action: () => void; label: string });
+type Step = { id: string; title: string; hint: string; done: boolean; label?: string } & ({ to: string } | { action: () => void });
 
 const hiddenKey = (userId: string) => `first_steps_hidden_${userId}`;
 const sharedKey = (userId: string) => `first_steps_shared_${userId}`;
 
 // Panel: the creator's first steps, each with a button that takes them there. Ticks
 // itself as they go; disappears when everything is done or they hide it.
-const CreatorFirstSteps: React.FC<Props> = ({ user, onOpenTab, onNewPost }) => {
+const CreatorFirstSteps: React.FC<Props> = ({ user }) => {
+  const { hash } = useLocation();
   const profileId = user.creatorProfileId ?? user.id;
   const [hidden, setHidden] = useState(() => readJSON<boolean>(hiddenKey(user.id), false));
   const [shared, setShared] = useState(() => readJSON<boolean>(sharedKey(user.id), false));
@@ -43,6 +43,10 @@ const CreatorFirstSteps: React.FC<Props> = ({ user, onOpenTab, onNewPost }) => {
     null
   );
 
+  useEffect(() => {
+    if (hash === '#primeros-pasos' && data && !hidden) document.getElementById('primeros-pasos')?.scrollIntoView({ block: 'start' });
+  }, [hash, data, hidden]);
+
   if (hidden || !data) return null;
 
   const share = () => {
@@ -58,14 +62,14 @@ const CreatorFirstSteps: React.FC<Props> = ({ user, onOpenTab, onNewPost }) => {
       title: 'Foto de perfil y portada',
       hint: 'Toca tu foto o tu portada en tu perfil para cambiarlas.',
       done: hasOwnAvatar(user.avatar) && !isPlaceholderImage(user.avatar) && !isPlaceholderImage(user.cover),
-      to: `/creator/${profileId}`,
+      to: setupPath(`/creator/${profileId}`, 'photo'),
     },
     {
       id: 'bio',
       title: 'Bio y categoría',
       hint: 'Cuenta en una línea qué haces y elige tu categoría.',
       done: !!user.bio?.trim() && !!user.settings.category,
-      action: () => onOpenTab('settings'),
+      to: setupPath('/creator/dashboard?tab=settings', 'bio'),
       label: 'Completar',
     },
     {
@@ -73,21 +77,21 @@ const CreatorFirstSteps: React.FC<Props> = ({ user, onOpenTab, onNewPost }) => {
       title: 'Tu @usuario y tus redes',
       hint: 'Enlaza tu TikTok, Instagram o YouTube para que tus seguidores te reconozcan.',
       done: Object.keys(user.settings.socials ?? {}).length > 0,
-      to: '/settings?section=profile&focus=redes',
+      to: setupPath('/settings?section=profile&focus=redes', 'socials'),
     },
     {
       id: 'verify',
       title: 'Verifica tu identidad',
       hint: 'Sin verificar no puedes cobrar y tus publicaciones quedan como borrador.',
       done: !!user.isVerified,
-      to: '/settings?section=verification',
+      to: setupPath('/settings?section=verification', 'verify'),
     },
     {
       id: 'post',
       title: 'Sube tu primera publicación',
       hint: 'Una foto o un video para que tu perfil no se vea vacío.',
       done: data.posts > 0,
-      action: onNewPost,
+      to: setupPath('/creator/dashboard#nuevo', 'post'),
       label: 'Subir',
     },
     {
@@ -95,7 +99,7 @@ const CreatorFirstSteps: React.FC<Props> = ({ user, onOpenTab, onNewPost }) => {
       title: 'Crea tu primera experiencia Reserve',
       hint: 'Una videollamada 1:1 o un evento en grupo que tus fans puedan reservar.',
       done: data.experiences > 0,
-      action: () => onOpenTab('vip'),
+      to: setupPath('/creator/dashboard?tab=vip', 'reserve'),
       label: 'Crear',
     },
     {
@@ -103,7 +107,7 @@ const CreatorFirstSteps: React.FC<Props> = ({ user, onOpenTab, onNewPost }) => {
       title: 'Añade tu PayPal para retiros',
       hint: 'Ahí te llega lo que ganas.',
       done: data.payout,
-      action: () => onOpenTab('earnings'),
+      to: setupPath('/creator/dashboard?tab=earnings', 'payout'),
       label: 'Añadir',
     },
     {
@@ -124,7 +128,7 @@ const CreatorFirstSteps: React.FC<Props> = ({ user, onOpenTab, onNewPost }) => {
   };
 
   return (
-    <section className="bg-white rounded-2xl border border-line p-5 mb-8" data-testid="first-steps" aria-labelledby="first-steps-title">
+    <section id="primeros-pasos" className="scroll-mt-28 bg-white rounded-2xl border border-line p-5 mb-8" data-testid="first-steps" aria-labelledby="first-steps-title">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 id="first-steps-title" className="font-display text-lg font-bold text-ink">Primeros pasos</h2>
@@ -154,7 +158,7 @@ const CreatorFirstSteps: React.FC<Props> = ({ user, onOpenTab, onNewPost }) => {
             </div>
             {!s.done &&
               ('to' in s ? (
-                <Link to={s.to} className="btn btn-sm btn-outline whitespace-nowrap">Ir</Link>
+                <Link to={s.to} className="btn btn-sm btn-outline whitespace-nowrap">{s.label || 'Ir'}</Link>
               ) : (
                 <button type="button" onClick={s.action} className="btn btn-sm btn-outline whitespace-nowrap">{s.label}</button>
               ))}
