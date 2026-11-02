@@ -30,6 +30,7 @@ import { earningsCycle, payoutWindow, formatPayoutDate } from '../lib/payoutCale
 import { usePayoutCalendar } from '../lib/usePayoutCalendar';
 import { useCreatorBalance } from '../lib/useCreatorBalance';
 import { payoutRequestMessage, sendingPayoutNote } from '../lib/payoutMessages';
+import { useCreatorSetup } from '../hooks/useCreatorSetup';
 
 const field = 'w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none text-sm';
 const fmtDate = formatPayoutDate;
@@ -43,6 +44,7 @@ const payoutBadge: Record<Payout['status'], { label: string; chip: string; icon:
 
 // Creator dashboard > Ingresos: real balance (80% of fan payments), PayPal account and withdrawals.
 const CreatorPayouts: React.FC = () => {
+  const setup = useCreatorSetup();
   const { user } = useAuth();
   const calendar = usePayoutCalendar();
   const userId = user?.id ?? '';
@@ -90,7 +92,7 @@ const CreatorPayouts: React.FC = () => {
      if(accountRequest.current?.payload!==payload)accountRequest.current={payload,key:crypto.randomUUID()};
      const r = await setPayoutAccount(user, paypalEmail,{email:confirmation,expectedRevision:accountRevision,key:accountRequest.current.key});
      setNotice(r.ok ? { ok: true, text: payoutAccount?'Cuenta PayPal actualizada. Los apartados que tenían otro destinatario quedan para revisión; ningún envío iniciado cambia de cuenta.':'Cuenta PayPal guardada para recibir tus retiros.' } : { ok: false, text: r.error! });
-     if (r.ok){accountRequest.current=null;setEditingAccount(false);setConfirmedAccount(false);setPaypalEmail('');setConfirmedEmail('');}
+     if (r.ok){accountRequest.current=null;setEditingAccount(false);setConfirmedAccount(false);setPaypalEmail('');setConfirmedEmail('');setup.finish('payout','Cuenta PayPal guardada. Continúa con tus primeros pasos.');}
     }catch{setNotice({ok:false,text:'No recibimos la confirmación. Reintenta con los mismos datos para conservar la referencia.'});}finally{setSavingAccount(false);}
   };
 

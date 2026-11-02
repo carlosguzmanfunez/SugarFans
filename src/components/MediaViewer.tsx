@@ -4,6 +4,7 @@ import { CoverImage, isPlaceholderImage } from './CoverArt';
 import type { DisplayPost } from './PostCard';
 import OnDemandVideo from './OnDemandVideo';
 import VideoPreview from './VideoPreview';
+import ZoomablePostImage from './ZoomablePostImage';
 
 interface Props {
   posts: DisplayPost[]; // only the ones with a photo or video the viewer may see
@@ -85,6 +86,7 @@ const MediaViewer: React.FC<Props> = ({ posts, startId, onClose }) => {
     horizontal.current = null;
     setDrag(0);
   };
+  const cancelSwipe = () => { start.current = null; horizontal.current = null; setDrag(0); };
 
   if (!post) return null;
 
@@ -118,11 +120,11 @@ const MediaViewer: React.FC<Props> = ({ posts, startId, onClose }) => {
 
       <div
         ref={frame}
-        className="relative flex-1 overflow-hidden touch-pan-y"
+        className="relative min-h-0 flex-1 overflow-hidden touch-pan-y"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
+        onPointerCancel={cancelSwipe}
       >
         <div
           className="flex h-full"
@@ -143,7 +145,7 @@ const MediaViewer: React.FC<Props> = ({ posts, startId, onClose }) => {
                     testId="media-viewer-video"
                   /> : <VideoPreview seed={`post-${p.id}`} />
                 ) : p.mediaUrl && !isPlaceholderImage(p.mediaUrl) ? (
-                  <img src={p.mediaUrl} alt={p.content || 'Foto'} draggable={false} className="max-w-full max-h-full object-contain" data-testid="media-viewer-image" />
+                  i === index ? <ZoomablePostImage key={`${p.id}-${index}`} src={p.mediaUrl} alt={p.content || 'Foto'} onGestureStart={cancelSwipe} /> : <img src={p.mediaUrl} alt="" draggable={false} className="max-w-full max-h-full object-contain" />
                 ) : (
                   <CoverImage seed={`post-${p.id}`} className="w-full max-w-2xl aspect-square" />
                 ))}
