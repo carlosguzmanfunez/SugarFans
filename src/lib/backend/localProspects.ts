@@ -3,7 +3,7 @@
 // The official Instagram API only answers on the published site.
 import { readJSON, writeJSON } from '../storage';
 import { FOLLOW_UP_DAYS, FUNNEL, prospectScore, type Prospect, type ProspectEvent, type ProspectStatus, type VariantStat } from '../prospects';
-import type { CreatorInvite } from '../rewardRules';
+import type { CreatorInvite, FounderRecord } from '../rewardRules';
 import type { ProspectFilter, ProspectsBackend, TikTokConnection } from './prospectTypes';
 import type { User } from './types';
 
@@ -12,6 +12,8 @@ interface Deps {
   accounts(): User[];
   hasRecentSale(creatorProfileId: string): boolean;
   hasSale?(creatorProfileId: string): boolean;
+  // After an account claims a team invite (Creador Fundador).
+  onClaim?(user: User, prospectCountry?: string): void;
 }
 
 const KEY = 'creator_prospects';
@@ -190,6 +192,11 @@ export const createLocalProspects = (deps: Deps): ProspectsBackend => {
           last30Days: invites.filter((i) => Date.now() - new Date(i.joinedAt).getTime() <= 30 * 86400000).length,
         },
         topInviters: [...top].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)).slice(0, 5),
+        founders: [...readJSON<FounderRecord[]>('creator_founders', []).reduce((m, f) => {
+          const row = m.get(f.country) ?? { country: f.country, active: 0, atRisk: 0, lost: 0 };
+          if (f.lostAt) row.lost++; else { row.active++; if (f.belowOroSince) row.atRisk++; }
+          return m.set(f.country, row);
+        }, new Map<string, { country: string; active: number; atRisk: number; lost: number }>()).values()].sort((a, b) => b.active - a.active || a.country.localeCompare(b.country)),
       };
     },
 
@@ -313,6 +320,7 @@ export const createLocalProspects = (deps: Deps): ProspectsBackend => {
       const p = byCode(code);
       if (!me || me.role === 'admin' || !p || (p.matchedProfileId && p.matchedProfileId !== me.id)) return false;
       save(load().map((x) => (x.id === p.id ? touch({ ...x, matchedProfileId: me.id, status: FUNNEL.indexOf(x.status) < 3 ? 'registrado' : x.status }, x) : x)));
+      deps.onClaim?.(me, p.country);
       return true;
     },
 

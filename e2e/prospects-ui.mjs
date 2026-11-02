@@ -287,7 +287,7 @@ try {
     assert.equal(after.email, undefined);
   });
 
-  await ok('Al iniciar sesión, su cuenta queda conectada a la invitación (Registrado)', async () => {
+  await ok('Al iniciar sesión, su cuenta queda conectada a la invitación (Registrado) y es Creador Fundador', async () => {
     await v.goto(link);
     await v.getByTestId('invite-joined').waitFor();
     await v.evaluate(() => localStorage.removeItem('fansreserve_forceLaunchGate'));
@@ -298,6 +298,10 @@ try {
     await v.waitForURL((u) => new URL(u).pathname !== '/login');
     await v.waitForFunction((h) => JSON.parse(localStorage.getItem('fansreserve_creator_prospects')).find((p) => p.handle === h)?.status === 'registrado', invited);
     assert.equal(await v.evaluate(() => localStorage.getItem('fansreserve_prospectInvite')), null);
+    // A creator the team invited becomes Creador Fundador (seat in their country).
+    const founders = await v.evaluate(() => JSON.parse(localStorage.getItem('fansreserve_creator_founders') || '[]'));
+    assert.equal(founders.length, 1);
+    assert.equal(founders[0].creatorProfileId, '1');
   });
 
   await ok('El equipo lo ve en la lista y en "Últimas 24 horas"', async () => {
@@ -380,7 +384,7 @@ try {
     assert.match(shown, /al menos 20 contactos/);
   });
 
-  await ok('Metas muestra los creadores que llegaron invitados por otros creadores', async () => {
+  await ok('Metas muestra los creadores invitados por otros creadores y los cupos de Fundadores', async () => {
     await page.evaluate(() => {
       const accounts = JSON.parse(localStorage.getItem('fansreserve_accounts'));
       const vale = accounts.find((a) => a.id === 'demo-creator');
@@ -393,6 +397,15 @@ try {
     await tab('Metas');
     const box = tool.getByTestId('creator-invites');
     await box.getByText('Quién invita más').waitFor();
+    await page.evaluate(() => localStorage.setItem('fansreserve_creator_founders', JSON.stringify([
+      { creatorProfileId: '1', userId: 'demo-creator', country: 'HN', grantedAt: new Date().toISOString() },
+      { creatorProfileId: 'x', userId: 'x', country: 'HN', grantedAt: new Date().toISOString(), belowOroSince: new Date().toISOString() },
+    ])));
+    await page.reload();
+    await tab('Metas');
+    const founders = tool.getByTestId('founders');
+    await founders.getByText('2 / 100').waitFor();
+    await founders.getByText('1 en riesgo (bajaron de Oro)').waitFor();
     const text = (await box.innerText()).replace(/\s+/g, ' ');
     assert.match(text, /Llegaron 2 Verificados 0 Ya venden 0 Últimos 30 días 1/);
     assert.match(text, /1\. .+ 2/);

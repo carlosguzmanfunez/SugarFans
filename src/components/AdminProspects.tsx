@@ -8,6 +8,7 @@ import {
   type CountryProgress, type Prospect, type ProspectInput, type ProspectNetwork, type ProspectStatus,
 } from '../lib/prospects';
 import AdminDataState from './AdminDataState';
+import { FOUNDER_SEATS, FOUNDER_SHARE } from '../lib/rewardRules';
 import { BatchDmDialog, BatchEmailDialog, ImportDialog, MessageDialog, TemplatesDialog, VariantResult, download, flag } from './AdminProspectDialogs';
 
 const PAGE = 25;
@@ -26,7 +27,7 @@ const SIZES = [
 ] as const;
 
 const emptySummary: ProspectSummary = { byCountry: [], contactedToday: 0, followUpsDue: 0, toEnrich: 0, last24h: {}, emailsToday: 0, measuredAt: '' };
-const emptyInsights: ProspectInsights = { variants: [], creatorInvites: { total: 0, verified: 0, selling: 0, last30Days: 0 }, topInviters: [] };
+const emptyInsights: ProspectInsights = { variants: [], creatorInvites: { total: 0, verified: 0, selling: 0, last30Days: 0 }, topInviters: [], founders: [] };
 const unknownServer: ProspectServerStatus = { instagram: 'unknown', email: 'unknown', emailLimit: 0 };
 const hour = (iso: string) => new Date(iso).toLocaleString('es-HN', { timeZone: 'America/Tegucigalpa', weekday: 'short', hour: 'numeric', minute: '2-digit' });
 
@@ -131,6 +132,17 @@ function Insights({ data, onTemplates }: { data: ProspectInsights; onTemplates: 
         <p className="text-sm font-medium text-gray-900">Quién invita más</p>
         <ol className="mt-1.5 space-y-1 text-sm text-gray-700">{data.topInviters.map((t, i) => <li key={t.name} className="flex justify-between gap-3"><span>{i + 1}. {t.name}</span><span className="tabular-nums font-medium">{n(t.count)}</span></li>)}</ol>
       </div>}
+    </section>
+    <section className={`${card} p-4 sm:p-6 lg:col-span-2`} aria-labelledby="founders-title" data-testid="founders">
+      <h3 id="founders-title" className="text-base font-bold text-gray-900"><i aria-hidden="true" className="fas fa-crown text-amber-500 mr-2" />Creadores Fundadores</h3>
+      <p className="text-sm text-gray-600 mt-1">Quien se registra con su invitación personal queda como Fundador si su país tiene cupo ({FOUNDER_SEATS} por país). Gana {Math.round(FOUNDER_SHARE * 100)}% mientras llegue a Oro en 2 meses y se mantenga ahí.</p>
+      {data.founders.length === 0
+        ? <p className="mt-3 text-sm text-gray-500">Todavía no hay Fundadores.</p>
+        : <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{data.founders.map((f) => <li key={f.country} className="rounded-xl bg-gray-50 p-3">
+          <div className="flex items-baseline justify-between gap-2 text-sm"><span className="font-medium text-gray-900">{flag(f.country)} {countryLabel(f.country)}</span><span className="tabular-nums font-semibold text-gray-900">{f.active} / {FOUNDER_SEATS}</span></div>
+          <div className="mt-1.5 h-2 rounded-full bg-white overflow-hidden" role="progressbar" aria-label={`Cupos de Fundador en ${countryLabel(f.country)}`} aria-valuenow={f.active} aria-valuemin={0} aria-valuemax={FOUNDER_SEATS}><div className="h-full rounded-full bg-amber-500" style={{ width: `${Math.max(2, Math.min(100, (f.active / FOUNDER_SEATS) * 100))}%` }} /></div>
+          {(f.atRisk > 0 || f.lost > 0) && <p className="mt-1.5 text-xs text-gray-600">{f.atRisk > 0 ? `${f.atRisk} en riesgo (bajaron de Oro)` : ''}{f.atRisk > 0 && f.lost > 0 ? ' · ' : ''}{f.lost > 0 ? `${f.lost} lo perdieron` : ''}</p>}
+        </li>)}</ul>}
     </section>
   </div>;
 }

@@ -6,10 +6,9 @@ import {
   CREATOR_INVITE_MONTHS,
   CREATOR_INVITE_QUALIFY,
   EMPTY_MEDALS,
-  FOUNDER_GOAL,
   FOUNDER_SHARE,
+  LEVELS,
   daysLeft,
-  founderOpen,
   levelById,
   nextLevel,
   pct,
@@ -73,9 +72,15 @@ const CreatorGoalsSummary: React.FC<{ onOpenTab: (tab: string) => void }> = ({ o
   const f = data.founder;
   const invited = data.invitedCreators;
   const ready = invited.filter((c) => c.qualifiedAt).length;
+  // A Fundador below Oro: the goal is Oro, before the grace ends or to get it back.
+  const oro = LEVELS.find((l) => l.id === 'oro')!;
+  const needsOro = !!f?.active && (data.level === 'bronce' || data.level === 'plata');
+  const deadline = f?.loseAt ?? f?.graceUntil;
+  const target = needsOro ? oro : next;
   // The closer of the two ways up.
-  const byFans = next ? percent(data.activeFans, next.minFans) : 0;
-  const bySales = next ? percent(data.sales, next.minSales) : 0;
+  const byFans = target ? percent(data.activeFans, target.minFans) : 0;
+  const bySales = target ? percent(data.sales, target.minSales) : 0;
+  const shortDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short' });
 
   return (
     <section className="bg-white rounded-2xl border border-line p-4 sm:p-6 mb-5 sm:mb-8" aria-labelledby="my-goals-title" data-testid="my-goals">
@@ -88,21 +93,23 @@ const CreatorGoalsSummary: React.FC<{ onOpenTab: (tab: string) => void }> = ({ o
         )}
       </div>
       <ul className="divide-y divide-line">
-        {founderOpen(f) && f && (
+        {needsOro && f && deadline && (
           <Goal
             id="founder"
             icon="fa-crown"
             tone="gold"
-            title={`Fundador: vende $${FOUNDER_GOAL} en tu primer mes`}
-            value={f.sales}
-            max={FOUNDER_GOAL}
-            amount={`${money(f.sales)} / ${money(FOUNDER_GOAL)}`}
-            note={<>{f.verified ? <span className="text-emerald-700"><i aria-hidden="true" className="fas fa-circle-check mr-1" />Verificado</span> : 'Falta verificarte'} · {daysLeft(f.until)} · Premio: insignia para siempre y {pct(FOUNDER_SHARE)}</>}
+            title={f.loseAt ? `Recupera ${oro.icon} Oro para seguir siendo Fundador` : `Fundador: llega a ${oro.icon} Oro antes del ${shortDate(deadline)}`}
+            value={bySales >= byFans ? data.sales : data.activeFans}
+            max={bySales >= byFans ? oro.minSales : oro.minFans}
+            amount={bySales >= byFans ? `${money(data.sales)} / ${money(oro.minSales)}` : `${data.activeFans} / ${oro.minFans} fans`}
+            note={f.loseAt
+              ? <span className="text-red-700 font-medium">{daysLeft(f.loseAt)}; si no, pierdes Fundador y el {pct(FOUNDER_SHARE)}</span>
+              : <>{daysLeft(deadline)} · {bySales >= byFans ? `ventas en 30 días, o ${oro.minFans} fans activos` : `fans activos, o ${money(oro.minSales)} en 30 días`}</>}
             action="Ver metas"
             onAction={() => onOpenTab('goals')}
           />
         )}
-        {next && (
+        {next && !needsOro && (
           <Goal
             id="level"
             icon="fa-medal"

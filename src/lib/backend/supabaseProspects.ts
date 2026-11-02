@@ -122,6 +122,7 @@ export const createSupabaseProspects = (sb: SupabaseClient): ProspectsBackend =>
         variants: ((d.variants ?? []) as Row[]).map((r) => ({ channel: r.channel, variant: r.variant, contacted: Number(r.contacted), replied: Number(r.replied) })),
         creatorInvites: { total: Number(ci.total ?? 0), verified: Number(ci.verified ?? 0), selling: Number(ci.selling ?? 0), last30Days: Number(ci.last_30_days ?? 0) },
         topInviters: ((d.top_inviters ?? []) as Row[]).map((r) => ({ name: String(r.name), count: Number(r.count) })),
+        founders: ((await sb.rpc('founders_summary')).data as Row[] | null ?? []).map((r) => ({ country: String(r.country), active: Number(r.active), atRisk: Number(r.at_risk), lost: Number(r.lost) })),
       };
     },
 

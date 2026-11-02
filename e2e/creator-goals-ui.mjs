@@ -1,7 +1,7 @@
 // "Tus metas" in Mi panel and "Mis invitados", in a real Chromium against the
-// offline build (browser-only store): the Fundador bar in the first month, the next
-// level, the invited creators around the creator with their ring to $100, what each
-// one earned (donut and list), and the Fundador badge on the public profile.
+// offline build (browser-only store): a Creador Fundador's bar to Oro (and the
+// countdown when they drop below it), the invited creators around the creator with
+// their ring to $100, what each one earned (donut and list), and the Fundador badge.
 // With GOALS_SHOTS=<dir> it also saves screenshots on desktop and mobile.
 // Usage: npx vite build --mode offline && node e2e/creator-goals-ui.mjs
 import { chromium } from 'playwright';
@@ -22,7 +22,7 @@ const ok = async (name, fn) => { await fn(); passed++; console.log(`  ✓ ${name
 const errors = [];
 const DAY = 86_400_000;
 
-// The demo creator (profile 1) started 10 days ago and sold $45; five creators
+// The demo creator (profile 1) became Fundador 10 days ago and sold $45; five creators
 // they invited: one earning, one finished, two on the way and one not verified.
 const seed = (page) =>
   page.evaluate((DAY) => {
@@ -30,8 +30,8 @@ const seed = (page) =>
     const iso = (d) => new Date(now + d * DAY).toISOString();
     const accounts = JSON.parse(localStorage.getItem('fansreserve_accounts'));
     const me = accounts.find((a) => a.creatorProfileId === '1');
-    me.createdAt = iso(-10);
     me.isVerified = true;
+    localStorage.setItem('fansreserve_creator_founders', JSON.stringify([{ creatorProfileId: '1', userId: me.id, country: 'HN', grantedAt: iso(-10) }]));
     const invited = [
       ['inv-ana', 'Ana Fit', true],
       ['inv-luis', 'Luis Baila', true],
@@ -72,18 +72,19 @@ try {
     await page.goto(`${BASE}/creator/dashboard`);
     const goals = page.getByTestId('my-goals');
 
-    await ok(`${label}: "Tus metas" en Mi panel con barras de Fundador, nivel e invitados`, async () => {
+    await ok(`${label}: "Tus metas": el Fundador ve su barra hacia Oro y sus invitados`, async () => {
       await goals.waitFor();
+      await goals.getByTestId('my-goals-founder').getByText(/Fundador · hoy ganas 82%/).waitFor();
       const founder = goals.getByTestId('my-goal-founder');
-      await founder.getByText('Fundador: vende $100 en tu primer mes').waitFor();
-      await founder.getByText('$45.00 / $100.00').waitFor();
-      await founder.getByText(/te quedan 20 días/).waitFor();
-      await founder.getByText('Verificado').waitFor();
-      assert.equal(await founder.getByRole('progressbar').getAttribute('aria-valuenow'), '45');
-      await goals.getByTestId('my-goal-level').getByText(/Llegar a .*Plata/).waitFor();
+      await founder.getByText(/Fundador: llega a .*Oro antes del/).waitFor();
+      await founder.getByText(/\$45\.00 \/ \$1,?000\.00/).waitFor();
+      await founder.getByText(/te quedan 50 días/).waitFor();
+      assert.equal(await founder.getByRole('progressbar').getAttribute('aria-valuenow'), '5');
+      // The Oro bar replaces the Plata one.
+      assert.equal(await goals.getByTestId('my-goal-level').count(), 0);
       const inv = goals.getByTestId('my-goal-invites');
       await inv.getByText('2 / 5').waitFor();
-      assert.equal(await goals.getByRole('progressbar').count(), 3);
+      assert.equal(await goals.getByRole('progressbar').count(), 2);
       if (shots) await goals.screenshot({ path: join(shots, `${label}-1-tus-metas.png`) });
     });
 
@@ -109,29 +110,38 @@ try {
       await view.waitFor();
     });
 
-    await ok(`${label}: la medalla Fundador aparece en Metas mientras corre el primer mes`, async () => {
+    await ok(`${label}: en Metas tiene la medalla Fundador y gana 82%; los fans ven la insignia`, async () => {
       await page.goto(`${BASE}/creator/dashboard?tab=goals`);
-      const medal = page.getByTestId('medal-fundador');
-      await medal.getByText(/\$45\.00 \/ \$100\.00 · te quedan 20 días/).waitFor();
-      assert.equal(await medal.getAttribute('data-earned'), 'false');
-      await page.getByTestId('medal-embajador').getByText('Bono de invitación activo').waitFor();
-    });
-
-    await ok(`${label}: con $100 en su primer mes es Fundador, gana 82% y los fans ven la insignia`, async () => {
-      await page.evaluate(() => {
-        const p = JSON.parse(localStorage.getItem('fansreserve_platform'));
-        p.transactions.push({ ...p.transactions.find((t) => t.id === 'me-1'), id: 'me-2', key: 'me-2', amount: 60, createdAt: new Date(Date.now() - 3600000).toISOString() });
-        localStorage.setItem('fansreserve_platform', JSON.stringify(p));
-      });
-      await page.goto(`${BASE}/creator/dashboard`);
-      await goals.getByTestId('my-goals-founder').getByText(/Fundador · hoy ganas 82%/).waitFor();
-      assert.equal(await goals.getByTestId('my-goal-founder').count(), 0);
-      await page.goto(`${BASE}/creator/dashboard?tab=goals`);
-      await page.locator('[data-testid=medal-fundador][data-earned=true]').getByText('Hoy ganas 82%').waitFor();
+      const medal = page.locator('[data-testid=medal-fundador][data-earned=true]');
+      await medal.getByText('Activo: llega a Oro, te quedan 50 días').waitFor();
       await page.getByTestId('goals-share').getByText('82%').waitFor();
+      await page.getByTestId('medal-embajador').getByText('Bono de invitación activo').waitFor();
       await page.goto(`${BASE}/creator/1`);
       await page.getByTestId('badge-fundador').first().waitFor();
       if (shots && label === 'escritorio') await page.screenshot({ path: join(shots, `${label}-3-perfil-fundador.png`) });
+    });
+
+    await ok(`${label}: si baja de Oro tiene 30 días para recuperarlo; si no, deja de ser Fundador`, async () => {
+      await page.evaluate((DAY) => {
+        const list = JSON.parse(localStorage.getItem('fansreserve_creator_founders'));
+        const iso = (d) => new Date(Date.now() + d * DAY).toISOString();
+        localStorage.setItem('fansreserve_creator_founders', JSON.stringify(list.map((f) => ({ ...f, grantedAt: iso(-70), belowOroSince: iso(-5) }))));
+      }, DAY);
+      await page.goto(`${BASE}/creator/dashboard`);
+      const founder = goals.getByTestId('my-goal-founder');
+      await founder.getByText(/Recupera .*Oro para seguir siendo Fundador/).waitFor();
+      await founder.getByText(/te quedan 25 días; si no, pierdes Fundador y el 82%/).waitFor();
+      if (shots) await goals.screenshot({ path: join(shots, `${label}-4-recupera-oro.png`) });
+      await page.evaluate(() => {
+        const list = JSON.parse(localStorage.getItem('fansreserve_creator_founders'));
+        localStorage.setItem('fansreserve_creator_founders', JSON.stringify(list.map((f) => ({ ...f, lostAt: new Date(Date.now() - 1000).toISOString() }))));
+      });
+      await page.goto(`${BASE}/creator/dashboard?tab=goals`);
+      await page.locator('[data-testid=medal-fundador][data-earned=false]').getByText('Ya no eres Fundador').waitFor();
+      await page.getByTestId('goals-share').getByText('80%').waitFor();
+      await page.goto(`${BASE}/creator/1`);
+      await page.getByTestId('creator-profile').or(page.locator('main')).first().waitFor();
+      assert.equal(await page.getByTestId('badge-fundador').count(), 0);
     });
     await context.close();
   }

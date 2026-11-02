@@ -2249,8 +2249,7 @@ const run = async () => {
       await qualify(maraId);
       await qualify(nicoId);
       const nico = await tipAsDemoFan(nicoId, 'Nico Invitado');
-      // Nico sold $100 in his first month: he is Fundador and keeps 82%.
-      expect(nico.tip?.share === W.netShare(W.FOUNDER_SHARE, 10), `al creador invitado se le descontó (${nico.tip?.share})`);
+      expect(nico.tip?.share === W.netShare(0.8, 10), `al creador invitado se le descontó (${nico.tip?.share})`);
       const want = W.inviteBonusFor(nico.tip);
       expect(nico.bonus?.creatorProfileId === '1' && nico.bonus.amount === want && nico.bonus.share === 1, `no se generó el bono de $${want} por Nico (${JSON.stringify(nico.bonus)})`);
       // Local mode can also credit sales made after qualifying but before this tip: show what was paid.

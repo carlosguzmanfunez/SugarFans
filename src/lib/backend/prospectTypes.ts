@@ -65,6 +65,8 @@ export interface ProspectInsights {
   variants: VariantStat[];
   creatorInvites: { total: number; verified: number; selling: number; last30Days: number };
   topInviters: { name: string; count: number }[];
+  // Creadores Fundadores per country: seats taken (100 each), at risk of losing it, lost.
+  founders: { country: string; active: number; atRisk: number; lost: number }[];
 }
 
 // Public numbers of a professional Instagram account from the official API.

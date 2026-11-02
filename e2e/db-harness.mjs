@@ -81,12 +81,9 @@ export const createDbTest = (DB) => {
   };
 
   // Creators come verified (an unverified one can't be paid); pass verified: false to test that.
-  const user = (email, role, { verified = role === 'creator', founder = false } = {}) => {
+  const user = (email, role, { verified = role === 'creator' } = {}) => {
     const id = psql(DB, `insert into auth.users (email, raw_user_meta_data) values ('${email}', '{"role":"${role}","name":"${email.split('@')[0]}","age_verified":true}') returning id`);
     if (verified) psql(DB, `update public.profiles set is_verified = true where id = '${id}'`);
-    // Creators start as long-standing ones, outside their first 30 days (Fundador);
-    // tests about Fundador pass { founder: true }.
-    if (role === 'creator' && !founder) psql(DB, `update public.creator_starts set started_at = now() - interval '1 year' where creator_profile_id = '${id}'`);
     return id;
   };
 

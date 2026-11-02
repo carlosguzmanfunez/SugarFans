@@ -6,69 +6,139 @@
 --    up to $100 per invited creator. It starts on its own when that creator is
 --    verified and has sold $100: no need to have 2 invited creators any more. Paid
 --    by Fans Reserve; creator + inviter never above 90% of the net.
--- 2. Fundador: a creator who is verified and sells $100 within their first 30 days as
---    a creator keeps the "Fundador" badge for good, and earns 82% of the net (instead
---    of 80%) every 30 days in which they sell at least $100. Creators already on the
---    platform get their 30 days from today.
+-- 2. Creador Fundador: only by invitation of the team (the Captar creadores link
+--    /c/<code>), 100 per country. Earns 82% of the net and the "Fundador" badge
+--    while they keep it: 2 months to reach Oro, then they must stay Oro or higher
+--    (30 days to get it back after dropping). Losing it never touches money earned.
 
 -- =====================================================================
--- 1. When each account started as a creator
+-- 1. Creadores Fundadores
 -- =====================================================================
-create table if not exists public.creator_starts (
+create table if not exists public.creator_founders (
   creator_profile_id text primary key,
-  started_at timestamptz not null default now()
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  country text not null,
+  prospect_id uuid,
+  granted_at timestamptz not null default now(),
+  below_oro_since timestamptz, -- first day of the current stretch below Oro (after the grace)
+  lost_at timestamptz,         -- when they lost the title; their seat is free again
+  lost_reason text
 );
-alter table public.creator_starts enable row level security;
+create index if not exists creator_founders_country_idx on public.creator_founders (country) where lost_at is null;
+alter table public.creator_founders enable row level security;
 -- Nobody reads or writes it directly: only the functions below.
-revoke all on public.creator_starts from anon, authenticated;
+revoke all on public.creator_founders from anon, authenticated;
 
-insert into public.creator_starts (creator_profile_id, started_at)
-select p.creator_profile_id, now() from public.profiles p
-where p.role = 'creator' and p.creator_profile_id is not null
-on conflict do nothing;
+-- Rules (mirrored in src/lib/rewardRules.ts): 100 seats per country, 2 months to
+-- reach Oro, then 30 days to get it back each time they drop below it.
+create or replace function public.founder_rules()
+returns jsonb
+language sql
+immutable
+set search_path = ''
+as $$
+  select jsonb_build_object('seats', 100, 'grace_days', 60, 'recover_days', 30, 'share', 0.82);
+$$;
 
-create or replace function public.record_creator_start()
+-- A creator the team invited (their account claimed a /c/<code> invite) becomes
+-- Fundador if their country still has a free seat. Only once: a lost title doesn't
+-- come back by itself.
+create or replace function public.founder_grant(p_user uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_me public.profiles;
+  v_prospect public.creator_prospects;
+  v_country text;
+begin
+  select * into v_me from public.profiles where id = p_user;
+  if v_me.id is null or v_me.role <> 'creator' or v_me.creator_profile_id is null then
+    return false;
+  end if;
+  if exists (select 1 from public.creator_founders where creator_profile_id = v_me.creator_profile_id) then
+    return false;
+  end if;
+  select * into v_prospect from public.creator_prospects where matched_profile_id = p_user order by updated_at desc limit 1;
+  if v_prospect.id is null then
+    return false;
+  end if;
+  v_country := coalesce(v_me.country, v_prospect.country, 'ZZ');
+  -- One at a time per country, so two sign-ups can't take the last seat together.
+  perform pg_advisory_xact_lock(hashtext('founder-seat:' || v_country));
+  if (select count(*) from public.creator_founders where country = v_country and lost_at is null)
+     >= (public.founder_rules() ->> 'seats')::int then
+    return false;
+  end if;
+  insert into public.creator_founders (creator_profile_id, user_id, country, prospect_id)
+  values (v_me.creator_profile_id, p_user, v_country, v_prospect.id)
+  on conflict do nothing;
+  insert into public.notifications (user_id, kind, creator_profile_id, title, body, link)
+  values (p_user, 'creator_goal', v_me.creator_profile_id, 'Eres Creador Fundador',
+          'Ganas 82% mientras te mantengas en Oro. Tienes 2 meses para llegar.', '/creator/dashboard');
+  return true;
+end;
+$$;
+
+-- Linking the invite now also grants Fundador.
+create or replace function public.prospect_claim(p_code text)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_id uuid;
+begin
+  if v_uid is null then return false; end if;
+  if exists (select 1 from public.profiles where id = v_uid and role = 'admin') then return false; end if;
+  update public.creator_prospects
+  set matched_profile_id = v_uid,
+      status = case when public.prospect_rank(status) < 4 then 'registrado' else status end
+  where invite_code = lower(trim(coalesce(p_code, '')))
+    and (matched_profile_id is null or matched_profile_id = v_uid)
+  returning id into v_id;
+  if v_id is not null then
+    perform public.founder_grant(v_uid);
+  end if;
+  return v_id is not null;
+end;
+$$;
+
+-- An invited fan who later becomes a creator gets it then.
+create or replace function public.founder_on_become_creator()
 returns trigger
 language plpgsql
 security definer
 set search_path = ''
 as $$
 begin
-  if new.role = 'creator' and new.creator_profile_id is not null then
-    insert into public.creator_starts (creator_profile_id) values (new.creator_profile_id) on conflict do nothing;
+  if new.role = 'creator' and old.role is distinct from 'creator' then
+    perform public.founder_grant(new.id);
   end if;
   return new;
 end;
 $$;
-drop trigger if exists record_creator_start on public.profiles;
-create trigger record_creator_start
-  after insert or update of role, creator_profile_id on public.profiles
-  for each row execute function public.record_creator_start();
+drop trigger if exists founder_on_become_creator on public.profiles;
+create trigger founder_on_become_creator
+  after update of role on public.profiles
+  for each row execute function public.founder_on_become_creator();
 
--- =====================================================================
--- 2. Fundador
--- =====================================================================
--- When the creator became Fundador: verified, and the sale that took their first
--- 30 days to $100. Null if not (yet).
-create or replace function public.founder_at(p_creator text)
-returns timestamptz
+create or replace function public.founder_active(p_creator text, p_at timestamptz)
+returns boolean
 language sql
 stable
 security definer
 set search_path = ''
 as $$
-  select case when exists (select 1 from public.profiles p where p.creator_profile_id = p_creator and p.is_verified)
-    then (select min(x.created_at) from (
-            select t.created_at, sum(t.amount) over (order by t.created_at, t.id) as total
-            from public.transactions t, public.creator_starts s
-            where s.creator_profile_id = p_creator and t.creator_profile_id = p_creator
-              and t.status = 'paid' and t.kind <> 'referral'
-              and t.created_at < s.started_at + interval '30 days') x
-          where x.total >= 100)
-  end;
+  select exists (select 1 from public.creator_founders f
+                 where f.creator_profile_id = p_creator and f.granted_at <= p_at and (f.lost_at is null or f.lost_at > p_at));
 $$;
 
--- 82% while a Fundador sells $100 in 30 days; 0 otherwise.
+-- 82% while they are Fundador; 0 otherwise.
 create or replace function public.reward_founder_share(p_creator text, p_at timestamptz)
 returns numeric
 language sql
@@ -76,7 +146,7 @@ stable
 security definer
 set search_path = ''
 as $$
-  select case when public.founder_at(p_creator) <= p_at and public.reward_sales(p_creator, p_at) >= 100 then 0.82 else 0 end;
+  select case when public.founder_active(p_creator, p_at) then (public.founder_rules() ->> 'share')::numeric else 0 end;
 $$;
 
 -- The creator's rate for fans who didn't come through their link: their level's,
@@ -91,7 +161,7 @@ as $$
   select greatest(public.reward_level_share(public.reward_level_for(p_creator, p_at)), public.reward_founder_share(p_creator, p_at));
 $$;
 
--- What the creator panel shows about Fundador.
+-- What the creator panel shows about Fundador (null if never invited as one).
 create or replace function public.founder_state(p_creator text, p_at timestamptz default now())
 returns jsonb
 language sql
@@ -100,16 +170,85 @@ security definer
 set search_path = ''
 as $$
   select jsonb_build_object(
-    'started_at', s.started_at,
-    'until', s.started_at + interval '30 days',
-    'sales', coalesce((select sum(t.amount) from public.transactions t
-                       where t.creator_profile_id = p_creator and t.status = 'paid' and t.kind <> 'referral'
-                         and t.created_at < s.started_at + interval '30 days' and t.created_at <= p_at), 0),
-    'verified', exists (select 1 from public.profiles p where p.creator_profile_id = p_creator and p.is_verified),
-    'reached_at', public.founder_at(p_creator),
-    'active', public.reward_founder_share(p_creator, p_at) > 0)
-  from public.creator_starts s where s.creator_profile_id = p_creator;
+    'granted_at', f.granted_at,
+    'grace_until', f.granted_at + make_interval(days => (public.founder_rules() ->> 'grace_days')::int),
+    'below_oro_since', f.below_oro_since,
+    'lose_at', f.below_oro_since + make_interval(days => (public.founder_rules() ->> 'recover_days')::int),
+    'lost_at', f.lost_at,
+    'country', f.country,
+    'active', f.granted_at <= p_at and (f.lost_at is null or f.lost_at > p_at))
+  from public.creator_founders f where f.creator_profile_id = p_creator;
 $$;
+
+-- Every day: after the grace, a Fundador below Oro gets 30 days to get it back
+-- (with a notice); if they don't, they lose the title and the seat frees up.
+create or replace function public.founder_daily_check(p_at timestamptz default now())
+returns int
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  f public.creator_founders;
+  v_level text;
+  v_recover int := (public.founder_rules() ->> 'recover_days')::int;
+  v_changed int := 0;
+begin
+  for f in select * from public.creator_founders
+           where lost_at is null
+             and granted_at + make_interval(days => (public.founder_rules() ->> 'grace_days')::int) <= p_at
+           for update loop
+    v_level := public.reward_level_for(f.creator_profile_id, p_at);
+    if v_level in ('oro', 'diamante') then
+      if f.below_oro_since is not null then
+        update public.creator_founders set below_oro_since = null where creator_profile_id = f.creator_profile_id;
+        v_changed := v_changed + 1;
+      end if;
+    elsif f.below_oro_since is null then
+      update public.creator_founders set below_oro_since = p_at where creator_profile_id = f.creator_profile_id;
+      insert into public.notifications (user_id, kind, creator_profile_id, title, body, link)
+      values (f.user_id, 'creator_goal', f.creator_profile_id, 'Recupera Oro para seguir siendo Fundador',
+              'Tienes ' || v_recover || ' días para volver a Oro. Si no, pierdes el título de Fundador y el 82%.', '/creator/dashboard');
+      v_changed := v_changed + 1;
+    elsif f.below_oro_since + make_interval(days => v_recover) <= p_at then
+      update public.creator_founders set lost_at = p_at, lost_reason = 'sin-oro' where creator_profile_id = f.creator_profile_id;
+      insert into public.notifications (user_id, kind, creator_profile_id, title, body, link)
+      values (f.user_id, 'creator_goal', f.creator_profile_id, 'Ya no eres Creador Fundador',
+              'No volviste a Oro a tiempo. Lo que ya ganaste no cambia; desde hoy ganas lo de tu nivel.', '/creator/dashboard');
+      v_changed := v_changed + 1;
+    end if;
+  end loop;
+  return v_changed;
+end;
+$$;
+
+-- Same name again just updates the job, so this can run twice.
+select cron.schedule('founders-daily-check', '15 12 * * *', 'select public.founder_daily_check()');
+
+-- Admin: seats taken per country (Captar creadores → Metas).
+create or replace function public.founders_summary()
+returns table (country text, active int, at_risk int, lost int)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'Solo el equipo puede ver esto';
+  end if;
+  return query
+    select f.country,
+           (count(*) filter (where f.lost_at is null))::int,
+           (count(*) filter (where f.lost_at is null and f.below_oro_since is not null))::int,
+           (count(*) filter (where f.lost_at is not null))::int
+    from public.creator_founders f group by f.country order by 2 desc, 1;
+end;
+$$;
+
+alter table public.notifications drop constraint if exists notifications_kind_check;
+alter table public.notifications add constraint notifications_kind_check
+  check (kind in ('live_started', 'reserve_request', 'reserve_update', 'creator_goal'));
 
 -- =====================================================================
 -- 3. Invite bonus: 6 months from the invited creator's own $100
@@ -191,7 +330,7 @@ begin
     raise exception 'Revisar creator_medal_state antes de cambiar Embajador';
   end if;
   d := replace(d, '''embajador'', v_invites >= 2,',
-               '''embajador'', v_invites >= 1,' || chr(10) || '    ''fundador'', public.founder_at(p_creator) <= p_at,');
+               '''embajador'', v_invites >= 1,' || chr(10) || '    ''fundador'', public.founder_active(p_creator, p_at),');
   execute d;
 end;
 $$;
@@ -275,8 +414,14 @@ begin
 end;
 $$;
 
-revoke execute on function public.record_creator_start() from public, anon, authenticated;
-revoke execute on function public.founder_at(text) from public, anon, authenticated;
+revoke execute on function public.founder_grant(uuid) from public, anon, authenticated;
+revoke execute on function public.founder_on_become_creator() from public, anon, authenticated;
+revoke execute on function public.founder_active(text, timestamptz) from public, anon, authenticated;
+revoke execute on function public.founder_daily_check(timestamptz) from public, anon, authenticated;
+revoke execute on function public.founders_summary() from public, anon;
+grant execute on function public.founders_summary() to authenticated;
+revoke execute on function public.prospect_claim(text) from public, anon;
+grant execute on function public.prospect_claim(text) to authenticated;
 revoke execute on function public.reward_founder_share(text, timestamptz) from public, anon, authenticated;
 revoke execute on function public.reward_base_share(text, timestamptz) from public, anon, authenticated;
 revoke execute on function public.founder_state(text, timestamptz) from public, anon, authenticated;

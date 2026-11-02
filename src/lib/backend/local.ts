@@ -389,6 +389,7 @@ const rewards = createLocalRewards({
     b.updatedAt = new Date().toISOString();
     saveBookings(bookings);
   },
+  notify: (userId, n) => addLocalNotification(userId, { kind: 'creator_goal', ...n }),
 });
 
 const special = createLocalSpecial({
@@ -410,6 +411,7 @@ const prospects = createLocalProspects({
   hasRecentSale: (creatorProfileId) => platform.ledger.transactions().some((t) =>
     t.creatorProfileId === creatorProfileId && t.status === 'paid' && Date.now() - new Date(t.createdAt).getTime() <= 90 * 86400000),
   hasSale: (creatorProfileId) => platform.ledger.transactions().some((t) => t.creatorProfileId === creatorProfileId && t.status === 'paid'),
+  onClaim: (user, country) => rewards.grantFounder(user, country),
 });
 
 const social = createLocalSocial({

@@ -62,11 +62,12 @@ export const createSupabaseRewards = (sb: SupabaseClient): RewardsBackend => ({
       medals: medals(r.medals),
       founder: r.founder
         ? {
-            startedAt: r.founder.started_at,
-            until: r.founder.until,
-            sales: Number(r.founder.sales ?? 0),
-            verified: !!r.founder.verified,
-            reachedAt: r.founder.reached_at ?? null,
+            grantedAt: r.founder.granted_at,
+            graceUntil: r.founder.grace_until,
+            belowOroSince: r.founder.below_oro_since ?? null,
+            loseAt: r.founder.lose_at ?? null,
+            lostAt: r.founder.lost_at ?? null,
+            country: r.founder.country ?? '',
             active: !!r.founder.active,
           }
         : null,
