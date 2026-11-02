@@ -65,7 +65,7 @@ const MobileTabBar: React.FC = () => {
     <nav
       aria-label="Pestañas"
       data-testid="tab-bar"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-line/80 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-line/80 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl xl:hidden"
     >
       <ul className={`mx-auto grid h-16 max-w-md ${tabs.length === 5 ? 'grid-cols-5' : 'grid-cols-4'}`}>
         {tabs.map((tab) => (

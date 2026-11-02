@@ -81,7 +81,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; hideNav?: boolean }> = ({
   const { pathname } = useLocation();
   const tabs = !hideNav && !FULL_SCREEN.test(pathname);
   return (
-    <div className={`flex flex-col min-h-screen ${tabs ? 'max-md:pb-[calc(4rem+env(safe-area-inset-bottom))]' : ''}`}>
+    <div className={`flex flex-col min-h-screen ${tabs ? 'max-xl:pb-[calc(4rem+env(safe-area-inset-bottom))]' : ''}`}>
       {!hideNav && <Navbar />}
       <main className="flex-1">{children}</main>
       {!hideNav && <Footer />}

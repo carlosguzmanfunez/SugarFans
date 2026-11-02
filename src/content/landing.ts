@@ -8,7 +8,7 @@ export const THESIS =
   'Fans Reserve no busca reemplazar las redes sociales donde los creadores construyen su audiencia. Fans Reserve existe para ayudarles a monetizar acceso, experiencias y relaciones estructuradas con esa audiencia.';
 
 export const HERO = {
-  subtitle: 'Suscríbete a tus creadores y reserva eventos y videollamadas 1:1 con fecha, precio y reglas claras.',
+  subtitle: 'Reserva videollamadas 1:1 y eventos con tus creadores favoritos. Suscríbete también a su contenido exclusivo.',
   primaryCta: 'Crear cuenta gratis',
   secondaryCta: 'Explorar Reserve',
   secondaryTo: '/reserve',
