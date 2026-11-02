@@ -14,6 +14,7 @@ import {
 import type { InvitedCreator } from '../lib/backend/rewardTypes';
 import { BRAND } from '../config/brand';
 import Avatar from './Avatar';
+import InviteMap from './InviteMap';
 
 const EMPTY: CreatorRewards = {
   level: 'bronce', activeFans: 0, sales: 0, clean: true, reliable: true, share: 0.8, attractedThisMonth: 0, attractedLastMonth: 0,
@@ -39,56 +40,6 @@ const statusText = (c: InvitedCreator, stage: Stage) =>
 // after five, the rest go together in "Otros".
 const SERIES = ['#6d3ce6', '#0891b2', '#c026d3', '#65a30d', '#2563eb'];
 const OTHER = '#9ca3af';
-
-const MAX_RING = 8;
-const ringPct = (c: InvitedCreator, stage: Stage) => (stage === 'waiting' ? Math.min(100, Math.round(((c.sales ?? 0) / CREATOR_INVITE_QUALIFY) * 100)) : 100);
-
-const Network: React.FC<{ me: { name: string; avatar?: string }; list: InvitedCreator[]; now: string }> = ({ me, list, now }) => {
-  const shown = list.slice(0, MAX_RING);
-  const extra = list.length - shown.length;
-  const nodes = [...shown.map((c) => ({ c })), ...(extra > 0 ? [{ c: null }] : [])];
-  const R = 37; // % of the box from the center
-  const pos = (i: number) => {
-    const a = -Math.PI / 2 + (2 * Math.PI * i) / nodes.length;
-    return { x: 50 + R * Math.cos(a), y: 50 + R * Math.sin(a) };
-  };
-  return (
-    <div className="relative mx-auto aspect-square w-full max-w-[26rem]" data-testid="invite-network" aria-hidden="true">
-      <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full">
-        {nodes.map((n, i) => {
-          const { x, y } = pos(i);
-          const stage = n.c ? stageOf(n.c, now) : 'waiting';
-          return <line key={i} x1="50" y1="50" x2={x} y2={y} stroke={stage === 'active' ? RING.active : '#d4d4d8'} strokeWidth={stage === 'active' ? 0.8 : 0.5} strokeDasharray={stage === 'active' ? undefined : '1.5 1.5'} />;
-        })}
-      </svg>
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
-        <span className="rounded-full p-1 bg-gradient-to-br from-brand-500 to-iris-500 shadow-lg"><Avatar src={me.avatar} name={me.name} size={72} decorative className="ring-2 ring-white" /></span>
-        <span className="mt-1 rounded-full bg-ink px-2 py-0.5 text-[11px] font-semibold text-white">Tú</span>
-      </div>
-      {nodes.map((n, i) => {
-        const { x, y } = pos(i);
-        const stage = n.c ? stageOf(n.c, now) : 'waiting';
-        return (
-          <div key={`n${i}`} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${x}%`, top: `${y}%` }}>
-            {n.c ? (
-              <>
-                {/* The ring fills up to $100; full once the bonus started. */}
-                <span className="relative block rounded-full p-[5px]" style={{ background: `conic-gradient(${RING[stage]} ${ringPct(n.c, stage)}%, #ecebf0 0)` }}>
-                  <Avatar src={n.c.avatar} name={n.c.name} size={44} decorative className="ring-2 ring-white" />
-                  {stage === 'active' && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-[9px] text-white ring-2 ring-white"><i className="fas fa-bolt" /></span>}
-                  {stage === 'done' && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-teal-600 text-[9px] text-white ring-2 ring-white"><i className="fas fa-check" /></span>}
-                </span>
-                <span className="absolute left-1/2 top-full mt-1 w-20 -translate-x-1/2 truncate text-center text-[11px] font-semibold text-ink">{n.c.name.split(' ')[0]}</span>
-              </>
-            ) : (
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-canvas text-sm font-semibold text-ink/60 ring-1 ring-line">+{extra}</span>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-};
 
 // Donut of what each invited creator has earned you.
 const Earnings: React.FC<{ list: InvitedCreator[] }> = ({ list }) => {
@@ -144,8 +95,8 @@ const Earnings: React.FC<{ list: InvitedCreator[] }> = ({ list }) => {
   );
 };
 
-// Mi panel > Dinero > Recompensas > Mis invitados: the creators you invited around
-// you, how close each one is to $100, and what each has earned you. One level only:
+// Mi panel > Dinero > Recompensas > Mis invitados: your invited creators on an
+// adventure map, how close each one is to $100, and what each has earned you. One level only:
 // you earn from the creators you invite, never from the ones they invite.
 const InviteNetwork: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const { user } = useAuth();
@@ -177,20 +128,12 @@ const InviteNetwork: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               {list.length === 0 ? 'Aún no has invitado a nadie.' : `${list.length} ${list.length === 1 ? 'creador invitado' : 'creadores invitados'} · ${active} ${active === 1 ? 'activo' : 'activos'} ahora`}
             </p>
           </div>
-          <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink/70" aria-label="Qué significa cada color">
-            <li><span className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full" style={{ background: RING.waiting }} />Camino a ${CREATOR_INVITE_QUALIFY}</li>
-            <li><span className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full" style={{ background: RING.active }} />Activo: ganas {pct(CREATOR_INVITE_BONUS)}</li>
-            <li><span className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full" style={{ background: RING.done }} />Terminó</li>
-          </ul>
         </div>
 
-        {list.length > 0 ? (
-          <div className="mt-4"><Network me={{ name: user.name, avatar: user.avatar }} list={list} now={now} /></div>
-        ) : (
-          <div className="mt-6 flex flex-col items-center text-center">
-            <Avatar src={user.avatar} name={user.name} size={72} decorative />
-            <p className="mt-3 max-w-sm text-sm text-ink/70">Comparte tu enlace con creadores que conozcas. Aquí los verás alrededor tuyo, llenando su círculo hasta ${CREATOR_INVITE_QUALIFY}.</p>
-          </div>
+        {/* The map shows even before the first invite, so the road ahead is clear. */}
+        <div className="mt-4"><InviteMap list={list} now={now} /></div>
+        {list.length === 0 && (
+          <p className="mt-3 text-center text-sm text-ink/70">Comparte tu enlace con creadores que conozcas. Aquí los verás avanzar por tu mapa, del Campamento al Castillo.</p>
         )}
 
         <div className="mt-5 flex flex-col sm:flex-row gap-2">
