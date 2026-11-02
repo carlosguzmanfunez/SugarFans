@@ -149,7 +149,9 @@ const InviteMap: React.FC<{ list: InvitedCreator[]; now: string }> = ({ list, no
   const byStop = STOPS.map((_, i) => at.filter((a) => a.i === i).map((a) => a.c));
   const reached = Math.max(0, ...at.map((a) => a.i));
   // Open first where something good is happening: the bonus, else the furthest stop.
-  const [open, setOpen] = useState<number>(() => (byStop[3].length ? 3 : reached));
+  // (worked out on every render, so it follows the data until the creator taps a stop).
+  const [picked, setOpen] = useState<number | null>(null);
+  const open = picked ?? (byStop[3].length ? 3 : reached);
   const here = byStop[open];
   const stop = STOPS[open];
 
