@@ -20,7 +20,7 @@ const hiddenKey = (userId: string) => `first_steps_hidden_${userId}`;
 const sharedKey = (userId: string) => `first_steps_shared_${userId}`;
 
 // Panel: the creator's first steps, each with a button that takes them there. Ticks
-// itself as they go; disappears when everything is done or they hide it.
+// itself as they go; collapses to a text disclosure until everything is done.
 const CreatorFirstSteps: React.FC<Props> = ({ user }) => {
   const { hash } = useLocation();
   const profileId = user.creatorProfileId ?? user.id;
@@ -47,7 +47,7 @@ const CreatorFirstSteps: React.FC<Props> = ({ user }) => {
     if (hash === '#primeros-pasos' && data && !hidden) document.getElementById('primeros-pasos')?.scrollIntoView({ block: 'start' });
   }, [hash, data, hidden]);
 
-  if (hidden || !data) return null;
+  if (!data) return null;
 
   const share = () => {
     if (!user.username) return;
@@ -122,24 +122,27 @@ const CreatorFirstSteps: React.FC<Props> = ({ user }) => {
   const done = steps.filter((s) => s.done).length;
   if (done === steps.length) return null;
 
-  const hide = () => {
-    writeJSON(hiddenKey(user.id), true);
-    setHidden(true);
-  };
-
   return (
-    <section id="primeros-pasos" className="scroll-mt-28 bg-white rounded-2xl border border-line p-5 mb-8" data-testid="first-steps" aria-labelledby="first-steps-title">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 id="first-steps-title" className="font-display text-lg font-bold text-ink">Primeros pasos</h2>
-          <p className="text-sm text-ink/60">
-            {done} de {steps.length} listos. Completa tu perfil para empezar a ganar.
-          </p>
-        </div>
-        <button type="button" onClick={hide} className="text-sm text-ink/50 hover:text-ink/80 whitespace-nowrap">
-          Ocultar
-        </button>
-      </div>
+    <details
+      id="primeros-pasos"
+      open={!hidden}
+      onToggle={(event) => {
+        const collapsed = !event.currentTarget.open;
+        writeJSON(hiddenKey(user.id), collapsed);
+        setHidden(collapsed);
+      }}
+      className={`scroll-mt-28 mb-8 ${hidden ? '' : 'bg-white rounded-2xl border border-line p-5'}`}
+      data-testid="first-steps"
+      aria-labelledby="first-steps-title"
+    >
+      <summary className={`list-none cursor-pointer rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-600 [&::-webkit-details-marker]:hidden ${hidden ? 'inline-flex min-h-11 items-center gap-2' : 'flex items-start justify-between gap-3'}`}>
+        <h2 id="first-steps-title" className={`font-display text-ink ${hidden ? 'text-sm font-semibold' : 'text-lg font-bold'}`}>Primeros pasos</h2>
+        <span className="text-sm text-ink/70 hover:text-ink whitespace-nowrap">{hidden ? '· Expandir' : 'Ocultar'}</span>
+      </summary>
+      {!hidden && <>
+      <p className="text-sm text-ink/60">
+        {done} de {steps.length} listos. Completa tu perfil para empezar a ganar.
+      </p>
       <div className="mt-3 h-2 rounded-full bg-ink/5 overflow-hidden" aria-hidden="true">
         <div className="h-full bg-brand-500 rounded-full transition-[width]" style={{ width: `${(done / steps.length) * 100}%` }} />
       </div>
@@ -165,7 +168,8 @@ const CreatorFirstSteps: React.FC<Props> = ({ user }) => {
           </li>
         ))}
       </ol>
-    </section>
+      </>}
+    </details>
   );
 };
 
