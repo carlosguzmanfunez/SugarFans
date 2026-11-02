@@ -20,7 +20,7 @@ const CREATOR_BENEFITS = [
   'Tu enlace de invitación: te quedas con el 85% de lo que paguen los fans que traigas durante 60 días',
   'Niveles Plata, Oro y Diamante que desbloquean visibilidad, retiros desde $25 y eventos más grandes',
   'Medallas que te ponen destacado en Explorar, y una Meta de experiencia que tus fans llenan con regalos y propinas',
-  'Invita a creadores: cuando 2 se verifican y venden sus primeros $100, ganas un 5% extra de lo que vendan durante un mes',
+  'Invita a creadores: cuando uno se verifica y vende sus primeros $100, ganas un 5% extra de lo que venda durante 6 meses',
   'Publica fotos y videos, gratis o solo para suscriptores',
   'Publica experiencias en Reserve: clases, sesiones, eventos y colaboraciones, con tus reglas',
   'Panel con suscriptores, ingresos y estadísticas',

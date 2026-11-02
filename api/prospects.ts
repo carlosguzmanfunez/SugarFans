@@ -18,11 +18,18 @@
 // long-lived token of the Meta app with instagram_basic, instagram_manage_insights,
 // pages_show_list, pages_read_engagement, business_management and ads_read; it
 // lasts 60 days). Optional: INSTAGRAM_GRAPH_VERSION.
+// - GET /api/prospects with "Authorization: Bearer <CRON_SECRET>" (Vercel Cron, every
+//   day at 13:00 UTC = 7:00 a. m. in Honduras, after the 6:00 check): emails the
+//   morning summary (prospects_digest(), 20261102000001_prospects_growth.sql) to
+//   PROSPECTS_DIGEST_TO (carlos@fansreserve.com by default) through Resend. Needs
+//   CRON_SECRET, SUPABASE_SERVICE_ROLE_KEY and RESEND_API_KEY (all already set).
 // For email: ZOHO_SMTP_USER (the mailbox, e.g. carlos@fansreserve.com) and
 // ZOHO_SMTP_PASSWORD (a Zoho app password). Optional: ZOHO_SMTP_HOST
 // (smtppro.zoho.com), ZOHO_SMTP_PORT (465), ZOHO_FROM_NAME, ZOHO_DAILY_LIMIT (30).
 import nodemailer from 'nodemailer';
 import type { InstagramLookup } from '../src/lib/backend/prospectTypes.js';
+import { digestEmail, type ProspectDigest } from '../src/lib/prospects.js';
+import { logServerError, sendEmail } from './_mail.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://odugxvqwuvewsvifwmwb.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_vuRosXd_owmQ4KeeExEAPQ_d32g6WEL';
@@ -58,7 +65,43 @@ const zoho = () => {
   };
 };
 
-export async function GET(): Promise<Response> {
+// The morning summary for the team. Nothing moved and nothing pending: no email.
+const digest = async (): Promise<Response> => {
+  const serviceKey = clean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const to = clean(process.env.PROSPECTS_DIGEST_TO) ?? 'carlos@fansreserve.com';
+  if (!serviceKey) return json(503, { error: 'Falta SUPABASE_SERVICE_ROLE_KEY' });
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/prospects_digest`, {
+      method: 'POST',
+      headers: { ...(serviceKey.startsWith('eyJ') ? { apikey: serviceKey, authorization: `Bearer ${serviceKey}` } : { apikey: serviceKey }), 'content-type': 'application/json' },
+      body: '{}',
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!r.ok) throw Error(`Supabase ${r.status}: ${(await r.text()).slice(0, 200)}`);
+    const d = (await r.json()) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const mail = digestEmail({
+      last24h: d.last_24h ?? {}, people: d.people ?? {}, interested: Number(d.interested ?? 0), followUpsDue: Number(d.follow_ups_due ?? 0),
+      toContact: Number(d.to_contact ?? 0), creatorsInvited24h: Number(d.creators_invited_24h ?? 0),
+    } satisfies ProspectDigest);
+    if (!mail) return json(200, { ok: true, sent: false });
+    const day = new Date(Date.now() - 6 * 3600000).toISOString().slice(0, 10); // the day in Honduras
+    const error = await sendEmail(to, mail.subject, mail.body, `prospects-digest-${day}`);
+    if (error) {
+      await logServerError(serviceKey, 'email', 'No se pudo enviar el resumen de captación', error, '/api/prospects');
+      return json(502, { error });
+    }
+    return json(200, { ok: true, sent: true });
+  } catch (err) {
+    await logServerError(serviceKey, 'api', 'Falló el resumen diario de captación', String(err), '/api/prospects');
+    return json(502, { error: 'No se pudo preparar el resumen.' });
+  }
+};
+
+export async function GET(request: Request): Promise<Response> {
+  const cronSecret = clean(process.env.CRON_SECRET);
+  const auth = request?.headers?.get('authorization') ?? '';
+  if (cronSecret && auth === `Bearer ${cronSecret}`) return digest();
+  if (auth) return json(401, { error: 'No autorizado.' });
   const e = env();
   const z = zoho();
   const mail = !!(z.user && z.password);
@@ -67,6 +110,7 @@ export async function GET(): Promise<Response> {
     checks: {
       instagram: e.igId && e.token ? 'OK' : 'FALTA', businessId: e.igId ? 'OK' : 'FALTA', accessToken: e.token ? 'OK' : 'FALTA',
       email: mail ? 'OK' : 'FALTA',
+      digest: cronSecret && clean(process.env.SUPABASE_SERVICE_ROLE_KEY) && clean(process.env.RESEND_API_KEY) ? 'OK' : 'FALTA',
     },
     emailLimit: mail ? z.limit : 0,
     emailFrom: mail ? z.user : undefined,

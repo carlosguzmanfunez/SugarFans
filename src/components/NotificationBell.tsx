@@ -16,6 +16,7 @@ const timeAgo = (iso: string) => {
 
 const KIND_ICON: Record<AppNotification['kind'], { icon: string; className: string }> = {
   live_started: { icon: 'fa-tower-broadcast', className: 'bg-red-50 text-red-600' },
+  creator_goal: { icon: 'fa-crown', className: 'bg-amber-50 text-amber-600' },
   reserve_request: { icon: 'fa-ticket', className: 'bg-brand-50 text-brand-700' },
   reserve_update: { icon: 'fa-ticket', className: 'bg-iris-50 text-iris-700' },
 };

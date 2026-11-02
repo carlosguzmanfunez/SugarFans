@@ -9,6 +9,8 @@ import CreatorFirstSteps from '../components/CreatorFirstSteps';
 import CreatorGiftsPanel from '../components/CreatorGiftsPanel';
 import CreatorRewardsPanel from '../components/CreatorRewardsPanel';
 import CreatorGoalsPanel from '../components/CreatorGoalsPanel';
+import CreatorGoalsSummary from '../components/CreatorGoalsSummary';
+import InviteNetwork from '../components/InviteNetwork';
 import Avatar from '../components/Avatar';
 import CreatorLivePanel from '../components/CreatorLivePanel';
 import { ENABLE_CREATOR_LIVE } from '../config/features';
@@ -34,7 +36,7 @@ import { useCreatorSetup } from '../hooks/useCreatorSetup';
 import { FIRST_STEPS_PATH } from '../lib/creatorSetup';
 
 // "Dinero" in the tab bar: income, gifts and rewards.
-const MONEY_TABS = ['earnings', 'gifts', 'rewards'];
+const MONEY_TABS = ['earnings', 'gifts', 'rewards', 'invites'];
 
 const CreatorDashboard: React.FC = () => {
   const { user, deletePost, updateUser } = useAuth();
@@ -333,7 +335,7 @@ const CreatorDashboard: React.FC = () => {
               { id: 'gifts', label: 'Regalos', hint: 'Lo que te regalan', icon: 'fa-gift', on: 'from-brand-500 to-brand-700 shadow-brand-500/30', chip: 'bg-brand-50 text-brand-600' },
               { id: 'rewards', label: 'Recompensas', hint: 'Nivel e invitaciones', icon: 'fa-trophy', on: 'from-iris-500 to-iris-700 shadow-iris-500/30', chip: 'bg-iris-50 text-iris-600' },
             ].map((sub) => {
-              const on = activeTab === sub.id;
+              const on = activeTab === sub.id || (sub.id === 'rewards' && activeTab === 'invites');
               return (
                 <button
                   key={sub.id}
@@ -365,6 +367,7 @@ const CreatorDashboard: React.FC = () => {
         {activeTab === 'overview' && (
           <>
             {user && <CreatorFirstSteps user={user} />}
+            <CreatorGoalsSummary onOpenTab={(tab) => { setActiveTab(tab); setNotice(null); window.scrollTo({ top: 0 }); }} />
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-8">
               {stats.map((stat) => (
                 <div key={stat.label} className="bg-white rounded-2xl border border-line p-4 sm:p-5">
@@ -563,7 +566,8 @@ const CreatorDashboard: React.FC = () => {
         {activeTab === 'earnings' && <CreatorPayouts />}
 
         {activeTab === 'gifts' && <CreatorGiftsPanel />}
-        {activeTab === 'rewards' && <CreatorRewardsPanel />}
+        {activeTab === 'rewards' && <CreatorRewardsPanel onOpenInvites={() => setActiveTab('invites')} />}
+        {activeTab === 'invites' && <InviteNetwork onBack={() => setActiveTab('rewards')} />}
         {activeTab === 'goals' && <CreatorGoalsPanel />}
 
         {activeTab === 'vip' && (

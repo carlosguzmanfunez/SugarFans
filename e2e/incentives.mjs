@@ -3,8 +3,8 @@
 //
 // Checks: the creator's cut comes from the net (after the processor's fee); levels by
 // active fans or sales, with the quality conditions; link fans at 85% for 60 days;
-// no cash goals; creator invites only after 2 qualified invited creators, capped at
-// $100; minimum prices; withdrawals by level; Reserve Event seats by level; medals
+// no cash goals; creator invites from each invited creator's own $100, for 6 months,
+// capped at $100; Creadores Fundadores; minimum prices; withdrawals by level; Reserve Event seats by level; medals
 // and the featured list; the Meta de experiencia from gifts and tips to a ticket and
 // a booking that needs no payment.
 import { createDbTest } from './db-harness.mjs';
@@ -105,29 +105,112 @@ const run = async () => {
   const inv2 = user('inv2@test.local', 'creator');
   psql(DB, `insert into public.creator_invites (creator_id, creator_profile_id, referrer_profile_id) values ('${inv1}', '${inv1}', '${inviter}'), ('${inv2}', '${inv2}', '${inviter}')`);
   const bonuses = () => psql(DB, `select coalesce(sum(amount), 0) from public.transactions where kind = 'referral' and creator_profile_id = '${inviter}'`);
-  await check('Sin 2 creadores invitados verificados con $100 vendidos no hay bono', async () => {
+  await check('Sin verificar o sin $100 vendidos no hay bono', async () => {
+    // inv1 sold $120 and then lost the verification
     psql(DB, `update public.profiles set is_verified = true where id = '${inv1}'`);
     sale(inv1, fan, 120, 'tip');
-    sale(inv2, fan, 120, 'tip');
-    // inv2 sold $100 but isn't verified (any more)
-    psql(DB, `update public.profiles set is_verified = false where id = '${inv2}'`);
-    sale(inv1, fan, 10);
+    psql(DB, `update public.profiles set is_verified = false where id = '${inv1}'`);
+    expect(psql(DB, `select from_at is null from public.invite_window('${inv1}')`) === 't', 'sin verificar abrió el bono');
+    sale(inv2, fan, 60, 'tip'); // verified but only $60
+    sale(inv2, fan, 10);
     expect(bonuses() === '0', `bono antes de tiempo: ${bonuses()}`);
   });
-  await check('Con los 2 calificados, quien invita gana 5% del neto, sin descontarle al invitado', async () => {
-    psql(DB, `update public.profiles set is_verified = true where id = '${inv2}'`);
-    const id = sale(inv1, fan, 100, 'tip');
+  await check('Con un solo invitado que llega a $100, quien invita gana 5% del neto, sin descontarle al invitado', async () => {
+    sale(inv2, fan, 40, 'tip'); // $110: this sale completes the $100 and earns nothing
+    expect(bonuses() === '0', `la venta que completa los $100 dio bono: ${bonuses()}`);
+    const id = sale(inv2, fan, 100, 'tip');
     // net 94.30 → 5% = 4.72
     expect(bonuses() === '4.72', `bono: ${bonuses()}`);
     expect(share(id) === '0.7544|5.70', 'al invitado le descontaron');
+    const m = JSON.parse(psql(DB, `select public.creator_medal_state('${inviter}', now())`));
+    expect(m.embajador === true && m.qualified_invites === 1, JSON.stringify(m));
+  });
+  await check('Los Reserve también dan bono; dura 6 meses', async () => {
+    sale(inv2, fan, 100, 'vip');
+    expect(bonuses() === '9.44', `Reserve: ${bonuses()}`);
+    sale(inv2, fan, 100, 'tip', "now() + interval '5 months'");
+    expect(bonuses() === '14.16', `a los 5 meses: ${bonuses()}`);
+    sale(inv2, fan, 100, 'tip', "now() + interval '7 months'");
+    expect(bonuses() === '14.16', `después de 6 meses: ${bonuses()}`);
+    expect(psql(DB, `select until_at = from_at + interval '6 months' from public.invite_window('${inv2}')`) === 't', 'no son 6 meses');
   });
   await check('El bono tiene un tope de $100 por creador invitado', async () => {
-    sale(inv1, fan, 500, 'tip');
-    sale(inv1, fan, 500, 'tip');
-    sale(inv1, fan, 500, 'tip');
-    sale(inv1, fan, 500, 'tip');
-    sale(inv1, fan, 500, 'tip');
+    for (let i = 0; i < 5; i++) sale(inv2, fan, 500, 'tip');
     expect(Number(bonuses()) === 100, `bono: ${bonuses()}`);
+  });
+
+  console.log('Creadores Fundadores');
+  // A creator the team invited: a prospect with a /c/<code>, claimed by their account.
+  let pn = 0;
+  const invited = (email, country = 'HN', role = 'creator') => {
+    const id = user(email, role);
+    if (country) psql(DB, `update public.profiles set country = '${country}' where id = '${id}'`);
+    const code = `code${pn++}`;
+    psql(DB, `insert into public.creator_prospects (network, handle, country, invite_code) values ('instagram', '${code}', '${country || 'HN'}', '${code}')`);
+    return { id, code, claim: () => as(id, `select public.prospect_claim('${code}')`) };
+  };
+  const founderRow = (id) => psql(DB, `select coalesce((select (lost_at is null)::text from public.creator_founders where creator_profile_id = '${id}'), 'no')`);
+  await check('Solo es Fundador quien el equipo invitó con su enlace; gana 82% e insignia', async () => {
+    const plain = user('sininvitacion@test.local', 'creator');
+    sale(plain, fan, 150, 'tip');
+    expect(founderRow(plain) === 'no', 'Fundador sin invitación');
+    const f = invited('fundadora@test.local');
+    f.claim();
+    expect(founderRow(f.id) === 'true', 'no quedó Fundador');
+    // $100 net 94.30 × 82% = 77.33 → 77.33% of the gross
+    expect(share(sale(f.id, fan, 100, 'tip')) === '0.7733|5.70', 'no subió al 82%');
+    expect(psql(DB, `select fundador from public.creator_badges(array['${f.id}'])`) === 't', 'sin insignia');
+    const st = JSON.parse(psql(DB, `select public.founder_state('${f.id}', now())`));
+    expect(st.active === true && st.country === 'HN' && st.below_oro_since === null, JSON.stringify(st));
+    expect(psql(DB, `select count(*) from public.notifications where user_id = '${f.id}' and kind = 'creator_goal'`) === '1', 'sin aviso');
+  });
+  await check('100 por país: el 101 de Honduras no entra, uno de otro país sí; un fan no', async () => {
+    psql(DB, `insert into public.creator_founders (creator_profile_id, user_id, country)
+              select 'relleno' || g, (select id from public.profiles limit 1), 'HN' from generate_series(1, 99) g`);
+    const late = invited('tarde@test.local', 'HN');
+    late.claim();
+    expect(founderRow(late.id) === 'no', 'entró el 101');
+    const mx = invited('mexico@test.local', 'MX');
+    mx.claim();
+    expect(founderRow(mx.id) === 'true', 'México no entró');
+    const fanInv = invited('faninvitado@test.local', 'GT', 'fan');
+    fanInv.claim();
+    expect(founderRow(fanInv.id) === 'no', 'un fan quedó Fundador');
+    psql(DB, `update public.profiles set role = 'creator', creator_profile_id = id::text where id = '${fanInv.id}'`);
+    expect(founderRow(fanInv.id) === 'true', 'al volverse creador no quedó Fundador');
+  });
+  await check('Después de 2 meses debe estar en Oro: 30 días para recuperarlo o lo pierde y libera el cupo', async () => {
+    const f = invited('sinoro@test.local', 'SV');
+    f.claim();
+    const check = (days) => psql(DB, `select public.founder_daily_check(now() + interval '${days} days')`);
+    check(30);
+    expect(psql(DB, `select below_oro_since is null from public.creator_founders where creator_profile_id = '${f.id}'`) === 't', 'avisó durante los 2 meses');
+    check(61);
+    expect(psql(DB, `select below_oro_since is not null from public.creator_founders where creator_profile_id = '${f.id}'`) === 't', 'no avisó al bajar de Oro');
+    const st = JSON.parse(psql(DB, `select public.founder_state('${f.id}', now() + interval '62 days')`));
+    expect(st.active === true && !!st.lose_at, JSON.stringify(st));
+    check(80);
+    expect(founderRow(f.id) === 'true', 'lo perdió antes de los 30 días');
+    check(92);
+    expect(founderRow(f.id) === 'false', 'no lo perdió');
+    expect(psql(DB, `select public.reward_base_share('${f.id}', now() + interval '93 days')`) === '0.80', 'sigue al 82%');
+    expect(psql(DB, `select count(*) from public.notifications where user_id = '${f.id}' and kind = 'creator_goal'`) === '3', 'faltan avisos');
+    // A lost title doesn't come back by claiming again.
+    f.claim();
+    expect(founderRow(f.id) === 'false', 'volvió a ser Fundador');
+  });
+  await check('En Oro se mantiene Fundador', async () => {
+    const f = invited('enoro@test.local', 'CR');
+    f.claim();
+    psql(DB, `update public.creator_founders set granted_at = now() - interval '70 days' where creator_profile_id = '${f.id}'`);
+    sale(f.id, fan, 1000, 'tip');
+    psql(DB, `select public.founder_daily_check(now())`);
+    expect(psql(DB, `select below_oro_since is null and lost_at is null from public.creator_founders where creator_profile_id = '${f.id}'`) === 't', 'perdió Fundador estando en Oro');
+  });
+  await check('Nadie lee ni cambia los Fundadores directamente; el resumen es solo del equipo', async () => {
+    raises(() => as(fan, `select * from public.creator_founders`), /permission denied/, 'leer');
+    raises(() => as(fan, `select public.founder_grant('${fan}')`), /permission denied/, 'dar');
+    raises(() => as(fan, `select * from public.founders_summary()`), /Solo el equipo/, 'resumen');
   });
 
   console.log('Mínimos');

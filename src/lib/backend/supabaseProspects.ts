@@ -18,6 +18,7 @@ const toProspect = (r: Row): Prospect => ({
   lastFollowUpAt: r.last_follow_up_at ?? undefined, notes: r.notes ?? undefined, score: r.score ?? 0,
   enrichedAt: r.enriched_at ?? undefined, enrichNote: r.enrich_note ?? undefined, matchedProfileId: r.matched_profile_id ?? undefined,
   inviteCode: r.invite_code ?? undefined, openedAt: r.opened_at ?? undefined, openCount: r.open_count ?? 0, interestedAt: r.interested_at ?? undefined,
+  variant: r.message_variant ?? undefined,
   createdAt: r.created_at,
 });
 
@@ -31,6 +32,7 @@ export const createSupabaseProspects = (sb: SupabaseClient): ProspectsBackend =>
     else if (f.country) q = q.eq('country', f.country);
     if (f.status === 'open') q = q.not('status', 'in', '(descartado,no_contactar)');
     else if (f.status === 'follow_up') q = q.eq('status', 'contactado').eq('follow_ups', 0).lt('contacted_at', new Date(Date.now() - FOLLOW_UP_DAYS * 86400000).toISOString());
+    else if (f.status === 'joined') q = q.in('status', ['registrado', 'verificado', 'activo']);
     else if (f.status) q = q.eq('status', f.status);
     if (f.network) q = q.eq('network', f.network);
     if (f.minFollowers != null) q = q.gte('followers', f.minFollowers);
@@ -94,6 +96,7 @@ export const createSupabaseProspects = (sb: SupabaseClient): ProspectsBackend =>
       if (patch.followUps !== undefined) row.follow_ups = patch.followUps;
       if (patch.country !== undefined) row.country = patch.country;
       if (patch.category !== undefined) row.category = patch.category?.trim().slice(0, 60) || null;
+      if (patch.variant !== undefined) row.message_variant = patch.variant;
       const { error } = await sb.from('creator_prospects').update(row).eq('id', id);
       return error ? { ok: false, error: 'No se pudo guardar el cambio.' } : { ok: true };
     },
@@ -102,11 +105,69 @@ export const createSupabaseProspects = (sb: SupabaseClient): ProspectsBackend =>
       const row: Row = {};
       if (patch.status !== undefined) row.status = patch.status;
       if (patch.channel !== undefined) row.channel = patch.channel;
+      if (patch.variant !== undefined) row.message_variant = patch.variant;
       for (let i = 0; i < ids.length; i += 200) {
         const { error } = await sb.from('creator_prospects').update(row).in('id', ids.slice(i, i + 200));
         if (error) return { ok: false, error: 'No se pudo guardar el cambio en todo el lote.' };
       }
       return { ok: true };
+    },
+
+    async insights() {
+      const { data, error } = await sb.rpc('prospects_insights');
+      if (error || !data) throw Error('No pudimos consultar las métricas de captación.');
+      const d = data as Row;
+      const ci = (d.creator_invites ?? {}) as Row;
+      return {
+        variants: ((d.variants ?? []) as Row[]).map((r) => ({ channel: r.channel, variant: r.variant, contacted: Number(r.contacted), replied: Number(r.replied) })),
+        creatorInvites: { total: Number(ci.total ?? 0), verified: Number(ci.verified ?? 0), selling: Number(ci.selling ?? 0), last30Days: Number(ci.last_30_days ?? 0) },
+        topInviters: ((d.top_inviters ?? []) as Row[]).map((r) => ({ name: String(r.name), count: Number(r.count) })),
+        founders: ((await sb.rpc('founders_summary')).data as Row[] | null ?? []).map((r) => ({ country: String(r.country), active: Number(r.active), atRisk: Number(r.at_risk), lost: Number(r.lost) })),
+      };
+    },
+
+    async tiktokAvailable() {
+      try {
+        const r = await fetch('/api/tiktok', { cache: 'no-store' });
+        return r.ok && (await r.json()).enabled === true;
+      } catch {
+        return false;
+      }
+    },
+
+    async myTikTok() {
+      const uid = (await sb.auth.getSession()).data.session?.user.id;
+      if (!uid) return null;
+      const { data } = await sb.from('social_connections').select('*').eq('user_id', uid).eq('network', 'tiktok').maybeSingle();
+      if (!data) return null;
+      const r = data as Row;
+      return {
+        username: r.username ?? undefined, displayName: r.display_name ?? undefined, avatarUrl: r.avatar_url ?? undefined,
+        followers: num(r.followers), likes: num(r.likes), videos: num(r.videos), connectedAt: r.connected_at, refreshedAt: r.refreshed_at,
+      };
+    },
+
+    async connectTikTok(back) {
+      const token = await session();
+      if (!token) return { ok: false, error: 'Inicia sesión para conectar tu TikTok.' };
+      try {
+        const r = await fetch('/api/tiktok', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+          body: JSON.stringify({ action: 'start', back }),
+        });
+        const d = await r.json().catch(() => ({}));
+        return r.ok && typeof d.url === 'string' ? { ok: true, url: d.url } : { ok: false, error: d.error ?? 'No pudimos abrir TikTok. Intenta de nuevo.' };
+      } catch {
+        return { ok: false, error: 'No pudimos abrir TikTok. Revisa tu conexión.' };
+      }
+    },
+
+    async disconnectTikTok() {
+      const uid = (await sb.auth.getSession()).data.session?.user.id;
+      if (!uid) return { ok: false, error: 'Inicia sesión.' };
+      const { error } = await sb.from('social_connections').delete().eq('user_id', uid).eq('network', 'tiktok');
+      return error ? { ok: false, error: 'No se pudo desconectar.' } : { ok: true };
     },
 
     async remove(id) {

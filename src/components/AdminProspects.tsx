@@ -1,14 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { backend } from '../lib/backend';
 import { useBackendData } from '../lib/useBackendData';
-import type { ProspectFilter, ProspectServerStatus, ProspectSummary } from '../lib/backend/prospectTypes';
+import type { ProspectFilter, ProspectInsights, ProspectServerStatus, ProspectSummary } from '../lib/backend/prospectTypes';
 import {
-  AUTOMATIC, CAMPAIGN_DAYS, EVENTS, GOALS, NETWORKS, PILOT_COUNTRIES, STATUSES, compact, contactsNeeded, countryLabel, countryProgress,
+  CAMPAIGN_DAYS, EVENTS, GOALS, NETWORKS, PILOT_COUNTRIES, STATUSES, compact, contactsNeeded, countryLabel, countryProgress,
   emptyProgress, followUpDue, measuredRates, prospectsCsv, scoreReasons, scoreTone, sumProgress,
   type CountryProgress, type Prospect, type ProspectInput, type ProspectNetwork, type ProspectStatus,
 } from '../lib/prospects';
 import AdminDataState from './AdminDataState';
-import { BatchDmDialog, BatchEmailDialog, ImportDialog, MessageDialog, TemplatesDialog, download, flag } from './AdminProspectDialogs';
+import { FOUNDER_SEATS, FOUNDER_SHARE } from '../lib/rewardRules';
+import { BatchDmDialog, BatchEmailDialog, ImportDialog, MessageDialog, TemplatesDialog, VariantResult, download, flag } from './AdminProspectDialogs';
 
 const PAGE = 25;
 const SAFE_DAILY = 150; // first messages a day from the team's accounts before the risk of blocks grows
@@ -26,6 +27,7 @@ const SIZES = [
 ] as const;
 
 const emptySummary: ProspectSummary = { byCountry: [], contactedToday: 0, followUpsDue: 0, toEnrich: 0, last24h: {}, emailsToday: 0, measuredAt: '' };
+const emptyInsights: ProspectInsights = { variants: [], creatorInvites: { total: 0, verified: 0, selling: 0, last30Days: 0 }, topInviters: [], founders: [] };
 const unknownServer: ProspectServerStatus = { instagram: 'unknown', email: 'unknown', emailLimit: 0 };
 const hour = (iso: string) => new Date(iso).toLocaleString('es-HN', { timeZone: 'America/Tegucigalpa', weekday: 'short', hour: 'numeric', minute: '2-digit' });
 
@@ -104,12 +106,54 @@ function Countries({ list, onPick }: { list: CountryProgress[]; onPick: (c: stri
   </section>;
 }
 
+// "Metas": which message answers better and the creators other creators brought.
+function Insights({ data, onTemplates }: { data: ProspectInsights; onTemplates: () => void }) {
+  const ci = data.creatorInvites;
+  return <div className="grid gap-5 lg:grid-cols-2">
+    <section className={`${card} p-4 sm:p-6 space-y-4`} aria-labelledby="variants-title">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 id="variants-title" className="text-base font-bold text-gray-900">Qué mensaje funciona mejor</h3>
+          <p className="text-sm text-gray-600 mt-1">Con una versión B, la mitad recibe cada una. Cuenta quién respondió, quiso participar o se registró.</p>
+        </div>
+        <button type="button" onClick={onTemplates} className={`${button} shrink-0 border border-gray-300 bg-white text-gray-800 hover:bg-gray-50`}>Editar mensajes</button>
+      </div>
+      <div><p className="text-sm font-medium text-gray-900 mb-1.5">DM</p><VariantResult stats={data.variants} channel="dm" /></div>
+      <div><p className="text-sm font-medium text-gray-900 mb-1.5">Correo</p><VariantResult stats={data.variants} channel="email" /></div>
+    </section>
+    <section className={`${card} p-4 sm:p-6`} aria-labelledby="creator-invites-title" data-testid="creator-invites">
+      <h3 id="creator-invites-title" className="text-base font-bold text-gray-900">Invitados por otros creadores</h3>
+      <p className="text-sm text-gray-600 mt-1">Cada creador tiene su link en Panel → Dinero → Recompensas. Cuando un invitado se verifica y vende sus primeros $100, quien lo invitó gana 5% de lo que venda durante 6 meses (hasta $100 por invitado).</p>
+      <dl className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {[['Llegaron', ci.total], ['Verificados', ci.verified], ['Ya venden', ci.selling], ['Últimos 30 días', ci.last30Days]].map(([k, v]) => <div key={k} className="rounded-xl bg-gray-50 p-3">
+          <dt className="text-xs text-gray-500">{k}</dt><dd className="text-2xl font-bold tabular-nums text-gray-900">{n(Number(v))}</dd></div>)}
+      </dl>
+      {data.topInviters.length > 0 && <div className="mt-4">
+        <p className="text-sm font-medium text-gray-900">Quién invita más</p>
+        <ol className="mt-1.5 space-y-1 text-sm text-gray-700">{data.topInviters.map((t, i) => <li key={t.name} className="flex justify-between gap-3"><span>{i + 1}. {t.name}</span><span className="tabular-nums font-medium">{n(t.count)}</span></li>)}</ol>
+      </div>}
+    </section>
+    <section className={`${card} p-4 sm:p-6 lg:col-span-2`} aria-labelledby="founders-title" data-testid="founders">
+      <h3 id="founders-title" className="text-base font-bold text-gray-900"><i aria-hidden="true" className="fas fa-crown text-amber-500 mr-2" />Creadores Fundadores</h3>
+      <p className="text-sm text-gray-600 mt-1">Quien se registra con su invitación personal queda como Fundador si su país tiene cupo ({FOUNDER_SEATS} por país). Gana {Math.round(FOUNDER_SHARE * 100)}% mientras llegue a Oro en 2 meses y se mantenga ahí.</p>
+      {data.founders.length === 0
+        ? <p className="mt-3 text-sm text-gray-500">Todavía no hay Fundadores.</p>
+        : <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{data.founders.map((f) => <li key={f.country} className="rounded-xl bg-gray-50 p-3">
+          <div className="flex items-baseline justify-between gap-2 text-sm"><span className="font-medium text-gray-900">{flag(f.country)} {countryLabel(f.country)}</span><span className="tabular-nums font-semibold text-gray-900">{f.active} / {FOUNDER_SEATS}</span></div>
+          <div className="mt-1.5 h-2 rounded-full bg-white overflow-hidden" role="progressbar" aria-label={`Cupos de Fundador en ${countryLabel(f.country)}`} aria-valuenow={f.active} aria-valuemin={0} aria-valuemax={FOUNDER_SEATS}><div className="h-full rounded-full bg-amber-500" style={{ width: `${Math.max(2, Math.min(100, (f.active / FOUNDER_SEATS) * 100))}%` }} /></div>
+          {(f.atRisk > 0 || f.lost > 0) && <p className="mt-1.5 text-xs text-gray-600">{f.atRisk > 0 ? `${f.atRisk} en riesgo (bajaron de Oro)` : ''}{f.atRisk > 0 && f.lost > 0 ? ' · ' : ''}{f.lost > 0 ? `${f.lost} lo perdieron` : ''}</p>}
+        </li>)}</ul>}
+    </section>
+  </div>;
+}
+
 function Row({ p, onWrite }: { p: Prospect; onWrite: () => void }) {
   const network = NETWORKS[p.network];
   const last = daysAgo(p.lastPostAt);
   const due = followUpDue(p);
   const reasons = scoreReasons(p);
-  return <li className="px-4 sm:px-5 py-4 grid gap-3 lg:grid-cols-[minmax(0,1.5fr)_minmax(15rem,1fr)_19rem] lg:items-center hover:bg-gray-50/70">
+  const action = p.status === 'nuevo' ? 'Escribir' : due ? 'Seguimiento' : 'Abrir';
+  return <li className="px-4 sm:px-5 py-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_14rem_20rem] lg:items-center hover:bg-gray-50/70">
     <div className="flex items-start gap-3 min-w-0">
       <span className={`shrink-0 mt-0.5 h-10 w-10 rounded-full grid place-items-center text-white ${p.network === 'instagram' ? 'bg-gradient-to-br from-amber-400 via-pink-600 to-violet-700' : p.network === 'tiktok' ? 'bg-gray-900' : p.network === 'facebook' ? 'bg-blue-600' : 'bg-red-600'}`}>
         <i aria-hidden="true" className={network.icon} /><span className="sr-only">{network.label}</span>
@@ -119,43 +163,76 @@ function Row({ p, onWrite }: { p: Prospect; onWrite: () => void }) {
           <a href={network.url(p.handle)} target="_blank" rel="noopener noreferrer" className="hover:underline underline-offset-4">@{p.handle}</a>
           {p.displayName && <span className="ml-2 font-normal text-gray-500">{p.displayName}</span>}
         </p>
-        <p className="text-xs text-gray-600 mt-0.5">
-          {flag(p.country)} {p.city ? `${p.city}, ` : ''}{countryLabel(p.country)}{p.category ? ` · ${p.category}` : ''}{p.email ? ' · ' : ''}{p.email && <span className="text-gray-800">{p.email}</span>}
+        <p className="text-xs text-gray-600 mt-0.5 truncate">
+          {flag(p.country)} {countryLabel(p.country)}{p.category ? ` · ${p.category}` : ''}{p.email ? ' · ' : ''}{p.email && <span className="text-gray-800">{p.email}</span>}
         </p>
-        {(reasons.length > 0 || p.enrichNote || p.openedAt) && <p className="mt-1.5 flex flex-wrap gap-1">
+        {(p.interestedAt || p.openedAt || due || p.enrichNote) && <p className="mt-1.5 flex flex-wrap gap-1">
           {p.interestedAt && <span className="rounded-md bg-violet-100 px-1.5 py-0.5 text-[11px] font-medium text-violet-900"><i aria-hidden="true" className="fas fa-hand mr-1" />Quiere participar</span>}
           {p.openedAt && <span className="rounded-md bg-sky-100 px-1.5 py-0.5 text-[11px] font-medium text-sky-900" title={`Primera vez: ${hour(p.openedAt)}`}>
             <i aria-hidden="true" className="fas fa-link mr-1" />Abrió su link{(p.openCount ?? 0) > 1 ? ` · ${p.openCount} veces` : ''}</span>}
-          {reasons.map((r) => <span key={r} className="rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-700">{r}</span>)}
+          {due && <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-900">Toca seguimiento</span>}
           {p.enrichNote && <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] text-amber-900">{p.enrichNote}</span>}
         </p>}
         {p.notes && <p className="mt-1.5 text-xs text-gray-700 italic line-clamp-2">“{p.notes}”</p>}
       </div>
     </div>
-    <dl className="grid grid-cols-3 gap-2 rounded-xl bg-gray-50 p-2 text-center lg:bg-transparent lg:p-0 lg:text-left">
-      <div><dt className="text-[11px] uppercase tracking-wide text-gray-500">Seguidores</dt><dd className="font-semibold tabular-nums text-gray-900">{compact(p.followers)}</dd></div>
-      <div><dt className="text-[11px] uppercase tracking-wide text-gray-500">Interacción</dt><dd className="font-semibold tabular-nums text-gray-900">{p.engagement != null ? `${p.engagement.toFixed(1)}%` : '—'}</dd></div>
-      <div><dt className="text-[11px] uppercase tracking-wide text-gray-500">Último post</dt><dd className="font-semibold tabular-nums text-gray-900">{last == null ? '—' : last === 0 ? 'Hoy' : `${last} d`}</dd></div>
+    <dl className="grid grid-cols-3 gap-2 rounded-xl bg-gray-50 px-2 py-1.5 text-center lg:bg-transparent lg:p-0 lg:text-left">
+      <div><dt className="text-[11px] text-gray-500">Seguidores</dt><dd className="font-semibold tabular-nums text-gray-900">{compact(p.followers)}</dd></div>
+      <div><dt className="text-[11px] text-gray-500">Interacción</dt><dd className="font-semibold tabular-nums text-gray-900">{p.engagement != null ? `${p.engagement.toFixed(1)}%` : '—'}</dd></div>
+      <div><dt className="text-[11px] text-gray-500">Último post</dt><dd className="font-semibold tabular-nums text-gray-900">{last == null ? '—' : last === 0 ? 'Hoy' : `${last} d`}</dd></div>
     </dl>
-    <div className="flex items-center gap-2 lg:justify-end flex-wrap">
-      <span title="Puntaje: tamaño, interacción, actividad y correo público" className={`rounded-lg px-2 py-1 text-sm font-bold tabular-nums ${scoreTone(p.score)}`}>{p.score}<span className="sr-only"> de 100 puntos</span></span>
-      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUSES[p.status].tone}`} title={STATUSES[p.status].hint}>{STATUSES[p.status].label}{p.status === 'contactado' && p.channel ? ` · ${p.channel === 'dm' ? 'DM' : 'correo'}` : ''}</span>
-      {due && <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-900">Toca seguimiento</span>}
-      <button type="button" onClick={onWrite} className={`${button} ${p.status === 'nuevo' || due ? 'bg-gray-900 text-white hover:bg-gray-800' : 'border border-gray-300 bg-white text-gray-800 hover:bg-gray-50'}`}>
-        {p.status === 'nuevo' ? 'Escribir' : due ? 'Seguimiento' : 'Abrir'}
-      </button>
+    <div className="flex items-center gap-2 justify-between lg:justify-end">
+      <span className="flex items-center gap-2">
+        <span title={`Puntaje ${p.score} de 100${reasons.length ? `: ${reasons.join(', ')}` : ''}`} className={`shrink-0 rounded-lg px-2 py-1 text-sm font-bold tabular-nums ${scoreTone(p.score)}`}>{p.score}<span className="sr-only"> de 100 puntos</span></span>
+        <span className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${STATUSES[p.status].tone}`} title={STATUSES[p.status].hint}>{STATUSES[p.status].label}{p.status === 'contactado' && p.channel ? ` · ${p.channel === 'dm' ? 'DM' : 'correo'}` : ''}</span>
+      </span>
+      <button type="button" onClick={onWrite} className={`${button} min-w-[7.5rem] ${action !== 'Abrir' ? 'bg-gray-900 text-white hover:bg-gray-800' : 'border border-gray-300 bg-white text-gray-800 hover:bg-gray-50'}`}>{action}</button>
     </div>
   </li>;
 }
 
-// Admin tab "Captar creadores": the pilot's goals per country, the imported lists of
-// public creators, the invitation messages and who already joined.
+type Tab = 'today' | 'creators' | 'goals';
+const TABS: { id: Tab; label: string; icon: string }[] = [
+  { id: 'today', label: 'Hoy', icon: 'fa-list-check' },
+  { id: 'creators', label: 'Creadores', icon: 'fa-users' },
+  { id: 'goals', label: 'Metas', icon: 'fa-flag-checkered' },
+];
+
+// The quick filters of the list, in the order the work happens.
+const CHIPS: { id: NonNullable<ProspectFilter['status']>; label: string }[] = [
+  { id: 'open', label: 'Todos' },
+  { id: 'nuevo', label: 'Por contactar' },
+  { id: 'contactado', label: 'Esperando respuesta' },
+  { id: 'follow_up', label: 'Toca seguimiento' },
+  { id: 'respondio', label: 'Interesados' },
+  { id: 'joined', label: 'Ya en Fans Reserve' },
+  { id: 'descartado', label: 'Descartados' },
+];
+
+// One thing to do today: how many, why, and the button that does it.
+function Task({ icon, tone, title, count, text, done, children }: {
+  icon: string; tone: string; title: string; count: number; text: string; done: string; children?: React.ReactNode;
+}) {
+  const empty = count === 0;
+  return <li className={`${card} p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4`}>
+    <span className={`shrink-0 h-11 w-11 rounded-xl grid place-items-center ${empty ? 'bg-gray-100 text-gray-400' : tone}`}><i aria-hidden="true" className={`fas ${empty ? 'fa-check' : icon}`} /></span>
+    <div className="min-w-0 flex-1">
+      <p className="font-semibold text-gray-900"><span className="tabular-nums">{n(count)}</span> · {title}</p>
+      <p className="text-sm text-gray-600 mt-0.5">{empty ? done : text}</p>
+    </div>
+    {!empty && <div className="flex flex-wrap gap-2 sm:justify-end">{children}</div>}
+  </li>;
+}
+
+// Admin tab "Captar creadores": what to do today, the list of creators and the pilot's goals.
 export default function AdminProspects() {
+  const [tab, setTab] = useState<Tab>('today');
   const [country, setCountry] = useState<string | undefined>(undefined);
-  const [status, setStatus] = useState<ProspectFilter['status']>('open');
+  const [status, setStatus] = useState<NonNullable<ProspectFilter['status']>>('open');
   const [network, setNetwork] = useState<ProspectNetwork | ''>('');
   const [size, setSize] = useState<(typeof SIZES)[number]['id']>('');
   const [withEmail, setWithEmail] = useState(false);
+  const [more, setMore] = useState(false);
   const [query, setQuery] = useState('');
   const [typed, setTyped] = useState('');
   const [sort, setSort] = useState<NonNullable<ProspectFilter['sort']>>('score');
@@ -174,19 +251,25 @@ export default function AdminProspects() {
     minFollowers: 'min' in range ? range.min : undefined, maxFollowers: 'max' in range ? range.max : undefined,
   };
   const key = JSON.stringify(filter);
+  // From "Hoy" the batches take only the country; from "Creadores" they also take the list's filters.
+  const batchBase: ProspectFilter = tab === 'today' ? { country } : filter;
   const summary = useBackendData(() => backend.prospects.summary(), [], emptySummary);
   const list = useBackendData(() => backend.prospects.list(filter, page, PAGE), [key, page], { rows: [] as Prospect[], total: 0 });
   const server = useBackendData(() => backend.prospects.serverStatus(), [], unknownServer);
-  const instagram = { data: server.data.instagram };
-  const reload = () => { void summary.reload(); void list.reload(); };
+  const insights = useBackendData(() => backend.prospects.insights(), [], emptyInsights);
+  const instagram = server.data.instagram;
+  const reload = () => { void summary.reload(); void list.reload(); void insights.reload(); };
 
   const progress = useMemo(() => countryProgress(summary.data.byCountry), [summary.data]);
   const pilot = PILOT_COUNTRIES.map((c) => progress.find((p) => p.country === c) ?? emptyProgress(c));
   const others = progress.filter((p) => !(PILOT_COUNTRIES as readonly string[]).includes(p.country));
   const shown = country === undefined ? sumProgress(pilot) : progress.find((p) => p.country === country) ?? emptyProgress(country);
   const label = country === undefined ? 'Los 10 países' : `${flag(country)} ${countryLabel(country)}`;
+  const count = (s: ProspectStatus) => summary.data.byCountry.filter((r) => r.status === s && (country === undefined || r.country === country)).reduce((t, r) => t + r.count, 0);
+  const hasList = summary.data.byCountry.length > 0;
 
   const done = (text: string, ok = true) => { setNotice({ ok, text }); setDialog(null); setWriting(null); reload(); };
+  const show = (s: NonNullable<ProspectFilter['status']>) => { setStatus(s); setTab('creators'); };
 
   const sync = async () => {
     setWorking('sync');
@@ -234,20 +317,22 @@ export default function AdminProspects() {
   };
 
   const today = summary.data.contactedToday;
+  const emailLimit = server.data.email === 'ok' ? server.data.emailLimit : 0;
   const pages = Math.max(1, Math.ceil(list.data.total / PAGE));
-  const manualStatuses: ProspectStatus[] = ['nuevo', 'contactado', 'respondio', ...AUTOMATIC, 'descartado', 'no_contactar'];
   const select = 'min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm';
+  const primary = `${button} bg-gray-900 text-white hover:bg-gray-800`;
+  const secondary = `${button} border border-gray-300 bg-white text-gray-800 hover:bg-gray-50`;
+  const extraFilters = (network ? 1 : 0) + (size ? 1 : 0) + (withEmail ? 1 : 0) + (sort !== 'score' ? 1 : 0);
 
   return <div className="space-y-5" data-testid="admin-prospects">
-    <header className={`${card} p-4 sm:p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4`}>
+    <header className={`${card} p-4 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4`}>
       <div className="max-w-2xl">
         <h2 className="text-xl font-bold text-gray-900">Captar creadores</h2>
-        <p className="text-sm text-gray-600 mt-1">Invitamos a creadores al lanzamiento con listas de perfiles públicos (Heepsy, Modash, TikTok One o hechas a mano). Cada uno tiene su link personal: vemos cuándo lo abre, si quiere participar y cuándo se registra, verifica y vende, sin revisar a mano.</p>
+        <p className="text-sm text-gray-600 mt-1">Importa listas de creadores, invítalos con su link personal y aquí ves quién lo abre, quién quiere participar y quién ya se registró.</p>
       </div>
       <div className="flex flex-wrap gap-2">
-        <button type="button" className={`${button} bg-gray-900 text-white hover:bg-gray-800`} onClick={() => setDialog('import')}><i aria-hidden="true" className="fas fa-file-import" />Importar lista</button>
-        <button type="button" className={`${button} border border-gray-300 bg-white text-gray-800 hover:bg-gray-50`} onClick={() => void sync()} disabled={!!working}><i aria-hidden="true" className={`fas fa-user-check ${working === 'sync' ? 'animate-pulse' : ''}`} />{working === 'sync' ? 'Buscando…' : 'Buscar registrados'}</button>
-        <button type="button" className={`${button} border border-gray-300 bg-white text-gray-800 hover:bg-gray-50`} onClick={() => setDialog('templates')}><i aria-hidden="true" className="fas fa-pen" />Mensajes</button>
+        <button type="button" className={primary} onClick={() => setDialog('import')}><i aria-hidden="true" className="fas fa-file-import" />Importar lista</button>
+        <button type="button" className={secondary} onClick={() => setDialog('templates')}><i aria-hidden="true" className="fas fa-pen" />Mensajes</button>
       </div>
     </header>
 
@@ -255,68 +340,114 @@ export default function AdminProspects() {
       <span>{notice.text}</span><button type="button" aria-label="Cerrar aviso" onClick={() => setNotice(null)} className="shrink-0 min-h-0 px-1"><i aria-hidden="true" className="fas fa-times" /></button>
     </div>}
 
-    <nav aria-label="Países" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-      {[undefined, ...PILOT_COUNTRIES, ...others.map((o) => o.country)].map((c) => {
-        const p = c === undefined ? undefined : progress.find((x) => x.country === c);
-        const active = country === c;
-        return <button key={c ?? 'all'} type="button" aria-pressed={active} onClick={() => setCountry(c)}
-          className={`shrink-0 min-h-11 rounded-full border px-4 py-2 text-sm font-medium whitespace-nowrap ${active ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 bg-white text-gray-800 hover:border-gray-400'}`}>
-          {c === undefined ? 'Los 10 países' : <><span aria-hidden="true" className="mr-1.5">{flag(c || undefined)}</span>{c ? countryLabel(c) : 'Sin país'}</>}
-          {p && p.total > 0 && <span className={`ml-2 tabular-nums text-xs ${active ? 'text-white/70' : 'text-gray-500'}`}>{compact(p.total)}</span>}
-        </button>;
-      })}
-    </nav>
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div role="tablist" aria-label="Secciones de captar creadores" className="grid grid-cols-3 gap-1 rounded-xl bg-gray-100 p-1 sm:inline-grid">
+        {TABS.map((t) => <button key={t.id} type="button" role="tab" id={`prospects-tab-${t.id}`} aria-selected={tab === t.id} aria-controls={`prospects-panel-${t.id}`} onClick={() => setTab(t.id)}
+          className={`min-h-11 rounded-lg px-2 sm:px-6 text-sm font-medium inline-flex items-center justify-center gap-2 ${tab === t.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+          <i aria-hidden="true" className={`fas ${t.icon} text-xs hidden sm:inline`} />{t.label}</button>)}
+      </div>
+      <label className="flex items-center gap-2 text-sm text-gray-700">
+        <span className="shrink-0">País</span>
+        <select aria-label="País" value={country ?? 'all'} onChange={(e) => setCountry(e.target.value === 'all' ? undefined : e.target.value)} className={`${select} w-full sm:w-56`}>
+          <option value="all">Los 10 países</option>
+          {[...PILOT_COUNTRIES, ...others.map((o) => o.country)].map((c) => {
+            const p = progress.find((x) => x.country === c);
+            return <option key={c} value={c}>{flag(c || undefined)} {c ? countryLabel(c) : 'Sin país'}{p?.total ? ` (${compact(p.total)})` : ''}</option>;
+          })}
+        </select>
+      </label>
+    </div>
 
-    <AdminDataState loading={summary.loading && !summary.data.measuredAt} error={summary.error} onRetry={summary.reload}>
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
+    {tab === 'today' && <div role="tabpanel" id="prospects-panel-today" aria-labelledby="prospects-tab-today">
+      <AdminDataState loading={summary.loading && !summary.data.measuredAt} error={summary.error} onRetry={summary.reload}>
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(17rem,1fr)] lg:items-start">
+          <section aria-labelledby="todo-title">
+            <h3 id="todo-title" className="sr-only">Qué hacer hoy</h3>
+            {!hasList ? <div className={`${card} p-6 sm:p-8`}>
+              <p className="font-semibold text-gray-900 text-lg">Todavía no hay creadores en la lista</p>
+              <ol className="mt-3 space-y-2 text-sm text-gray-700 list-decimal pl-5">
+                <li>Junta creadores: una exportación de Heepsy o Modash, o una lista hecha a mano (usuario, seguidores, país, correo).</li>
+                <li>Impórtala aquí. Cada creador recibe su link personal de invitación.</li>
+                <li>Vuelve a esta pestaña: cada día te dice a quién escribir.</li>
+              </ol>
+              <button type="button" className={`${primary} mt-5`} onClick={() => setDialog('import')}>Importar la primera lista</button>
+            </div> : <ol className="space-y-3">
+              <Task icon="fa-hand" tone="bg-violet-100 text-violet-800" title="Interesados" count={count('respondio')}
+                text="Respondieron o apartaron su lugar. Escríbeles para ayudarlos a crear su cuenta." done="Nadie esperando respuesta tuya.">
+                <button type="button" className={primary} onClick={() => show('respondio')}>Ver interesados</button>
+              </Task>
+              <Task icon="fa-rotate-right" tone="bg-amber-100 text-amber-900" title="Seguimientos pendientes" count={summary.data.followUpsDue}
+                text="Les escribiste hace 5 días o más y no respondieron. Se les escribe una sola vez más." done="No hay seguimientos pendientes.">
+                <button type="button" className={primary} onClick={() => show('follow_up')}>Hacer seguimientos</button>
+              </Task>
+              <Task icon="fa-paper-plane" tone="bg-sky-100 text-sky-800" title="Por contactar" count={count('nuevo')}
+                text="Creadores a los que todavía no les escribimos. Mejor de a poco y con calma." done="Ya les escribiste a todos. Importa otra lista para seguir.">
+                <button type="button" className={primary} onClick={() => setDialog('batchDm')}><i aria-hidden="true" className="fas fa-paper-plane" />Lote de DMs</button>
+                <button type="button" className={secondary} onClick={() => setDialog('batchEmail')}><i aria-hidden="true" className="fas fa-envelope" />Lote de correos</button>
+              </Task>
+              {instagram === 'ok' && summary.data.toEnrich > 0 && <Task icon="fa-magnifying-glass-chart" tone="bg-pink-100 text-pink-800" title="Por revisar con Instagram" count={summary.data.toEnrich}
+                text="La API oficial trae seguidores, interacción y último post. Hasta 100 por vez." done="">
+                <button type="button" className={secondary} disabled={!!working} onClick={() => void enrich()}>
+                  <i aria-hidden="true" className="fab fa-instagram" />{working.startsWith('instagram') ? `Revisando ${working.split(':')[1] ?? ''}…` : 'Revisar con Instagram'}</button>
+              </Task>}
+            </ol>}
+          </section>
+
+          <aside className={`${card} p-4 sm:p-5 space-y-4`} aria-labelledby="today-title">
+            <h3 id="today-title" className="text-base font-bold text-gray-900">Ritmo de hoy</h3>
+            <div>
+              <div className="flex items-baseline justify-between"><span className="text-sm text-gray-600">Primeros mensajes</span><span className="text-xl font-bold tabular-nums">{n(today)}</span></div>
+              <div className="mt-1.5"><Bar value={today} goal={SAFE_DAILY} tone={today > SAFE_DAILY ? 'bg-red-500' : 'bg-sky-500'} /></div>
+              <p className={`mt-1 text-xs ${today > SAFE_DAILY ? 'text-red-700 font-medium' : 'text-gray-500'}`}>{today > SAFE_DAILY ? `Pasaste de ${SAFE_DAILY}: frena por hoy para que no bloqueen las cuentas.` : `Ritmo seguro: hasta ${SAFE_DAILY} al día.`}</p>
+            </div>
+            {emailLimit > 0 && <div>
+              <div className="flex items-baseline justify-between"><span className="text-sm text-gray-600">Correos desde Zoho</span><span className="text-xl font-bold tabular-nums">{n(summary.data.emailsToday)}<span className="text-sm font-normal text-gray-500"> de {n(emailLimit)}</span></span></div>
+              <div className="mt-1.5"><Bar value={summary.data.emailsToday} goal={emailLimit} tone="bg-emerald-600" /></div>
+            </div>}
+            <Last24h s={summary.data} />
+            <p className="text-xs text-gray-500"><i aria-hidden="true" className="fas fa-envelope mr-1" />Cada mañana a las 7 te llega este resumen a tu correo, con nombres.</p>
+            <button type="button" className={`${secondary} w-full`} onClick={() => void sync()} disabled={!!working}>
+              <i aria-hidden="true" className={`fas fa-user-check ${working === 'sync' ? 'animate-pulse' : ''}`} />{working === 'sync' ? 'Buscando…' : 'Buscar registrados ahora'}</button>
+            {instagram === 'missing' && <p className="text-xs text-gray-500">Falta conectar la API oficial de Instagram en Vercel (INSTAGRAM_BUSINESS_ID e INSTAGRAM_ACCESS_TOKEN). La lista funciona igual con los datos importados.</p>}
+          </aside>
+        </div>
+      </AdminDataState>
+    </div>}
+
+    {tab === 'goals' && <div role="tabpanel" id="prospects-panel-goals" aria-labelledby="prospects-tab-goals" className="space-y-5">
+      <AdminDataState loading={summary.loading && !summary.data.measuredAt} error={summary.error} onRetry={summary.reload}>
         <Funnel p={shown} label={label} countries={country === undefined ? PILOT_COUNTRIES.length : 1}
           needed={country === undefined ? pilot.reduce((s, p) => s + contactsNeeded(p), 0) : contactsNeeded(shown)} />
-        <section className={`${card} p-4 sm:p-6 space-y-4`} aria-labelledby="today-title">
-          <h3 id="today-title" className="text-base font-bold text-gray-900">Hoy</h3>
-          <div>
-            <div className="flex items-baseline justify-between"><span className="text-sm text-gray-600">Primeros mensajes enviados</span><span className="text-2xl font-bold tabular-nums">{n(today)}</span></div>
-            <div className="mt-2"><Bar value={today} goal={SAFE_DAILY} tone={today > SAFE_DAILY ? 'bg-red-500' : 'bg-sky-500'} /></div>
-            <p className={`mt-1 text-xs ${today > SAFE_DAILY ? 'text-red-700 font-medium' : 'text-gray-500'}`}>{today > SAFE_DAILY ? `Pasaste de ${SAFE_DAILY}: frena por hoy para que no bloqueen las cuentas.` : `Hasta ${SAFE_DAILY} al día entre todas las cuentas del equipo es un ritmo seguro.`}</p>
-          </div>
-          <button type="button" onClick={() => { setStatus('follow_up'); setCountry(undefined); }} className="w-full text-left rounded-xl bg-amber-50 p-3 hover:bg-amber-100 min-h-11">
-            <span className="flex justify-between text-sm"><span className="font-medium text-amber-950">Seguimientos pendientes</span><span className="font-bold tabular-nums text-amber-950">{n(summary.data.followUpsDue)}</span></span>
-            <span className="mt-1 block text-xs leading-snug text-amber-900">Contactados hace 5 días o más que no respondieron. Se les escribe una sola vez más.</span>
-          </button>
-          <div className="rounded-xl bg-gray-50 p-3">
-            <p className="flex justify-between text-sm"><span className="font-medium text-gray-900"><i aria-hidden="true" className="fab fa-instagram mr-1.5" />Por revisar con Instagram</span><span className="font-bold tabular-nums">{n(summary.data.toEnrich)}</span></p>
-            {instagram.data === 'ok'
-              ? <><p className="text-xs text-gray-600 mt-1">La API oficial trae seguidores, interacción y la fecha del último post de las cuentas profesionales. Hasta 100 por vez.</p>
-                <button type="button" className={`${button} mt-2 w-full border border-gray-300 bg-white text-gray-800 hover:bg-gray-100`} disabled={!!working || !summary.data.toEnrich} onClick={() => void enrich()}>
-                  {working.startsWith('instagram') ? `Revisando ${working.split(':')[1] ?? ''}…` : 'Revisar con Instagram'}</button></>
-              : <p className="text-xs text-gray-600 mt-1">{instagram.data === 'missing' ? 'Falta conectar la API oficial de Instagram en Vercel (INSTAGRAM_BUSINESS_ID e INSTAGRAM_ACCESS_TOKEN). Mientras tanto, la lista funciona igual con los datos importados.' : 'Comprobando la conexión con Instagram…'}</p>}
-          </div>
-          <Last24h s={summary.data} />
-        </section>
-      </div>
-      {country === undefined && <div className="mt-5"><Countries list={pilot} onPick={setCountry} /></div>}
-    </AdminDataState>
+        {country === undefined && <div className="mt-5"><Countries list={pilot} onPick={setCountry} /></div>}
+      </AdminDataState>
+      <Insights data={insights.data} onTemplates={() => setDialog('templates')} />
+    </div>}
 
-    <section className={card} aria-labelledby="list-title">
+    {tab === 'creators' && <section role="tabpanel" id="prospects-panel-creators" aria-labelledby="prospects-tab-creators" className={card}>
       <div className="p-4 sm:p-5 border-b border-gray-100 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 id="list-title" className="text-base font-bold text-gray-900">Creadores {country !== undefined ? `de ${countryLabel(country)}` : 'de todos los países'}</h3>
+          <h3 className="text-base font-bold text-gray-900">Creadores {country !== undefined ? `de ${countryLabel(country)}` : 'de todos los países'}
+            <span className="ml-2 text-sm font-normal text-gray-500 tabular-nums">{n(list.data.total)}</span></h3>
           <span className="flex flex-wrap items-center gap-2">
-            <button type="button" className={`${button} bg-gray-900 text-white hover:bg-gray-800`} disabled={!summary.data.byCountry.length} onClick={() => setDialog('batchDm')}><i aria-hidden="true" className="fas fa-paper-plane" />Lote de DMs</button>
-            <button type="button" className={`${button} border border-gray-300 bg-white text-gray-800 hover:bg-gray-50`} disabled={!summary.data.byCountry.length} onClick={() => setDialog('batchEmail')}><i aria-hidden="true" className="fas fa-envelope" />Lote de correos</button>
-            <button type="button" className="min-h-11 px-2 text-sm text-pink-800 underline underline-offset-4 disabled:opacity-50" disabled={working === 'export' || !list.data.total} onClick={() => void exportCsv()}>
-              {working === 'export' ? 'Preparando…' : 'Descargar CSV'}</button>
+            <button type="button" className={primary} disabled={!hasList} onClick={() => setDialog('batchDm')}><i aria-hidden="true" className="fas fa-paper-plane" />Lote de DMs</button>
+            <button type="button" className={secondary} disabled={!hasList} onClick={() => setDialog('batchEmail')}><i aria-hidden="true" className="fas fa-envelope" />Lote de correos</button>
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-2 lg:grid-cols-[minmax(12rem,1.4fr)_repeat(4,minmax(0,1fr))]">
-          <div className="relative col-span-2 lg:col-span-1">
-            <i aria-hidden="true" className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-            <input type="search" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="Buscar @usuario, nombre o categoría" aria-label="Buscar" className={`${select} w-full pl-9`} /></div>
-          <select aria-label="Estado" value={status ?? ''} onChange={(e) => setStatus((e.target.value || undefined) as ProspectFilter['status'])} className={`${select} w-full`}>
-            <option value="open">Todos (sin descartados)</option>
-            <option value="follow_up">Toca seguimiento</option>
-            {manualStatuses.map((s) => <option key={s} value={s}>{STATUSES[s].label}</option>)}
-            <option value="">Todos, incluso descartados</option>
-          </select>
+        <div className="relative">
+          <i aria-hidden="true" className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+          <input type="search" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="Buscar @usuario, nombre o categoría" aria-label="Buscar" className={`${select} w-full pl-9`} />
+        </div>
+        <div role="group" aria-label="Estado" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+          {CHIPS.map((c) => <button key={c.id} type="button" aria-pressed={status === c.id} onClick={() => setStatus(c.id)}
+            className={`shrink-0 min-h-11 rounded-full border px-4 text-sm font-medium whitespace-nowrap ${status === c.id ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-400'}`}>{c.label}</button>)}
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <button type="button" aria-expanded={more} aria-controls="prospects-more" onClick={() => setMore(!more)} className="min-h-11 text-sm font-medium text-gray-700 inline-flex items-center gap-2">
+            <i aria-hidden="true" className={`fas fa-sliders`} />Más filtros{extraFilters ? ` (${extraFilters})` : ''}<i aria-hidden="true" className={`fas fa-chevron-${more ? 'up' : 'down'} text-xs`} /></button>
+          <button type="button" className="min-h-11 px-2 text-sm text-pink-800 underline underline-offset-4 disabled:opacity-50" disabled={working === 'export' || !list.data.total} onClick={() => void exportCsv()}>
+            {working === 'export' ? 'Preparando…' : 'Descargar CSV'}</button>
+        </div>
+        {more && <div id="prospects-more" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
           <select aria-label="Red" value={network} onChange={(e) => setNetwork(e.target.value as ProspectNetwork | '')} className={`${select} w-full`}>
             <option value="">Todas las redes</option>
             {(Object.keys(NETWORKS) as ProspectNetwork[]).map((k) => <option key={k} value={k}>{NETWORKS[k].label}</option>)}
@@ -327,35 +458,35 @@ export default function AdminProspects() {
           <select aria-label="Orden" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} className={`${select} w-full`}>
             <option value="score">Mejor puntaje primero</option><option value="followers">Más seguidores primero</option><option value="recent">Agregados recientemente</option>
           </select>
-        </div>
-        <label className="inline-flex items-center gap-2 text-sm text-gray-700 min-h-11"><input type="checkbox" checked={withEmail} onChange={(e) => setWithEmail(e.target.checked)} className="h-4 w-4 accent-gray-900" />Solo con correo público</label>
+          <label className="inline-flex items-center gap-2 text-sm text-gray-700 min-h-11"><input type="checkbox" checked={withEmail} onChange={(e) => setWithEmail(e.target.checked)} className="h-4 w-4 accent-gray-900" />Solo con correo público</label>
+        </div>}
       </div>
 
       <AdminDataState loading={list.loading && !list.data.rows.length && !list.data.total} error={list.error} onRetry={list.reload}>
         {list.data.rows.length === 0
           ? <div className="p-10 text-center">
             <p className="text-3xl" aria-hidden="true">🔎</p>
-            <p className="mt-2 font-semibold text-gray-900">{summary.data.byCountry.length ? 'Nadie coincide con estos filtros' : 'Todavía no hay creadores en la lista'}</p>
-            <p className="mt-1 text-sm text-gray-600">{summary.data.byCountry.length ? 'Prueba con otro país, estado o tamaño.' : 'Importa la exportación de Heepsy o Modash, o pega una lista de usuarios.'}</p>
-            {!summary.data.byCountry.length && <button type="button" className={`${button} mt-4 bg-gray-900 text-white`} onClick={() => setDialog('import')}>Importar la primera lista</button>}
+            <p className="mt-2 font-semibold text-gray-900">{hasList ? 'Nadie coincide con estos filtros' : 'Todavía no hay creadores en la lista'}</p>
+            <p className="mt-1 text-sm text-gray-600">{hasList ? 'Prueba con otro país o estado.' : 'Importa la exportación de Heepsy o Modash, o pega una lista de usuarios.'}</p>
+            {!hasList && <button type="button" className={`${primary} mt-4`} onClick={() => setDialog('import')}>Importar la primera lista</button>}
           </div>
           : <ul className={`divide-y divide-gray-100 ${list.loading ? 'opacity-60' : ''}`} aria-busy={list.loading}>{list.data.rows.map((p) => <Row key={p.id} p={p} onWrite={() => setWriting(p)} />)}</ul>}
         {list.data.total > PAGE && <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 p-4 text-sm">
           <span className="text-gray-600 tabular-nums">{n(page * PAGE + 1)}–{n(Math.min(list.data.total, (page + 1) * PAGE))} de {n(list.data.total)}</span>
           <span className="flex gap-2">
-            <button type="button" className={`${button} border border-gray-300 bg-white`} disabled={page === 0} onClick={() => setPage(page - 1)}>Anterior</button>
-            <button type="button" className={`${button} border border-gray-300 bg-white`} disabled={page + 1 >= pages} onClick={() => setPage(page + 1)}>Siguiente</button>
+            <button type="button" className={secondary} disabled={page === 0} onClick={() => setPage(page - 1)}>Anterior</button>
+            <button type="button" className={secondary} disabled={page + 1 >= pages} onClick={() => setPage(page + 1)}>Siguiente</button>
           </span>
         </div>}
       </AdminDataState>
-    </section>
+    </section>}
 
     <p className="text-xs text-gray-500 px-1">Solo guardamos datos que los creadores publican en sus perfiles. Quien pida no ser contactado queda marcado y se borran sus datos de contacto; quien pida que borremos todo se elimina de la lista.</p>
 
     {dialog === 'import' && <ImportDialog country={country || undefined} onClose={() => setDialog(null)} onDone={(text) => done(text)} />}
     {dialog === 'templates' && <TemplatesDialog onClose={() => setDialog(null)} />}
-    {dialog === 'batchDm' && <BatchDmDialog filter={filter} sentToday={today} safeDaily={SAFE_DAILY} onClose={() => setDialog(null)} onDone={(text) => done(text)} />}
-    {dialog === 'batchEmail' && <BatchEmailDialog filter={filter} server={server.data} emailsToday={summary.data.emailsToday} onClose={() => setDialog(null)} onDone={(text) => done(text)} />}
+    {dialog === 'batchDm' && <BatchDmDialog filter={batchBase} sentToday={today} safeDaily={SAFE_DAILY} onClose={() => setDialog(null)} onDone={(text) => done(text)} />}
+    {dialog === 'batchEmail' && <BatchEmailDialog filter={batchBase} server={server.data} emailsToday={summary.data.emailsToday} onClose={() => setDialog(null)} onDone={(text) => done(text)} />}
     {writing && <MessageDialog prospect={writing} server={server.data} emailsToday={summary.data.emailsToday} onClose={() => setWriting(null)} onChanged={(text) => done(text)} />}
   </div>;
 }

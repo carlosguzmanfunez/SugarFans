@@ -24,6 +24,7 @@ const medals = (m: Row | null | undefined): MedalState =>
         imanUntil: m.iman_until ?? null,
         qualifiedInvites: Number(m.qualified_invites ?? 0),
         embajador: !!m.embajador,
+        fundador: !!m.fundador,
         boostUntil: m.boost_until ?? null,
         boostReason: m.boost_reason ?? null,
       }
@@ -59,10 +60,24 @@ export const createSupabaseRewards = (sb: SupabaseClient): RewardsBackend => ({
       attractedThisMonth: r.attracted_this_month,
       attractedLastMonth: r.attracted_last_month,
       medals: medals(r.medals),
+      founder: r.founder
+        ? {
+            grantedAt: r.founder.granted_at,
+            graceUntil: r.founder.grace_until,
+            belowOroSince: r.founder.below_oro_since ?? null,
+            loseAt: r.founder.lose_at ?? null,
+            lostAt: r.founder.lost_at ?? null,
+            country: r.founder.country ?? '',
+            active: !!r.founder.active,
+          }
+        : null,
       referrals: (r.referrals as Row[]).map((f) => ({ name: f.name, joinedAt: f.joined_at, paid: f.paid, referralUntil: f.referral_until })),
       invitedCreators: ((r.invited_creators ?? []) as Row[]).map((c) => ({
         name: c.name,
+        ...(c.avatar ? { avatar: c.avatar } : {}),
         joinedAt: c.joined_at,
+        verified: !!c.verified,
+        sales: Number(c.sales ?? 0),
         qualifiedAt: c.qualified_at ?? undefined,
         from: c.from ?? undefined,
         until: c.until ?? undefined,
@@ -81,7 +96,7 @@ export const createSupabaseRewards = (sb: SupabaseClient): RewardsBackend => ({
     if (!ids.length) return {};
     const { data } = await sb.rpc('creator_badges', { p_ids: ids });
     return Object.fromEntries(
-      ((data ?? []) as Row[]).map((r) => [r.creator_profile_id, { level: r.level as LevelId, puntual: !!r.puntual, constante: !!r.constante }])
+      ((data ?? []) as Row[]).map((r) => [r.creator_profile_id, { level: r.level as LevelId, puntual: !!r.puntual, constante: !!r.constante, fundador: !!r.fundador }])
     );
   },
 

@@ -2,8 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { backend } from '../lib/backend';
 import { readJSON, writeJSON } from '../lib/storage';
 import {
-  DEFAULT_TEMPLATES, NETWORKS, PILOT_COUNTRIES, SOURCES, STATUSES, TEMPLATE_HEADER, compact, countryLabel, emailBatchCsv, fillTemplate, inviteBase, inviteUrl,
-  parseProspectList, type Prospect, type ProspectNetwork, type ProspectSource, type Templates,
+  DEFAULT_TEMPLATES, NETWORKS, PILOT_COUNTRIES, SOURCES, STATUSES, TEMPLATE_HEADER, VARIANT_MIN, compact, countryLabel, emailBatchCsv, fillTemplate, hasVariantB,
+  inviteBase, inviteUrl, parseProspectList, templatesFor, variantFor, variantWinner,
+  type MessageVariant, type Prospect, type ProspectChannel, type ProspectNetwork, type ProspectSource, type Templates, type VariantStat,
 } from '../lib/prospects';
 import type { ProspectFilter, ProspectServerStatus } from '../lib/backend/prospectTypes';
 import { AdminDialog } from './AdminDialog';
@@ -28,18 +29,27 @@ export { download };
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 type Outgoing = { p: Prospect; subject: string; body: string };
-type SendTotals = { sent: number; skipped: number; failed: number; warning?: string };
+type SendTotals = { sent: number; skipped: number; failed: number; warning?: string; sentIds: string[] };
+
+// Records which version of the first message each creator got (A or B).
+export async function recordVariants(list: Prospect[], t: Templates, channel: ProspectChannel) {
+  if (!hasVariantB(t, channel)) return;
+  for (const v of ['A', 'B'] as MessageVariant[]) {
+    const ids = list.filter((p) => variantFor(p, t, channel) === v).map((p) => p.id);
+    if (ids.length) await backend.prospects.updateMany(ids, { variant: v });
+  }
+}
 
 // Emails go out from Zoho 5 at a time with a short pause, and stop at the daily
 // limit or at the first problem (wrong password, Zoho slowing us down).
 export async function sendInGroups(list: Outgoing[], followUp: boolean, onProgress: (done: number) => void): Promise<SendTotals> {
-  const t: SendTotals = { sent: 0, skipped: 0, failed: 0 };
+  const t: SendTotals = { sent: 0, skipped: 0, failed: 0, sentIds: [] };
   for (let i = 0; i < list.length; i += 5) {
     if (i) await wait(1500);
     const group = list.slice(i, i + 5);
     const r = await backend.prospects.sendEmails(group.map((x) => ({ id: x.p.id, subject: x.subject, body: x.body })), followUp, inviteBase());
     if (!r.ok) { t.warning = r.error; break; }
-    t.sent += r.sent.length; t.skipped += r.skipped.length; t.failed += r.failed.length;
+    t.sent += r.sent.length; t.sentIds.push(...r.sent); t.skipped += r.skipped.length; t.failed += r.failed.length;
     onProgress(Math.min(list.length, i + group.length));
     if (r.warning) { t.warning = r.warning; break; }
     if (r.remaining <= 0 && i + 5 < list.length) { t.warning = 'Se llegó al límite de correos de hoy. Sigue mañana con los que faltan.'; break; }
@@ -146,6 +156,10 @@ export function MessageDialog({ prospect, server, emailsToday, onClose, onChange
   const templates = loadTemplates();
   const first: Kind = prospect.status === 'contactado' ? 'followUp' : prospect.email && prospect.network !== 'instagram' && prospect.network !== 'tiktok' ? 'email' : 'dm';
   const [kind, setKind] = useState<Kind>(first);
+  const channel: ProspectChannel = kind === 'email' ? 'email' : 'dm';
+  // Only the first message has versions; a creator always gets the same one.
+  const variant = kind === 'followUp' || prospect.status !== 'nuevo' ? undefined : variantFor(prospect, templates, channel);
+  const own = templatesFor(templates, variant ?? 'A');
   const [text, setText] = useState('');
   const [subject, setSubject] = useState('');
   const [notes, setNotes] = useState(prospect.notes ?? '');
@@ -168,14 +182,15 @@ export function MessageDialog({ prospect, server, emailsToday, onClose, onChange
     setBusy(true); setError('');
     const followUp = kind === 'followUp';
     const r = await sendInGroups([{ p: prospect, subject: followUp ? `Re: ${subject}` : subject, body: text }], followUp, () => {});
+    if (r.sent && !followUp) await recordVariants([prospect], templates, 'email');
     setBusy(false);
     if (r.sent) { onChanged(`Correo enviado a @${prospect.handle} desde Zoho.`); return; }
     setError(r.warning ?? (r.skipped ? 'No se envió: ya estaba contactado o no tiene correo.' : 'Zoho no aceptó este correo. Revisa la dirección.'));
   };
 
   useEffect(() => {
-    setText(fillTemplate(kind === 'dm' ? templates.dm : kind === 'email' ? templates.email : templates.followUp, prospect));
-    setSubject(fillTemplate(templates.emailSubject, prospect));
+    setText(fillTemplate(kind === 'dm' ? own.dm : kind === 'email' ? own.email : templates.followUp, prospect));
+    setSubject(fillTemplate(own.emailSubject, prospect));
     setCopied(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind, prospect.id]);
@@ -185,7 +200,8 @@ export function MessageDialog({ prospect, server, emailsToday, onClose, onChange
   };
   const save = async (patch: Parameters<typeof backend.prospects.update>[1], done: string) => {
     setBusy(true); setError('');
-    const r = await backend.prospects.update(prospect.id, { ...patch, notes });
+    const first = patch.status === 'contactado' && prospect.status === 'nuevo' && variant && hasVariantB(templates, channel);
+    const r = await backend.prospects.update(prospect.id, { ...patch, notes, ...(first ? { variant } : {}) });
     setBusy(false);
     if (!r.ok) { setError(r.error ?? 'No se pudo guardar.'); return; }
     onChanged(done);
@@ -287,16 +303,44 @@ export function MessageDialog({ prospect, server, emailsToday, onClose, onChange
 
 /* ---------- Templates ---------- */
 
+// "A: 12% respondió (de 40) · B: 18% (de 38)" and which one wins once there are enough.
+export function VariantResult({ stats, channel }: { stats: VariantStat[]; channel: ProspectChannel }) {
+  const rows = (['A', 'B'] as MessageVariant[]).map((v) => stats.find((r) => r.channel === channel && r.variant === v));
+  if (!rows.some(Boolean)) return <p className="text-xs text-gray-500">Todavía no hay contactos con versión. Escribe una versión B y aquí verás cuál responde más.</p>;
+  const winner = variantWinner(stats, channel);
+  return <div className="text-xs text-gray-700" data-testid={`variant-result-${channel}`}>
+    <ul className="flex flex-wrap gap-2">
+      {rows.map((r, i) => r && <li key={i} className={`rounded-lg px-2 py-1 ${winner === r.variant ? 'bg-emerald-100 text-emerald-900 font-semibold' : 'bg-gray-100'}`}>
+        Versión {r.variant}: {Math.round((r.replied / Math.max(1, r.contacted)) * 100)}% respondió <span className="text-gray-500 font-normal">({r.replied} de {r.contacted})</span>
+      </li>)}
+    </ul>
+    <p className="mt-1 text-gray-500">{winner ? `Gana la versión ${winner}. Puedes dejar solo esa y probar otra B.` : `Se sabe cuál gana cuando cada versión tenga al menos ${VARIANT_MIN} contactos.`}</p>
+  </div>;
+}
+
 export function TemplatesDialog({ onClose }: { onClose: () => void }) {
   const [t, setT] = useState<Templates>(loadTemplates);
   const [saved, setSaved] = useState(false);
+  const [stats, setStats] = useState<VariantStat[]>([]);
+  useEffect(() => { backend.prospects.insights().then((i) => setStats(i.variants)).catch(() => {}); }, []);
   const set = (k: keyof Templates) => (e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => { setT({ ...t, [k]: e.target.value }); setSaved(false); };
+  const box = 'rounded-xl border border-gray-200 p-3 space-y-3';
   return <AdminDialog title="Plantillas de mensajes" onClose={onClose} wide>
     <div className="space-y-4 text-sm">
       <p className="text-gray-600">Se completan solas con los datos de cada creador: <code className="rounded bg-gray-100 px-1">{'{nombre}'}</code> (su primer nombre), <code className="rounded bg-gray-100 px-1">{'{usuario}'}</code>, <code className="rounded bg-gray-100 px-1">{'{pais}'}</code>, <code className="rounded bg-gray-100 px-1">{'{categoria}'}</code>, <code className="rounded bg-gray-100 px-1">{'{link}'}</code> (su link personal de invitación) y <code className="rounded bg-gray-100 px-1">{'{baja}'}</code> (el enlace para no recibir más). Se guardan en este navegador.</p>
-      <div><label className={label} htmlFor="tpl-dm">Primer mensaje por Instagram, TikTok o Facebook</label><textarea id="tpl-dm" rows={7} className={field} value={t.dm} onChange={set('dm')} /></div>
-      <div><label className={label} htmlFor="tpl-subject">Asunto del correo</label><input id="tpl-subject" className={field} value={t.emailSubject} onChange={set('emailSubject')} /></div>
-      <div><label className={label} htmlFor="tpl-email">Correo</label><textarea id="tpl-email" rows={10} className={field} value={t.email} onChange={set('email')} /></div>
+      <p className="rounded-lg bg-sky-50 p-3 text-sky-950"><b>Versión B (opcional):</b> si escribes una, la mitad de los creadores recibe la A y la otra mitad la B. Aquí mismo ves qué porcentaje responde a cada una.</p>
+      <section className={box} aria-label="Primer mensaje por DM">
+        <div><label className={label} htmlFor="tpl-dm">Primer mensaje por Instagram, TikTok o Facebook · versión A</label><textarea id="tpl-dm" rows={7} className={field} value={t.dm} onChange={set('dm')} /></div>
+        <div><label className={label} htmlFor="tpl-dm-b">Versión B del DM (opcional)</label><textarea id="tpl-dm-b" rows={5} className={field} value={t.dmB ?? ''} onChange={set('dmB')} placeholder="Déjala vacía para mandar solo la A" /></div>
+        <VariantResult stats={stats} channel="dm" />
+      </section>
+      <section className={box} aria-label="Correo">
+        <div><label className={label} htmlFor="tpl-subject">Asunto del correo · versión A</label><input id="tpl-subject" className={field} value={t.emailSubject} onChange={set('emailSubject')} /></div>
+        <div><label className={label} htmlFor="tpl-email">Correo · versión A</label><textarea id="tpl-email" rows={10} className={field} value={t.email} onChange={set('email')} /></div>
+        <div><label className={label} htmlFor="tpl-subject-b">Asunto de la versión B (opcional)</label><input id="tpl-subject-b" className={field} value={t.emailSubjectB ?? ''} onChange={set('emailSubjectB')} placeholder="Vacío: usa el asunto de la A" /></div>
+        <div><label className={label} htmlFor="tpl-email-b">Correo · versión B (opcional)</label><textarea id="tpl-email-b" rows={6} className={field} value={t.emailB ?? ''} onChange={set('emailB')} placeholder="Déjala vacía para mandar solo la A" /></div>
+        <VariantResult stats={stats} channel="email" />
+      </section>
       <div><label className={label} htmlFor="tpl-follow">Seguimiento (una sola vez, a los 5 días)</label><textarea id="tpl-follow" rows={4} className={field} value={t.followUp} onChange={set('followUp')} /></div>
       <div className="flex flex-wrap justify-between gap-2">
         <button type="button" className="min-h-11 px-2 text-gray-600 underline underline-offset-4" onClick={() => { setT(DEFAULT_TEMPLATES); setSaved(false); }}>Volver a los textos originales</button>
@@ -353,7 +397,7 @@ export function BatchDmDialog({ filter, sentToday, safeDaily, onClose, onDone }:
   const current = queue?.[at];
 
   useEffect(() => {
-    if (current) setText(fillTemplate(kind === 'first' ? templates.dm : templates.followUp, current));
+    if (current) setText(fillTemplate(kind === 'first' ? templatesFor(templates, variantFor(current, templates, 'dm')).dm : templates.followUp, current));
     setOpened(false);
   }, [current, kind, templates]);
 
@@ -376,7 +420,8 @@ export function BatchDmDialog({ filter, sentToday, safeDaily, onClose, onDone }:
   const mark = async (patch: Parameters<typeof backend.prospects.update>[1], counted: boolean) => {
     if (!current) return;
     setBusy(true); setError('');
-    const r = await backend.prospects.update(current.id, patch);
+    const first = patch.status === 'contactado' && current.status === 'nuevo' && hasVariantB(templates, 'dm');
+    const r = await backend.prospects.update(current.id, first ? { ...patch, variant: variantFor(current, templates, 'dm') } : patch);
     setBusy(false);
     if (!r.ok) { setError(r.error ?? 'No se pudo guardar.'); return; }
     if (counted) setSent((n) => n + 1); else setSkipped((n) => n + 1);
@@ -487,9 +532,11 @@ export function BatchEmailDialog({ filter, server, emailsToday, onClose, onDone 
       const followUp = kind === 'followUp';
       setTotal(rows.length);
       setProgress(0);
-      const r = await sendInGroups(rows.map((p) => ({
-        p, subject: followUp ? `Re: ${fillTemplate(t.emailSubject, p)}` : fillTemplate(t.emailSubject, p), body: fillTemplate(followUp ? t.followUp : t.email, p),
-      })), followUp, setProgress);
+      const r = await sendInGroups(rows.map((p) => {
+        const own = templatesFor(t, variantFor(p, t, 'email'));
+        return { p, subject: followUp ? `Re: ${fillTemplate(t.emailSubject, p)}` : fillTemplate(own.emailSubject, p), body: fillTemplate(followUp ? t.followUp : own.email, p) };
+      }), followUp, setProgress);
+      if (!followUp && r.sentIds.length) await recordVariants(rows.filter((p) => r.sentIds.includes(p.id)), t, 'email');
       setBusy(false); setProgress(null);
       if (!r.sent && r.warning) { setError(r.warning); return; }
       onDone([`Salieron ${r.sent} ${r.sent === 1 ? 'correo' : 'correos'} desde Zoho`, r.skipped ? `${r.skipped} se saltaron` : '', r.failed ? `${r.failed} rebotaron` : ''].filter(Boolean).join(', ') + '.' + (r.warning ? ` ${r.warning}` : ''));
@@ -499,7 +546,7 @@ export function BatchEmailDialog({ filter, server, emailsToday, onClose, onDone 
     if (!batch) return;
     setBusy(true); setError('');
     const r = kind === 'first'
-      ? await backend.prospects.updateMany(batch.map((p) => p.id), { status: 'contactado', channel: 'email' })
+      ? await backend.prospects.updateMany(batch.map((p) => p.id), { status: 'contactado', channel: 'email' }).then(async (x) => { if (x.ok) await recordVariants(batch, loadTemplates(), 'email'); return x; })
       : await Promise.all(batch.map((p) => backend.prospects.update(p.id, { followUps: p.followUps + 1 }))).then((all) => all.find((x) => !x.ok) ?? { ok: true });
     setBusy(false);
     if (!r.ok) { setError(r.error ?? 'No se pudo guardar.'); return; }

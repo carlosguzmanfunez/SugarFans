@@ -2245,7 +2245,7 @@ const run = async () => {
       expect(tip?.share === W.netShare(0.8, 10), `a la creadora invitada se le descontó (${tip?.share})`);
       expect(!bonus, 'hubo bono con creadores sin verificar ni vender');
     });
-    await check('Con 2 invitados verificados y $100 vendidos, quien invita gana 5% del neto un mes, sin descontarles nada', async () => {
+    await check('Con un invitado verificado y $100 vendidos, quien invita gana 5% del neto 6 meses, sin descontarle nada', async () => {
       await qualify(maraId);
       await qualify(nicoId);
       const nico = await tipAsDemoFan(nicoId, 'Nico Invitado');

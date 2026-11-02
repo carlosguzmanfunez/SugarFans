@@ -19,9 +19,14 @@ const LevelBadge: React.FC<{ level?: LevelId }> = ({ level }) => {
   );
 };
 
-// Medals fans can see on a profile: Puntual and Constante.
+// Medals fans can see on a profile: Fundador, Puntual and Constante.
 export const MedalBadges: React.FC<{ badges?: CreatorBadges }> = ({ badges }) => (
   <>
+    {badges?.fundador && (
+      <span data-testid="badge-fundador" title="De los primeros creadores de Fans Reserve" className="inline-flex items-center gap-1 text-[11px] font-semibold border px-2 py-0.5 rounded-full bg-gold-50 text-gold-700 border-gold-200">
+        <i className="fas fa-crown text-[10px]" aria-hidden="true"></i> Fundador
+      </span>
+    )}
     {badges?.puntual && (
       <span data-testid="badge-puntual" title="Responde a tiempo sus solicitudes de Reserve" className="inline-flex items-center gap-1 text-[11px] font-semibold border px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border-emerald-200">
         <i className="fas fa-clock text-[10px]" aria-hidden="true"></i> Puntual

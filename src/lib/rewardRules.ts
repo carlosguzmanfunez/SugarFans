@@ -2,7 +2,8 @@
 // creator invites, medals and featured spots. The creator's cut is taken from the
 // NET of each payment (after the payment processor's fee) for subscriptions,
 // renewals, tips and Reserve; gifts keep their fixed 60%. The same rules run in
-// the database (migration 20261006000001_creator_incentives_v2.sql): keep both in sync.
+// the database (migrations 20261006000001_creator_incentives_v2.sql and
+// 20261102000002_founders_invites.sql): keep both in sync.
 import type { Transaction } from './backend/platformTypes';
 import type { LevelId } from './backend/rewardTypes';
 import { BRAND } from '../config/brand';
@@ -49,14 +50,23 @@ export const LEVELS: Level[] = [
 export const REFERRAL_SHARE = 0.85;
 export const REFERRAL_DAYS = 60;
 // A creator earns 5% of the net of what each creator they invited sells
-// (subscriptions, renewals and tips) for one month, paid from the platform's
-// part, once 2 invited creators are verified and have sold $100. At most $100
-// per invited creator.
+// (subscriptions, renewals, tips and Reserve) for 6 months, paid from the
+// platform's part. It starts on its own when that invited creator is verified and
+// has sold $100. At most $100 per invited creator.
 export const CREATOR_INVITE_BONUS = 0.05;
-export const CREATOR_INVITE_MONTHS = 1;
-export const CREATOR_INVITE_MIN = 2;
+export const CREATOR_INVITE_MONTHS = 6;
+export const CREATOR_INVITE_MIN = 1; // qualified invited creators for the Embajador medal
 export const CREATOR_INVITE_QUALIFY = 100;
 export const CREATOR_INVITE_CAP = 100;
+
+// Creadores Fundadores: only by invitation of the team (Captar creadores link
+// /c/<code>), 100 per country. 82% of the net and the badge while they keep it:
+// 2 months to reach Oro, then stay Oro or higher (30 days to get it back after
+// dropping). Same rules as founder_rules() in the database.
+export const FOUNDER_SHARE = 0.82;
+export const FOUNDER_SEATS = 100;
+export const FOUNDER_GRACE_DAYS = 60;
+export const FOUNDER_RECOVER_DAYS = 30;
 
 // Creator and inviter together never take more than this of a payment's net.
 export const MAX_SHARE = 0.9;
@@ -170,21 +180,69 @@ export const qualifiedAt = (txs: Transaction[], creatorProfileId: string, verifi
   return null;
 };
 
-// The bonus month of one invited creator: from when the inviter has 2 qualified
-// invited creators (or this one qualifies, if later), for one month. Null until then.
-export const inviteWindow = (invite: CreatorInvite, all: CreatorInvite[], qualified: (creatorProfileId: string) => string | null): { from: string; until: string } | null => {
-  const mine = qualified(invite.creatorProfileId);
-  if (!mine) return null;
-  const times = all
-    .filter((i) => i.referrerProfileId === invite.referrerProfileId)
-    .map((i) => qualified(i.creatorProfileId))
-    .filter((q): q is string => !!q)
-    .sort();
-  if (times.length < CREATOR_INVITE_MIN) return null;
-  const from = mine > times[CREATOR_INVITE_MIN - 1] ? mine : times[CREATOR_INVITE_MIN - 1];
+// The bonus months of one invited creator: from the sale that took them to $100
+// (verified), for 6 months. Null until then.
+export const inviteWindow = (invite: CreatorInvite, qualified: (creatorProfileId: string) => string | null): { from: string; until: string } | null => {
+  const from = qualified(invite.creatorProfileId);
+  if (!from) return null;
   const until = new Date(from);
   until.setUTCMonth(until.getUTCMonth() + CREATOR_INVITE_MONTHS);
   return { from, until: until.toISOString() };
+};
+
+// What the creator panel shows about Fundador.
+export interface FounderState {
+  grantedAt: string;
+  graceUntil: string; // must be Oro by then
+  belowOroSince: string | null; // dropped below Oro after the grace
+  loseAt: string | null; // loses the title then unless back in Oro
+  lostAt: string | null;
+  country: string;
+  active: boolean;
+}
+
+// A Fundador as stored (the browser-only store keeps the same fields).
+export interface FounderRecord {
+  creatorProfileId: string;
+  userId: string;
+  country: string;
+  grantedAt: string;
+  belowOroSince?: string;
+  lostAt?: string;
+}
+
+const plusDays = (iso: string, days: number) => new Date(new Date(iso).getTime() + days * DAY).toISOString();
+
+export const founderStateOf = (f: FounderRecord, at = new Date()): FounderState => {
+  const now = at.toISOString();
+  return {
+    grantedAt: f.grantedAt,
+    graceUntil: plusDays(f.grantedAt, FOUNDER_GRACE_DAYS),
+    belowOroSince: f.belowOroSince ?? null,
+    loseAt: f.belowOroSince ? plusDays(f.belowOroSince, FOUNDER_RECOVER_DAYS) : null,
+    lostAt: f.lostAt ?? null,
+    country: f.country,
+    active: f.grantedAt <= now && (!f.lostAt || f.lostAt > now),
+  };
+};
+
+// The daily check (founder_daily_check() in the database): after the grace, below
+// Oro starts a 30-day countdown; back in Oro clears it; at the end the title is lost.
+export const founderCheck = (f: FounderRecord, levelId: LevelId, at = new Date()): FounderRecord => {
+  const now = at.toISOString();
+  if (f.lostAt || plusDays(f.grantedAt, FOUNDER_GRACE_DAYS) > now) return f;
+  if (levelId === 'oro' || levelId === 'diamante') {
+    const { belowOroSince: _b, ...rest } = f;
+    return rest;
+  }
+  if (!f.belowOroSince) return { ...f, belowOroSince: now };
+  return plusDays(f.belowOroSince, FOUNDER_RECOVER_DAYS) <= now ? { ...f, lostAt: now } : f;
+};
+
+// "te quedan 12 días" until a date.
+export const daysLeft = (iso: string, now = Date.now()) => {
+  const d = Math.max(0, Math.ceil((new Date(iso).getTime() - now) / DAY));
+  return d === 1 ? 'te queda 1 día' : `te quedan ${d} días`;
 };
 
 // The inviter's bonus on one sale: 5% of the net, keeping creator + inviter within
@@ -200,7 +258,7 @@ export const inviteBonusFor = (sale: Pick<Transaction, 'amount' | 'share'> & { g
 // ---------------------------------------------------------------------
 // Medals: worked out from activity. Each one unlocks visibility, not money.
 // ---------------------------------------------------------------------
-export type MedalId = 'primer-reserve' | 'iman' | 'puntual' | 'constante' | 'embajador';
+export type MedalId = 'fundador' | 'primer-reserve' | 'iman' | 'puntual' | 'constante' | 'embajador';
 
 export interface MedalInfo {
   id: MedalId;
@@ -211,11 +269,12 @@ export interface MedalInfo {
 }
 
 export const MEDALS: MedalInfo[] = [
+  { id: 'fundador', name: 'Fundador', icon: 'fa-crown', how: 'Solo por invitación del equipo de Fans Reserve (100 por país). Llega a Oro en 2 meses y mantente ahí.', unlocks: 'Insignia Fundador y 82% de cada pago mientras sigas en Oro o más.' },
   { id: 'primer-reserve', name: 'Primer Reserve', icon: 'fa-ticket', how: 'Completa tu primera experiencia de Reserve.', unlocks: '48 h destacado en Explorar.' },
   { id: 'iman', name: 'Imán de fans', icon: 'fa-magnet', how: 'Consigue 10, 25 o 50 fans nuevos con tu enlace en un mes (que te paguen algo).', unlocks: '2, 5 o 7 días destacado en tu categoría.' },
   { id: 'puntual', name: 'Puntual', icon: 'fa-clock', how: 'Responde a tiempo tus últimas 20 solicitudes de Reserve.', unlocks: 'Insignia "Puntual" visible para tus fans.' },
   { id: 'constante', name: 'Constante', icon: 'fa-fire', how: 'Haz al menos un Live para suscriptores cada semana durante 4 semanas.', unlocks: 'Destacado en Explorar mientras mantengas la racha, e insignia "Constante".' },
-  { id: 'embajador', name: 'Embajador', icon: 'fa-handshake', how: 'Invita a 2 creadores que se verifiquen y vendan sus primeros $100.', unlocks: 'Activa tu bono de invitación (5%, hasta $100 por creador).' },
+  { id: 'embajador', name: 'Embajador', icon: 'fa-handshake', how: 'Invita a un creador que se verifique y venda sus primeros $100.', unlocks: 'Ganas 5% de lo que venda durante 6 meses, hasta $100 por creador.' },
 ];
 export const IMAN_TIERS = [
   { fans: 10, days: 2 },
@@ -236,13 +295,14 @@ export interface MedalState {
   imanUntil: string | null;
   qualifiedInvites: number;
   embajador: boolean;
+  fundador: boolean;
   boostUntil: string | null; // featured until then
   boostReason: MedalId | null;
 }
 
 export const EMPTY_MEDALS: MedalState = {
   firstReserveAt: null, puntual: false, puntualCount: 0, liveWeeks: 0, constante: false,
-  imanTier: 0, imanUntil: null, qualifiedInvites: 0, embajador: false, boostUntil: null, boostReason: null,
+  imanTier: 0, imanUntil: null, qualifiedInvites: 0, embajador: false, fundador: false, boostUntil: null, boostReason: null,
 };
 
 const slotTime = (b: Pick<BookingLike, 'date' | 'time'>) => new Date(`${b.date}T${b.time || '00:00'}:00Z`).toISOString();
@@ -254,6 +314,7 @@ export const medalsFor = (input: {
   refs: Referral[];
   txs: Transaction[];
   qualifiedInvites: number;
+  founder?: boolean;
   at?: Date;
 }): MedalState => {
   const { creatorProfileId: id, bookings, lives, refs, txs, qualifiedInvites } = input;
@@ -313,6 +374,7 @@ export const medalsFor = (input: {
     imanUntil,
     qualifiedInvites,
     embajador: qualifiedInvites >= CREATOR_INVITE_MIN,
+    fundador: !!input.founder,
     boostUntil,
     boostReason,
   };
@@ -320,6 +382,7 @@ export const medalsFor = (input: {
 
 // Which medals a creator holds right now (for the panel and the profile).
 export const earnedMedals = (m: MedalState): MedalId[] => [
+  ...(m.fundador ? (['fundador'] as const) : []),
   ...(m.firstReserveAt ? (['primer-reserve'] as const) : []),
   ...(m.imanTier > 0 ? (['iman'] as const) : []),
   ...(m.puntual ? (['puntual'] as const) : []),

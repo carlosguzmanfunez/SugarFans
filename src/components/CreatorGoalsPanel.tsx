@@ -5,12 +5,14 @@ import {
   CONSTANTE_WEEKS,
   CREATOR_INVITE_MIN,
   EMPTY_MEDALS,
+  FOUNDER_SHARE,
   IMAN_TIERS,
   LEVELS,
   MEDALS,
   PUNTUAL_REQUESTS,
   earnedMedals,
   levelById,
+  daysLeft,
   nextLevel,
   pct,
   rewardsApi,
@@ -61,7 +63,15 @@ const medalProgress = (id: MedalId, data: CreatorRewards): string => {
     case 'constante':
       return m.constante ? 'Racha activa' : `${m.liveWeeks}/${CONSTANTE_WEEKS} semanas seguidas con Live`;
     case 'embajador':
-      return m.embajador ? 'Bono de invitación activo' : `${m.qualifiedInvites}/${CREATOR_INVITE_MIN} creadores invitados listos`;
+      return m.embajador ? 'Bono de invitación activo' : `${m.qualifiedInvites}/${CREATOR_INVITE_MIN} creador invitado con $100 vendidos`;
+    case 'fundador': {
+      const f = data.founder;
+      if (!f) return '';
+      if (!f.active) return 'Ya no eres Fundador';
+      if (f.loseAt) return `Recupera Oro: ${daysLeft(f.loseAt)}`;
+      if (data.level === 'oro' || data.level === 'diamante') return `Activo: ganas ${pct(FOUNDER_SHARE)}`;
+      return `Activo: llega a Oro, ${daysLeft(f.graceUntil)}`;
+    }
   }
 };
 
@@ -149,7 +159,8 @@ const CreatorGoalsPanel: React.FC = () => {
         <p className="text-sm text-gray-500 mb-4">Cada medalla te da visibilidad o una insignia. Se ganan con lo que ya haces en {BRAND.name}.</p>
         <div className="grid sm:grid-cols-2 gap-3">
           {/* "Constante" is earned with weekly Lives, which are not offered today. */}
-          {MEDALS.filter((m) => m.id !== 'constante' || ENABLE_CREATOR_LIVE).map((m) => {
+          {/* Fundador only for the creators the team invited as one. */}
+          {MEDALS.filter((m) => (m.id !== 'constante' || ENABLE_CREATOR_LIVE) && (m.id !== 'fundador' || !!data.founder)).map((m) => {
             const has = earned.has(m.id);
             return (
               <div key={m.id} data-testid={`medal-${m.id}`} data-earned={has ? 'true' : 'false'} className={`flex gap-3 rounded-xl border p-4 ${has ? 'border-amber-300 bg-amber-50' : 'border-gray-100'}`}>
