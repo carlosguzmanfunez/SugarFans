@@ -41,7 +41,7 @@ export interface InviteInfo {
 
 export interface ProspectFilter {
   country?: string; // ISO code; '' = without country; undefined = all
-  status?: ProspectStatus | 'follow_up' | 'open'; // open = not discarded nor opted out
+  status?: ProspectStatus | 'follow_up' | 'open' | 'joined'; // open = not discarded nor opted out; joined = registrado, verificado or activo
   network?: ProspectNetwork;
   minFollowers?: number;
   maxFollowers?: number;

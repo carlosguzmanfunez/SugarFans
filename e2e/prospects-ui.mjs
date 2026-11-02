@@ -47,9 +47,13 @@ try {
   await page.waitForURL((u) => new URL(u).pathname !== '/login');
   await page.goto(`${BASE}/admin?section=prospects`);
   const tool = page.getByTestId('admin-prospects');
+  const tab = (name) => tool.getByRole('tab', { name }).click();
+  const chip = (name) => tool.getByRole('group', { name: 'Estado' }).getByRole('button', { name, exact: true }).click();
 
-  await ok('Abre desde Crecimiento y muestra la lista vacía', async () => {
+  await ok('Abre desde Crecimiento en "Hoy" y explica cómo empezar', async () => {
+    assert.equal(await tool.getByRole('tab', { name: 'Hoy' }).getAttribute('aria-selected'), 'true');
     await tool.getByText('Todavía no hay creadores en la lista').waitFor();
+    await tool.getByRole('button', { name: 'Importar la primera lista' }).waitFor();
     assert.ok(await page.getByRole('navigation', { name: 'Áreas de administración' }).getByRole('button', { name: /^Crecimiento/ }).isVisible());
     await tool.getByText('Falta conectar la API oficial de Instagram').waitFor();
   });
@@ -63,10 +67,16 @@ try {
     if (shots) await page.screenshot({ path: join(shots, 'escritorio-2-importar.png') });
     await dialog.getByRole('button', { name: /^Importar 60/ }).click();
     await tool.getByText('Listo: 60 creadores nuevos.').waitFor();
+    const todo = (await tool.locator('#todo-title').locator('..').innerText()).replace(/\s+/g, ' ');
+    assert.match(todo, /60 · Por contactar/);
+    assert.match(todo, /0 · Interesados/);
+    await tab('Metas');
     await tool.getByText('60 en la lista').waitFor();
+    await tool.getByText('Avance por país').waitFor();
   });
 
   await ok('El mejor puntaje sale primero y se puede escribir y marcar como contactado', async () => {
+    await tab('Creadores');
     const first = tool.locator('li', { has: page.getByRole('button', { name: 'Escribir' }) }).first();
     await first.getByRole('button', { name: 'Escribir' }).click();
     const dialog = page.getByRole('dialog', { name: /^Escribir a @/ });
@@ -79,6 +89,7 @@ try {
     if (shots) await page.screenshot({ path: join(shots, 'escritorio-3-escribir.png') });
     await dialog.getByRole('button', { name: '3. Ya se lo envié' }).click();
     await tool.getByText(/quedó como contactado/).waitFor();
+    await tab('Hoy');
     await tool.locator('#today-title').locator('..').getByText('1', { exact: true }).waitFor();
   });
 
@@ -102,16 +113,28 @@ try {
   await page.reload();
 
   await ok('Buscar registrados encuentra a quien puso la misma red en su perfil', async () => {
-    await tool.getByRole('button', { name: 'Buscar registrados' }).click();
+    await tool.getByRole('button', { name: 'Buscar registrados ahora' }).click();
     await tool.getByText('Encontramos 1 creador que ya se registró o avanzaron.').waitFor();
-    await tool.getByLabel('Estado').selectOption('verificado');
+    await tab('Creadores');
+    await chip('Ya en Fans Reserve');
     await tool.locator('ul[aria-busy] > li').filter({ hasText: 'Verificado' }).first().waitFor();
     assert.equal(await tool.locator('ul[aria-busy] > li').count(), 1);
-    await tool.getByLabel('Estado').selectOption('open');
+    await chip('Todos');
+  });
+
+  await ok('"Interesados" lleva a quienes respondieron', async () => {
+    await tab('Hoy');
+    await tool.getByRole('button', { name: 'Ver interesados' }).click();
+    assert.equal(await tool.getByRole('tab', { name: 'Creadores' }).getAttribute('aria-selected'), 'true');
+    assert.equal(await tool.getByRole('button', { name: 'Interesados', exact: true }).getAttribute('aria-pressed'), 'true');
+    await tool.locator('ul[aria-busy] > li').filter({ hasText: 'Respondió' }).first().waitFor();
+    const statuses = await tool.locator('ul[aria-busy] > li').allInnerTexts();
+    assert.ok(statuses.length > 0 && statuses.every((t) => /Respondió/.test(t)), statuses.join('|'));
   });
 
   await ok('Los seguimientos pendientes llevan a quienes toca escribir otra vez', async () => {
-    await tool.getByRole('button', { name: /Seguimientos pendientes/ }).click();
+    await tab('Hoy');
+    await tool.getByRole('button', { name: 'Hacer seguimientos' }).click();
     await tool.locator('ul[aria-busy] > li').filter({ hasText: 'Toca seguimiento' }).first().waitFor();
     const rowsShown = await tool.locator('ul[aria-busy] > li').count();
     assert.ok(rowsShown >= 5, `filas ${rowsShown}`);
@@ -122,20 +145,25 @@ try {
     await tool.getByText(/Seguimiento a @.* anotado/).waitFor();
   });
 
-  await ok('Filtra por país y tamaño, y el embudo cambia al país', async () => {
-    await tool.getByLabel('Estado').selectOption('open');
-    await tool.getByRole('navigation', { name: 'Países' }).getByRole('button', { name: /Honduras/ }).click();
-    await tool.getByRole('heading', { name: /Honduras/ }).first().waitFor();
+  await ok('Filtra por país y tamaño, y las metas cambian al país', async () => {
+    await chip('Todos');
+    await tool.getByLabel('País').selectOption('HN');
+    await tool.getByRole('heading', { name: 'Creadores de Honduras' }).waitFor();
+    await tool.getByRole('button', { name: /^Más filtros/ }).click();
     await tool.getByLabel('Seguidores').selectOption('ideal');
     await page.waitForTimeout(300);
     const counts = await tool.locator('ul[aria-busy] dd').allInnerTexts();
     assert.ok(counts.length > 0);
     await tool.getByLabel('Seguidores').selectOption('');
+    await tab('Metas');
+    await tool.getByRole('heading', { name: /Honduras/ }).first().waitFor();
+    assert.equal(await tool.getByText('Avance por país').count(), 0);
+    await tab('Creadores');
   });
 
   await ok('No contactar borra su correo y no deja escribirle', async () => {
-    await tool.getByRole('navigation', { name: 'Países' }).getByRole('button', { name: 'Los 10 países' }).click();
-    await tool.getByLabel('Estado').selectOption('nuevo');
+    await tool.getByLabel('País').selectOption('all');
+    await chip('Por contactar');
     await tool.getByLabel('Solo con correo público').check();
     await page.waitForTimeout(300);
     await tool.getByRole('button', { name: 'Escribir', exact: true }).first().click();
@@ -147,7 +175,7 @@ try {
     assert.equal(stored.length, 1);
     assert.equal(stored[0].email, undefined);
     await tool.getByLabel('Solo con correo público').uncheck();
-    await tool.getByLabel('Estado').selectOption('open');
+    await chip('Todos');
   });
 
   await ok('Lote de DMs: copia, abre el perfil y pasa al siguiente marcando a cada uno', async () => {
@@ -158,6 +186,8 @@ try {
     await dialog.getByLabel('Cuántos').selectOption('10');
     await dialog.getByRole('button', { name: 'Empezar el lote' }).click();
     dialog = page.getByRole('dialog', { name: /^Lote de DMs · 1 de 10/ });
+    // The message is written once the batch loads; wait for it instead of reading it too early.
+    await dialog.getByLabel('Mensaje').evaluate((el) => new Promise((done) => { const t = setInterval(() => { if (el.value) { clearInterval(t); done(); } }, 50); }));
     assert.match(await dialog.getByLabel('Mensaje').inputValue(), /^Hola .+ 👋/);
     await dialog.getByRole('button', { name: '1. Copiar y abrir su perfil' }).click();
     if (shots) await page.screenshot({ path: join(shots, 'escritorio-4-lote-dms.png') });
@@ -203,7 +233,7 @@ try {
   let invited, link;
 
   await ok('Cada creador tiene su link: se copia, y si lo abre el equipo no cuenta', async () => {
-    await tool.getByLabel('Estado').selectOption('nuevo');
+    await chip('Por contactar');
     await page.waitForTimeout(300);
     await tool.getByRole('button', { name: 'Escribir', exact: true }).first().click();
     const dialog = page.getByRole('dialog', { name: /^Escribir a @/ });
@@ -213,7 +243,7 @@ try {
     link = await page.evaluate(() => navigator.clipboard.readText());
     assert.match(link, new RegExp(`^${BASE}/c/[a-f0-9]{12}$`));
     await dialog.getByRole('button', { name: 'Cerrar' }).first().click();
-    await tool.getByLabel('Estado').selectOption('open');
+    await chip('Todos');
     await page.goto(link);
     await page.getByTestId('invite-team-preview').waitFor();
     assert.equal((await prospects(page)).find((p) => p.handle === invited).openedAt, undefined);
@@ -281,6 +311,7 @@ try {
     assert.match(text, /Quieren participar 1/);
     assert.match(text, /Se registraron 1/);
     assert.match(text, /Pidieron no recibir más 1/);
+    await tab('Creadores');
     await tool.getByLabel('Buscar').fill(invited);
     const row = tool.locator('ul[aria-busy] > li').filter({ hasText: `@${invited}` });
     await row.getByText('Quiere participar').waitFor();
@@ -316,23 +347,34 @@ try {
 
   if (shots) {
     await page.reload();
+    await tool.locator('#todo-title').waitFor({ state: 'attached' });
+    await page.screenshot({ path: join(shots, 'escritorio-1-hoy.png'), fullPage: true });
+    await tab('Creadores');
+    await tool.locator('ul[aria-busy] > li').first().waitFor();
+    await page.screenshot({ path: join(shots, 'escritorio-6-creadores.png') });
+    await tab('Metas');
     await tool.getByText('Avance por país').waitFor();
-    await page.screenshot({ path: join(shots, 'escritorio-1-resumen.png'), fullPage: true });
+    await page.screenshot({ path: join(shots, 'escritorio-7-metas.png'), fullPage: true });
     const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true });
     const m = await mobile.newPage();
     await m.goto(BASE);
     await m.evaluate((state) => { for (const [k, v] of Object.entries(state)) localStorage.setItem(k, v); },
       await page.evaluate(() => Object.fromEntries(Object.entries(localStorage))));
     await m.goto(`${BASE}/admin?section=prospects`);
-    await m.getByTestId('admin-prospects').getByText('Avance por país').waitFor();
-    await m.screenshot({ path: join(shots, 'movil-1-resumen.png') });
-    await m.screenshot({ path: join(shots, 'movil-1-resumen-completa.png'), fullPage: true });
-    await m.getByTestId('admin-prospects').getByRole('button', { name: 'Escribir', exact: true }).first().click();
+    const mt = m.getByTestId('admin-prospects');
+    await mt.locator('#todo-title').waitFor({ state: 'attached' });
+    await m.screenshot({ path: join(shots, 'movil-1-hoy.png') });
+    await m.screenshot({ path: join(shots, 'movil-1-hoy-completa.png'), fullPage: true });
+    await mt.getByRole('tab', { name: 'Creadores' }).click();
+    await mt.locator('ul[aria-busy] > li').first().waitFor();
+    await mt.getByRole('tab', { name: 'Creadores' }).evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 90));
+    await m.screenshot({ path: join(shots, 'movil-5-creadores.png') });
+    await mt.getByRole('button', { name: 'Escribir', exact: true }).first().click();
     await m.screenshot({ path: join(shots, 'movil-2-escribir.png') });
   }
 
   assert.deepEqual(errors, []);
-  console.log(`\n${passed}/15 comprobaciones en el navegador`);
+  console.log(`\n${passed}/16 comprobaciones en el navegador`);
 } finally {
   await browser.close();
   await new Promise((resolve) => server.httpServer.close(resolve));

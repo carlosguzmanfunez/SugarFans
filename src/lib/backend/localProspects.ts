@@ -30,7 +30,8 @@ const matches = (p: Prospect, f: ProspectFilter) => {
   if (f.country === '' ? !!p.country : f.country && p.country !== f.country) return false;
   if (f.status === 'open' && (p.status === 'descartado' || p.status === 'no_contactar')) return false;
   if (f.status === 'follow_up' && !(p.status === 'contactado' && p.followUps === 0 && p.contactedAt && Date.now() - new Date(p.contactedAt).getTime() > FOLLOW_UP_DAYS * 86400000)) return false;
-  if (f.status && f.status !== 'open' && f.status !== 'follow_up' && p.status !== f.status) return false;
+  if (f.status === 'joined' && !['registrado', 'verificado', 'activo'].includes(p.status)) return false;
+  if (f.status && f.status !== 'open' && f.status !== 'follow_up' && f.status !== 'joined' && p.status !== f.status) return false;
   if (f.network && p.network !== f.network) return false;
   if (f.minFollowers != null && !(p.followers != null && p.followers >= f.minFollowers)) return false;
   if (f.maxFollowers != null && !(p.followers != null && p.followers <= f.maxFollowers)) return false;

@@ -31,6 +31,7 @@ export const createSupabaseProspects = (sb: SupabaseClient): ProspectsBackend =>
     else if (f.country) q = q.eq('country', f.country);
     if (f.status === 'open') q = q.not('status', 'in', '(descartado,no_contactar)');
     else if (f.status === 'follow_up') q = q.eq('status', 'contactado').eq('follow_ups', 0).lt('contacted_at', new Date(Date.now() - FOLLOW_UP_DAYS * 86400000).toISOString());
+    else if (f.status === 'joined') q = q.in('status', ['registrado', 'verificado', 'activo']);
     else if (f.status) q = q.eq('status', f.status);
     if (f.network) q = q.eq('network', f.network);
     if (f.minFollowers != null) q = q.gte('followers', f.minFollowers);
