@@ -2,7 +2,7 @@
 // invites, medals, featured spots, withdrawal terms) and the Meta de experiencia.
 // Implemented by localRewards.ts and supabaseRewards.ts.
 import type { AuthResult, User } from './types';
-import type { MedalState } from '../rewardRules';
+import type { FounderState, MedalState } from '../rewardRules';
 
 export type LevelId = 'bronce' | 'plata' | 'oro' | 'diamante';
 
@@ -15,9 +15,12 @@ export interface ReferredFan {
 
 export interface InvitedCreator {
   name: string;
+  avatar?: string;
   joinedAt: string;
+  verified?: boolean;
+  sales?: number; // everything they have sold (gross), for the $100 ring
   qualifiedAt?: string; // verified and $100 sold
-  from?: string; // the bonus month, once the inviter has 2 qualified invited creators
+  from?: string; // the 6 bonus months, from their own $100
   until?: string;
   bonus: number; // earned so far (USD, at most $100)
 }
@@ -32,6 +35,7 @@ export interface CreatorRewards {
   attractedThisMonth: number;
   attractedLastMonth: number;
   medals: MedalState;
+  founder?: FounderState | null;
   referrals: ReferredFan[];
   invitedCreators: InvitedCreator[];
 }
@@ -48,6 +52,7 @@ export interface CreatorBadges {
   level: LevelId;
   puntual: boolean;
   constante: boolean;
+  fundador?: boolean;
 }
 
 export interface PayoutTerms {

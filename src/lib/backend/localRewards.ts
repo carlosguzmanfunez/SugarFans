@@ -5,8 +5,12 @@ import { readJSON, writeJSON, newId } from '../storage';
 import { round2 } from '../platformRules';
 import {
   REFERRAL_DAYS,
+  FOUNDER_GOAL,
+  FOUNDER_SHARE,
   activeFans,
   attractedFans,
+  founderAt,
+  founderStateFor,
   inviteBonusFor,
   inviteWindow,
   levelFor,
@@ -74,6 +78,20 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
   const txs = () => deps.ledger().transactions();
   const verified = (creatorProfileId: string) => deps.listAccounts().some((a) => a.creatorProfileId === creatorProfileId && a.isVerified);
   const qualified = (books: Transaction[]) => (id: string) => qualifiedAt(books, id, verified(id));
+  // When the account started as a creator (the local accounts keep only their sign-up date).
+  const startedAt = (id: string) => deps.listAccounts().find((a) => a.creatorProfileId === id)?.createdAt;
+  const founderOf = (id: string, books = txs()) => {
+    const start = startedAt(id);
+    return start ? founderAt(books, id, start, verified(id)) : null;
+  };
+  // The creator's rate for fans not covered by a referral: the level's, or 82% for
+  // a Fundador who sold $100 in 30 days.
+  const baseLevel = (id: string, at = new Date(), books = txs()) => {
+    const level = levelAt(id, at, books);
+    const f = founderOf(id, books);
+    const founder = !!f && f <= at.toISOString() && salesOf(books, id, at) >= FOUNDER_GOAL;
+    return founder && FOUNDER_SHARE > level.share ? { ...level, share: FOUNDER_SHARE } : level;
+  };
 
   const levelAt = (id: string, at = new Date(), books = txs()) => {
     const clean = !deps
@@ -93,6 +111,7 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
       refs: refs(),
       txs: books,
       qualifiedInvites: invites().filter((i) => i.referrerProfileId === id && q(i.creatorProfileId)).length,
+      founderAt: founderOf(id, books),
       at,
     });
   };
@@ -107,8 +126,8 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
       }
     },
 
-    // Paid subscriptions, renewals and tips of an invited creator during the bonus
-    // month get a bonus row for the creator who invited them (5% of the net, at most
+    // Paid subscriptions, renewals, tips and Reserve of an invited creator during the
+    // 6 bonus months get a bonus row for the creator who invited them (5% of the net, at most
     // $100 per invited creator); the row follows the sale if it is refunded.
     withInviteBonuses(transactions) {
       const all = invites();
@@ -129,9 +148,9 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
       }
       const added: Row[] = [];
       for (const t of [...transactions].sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
-        if (!['subscription', 'renewal', 'tip'].includes(t.kind) || t.status !== 'paid' || has.has(`bonus:${t.id}`)) continue;
+        if (!['subscription', 'renewal', 'tip', 'vip'].includes(t.kind) || t.status !== 'paid' || has.has(`bonus:${t.id}`)) continue;
         const inv = all.find((i) => i.creatorProfileId === t.creatorProfileId);
-        const window = inv && inviteWindow(inv, all, q);
+        const window = inv && inviteWindow(inv, q);
         // The sale that completes the qualification earns nothing (same in the database).
         if (!inv || !window || t.createdAt <= window.from || t.createdAt >= window.until) continue;
         const amount = inviteBonusFor(t, paidSoFar.get(t.creatorProfileId) ?? 0);
@@ -158,7 +177,7 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
 
     shareFor(fanId, creatorProfileId, at, amount) {
       const gatewayFee = processorFee(amount);
-      return { share: netShare(rateFor(levelAt(creatorProfileId, at), refs(), fanId, creatorProfileId, at), amount, gatewayFee), gatewayFee };
+      return { share: netShare(rateFor(baseLevel(creatorProfileId, at), refs(), fanId, creatorProfileId, at), amount, gatewayFee), gatewayFee };
     },
 
     payoutTermsFor(user) {
@@ -195,16 +214,18 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
       const names = new Map(deps.listAccounts().map((a) => [a.id, a.name]));
       const payers = new Set(books.filter((t) => t.creatorProfileId === id && t.status === 'paid').map((t) => t.payerId));
       const q = qualified(books);
+      const start = startedAt(id);
       return {
         level: level.id,
         activeFans: activeFans(books, all, id, at),
         sales: salesOf(books, id, at),
         clean: !deps.ledger().reports().some((r) => r.kind === 'creator' && r.targetId === id && r.status === 'resolved'),
         reliable: reliableFrom(deps.bookings(), id, at),
-        share: level.share,
+        share: baseLevel(id, at, books).share,
         attractedThisMonth: attractedFans(all, books, id, monthStart(at), monthStart(at, 1)),
         attractedLastMonth: attractedFans(all, books, id, monthStart(at, -1), monthStart(at)),
         medals: medalsOf(id, at),
+        founder: start ? founderStateFor(books, id, start, verified(id), at) : null,
         referrals: all
           .filter((r) => r.creatorProfileId === id)
           .sort((a, b) => b.joinedAt.localeCompare(a.joinedAt))
@@ -220,11 +241,15 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
           .map((i) => {
             const sales = new Set(books.filter((t) => t.creatorProfileId === i.creatorProfileId).map((t) => `bonus:${t.id}`));
             const bonus = (books as Row[]).filter((t) => t.kind === 'referral' && t.status === 'paid' && sales.has(t.key));
-            const window = inviteWindow(i, invites(), q);
+            const window = inviteWindow(i, q);
             const qualifiedAt = q(i.creatorProfileId);
+            const account = deps.listAccounts().find((a) => a.creatorProfileId === i.creatorProfileId);
             return {
               name: names.get(i.creatorProfileId) ?? 'Creador',
+              ...(account?.avatar ? { avatar: account.avatar } : {}),
               joinedAt: i.joinedAt,
+              verified: verified(i.creatorProfileId),
+              sales: round2(books.filter((t) => t.creatorProfileId === i.creatorProfileId && t.status === 'paid' && t.kind !== 'referral').reduce((s, t) => s + t.amount, 0)),
               ...(qualifiedAt ? { qualifiedAt } : {}),
               ...(window ?? {}),
               bonus: round2(bonus.reduce((s, t) => s + t.amount, 0)),
@@ -241,7 +266,7 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
       return Object.fromEntries(
         ids.map((id) => {
           const m = medalsOf(id);
-          return [id, { level: levelOf(id), puntual: m.puntual, constante: m.constante }];
+          return [id, { level: levelOf(id), puntual: m.puntual, constante: m.constante, fundador: m.fundador }];
         })
       );
     },

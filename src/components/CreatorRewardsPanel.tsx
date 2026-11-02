@@ -4,7 +4,7 @@ import { usePlatformQuery, money } from '../lib/platform';
 import {
   CREATOR_INVITE_BONUS,
   CREATOR_INVITE_CAP,
-  CREATOR_INVITE_MIN,
+  CREATOR_INVITE_MONTHS,
   CREATOR_INVITE_QUALIFY,
   EMPTY_MEDALS,
   LEVELS,
@@ -27,7 +27,7 @@ const EMPTY: CreatorRewards = {
 
 // Creator panel > Recompensas: level and what it unlocks, the invitation links
 // and the fans and creators they brought. Medals and goals live in Metas.
-const CreatorRewardsPanel: React.FC = () => {
+const CreatorRewardsPanel: React.FC<{ onOpenInvites?: () => void }> = ({ onOpenInvites }) => {
   const { user } = useAuth();
   const { data } = usePlatformQuery(() => (user ? rewardsApi.myRewards(user) : Promise.resolve(EMPTY)), [user?.id], EMPTY);
   const { data: special } = usePlatformQuery(() => (user ? specialApi.mine() : Promise.resolve(null)), [user?.id], null);
@@ -137,10 +137,17 @@ const CreatorRewardsPanel: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm" data-testid="invite-creators">
-        <h3 className="font-bold text-gray-900 mb-1"><i aria-hidden="true" className="fas fa-user-plus text-purple-500 mr-2"></i>Invita a otros creadores</h3>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+          <h3 className="font-bold text-gray-900"><i aria-hidden="true" className="fas fa-user-plus text-purple-500 mr-2"></i>Invita a otros creadores</h3>
+          {onOpenInvites && (
+            <button type="button" onClick={onOpenInvites} className="rounded-full bg-purple-50 px-3 py-1.5 text-sm font-semibold text-purple-700 hover:bg-purple-100" data-testid="open-my-invites">
+              <i aria-hidden="true" className="fas fa-diagram-project mr-1.5"></i>Ver mis invitados
+            </button>
+          )}
+        </div>
         <p className="text-sm text-gray-500 mb-4">
-          Cuando {CREATOR_INVITE_MIN} creadores que invitaste estén verificados y hayan vendido sus primeros {money(CREATOR_INVITE_QUALIFY)}, ganas un {pct(CREATOR_INVITE_BONUS)} extra
-          de lo que venda cada uno (suscripciones, renovaciones y propinas) durante un mes, hasta {money(CREATOR_INVITE_CAP)} por creador.
+          Cuando un creador que invitaste se verifica y vende sus primeros ${CREATOR_INVITE_QUALIFY}, ganas un {pct(CREATOR_INVITE_BONUS)} extra
+          de todo lo que venda durante {CREATOR_INVITE_MONTHS} meses, hasta ${CREATOR_INVITE_CAP} por creador.
           Lo pone {BRAND.name}: al creador que invitas no se le descuenta nada.
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
@@ -158,7 +165,7 @@ const CreatorRewardsPanel: React.FC = () => {
                 <span>
                   {c.name} ·{' '}
                   <span className="text-gray-500">
-                    {c.until ? `bono hasta el ${fmtDate(c.until)}` : c.qualifiedAt ? `listo; se activa con ${CREATOR_INVITE_MIN} creadores listos` : `se activa cuando se verifique y venda ${money(CREATOR_INVITE_QUALIFY)}`}
+                    {c.until ? `bono hasta el ${fmtDate(c.until)}` : `se activa cuando se verifique y venda $${CREATOR_INVITE_QUALIFY}`}
                   </span>
                 </span>
                 <span className="text-green-600 font-medium">{money(c.bonus)} ganados</span>
