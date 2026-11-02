@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import Icon from './Icon';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -44,6 +44,7 @@ const Navbar: React.FC = () => {
   const location = useLocation();
   const [showMenu, setShowMenu] = useState(false);
   const [showMobile, setShowMobile] = useState(false);
+  const compactMenuId = useId();
   const menuRef = useDismiss<HTMLDivElement>(showMenu, () => setShowMenu(false));
   const navRef = useDismiss<HTMLElement>(showMobile, () => setShowMobile(false));
 
@@ -53,6 +54,15 @@ const Navbar: React.FC = () => {
     setShowMenu(false);
     setShowMobile(false);
   }, [location.pathname, location.search, location.hash, location.key]);
+
+  // Keep the complete compact navigation until the longest authenticated header
+  // fits. Match AppLayout and MobileTabBar so tablet users never lose navigation.
+  useEffect(() => {
+    const desktop = window.matchMedia('(min-width: 1280px)');
+    const closeCompact = () => { if (desktop.matches) setShowMobile(false); };
+    desktop.addEventListener('change', closeCompact);
+    return () => desktop.removeEventListener('change', closeCompact);
+  }, []);
 
   const handleLogout = async () => {
     setShowMenu(false);
@@ -106,7 +116,7 @@ const Navbar: React.FC = () => {
           />
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-1 lg:ml-auto">
+          <div className="hidden xl:flex items-center gap-1 ml-auto" data-testid="desktop-navigation">
             {onLanding &&
               sections.map((sct) =>
                 sct.href.startsWith('/') ? (
@@ -152,7 +162,7 @@ const Navbar: React.FC = () => {
           </div>
 
           {/* Right side */}
-          <div className="flex items-center gap-1 min-[400px]:gap-1.5 sm:gap-3 max-[400px]:[&_.h-10]:size-9">
+          <div className="flex shrink-0 items-center gap-1 min-[400px]:gap-1.5 sm:gap-3 max-[400px]:[&_.h-10]:size-9">
             <LanguageSelector />
             {isAuthenticated && user && <NotificationBell user={user} />}
             {isAuthenticated && user && (user.role === 'fan' || user.role === 'creator') && <CreditsPill user={user} />}
@@ -214,10 +224,12 @@ const Navbar: React.FC = () => {
 
             {/* Mobile menu button */}
             <button
+              type="button"
               onClick={() => setShowMobile(!showMobile)}
               aria-label="Menú"
               aria-expanded={showMobile}
-              className="md:hidden flex h-10 w-10 items-center justify-center rounded-full text-ink ring-1 ring-line"
+              aria-controls={showMobile ? compactMenuId : undefined}
+              className="xl:hidden flex h-10 w-10 items-center justify-center rounded-full text-ink ring-1 ring-line"
             >
               <Icon name={showMobile ? 'fa-xmark' : 'fa-bars'} className="text-xl" />
             </button>
@@ -226,13 +238,14 @@ const Navbar: React.FC = () => {
 
         {/* Mobile Nav */}
         {showMobile && (
-          <div className="md:hidden border-t border-line pb-5 pt-3">
+          <div id={compactMenuId} className="xl:hidden border-t border-line pb-5 pt-3">
             <div className="flex flex-col gap-1">
               <Link to="/explore" className={mobileLinkCls('/explore')} onClick={() => setShowMobile(false)}>
                 <Icon name="fa-compass" className="w-5 text-brand-600" /> {t('nav.explore')}
               </Link>
-              <Link to="/reserve" className={mobileLinkCls('/reserve')} onClick={() => setShowMobile(false)}>
-                <Icon name="fa-ticket" className="w-5 text-gold-600" /> Reserve
+              <Link to={isCreator ? CREATOR_RESERVE_LINK : '/reserve'} className={mobileLinkCls(isCreator ? '/creator/dashboard' : '/reserve')} onClick={() => setShowMobile(false)}>
+                <Icon name="fa-ticket" className="w-5 text-gold-600" /> {isCreator ? 'Reservas' : 'Reserve'}
+                {isCreator && !!waiting && <RedDot count={waiting} className="ml-auto" />}
               </Link>
               {showCreators && (
                 // Visitors have no landing with this section ("/" is the sign-up page): go to the creator sign-up.
@@ -243,12 +256,6 @@ const Navbar: React.FC = () => {
               <Link to="/#journey" className={mobileLinkCls('/#journey')} onClick={() => setShowMobile(false)}>
                 <Icon name="fa-circle-question" className="w-5 text-ink/40" /> Cómo funciona
               </Link>
-              {isCreator && (
-                <Link to={CREATOR_RESERVE_LINK} className={mobileLinkCls(onReservas ? location.pathname : '-')} onClick={() => setShowMobile(false)}>
-                  <Icon name="fa-ticket" className="w-5 text-brand-600" /> Reservas
-                  {!!waiting && <RedDot count={waiting} className="ml-auto" />}
-                </Link>
-              )}
               {isAuthenticated && user?.role === 'creator' && (
                 <Link to="/creator/dashboard" className={mobileLinkCls('/creator/dashboard')} onClick={() => setShowMobile(false)}>
                   <Icon name="fa-chart-line" className="w-5 text-iris-600" /> {t('nav.dashboard')}

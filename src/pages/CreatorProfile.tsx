@@ -27,12 +27,13 @@ import TipDialog from '../components/TipDialog';
 import GiftDialog from '../components/GiftDialog';
 import NewPostForm from '../components/NewPostForm';
 import AccessLadder, { useFollow } from '../components/reserve/AccessLadder';
+import CreatorSubscriptionSummary from '../components/CreatorSubscriptionSummary';
 import CreatorReserveSection, { UpcomingAccess, openReserve } from '../components/reserve/CreatorReserveSection';
 import { useCurrentLive } from '../lib/live';
 import { ReserveNotice } from '../components/reserve/ReserveBits';
 import { backend } from '../lib/backend';
 import type { VipExperience } from '../lib/vip';
-import { socialApi, compactCount, setFollow, type PublicCreator } from '../lib/social';
+import { socialApi, compactCount, type PublicCreator } from '../lib/social';
 import { useDismiss } from '../hooks/useDismiss';
 import { profileLink, socialLinkList } from '../lib/creatorLinks';
 import {
@@ -125,14 +126,14 @@ const CreatorProfile: React.FC = () => {
   useEffect(() => {
     if (location.hash === '#reserve' && experiences.length) document.getElementById('reserve')?.scrollIntoView({ block: 'start' });
   }, [location.hash, experiences.length]);
-  // /creator/:id#acceso (the sales tour) lands on Seguir → Suscribirse → Reserve.
+  // Deep links land on the relevant access or subscription section.
   const profileReady = !!(catalogCreator || signedUp);
   useEffect(() => {
-    if (location.hash === '#acceso' && profileReady) document.getElementById('acceso')?.scrollIntoView({ block: 'start' });
+    if (profileReady && ['#acceso', '#suscripcion'].includes(location.hash)) document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: 'start' });
   }, [location.hash, profileReady]);
 
   // Posts published from the creator panel, then like/comment totals for every post.
-  const { data: feed } = usePlatformQuery(
+  const { data: feed, loading: feedLoading } = usePlatformQuery(
     async () => {
       if (!id) return { own: [] as DisplayPost[], engagement: {} as Awaited<ReturnType<typeof socialApi.engagement>> };
       const published = await socialApi.postsByCreator(id);
@@ -224,7 +225,7 @@ const CreatorProfile: React.FC = () => {
   const canSubscribe = !isOwner && !iBlocked && acceptsPayments && user?.role !== 'creator' && user?.role !== 'admin';
   // What the full-screen viewer swipes through: photos and videos this visitor may see.
   const viewable = creatorPosts.filter((p) => p.mediaUrl && canView(p));
-  const totalLikes = creator.likes + Object.values(feed.engagement).reduce((sum, e) => sum + e.likes, 0);
+  const videoCount = creatorPosts.filter((post) => post.mediaType === 'video' && !post.isDraft && (!post.moderation || post.moderation === 'approved')).length;
   const removePost = async (postId: string) => {
     if (!window.confirm('¿Eliminar esta publicación? También se borrará su foto o video.')) return;
     const result = await deletePost(postId);
@@ -429,23 +430,18 @@ const CreatorProfile: React.FC = () => {
                 {creator.name.split(' ')[0]} está verificando su identidad. Pronto podrás suscribirte y reservar.
               </p>
             )}
-            {/* The access ladder in one row: Seguir → Suscribirse, then the gift and
+            {/* Reserve and monthly subscriptions, then the gift and
                 a "⋯" menu with the less frequent actions (propina, bloquear). */}
             <div className="grid grid-cols-[1fr_auto_auto] gap-2 md:flex md:flex-wrap md:items-center">
               {!isOwner && !iBlocked && (
                 <button
                   type="button"
-                  onClick={() => {
-                    if (!user) return goLogin();
-                    const now = !follow.following;
-                    setFollow(user, creator.id, now);
-                    notify(now ? `Ahora sigues a ${creator.name.split(' ')[0]}` : `Dejaste de seguir a ${creator.name.split(' ')[0]}`);
-                  }}
-                  aria-pressed={follow.following}
-                  data-testid="follow-button"
-                  className={`btn btn-lg ${follow.following ? 'border border-line bg-white text-ink/70 hover:border-ink/25' : 'btn-outline'}`}
+                  onClick={() => openReserve()}
+                  aria-controls="reserve"
+                  data-testid="profile-reserve-button"
+                  className="btn btn-lg btn-gold"
                 >
-                  {follow.following ? <><Icon name="fa-check" className="mr-2" />Siguiendo</> : 'Seguir'}
+                  <Icon name="fa-ticket" className="mr-2" />Reserve
                 </button>
               )}
               {iBlocked ? (
@@ -474,17 +470,6 @@ const CreatorProfile: React.FC = () => {
                   Suscribirse ${creator.subscriptionPrice}/mes
                 </Link>
               ) : null}
-              {/* "Habla con …": straight to the creator's Reserve 1:1 video calls. */}
-              {!isOwner && !iBlocked && visibleExperiences.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => openReserve('one-to-one')}
-                  data-testid="talk-button"
-                  className="btn btn-lg col-span-3 order-last border border-gold-300 bg-gold-50 text-ink hover:border-gold-400 md:order-none"
-                >
-                  <Icon name="fa-video" className="mr-2" />Habla con {creator.name.split(' ')[0]}
-                </button>
-              )}
               {managesProfile && (
                 <button
                   onClick={() => setComposing(!composing)}
@@ -558,25 +543,21 @@ const CreatorProfile: React.FC = () => {
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="flex space-x-6 mt-6 text-sm">
-            <div className="text-center">
-              <p className="font-bold text-gray-900">{compactCount(creator.followers + follow.count)}</p>
-              <p className="text-gray-500">Seguidores</p>
+          {/* Content totals; engagement counts stay out of the profile header. */}
+          <dl className="mt-6 flex gap-6 text-sm" data-testid="creator-content-stats">
+            <div className="flex flex-col text-center">
+              <dt className="order-last text-gray-500">Publicaciones</dt>
+              <dd className="font-bold text-gray-900">{catalogCreator ? creator.postsCount + feed.own.length : feed.own.length}</dd>
             </div>
-            <div className="text-center">
-              <p className="font-bold text-gray-900">{catalogCreator ? creator.postsCount + feed.own.length : feed.own.length}</p>
-              <p className="text-gray-500">Publicaciones</p>
+            <div className="flex flex-col text-center">
+              <dt className="order-last text-gray-500">Videos</dt>
+              <dd className="font-bold text-gray-900" aria-label={feedLoading ? 'Cargando cantidad de videos' : undefined}>{feedLoading ? '…' : videoCount}</dd>
             </div>
-            <div className="text-center">
-              <p className="font-bold text-gray-900">{compactCount(totalLikes)}</p>
-              <p className="text-gray-500">Me gusta</p>
-            </div>
-          </div>
+          </dl>
           {isDemoProfile(creator) && (
             <p className="mt-4 flex gap-2 text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2" data-testid="demo-profile-note">
               <i aria-hidden="true" className="fas fa-circle-info mt-[3px] shrink-0"></i>
-              <span>Perfil de ejemplo para mostrarte cómo funciona {BRAND.name}. Sus seguidores, publicaciones y me gusta no son reales, y no acepta pagos.</span>
+              <span>Perfil de ejemplo para mostrarte cómo funciona {BRAND.name}. Sus publicaciones y estadísticas son ilustrativas, y no acepta pagos.</span>
             </p>
           )}
         </div>
@@ -609,11 +590,12 @@ const CreatorProfile: React.FC = () => {
             <CreatorReserveSection creator={creator} experiences={experiences} user={user} isOwner={isOwner} onNeedLogin={goLogin} />
             {!isOwner && <ExperienceGoalCard creatorProfileId={creator.id} creatorName={creator.name} experiences={experiences} user={user} onNeedLogin={goLogin} onGift={() => openGift()} />}
             <UpcomingAccess isOwner={isOwner} creatorId={creator.id} experiences={experiences} liveTitle={currentLive?.mode === 'subscriber' ? currentLive.title : null} />
+            <CreatorSubscriptionSummary creator={creator} posts={creatorPosts} isSubscribed={isSubscribed} isOwner={isOwner} onViewPosts={() => setActiveTab('posts')} />
           </>
         )}
 
         {/* Tabs */}
-        <div className="flex space-x-1 bg-white rounded-xl p-1 shadow-sm mb-6">
+        <div id="publicaciones" className="flex scroll-mt-28 space-x-1 bg-white rounded-xl p-1 shadow-sm mb-6">
           <button
             onClick={() => setActiveTab('posts')}
             className={`flex-auto sm:flex-1 whitespace-nowrap px-2 py-2.5 rounded-lg text-[13px] sm:text-sm font-medium transition ${activeTab === 'posts' ? 'bg-pink-100 text-pink-700' : 'text-gray-600 hover:bg-gray-50'}`}

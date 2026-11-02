@@ -7,6 +7,7 @@ import CategoryGrid from '../components/landing/CategoryGrid';
 import HappeningNow from '../components/landing/HappeningNow';
 import HowItWorks from '../components/landing/HowItWorks';
 import VipShowcase from '../components/landing/VipShowcase';
+import SubscriptionShowcase from '../components/landing/SubscriptionShowcase';
 import CreatorCta from '../components/landing/CreatorCta';
 import { ENABLE_HAPPENING_NOW } from '../config/features';
 import { useLandingMotion } from '../components/landing/landingBits';
@@ -28,6 +29,7 @@ const Landing: React.FC = () => {
       {ENABLE_HAPPENING_NOW && <HappeningNow creators={creators} />}
       <HowItWorks />
       <VipShowcase />
+      <SubscriptionShowcase creators={creators} />
       <CreatorCta />
     </div>
   );

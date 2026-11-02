@@ -62,6 +62,7 @@ const AccessLadder: React.FC<Props> = ({ creator, user, isOwner, isSubscribed, f
             <span className="mt-1 text-sm font-semibold text-ink">${creator.subscriptionPrice}/mes</span>
           )}
           <span className={blurb}>{ENABLE_SUBSCRIBER_LIVE ? 'Contenido exclusivo, Lives para suscriptores y beneficios del creador.' : 'Contenido exclusivo y beneficios del creador.'}</span>
+          <a href="#suscripcion" className="mt-2 inline-flex min-h-8 items-center self-start text-xs font-semibold text-brand-700 underline decoration-brand-200 underline-offset-4 hover:decoration-brand-700"><span className="sm:hidden">Contenido</span><span className="max-sm:hidden">Ver contenido exclusivo</span></a>
           {live && (
             <span className="mt-2 flex flex-col gap-0.5" data-testid="live-now">
               <span className="flex items-center text-sm font-semibold text-red-600">
