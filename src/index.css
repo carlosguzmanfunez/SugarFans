@@ -298,6 +298,21 @@
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-8px); }
 }
+/* Mis invitados: the adventure map (clouds drift, waves sway, the gold road
+   marches, the people at each stop bob, and the stop with an active bonus glows). */
+.map-cloud { animation: map-drift 40s linear infinite; }
+@keyframes map-drift { from { transform: translateX(-60px); } to { transform: translateX(380px); } }
+.map-wave { animation: map-sway 4s ease-in-out infinite; }
+@keyframes map-sway { 50% { transform: translateX(5px); } }
+.map-march { animation: map-march 1.2s linear infinite; }
+@keyframes map-march { to { stroke-dashoffset: -12; } }
+.map-bob { animation: map-bob 2.4s ease-in-out infinite; }
+@keyframes map-bob { 50% { transform: translate(-50%, -4px); } 0%, 100% { transform: translate(-50%, 0); } }
+.map-glow { animation: map-glow 1.8s ease-in-out infinite; }
+@keyframes map-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(245 158 11 / 0.6); }
+  50% { box-shadow: 0 0 0 9px rgb(245 158 11 / 0); }
+}
 .live-dot { animation: live-pulse 1.6s ease-in-out infinite; }
 @keyframes live-pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgb(239 68 68 / 0.55); }
@@ -321,6 +336,7 @@
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .reveal, .float-slow, .float-slower, .live-dot, .speak-bar { animation: none; }
+  .map-cloud, .map-wave, .map-march, .map-bob, .map-glow { animation: none; }
   .reaction-rise { animation: none; opacity: 0; }
   .btn, .card-hover { transition: none; }
   .menu-pop, .toast-in, .tab-pop, .skeleton { animation: none; }

@@ -92,7 +92,20 @@ try {
       await goals.getByTestId('my-goal-invites').getByRole('button', { name: /Mis invitados/ }).click();
       const view = page.getByTestId('my-invites');
       await view.getByText('5 creadores invitados · 1 activo ahora').waitFor();
+      // The map: each one stands at the stop they reached; the bonus stop opens first.
       await view.getByTestId('invite-network').waitFor();
+      const count = async (id) => view.getByTestId(`map-stop-${id}`).getAttribute('data-count');
+      assert.deepEqual(
+        [await count('campamento'), await count('puente'), await count('colina'), await count('faro'), await count('castillo')],
+        ['1', '1', '1', '1', '1'],
+      );
+      const detail = view.getByTestId('map-stop-detail');
+      await detail.getByText(/Faro/).waitFor();
+      await detail.getByText('Ana Fit').waitFor();
+      await view.getByTestId('map-stop-colina').click();
+      await detail.getByText('Marta Cocina').waitFor();
+      await detail.getByText('$60.00 de $100.00').waitFor();
+      await view.getByTestId('map-stop-faro').click();
       const rows = view.getByTestId('my-invite');
       assert.equal(await rows.count(), 5);
       await rows.filter({ hasText: 'Ana Fit' }).getByText(/Activo: ganas 5% hasta el/).waitFor();
