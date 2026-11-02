@@ -153,11 +153,12 @@ const LegalPolicies: React.FC = () => {
                       <li>Verificar la identidad y la edad de los Creadores</li>
                       <li>Prevenir fraude, revisar reportes y aplicar nuestras políticas</li>
                       <li>Ver cuántos usuarios hay por país (en totales, sin datos individuales) y, en el caso de los Creadores, filtrarlos por país en Explorar y en el Top del mes de su país. El teléfono es opcional, solo lo usa el equipo para contactarle sobre su cuenta o sus reservas, y nunca se muestra en su perfil ni se comparte con otros usuarios</li>
+                      <li>Si un Creador conecta su TikTok, confirmar que la cuenta es suya y guardar su usuario, nombre, foto y números públicos (seguidores, me gusta y videos). No guardamos el acceso a su cuenta de TikTok y puede desconectarla cuando quiera en Configuración</li>
                       <li>Cumplir con obligaciones legales</li>
                     </ul>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">3. Con quién la compartimos</h3>
-                    <p>Solo con los proveedores que hacen funcionar el servicio: Supabase (base de datos, cuentas y archivos), Vercel (alojamiento web), LiveKit (video en vivo) y Google si inicia sesión con su cuenta de Google. No vendemos datos personales.</p>
+                    <p>Solo con los proveedores que hacen funcionar el servicio: Supabase (base de datos, cuentas y archivos), Vercel (alojamiento web), LiveKit (video en vivo), Google si inicia sesión con su cuenta de Google y TikTok si conecta su cuenta de TikTok. No vendemos datos personales.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">4. Sus Derechos</h3>
                     <p>Tiene derecho a acceder, rectificar, eliminar y portar sus datos. Desde Configuración &gt; Privacidad puede descargar sus datos o eliminar su cuenta.</p>

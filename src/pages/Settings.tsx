@@ -27,6 +27,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { SOCIALS, normalizeUsername, parseSocial, profileLink, type SocialKey, type SocialLinks } from '../lib/creatorLinks';
 import ProfileImageButton from '../components/ProfileImageButton';
 import BecomeCreatorCard from '../components/BecomeCreatorCard';
+import TikTokConnectCard from '../components/TikTokConnectCard';
 import PushOptIn from '../components/PushOptIn';
 import { EMPTY_AVATAR, avatarOrEmpty } from '../lib/backend/shared';
 import { backend } from '../lib/backend';
@@ -353,6 +354,7 @@ const Settings: React.FC = () => {
                           ))}
                         </div>
                       </fieldset>
+                      <TikTokConnectCard />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Precio de suscripción</label>

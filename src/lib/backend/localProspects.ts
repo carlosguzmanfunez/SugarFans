@@ -2,18 +2,21 @@
 // database, see supabase/migrations/20261101000001_creator_prospects.sql.
 // The official Instagram API only answers on the published site.
 import { readJSON, writeJSON } from '../storage';
-import { FOLLOW_UP_DAYS, FUNNEL, prospectScore, type Prospect, type ProspectEvent, type ProspectStatus } from '../prospects';
-import type { ProspectFilter, ProspectsBackend } from './prospectTypes';
+import { FOLLOW_UP_DAYS, FUNNEL, prospectScore, type Prospect, type ProspectEvent, type ProspectStatus, type VariantStat } from '../prospects';
+import type { CreatorInvite } from '../rewardRules';
+import type { ProspectFilter, ProspectsBackend, TikTokConnection } from './prospectTypes';
 import type { User } from './types';
 
 interface Deps {
   currentUser(): User | null;
   accounts(): User[];
   hasRecentSale(creatorProfileId: string): boolean;
+  hasSale?(creatorProfileId: string): boolean;
 }
 
 const KEY = 'creator_prospects';
 const EVENTS_KEY = 'prospect_events';
+const TIKTOK_KEY = 'tiktok_connections';
 const FAKE_ZOHO_KEY = 'prospectsFakeZoho';
 const HANDLE = /^[a-z0-9._-]{1,50}$/;
 const newCode = () => crypto.randomUUID().replace(/-/g, '').slice(0, 12);
@@ -148,6 +151,7 @@ export const createLocalProspects = (deps: Deps): ProspectsBackend => {
       if (patch.followUps !== undefined) next.followUps = patch.followUps;
       if (patch.country !== undefined) next.country = patch.country ?? undefined;
       if (patch.category !== undefined) next.category = patch.category?.trim() || undefined;
+      if (patch.variant !== undefined) next.variant = patch.variant;
       list[at] = touch(next, before);
       save(list);
       return { ok: true };
@@ -156,7 +160,61 @@ export const createLocalProspects = (deps: Deps): ProspectsBackend => {
     async updateMany(ids, patch) {
       if (!isAdmin()) return denied;
       const wanted = new Set(ids);
-      save(load().map((p) => (wanted.has(p.id) ? touch({ ...p, ...(patch.status ? { status: patch.status } : {}), ...(patch.channel !== undefined ? { channel: patch.channel ?? undefined } : {}) }, p) : p)));
+      save(load().map((p) => (wanted.has(p.id) ? touch({ ...p, ...(patch.status ? { status: patch.status } : {}), ...(patch.channel !== undefined ? { channel: patch.channel ?? undefined } : {}), ...(patch.variant ? { variant: patch.variant } : {}) }, p) : p)));
+      return { ok: true };
+    },
+
+    async insights() {
+      if (!isAdmin()) throw Error('Solo un administrador puede ver esto');
+      const rank = (s: ProspectStatus) => FUNNEL.indexOf(s);
+      const variants: VariantStat[] = [];
+      for (const p of load()) {
+        if (!p.variant || !p.contactedAt) continue;
+        const channel = p.channel ?? 'dm';
+        let row = variants.find((v) => v.channel === channel && v.variant === p.variant);
+        if (!row) variants.push(row = { channel, variant: p.variant, contacted: 0, replied: 0 });
+        row.contacted++;
+        if (p.interestedAt || p.repliedAt || rank(p.status) >= 2) row.replied++;
+      }
+      const accounts = deps.accounts();
+      const invites = readJSON<CreatorInvite[]>('creator_invites', []);
+      const byProfile = (id: string) => accounts.find((a) => a.creatorProfileId === id);
+      const top = new Map<string, number>();
+      for (const i of invites) { const name = byProfile(i.referrerProfileId)?.name ?? 'Creador'; top.set(name, (top.get(name) ?? 0) + 1); }
+      return {
+        variants: variants.sort((a, b) => a.channel.localeCompare(b.channel) || a.variant.localeCompare(b.variant)),
+        creatorInvites: {
+          total: invites.length,
+          verified: invites.filter((i) => byProfile(i.creatorProfileId)?.isVerified).length,
+          selling: invites.filter((i) => deps.hasSale?.(i.creatorProfileId)).length,
+          last30Days: invites.filter((i) => Date.now() - new Date(i.joinedAt).getTime() <= 30 * 86400000).length,
+        },
+        topInviters: [...top].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)).slice(0, 5),
+      };
+    },
+
+    // Offline there is no TikTok: connecting saves example numbers for the signed-in user.
+    async tiktokAvailable() {
+      return true;
+    },
+    async myTikTok() {
+      const me = deps.currentUser();
+      return (me && readJSON<Record<string, TikTokConnection>>(TIKTOK_KEY, {})[me.id]) || null;
+    },
+    async connectTikTok(back) {
+      const me = deps.currentUser();
+      if (!me) return { ok: false, error: 'Inicia sesión para conectar tu TikTok.' };
+      const now = new Date().toISOString();
+      const username = (me.settings.socials?.tiktok ?? me.username ?? 'mi.tiktok').toLowerCase();
+      writeJSON(TIKTOK_KEY, { ...readJSON<Record<string, TikTokConnection>>(TIKTOK_KEY, {}), [me.id]: { username, displayName: me.name, followers: 25300, likes: 120000, videos: 85, connectedAt: now, refreshedAt: now } });
+      return { ok: true, url: `${back}?tiktok=ok` };
+    },
+    async disconnectTikTok() {
+      const me = deps.currentUser();
+      if (!me) return { ok: false, error: 'Inicia sesión.' };
+      const all = readJSON<Record<string, TikTokConnection>>(TIKTOK_KEY, {});
+      delete all[me.id];
+      writeJSON(TIKTOK_KEY, all);
       return { ok: true };
     },
 

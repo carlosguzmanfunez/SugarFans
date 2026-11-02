@@ -345,6 +345,73 @@ try {
     await page.reload();
   });
 
+  await ok('Versión B del DM: la mitad la recibe, cada contacto guarda su versión y Metas muestra el % de cada una', async () => {
+    await tool.getByRole('button', { name: 'Mensajes' }).click();
+    let dialog = page.getByRole('dialog', { name: 'Plantillas de mensajes' });
+    await dialog.getByLabel('Versión B del DM (opcional)').fill('Hola {nombre} 👋 Versión corta: te invitamos al lanzamiento en {pais}. {link}');
+    await dialog.getByRole('button', { name: 'Guardar plantillas' }).click();
+    await dialog.getByRole('button', { name: 'Guardado ✓' }).waitFor();
+    if (shots) await page.screenshot({ path: join(shots, 'escritorio-8-version-b.png') });
+    await dialog.getByRole('button', { name: 'Cerrar' }).last().click();
+    await tab('Creadores');
+    await tool.getByRole('button', { name: 'Lote de DMs' }).click();
+    dialog = page.getByRole('dialog', { name: 'Lote de DMs' });
+    await dialog.getByLabel('Cuántos').selectOption('10');
+    await dialog.getByRole('button', { name: 'Empezar el lote' }).click();
+    const texts = [];
+    for (let i = 1; i <= 8; i++) {
+      const d = page.getByRole('dialog', { name: new RegExp(`^Lote de DMs · ${i} de`) });
+      const box = d.getByLabel('Mensaje');
+      await box.evaluate((el) => new Promise((done) => { const t = setInterval(() => { if (el.value) { clearInterval(t); done(); } }, 50); }));
+      texts.push(await box.inputValue());
+      await d.getByRole('button', { name: /2\. Enviado, siguiente/ }).click();
+    }
+    await page.getByRole('dialog', { name: /^Lote de DMs · 9 de/ }).getByRole('button', { name: 'Terminar aquí' }).click();
+    const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('fansreserve_creator_prospects')).filter((p) => p.variant));
+    assert.equal(stored.length, 8);
+    const b = stored.filter((p) => p.variant === 'B').length;
+    assert.equal(texts.filter((t) => /Versión corta/.test(t)).length, b, 'el texto no coincide con la versión guardada');
+    await tab('Metas');
+    const result = tool.getByTestId('variant-result-dm');
+    await result.waitFor();
+    const shown = await result.innerText();
+    if (b) assert.match(shown, new RegExp(`Versión B: 0% respondió \\(0 de ${b}\\)`));
+    if (8 - b) assert.match(shown, new RegExp(`Versión A: 0% respondió \\(0 de ${8 - b}\\)`));
+    assert.match(shown, /al menos 20 contactos/);
+  });
+
+  await ok('Metas muestra los creadores que llegaron invitados por otros creadores', async () => {
+    await page.evaluate(() => {
+      const accounts = JSON.parse(localStorage.getItem('fansreserve_accounts'));
+      const vale = accounts.find((a) => a.id === 'demo-creator');
+      localStorage.setItem('fansreserve_creator_invites', JSON.stringify([
+        { creatorProfileId: 'nuevo-1', referrerProfileId: vale.creatorProfileId, joinedAt: new Date().toISOString() },
+        { creatorProfileId: 'nuevo-2', referrerProfileId: vale.creatorProfileId, joinedAt: new Date(Date.now() - 40 * 86400000).toISOString() },
+      ]));
+    });
+    await page.reload();
+    await tab('Metas');
+    const box = tool.getByTestId('creator-invites');
+    await box.getByText('Quién invita más').waitFor();
+    const text = (await box.innerText()).replace(/\s+/g, ' ');
+    assert.match(text, /Llegaron 2 Verificados 0 Ya venden 0 Últimos 30 días 1/);
+    assert.match(text, /1\. .+ 2/);
+    if (shots) await page.screenshot({ path: join(shots, 'escritorio-9-metas-insights.png'), fullPage: true });
+  });
+
+  await ok('Conecta tu TikTok: el creador lo conecta desde Ajustes, ve sus números y puede desconectarlo', async () => {
+    await v.goto(`${BASE}/settings`);
+    const card = v.getByTestId('tiktok-connect');
+    await card.getByRole('button', { name: 'Conectar TikTok' }).click();
+    await v.waitForURL((u) => new URL(u).searchParams.get('tiktok') === 'ok');
+    await card.getByText('Listo, tu TikTok quedó conectado.').waitFor();
+    await card.getByText(/^Conectado como/).waitFor();
+    assert.match((await card.innerText()).replace(/\s+/g, ' '), /Seguidores 25[.,]3 ?mil/i);
+    if (shots) { await card.scrollIntoViewIfNeeded(); await v.screenshot({ path: join(shots, 'movil-6-tiktok.png') }); }
+    await card.getByRole('button', { name: 'Desconectar' }).click();
+    await card.getByRole('button', { name: 'Conectar TikTok' }).waitFor();
+  });
+
   if (shots) {
     await page.reload();
     await tool.locator('#todo-title').waitFor({ state: 'attached' });
@@ -374,7 +441,7 @@ try {
   }
 
   assert.deepEqual(errors, []);
-  console.log(`\n${passed}/16 comprobaciones en el navegador`);
+  console.log(`\n${passed}/19 comprobaciones en el navegador`);
 } finally {
   await browser.close();
   await new Promise((resolve) => server.httpServer.close(resolve));

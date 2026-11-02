@@ -409,6 +409,7 @@ const prospects = createLocalProspects({
   accounts: () => loadAccounts().map(toPublic),
   hasRecentSale: (creatorProfileId) => platform.ledger.transactions().some((t) =>
     t.creatorProfileId === creatorProfileId && t.status === 'paid' && Date.now() - new Date(t.createdAt).getTime() <= 90 * 86400000),
+  hasSale: (creatorProfileId) => platform.ledger.transactions().some((t) => t.creatorProfileId === creatorProfileId && t.status === 'paid'),
 });
 
 const social = createLocalSocial({

@@ -104,8 +104,8 @@
     "test:payout-funding": "node e2e/payout-funding-followups.mjs",
     "test:payout-funding-ui": "node e2e/payout-funding-ui.mjs",
     "test:payout-funding-concurrency": "node e2e/payout-funding-concurrency.mjs",
-    "test:prospects": "node e2e/prospects-rules.mjs && node e2e/prospects-api.mjs && node e2e/prospects-email-api.mjs",
-    "test:prospects-db": "node e2e/prospects-db.mjs && node e2e/prospect-invites-db.mjs",
+    "test:prospects": "node e2e/prospects-rules.mjs && node e2e/prospects-api.mjs && node e2e/prospects-email-api.mjs && node e2e/prospects-digest-api.mjs && node e2e/tiktok-api.mjs",
+    "test:prospects-db": "node e2e/prospects-db.mjs && node e2e/prospect-invites-db.mjs && node e2e/prospects-growth-db.mjs",
     "test:prospects-ui": "vite build --mode offline && node e2e/prospects-ui.mjs"
   },
   "dependencies": {

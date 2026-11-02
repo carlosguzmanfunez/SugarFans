@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { backend } from '../lib/backend';
 import { useBackendData } from '../lib/useBackendData';
-import type { ProspectFilter, ProspectServerStatus, ProspectSummary } from '../lib/backend/prospectTypes';
+import type { ProspectFilter, ProspectInsights, ProspectServerStatus, ProspectSummary } from '../lib/backend/prospectTypes';
 import {
   CAMPAIGN_DAYS, EVENTS, GOALS, NETWORKS, PILOT_COUNTRIES, STATUSES, compact, contactsNeeded, countryLabel, countryProgress,
   emptyProgress, followUpDue, measuredRates, prospectsCsv, scoreReasons, scoreTone, sumProgress,
   type CountryProgress, type Prospect, type ProspectInput, type ProspectNetwork, type ProspectStatus,
 } from '../lib/prospects';
 import AdminDataState from './AdminDataState';
-import { BatchDmDialog, BatchEmailDialog, ImportDialog, MessageDialog, TemplatesDialog, download, flag } from './AdminProspectDialogs';
+import { BatchDmDialog, BatchEmailDialog, ImportDialog, MessageDialog, TemplatesDialog, VariantResult, download, flag } from './AdminProspectDialogs';
 
 const PAGE = 25;
 const SAFE_DAILY = 150; // first messages a day from the team's accounts before the risk of blocks grows
@@ -26,6 +26,7 @@ const SIZES = [
 ] as const;
 
 const emptySummary: ProspectSummary = { byCountry: [], contactedToday: 0, followUpsDue: 0, toEnrich: 0, last24h: {}, emailsToday: 0, measuredAt: '' };
+const emptyInsights: ProspectInsights = { variants: [], creatorInvites: { total: 0, verified: 0, selling: 0, last30Days: 0 }, topInviters: [] };
 const unknownServer: ProspectServerStatus = { instagram: 'unknown', email: 'unknown', emailLimit: 0 };
 const hour = (iso: string) => new Date(iso).toLocaleString('es-HN', { timeZone: 'America/Tegucigalpa', weekday: 'short', hour: 'numeric', minute: '2-digit' });
 
@@ -102,6 +103,36 @@ function Countries({ list, onPick }: { list: CountryProgress[]; onPick: (c: stri
       </li>)}
     </ul>
   </section>;
+}
+
+// "Metas": which message answers better and the creators other creators brought.
+function Insights({ data, onTemplates }: { data: ProspectInsights; onTemplates: () => void }) {
+  const ci = data.creatorInvites;
+  return <div className="grid gap-5 lg:grid-cols-2">
+    <section className={`${card} p-4 sm:p-6 space-y-4`} aria-labelledby="variants-title">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 id="variants-title" className="text-base font-bold text-gray-900">Qué mensaje funciona mejor</h3>
+          <p className="text-sm text-gray-600 mt-1">Con una versión B, la mitad recibe cada una. Cuenta quién respondió, quiso participar o se registró.</p>
+        </div>
+        <button type="button" onClick={onTemplates} className={`${button} shrink-0 border border-gray-300 bg-white text-gray-800 hover:bg-gray-50`}>Editar mensajes</button>
+      </div>
+      <div><p className="text-sm font-medium text-gray-900 mb-1.5">DM</p><VariantResult stats={data.variants} channel="dm" /></div>
+      <div><p className="text-sm font-medium text-gray-900 mb-1.5">Correo</p><VariantResult stats={data.variants} channel="email" /></div>
+    </section>
+    <section className={`${card} p-4 sm:p-6`} aria-labelledby="creator-invites-title" data-testid="creator-invites">
+      <h3 id="creator-invites-title" className="text-base font-bold text-gray-900">Invitados por otros creadores</h3>
+      <p className="text-sm text-gray-600 mt-1">Cada creador tiene su link en Panel → Dinero → Recompensas. Gana un bono cuando 2 de sus invitados se verifican y venden sus primeros $100.</p>
+      <dl className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {[['Llegaron', ci.total], ['Verificados', ci.verified], ['Ya venden', ci.selling], ['Últimos 30 días', ci.last30Days]].map(([k, v]) => <div key={k} className="rounded-xl bg-gray-50 p-3">
+          <dt className="text-xs text-gray-500">{k}</dt><dd className="text-2xl font-bold tabular-nums text-gray-900">{n(Number(v))}</dd></div>)}
+      </dl>
+      {data.topInviters.length > 0 && <div className="mt-4">
+        <p className="text-sm font-medium text-gray-900">Quién invita más</p>
+        <ol className="mt-1.5 space-y-1 text-sm text-gray-700">{data.topInviters.map((t, i) => <li key={t.name} className="flex justify-between gap-3"><span>{i + 1}. {t.name}</span><span className="tabular-nums font-medium">{n(t.count)}</span></li>)}</ol>
+      </div>}
+    </section>
+  </div>;
 }
 
 function Row({ p, onWrite }: { p: Prospect; onWrite: () => void }) {
@@ -213,8 +244,9 @@ export default function AdminProspects() {
   const summary = useBackendData(() => backend.prospects.summary(), [], emptySummary);
   const list = useBackendData(() => backend.prospects.list(filter, page, PAGE), [key, page], { rows: [] as Prospect[], total: 0 });
   const server = useBackendData(() => backend.prospects.serverStatus(), [], unknownServer);
+  const insights = useBackendData(() => backend.prospects.insights(), [], emptyInsights);
   const instagram = server.data.instagram;
-  const reload = () => { void summary.reload(); void list.reload(); };
+  const reload = () => { void summary.reload(); void list.reload(); void insights.reload(); };
 
   const progress = useMemo(() => countryProgress(summary.data.byCountry), [summary.data]);
   const pilot = PILOT_COUNTRIES.map((c) => progress.find((p) => p.country === c) ?? emptyProgress(c));
@@ -361,6 +393,7 @@ export default function AdminProspects() {
               <div className="mt-1.5"><Bar value={summary.data.emailsToday} goal={emailLimit} tone="bg-emerald-600" /></div>
             </div>}
             <Last24h s={summary.data} />
+            <p className="text-xs text-gray-500"><i aria-hidden="true" className="fas fa-envelope mr-1" />Cada mañana a las 7 te llega este resumen a tu correo, con nombres.</p>
             <button type="button" className={`${secondary} w-full`} onClick={() => void sync()} disabled={!!working}>
               <i aria-hidden="true" className={`fas fa-user-check ${working === 'sync' ? 'animate-pulse' : ''}`} />{working === 'sync' ? 'Buscando…' : 'Buscar registrados ahora'}</button>
             {instagram === 'missing' && <p className="text-xs text-gray-500">Falta conectar la API oficial de Instagram en Vercel (INSTAGRAM_BUSINESS_ID e INSTAGRAM_ACCESS_TOKEN). La lista funciona igual con los datos importados.</p>}
@@ -375,6 +408,7 @@ export default function AdminProspects() {
           needed={country === undefined ? pilot.reduce((s, p) => s + contactsNeeded(p), 0) : contactsNeeded(shown)} />
         {country === undefined && <div className="mt-5"><Countries list={pilot} onPick={setCountry} /></div>}
       </AdminDataState>
+      <Insights data={insights.data} onTemplates={() => setDialog('templates')} />
     </div>}
 
     {tab === 'creators' && <section role="tabpanel" id="prospects-panel-creators" aria-labelledby="prospects-tab-creators" className={card}>

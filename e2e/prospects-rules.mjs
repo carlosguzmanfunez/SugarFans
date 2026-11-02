@@ -118,4 +118,29 @@ ok('El correo y el seguimiento llevan su link personal y el de baja; el primer D
   assert.ok(p.INVITE_CODE.test('0123456789ab') && !p.INVITE_CODE.test('0123'));
 });
 
-console.log(`\n${passed}/10 comprobaciones de reglas`);
+ok('Versión B: sin texto todos reciben la A; con texto, la mitad y siempre la misma para cada creador', () => {
+  const t = { ...p.DEFAULT_TEMPLATES };
+  const ids = Array.from({ length: 400 }, (_, i) => ({ id: crypto.randomUUID() + i }));
+  assert.ok(ids.every((x) => p.variantFor(x, t, 'dm') === 'A'));
+  const ab = { ...t, dmB: 'Hola {nombre}, versión corta: {link}' };
+  const b = ids.filter((x) => p.variantFor(x, ab, 'dm') === 'B').length;
+  assert.ok(b > 150 && b < 250, `B: ${b}`);
+  assert.ok(ids.every((x) => p.variantFor(x, ab, 'dm') === p.variantFor(x, ab, 'dm')));
+  assert.ok(ids.every((x) => p.variantFor(x, ab, 'email') === 'A'), 'el correo no tiene B');
+  assert.equal(p.templatesFor(ab, 'B').dm, ab.dmB);
+  assert.equal(p.templatesFor(ab, 'B').email, t.email);
+  const withEmail = { ...t, emailB: 'Otro correo', emailSubjectB: 'Otro asunto' };
+  const pb = ids.find((x) => p.variantFor(x, withEmail, 'email') === 'B');
+  const csv = p.emailBatchCsv([{ ...pb, network: 'instagram', handle: 'ana', email: 'a@b.com', status: 'nuevo', followUps: 0, score: 0, source: 'manual', createdAt: '' }], withEmail);
+  assert.match(csv, /Otro asunto,Otro correo/);
+});
+
+ok('Cuál versión gana: solo con 20 contactos cada una y una diferencia real', () => {
+  const rows = (a, ra, b, rb) => [{ channel: 'dm', variant: 'A', contacted: a, replied: ra }, { channel: 'dm', variant: 'B', contacted: b, replied: rb }];
+  assert.equal(p.variantWinner(rows(10, 1, 10, 5), 'dm'), undefined);
+  assert.equal(p.variantWinner(rows(40, 4, 40, 10), 'dm'), 'B');
+  assert.equal(p.variantWinner(rows(40, 8, 40, 8), 'dm'), undefined);
+  assert.equal(p.variantWinner(rows(40, 8, 40, 2), 'email'), undefined);
+});
+
+console.log(`\n${passed}/12 comprobaciones de reglas`);

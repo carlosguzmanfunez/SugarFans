@@ -40,6 +40,7 @@ export interface Prospect {
   openedAt?: string; // first time they opened the link
   openCount?: number;
   interestedAt?: string; // pressed "Quiero participar" on the link
+  variant?: MessageVariant; // which version of the first message they got
   createdAt: string;
 }
 
@@ -385,7 +386,10 @@ export const EVENTS: { id: ProspectEvent; label: string }[] = [
 
 /* ---------- Messages ---------- */
 
-export interface Templates { dm: string; emailSubject: string; email: string; followUp: string }
+export type MessageVariant = 'A' | 'B';
+// The B fields are an optional second version of the first message: when one is
+// written, half of the creators get it, and the console shows which answers better.
+export interface Templates { dm: string; emailSubject: string; email: string; followUp: string; dmB?: string; emailSubjectB?: string; emailB?: string }
 
 export const DEFAULT_TEMPLATES: Templates = {
   dm: 'Hola {nombre} 👋 Me encanta tu contenido de {categoria}. Soy Carlos, de Fans Reserve: una plataforma nueva donde tus seguidores reservan videollamadas 1:1, Meet & Greet y eventos contigo, pagan seguro y tú cobras por PayPal.\n\nVamos a lanzar en {pais} y te queremos invitar a participar en el lanzamiento. Los creadores que alcancen ciertas metas en sus primeros 90 días se convierten en Creadores Fundadores, con mejores ganancias y beneficios.\n\n¿Te cuento más? Si no te interesa, dímelo y no te escribo de nuevo.',
@@ -408,6 +412,79 @@ export const fillTemplate = (template: string, p: Prospect, base = inviteBase())
     .replace(/{baja}/g, p.inviteCode ? unsubscribeUrl(p.inviteCode, base) : 'responde "no" y te sacamos de la lista');
 };
 
+// Half of the creators get version B of a channel's first message, when it is
+// written; always the same half for the same creator (by their id).
+export const hasVariantB = (t: Templates, channel: ProspectChannel) => !!(channel === 'dm' ? t.dmB : t.emailB)?.trim();
+export const variantFor = (p: Pick<Prospect, 'id'>, t: Templates, channel: ProspectChannel): MessageVariant => {
+  if (!hasVariantB(t, channel)) return 'A';
+  let h = 0;
+  for (const c of p.id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return h % 2 ? 'B' : 'A';
+};
+// The templates with version B in place of A for the fields that have one.
+export const templatesFor = (t: Templates, variant: MessageVariant): Templates => variant === 'A' ? t : {
+  ...t,
+  dm: t.dmB?.trim() ? t.dmB : t.dm,
+  email: t.emailB?.trim() ? t.emailB : t.email,
+  emailSubject: t.emailB?.trim() && t.emailSubjectB?.trim() ? t.emailSubjectB : t.emailSubject,
+};
+
+// Reply rate of each version, from prospects_insights().
+export interface VariantStat { channel: ProspectChannel; variant: MessageVariant; contacted: number; replied: number }
+// With few contacts the difference is luck: say which one wins only from 20 each.
+export const VARIANT_MIN = 20;
+export const variantWinner = (rows: VariantStat[], channel: ProspectChannel): MessageVariant | undefined => {
+  const a = rows.find((r) => r.channel === channel && r.variant === 'A');
+  const b = rows.find((r) => r.channel === channel && r.variant === 'B');
+  if (!a || !b || a.contacted < VARIANT_MIN || b.contacted < VARIANT_MIN) return undefined;
+  const ra = a.replied / a.contacted, rb = b.replied / b.contacted;
+  return Math.abs(ra - rb) < 0.02 ? undefined : ra > rb ? 'A' : 'B';
+};
+
+/* ---------- The morning email ---------- */
+
+// What prospects_digest() returns (supabase/migrations/20261102000001_prospects_growth.sql).
+export interface ProspectDigest {
+  last24h: Partial<Record<ProspectEvent, number>>;
+  people: Partial<Record<'interesado' | 'registrado' | 'verificado' | 'activo', { handle: string; network: ProspectNetwork; name?: string }[]>>;
+  interested: number;
+  followUpsDue: number;
+  toContact: number;
+  creatorsInvited24h: number;
+}
+
+const plural = (n: number, one: string, many: string) => `${n.toLocaleString('es-HN')} ${n === 1 ? one : many}`;
+const who = (list: { handle: string; name?: string }[] = []) => list.map((x) => `@${x.handle}${x.name ? ` (${x.name})` : ''}`).join(', ');
+
+// Subject and plain-text body, or null when nothing moved and nothing is pending.
+export const digestEmail = (d: ProspectDigest, site = SITE): { subject: string; body: string } | null => {
+  const moved = EVENTS.filter((e) => d.last24h[e.id]);
+  const pending = d.interested + d.followUpsDue + d.toContact;
+  if (!moved.length && !pending && !d.creatorsInvited24h) return null;
+  const headline = [
+    d.last24h.registrado && plural(d.last24h.registrado, 'se registró', 'se registraron'),
+    d.last24h.interesado && plural(d.last24h.interesado, 'quiere participar', 'quieren participar'),
+    d.last24h.abrio && plural(d.last24h.abrio, 'abrió su link', 'abrieron su link'),
+  ].filter(Boolean).slice(0, 2).join(', ');
+  const lines = ['Buenos días. Esto pasó en Captar creadores en las últimas 24 horas:', ''];
+  if (moved.length) {
+    for (const e of moved) {
+      const people = who(d.people[e.id as keyof ProspectDigest['people']]);
+      lines.push(`- ${e.label}: ${d.last24h[e.id]}${people ? `. ${people}` : ''}`);
+    }
+  } else lines.push('- Nadie abrió su link ni se registró ayer.');
+  if (d.creatorsInvited24h) lines.push(`- Llegaron invitados por otros creadores: ${d.creatorsInvited24h}`);
+  lines.push('', 'Para hoy:');
+  lines.push(`- Interesados por atender: ${d.interested}`);
+  lines.push(`- Seguimientos pendientes: ${d.followUpsDue}`);
+  lines.push(`- Por contactar: ${d.toContact}`);
+  lines.push('', `Abre la consola: ${site}/admin?section=prospects`);
+  return {
+    subject: headline ? `Captación: ${headline}` : `Captación de hoy: ${plural(d.interested, 'interesado', 'interesados')} y ${plural(d.followUpsDue, 'seguimiento', 'seguimientos')}`,
+    body: lines.join('\n'),
+  };
+};
+
 // An email batch for a sending tool (Instantly, Smartlead): one row per creator with
 // the subject and message already written for them. In the tool's sequence the
 // subject is {{subject}} and the message is {{body}}.
@@ -415,7 +492,8 @@ export const emailBatchCsv = (list: Prospect[], t: Templates, followUp = false) 
   ['email,first_name,username,network,country,category,subject,body',
     ...list.filter((p) => p.email).map((p) => {
       const first = fillTemplate('{nombre}', p).replace(/^@.*/, '');
-      const subject = followUp ? `Re: ${fillTemplate(t.emailSubject, p)}` : fillTemplate(t.emailSubject, p);
-      return [p.email, first, p.handle, p.network, p.country ? countryLabel(p.country) : '', p.category ?? '', subject, fillTemplate(followUp ? t.followUp : t.email, p)]
+      const own = followUp ? t : templatesFor(t, variantFor(p, t, 'email'));
+      const subject = followUp ? `Re: ${fillTemplate(t.emailSubject, p)}` : fillTemplate(own.emailSubject, p);
+      return [p.email, first, p.handle, p.network, p.country ? countryLabel(p.country) : '', p.category ?? '', subject, fillTemplate(followUp ? t.followUp : own.email, p)]
         .map(csvCell).join(',');
     })].join('\n');

@@ -1,6 +1,6 @@
 // Backend contract for creator recruitment ("Captar creadores"). Implemented by
 // localProspects.ts and supabaseProspects.ts; rules and texts in src/lib/prospects.ts.
-import type { Prospect, ProspectChannel, ProspectEvent, ProspectInput, ProspectNetwork, ProspectSource, ProspectStatus } from '../prospects';
+import type { MessageVariant, Prospect, ProspectChannel, ProspectEvent, ProspectInput, ProspectNetwork, ProspectSource, ProspectStatus, VariantStat } from '../prospects';
 import type { AuthResult } from './types';
 
 export interface ProspectSummary {
@@ -57,6 +57,14 @@ export interface ProspectPatch {
   followUps?: number;
   country?: string | null;
   category?: string | null;
+  variant?: MessageVariant; // the version of the first message they got
+}
+
+// For the "Metas" tab: how each message version answers, and creators invited by creators.
+export interface ProspectInsights {
+  variants: VariantStat[];
+  creatorInvites: { total: number; verified: number; selling: number; last30Days: number };
+  topInviters: { name: string; count: number }[];
 }
 
 // Public numbers of a professional Instagram account from the official API.
@@ -65,6 +73,18 @@ export interface InstagramLookup {
   ok: boolean;
   note?: string; // why it could not be read (personal account, doesn't exist…)
   data?: Pick<ProspectInput, 'display_name' | 'followers' | 'posts' | 'engagement' | 'last_post_at' | 'email' | 'bio' | 'website'>;
+}
+
+// "Conecta tu TikTok": the public numbers TikTok confirmed (api/tiktok.ts).
+export interface TikTokConnection {
+  username?: string;
+  displayName?: string;
+  avatarUrl?: string;
+  followers?: number;
+  likes?: number;
+  videos?: number;
+  connectedAt: string;
+  refreshedAt: string;
 }
 
 export type ImportResult = { ok: true; inserted: number; updated: number; skipped: number } | { ok: false; error: string };
@@ -77,7 +97,8 @@ export interface ProspectsBackend {
   importRows(rows: ProspectInput[], source: ProspectSource): Promise<ImportResult>;
   update(id: string, patch: ProspectPatch): Promise<AuthResult>;
   // The same change for a whole batch (e.g. everyone in a downloaded email batch is now contacted).
-  updateMany(ids: string[], patch: Pick<ProspectPatch, 'status' | 'channel'>): Promise<AuthResult>;
+  updateMany(ids: string[], patch: Pick<ProspectPatch, 'status' | 'channel' | 'variant'>): Promise<AuthResult>;
+  insights(): Promise<ProspectInsights>;
   remove(id: string): Promise<AuthResult>;
   // Links prospects to the account that lists the same handle and moves them forward.
   sync(): Promise<{ ok: true; moved: number } | { ok: false; error: string }>;
@@ -93,5 +114,12 @@ export interface ProspectsBackend {
   // Links the signed-in account to the invite (after sign-up or sign-in).
   claim(code: string): Promise<boolean>;
   // warning: Meta stopped answering part-way (limit reached, token expired); results has what it did answer.
+  // "Conecta tu TikTok" for creators: whether the TikTok app is set up, the signed-in
+  // user's connection, the TikTok address to go to (back = the page to return to),
+  // and disconnecting it.
+  tiktokAvailable(): Promise<boolean>;
+  myTikTok(): Promise<TikTokConnection | null>;
+  connectTikTok(back: string): Promise<{ ok: true; url: string } | { ok: false; error: string }>;
+  disconnectTikTok(): Promise<AuthResult>;
   lookupInstagram(handles: string[]): Promise<{ ok: true; results: InstagramLookup[]; warning?: string } | { ok: false; error: string }>;
 }
