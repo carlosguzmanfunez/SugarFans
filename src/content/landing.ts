@@ -55,7 +55,7 @@ export const HERO_EXPERIENCES = [
     badge: 'Suscripción mensual',
     icon: 'fa-star',
     image: '/hero-experiences/exclusive-content.webp',
-    alt: 'Una creadora graba un video de su trabajo en un estudio de cerámica.',
+    alt: 'Una creadora posa de viaje como si sostuviera la Torre de Pisa con la mano.',
     action: 'Ver creadores',
     to: '/explore',
   },
