@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { homeForRole } from '../config/homes';
@@ -10,7 +10,7 @@ import SocialLoginButtons from '../components/SocialLoginButtons';
 import { DEMO_ACCOUNTS, offlineDemoEnabled, type DemoAccount } from '../config/demoAccounts';
 
 const Login: React.FC = () => {
-  const { login, backendMode } = useAuth();
+  const { login, backendMode, user } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
@@ -24,6 +24,13 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
+
+  // Once the account is loaded: back to the page that asked for a login, or the
+  // start page of the role (or owner view) it signed in with.
+  useEffect(() => {
+    if (signedIn && user) navigate(from || homeForRole(user.role), { replace: true });
+  }, [signedIn, user, from, navigate]);
 
   const signIn = async (mail: string, pass: string) => {
     setSubmitting(true);
