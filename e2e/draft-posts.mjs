@@ -71,7 +71,7 @@ finish(async () => {
     // Only an approved photo goes on the profile (migration media_moderation).
     psql(DB, `insert into storage.objects (bucket_id, name) values ('profile-images', '${lola}/cover-1.jpg');
       insert into public.media_moderation (bucket, path, owner_id, kind, media_type, status) values ('profile-images', '${lola}/cover-1.jpg', '${lola}', 'cover', 'image', 'approved')`);
-    as(lola, `update public.profiles set cover = 'https://x.supabase.co/storage/v1/object/public/profile-images/${lola}/cover-1.jpg' where id = '${lola}'`);
+    as(lola, `update public.profiles set cover = 'https://odugxvqwuvewsvifwmwb.supabase.co/storage/v1/object/public/profile-images/${lola}/cover-1.jpg' where id = '${lola}'`);
     expect(psql(DB, `set role anon; select public.creator_cover('${profileOf(lola)}')`).endsWith('/cover-1.jpg'), 'no se ve la portada');
   });
   await check('Fotos de perfil: cada quien sube solo a su carpeta', async () => {
