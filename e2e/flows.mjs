@@ -1647,10 +1647,22 @@ const run = async () => {
         await page.goto(link);
         await page.fill('input[name=newPassword]', password);
         await page.fill('input[name=confirmPassword]', password);
+        // The eye shows what was typed and hides it again.
+        await page.getByTestId('toggle-newPassword').click();
+        expect((await page.getAttribute('input[name=newPassword]', 'type')) === 'text', 'el ojito no mostró la contraseña');
+        await page.getByTestId('toggle-newPassword').click();
+        expect((await page.getAttribute('input[name=newPassword]', 'type')) === 'password', 'el ojito no ocultó la contraseña');
         await page.getByRole('button', { name: 'Guardar contraseña' }).click();
-        await page.getByText('Tu contraseña se cambió correctamente.').waitFor();
+        // Saved: the session closes and the login opens with the confirmation.
+        await waitPath(page, '/login');
+        await page.getByTestId('password-changed').waitFor();
+        return link;
       };
       await resetTo('clave-recuperada-3');
+      // Reopening the bare page afterwards (a reload, the phone waking up) no longer shows the form.
+      await page.goto(`${BASE}/reset-password`);
+      await page.getByText('Este enlace ya se usó o caducó').waitFor();
+      expect((await page.locator('input[name=newPassword]').count()) === 0, 'el formulario volvió a aparecer');
       await login(page, fanEmail, 'clave-recuperada-3');
       await waitPath(page, '/');
       await logoutViaMenu(page);

@@ -12,7 +12,10 @@ const Login: React.FC = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: string } | null)?.from || '/';
+  const state = location.state as { from?: string; passwordChanged?: boolean } | null;
+  const from = state?.from || '/';
+  // Arriving right after choosing a new password (ResetPassword signs out first).
+  const passwordChanged = !!state?.passwordChanged;
   const [remember, setRemember] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [email, setEmail] = useState('');
@@ -58,6 +61,12 @@ const Login: React.FC = () => {
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('login.title')}</h2>
           <p className="text-gray-600 mb-6">{t('login.subtitle')}</p>
+
+          {passwordChanged && !error && (
+            <div role="status" className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4 text-sm" data-testid="password-changed">
+              <i aria-hidden="true" className="fas fa-circle-check mr-2"></i>{t('login.passwordChanged')}
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
