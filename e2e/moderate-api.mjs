@@ -138,7 +138,7 @@ assert.equal(await statusOf(await ask(`${USER}/e.jpg`)), 'pending');
 assert.match(rows.get(`${USER}/e.jpg`).reason, /falló/);
 ok('Si el servicio falla, no se publica: queda pendiente');
 
-const avatarUrl = `https://x.supabase.co/storage/v1/object/public/profile-images/${USER}/avatar-1.jpg`;
+const avatarUrl = `https://odugxvqwuvewsvifwmwb.supabase.co/storage/v1/object/public/profile-images/${USER}/avatar-1.jpg`;
 row(`${USER}/avatar-1.jpg`, { bucket: 'profile-images', kind: 'avatar', public_url: avatarUrl });
 sightengine = { kind: 'ok', nudity: clean };
 assert.equal(await statusOf(await ask(`${USER}/avatar-1.jpg`, 'user-token', 'profile-images')), 'approved');

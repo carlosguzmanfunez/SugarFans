@@ -8,7 +8,7 @@ import { createDbTest } from './db-harness.mjs';
 const DB = 'fr_moderation_test';
 const { check, expect, psql, as, raises, setup, user, finish } = createDbTest(DB);
 
-const URL_BASE = 'https://x.supabase.co/storage/v1/object/public/profile-images/';
+const URL_BASE = 'https://odugxvqwuvewsvifwmwb.supabase.co/storage/v1/object/public/profile-images/';
 const upload = (bucket, path) => psql(DB, `insert into storage.objects (bucket_id, name) values ('${bucket}', '${path}')`);
 const submit = (uid, bucket, path, kind, type, url = '') =>
   as(uid, `select public.submit_media('${bucket}', '${path}', '${kind}', '${type}', '${url}')`);
@@ -105,5 +105,35 @@ finish(async () => {
   await check('Quitar la foto o cambiar otros datos sigue funcionando', async () => {
     as(lola, `update public.profiles set avatar = '', bio = 'hola' where id = '${lola}'`);
     expect(psql(DB, `select bio from public.profiles where id = '${lola}'`) === 'hola', 'no guardó');
+  });
+
+  await check('Una publicación no se puede pasar al archivo ni al perfil de otro creador', async () => {
+    const ajeno = `${otra}/privado.mp4`;
+    upload('post-media', ajeno);
+    submit(otra, 'post-media', ajeno, 'post', 'video');
+    scanSays('post-media', ajeno, 'approved');
+    const id = post(lola, 'gratis', `${lola}/foto.jpg`);
+    raises(() => as(lola, `update public.creator_posts set media_path = '${ajeno}', is_locked = false where id = '${id}'`), /Archivo no válido/, 'cambiar al archivo ajeno');
+    const otraProfile = psql(DB, `select creator_profile_id from public.profiles where id = '${otra}'`);
+    as(lola, `update public.creator_posts set creator_profile_id = '${otraProfile}', creator_id = '${otra}', content = 'gratis2' where id = '${id}'`);
+    expect(psql(DB, `select creator_id || '|' || creator_profile_id from public.creator_posts where id = '${id}'`) === `${lola}|${psql(DB, `select creator_profile_id from public.profiles where id = '${lola}'`)}`, 'se movió de autor o perfil');
+    expect(canReadFile(fan, ajeno) === '0' && anonSees('gratis2') === '1', 'el fan ve el archivo privado de otra creadora');
+  });
+  await check('Un archivo aprobado no se puede reemplazar por otro', async () => {
+    const path = `${lola}/avatar-1.jpg`;
+    expect(as(lola, `with u as (update storage.objects set metadata = '{"x":1}' where bucket_id = 'profile-images' and name = '${path}' returning 1) select count(*) from u`) === '0', 'pudo sobrescribir la foto aprobada');
+    psql(DB, `delete from storage.objects where bucket_id = 'profile-images' and name = '${path}'`);
+    raises(() => as(lola, `insert into storage.objects (bucket_id, name) values ('profile-images', '${path}')`), /row-level security/, 'volver a subir la foto con el mismo nombre');
+    const foto = `${lola}/foto.jpg`;
+    psql(DB, `delete from storage.objects where bucket_id = 'post-media' and name = '${foto}'`);
+    raises(() => as(lola, `insert into storage.objects (bucket_id, name) values ('post-media', '${foto}')`), /row-level security/, 'volver a subir el archivo con el mismo nombre');
+    as(lola, `insert into storage.objects (bucket_id, name) values ('post-media', '${lola}/nuevo.jpg')`);
+  });
+  await check('La foto de perfil solo puede ser nuestro enlace y de su propia carpeta', async () => {
+    const path = `${lola}/avatar-1.jpg`;
+    raises(() => submit(lola, 'profile-images', `${lola}/avatar-2.jpg`, 'avatar', 'image', 'https://malo.com/storage/v1/object/public/profile-images/' + `${lola}/avatar-2.jpg`), /no válido|No encontramos/, 'encolar enlace de otro sitio');
+    raises(() => as(lola, `update public.profiles set avatar = 'https://malo.com/storage/v1/object/public/profile-images/${path}' where id = '${lola}'`), /en revisión/, 'foto de otro sitio con la ruta aprobada');
+    raises(() => as(otra, `update public.profiles set avatar = '${URL_BASE + path}' where id = '${otra}'`), /en revisión/, 'usar la foto aprobada de otra persona');
+    as(lola, `update public.profiles set avatar = '${URL_BASE + path}' where id = '${lola}'`);
   });
 });
