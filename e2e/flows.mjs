@@ -1043,7 +1043,7 @@ const run = async () => {
     await check('Admin ve los documentos, rechaza con motivo, el creador reenvía y el admin aprueba', async () => {
       await logoutViaMenu(page);
       await login(page, 'admin@sugarfans.com', 'demo1234');
-      await waitPath(page, '/');
+      await waitPath(page, '/admin');
       await page.goto(`${BASE}/admin`);
       await openAdminSection(page, 'verifications');
       const list = page.getByTestId('admin-verifications');
@@ -1071,7 +1071,7 @@ const run = async () => {
       await page.getByText('Solicitud en revisión').waitFor();
       await logoutViaMenu(page);
       await login(page, 'admin@sugarfans.com', 'demo1234');
-      await waitPath(page, '/');
+      await waitPath(page, '/admin');
       await page.goto(`${BASE}/admin`);
       await openAdminSection(page, 'verifications');
       await list.locator('div.p-4', { hasText: 'Lola Creadora' }).getByRole('button', { name: /Revisar documentos/ }).click();
@@ -1407,7 +1407,7 @@ const run = async () => {
     await check('Admin solo consulta los retiros: sin botones de pagar o rechazar', async () => {
       await logoutViaMenu(page);
       await login(page, 'admin@sugarfans.com', 'demo1234');
-      await waitPath(page, '/');
+      await waitPath(page, '/admin');
       await page.goto(`${BASE}/admin`);
       await openAdminSection(page, 'payouts');
       const box = page.getByTestId('admin-payouts');
@@ -1479,7 +1479,7 @@ const run = async () => {
     await check('Admin ve las cuentas reales y puede buscarlas', async () => {
       await logoutViaMenu(page);
       await login(page, 'admin@sugarfans.com', 'demo1234');
-      await waitPath(page, '/');
+      await waitPath(page, '/admin');
       await page.goto(`${BASE}/admin`);
       await openAdminSection(page, 'users');
       await page.getByText(creatorEmail).waitFor();
@@ -1494,7 +1494,7 @@ const run = async () => {
     });
     await check('Admin suspende una cuenta: no puede entrar hasta que se la quita, y queda en el historial', async () => {
       await login(page, 'admin@sugarfans.com', 'demo1234');
-      await waitPath(page, '/');
+      await waitPath(page, '/admin');
       await page.goto(`${BASE}/admin`);
       await openAdminSection(page, 'users');
       await page.fill('input[placeholder="Nombre o correo"]', fanEmail);
@@ -1511,7 +1511,7 @@ const run = async () => {
       await login(page, fanEmail, 'nueva-clave-2');
       await page.getByText(/Tu cuenta está suspendida/).waitFor();
       await login(page, 'admin@sugarfans.com', 'demo1234');
-      await waitPath(page, '/');
+      await waitPath(page, '/admin');
       await page.goto(`${BASE}/admin`);
       await openAdminSection(page, 'users');
       await page.fill('input[placeholder="Nombre o correo"]', fanEmail);
@@ -2390,7 +2390,7 @@ const run = async () => {
     let specialUrl = '';
     await check('El admin crea un link de cuenta especial y lo puede copiar', async () => {
       await login(sa, 'admin@sugarfans.com', 'demo1234', { remember: false });
-      await waitPath(sa, '/');
+      await waitPath(sa, '/admin');
       await sa.goto(`${BASE}/admin`);
       await openAdminSection(sa, 'special');
       const box = sa.getByTestId('special-admin');
