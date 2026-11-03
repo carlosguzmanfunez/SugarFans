@@ -47,7 +47,15 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
       .select('id, creator_id, creator_profile_id, content, is_locked, created_at, media_path, media_type, is_draft')
       .eq('creator_profile_id', creatorProfileId)
       .order('created_at', { ascending: false });
-    const rows = data ?? [];
+    // Locked posts this viewer can't open come without text or file: shown as locked cards.
+    const { data: previews } = await sb.rpc('locked_post_previews', { p_creator_profile_id: creatorProfileId });
+    const seen = new Set((data ?? []).map((r) => r.id));
+    const rows: Row[] = [
+      ...((data ?? []) as Row[]),
+      ...((previews ?? []) as Row[])
+        .filter((r) => !seen.has(r.id))
+        .map((r): Row => ({ ...r, content: '', media_path: null, is_draft: false })),
+    ].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
     const paths = rows.map((r) => r.media_path).filter(Boolean) as string[];
     // Storage only signs files this viewer may see (locked posts need a subscription).
     const signed = new Map<string, string>();
@@ -77,19 +85,10 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
   },
 
   async recentPosts(sinceIso) {
-    // The read policy already leaves out drafts and media still waiting for moderation.
-    const { data } = await sb
-      .from('creator_posts')
-      .select('creator_profile_id, created_at')
-      .gte('created_at', sinceIso)
-      .order('created_at', { ascending: false })
-      .limit(2000);
+    // Published posts only (no drafts or media waiting for moderation), locked ones included.
+    const { data } = await sb.rpc('recent_post_counts', { p_since: sinceIso });
     const out: Record<string, { count: number; last: string }> = {};
-    for (const r of data ?? []) {
-      const cur = out[r.creator_profile_id];
-      if (cur) cur.count += 1;
-      else out[r.creator_profile_id] = { count: 1, last: r.created_at };
-    }
+    for (const r of (data ?? []) as Row[]) out[r.creator_profile_id] = { count: r.posts, last: r.last_post };
     return out;
   },
 

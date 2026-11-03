@@ -275,7 +275,7 @@ const Explore: React.FC = () => {
                   )}
                 </div>
                 <div className="p-4">
-                  <p className="text-sm text-gray-700">{post.content}</p>
+                  {!post.isLocked && <p className="text-sm text-gray-700">{post.content}</p>}
                   {/* Likes, comments and tips happen on the post itself, in the creator's
                       profile (where they are wired): each action opens it there. */}
                   <div className="flex items-center space-x-6 mt-3 text-gray-500">
