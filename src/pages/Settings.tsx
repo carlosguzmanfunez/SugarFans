@@ -29,6 +29,7 @@ import ProfileImageButton from '../components/ProfileImageButton';
 import BecomeCreatorCard from '../components/BecomeCreatorCard';
 import TikTokConnectCard from '../components/TikTokConnectCard';
 import PushOptIn from '../components/PushOptIn';
+import TwoFactorSettings from '../components/TwoFactorSettings';
 import { EMPTY_AVATAR, avatarOrEmpty } from '../lib/backend/shared';
 import { backend } from '../lib/backend';
 import { useCreatorSetup } from '../hooks/useCreatorSetup';
@@ -404,6 +405,9 @@ const Settings: React.FC = () => {
                     Actualizar contraseña
                   </button>
                   )}
+                  <div className="border-t border-gray-100 pt-6">
+                    <TwoFactorSettings />
+                  </div>
                 </div>
               </div>
             )}

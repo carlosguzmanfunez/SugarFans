@@ -248,6 +248,39 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
     prospects: createSupabaseProspects(sb),
     live: createSupabaseLive(sb, url, anonKey),
 
+    // Two-step verification with an authenticator app (Settings > Seguridad).
+    mfa: {
+      async status() {
+        const [{ data: factors }, { data: level }] = await Promise.all([
+          sb.auth.mfa.listFactors(),
+          sb.auth.mfa.getAuthenticatorAssuranceLevel(),
+        ]);
+        const factor = factors?.totp?.find((f) => f.status === 'verified') ?? null;
+        return { enabled: !!factor, factorId: factor?.id ?? null, needsCode: !!factor && level?.currentLevel !== 'aal2' };
+      },
+      async enroll() {
+        // A half-finished setup would block a new one with the same name.
+        const { data: factors } = await sb.auth.mfa.listFactors();
+        for (const f of factors?.all ?? []) if (f.status !== 'verified') await sb.auth.mfa.unenroll({ factorId: f.id });
+        const { data, error } = await sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: BRAND.name });
+        if (error || !data) return { ok: false, error: 'No se pudo activar la verificación en dos pasos. Inténtalo de nuevo.' };
+        return { ok: true, factorId: data.id, qr: data.totp.qr_code, secret: data.totp.secret };
+      },
+      async verify(factorId, code) {
+        const clean = code.replace(/\s+/g, '');
+        if (!/^\d{6}$/.test(clean)) return { ok: false, error: 'Escribe los 6 números que muestra tu app.' };
+        const { error } = await sb.auth.mfa.challengeAndVerify({ factorId, code: clean });
+        if (error) return { ok: false, error: /rate|too many/i.test(error.message) ? 'Demasiados intentos. Espera unos minutos y vuelve a intentarlo.' : 'El código no es correcto o ya cambió. Usa el código que muestra ahora tu app.' };
+        return { ok: true };
+      },
+      async disable(factorId) {
+        const { error } = await sb.auth.mfa.unenroll({ factorId });
+        if (error) return { ok: false, error: 'Para desactivarla, entra con tu código de la app y vuelve a intentarlo.' };
+        await sb.auth.refreshSession();
+        return { ok: true };
+      },
+    },
+
     async getCurrentUser() {
       const { data: sessionData } = await sb.auth.getSession();
       const uid = sessionData.session?.user.id;

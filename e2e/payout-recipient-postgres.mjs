@@ -97,9 +97,34 @@ finish(async()=>{
   await waitFor("select exists(select 1 from pg_stat_activity where datname=current_database() and application_name='fr-manual-recipient' and wait_event='advisory')");
   // No DECLARE initializer may read/lock the profile before the book lock.
   assert.equal(psql(DB,"select exists(select 1 from pg_locks l join pg_stat_activity a on a.pid=l.pid where a.application_name='fr-manual-recipient' and l.relation='public.profiles'::regclass and l.mode='RowShareLock')"),'f');
-  const payout=JSON.parse(await withdrawing);await changed;
+  // It waited for the change, so it sees it: a new PayPal account pauses withdrawals 48 hours.
+  const refused=await withdrawing.then(()=>null,e=>e);await changed;
+  assert.match(String(refused?.message),/hace poco/);
+  assert.equal(psql(DB,"select count(*) from email_outbox where user_id="+lit(who)+" and subject='Cambiaste tu cuenta PayPal de retiro'"),'1');
+  // 49 hours later the withdrawal goes to the new account, which then stays fixed.
+  psql(DB,"create or replace function pg_catalog.now() returns timestamptz language sql stable as $$select '2026-10-28T13:00:00Z'::timestamptz$$");
+  const payout=JSON.parse(psql(DB,"set role service_role;"+call('paypal_payout_begin',[who,'sandbox','CLIENT-RACE'])));
   assert.equal(psql(DB,"select request_body#>>'{items,0,receiver}' from paypal_payout_submissions where payout_id="+lit(payout.id)),'after-race@example.invalid');
   raises(()=>save(who,'another@example.invalid',2),/retiro iniciado/,'withdrawal retains recipient');
   assert.equal(psql(DB,'select execution_enabled from finance_private.automation_settings'),'f');
+ });
+ await check('Account security: first account sends no alert; a session without its code is not admin and cannot change the account',()=>{
+  const who=user('mfa-creator@example.invalid','creator');psql(DB,'update auth.users set email_confirmed_at=now() where id='+lit(who));
+  save(who,'first-mfa@example.invalid',0);
+  assert.equal(psql(DB,"select count(*) from email_outbox where user_id="+lit(who)),'0');
+  assert.equal(psql(DB,"select finance_private.payout_hold_until("+lit(who)+") is null"),'t');
+  psql(DB,"create table if not exists auth.mfa_factors(id uuid primary key default gen_random_uuid(),user_id uuid,status text)");
+  const claims=(uid,aal)=>`select set_config('request.jwt.claims','{"sub":"${uid}","aal":"${aal}"}',true) \\g /dev/null\n`;
+  const asAal=(uid,aal,q)=>psql(DB,`begin;\nset local role authenticated;\n${claims(uid,aal)}${q};\ncommit;`);
+  // Without a code everything works as before.
+  assert.equal(asAal(owner,'aal1','select public.is_admin()'),'t');
+  psql(DB,`insert into auth.mfa_factors(user_id,status) values(${lit(owner)},'verified'),(${lit(who)},'verified')`);
+  assert.equal(asAal(owner,'aal1','select public.is_admin()'),'f');
+  assert.equal(asAal(owner,'aal2','select public.is_admin()'),'t');
+  raises(()=>asAal(who,'aal1',call('payout_account_set',[randomUUID(),'second-mfa@example.invalid','second-mfa@example.invalid',1])),/código de tu app/,'aal1 change refused');
+  asAal(who,'aal2',call('payout_account_set',[randomUUID(),'second-mfa@example.invalid','second-mfa@example.invalid',1]));
+  assert.equal(psql(DB,"select count(*) from email_outbox where user_id="+lit(who)),'1');
+  assert.equal(psql(DB,"select body like '%48 horas%' from email_outbox where user_id="+lit(who)),'t');
+  psql(DB,`delete from auth.mfa_factors`);
  });
 });

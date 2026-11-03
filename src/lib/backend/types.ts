@@ -419,4 +419,23 @@ export interface Backend {
   prospects: ProspectsBackend;
   // Free Live state, the fans' bell and their notifications (see liveTypes.ts).
   live: LiveBackend;
+  // Two-step sign-in with an authenticator app (Supabase only; absent in the local store).
+  mfa?: MfaBackend;
+}
+
+export interface MfaStatus {
+  // A verified authenticator app is turned on for this account.
+  enabled: boolean;
+  factorId: string | null;
+  // This session still has to enter the code (the account has it on, the session doesn't).
+  needsCode: boolean;
+}
+
+export interface MfaBackend {
+  status(): Promise<MfaStatus>;
+  // Starts turning it on: the QR (SVG) and the secret to scan or type into the app.
+  enroll(): Promise<{ ok: true; factorId: string; qr: string; secret: string } | { ok: false; error: string }>;
+  // The 6-digit code: finishes turning it on, or unlocks this session.
+  verify(factorId: string, code: string): Promise<AuthResult>;
+  disable(factorId: string): Promise<AuthResult>;
 }

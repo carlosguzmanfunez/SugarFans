@@ -90,7 +90,7 @@ const CreatorPayouts: React.FC = () => {
      const payload=JSON.stringify([user.id,paypalEmail,confirmation,accountRevision]);
      if(accountRequest.current?.payload!==payload)accountRequest.current={payload,key:crypto.randomUUID()};
      const r = await setPayoutAccount(user, paypalEmail,{email:confirmation,expectedRevision:accountRevision,key:accountRequest.current.key});
-     setNotice(r.ok ? { ok: true, text: payoutAccount?'Cuenta PayPal actualizada. Los pagos preparados para la cuenta anterior se revisarán. Si un envío ya empezó, seguirá dirigido a la cuenta anterior.':'Cuenta PayPal guardada para recibir tus pagos.' } : { ok: false, text: r.error! });
+     setNotice(r.ok ? { ok: true, text: payoutAccount?'Cuenta PayPal actualizada. Por seguridad, te enviamos un correo y los retiros quedan en pausa 48 horas. Los pagos preparados para la cuenta anterior se revisarán. Si un envío ya empezó, seguirá dirigido a la cuenta anterior.':'Cuenta PayPal guardada para recibir tus pagos.' } : { ok: false, text: r.error! });
      if (r.ok){accountRequest.current=null;setEditingAccount(false);setConfirmedAccount(false);setPaypalEmail('');setConfirmedEmail('');setup.finish('payout','Cuenta PayPal guardada. Continúa con tus primeros pasos.');}
     }catch{setNotice({ok:false,text:'No pudimos confirmar el cambio. Vuelve a intentarlo con los mismos datos.'});}finally{setSavingAccount(false);}
   };

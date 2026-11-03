@@ -17,6 +17,7 @@ import ProspectInviteClaimer from './components/ProspectInviteClaimer';
 import { homeForRole } from './config/homes';
 import { openedFromRecoveryLink } from './lib/backend';
 import LaunchGate from './components/LaunchGate';
+import MfaGate from './components/MfaGate';
 import HandleLink from './pages/HandleLink';
 
 // Less visited pages load on demand, so the first visit downloads less.
@@ -279,8 +280,10 @@ function App() {
       <LanguageProvider>
         <LaunchGate>
           <AuthProvider>
-            <PlatformSync />
-            <AppRoutes />
+            <MfaGate>
+              <PlatformSync />
+              <AppRoutes />
+            </MfaGate>
           </AuthProvider>
         </LaunchGate>
       </LanguageProvider>

@@ -614,6 +614,13 @@ export async function POST(request: Request): Promise<Response> {
     creatorProfileId?: unknown;
     payoutId?: unknown;
   };
+  // A signed-in action that queued an email (e.g. a changed payout account) asks
+  // for it to go out now. It only sends what is already queued, to its own address.
+  if (body.action === 'deliver-mail') {
+    await deliverOutbox(e.serviceKey, 5);
+    return json(200, { ok: true });
+  }
+
   try {
     const ppToken = await paypalToken(e);
 
