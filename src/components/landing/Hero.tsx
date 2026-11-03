@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { HERO, HERO_EXPERIENCES } from '../../content/landing';
 import { useAuth } from '../../context/AuthContext';
-import { ENABLE_OPEN_LIVE } from '../../config/features';
 import Icon from '../Icon';
 import { ArrowRight, prefersReducedMotion } from './landingBits';
 
@@ -105,12 +104,12 @@ const Hero: React.FC = () => {
             {member ? (
               <>
                 <Link to={member.primary.to} className="v-btn v-pri magnet">{member.primary.label} <ArrowRight /></Link>
-                <Link to={member.secondary.to} className="v-btn v-ghost">{member.secondary.label}</Link>
+                <Link to={member.secondary.to} className="v-btn v-creators">{member.secondary.label}</Link>
               </>
             ) : (
               <>
-                <Link to="/register" className="v-btn v-pri magnet">{HERO.primaryCta} <ArrowRight /></Link>
-                <Link to={ENABLE_OPEN_LIVE ? '/explore?live=1' : HERO.secondaryTo} className="v-btn v-ghost">{ENABLE_OPEN_LIVE ? HERO.openLiveCta : HERO.secondaryCta}</Link>
+                <Link to="/reserve" className="v-btn v-pri magnet">{HERO.member.fan.primary.label} <ArrowRight /></Link>
+                <Link to="/register" className="v-btn v-ghost">{HERO.primaryCta}</Link>
               </>
             )}
           </div>

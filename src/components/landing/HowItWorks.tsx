@@ -1,39 +1,44 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { creators } from '../../data/mockData';
 import { HOW } from '../../content/landing';
-import { ArrowRight, clearAvatar } from './landingBits';
 
 // Independent options, rather than steps the fan has to complete in order.
 const options = [
   {
     key: 'subscription',
     title: 'Suscríbete',
-    description: 'Fotos, videos y publicaciones exclusivas de tu creador, cada mes.',
+    description: 'Accede cada mes a las fotos, videos y publicaciones exclusivas de tu creador.',
     action: 'Ver creadores',
     to: '/explore',
-    creatorId: '2',
   },
   {
     key: 'reserve',
     title: 'Reserve',
-    description: 'Videollamadas 1:1, eventos y actividades con fecha y precio definidos.',
+    description: 'Elige una videollamada, clase o evento que el creador ya publicó.',
     action: 'Explorar experiencias',
     to: '/reserve',
-    creatorId: '1',
   },
   {
     key: 'proposal',
     title: 'Propón tu experiencia',
-    description: 'Propón una idea, fecha y presupuesto. El creador responde y acuerdan los detalles.',
+    description: 'Envía tu propia idea al creador con la fecha y el presupuesto que tienes en mente.',
     action: 'Elegir creador',
     to: '/explore',
-    creatorId: '3',
   },
 ];
 
 const HowItWorks: React.FC = () => {
   const { hash } = useLocation();
+  const optionsRef = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const element = optionsRef.current;
+    if (!element || !('IntersectionObserver' in window)) return;
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.2 });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   // Preserve menu links without opening a panel or starting a timer.
   useEffect(() => {
@@ -53,25 +58,18 @@ const HowItWorks: React.FC = () => {
         <div className="j-head">
           <h2 id="how-title">{HOW.titleLead} <em>{HOW.titleAccent}</em></h2>
         </div>
-        <div className="journey-options" data-testid="journey-options">
-          {options.map((option) => {
-            const creator = creators.find((person) => person.id === option.creatorId) ?? creators[0];
-            const portrait = clearAvatar(creator.avatar);
-            return (
+        <div ref={optionsRef} className={`journey-options${inView ? ' is-in-view' : ''}`} data-testid="journey-options">
+          {options.map((option) => (
               <article key={option.key} id={option.key === 'subscription' ? 'suscribirse' : undefined} className={`journey-option journey-${option.key}`} aria-labelledby={`how-${option.key}`}>
                 <div className="journey-copy">
                   <h3 id={`how-${option.key}`}>{option.title}</h3>
                   <p>{option.description}</p>
                 </div>
-                <div className="journey-portrait" aria-hidden="true">
-                  <img src={portrait ?? creator.avatar} className={portrait ? 'cutout' : 'photo'} alt="" loading="lazy" decoding="async" />
-                </div>
                 <div className="journey-action">
-                  <Link to={option.to} className="v-btn">{option.action}<ArrowRight /></Link>
+                  <Link to={option.to} className="v-btn">{option.action}</Link>
                 </div>
               </article>
-            );
-          })}
+          ))}
         </div>
       </div>
     </section>

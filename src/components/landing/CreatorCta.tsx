@@ -69,10 +69,6 @@ const CreatorCta: React.FC = () => {
               ) : (
                 <img src={CREATOR_CTA.poster} alt="" loading="lazy" decoding="async" />
               )}
-              <div className="cta-done">
-                <i className="fa-solid fa-check"></i>
-                <span>{CREATOR_CTA.signupDone}</span>
-              </div>
             </div>
             {CREATOR_CTA.notifications.map((n) => (
               <div key={n.title} className="v-card cta-note">
