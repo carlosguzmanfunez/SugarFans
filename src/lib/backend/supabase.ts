@@ -214,6 +214,7 @@ const translateAuthError = (message: string): string => {
   if (/already registered|already exists/i.test(message)) return 'Ya existe una cuenta con este email';
   if (/email address .* is invalid|invalid email|email_address_invalid/i.test(message)) return 'Introduce un email válido';
   if (/email not confirmed/i.test(message)) return 'Confirma tu email antes de iniciar sesión (revisa tu bandeja de entrada)';
+  if (/different from the old password|same_password/i.test(message)) return 'La contraseña nueva debe ser distinta de la que ya tenías';
   if (/password/i.test(message) && /least|short|weak/i.test(message)) return 'La contraseña es demasiado débil';
   if (/fetch|network|load failed/i.test(message)) return 'No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.';
   if (/rate limit|too many/i.test(message)) return 'Demasiados intentos. Espera unos minutos y vuelve a intentarlo.';

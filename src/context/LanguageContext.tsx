@@ -59,6 +59,7 @@ const translations: Record<Language, Record<string, string>> = {
     // Login
     'login.title': 'Bienvenido de vuelta',
     'login.subtitle': 'Inicia sesión en tu cuenta',
+    'login.passwordChanged': 'Tu contraseña se cambió correctamente. Entra con la nueva.',
     'login.email': 'Correo electrónico',
     'login.password': 'Contraseña',
     'login.remember': 'Recordarme',
@@ -210,6 +211,7 @@ const translations: Record<Language, Record<string, string>> = {
     // Login
     'login.title': 'Welcome back',
     'login.subtitle': 'Log in to your account',
+    'login.passwordChanged': 'Your password was changed. Sign in with the new one.',
     'login.email': 'Email address',
     'login.password': 'Password',
     'login.remember': 'Remember me',
@@ -361,6 +363,7 @@ const translations: Record<Language, Record<string, string>> = {
     // Login
     'login.title': 'Bem-vindo de volta',
     'login.subtitle': 'Entre na sua conta',
+    'login.passwordChanged': 'Sua senha foi alterada. Entre com a nova.',
     'login.email': 'Endereço de email',
     'login.password': 'Senha',
     'login.remember': 'Lembrar-me',
@@ -512,6 +515,7 @@ const translations: Record<Language, Record<string, string>> = {
     // Login
     'login.title': 'Bienvenue',
     'login.subtitle': 'Connectez-vous à votre compte',
+    'login.passwordChanged': 'Votre mot de passe a été modifié. Connectez-vous avec le nouveau.',
     'login.email': 'Adresse email',
     'login.password': 'Mot de passe',
     'login.remember': 'Se souvenir de moi',
@@ -663,6 +667,7 @@ const translations: Record<Language, Record<string, string>> = {
     // Login
     'login.title': 'Bentornato',
     'login.subtitle': 'Accedi al tuo account',
+    'login.passwordChanged': 'La password è stata cambiata. Accedi con quella nuova.',
     'login.email': 'Indirizzo email',
     'login.password': 'Password',
     'login.remember': 'Ricordami',
