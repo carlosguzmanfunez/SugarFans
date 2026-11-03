@@ -7,12 +7,14 @@ import Avatar from '../components/Avatar';
 import { CoverImage } from '../components/CoverArt';
 import { categoryFor, isKnownCategory } from '../config/reserve';
 import { featuredFirst, rewardsApi, useFeatured } from '../lib/rewards';
+import { socialApi } from '../lib/social';
+import { byTrending, TRENDING_WINDOW_DAYS } from '../lib/trending';
 import { useAuth } from '../context/AuthContext';
 import { usePlatformQuery, platformApi, isCutOff } from '../lib/platform';
 import { useLiveCreatorIds } from '../lib/live';
 import { CategoryRail, LiveRail } from '../components/AppRails';
 import { CategoryHeader } from '../components/CategoryHeader';
-import { ExploreHeading, NewActivity } from '../components/ExploreActivity';
+import { ExploreHeading } from '../components/ExploreActivity';
 import { ENABLE_OPEN_LIVE } from '../config/features';
 import { useLanguage } from '../context/LanguageContext';
 import { countryName } from '../config/countries';
@@ -24,6 +26,12 @@ const Explore: React.FC = () => {
   const featuredIds = new Map(featured.map((f) => [f.creatorProfileId, f.level]));
   const rising = new Set(featured.filter((f) => f.reason === 'rising').map((f) => f.creatorProfileId));
   const { data: newFans } = usePlatformQuery(() => rewardsApi.monthlyNewFans(), [], {} as Record<string, number>);
+  // Posts of the last 7 days, for the "En tendencia" order.
+  const { data: recentPosts } = usePlatformQuery(
+    () => socialApi.recentPosts(new Date(Date.now() - TRENDING_WINDOW_DAYS * 86400000).toISOString()),
+    [],
+    {} as Record<string, { count: number; last: string }>
+  );
   const vipIds = useVipCreatorIds();
   const [params] = useSearchParams();
   const { data: platform } = usePlatformQuery(
@@ -58,7 +66,21 @@ const Explore: React.FC = () => {
   const visibleCreators = creators.filter((c) => !hidden(c.id));
   const liveIds = useLiveCreatorIds(visibleCreators.map((c) => c.id));
 
-  const filteredCreators = featuredFirst(creators, featured).filter(c => {
+  // Catalogue (demo) posts count as activity too.
+  const weekAgo = new Date(Date.now() - TRENDING_WINDOW_DAYS * 86400000).toISOString();
+  const recent = { ...recentPosts };
+  for (const p of visiblePosts) {
+    if (p.createdAt < weekAgo) continue;
+    const cur = recent[p.creatorId];
+    recent[p.creatorId] = { count: (cur?.count ?? 0) + 1, last: cur && cur.last > p.createdAt ? cur.last : p.createdAt };
+  }
+  const categoryOf = new Map(creators.map((c) => [c.id, c.category ? categoryFor(c.category).id : undefined]));
+  // One list, "En tendencia": posted this week, new fans or sales this month, top 3 of
+  // their category and the Recompensas boosts (Destacado / En ascenso) earn points.
+  // Nobody disappears: whoever has no activity yet simply follows.
+  const ranked = byTrending(featuredFirst(creators, featured), { recent, newFans, featured, categoryOf: (id) => categoryOf.get(id) });
+
+  const filteredCreators = ranked.filter(c => {
     if (hidden(c.id)) return false;
     const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.username.toLowerCase().includes(searchQuery.toLowerCase());
@@ -79,10 +101,6 @@ const Explore: React.FC = () => {
   const usedCategories = new Set<string>(visibleCreators.filter((c) => c.category).map((c) => categoryFor(c.category).id));
   const railCategories = categories.filter((c) => usedCategories.has(c.id) || c.name === selectedCategory);
 
-  // Featured and the latest posts show while browsing everyone or one category;
-  // a search or a country goes straight to the matching creators.
-  const showActivity = !searchQuery && !selectedCountry && !liveOnly;
-  const featuredHere = filteredCreators.filter((c) => featuredIds.has(c.id)).slice(0, 4);
   const tile = (creator: (typeof creators)[number]) => (
     <CreatorTile
       key={creator.id}
@@ -212,31 +230,21 @@ const Explore: React.FC = () => {
           </section>
         )}
 
-        {/* Destacados and Lo nuevo (of everyone, or of the picked category); then every
-            other creator as a small tile, two per row on a phone. */}
-        {viewMode === 'creators' && showActivity && featuredHere.length > 0 && (
-          <section aria-labelledby="featured-title" className="mb-8 sm:mb-10" data-testid="explore-featured">
-            <ExploreHeading id="featured-title" title={selectedCategory ? `Destacados en ${categoryFor(selectedCategory).name}` : 'Perfiles destacados'} icon="fa-star" tone="text-gold-600" />
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">{featuredHere.map(tile)}</div>
-          </section>
-        )}
-
-        {viewMode === 'creators' && showActivity && (
-          <NewActivity
-            creators={filteredCreators}
-            catalogPosts={visiblePosts}
-            removedPosts={platform.removedPosts}
-            title={selectedCategory ? `Lo nuevo en ${categoryFor(selectedCategory).name}` : 'Lo nuevo'}
-          />
-        )}
-
+        {/* En tendencia: the only list. Search, category and country filter it. */}
         {viewMode === 'creators' && (
-          <section aria-labelledby={showActivity ? 'all-creators-title' : undefined}>
-            {showActivity && (
-              <ExploreHeading id="all-creators-title" title={featuredHere.length ? 'Descubre más creadores' : 'Todos los creadores'} icon="fa-users" />
+          <section aria-labelledby={liveOnly ? undefined : 'trending-title'} data-testid="explore-trending">
+            {!liveOnly && (
+              <>
+                <ExploreHeading
+                  id="trending-title"
+                  title={selectedCategory ? t('explore.trendingIn').replace('{category}', categoryFor(selectedCategory).name) : t('explore.trending')}
+                  icon="fa-fire"
+                />
+                <p className="-mt-2 mb-4 text-xs text-muted sm:text-sm">{t('explore.trendingHint')}</p>
+              </>
             )}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5" data-testid="explore-mosaic">
-              {(showActivity ? filteredCreators.filter((c) => !featuredHere.includes(c)) : filteredCreators).map(tile)}
+              {filteredCreators.map(tile)}
             </div>
           </section>
         )}
