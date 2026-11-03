@@ -12,6 +12,7 @@ import {
   founderCheck,
   founderStateOf,
   inviteBonusFor,
+  inviteCapMonth,
   inviteWindow,
   levelFor,
   medalsFor,
@@ -152,7 +153,7 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
 
     // Paid subscriptions, renewals, tips and Reserve of an invited creator during the
     // 6 bonus months get a bonus row for the creator who invited them (5% of the net, at most
-    // $100 per invited creator); the row follows the sale if it is refunded.
+    // $100 a month per invited creator); the row follows the sale if it is refunded.
     withInviteBonuses(transactions) {
       const all = invites();
       if (!all.length) return transactions;
@@ -168,7 +169,8 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
       for (const t of transactions) {
         if (t.kind !== 'referral' || t.status !== 'paid') continue;
         const sale = byId.get(t.key.slice('bonus:'.length));
-        if (sale) paidSoFar.set(sale.creatorProfileId, (paidSoFar.get(sale.creatorProfileId) ?? 0) + t.amount);
+        const k = sale && `${sale.creatorProfileId}|${inviteCapMonth(sale.createdAt)}`;
+        if (k) paidSoFar.set(k, (paidSoFar.get(k) ?? 0) + t.amount);
       }
       const added: Row[] = [];
       for (const t of [...transactions].sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
@@ -177,9 +179,11 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
         const window = inv && inviteWindow(inv, q);
         // The sale that completes the qualification earns nothing (same in the database).
         if (!inv || !window || t.createdAt <= window.from || t.createdAt >= window.until) continue;
-        const amount = inviteBonusFor(t, paidSoFar.get(t.creatorProfileId) ?? 0);
+        // The $100 cap counts per invited creator and calendar month.
+        const k = `${t.creatorProfileId}|${inviteCapMonth(t.createdAt)}`;
+        const amount = inviteBonusFor(t, paidSoFar.get(k) ?? 0);
         if (amount < 0.01) continue;
-        paidSoFar.set(t.creatorProfileId, (paidSoFar.get(t.creatorProfileId) ?? 0) + amount);
+        paidSoFar.set(k, (paidSoFar.get(k) ?? 0) + amount);
         added.push({
           id: `bonus-${t.id}`,
           key: `bonus:${t.id}`,

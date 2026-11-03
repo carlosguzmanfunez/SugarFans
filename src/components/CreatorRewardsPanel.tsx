@@ -151,7 +151,7 @@ const CreatorRewardsPanel: React.FC<{ onOpenInvites?: () => void }> = ({ onOpenI
         </div>
         <p className="text-sm text-gray-500 mb-4">
           Tu bono empieza cuando el creador que invitaste verifica su identidad y llega a ${CREATOR_INVITE_QUALIFY} en ventas.
-          Durante los {CREATOR_INVITE_MONTHS} meses siguientes ganas el {pct(CREATOR_INVITE_BONUS)} de lo que queda después del costo de PayPal en sus suscripciones, renovaciones, propinas y Reserve, hasta ${CREATOR_INVITE_CAP} en total por cada creador invitado.
+          Durante los {CREATOR_INVITE_MONTHS} meses siguientes ganas el {pct(CREATOR_INVITE_BONUS)} de lo que queda después del costo de PayPal en sus suscripciones, renovaciones, propinas y Reserve, hasta ${CREATOR_INVITE_CAP} al mes por cada creador invitado.
           {' '}{BRAND.name} lo paga de su propia parte: no se le quita dinero al creador que invitaste.
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
