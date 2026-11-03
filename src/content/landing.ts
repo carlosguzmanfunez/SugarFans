@@ -55,7 +55,7 @@ export const HERO_EXPERIENCES = [
     badge: 'Suscripción mensual',
     icon: 'fa-star',
     image: '/hero-experiences/exclusive-content.webp',
-    alt: 'Una creadora posa de viaje como si sostuviera la Torre de Pisa con la mano.',
+    alt: 'Una creadora con vestido lavanda y sombrero de playa junto al mar de agua cristalina.',
     action: 'Ver creadores',
     to: '/explore',
   },
