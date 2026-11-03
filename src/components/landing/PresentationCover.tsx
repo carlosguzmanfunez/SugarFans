@@ -176,7 +176,7 @@ const PresentationCover: React.FC = () => {
             Paga en <b>Créditos</b>
           </span>
           <span>
-            El creador acepta, <b>luego pagas</b>
+            El creador acepta y <b>se genera tu Reserve</b>
           </span>
         </p>
       </div>
