@@ -229,7 +229,7 @@ export const ledger = (txs: Transaction[], coins: CoinPurchase[], payouts: Payou
 // The ledger as a CSV file for the accountant.
 export const ledgerCsv = (rows: LedgerRow[]) => {
   const q = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
-  const head = ['Fecha Honduras (UTC-6)', 'Tipo', 'Quién', 'Monto USD', 'Comisión PayPal', 'Parte creador', 'Fans Reserve', 'Estado'];
+  const head = ['Fecha Fans Reserve (UTC-6)', 'Tipo', 'Quién', 'Monto USD', 'Comisión PayPal', 'Parte creador', 'Fans Reserve', 'Estado'];
   return [head, ...rows.map((r) => [hondurasTimestamp(r.at), r.type, r.who, r.amount.toFixed(2), r.fee.toFixed(2), r.creator.toFixed(2), r.platform.toFixed(2), r.status])]
     .map((line) => line.map(q).join(','))
     .join('\n');

@@ -152,7 +152,7 @@ try {
   assert.deepEqual(r.periodRange('month',at),['2026-10-01T06:00:00.000Z',null]);
   assert.deepEqual(r.periodRange('cycle',at),['2026-09-26T06:00:00.000Z','2026-10-26T06:00:00.000Z']);
   const csv=r.ledgerCsv([{at:'2026-10-19T03:00:00Z',type:'Test',who:'Test',amount:1,fee:0,creator:.8,platform:.2,status:'paid'}]);
-  assert.match(csv,/Fecha Honduras/); assert.match(csv,/2026-10-18T21:00:00.000-06:00/);
+  assert.match(csv,/Fecha Fans Reserve/); assert.match(csv,/2026-10-18T21:00:00.000-06:00/);
  });
  await check('Leer el calendario demo no vuelve a escribir ni provoca ciclos entre pestañas',async()=>{
   const old=Object.getOwnPropertyDescriptor(globalThis,'localStorage'); const values=new Map(); let writes=0;

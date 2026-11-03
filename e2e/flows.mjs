@@ -1298,7 +1298,7 @@ const run = async () => {
       const available = (await readAmount(page, 'available-balance'));
       const pending = (await readAmount(page, 'pending-balance'));
       expect(Math.abs(available + pending - 21.96) < 0.02, `total inesperado: ${available} + ${pending}`);
-      await page.getByTestId('earnings-cycle').getByText(/Hora de Honduras/).waitFor();
+      await page.getByTestId('earnings-cycle').getByText(/Hora de Fans Reserve \(UTC−6\)/).waitFor();
       await page.getByTestId('payout-window').getByText(/Ventana de pago abierta/).waitFor();
       await page.getByText('+$7.32').first().waitFor();
     });

@@ -64,7 +64,7 @@ const SpecialAccountsAdmin: React.FC<{ accounts: User[]; transactions: Transacti
       expiresAt: form.expires ? new Date(`${form.expires}T23:59:59-06:00`).toISOString() : undefined,
     };
     setDecision({ title: 'Crear invitación con beneficios', person: form.label || 'El creador que utilice esta invitación',
-      effect: `${terms(input)}. Permite ${input.maxUses} uso(s). ${form.expires ? `Vence el ${form.expires} a las 11:59 p. m. de Honduras.` : 'No tiene fecha de vencimiento.'} Si incluye Reserve al neto, Fans Reserve no conservará comisión de esas ventas según este plan.`,
+      effect: `${terms(input)}. Permite ${input.maxUses} uso(s). ${form.expires ? `Vence el ${form.expires} a las 11:59 p. m., hora de Fans Reserve (UTC−6).` : 'No tiene fecha de vencimiento.'} Si incluye Reserve al neto, Fans Reserve no conservará comisión de esas ventas según este plan.`,
       after: 'No se enviará la invitación automáticamente. Podrás copiarla o revocarla; quien ya la haya utilizado conserva su plan hasta que lo revises por separado.',
       label: 'Confirmar invitación', run: async () => { const result = await specialApi.createInvite(input); if (result.ok) setForm(blank); return result; } });
   };

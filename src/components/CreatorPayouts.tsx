@@ -4,6 +4,7 @@ import PayoutCostBreakdown from './PayoutCostBreakdown';
 import CreatorCycleStatement from './CreatorCycleStatement';
 import CreatorCostAdjustments from './CreatorCostAdjustments';
 import CreatorCostRefundReviews from './CreatorCostRefundReviews';
+import CreatorMoneyGuide from './CreatorMoneyGuide';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -14,7 +15,6 @@ import {
   requestPayout,
   cancelPayout,
   money,
-  CREATOR_SHARE,
   creatorCut,
   MIN_PAYOUT,
   nextCreditDate,
@@ -22,7 +22,6 @@ import {
   payoutAccountLabel,
   type Payout,
 } from '../lib/platform';
-import { GIFT_SHARE } from '../lib/giftRules';
 import { rewardsApi } from '../lib/rewards';
 import { BRAND, displayPayer } from '../config/brand';
 import { displayGiftNote } from '../config/gifts';
@@ -91,9 +90,9 @@ const CreatorPayouts: React.FC = () => {
      const payload=JSON.stringify([user.id,paypalEmail,confirmation,accountRevision]);
      if(accountRequest.current?.payload!==payload)accountRequest.current={payload,key:crypto.randomUUID()};
      const r = await setPayoutAccount(user, paypalEmail,{email:confirmation,expectedRevision:accountRevision,key:accountRequest.current.key});
-     setNotice(r.ok ? { ok: true, text: payoutAccount?'Cuenta PayPal actualizada. Los apartados que tenían otro destinatario quedan para revisión; ningún envío iniciado cambia de cuenta.':'Cuenta PayPal guardada para recibir tus retiros.' } : { ok: false, text: r.error! });
+     setNotice(r.ok ? { ok: true, text: payoutAccount?'Cuenta PayPal actualizada. Los pagos preparados para la cuenta anterior se revisarán. Si un envío ya empezó, seguirá dirigido a la cuenta anterior.':'Cuenta PayPal guardada para recibir tus pagos.' } : { ok: false, text: r.error! });
      if (r.ok){accountRequest.current=null;setEditingAccount(false);setConfirmedAccount(false);setPaypalEmail('');setConfirmedEmail('');setup.finish('payout','Cuenta PayPal guardada. Continúa con tus primeros pasos.');}
-    }catch{setNotice({ok:false,text:'No recibimos la confirmación. Reintenta con los mismos datos para conservar la referencia.'});}finally{setSavingAccount(false);}
+    }catch{setNotice({ok:false,text:'No pudimos confirmar el cambio. Vuelve a intentarlo con los mismos datos.'});}finally{setSavingAccount(false);}
   };
 
   const withdraw = async () => {
@@ -114,39 +113,43 @@ const CreatorPayouts: React.FC = () => {
     <div className="space-y-6" data-testid="earnings" aria-busy={loading}>
       {notice && <Notice ok={notice.ok} text={notice.text} onClose={() => setNotice(null)} />}
       <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
-        <h3 className="font-bold text-gray-900 mb-1">Resumen de ingresos</h3>
-        <p className="text-sm text-gray-600 mb-3" data-testid="earnings-cycle">Ciclo actual: {fmtDate(cycle.start)} – {fmtDate(cycle.lastDay)}. Hora de Honduras (UTC−6).</p>
-        {calendar.data && calendar.data.legacyCutoff > cycle.start && <p className="text-xs text-gray-500 mb-3">Los importes ya acreditados antes de este calendario permanecen en el saldo de ciclos cerrados.</p>}
+        <h3 className="font-bold text-gray-900 mb-1">Tus ganancias</h3>
+        <p className="text-sm text-gray-600 mb-3" data-testid="earnings-cycle">Ciclo actual: {fmtDate(cycle.start)} – {fmtDate(cycle.lastDay)}. Hora de Fans Reserve (UTC−6).</p>
+        {calendar.data && calendar.data.legacyCutoff > cycle.start && <p className="text-xs text-gray-500 mb-3">Las ganancias que ya estaban disponibles antes de este calendario se conservan en tu saldo.</p>}
         {!calendar.loading && !calendar.data && <p role="alert" className="text-sm text-amber-800 mb-3">No pudimos confirmar el calendario de pagos. Actualiza la página antes de solicitar un pago.</p>}
         {!book.ready && <p role="status" className="text-sm text-amber-800 mb-3">Estamos confirmando tu saldo y lo apartado para pagos. <button className="underline" onClick={book.reload}>Actualizar saldo</button></p>}
-        {book.data && book.data.reserved>0 && <p className="text-sm bg-amber-50 text-amber-900 p-3 rounded-xl mb-3" data-testid="creator-batch-reserved">{money(book.data.reserved)} apartados para el lote de pago. Ese importe sigue siendo tuyo y ya está separado del saldo que puedes retirar manualmente.</p>}
-        <p className="text-sm text-gray-500 mb-4">Recibes el {CREATOR_SHARE * 100}% de lo que llega de cada pago después de la comisión de PayPal (más en Diamante y con los fans de tu enlace; {GIFT_SHARE * 100}% de los regalos). Los detalles están en Recompensas.</p>
+        {book.data && book.data.reserved>0 && <p className="text-sm bg-amber-50 text-amber-900 p-3 rounded-xl mb-3" data-testid="creator-batch-reserved">Ya apartamos {money(book.data.reserved)} para preparar tu pago. Sigue siendo dinero tuyo; no aparece en el saldo que puedes solicitar aquí para evitar pagarlo dos veces.</p>}
+        <p className="text-sm text-gray-600 mb-4">Estas cantidades ya muestran tu parte. El costo de cobrar al fan y la comisión de Fans Reserve ya se descontaron; no los descontamos otra vez al pedir tu pago.</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-green-50 rounded-xl p-4">
-            <p className="text-sm text-green-700">Disponible sin apartar · ciclos cerrados</p>
+            <p className="text-sm text-green-700">Listo para solicitar</p>
             <p className="text-2xl font-bold text-green-900" data-testid="available-balance">{calendar.data && book.ready ? money(earnings.available) : '—'}</p>
+            <p className="text-xs text-green-800 mt-1">De periodos que ya terminaron. Puedes solicitarlo en las fechas de pago, si cumples los requisitos de abajo.</p>
           </div>
           <div className="bg-blue-50 rounded-xl p-4">
-            <p className="text-sm text-blue-700">En acumulación · se acredita el {creditDay}</p>
+            <p className="text-sm text-blue-700">Lo que llevas en este periodo</p>
             <p className="text-2xl font-bold text-blue-900" data-testid="pending-balance">{calendar.data && book.ready ? money(earnings.pending) : '—'}</p>
+            <p className="text-xs text-blue-800 mt-1">Pasa al saldo de periodos terminados el {creditDay}. Después se aplican las revisiones y los requisitos de pago.</p>
           </div>
           <div className="bg-purple-50 rounded-xl p-4">
             <p className="text-sm text-purple-700">Total ganado</p>
             <p className="text-2xl font-bold text-purple-900">{book.ready?money(earnings.totalEarned):'—'}</p>
+            <p className="text-xs text-purple-800 mt-1">Incluye lo que ya cobraste. No es otro saldo para retirar.</p>
           </div>
         </div>
       </div>
 
+      <CreatorMoneyGuide />
+
       <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
-        <h3 className="font-bold text-gray-900 mb-1">Retirar saldo</h3>
-        <p className="text-sm text-gray-500 mb-4">
-          Tus ganancias se acumulan del 26 de cada mes al 25 del siguiente. Al comenzar el 26 se cierra ese ciclo y empieza uno nuevo.
-          La ventana de pago va del 26 al día 1 siguiente, ambos incluidos, en hora de Honduras (UTC−6).
-          Por ahora solicita aquí el saldo completo durante esa ventana, a partir de {money(terms.min)} USD, a tu cuenta PayPal (desde ahí puedes pasarlo a tu banco). Todo se paga en dólares (USD).
-          Tú cubres lo que PayPal cobra por enviar tu pago. Para envíos en USD desde nuestra cuenta de Honduras, calculamos el 2% de lo que recibirás, hasta USD 1 por pago.
-          Primero apartamos ese costo de tu saldo. Después comprobamos cuánto cobró PayPal: cualquier diferencia queda registrada a tu favor o a tu cargo. Un centavo que sobre por redondeo sigue siendo tuyo.
-        </p>
-        <p className="text-sm text-gray-700 mb-4" data-testid="payout-window">{window.open ? 'Ventana de pago abierta' : 'Próxima ventana de pago'}: {fmtDate(window.nextStart)} – {fmtDate(new Date(Date.parse(window.nextEnd) - 1).toISOString())}. Los saldos no pagados se conservan; las ganancias del nuevo ciclo se pagan en su próxima ventana.</p>
+        <h3 className="font-bold text-gray-900 mb-1">Recibir mi pago</h3>
+        <ol className="list-decimal pl-5 text-sm text-gray-700 space-y-2 mb-4 max-w-prose">
+          <li><strong>Acumula tus ganancias del 26 al 25 siguiente.</strong> Lo que ganes desde el siguiente 26 pasa a otro periodo.</li>
+          <li><strong>Solicita tu pago del 26 al día 1 siguiente.</strong> Por ahora debes pedirlo aquí. Se solicita todo el saldo disponible, desde {money(terms.min)}, en dólares (USD).</li>
+          <li><strong>Recíbelo en tu cuenta PayPal.</strong> El envío se descuenta de tu saldo: calculamos el 2% de lo que recibirás, con un máximo de USD 1 por pago en USD desde nuestra cuenta central de {BRAND.name}. Después comprobamos el cobro real. Si sobra un centavo por redondeo, sigue siendo tuyo.</li>
+        </ol>
+        <p className="text-xs text-gray-600 mb-4">Las fechas usan la hora de Fans Reserve (UTC−6). Desde tu PayPal puedes consultar cómo pasar el dinero a tu banco y qué costos aplica PayPal.</p>
+        <p className="text-sm text-gray-700 mb-4" data-testid="payout-window">{window.open ? 'Ya puedes solicitar el pago' : 'Próximas fechas para solicitar el pago'}: {fmtDate(window.nextStart)} – {fmtDate(new Date(Date.parse(window.nextEnd) - 1).toISOString())}. Si no cobras ahora, tu saldo se conserva. Lo que ganes en el periodo nuevo espera a sus propias fechas de pago.</p>
         {!!book.data?.holds?.length&&<div className="rounded-xl bg-amber-50 text-amber-900 p-3 mb-4 text-sm" data-testid="creator-payout-holds"><p className="font-medium">Tus retiros están en revisión</p><ul className="list-disc pl-5 mt-1">{book.data.holds.map(h=><li key={h.id}>{h.kind==='fee'?'Revisión del costo de un retiro':h.kind==='manual'?'Revisión administrativa de tu cuenta':'Comprobación de seguridad de pagos'}</li>)}</ul><p className="mt-2">El saldo permanece registrado. Puedes pedir una revisión a soporte; cada motivo se libera cuando termina su comprobación.</p></div>}
         {!verified && (
           <p className="text-sm bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl p-3 mb-4">
@@ -177,7 +180,7 @@ const CreatorPayouts: React.FC = () => {
             />
             {payoutAccount&&<>
             <label className="block text-sm">Confirma el correo de PayPal<input type="email" className={field+' mt-1'} autoComplete="off" value={confirmedEmail} disabled={savingAccount} onChange={e=>{setConfirmedEmail(e.target.value);setConfirmedAccount(false);}}/></label>
-            <p className="text-xs text-gray-500">Un retiro ya iniciado conserva su destinatario y debe terminar de conciliarse antes de cambiarlo. Los importes apartados que aún no se enviaron quedarán para revisión individual. Escribir el correo no confirma que PayPal haya verificado esa cuenta.</p>
+            <p className="text-xs text-gray-500">Si ya iniciamos un pago, seguirá dirigido a la cuenta anterior: primero debemos confirmar qué pasó con ese envío. Si habíamos apartado dinero sin enviarlo, revisaremos ese pago antes de usar el correo nuevo. Comprueba en PayPal que tu cuenta esté lista para recibir dinero.</p>
             <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={confirmedAccount} disabled={savingAccount} onChange={e=>setConfirmedAccount(e.target.checked)}/>Comprobé en PayPal que este es el correo donde quiero recibir mis próximos retiros.</label>
             </>}
             <p className="text-xs text-gray-500">
@@ -190,7 +193,7 @@ const CreatorPayouts: React.FC = () => {
             {payoutAccount&&<button type="button"disabled={savingAccount}onClick={()=>{setEditingAccount(false);setPaypalEmail('');setConfirmedEmail('');setConfirmedAccount(false);}}className="text-sm underline ml-3 disabled:opacity-40">Cancelar cambio</button>}
           </div>
         )}
-        {!!payoutAccount?.history?.length&&<details className="mb-4 text-xs text-gray-600"><summary className="cursor-pointer">Historial de cuenta receptora</summary><ul className="mt-2 space-y-1">{payoutAccount.history.map((h,n)=><li key={`${h.revision}-${n}`}>{fmtDate(h.at)} · {h.previous?`${h.previous} → `:'Cuenta registrada: '}{h.current}</li>)}</ul></details>}
+        {!!payoutAccount?.history?.length&&<details className="mb-4 text-xs text-gray-600"><summary className="cursor-pointer">Cambios de tu cuenta PayPal</summary><ul className="mt-2 space-y-1">{payoutAccount.history.map((h,n)=><li key={`${h.revision}-${n}`}>{fmtDate(h.at)} · {h.previous?`${h.previous} → `:'Cuenta registrada: '}{h.current}</li>)}</ul></details>}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <button
             type="button"
@@ -198,17 +201,17 @@ const CreatorPayouts: React.FC = () => {
             disabled={!canWithdraw}
             className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-5 py-3 rounded-xl text-sm font-medium hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {book.ready?`Retirar ${money(earnings.available)}`:'Confirmando saldo…'}
+            {book.ready?`Solicitar pago de ${money(earnings.available)}`:'Confirmando saldo…'}
           </button>
           {canWithdraw && <PayoutCostBreakdown balance={earnings.available}/>}
           {book.ready && !loading && window.open && calendar.data && earnings.available < terms.min && (
             <p className="text-xs text-gray-500">Podrás retirar cuando tu saldo disponible llegue a {money(terms.min)}.</p>
           )}
-          {!window.open && <p className="text-xs text-gray-500">Las solicitudes de pago se habilitan del 26 al 1, hora de Honduras.</p>}
+          {!window.open && <p className="text-xs text-gray-500">Las solicitudes de pago se habilitan del 26 al 1, hora de Fans Reserve (UTC−6).</p>}
         </div>
         {paid.length > 0 && (
           <div className="mt-6" data-testid="payouts">
-            <p className="text-sm font-semibold text-gray-900">Tus retiros</p>
+            <p className="text-sm font-semibold text-gray-900">Pagos a tu PayPal</p>
             <div className="divide-y divide-gray-100">
               {paid.map((p) => (
                 <div key={p.id} className="py-3 flex flex-wrap items-start gap-3 text-sm sm:flex-nowrap sm:items-center">

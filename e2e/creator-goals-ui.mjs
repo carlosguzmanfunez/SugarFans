@@ -118,7 +118,7 @@ try {
       await view.getByTestId('invite-how').getByText(/no por los que ellos inviten/).waitFor();
       assert.match(page.url(), /tab=invites/);
       if (shots) await page.screenshot({ path: join(shots, `${label}-2-mis-invitados.png`), fullPage: true });
-      await view.getByRole('button', { name: 'Recompensas' }).click();
+      await view.getByRole('button', { name: 'Beneficios' }).click();
       await page.getByTestId('rewards-panel').getByTestId('open-my-invites').click();
       await view.waitFor();
     });
