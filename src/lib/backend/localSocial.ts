@@ -103,6 +103,20 @@ export const createLocalSocial = (deps: Deps): SocialBackend => {
       return posts.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     },
 
+    async recentPosts(sinceIso) {
+      const out: Record<string, { count: number; last: string }> = {};
+      for (const a of deps.listAccounts()) {
+        for (const p of a.createdPosts) {
+          if (p.isDraft || p.createdAt < sinceIso) continue;
+          const id = p.creatorProfileId ?? a.creatorProfileId;
+          if (!id) continue;
+          const cur = out[id];
+          out[id] = { count: (cur?.count ?? 0) + 1, last: cur && cur.last > p.createdAt ? cur.last : p.createdAt };
+        }
+      }
+      return out;
+    },
+
     async engagement(postIds, viewer) {
       const s = load();
       return Object.fromEntries(

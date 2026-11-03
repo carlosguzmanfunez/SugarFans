@@ -76,6 +76,23 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
     );
   },
 
+  async recentPosts(sinceIso) {
+    // The read policy already leaves out drafts and media still waiting for moderation.
+    const { data } = await sb
+      .from('creator_posts')
+      .select('creator_profile_id, created_at')
+      .gte('created_at', sinceIso)
+      .order('created_at', { ascending: false })
+      .limit(2000);
+    const out: Record<string, { count: number; last: string }> = {};
+    for (const r of data ?? []) {
+      const cur = out[r.creator_profile_id];
+      if (cur) cur.count += 1;
+      else out[r.creator_profile_id] = { count: 1, last: r.created_at };
+    }
+    return out;
+  },
+
   async engagement(postIds) {
     if (!postIds.length) return {};
     const { data } = await sb.rpc('post_engagement', { p_post_ids: postIds });
