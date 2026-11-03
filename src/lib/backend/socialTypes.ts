@@ -109,6 +109,9 @@ export interface FollowState {
 
 export interface SocialBackend {
   postsByCreator(creatorProfileId: string): Promise<FeedPost[]>;
+  // Public: how many posts each creator published since `sinceIso` and when the
+  // newest went out (Explorar's "En tendencia" order).
+  recentPosts(sinceIso: string): Promise<Record<string, { count: number; last: string }>>;
   engagement(postIds: string[], viewer: User | null): Promise<Record<string, Engagement>>;
   setLike(user: User, postId: string, liked: boolean): Promise<AuthResult>;
   comments(postId: string): Promise<PostComment[]>;
