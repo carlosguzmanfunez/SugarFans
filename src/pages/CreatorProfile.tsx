@@ -55,7 +55,7 @@ const formatShortDay = (iso: string) => new Date(iso).toLocaleDateString('es', {
 const CreatorProfile: React.FC = () => {
   const setup = useCreatorSetup();
   const { id } = useParams();
-  const { isAuthenticated, user, isSubscribed: hasSubscription, toggleSubscription, cancelSubscription, subscriptionOf, refreshUser, deletePost } = useAuth();
+  const { isAuthenticated, user, isSubscribed: hasSubscription, cancelSubscription, subscriptionOf, refreshUser, deletePost } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<'posts' | 'media' | 'about'>('posts');
@@ -300,7 +300,8 @@ const CreatorProfile: React.FC = () => {
     }
     if (!window.confirm(`¿Bloquear a ${creator.name}? No podrá contactarte ni ver tu actividad, dejarás de ver su contenido y se cancelará tu suscripción.`)) return;
     await blockUser(user, creator.id, creator.name);
-    if (hasSubscription(creator.id)) await toggleSubscription(creator.id, creator.subscriptionPrice);
+    // Through PayPal too: deleting the row alone would leave PayPal charging.
+    if (hasSubscription(creator.id)) await cancelSubscription(creator.id);
   };
 
   if (blockedMe) {

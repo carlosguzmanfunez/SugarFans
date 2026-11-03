@@ -113,8 +113,8 @@ export async function GET(): Promise<Response> {
     provider: 'sightengine',
     checks: {
       apiUser: e.apiUser ? 'OK' : 'FALTA',
-      apiSecret: e.apiSecret ? `${e.apiSecret.length} caracteres` : 'FALTA',
-      serviceRoleKey: e.serviceKey ? `${e.serviceKey.length} caracteres` : 'FALTA',
+      apiSecret: e.apiSecret ? 'OK' : 'FALTA',
+      serviceRoleKey: e.serviceKey ? 'OK' : 'FALTA',
     },
   });
 }

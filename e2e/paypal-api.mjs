@@ -26,8 +26,11 @@ const calls = [];
 // exercised separately by payout-recovery.mjs + payout-event-cases.mjs.
 const payoutEvents = new Map(), payoutQueries = new Map();
 const incomeEvents=new Map(),incomeNative=new Map(),incomeActions=new Map();
+// A 400 with a message is a `raise exception` from our SQL (PostgREST code P0001).
 const res = (status, body) =>
-  status === 204 ? new Response(null, { status }) : new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+  status === 204
+    ? new Response(null, { status })
+    : new Response(JSON.stringify(status === 400 && body?.message && !body.code ? { ...body, code: 'P0001' } : body), { status, headers: { 'content-type': 'application/json' } });
 
 globalThis.fetch = async (url, init = {}) => {
   const u = String(url);
@@ -225,6 +228,7 @@ globalThis.fetch = async (url, init = {}) => {
   if (u.endsWith('/rest/v1/rpc/paypal_payout_begin')) {
     if (h.apikey !== 'sb_secret_test') return res(401, {});
     if (db.payoutError) return res(400, { message: db.payoutError });
+    if (db.technical) return res(400, { code: '42703', message: 'column p.secret_thing does not exist' });
     if ([...db.payouts.values()].some((x) => x.status === 'sending')) return res(400, { message: 'Tienes un retiro en camino; espera a que PayPal lo confirme' });
     const id = `po-${db.payouts.size + 1}`;
     const payload = { sender_batch_header: { sender_batch_id: id, email_subject: 'Prueba', email_message: 'Prueba' },
@@ -698,8 +702,18 @@ await check('Un retiro a un email sin cuenta PayPal se puede cancelar y vuelve a
 });
 
 await check('La service role solo se usa en llamadas del servidor', async () => {
-  const leaked = calls.filter((c) => c.h.apikey === 'sb_secret_test' && !/paypal_(register|fulfill|mark|catalog|self_pay|money_back|income_(receive|claim|context|apply|retry|action_claim|action_confirm|complete)|refund_(receive|apply|followup)|subscription_(register|activate|payment|ended)|payout_(start|begin|claim|submission_result|event_receive|event_pending|reconcile_begin|reconcile_finish))|\/rest\/v1\/payouts\?|\/rest\/v1\/paypal_orders\?id=eq\.[^&]+&(status=eq\.created|select=kind,params)$/.test(c.u));
+  const leaked = calls.filter((c) => c.h.apikey === 'sb_secret_test' && !/log_app_error|paypal_(register|fulfill|mark|catalog|self_pay|money_back|income_(receive|claim|context|apply|retry|action_claim|action_confirm|complete)|refund_(receive|apply|followup)|subscription_(register|activate|payment|ended)|payout_(start|begin|claim|submission_result|event_receive|event_pending|reconcile_begin|reconcile_finish))|\/rest\/v1\/payouts\?|\/rest\/v1\/paypal_orders\?id=eq\.[^&]+&(status=eq\.created|select=kind,params)$/.test(c.u));
   expect(leaked.length === 0, leaked.map((c) => c.u).join(', '));
+});
+
+await check('Un error técnico de la base no llega al navegador; queda en Errores del admin', async () => {
+  db.payoutError = '';
+  const logged = calls.length;
+  db.technical = true;
+  const r = await post({ action: 'payout' });
+  db.technical = false;
+  const logs = calls.slice(logged).filter((c) => /log_app_error/.test(c.u));
+  expect(r.status === 400 && !/relation|column|permission/i.test(r.data.error) && /No se pudo completar/.test(r.data.error) && logs.length === 1, JSON.stringify(r.data));
 });
 
 rmSync(dir, { recursive: true, force: true });
