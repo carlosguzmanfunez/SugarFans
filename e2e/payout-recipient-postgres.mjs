@@ -127,4 +127,36 @@ finish(async()=>{
   assert.equal(psql(DB,"select body like '%48 horas%' from email_outbox where user_id="+lit(who)),'t');
   psql(DB,`delete from auth.mfa_factors`);
  });
+ await check('Trusted device: 30 days without the code on a fresh sign-in, only after the code, revocable',()=>{
+  psql(DB,`insert into auth.mfa_factors(user_id,status) values(${lit(owner)},'verified')`);
+  const session=()=>psql(DB,`insert into auth.sessions(user_id) values(${lit(owner)}) returning id`);
+  const asS=(sid,aal,q)=>psql(DB,`begin;\nset local role authenticated;\nselect set_config('request.jwt.claims','{"sub":"${owner}","aal":"${aal}","session_id":"${sid}"}',true) \\g /dev/null\n${q};\ncommit;`);
+  const s1=session();
+  raises(()=>asS(s1,'aal1',"select public.mfa_trust_device('x')"),/código de tu app/,'trust needs the code');
+  const token=asS(s1,'aal2',"select public.mfa_trust_device('Chrome')");
+  assert.match(token,/^[0-9a-f]{64}$/);
+  assert.equal(psql(DB,'select count(*) from security_private.mfa_trusted_devices where token_hash='+lit(token)),'0');
+  const s2=session();
+  assert.equal(asS(s2,'aal1','select public.is_admin()'),'f');
+  assert.equal(asS(s2,'aal1',"select public.mfa_device_login('wrong')"),'f');
+  assert.equal(asS(s2,'aal1','select public.is_admin()'),'f');
+  assert.equal(asS(s2,'aal1','select public.mfa_device_login('+lit(token)+')'),'t');
+  assert.equal(asS(s2,'aal1','select public.is_admin()'),'t');
+  // Another account can't use it.
+  assert.equal(psql(DB,`begin;\nset local role authenticated;\nselect set_config('request.jwt.claims','{"sub":"${fan}","aal":"aal1","session_id":"${s2}"}',true) \\g /dev/null\nselect public.mfa_device_login(${lit(token)});\ncommit;`),'f');
+  // Signing out deletes the session; the next session asks again until the device key is used.
+  psql(DB,'delete from auth.sessions where id='+lit(s2));
+  const s3=session();
+  assert.equal(asS(s3,'aal1','select public.is_admin()'),'f');
+  // Expired keys don't work.
+  psql(DB,'update security_private.mfa_trusted_devices set expires_at=now()-interval \'1 minute\'');
+  assert.equal(asS(s3,'aal1','select public.mfa_device_login('+lit(token)+')'),'f');
+  psql(DB,"update security_private.mfa_trusted_devices set expires_at=now()+interval '30 days'");
+  assert.equal(asS(s3,'aal1','select public.mfa_device_login('+lit(token)+')'),'t');
+  asS(s3,'aal1','select public.mfa_forget_devices()');
+  assert.equal(asS(s3,'aal1','select public.is_admin()'),'f');
+  assert.equal(asS(session(),'aal1','select public.mfa_device_login('+lit(token)+')'),'f');
+  for(const role of ['authenticated','anon'])assert.equal(psql(DB,`select has_table_privilege(${lit(role)},'security_private.mfa_trusted_devices','SELECT')`),'f');
+  psql(DB,`delete from auth.mfa_factors`);
+ });
 });

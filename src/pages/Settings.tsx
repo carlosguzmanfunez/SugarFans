@@ -405,9 +405,7 @@ const Settings: React.FC = () => {
                     Actualizar contraseña
                   </button>
                   )}
-                  <div className="border-t border-gray-100 pt-6">
-                    <TwoFactorSettings />
-                  </div>
+                  <TwoFactorSettings allowed={user?.role === 'admin' || !!user?.isOwner} />
                 </div>
               </div>
             )}

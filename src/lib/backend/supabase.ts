@@ -221,6 +221,24 @@ const translateAuthError = (message: string): string => {
   return 'No se pudo completar la operación. Inténtalo de nuevo.';
 };
 
+// Key of a device trusted for two-step verification (only its hash is stored server-side).
+const DEVICE_KEY = `${BRAND.storagePrefix}mfa_device`;
+const readDeviceKey = (): string | null => {
+  try {
+    return localStorage.getItem(DEVICE_KEY);
+  } catch {
+    return null;
+  }
+};
+const writeDeviceKey = (value: string | null) => {
+  try {
+    if (value) localStorage.setItem(DEVICE_KEY, value);
+    else localStorage.removeItem(DEVICE_KEY);
+  } catch {
+    // Private mode: the code is asked again next time.
+  }
+};
+
 const PROVIDER_NAMES: Record<SocialProvider, string> = { google: 'Google', azure: 'Microsoft' };
 
 export const createSupabaseBackend = (url: string, anonKey: string): Backend => {
@@ -256,7 +274,15 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
           sb.auth.mfa.getAuthenticatorAssuranceLevel(),
         ]);
         const factor = factors?.totp?.find((f) => f.status === 'verified') ?? null;
-        return { enabled: !!factor, factorId: factor?.id ?? null, needsCode: !!factor && level?.currentLevel !== 'aal2' };
+        let needsCode = !!factor && level?.currentLevel !== 'aal2';
+        // A device trusted earlier marks this new session as verified.
+        const device = readDeviceKey();
+        if (needsCode && device) {
+          const { data } = await sb.rpc('mfa_device_login', { p_token: device });
+          if (data === true) needsCode = false;
+          else writeDeviceKey(null);
+        }
+        return { enabled: !!factor, factorId: factor?.id ?? null, needsCode };
       },
       async enroll() {
         // A half-finished setup would block a new one with the same name.
@@ -266,16 +292,29 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
         if (error || !data) return { ok: false, error: 'No se pudo activar la verificación en dos pasos. Inténtalo de nuevo.' };
         return { ok: true, factorId: data.id, qr: data.totp.qr_code, secret: data.totp.secret };
       },
-      async verify(factorId, code) {
+      async verify(factorId, code, trustDevice) {
         const clean = code.replace(/\s+/g, '');
         if (!/^\d{6}$/.test(clean)) return { ok: false, error: 'Escribe los 6 números que muestra tu app.' };
         const { error } = await sb.auth.mfa.challengeAndVerify({ factorId, code: clean });
         if (error) return { ok: false, error: /rate|too many/i.test(error.message) ? 'Demasiados intentos. Espera unos minutos y vuelve a intentarlo.' : 'El código no es correcto o ya cambió. Usa el código que muestra ahora tu app.' };
+        if (trustDevice) {
+          const label = (typeof navigator !== 'undefined' ? navigator.userAgent : '').slice(0, 120);
+          const { data } = await sb.rpc('mfa_trust_device', { p_label: label });
+          if (typeof data === 'string' && data) writeDeviceKey(data);
+        }
+        return { ok: true };
+      },
+      async forgetDevices() {
+        const { error } = await sb.rpc('mfa_forget_devices');
+        if (error) return { ok: false, error: 'Para hacerlo, entra con tu código de la app y vuelve a intentarlo.' };
+        writeDeviceKey(null);
         return { ok: true };
       },
       async disable(factorId) {
         const { error } = await sb.auth.mfa.unenroll({ factorId });
         if (error) return { ok: false, error: 'Para desactivarla, entra con tu código de la app y vuelve a intentarlo.' };
+        await sb.rpc('mfa_forget_devices');
+        writeDeviceKey(null);
         await sb.auth.refreshSession();
         return { ok: true };
       },

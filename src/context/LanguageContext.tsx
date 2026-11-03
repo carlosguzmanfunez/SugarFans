@@ -225,6 +225,10 @@ const translations: Record<Language, Record<string, string>> = {
     'mfa.gate.body': 'Tu cuenta tiene verificación en dos pasos. Abre tu app de verificación y escribe el código de 6 números.',
     'mfa.gate.submit': 'Entrar',
     'mfa.gate.logout': 'Salir',
+    'mfa.trust': 'Confiar en este dispositivo 30 días (no te pediremos el código aquí)',
+    'mfa.forget': 'Olvidar dispositivos de confianza',
+    'mfa.forgotten': 'Listo: todos tus dispositivos pedirán el código la próxima vez que entres.',
+    'mfa.disableCode': 'Escribe el código de tu app para desactivarla.',
   },
   
   en: {
@@ -424,6 +428,10 @@ const translations: Record<Language, Record<string, string>> = {
     'mfa.gate.body': 'Your account uses two-step verification. Open your authenticator app and type the 6-digit code.',
     'mfa.gate.submit': 'Sign in',
     'mfa.gate.logout': 'Sign out',
+    'mfa.trust': 'Trust this device for 30 days (no code asked here)',
+    'mfa.forget': 'Forget trusted devices',
+    'mfa.forgotten': 'Done: every device will ask for the code next time you sign in.',
+    'mfa.disableCode': 'Type the code from your app to turn it off.',
   },
   
   pt: {
@@ -623,6 +631,10 @@ const translations: Record<Language, Record<string, string>> = {
     'mfa.gate.body': 'Sua conta tem verificação em duas etapas. Abra seu app de verificação e digite o código de 6 números.',
     'mfa.gate.submit': 'Entrar',
     'mfa.gate.logout': 'Sair',
+    'mfa.trust': 'Confiar neste dispositivo por 30 dias (não pediremos o código aqui)',
+    'mfa.forget': 'Esquecer dispositivos confiáveis',
+    'mfa.forgotten': 'Pronto: todos os seus dispositivos vão pedir o código na próxima vez que você entrar.',
+    'mfa.disableCode': 'Digite o código do seu app para desativá-la.',
   },
   
   fr: {
@@ -822,6 +834,10 @@ const translations: Record<Language, Record<string, string>> = {
     'mfa.gate.body': "Votre compte utilise la validation en deux étapes. Ouvrez votre application d'authentification et saisissez le code à 6 chiffres.",
     'mfa.gate.submit': 'Se connecter',
     'mfa.gate.logout': 'Se déconnecter',
+    'mfa.trust': 'Faire confiance à cet appareil 30 jours (aucun code demandé ici)',
+    'mfa.forget': 'Oublier les appareils de confiance',
+    'mfa.forgotten': 'C’est fait : chaque appareil demandera le code à votre prochaine connexion.',
+    'mfa.disableCode': 'Saisissez le code de votre application pour la désactiver.',
   },
   
   it: {
@@ -1021,6 +1037,10 @@ const translations: Record<Language, Record<string, string>> = {
     'mfa.gate.body': 'Il tuo account usa la verifica in due passaggi. Apri la tua app di autenticazione e scrivi il codice di 6 cifre.',
     'mfa.gate.submit': 'Entra',
     'mfa.gate.logout': 'Esci',
+    'mfa.trust': 'Considera affidabile questo dispositivo per 30 giorni (qui non chiederemo il codice)',
+    'mfa.forget': 'Dimentica i dispositivi affidabili',
+    'mfa.forgotten': 'Fatto: ogni dispositivo chiederà il codice al prossimo accesso.',
+    'mfa.disableCode': 'Scrivi il codice della tua app per disattivarla.',
   },
 };
 

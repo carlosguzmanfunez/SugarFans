@@ -436,6 +436,8 @@ export interface MfaBackend {
   // Starts turning it on: the QR (SVG) and the secret to scan or type into the app.
   enroll(): Promise<{ ok: true; factorId: string; qr: string; secret: string } | { ok: false; error: string }>;
   // The 6-digit code: finishes turning it on, or unlocks this session.
-  verify(factorId: string, code: string): Promise<AuthResult>;
+  // trustDevice: this device skips the code on later sign-ins for 30 days.
+  verify(factorId: string, code: string, trustDevice?: boolean): Promise<AuthResult>;
   disable(factorId: string): Promise<AuthResult>;
+  forgetDevices(): Promise<AuthResult>;
 }

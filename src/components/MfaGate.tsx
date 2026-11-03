@@ -15,6 +15,7 @@ const MfaGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [trust, setTrust] = useState(true);
 
   useEffect(() => {
     let active = true;
@@ -35,7 +36,7 @@ const MfaGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     e.preventDefault();
     setBusy(true);
     setError('');
-    const r = await mfa.verify(factorId, code);
+    const r = await mfa.verify(factorId, code, trust);
     setBusy(false);
     if (!r.ok) {
       setError(r.error || '');
@@ -63,6 +64,10 @@ const MfaGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           aria-label={t('mfa.code')}
           className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 outline-none tracking-widest"
         />
+        <label className="flex items-start gap-2 text-sm text-gray-700">
+          <input type="checkbox" checked={trust} onChange={(e) => setTrust(e.target.checked)} className="mt-0.5 accent-pink-500" />
+          <span>{t('mfa.trust')}</span>
+        </label>
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button type="submit" disabled={busy} className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition disabled:opacity-50">
           {t('mfa.gate.submit')}
