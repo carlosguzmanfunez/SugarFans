@@ -24,16 +24,17 @@ const filmFiles = (lang: Language, phone: boolean) => {
     poster: `/presentacion/poster${shape}${suffix}.jpg?v=10`,
   };
 };
+// Names come from the translations (cover.c.<key>), so the ribbon follows the language.
 const COMMUNITIES = [
-  { name: "Tu gente", photo: "valentina", c: "#ff9cc0" },
-  { name: "Fitness", photo: "diego", c: "#6ee7b7" },
-  { name: "Cocina", photo: "camila", c: "#fdba74" },
-  { name: "Música", photo: "andres", c: "#c4b5fd" },
-  { name: "Gaming", photo: "mateo", c: "#93c5fd" },
-  { name: "Arte", photo: "sofia", c: "#f2d792" },
-  { name: "Belleza", photo: "isabela", c: "#fca5a5" },
-  { name: "Lifestyle", photo: "mariana", c: "#bef264" },
-  { name: "Educación", photo: "daniel", c: "#67e8f9" },
+  { key: "people", photo: "valentina", c: "#ff9cc0" },
+  { key: "fitness", photo: "diego", c: "#6ee7b7" },
+  { key: "cooking", photo: "camila", c: "#fdba74" },
+  { key: "music", photo: "andres", c: "#c4b5fd" },
+  { key: "gaming", photo: "mateo", c: "#93c5fd" },
+  { key: "art", photo: "sofia", c: "#f2d792" },
+  { key: "beauty", photo: "isabela", c: "#fca5a5" },
+  { key: "lifestyle", photo: "mariana", c: "#bef264" },
+  { key: "education", photo: "daniel", c: "#67e8f9" },
 ];
 
 const PresentationCover: React.FC = () => {
@@ -41,7 +42,7 @@ const PresentationCover: React.FC = () => {
   const bar = useRef<HTMLDivElement>(null);
   const [paused, setPaused] = useState(false);
   const [phone, setPhone] = useState(isPhone);
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const hasFilm = FILM_LANGS.includes(language);
   const film = filmFiles(language, phone);
 
@@ -81,17 +82,15 @@ const PresentationCover: React.FC = () => {
       <div className="wrap pcover-in">
         <div className="pc-main">
           <h2 id="pcover-title">
-            Conecta más allá del feed.{" "}
-            <em>Empieza a hablar con los creadores de contenido que sigues.</em>
+            {t("cover.title")} <em>{t("cover.titleEm")}</em>
           </h2>
           <div className="pc-row">
             <p className="pc-lead">
-              Suscríbete a su contenido exclusivo o habla cara a cara en
-              una videollamada 1:1. Todo dentro de Fans Reserve.
+              {t("cover.lead")}
             </p>
             <div className="pc-ctas">
               <Link to="/register" className="v-btn v-pri">
-                Crear cuenta gratis <ArrowRight />
+                {t("cover.cta")} <ArrowRight />
               </Link>
             </div>
           </div>
@@ -111,13 +110,13 @@ const PresentationCover: React.FC = () => {
                   preload="metadata"
                   onPlay={() => setPaused(false)}
                   onPause={() => setPaused(true)}
-                  aria-label="Presentación de Fans Reserve: comunidades, cómo funciona y Reserve"
+                  aria-label={t("cover.videoLabel")}
                 />
                 <button
                   type="button"
                   className="pc-pp"
                   onClick={toggle}
-                  aria-label={paused ? "Reproducir" : "Pausar"}
+                  aria-label={paused ? t("cover.play") : t("cover.pause")}
                 >
                   <svg
                     className="ico"
@@ -146,37 +145,37 @@ const PresentationCover: React.FC = () => {
 
         <div className="pc-join">
           <Link to="/register" className="v-btn v-pri">
-            Crear cuenta gratis <ArrowRight />
+            {t("cover.cta")} <ArrowRight />
           </Link>
           <Link to="/login" className="pc-login">
-            ¿Ya tienes cuenta? <b>Inicia sesión</b>
+            {t("cover.haveAccount")} <b>{t("cover.login")}</b>
           </Link>
         </div>
 
-        <div className="pc-ribbon" aria-label="Comunidades">
+        <div className="pc-ribbon" aria-label={t("cover.communities")}>
           {COMMUNITIES.map((x) => (
-            <span key={x.name} style={{ ["--c" as string]: x.c }}>
+            <span key={x.key} style={{ ["--c" as string]: x.c }}>
               <img
                 src={`/creators/photos/${x.photo}.jpg`}
                 alt=""
                 loading="lazy"
               />
-              {x.name}
+              {t(`cover.c.${x.key}`)}
             </span>
           ))}
         </div>
         <p className="pc-trust">
           <span>
-            <b>Perfiles verificados</b>
+            <b>{t("cover.trustVerified")}</b>
           </span>
           <span>
-            <b>Pagos seguros</b> con PayPal
+            <b>{t("cover.trustSecure")}</b> {t("cover.trustSecureTail")}
           </span>
           <span>
-            Paga en <b>Créditos</b>
+            {t("cover.trustPayIn")} <b>{t("cover.trustCredits")}</b>
           </span>
           <span>
-            El creador acepta, <b>luego pagas</b>
+            {t("cover.trustAccept")} <b>{t("cover.trustReserve")}</b>
           </span>
         </p>
       </div>
