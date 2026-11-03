@@ -14,6 +14,7 @@ import Explore from './pages/Explore';
 import PlatformSync from './components/PlatformSync';
 import SpecialInviteClaimer from './components/SpecialInviteClaimer';
 import ProspectInviteClaimer from './components/ProspectInviteClaimer';
+import { homeForRole } from './config/homes';
 import { openedFromRecoveryLink } from './lib/backend';
 import LaunchGate from './components/LaunchGate';
 import HandleLink from './pages/HandleLink';
@@ -60,9 +61,10 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; roles?: string[] }> 
 
 // Login/register are pointless once signed in: back to Inicio.
 const GuestOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
   if (loading) return <LoadingScreen />;
-  if (isAuthenticated) return <Navigate to="/" replace />;
+  // A signed-in user starts on their role's page (admin: the Admin panel).
+  if (isAuthenticated) return <Navigate to={homeForRole(user?.role ?? 'fan')} replace />;
   return <>{children}</>;
 };
 
