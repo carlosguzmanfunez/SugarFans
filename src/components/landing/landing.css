@@ -61,7 +61,7 @@
 .lv2 .hero-experiences .pass[data-experience="your-proposal"]{--pass-bg:#f2d792;--pass-ink:#2a1d36;--pass-copy:#4a3451;--pass-rule:#b28a3d}
 .lv2 .hero-experiences .pass .fig{top:0;bottom:auto;left:0;width:100%;height:290px;margin:0;border-radius:0;background:var(--night-7);box-shadow:none}
 .lv2 .hero-experiences .pass .fig img{width:100%;height:100%;object-fit:cover;object-position:center}
-.lv2 .hero-experiences .pass[data-experience="exclusive-content"] .fig img{object-position:center top}
+.lv2 .hero-experiences .pass[data-experience="exclusive-content"] .fig img{object-position:center top;transform:scale(1.35);transform-origin:center top}
 .lv2 .hero-experiences .pass .top{z-index:1}
 .lv2 .hero-experiences .pass .top .chip{font-size:12px;padding:7px 11px;background:var(--pass-bg);color:var(--pass-ink);border-color:var(--pass-rule);backdrop-filter:none}
 .lv2 .hero-experiences .pass .info{padding-top:20px;background:var(--pass-bg)}
