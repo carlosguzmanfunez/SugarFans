@@ -9,7 +9,7 @@
 //
 // Needs in the Vercel project settings: CRON_SECRET (any long random text),
 // SUPABASE_SERVICE_ROLE_KEY and RESEND_API_KEY (both already set).
-import { logServerError, resendKey, sendEmail } from './_mail.js';
+import { deliverOutbox, logServerError, resendKey, sendEmail } from './_mail.js';
 import { alertEmail, fromRpc, pendingAlerts } from '../src/lib/infraUsage.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://odugxvqwuvewsvifwmwb.supabase.co';
@@ -55,6 +55,8 @@ export async function GET(request: Request): Promise<Response> {
   if (!e.serviceKey) return json(503, { error: 'Falta SUPABASE_SERVICE_ROLE_KEY' });
 
   try {
+    // Daily safety net for app emails still waiting to be sent.
+    await deliverOutbox(e.serviceKey, 20);
     const usage = fromRpc(await rest(e.serviceKey, 'rpc/infra_usage', {}, 'return=representation'));
     const today = new Date().toISOString().slice(0, 10);
     const sentRows = (await rest(e.serviceKey, `usage_alerts?select=month,metric,level&month=in.(${usage.month},${today})`)) as { month: string; metric: string; level: number }[];

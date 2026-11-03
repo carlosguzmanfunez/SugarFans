@@ -97,9 +97,66 @@ finish(async()=>{
   await waitFor("select exists(select 1 from pg_stat_activity where datname=current_database() and application_name='fr-manual-recipient' and wait_event='advisory')");
   // No DECLARE initializer may read/lock the profile before the book lock.
   assert.equal(psql(DB,"select exists(select 1 from pg_locks l join pg_stat_activity a on a.pid=l.pid where a.application_name='fr-manual-recipient' and l.relation='public.profiles'::regclass and l.mode='RowShareLock')"),'f');
-  const payout=JSON.parse(await withdrawing);await changed;
+  // It waited for the change, so it sees it: a new PayPal account pauses withdrawals 48 hours.
+  const refused=await withdrawing.then(()=>null,e=>e);await changed;
+  assert.match(String(refused?.message),/hace poco/);
+  assert.equal(psql(DB,"select count(*) from email_outbox where user_id="+lit(who)+" and subject='Cambiaste tu cuenta PayPal de retiro'"),'1');
+  // 49 hours later the withdrawal goes to the new account, which then stays fixed.
+  psql(DB,"create or replace function pg_catalog.now() returns timestamptz language sql stable as $$select '2026-10-28T13:00:00Z'::timestamptz$$");
+  const payout=JSON.parse(psql(DB,"set role service_role;"+call('paypal_payout_begin',[who,'sandbox','CLIENT-RACE'])));
   assert.equal(psql(DB,"select request_body#>>'{items,0,receiver}' from paypal_payout_submissions where payout_id="+lit(payout.id)),'after-race@example.invalid');
   raises(()=>save(who,'another@example.invalid',2),/retiro iniciado/,'withdrawal retains recipient');
   assert.equal(psql(DB,'select execution_enabled from finance_private.automation_settings'),'f');
+ });
+ await check('Account security: first account sends no alert; a session without its code is not admin and cannot change the account',()=>{
+  const who=user('mfa-creator@example.invalid','creator');psql(DB,'update auth.users set email_confirmed_at=now() where id='+lit(who));
+  save(who,'first-mfa@example.invalid',0);
+  assert.equal(psql(DB,"select count(*) from email_outbox where user_id="+lit(who)),'0');
+  assert.equal(psql(DB,"select finance_private.payout_hold_until("+lit(who)+") is null"),'t');
+  psql(DB,"create table if not exists auth.mfa_factors(id uuid primary key default gen_random_uuid(),user_id uuid,status text)");
+  const claims=(uid,aal)=>`select set_config('request.jwt.claims','{"sub":"${uid}","aal":"${aal}"}',true) \\g /dev/null\n`;
+  const asAal=(uid,aal,q)=>psql(DB,`begin;\nset local role authenticated;\n${claims(uid,aal)}${q};\ncommit;`);
+  // Without a code everything works as before.
+  assert.equal(asAal(owner,'aal1','select public.is_admin()'),'t');
+  psql(DB,`insert into auth.mfa_factors(user_id,status) values(${lit(owner)},'verified'),(${lit(who)},'verified')`);
+  assert.equal(asAal(owner,'aal1','select public.is_admin()'),'f');
+  assert.equal(asAal(owner,'aal2','select public.is_admin()'),'t');
+  raises(()=>asAal(who,'aal1',call('payout_account_set',[randomUUID(),'second-mfa@example.invalid','second-mfa@example.invalid',1])),/código de tu app/,'aal1 change refused');
+  asAal(who,'aal2',call('payout_account_set',[randomUUID(),'second-mfa@example.invalid','second-mfa@example.invalid',1]));
+  assert.equal(psql(DB,"select count(*) from email_outbox where user_id="+lit(who)),'1');
+  assert.equal(psql(DB,"select body like '%48 horas%' from email_outbox where user_id="+lit(who)),'t');
+  psql(DB,`delete from auth.mfa_factors`);
+ });
+ await check('Trusted device: 30 days without the code on a fresh sign-in, only after the code, revocable',()=>{
+  psql(DB,`insert into auth.mfa_factors(user_id,status) values(${lit(owner)},'verified')`);
+  const session=()=>psql(DB,`insert into auth.sessions(user_id) values(${lit(owner)}) returning id`);
+  const asS=(sid,aal,q)=>psql(DB,`begin;\nset local role authenticated;\nselect set_config('request.jwt.claims','{"sub":"${owner}","aal":"${aal}","session_id":"${sid}"}',true) \\g /dev/null\n${q};\ncommit;`);
+  const s1=session();
+  raises(()=>asS(s1,'aal1',"select public.mfa_trust_device('x')"),/código de tu app/,'trust needs the code');
+  const token=asS(s1,'aal2',"select public.mfa_trust_device('Chrome')");
+  assert.match(token,/^[0-9a-f]{64}$/);
+  assert.equal(psql(DB,'select count(*) from security_private.mfa_trusted_devices where token_hash='+lit(token)),'0');
+  const s2=session();
+  assert.equal(asS(s2,'aal1','select public.is_admin()'),'f');
+  assert.equal(asS(s2,'aal1',"select public.mfa_device_login('wrong')"),'f');
+  assert.equal(asS(s2,'aal1','select public.is_admin()'),'f');
+  assert.equal(asS(s2,'aal1','select public.mfa_device_login('+lit(token)+')'),'t');
+  assert.equal(asS(s2,'aal1','select public.is_admin()'),'t');
+  // Another account can't use it.
+  assert.equal(psql(DB,`begin;\nset local role authenticated;\nselect set_config('request.jwt.claims','{"sub":"${fan}","aal":"aal1","session_id":"${s2}"}',true) \\g /dev/null\nselect public.mfa_device_login(${lit(token)});\ncommit;`),'f');
+  // Signing out deletes the session; the next session asks again until the device key is used.
+  psql(DB,'delete from auth.sessions where id='+lit(s2));
+  const s3=session();
+  assert.equal(asS(s3,'aal1','select public.is_admin()'),'f');
+  // Expired keys don't work.
+  psql(DB,'update security_private.mfa_trusted_devices set expires_at=now()-interval \'1 minute\'');
+  assert.equal(asS(s3,'aal1','select public.mfa_device_login('+lit(token)+')'),'f');
+  psql(DB,"update security_private.mfa_trusted_devices set expires_at=now()+interval '30 days'");
+  assert.equal(asS(s3,'aal1','select public.mfa_device_login('+lit(token)+')'),'t');
+  asS(s3,'aal1','select public.mfa_forget_devices()');
+  assert.equal(asS(s3,'aal1','select public.is_admin()'),'f');
+  assert.equal(asS(session(),'aal1','select public.mfa_device_login('+lit(token)+')'),'f');
+  for(const role of ['authenticated','anon'])assert.equal(psql(DB,`select has_table_privilege(${lit(role)},'security_private.mfa_trusted_devices','SELECT')`),'f');
+  psql(DB,`delete from auth.mfa_factors`);
  });
 });

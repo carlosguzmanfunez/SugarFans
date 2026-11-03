@@ -269,6 +269,11 @@ export const createSupabasePlatform = (sb: SupabaseClient): PlatformBackend => (
 
   async setPayoutAccount(user, account) {
     const {error}=await sb.rpc('payout_account_set',{p_key:account.requestKey,p_email:account.email,p_confirmation:account.confirmation??null,p_expected:account.expectedRevision});
+    if(!error){
+      // A changed account queues a security email: ask the server to send it now.
+      const token=(await sb.auth.getSession()).data.session?.access_token;
+      fetch('/api/paypal',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${token??''}`},body:JSON.stringify({action:'deliver-mail'})}).catch(()=>{});
+    }
     return error?{ok:false,error:error.code==='P0001'?error.message:'No pudimos confirmar el cambio. Actualiza y vuelve a comprobar la cuenta.'}:{ok:true};
   },
 
