@@ -427,7 +427,7 @@ export const createLocalPlatform = (
         return fail('Tus retiros están en revisión. Escríbenos a support@fansreserve.com');
       const account = s.payoutAccounts[user.id];
       if (!account) return fail('Añade el email de tu cuenta PayPal para retiros');
-      if (!payoutWindow().open) return fail('Los pagos se procesan del 26 al 1, hora de Honduras (UTC−6).');
+      if (!payoutWindow().open) return fail('Los pagos se procesan del 26 al 1, hora de Fans Reserve (UTC−6).');
       const { available } = earningsOf(s, user);
       const terms = deps.payoutTerms(user);
       const fee = payoutFee(available);

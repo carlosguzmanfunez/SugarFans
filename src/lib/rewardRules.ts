@@ -42,7 +42,7 @@ export const LEVELS: Level[] = [
   },
   {
     id: 'diamante', name: 'Diamante', icon: '💎', minFans: 200, minSales: 5000, reliable: true, share: 0.83, eventSeats: 50, payoutMin: 25,
-    perks: ['83% de lo que te pagan', 'Tu tarjeta va primero en la portada, en tu categoría', 'Todo lo de Oro'],
+    perks: ['83% después del costo de PayPal', 'Tu tarjeta va primero en la portada, en tu categoría', 'Todo lo de Oro'],
   },
 ];
 

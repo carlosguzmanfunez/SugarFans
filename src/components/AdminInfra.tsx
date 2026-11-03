@@ -133,7 +133,7 @@ const AdminInfra: React.FC<Props> = ({ transactions, coins }) => {
         </ul>
         <p className="px-5 sm:px-6 pb-5 text-xs text-gray-500">
           No se ven desde aquí: el tráfico de Vercel y de Supabase (se avisan solos por correo en sus planes de pago) y los correos de inicio de sesión que Supabase manda por Resend.
-          La factura del proveedor confirma el costo real, incluidos impuestos y consumos adicionales. Medido: {new Date(usage.measuredAt).toLocaleString('es-HN', {timeZone:'America/Tegucigalpa'})}, hora de Honduras.
+          La factura del proveedor confirma el costo real, incluidos impuestos y consumos adicionales. Medido: {new Date(usage.measuredAt).toLocaleString('es-HN', {timeZone:'America/Tegucigalpa'})}, hora de Fans Reserve (UTC−6).
         </p>
       </div>
 

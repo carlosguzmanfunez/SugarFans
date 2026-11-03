@@ -28,7 +28,7 @@ Este Contrato para Creadores y Afiliados ("Contrato") constituye un acuerdo lega
 
 1.5. **"Comisión"** se refiere al porcentaje que la Plataforma retiene de los Ingresos generados.
 
-1.6. **"Saldo acreditado"** se refiere a la parte de los Ingresos de ciclos cerrados del 26 al 25, acreditada al comenzar el 26 y elegible para solicitar pago del 26 al día 1 siguiente, ambos incluidos, en hora de Honduras (UTC−6). Los saldos ya acreditados antes del cambio de calendario se conservan.
+1.6. **"Saldo acreditado"** se refiere a la parte de los Ingresos de ciclos cerrados del 26 al 25, acreditada al comenzar el 26 y elegible para solicitar pago del 26 al día 1 siguiente, ambos incluidos, en hora de Fans Reserve (UTC−6). Los saldos ya acreditados antes del cambio de calendario se conservan.
 
 ---
 
@@ -216,12 +216,12 @@ En Reserve, un descuento para suscriptores activado por el Creador se absorbe de
 
 ### 6.3. Cronograma de Pagos
 
-6.3.1. **Acreditación mensual**: Las ganancias se acumulan desde el 26 a las 00:00 hasta terminar el 25 del siguiente mes. Se acreditan al comenzar el 26, cuando también empieza el nuevo ciclo. La ventana de pago va del 26 al día 1 siguiente, ambos incluidos, en hora de Honduras (UTC−6). Las ganancias del nuevo ciclo no se incluyen en el pago del ciclo cerrado. Los saldos previamente acreditados y los pagos registrados se conservan.
+6.3.1. **Acreditación mensual**: Las ganancias se acumulan desde el 26 a las 00:00 hasta terminar el 25 del siguiente mes. Se acreditan al comenzar el 26, cuando también empieza el nuevo ciclo. La ventana de pago va del 26 al día 1 siguiente, ambos incluidos, en hora de Fans Reserve (UTC−6). Las ganancias del nuevo ciclo no se incluyen en el pago del ciclo cerrado. Los saldos previamente acreditados y los pagos registrados se conservan.
 
 6.3.2. **Retiros**:
 - Un solo botón: se retira siempre el saldo acreditado completo
 - Mínimo: $50 USD ($25 USD en los niveles Oro y Diamante); si no lo alcanza, el saldo se acumula
-- Se solicita durante la ventana del 26 al día 1 siguiente (inclusive), hora de Honduras (UTC−6); no implica un sistema de pagos automáticos por lote activo
+- Se solicita durante la ventana del 26 al día 1 siguiente (inclusive), hora de Fans Reserve (UTC−6); no implica un sistema de pagos automáticos por lote activo
 - A la cuenta PayPal del Creador, mediante PayPal Payouts
 - La comisión que cobre el procesador de pagos por enviar el retiro se descuenta del monto retirado (ver 6.4)
 
@@ -579,8 +579,8 @@ Los fans que llegan con su enlace cuentan doble para el nivel. Las medallas (Pri
 
 | Qué | Cuándo |
 |-----|--------|
-| Acreditación | Ciclo del 26 al 25; acreditación al comenzar el 26 y ventana de pago del 26 al 1 siguiente, hora de Honduras (UTC−6) |
-| Retiro | Del 26 al día 1 siguiente, hora de Honduras (UTC−6), saldo completo, desde $50 USD ($25 en Oro y Diamante); la comisión de envío del retiro se descuenta del monto |
+| Acreditación | Ciclo del 26 al 25; acreditación al comenzar el 26 y ventana de pago del 26 al 1 siguiente, hora de Fans Reserve (UTC−6) |
+| Retiro | Del 26 al día 1 siguiente, hora de Fans Reserve (UTC−6), saldo completo, desde $50 USD ($25 en Oro y Diamante); la comisión de envío del retiro se descuenta del monto |
 
 ---
 **AL REGISTRARSE COMO CREADOR, USTED RECONOCE QUE HA LEÍDO, ENTENDIDO Y ACEPTA ESTAR VINCULADO POR ESTE CONTRATO.**

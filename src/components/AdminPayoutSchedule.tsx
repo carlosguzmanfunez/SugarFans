@@ -16,7 +16,7 @@ export default function AdminPayoutSchedule({api,jobs,refreshKey}:{api:FinanceBa
  const now=new Date(clock.server+elapsed),health=schedule?reviewScheduleHealth(jobs,schedule,now):null,paymentWindow=payoutWindow(now);
  return <section className="rounded-xl border border-purple-200 bg-purple-50 p-4 space-y-3" data-testid="payout-schedule">
   <h4 className="font-semibold">Calendario y control de las revisiones</h4>
-  <p className="text-sm">Ganancias: del 26 a las 12:00 a. m. al 25 a las 11:59 p. m. Ventana prevista para pagos: del 26 al día 1, ambos incluidos. Hora de Honduras, UTC−6.</p>
+  <p className="text-sm">Ganancias: del 26 a las 12:00 a. m. al 25 a las 11:59 p. m. Ventana prevista para pagos: del 26 al día 1, ambos incluidos. Hora de Fans Reserve (UTC−6).</p>
   <p className="text-sm font-medium">Esta programación solo revisa y concilia. No inicia pagos nuevos, aunque otras opciones de envío estén activadas.</p>
   {error&&<p role="alert" className="text-sm text-red-800">{error}</p>}
   {!schedule&&!error&&<p className="text-sm text-gray-700">{api.scheduleStatus?'Consultando el horario publicado…':'El horario del servidor no está disponible en esta vista de prueba.'}</p>}

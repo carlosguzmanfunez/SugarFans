@@ -331,9 +331,9 @@ const CreatorDashboard: React.FC = () => {
           // Big colored cards so the creator spots their money sections at once.
           <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-5 sm:mb-8" role="tablist" aria-label="Dinero">
             {[
-              { id: 'earnings', label: 'Ingresos', hint: 'Saldo y retiros', icon: 'fa-wallet', on: 'from-emerald-500 to-teal-600 shadow-emerald-500/30', chip: 'bg-emerald-50 text-emerald-600' },
+              { id: 'earnings', label: 'Ganancias', hint: 'Saldo y pagos', icon: 'fa-wallet', on: 'from-emerald-500 to-teal-600 shadow-emerald-500/30', chip: 'bg-emerald-50 text-emerald-600' },
               { id: 'gifts', label: 'Regalos', hint: 'Lo que te regalan', icon: 'fa-gift', on: 'from-brand-500 to-brand-700 shadow-brand-500/30', chip: 'bg-brand-50 text-brand-600' },
-              { id: 'rewards', label: 'Recompensas', hint: 'Nivel e invitaciones', icon: 'fa-trophy', on: 'from-iris-500 to-iris-700 shadow-iris-500/30', chip: 'bg-iris-50 text-iris-600' },
+              { id: 'rewards', label: 'Beneficios', hint: 'Niveles e invitaciones', icon: 'fa-trophy', on: 'from-iris-500 to-iris-700 shadow-iris-500/30', chip: 'bg-iris-50 text-iris-600' },
             ].map((sub) => {
               const on = activeTab === sub.id || (sub.id === 'rewards' && activeTab === 'invites');
               return (
