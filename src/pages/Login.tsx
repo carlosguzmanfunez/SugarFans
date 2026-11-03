@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { homeForRole } from '../config/homes';
 import { backend } from '../lib/backend';
+import { safePath } from '../lib/safePath';
 import { useLanguage } from '../context/LanguageContext';
 import LanguageSelector from '../components/LanguageSelector';
 import BrandLogo from '../components/BrandLogo';
@@ -15,7 +16,7 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const state = location.state as { from?: string; passwordChanged?: boolean } | null;
-  const from = state?.from;
+  const from = safePath(state?.from);
   // Arriving right after choosing a new password (ResetPassword signs out first).
   const passwordChanged = !!state?.passwordChanged;
   const [remember, setRemember] = useState(true);
@@ -131,7 +132,7 @@ const Login: React.FC = () => {
               <div className="relative flex justify-center text-sm"><span className="px-4 bg-white text-gray-500">o</span></div>
             </div>
             <div className="mt-4">
-              <SocialLoginButtons from={(location.state as { from?: string } | null)?.from} onError={setError} />
+              <SocialLoginButtons from={from} onError={setError} />
             </div>
           </div>
 

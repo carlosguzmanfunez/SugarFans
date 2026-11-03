@@ -137,7 +137,8 @@ export async function GET(): Promise<Response> {
   try {
     return json(200, { publicKey: (await pushKeys()).publicKey });
   } catch (err) {
-    return json(500, { error: err instanceof Error ? err.message : 'Error' });
+    await logServerError(clean(process.env.SUPABASE_SERVICE_ROLE_KEY), 'api', `Avisos push (clave): ${err instanceof Error ? err.message : String(err)}`, '');
+    return json(500, { error: 'Los avisos no están disponibles ahora.' });
   }
 }
 
@@ -155,6 +156,6 @@ export async function POST(request: Request): Promise<Response> {
     return await deliver(body.id);
   } catch (err) {
     await logServerError(clean(process.env.SUPABASE_SERVICE_ROLE_KEY), 'api', `Avisos push: ${err instanceof Error ? err.message : String(err)}`, err instanceof Error ? err.stack ?? '' : '');
-    return json(500, { error: err instanceof Error ? err.message : 'Error' });
+    return json(500, { error: 'No se pudo enviar el aviso. Inténtalo de nuevo.' });
   }
 }

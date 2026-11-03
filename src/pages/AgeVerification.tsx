@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { safePath } from '../lib/safePath';
 import { useLanguage } from '../context/LanguageContext';
 import LanguageSelector from '../components/LanguageSelector';
 import BrandLogo from '../components/BrandLogo';
@@ -14,7 +15,7 @@ const AgeVerification: React.FC = () => {
 
   const handleConfirm = () => {
     verifyAge();
-    navigate((location.state as { from?: string } | null)?.from || '/', { replace: true });
+    navigate(safePath((location.state as { from?: string } | null)?.from) || '/', { replace: true });
   };
 
   const handleDeny = () => {

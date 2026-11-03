@@ -61,9 +61,20 @@ const supabase = async (path: string, headers: Record<string, string>, body?: un
   } catch {
     data = text;
   }
-  // PostgREST puts a raised exception's text in `message`.
-  return { ok: r.ok, data, error: r.ok ? '' : String(data?.message || data?.msg || data?.error || `Error ${r.status}`) };
+  // PostgREST puts a raised exception's text in `message`. Only our own messages
+  // (raise exception, code P0001) reach the user; anything technical goes to the admin log.
+  if (r.ok) return { ok: true, data, error: '' };
+  const detail = String(data?.message || data?.msg || data?.error || `Error ${r.status}`);
+  if (data?.code === 'P0001') return { ok: false, data, error: detail };
+  await logServerError(clean(process.env.SUPABASE_SERVICE_ROLE_KEY), 'api', `PayPal → base de datos ${path.split('?')[0]}: ${detail}`.slice(0, 500), '');
+  return { ok: false, data, error: INTERNAL_ERROR };
 };
+
+// What the user sees when something technical fails (the detail is in the admin's "Errores").
+const INTERNAL_ERROR = 'No se pudo completar la operación. Inténtalo de nuevo en unos minutos.';
+// Our own messages are thrown as plain Error; anything else (network, timeouts, bugs) is technical.
+const publicMessage = (err: unknown, fallback: string) =>
+  err instanceof Error && err.name === 'Error' && !/fetch failed|ECONN|ETIMEDOUT|ENOTFOUND|socket|JSON|token|credenciales|Unexpected|undefined|null/i.test(err.message) ? err.message : fallback;
 
 // --- PayPal -------------------------------------------------------------------
 
@@ -81,7 +92,7 @@ const paypalAccess = async (e: ReturnType<typeof env>&{payoutControl?:PayoutProv
   });}catch(error){e.payoutControl?.unavailable();throw error;}
   e.payoutControl?.observe(r);
   const data = (await r.json().catch(() => ({}))) as { access_token?: string; error_description?: string;expires_in?:number };
-  if (!r.ok || !data.access_token) throw new Error(data.error_description || `PayPal rechazó las credenciales (${r.status})`);
+  if (!r.ok || !data.access_token) throw new Error(`PayPal rechazó las credenciales (${r.status}${data.error_description ? `: ${data.error_description}` : ''})`);
   const ttl=typeof data.expires_in==='number'&&Number.isFinite(data.expires_in)&&data.expires_in>0?data.expires_in:60;
   return {token:data.access_token,until:(e.payoutControl?.clock.now()??Date.now())+Math.max(0,ttl*1000-5000)};
 };
@@ -595,7 +606,7 @@ export async function POST(request: Request): Promise<Response> {
       return await webhook(request, e);
     } catch (err) {
       await logServerError(e.serviceKey, 'api', `PayPal webhook: ${err instanceof Error ? err.message : String(err)}`, err instanceof Error ? err.stack ?? '' : '');
-      return json(500, { error: err instanceof Error ? err.message : 'Error' });
+      return json(500, { error: 'Error interno' });
     }
   }
 
@@ -784,6 +795,6 @@ export async function POST(request: Request): Promise<Response> {
     return json(400, { error: 'Acción no válida.' });
   } catch (err) {
     await logServerError(e.serviceKey, 'api', `PayPal ${String(body.action)}: ${err instanceof Error ? err.message : String(err)}`, err instanceof Error ? err.stack ?? '' : '');
-    return json(502, { error: err instanceof Error ? err.message : 'No se pudo conectar con PayPal.' });
+    return json(502, { error: publicMessage(err, 'No se pudo conectar con PayPal. Inténtalo de nuevo en unos minutos.') });
   }
 }

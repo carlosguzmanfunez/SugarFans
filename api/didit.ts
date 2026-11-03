@@ -131,10 +131,10 @@ export async function GET(): Promise<Response> {
   return json(200, {
     enabled: !!(e.apiKey && e.workflowId && e.webhookSecret && e.serviceKey),
     checks: {
-      apiKey: e.apiKey ? `${e.apiKey.length} caracteres` : 'FALTA',
+      apiKey: e.apiKey ? 'OK' : 'FALTA',
       workflowId: e.workflowId ? 'OK' : 'FALTA',
-      webhookSecret: e.webhookSecret ? `${e.webhookSecret.length} caracteres` : 'FALTA',
-      serviceRoleKey: e.serviceKey ? `${e.serviceKey.length} caracteres` : 'FALTA',
+      webhookSecret: e.webhookSecret ? 'OK' : 'FALTA',
+      serviceRoleKey: e.serviceKey ? 'OK' : 'FALTA',
     },
   });
 }
@@ -154,7 +154,7 @@ export async function POST(request: Request): Promise<Response> {
       return await webhook(request, e);
     } catch (err) {
       await logServerError(e.serviceKey, 'api', `Didit webhook: ${err instanceof Error ? err.message : String(err)}`, err instanceof Error ? err.stack ?? '' : '');
-      return json(500, { error: err instanceof Error ? err.message : 'Error' });
+      return json(500, { error: 'Error interno' });
     }
   }
 
