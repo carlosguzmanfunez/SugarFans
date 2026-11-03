@@ -176,7 +176,7 @@ const InviteNetwork: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         <ol className="list-decimal pl-5 space-y-1">
           <li>Comparte tu enlace con creadores que conozcas.</li>
           <li>Cuando tu invitado se verifica y vende sus primeros ${CREATOR_INVITE_QUALIFY}, se activa tu bono.</li>
-          <li>Ganas {pct(CREATOR_INVITE_BONUS)} de todo lo que venda durante {CREATOR_INVITE_MONTHS} meses, hasta ${CREATOR_INVITE_CAP} por invitado.</li>
+          <li>Ganas {pct(CREATOR_INVITE_BONUS)} de todo lo que venda durante {CREATOR_INVITE_MONTHS} meses, hasta ${CREATOR_INVITE_CAP} mensuales por invitado.</li>
         </ol>
         <p className="mt-2 text-xs text-ink/60">Lo paga {BRAND.name}: a tu invitado no se le descuenta nada. Solo ganas por los creadores que tú invitas, no por los que ellos inviten.</p>
       </div>

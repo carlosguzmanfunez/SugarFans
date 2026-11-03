@@ -4,7 +4,7 @@
 // Checks: the creator's cut comes from the net (after the processor's fee); levels by
 // active fans or sales, with the quality conditions; link fans at 85% for 60 days;
 // no cash goals; creator invites from each invited creator's own $100, for 6 months,
-// capped at $100; Creadores Fundadores; minimum prices; withdrawals by level; Reserve Event seats by level; medals
+// capped at $100 a month; Creadores Fundadores; minimum prices; withdrawals by level; Reserve Event seats by level; medals
 // and the featured list; the Meta de experiencia from gifts and tips to a ticket and
 // a booking that needs no payment.
 import { createDbTest } from './db-harness.mjs';
@@ -134,9 +134,14 @@ const run = async () => {
     expect(bonuses() === '14.16', `después de 6 meses: ${bonuses()}`);
     expect(psql(DB, `select until_at = from_at + interval '6 months' from public.invite_window('${inv2}')`) === 't', 'no son 6 meses');
   });
-  await check('El bono tiene un tope de $100 por creador invitado', async () => {
+  await check('El bono tiene un tope de $100 al mes por creador invitado', async () => {
+    // This month already has 9.44 (the tip and the Reserve); +5 months has 4.72.
     for (let i = 0; i < 5; i++) sale(inv2, fan, 500, 'tip');
-    expect(Number(bonuses()) === 100, `bono: ${bonuses()}`);
+    expect(Number(bonuses()) === 104.72, `este mes llega a $100: ${bonuses()}`);
+    // Another month starts again from zero.
+    sale(inv2, fan, 500, 'tip', "now() + interval '2 months'");
+    const more = Number(bonuses()) - 104.72;
+    expect(more > 20 && more < 25, `otro mes: ${more}`);
   });
 
   console.log('Creadores Fundadores');

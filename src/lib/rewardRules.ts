@@ -57,7 +57,7 @@ export const CREATOR_INVITE_BONUS = 0.05;
 export const CREATOR_INVITE_MONTHS = 6;
 export const CREATOR_INVITE_MIN = 1; // qualified invited creators for the Embajador medal
 export const CREATOR_INVITE_QUALIFY = 100;
-export const CREATOR_INVITE_CAP = 100;
+export const CREATOR_INVITE_CAP = 100; // per invited creator, per month
 
 // Creadores Fundadores: only by invitation of the team (Captar creadores link
 // /c/<code>), 100 per country. 82% of the net and the badge while they keep it:
@@ -245,8 +245,11 @@ export const daysLeft = (iso: string, now = Date.now()) => {
   return d === 1 ? 'te queda 1 día' : `te quedan ${d} días`;
 };
 
+// The calendar month (Honduras time, UTC−6) the $100 invite cap counts in: "2026-11".
+export const inviteCapMonth = (iso: string) => new Date(Date.parse(iso) - 6 * 3_600_000).toISOString().slice(0, 7);
+
 // The inviter's bonus on one sale: 5% of the net, keeping creator + inviter within
-// 90% of the net, and within what is left of the $100 cap.
+// 90% of the net, and within what is left of that month's $100 cap.
 export const inviteBonusFor = (sale: Pick<Transaction, 'amount' | 'share'> & { gatewayFee?: number }, paidSoFar = 0) => {
   const net = sale.amount - (sale.gatewayFee ?? processorFee(sale.amount));
   if (net <= 0) return 0;
@@ -274,7 +277,7 @@ export const MEDALS: MedalInfo[] = [
   { id: 'iman', name: 'Imán de fans', icon: 'fa-magnet', how: 'Consigue 10, 25 o 50 fans nuevos con tu enlace en un mes (que te paguen algo).', unlocks: '2, 5 o 7 días destacado en tu categoría.' },
   { id: 'puntual', name: 'Puntual', icon: 'fa-clock', how: 'Responde a tiempo tus últimas 20 solicitudes de Reserve.', unlocks: 'Insignia "Puntual" visible para tus fans.' },
   { id: 'constante', name: 'Constante', icon: 'fa-fire', how: 'Haz al menos un Live para suscriptores cada semana durante 4 semanas.', unlocks: 'Destacado en Explorar mientras mantengas la racha, e insignia "Constante".' },
-  { id: 'embajador', name: 'Embajador', icon: 'fa-handshake', how: 'Invita a un creador que se verifique y venda sus primeros $100.', unlocks: 'Ganas 5% de lo que venda durante 6 meses, hasta $100 por creador.' },
+  { id: 'embajador', name: 'Embajador', icon: 'fa-handshake', how: 'Invita a un creador que se verifique y venda sus primeros $100.', unlocks: 'Ganas 5% de lo que venda durante 6 meses, hasta $100 al mes por creador.' },
 ];
 export const IMAN_TIERS = [
   { fans: 10, days: 2 },

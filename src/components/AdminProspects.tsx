@@ -123,7 +123,7 @@ function Insights({ data, onTemplates }: { data: ProspectInsights; onTemplates: 
     </section>
     <section className={`${card} p-4 sm:p-6`} aria-labelledby="creator-invites-title" data-testid="creator-invites">
       <h3 id="creator-invites-title" className="text-base font-bold text-gray-900">Invitados por otros creadores</h3>
-      <p className="text-sm text-gray-600 mt-1">Cada creador tiene su link en Panel → Dinero → Recompensas. Cuando un invitado se verifica y vende sus primeros $100, quien lo invitó gana 5% de lo que venda durante 6 meses (hasta $100 por invitado).</p>
+      <p className="text-sm text-gray-600 mt-1">Cada creador tiene su link en Panel → Dinero → Recompensas. Cuando un invitado se verifica y vende sus primeros $100, quien lo invitó gana 5% de lo que venda durante 6 meses (hasta $100 al mes por invitado).</p>
       <dl className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
         {[['Llegaron', ci.total], ['Verificados', ci.verified], ['Ya venden', ci.selling], ['Últimos 30 días', ci.last30Days]].map(([k, v]) => <div key={k} className="rounded-xl bg-gray-50 p-3">
           <dt className="text-xs text-gray-500">{k}</dt><dd className="text-2xl font-bold tabular-nums text-gray-900">{n(Number(v))}</dd></div>)}

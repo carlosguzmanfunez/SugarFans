@@ -147,7 +147,7 @@ const CreatorRewardsPanel: React.FC<{ onOpenInvites?: () => void }> = ({ onOpenI
         </div>
         <p className="text-sm text-gray-500 mb-4">
           Cuando un creador que invitaste se verifica y vende sus primeros ${CREATOR_INVITE_QUALIFY}, ganas un {pct(CREATOR_INVITE_BONUS)} extra
-          de todo lo que venda durante {CREATOR_INVITE_MONTHS} meses, hasta ${CREATOR_INVITE_CAP} por creador.
+          de todo lo que venda durante {CREATOR_INVITE_MONTHS} meses, hasta ${CREATOR_INVITE_CAP} al mes por creador.
           Lo pone {BRAND.name}: al creador que invitas no se le descuenta nada.
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
