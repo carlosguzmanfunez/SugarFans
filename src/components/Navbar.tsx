@@ -118,13 +118,13 @@ const Navbar: React.FC = () => {
           {/* Desktop Nav */}
           <div className="hidden xl:flex items-center gap-1 ml-auto" data-testid="desktop-navigation">
             {onLanding &&
-              sections.map((sct) =>
+              sections.map((sct, index) =>
                 sct.href.startsWith('/') ? (
-                  <Link key={sct.href} to={sct.href} className={linkCls(sct.href)}>
+                  <Link key={sct.href} to={sct.href} className={`${linkCls(sct.href)} ${index < 3 ? 'font-semibold!' : ''}`}>
                     {sct.label}
                   </Link>
                 ) : (
-                  <a key={sct.href} href={sct.href} className="rounded-full px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-ink/5">
+                  <a key={sct.href} href={sct.href} className={`rounded-full px-3.5 py-2 text-sm transition-colors hover:bg-ink/5 ${index < 3 ? 'font-semibold text-ink' : 'font-medium text-muted'}`}>
                     {sct.label}
                   </a>
                 )

@@ -10,15 +10,11 @@ export const THESIS =
 export const HERO = {
   titleLead: 'Tu acceso reservado a',
   titleAccent: 'tu creador de contenido favorito.',
-  subtitle: 'Reserva videollamadas 1:1 y eventos con tus creadores favoritos. Suscríbete también a su contenido exclusivo.',
+  subtitle: 'Reserva videollamadas y eventos con tus creadores favoritos, o suscríbete para ver su contenido exclusivo.',
   primaryCta: 'Crear cuenta gratis',
-  secondaryCta: 'Explorar Reserve',
-  secondaryTo: '/reserve',
-  // Only with ENABLE_OPEN_LIVE (src/config/features.ts).
-  openLiveCta: 'Ver quién está en Live',
   // Signed-in visitors already have an account: offer their next step instead.
   member: {
-    fan: { primary: { label: 'Explorar creadores', to: '/explore', icon: 'fa-compass' }, secondary: { label: 'Ver Reserve', to: '/reserve', icon: 'fa-ticket' } },
+    fan: { primary: { label: 'Ver experiencias', to: '/reserve', icon: 'fa-ticket' }, secondary: { label: 'Explorar creadores', to: '/explore', icon: 'fa-compass' } },
     creator: { primary: { label: 'Ir a mi panel', to: '/creator/dashboard', icon: 'fa-chart-line' }, secondary: { label: 'Explorar creadores', to: '/explore', icon: 'fa-compass' } },
     admin: { primary: { label: 'Panel de administración', to: '/admin', icon: 'fa-shield-halved' }, secondary: { label: 'Explorar creadores', to: '/explore', icon: 'fa-compass' } },
   },
@@ -62,7 +58,7 @@ export const HERO_EXPERIENCES = [
   {
     id: 'your-proposal',
     title: 'Tu idea también cuenta',
-    description: 'Propón una experiencia, una fecha y un presupuesto.',
+    description: 'Planea un taller de fotografía para tu grupo.',
     badge: 'A tu medida',
     icon: 'fa-pen-to-square',
     image: '/hero-experiences/your-proposal.webp',
@@ -98,11 +94,15 @@ export const LIVE_NOW = {
 };
 
 export const VIP = {
-  titleLead: 'Reserva experiencias,',
-  titleAccent: 'no personas',
-  subtitle:
-    'Clases, conversaciones y actividades con tus creadores favoritos. Encuentra una experiencia que vaya contigo.',
-  cta: 'Explorar Reserve',
+  titleLead: 'Propón tu',
+  titleAccent: 'experiencia',
+  subtitle: 'Si tienes algo en mente que el creador todavía no ofrece, cuéntale tu idea desde su perfil.',
+  cta: 'Elegir creador',
+  steps: [
+    { title: 'Cuéntale tu idea', description: 'Describe la actividad e indica una fecha y un presupuesto.' },
+    { title: 'Revisa su respuesta', description: 'El creador puede aceptar tu propuesta o sugerir cambios en la fecha, el precio o la duración.' },
+    { title: 'Confirma y paga', description: 'Si el creador acepta y tú confirmas los detalles, puedes hacer el pago.' },
+  ],
 };
 
 export const CREATOR_CTA = {
@@ -114,11 +114,8 @@ export const CREATOR_CTA = {
   // real clip is in public/creator-cta/, the photo below is shown instead.
   video: '',
   poster: '/creators/photos/valentina.jpg',
-  signupDone: 'Cuenta de creador lista',
   // Example notifications on the panel (illustration only).
   notifications: [
-    { title: 'Nueva suscripción', text: 'Lucía se unió a tu comunidad' },
-    { title: 'Reserva solicitada', text: 'Asesoría 1:1, sábado 16:00' },
-    { title: 'Plaza reservada', text: 'Beauty Q&A del viernes, 15 de 20' },
+    { title: 'Nueva reserva solicitada', text: 'Asesoría 1:1, sábado 16:00' },
   ],
 };
