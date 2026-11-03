@@ -29,6 +29,32 @@
 .lv2 .hero-grid>div:first-child{position:relative;z-index:2}
 .lv2 .hero h1{font-size:clamp(40px,5.2vw,68px);line-height:1.02;font-weight:700}
 .lv2 .hero .lead{margin-top:22px;font-size:18px;color:var(--muted);max-width:26em}
+.lv2 .creator-activity{display:grid;margin-top:24px;border:1px solid var(--line);border-radius:22px;background:var(--surface);overflow:hidden}
+.lv2 .creator-activity-item{display:grid;grid-template-columns:36px minmax(0,1fr) auto;grid-template-areas:"icon title value" "icon detail action";gap:6px 12px;min-width:0;padding:16px 20px;color:var(--ink);text-decoration:none;transition:background-color .2s var(--ease)}
+.lv2 .creator-activity-item+.creator-activity-item{border-top:1px solid var(--line)}
+.lv2 .creator-activity-item:hover{background:var(--canvas)}
+.lv2 .creator-activity-item:focus-visible{outline-offset:-4px}
+.lv2 .creator-activity-icon{grid-area:icon;display:grid;place-items:center;align-self:center;width:36px;height:36px;border-radius:12px;background:var(--gold-1);color:var(--gold-7);font-size:16px}
+.lv2 .creator-activity-title{grid-area:title;align-self:center;min-width:0;font-family:var(--body);font-size:14px;font-weight:600;line-height:1.4}
+.lv2 .creator-activity-value{grid-area:value;align-self:center;min-width:0;max-width:13ch;overflow-wrap:anywhere;font-family:var(--display);font-size:18px;font-weight:600;line-height:1.25;text-align:right;font-variant-numeric:tabular-nums}
+.lv2 .creator-activity-detail{grid-area:detail;min-width:0;font-size:13px;line-height:1.5;color:var(--muted)}
+.lv2 .creator-activity-action{grid-area:action;display:flex;align-items:center;align-self:end;gap:8px;justify-self:end;font-size:13px;line-height:1.5;font-weight:600;color:var(--gold-7)}
+.lv2 .creator-activity-action>i{font-size:11px}
+.lv2 .creator-activity-item:hover .creator-activity-action{text-decoration:underline;text-underline-offset:4px}
+.lv2 .creator-activity-reserve[data-pending="true"]{background:var(--gold-1)}
+.lv2 .creator-activity-reserve[data-pending="true"] .creator-activity-value{color:var(--gold-7)}
+.lv2 .creator-activity-income .creator-activity-icon{background:var(--brand-1);color:var(--brand)}
+.lv2 .creator-activity-income .creator-activity-value{font-size:26px;color:var(--brand)}
+.lv2 .creator-activity-income .creator-activity-action{color:var(--brand)}
+.lv2 .creator-activity-period{display:block}
+.lv2 .creator-activity-goal .creator-activity-icon{background:var(--iris-1);color:var(--iris)}
+.lv2 .creator-activity-goal .creator-activity-action{color:var(--iris)}
+.lv2 .creator-activity-progress{display:block;width:100%;max-width:200px;height:5px;margin-top:6px;overflow:hidden;border-radius:99px;background:var(--line)}
+.lv2 .creator-activity-progress>span{display:block;height:100%;border-radius:inherit;background:var(--iris)}
+@media(min-width:900px){.lv2 .creator-activity{grid-template-columns:repeat(3,minmax(0,1fr))}.lv2 .creator-activity-item{grid-template-columns:36px minmax(0,1fr);grid-template-rows:36px auto 1fr auto;grid-template-areas:"icon title" "value value" "detail detail" "action action";gap:12px;padding:24px}.lv2 .creator-activity-item+.creator-activity-item{border-top:0;border-left:1px solid var(--line)}.lv2 .creator-activity-value{text-align:left;font-size:25px;max-width:100%;margin-top:4px}.lv2 .creator-activity-income .creator-activity-value{font-size:32px}.lv2 .creator-activity-detail{font-size:14px}.lv2 .creator-activity-action{justify-self:start;margin-top:4px}.lv2 .creator-activity-period{display:inline;margin-left:8px}}
+@media(min-width:360px) and (max-width:899px){.lv2 .creator-activity-income[data-long-value="true"]{grid-template-areas:"icon title title" "icon value value" "icon detail action"}.lv2 .creator-activity-income[data-long-value="true"] .creator-activity-value{max-width:100%;text-align:left}}
+@media(max-width:359px){.lv2 .creator-activity-item{grid-template-columns:32px minmax(0,1fr);grid-template-areas:"icon title" "icon value" "icon detail" "icon action";gap:4px 10px;padding:16px 14px}.lv2 .creator-activity-icon{width:32px;height:32px}.lv2 .creator-activity-title{font-size:13px}.lv2 .creator-activity-value{max-width:100%;font-size:18px;text-align:left}.lv2 .creator-activity-action{justify-self:start;margin-top:4px}.lv2 .creator-activity-income .creator-activity-value{font-size:23px}}
+@media(prefers-reduced-motion:reduce){.lv2 .creator-activity-item{transition:none}}
 .lv2 .ctas{display:flex;gap:12px;margin-top:30px;flex-wrap:wrap}
 .lv2 .magnet{will-change:transform}
 .lv2 .deck{position:relative;height:520px;perspective:1400px;touch-action:pan-y;user-select:none}
@@ -61,7 +87,7 @@
 .lv2 .hero-experiences .pass[data-experience="your-proposal"]{--pass-bg:#f2d792;--pass-ink:#2a1d36;--pass-copy:#4a3451;--pass-rule:#b28a3d}
 .lv2 .hero-experiences .pass .fig{top:0;bottom:auto;left:0;width:100%;height:290px;margin:0;border-radius:0;background:var(--night-7);box-shadow:none}
 .lv2 .hero-experiences .pass .fig img{width:100%;height:100%;object-fit:cover;object-position:center}
-.lv2 .hero-experiences .pass[data-experience="exclusive-content"] .fig img{object-position:center top}
+.lv2 .hero-experiences .pass[data-experience="exclusive-content"] .fig img{object-position:center top;transform:scale(1.35);transform-origin:center top}
 .lv2 .hero-experiences .pass .top{z-index:1}
 .lv2 .hero-experiences .pass .top .chip{font-size:12px;padding:7px 11px;background:var(--pass-bg);color:var(--pass-ink);border-color:var(--pass-rule);backdrop-filter:none}
 .lv2 .hero-experiences .pass .info{padding-top:20px;background:var(--pass-bg)}

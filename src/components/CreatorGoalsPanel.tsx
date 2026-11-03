@@ -126,13 +126,15 @@ const CreatorGoalsPanel: React.FC = () => {
         {next ? (
           <>
             <p className="font-display text-3xl font-bold mt-1">{next.icon} Llegar a {next.name}</p>
-            <p className="text-sm text-white/85 mt-1">Hoy eres {level.icon} {level.name}. Llega a una de las dos y subes de nivel.</p>
+            <p className="text-sm text-white/85 mt-1">Hoy eres {level.icon} {level.name}. Puedes alcanzar la meta de fans o la de ventas; basta con una de las dos.</p>
             <div className="mt-5 grid sm:grid-cols-2 gap-5">
               <Bar label="Fans activos" value={data.activeFans} max={next.minFans} text={`${data.activeFans} / ${next.minFans}`} />
               <Bar label="Ventas en 30 días" value={data.sales} max={next.minSales} text={`${money(data.sales)} / ${money(next.minSales)}`} />
             </div>
+            <p className="text-xs text-white/90 mt-3">Un fan activo hizo un pago para ti en los últimos 30 días. Si llegó con tu enlace, cuenta doble para esta meta.</p>
+            <p className="text-sm text-white/90 mt-3">Desde Plata necesitas no tener reportes confirmados en 90 días. Para Oro y Diamante también debes responder a tiempo al menos el 95% de tus solicitudes de Reserve.</p>
             <p className="text-sm mt-5">
-              <span className="font-semibold">Desbloqueas:</span> {next.perks.join(' · ')}
+              <span className="font-semibold">Al subir consigues:</span> {next.perks.join(' · ')}
             </p>
             {!data.clean && <p className="text-sm mt-2 text-white/90">Tienes un reporte confirmado en los últimos 90 días: no puedes subir por ahora.</p>}
             {data.clean && !data.reliable && next.reliable && (
@@ -144,10 +146,10 @@ const CreatorGoalsPanel: React.FC = () => {
         )}
 
         <div className="mt-4 inline-flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-2xl bg-white/20 px-4 py-2.5 ring-1 ring-white/30" data-testid="goals-share">
-          <span className="text-sm font-semibold">Tu ganancia actual:</span>
+          <span className="text-sm font-semibold">Tu parte habitual:</span>
           <span className="font-display text-2xl font-bold tabular-nums">{pct(data.share)}</span>
           <span className="text-xs text-white/85">
-            de cada pago, después de la comisión de PayPal{better ? `. En ${better.name} sube a ${pct(better.share)}` : ''}.
+            de lo que queda después del costo de PayPal{better ? `. En ${better.name} sube a ${pct(better.share)}` : ''}. Los regalos tienen su propio reparto: 60%.
           </span>
         </div>
       </div>
@@ -170,7 +172,7 @@ const CreatorGoalsPanel: React.FC = () => {
                 <div className="text-sm">
                   <p className="font-semibold text-gray-900">{m.name}{has ? ' ✓' : ''}</p>
                   <p className="text-gray-600 text-xs mt-0.5">{m.how}</p>
-                  <p className="text-xs mt-1"><span className="font-medium text-gray-900">Desbloquea:</span> <span className="text-gray-600">{m.unlocks}</span></p>
+                  <p className="text-xs mt-1"><span className="font-medium text-gray-900">Qué consigues:</span> <span className="text-gray-600">{m.unlocks}</span></p>
                   <p className="text-xs text-pink-600 mt-1">{medalProgress(m.id, data)}</p>
                 </div>
               </div>

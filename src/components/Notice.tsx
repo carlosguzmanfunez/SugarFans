@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import Icon from './Icon';
+import { paymentWording } from '../lib/paymentWording';
 
 // The result of a button ("Cambios guardados", "Escribe el email…"), floating at the
 // bottom of the screen. Saving forms are long: shown at the top of the page, the
@@ -23,7 +24,7 @@ const Notice: React.FC<{ ok: boolean; text: string; onClose?: () => void }> = ({
       }`}
     >
       <Icon name={ok ? 'fa-circle-check' : 'fa-circle-question'} className="mt-0.5 text-base" />
-      <span className="flex-1">{text}</span>
+      <span className="flex-1">{paymentWording(text)}</span>
       {onClose && (
         <button type="button" onClick={onClose} aria-label="Cerrar aviso" className="-mr-1 rounded-full p-1 opacity-60 hover:opacity-100">
           <Icon name="fa-xmark" />

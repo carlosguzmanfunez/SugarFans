@@ -7,9 +7,10 @@ import { socialApi } from '../../lib/social';
 import { levelById, nextLevel, rewardsApi } from '../../lib/rewards';
 import { useReserveInbox } from '../../lib/live';
 import { ENABLE_CREATOR_LIVE } from '../../config/features';
-import { CREATOR_RESERVE_LINK } from '../../lib/reserveAlerts';
 import { usePayoutCalendar } from '../../lib/usePayoutCalendar';
 import { useCreatorBalance } from '../../lib/useCreatorBalance';
+import { earningsCycle, PAYOUT_TIME_ZONE } from '../../lib/payoutCalendar';
+import CreatorActivitySummary from './CreatorActivitySummary';
 
 // A creator's home: instead of the fans' hero (which sells creators to fans), the top
 // of the page is about their own day: requests waiting, money this month, how close
@@ -54,32 +55,9 @@ const CreatorHome: React.FC = () => {
     ? Math.min(99, Math.floor(100 * Math.max(data.rewards.activeFans / next.minFans, data.rewards.sales / next.minSales)))
     : null;
 
-  const tiles = [
-    {
-      to: CREATOR_RESERVE_LINK,
-      label: 'Reservas por responder',
-      value: String(waiting),
-      icon: <Icon name="fa-ticket" />,
-      alert: waiting > 0,
-      testid: 'ch-reservas',
-    },
-    {
-      to: '/creator/dashboard?tab=earnings',
-      label: 'En acumulación · ciclo 26–25',
-      value: earnings ? money(earnings.pending) : '…',
-      icon: <Icon name="fa-wallet" />,
-      testid: 'ch-ganado',
-    },
-    {
-      to: '/creator/dashboard?tab=goals#panel-tabs',
-      // Labelled as progress (with a bar) so it never reads as the creator's cut of a payment.
-      label: next ? `Avance a ${next.name}` : level ? 'Nivel más alto' : 'Tu meta',
-      value: pct !== null ? `${pct}%` : level ? level.name : '…',
-      icon: <Icon name="fa-bullseye" />,
-      bar: pct,
-      testid: 'ch-metas',
-    },
-  ];
+  const cycle = earningsCycle(calendar.at);
+  const cycleDate = new Intl.DateTimeFormat('es-HN', { timeZone: PAYOUT_TIME_ZONE, day: 'numeric', month: 'short' });
+  const period = calendar.data ? `${cycleDate.format(new Date(cycle.start))} – ${cycleDate.format(new Date(cycle.lastDay))}` : null;
 
   return (
     <header className="hero" aria-labelledby="creator-home-title" data-testid="creator-home">
@@ -140,27 +118,15 @@ const CreatorHome: React.FC = () => {
           </div>
         )}
 
-        <div className="mt-4 grid grid-cols-3 gap-2.5 sm:gap-4">
-          {tiles.map((t) => (
-            <Link
-              key={t.label}
-              to={t.to}
-              data-testid={t.testid}
-              className={`group flex flex-col gap-2 rounded-2xl border bg-white p-3.5 transition-colors hover:border-brand-200 sm:p-5 ${
-                t.alert ? 'border-red-200' : 'border-line'
-              }`}
-            >
-              <span className={`text-lg ${t.alert ? 'text-red-600' : 'text-ink/45'}`}>{t.icon}</span>
-              <span className={`font-display text-xl font-semibold tabular-nums sm:text-2xl ${t.alert ? 'text-red-600' : 'text-ink'}`}>{t.value}</span>
-              {'bar' in t && t.bar !== null && (
-                <span className="h-1.5 overflow-hidden rounded-full bg-ink/10" role="progressbar" aria-label={t.label} aria-valuenow={t.bar} aria-valuemin={0} aria-valuemax={100}>
-                  <span className="block h-full rounded-full bg-gradient-to-r from-amber-500 to-brand-500" style={{ width: `${Math.max(t.bar ?? 0, 3)}%` }} />
-                </span>
-              )}
-              <span className="text-[12px] leading-tight text-ink/60 sm:text-sm">{t.label}</span>
-            </Link>
-          ))}
-        </div>
+        <CreatorActivitySummary
+          ready={!!data}
+          waiting={waiting}
+          income={earnings ? money(earnings.pending) : null}
+          period={period}
+          nextLevelName={next?.name ?? null}
+          levelName={level?.name ?? null}
+          progress={pct}
+        />
 
         <div className="mt-5">
           <Link to="/creator/dashboard" className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 hover:underline">

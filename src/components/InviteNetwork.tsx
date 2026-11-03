@@ -118,7 +118,7 @@ const InviteNetwork: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
   return (
     <div className="space-y-5" data-testid="my-invites">
-      <button type="button" onClick={onBack} className="text-sm font-medium text-ink/60 hover:text-ink"><i aria-hidden="true" className="fas fa-arrow-left mr-1.5" />Recompensas</button>
+      <button type="button" onClick={onBack} className="text-sm font-medium text-ink/60 hover:text-ink"><i aria-hidden="true" className="fas fa-arrow-left mr-1.5" />Beneficios</button>
 
       <div className="bg-white rounded-2xl border border-line p-4 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">

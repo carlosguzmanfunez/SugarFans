@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { homeForRole } from '../config/homes';
 import { useLanguage } from '../context/LanguageContext';
 import LanguageSelector from '../components/LanguageSelector';
 import BrandLogo from '../components/BrandLogo';
@@ -8,17 +9,27 @@ import SocialLoginButtons from '../components/SocialLoginButtons';
 import { DEMO_ACCOUNTS, offlineDemoEnabled, type DemoAccount } from '../config/demoAccounts';
 
 const Login: React.FC = () => {
-  const { login, backendMode } = useAuth();
+  const { login, backendMode, user } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: string } | null)?.from || '/';
+  const state = location.state as { from?: string; passwordChanged?: boolean } | null;
+  const from = state?.from;
+  // Arriving right after choosing a new password (ResetPassword signs out first).
+  const passwordChanged = !!state?.passwordChanged;
   const [remember, setRemember] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
+
+  // Once the account is loaded: back to the page that asked for a login, or the
+  // start page of the role (or owner view) it signed in with.
+  useEffect(() => {
+    if (signedIn && user) navigate(from || homeForRole(user.role), { replace: true });
+  }, [signedIn, user, from, navigate]);
 
   const signIn = async (mail: string, pass: string) => {
     setSubmitting(true);
@@ -26,7 +37,7 @@ const Login: React.FC = () => {
     const result = await login(mail, pass, remember);
     setSubmitting(false);
     if (result.ok) {
-      navigate(from, { replace: true });
+      setSignedIn(true);
     } else {
       setError(result.error || 'Credenciales incorrectas');
     }
@@ -58,6 +69,12 @@ const Login: React.FC = () => {
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('login.title')}</h2>
           <p className="text-gray-600 mb-6">{t('login.subtitle')}</p>
+
+          {passwordChanged && !error && (
+            <div role="status" className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4 text-sm" data-testid="password-changed">
+              <i aria-hidden="true" className="fas fa-circle-check mr-2"></i>{t('login.passwordChanged')}
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">

@@ -24,7 +24,7 @@ const CREATOR_BENEFITS = [
   'Publica fotos y videos, gratis o solo para suscriptores',
   'Publica experiencias en Reserve: clases, sesiones, eventos y colaboraciones, con tus reglas',
   'Panel con suscriptores, ingresos y estadísticas',
-  'Ganancias del 26 al 25; solicita tu pago a PayPal del 26 al 1, desde $50, hora de Honduras',
+  'Ganancias del 26 al 25; solicita tu pago a PayPal del 26 al 1, desde $50, hora de Fans Reserve (UTC−6)',
 ];
 
 // `embedded`: only the sign-up card, for the visitors' entrance page (JoinPage) on desktop.

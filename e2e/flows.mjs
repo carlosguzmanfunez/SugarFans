@@ -1043,7 +1043,7 @@ const run = async () => {
     await check('Admin ve los documentos, rechaza con motivo, el creador reenvía y el admin aprueba', async () => {
       await logoutViaMenu(page);
       await login(page, 'admin@sugarfans.com', 'demo1234');
-      await waitPath(page, '/');
+      await waitPath(page, '/admin');
       await page.goto(`${BASE}/admin`);
       await openAdminSection(page, 'verifications');
       const list = page.getByTestId('admin-verifications');
@@ -1071,7 +1071,7 @@ const run = async () => {
       await page.getByText('Solicitud en revisión').waitFor();
       await logoutViaMenu(page);
       await login(page, 'admin@sugarfans.com', 'demo1234');
-      await waitPath(page, '/');
+      await waitPath(page, '/admin');
       await page.goto(`${BASE}/admin`);
       await openAdminSection(page, 'verifications');
       await list.locator('div.p-4', { hasText: 'Lola Creadora' }).getByRole('button', { name: /Revisar documentos/ }).click();
@@ -1298,7 +1298,7 @@ const run = async () => {
       const available = (await readAmount(page, 'available-balance'));
       const pending = (await readAmount(page, 'pending-balance'));
       expect(Math.abs(available + pending - 21.96) < 0.02, `total inesperado: ${available} + ${pending}`);
-      await page.getByTestId('earnings-cycle').getByText(/Hora de Honduras/).waitFor();
+      await page.getByTestId('earnings-cycle').getByText(/Hora de Fans Reserve \(UTC−6\)/).waitFor();
       await page.getByTestId('payout-window').getByText(/Ventana de pago abierta/).waitFor();
       await page.getByText('+$7.32').first().waitFor();
     });
@@ -1407,7 +1407,7 @@ const run = async () => {
     await check('Admin solo consulta los retiros: sin botones de pagar o rechazar', async () => {
       await logoutViaMenu(page);
       await login(page, 'admin@sugarfans.com', 'demo1234');
-      await waitPath(page, '/');
+      await waitPath(page, '/admin');
       await page.goto(`${BASE}/admin`);
       await openAdminSection(page, 'payouts');
       const box = page.getByTestId('admin-payouts');
@@ -1479,7 +1479,7 @@ const run = async () => {
     await check('Admin ve las cuentas reales y puede buscarlas', async () => {
       await logoutViaMenu(page);
       await login(page, 'admin@sugarfans.com', 'demo1234');
-      await waitPath(page, '/');
+      await waitPath(page, '/admin');
       await page.goto(`${BASE}/admin`);
       await openAdminSection(page, 'users');
       await page.getByText(creatorEmail).waitFor();
@@ -1494,7 +1494,7 @@ const run = async () => {
     });
     await check('Admin suspende una cuenta: no puede entrar hasta que se la quita, y queda en el historial', async () => {
       await login(page, 'admin@sugarfans.com', 'demo1234');
-      await waitPath(page, '/');
+      await waitPath(page, '/admin');
       await page.goto(`${BASE}/admin`);
       await openAdminSection(page, 'users');
       await page.fill('input[placeholder="Nombre o correo"]', fanEmail);
@@ -1511,7 +1511,7 @@ const run = async () => {
       await login(page, fanEmail, 'nueva-clave-2');
       await page.getByText(/Tu cuenta está suspendida/).waitFor();
       await login(page, 'admin@sugarfans.com', 'demo1234');
-      await waitPath(page, '/');
+      await waitPath(page, '/admin');
       await page.goto(`${BASE}/admin`);
       await openAdminSection(page, 'users');
       await page.fill('input[placeholder="Nombre o correo"]', fanEmail);
@@ -1647,10 +1647,22 @@ const run = async () => {
         await page.goto(link);
         await page.fill('input[name=newPassword]', password);
         await page.fill('input[name=confirmPassword]', password);
+        // The eye shows what was typed and hides it again.
+        await page.getByTestId('toggle-newPassword').click();
+        expect((await page.getAttribute('input[name=newPassword]', 'type')) === 'text', 'el ojito no mostró la contraseña');
+        await page.getByTestId('toggle-newPassword').click();
+        expect((await page.getAttribute('input[name=newPassword]', 'type')) === 'password', 'el ojito no ocultó la contraseña');
         await page.getByRole('button', { name: 'Guardar contraseña' }).click();
-        await page.getByText('Tu contraseña se cambió correctamente.').waitFor();
+        // Saved: the session closes and the login opens with the confirmation.
+        await waitPath(page, '/login');
+        await page.getByTestId('password-changed').waitFor();
+        return link;
       };
       await resetTo('clave-recuperada-3');
+      // Reopening the bare page afterwards (a reload, the phone waking up) no longer shows the form.
+      await page.goto(`${BASE}/reset-password`);
+      await page.getByText('Este enlace ya se usó o caducó').waitFor();
+      expect((await page.locator('input[name=newPassword]').count()) === 0, 'el formulario volvió a aparecer');
       await login(page, fanEmail, 'clave-recuperada-3');
       await waitPath(page, '/');
       await logoutViaMenu(page);
@@ -2378,7 +2390,7 @@ const run = async () => {
     let specialUrl = '';
     await check('El admin crea un link de cuenta especial y lo puede copiar', async () => {
       await login(sa, 'admin@sugarfans.com', 'demo1234', { remember: false });
-      await waitPath(sa, '/');
+      await waitPath(sa, '/admin');
       await sa.goto(`${BASE}/admin`);
       await openAdminSection(sa, 'special');
       const box = sa.getByTestId('special-admin');
@@ -3072,8 +3084,7 @@ const run = async () => {
       expect((await p.getByTestId('ch-creditos').count()) === 0, 'sigue la tarjeta de Créditos');
       const buttons = (await p.getByTestId('ch-nudge').getByRole('link').allTextContents()).map((t) => t.trim());
       expect(JSON.stringify(buttons) === JSON.stringify(['Subir foto o video', 'Mi perfil']), `botones: ${buttons.join(' | ')}`);
-      await p.getByTestId('ch-metas').getByText(/^Avance a /).waitFor();
-      await p.getByTestId('ch-metas').getByRole('progressbar').waitFor();
+      await p.getByTestId('ch-metas').getByRole('progressbar', { name: /^Avance a / }).waitFor();
       await p.getByTestId('ch-metas').tap();
       await p.getByTestId('goals-panel').waitFor();
       await p.getByTestId('goals-share').getByText('80%').waitFor();

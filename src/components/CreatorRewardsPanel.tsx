@@ -56,8 +56,9 @@ const CreatorRewardsPanel: React.FC<{ onOpenInvites?: () => void }> = ({ onOpenI
           <ul className="text-sm text-gray-700 space-y-1">
             {special.reserveNet && (
               <li>
-                <span className="font-semibold">Reserve al neto:</span> recibes cada pago de Reserve completo, menos la comisión que cobra PayPal por ese pago,
+                <span className="font-semibold">Tu parte especial en Reserve:</span> del pago del fan se descuentan el costo de PayPal,
                 el 5% de servicio de {BRAND.name}{special.taxRate > 0 ? ` y el ${ratePct(special.taxRate)} de impuesto` : ''}.
+                Lo que queda es para ti.
               </li>
             )}
             {special.featured && (
@@ -65,7 +66,7 @@ const CreatorRewardsPanel: React.FC<{ onOpenInvites?: () => void }> = ({ onOpenI
                 <span className="font-semibold">Visibilidad extra:</span> apareces primero entre los creadores destacados.
               </li>
             )}
-            <li className="text-gray-500">Suscripciones, propinas y regalos siguen con tu parte normal. Al retirar, PayPal cobra su comisión de envío como siempre.</li>
+            <li className="text-gray-600">Este plan no cambia el reparto de suscripciones, propinas ni regalos. Enviarte el dinero a tu PayPal tiene un costo aparte, que se descuenta de tu saldo.</li>
           </ul>
         </div>
       )}
@@ -78,33 +79,35 @@ const CreatorRewardsPanel: React.FC<{ onOpenInvites?: () => void }> = ({ onOpenI
           </p>
         </div>
         <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Tu parte de cada pago</p>
+          <p className="text-sm text-gray-500">Tu parte habitual</p>
           <p className="text-2xl font-bold text-green-600 mt-1" data-testid="rewards-share">{pct(data.share)}</p>
           <p className="text-xs text-gray-500 mt-1">
-            De lo que llega después de la comisión de PayPal. En suscripciones, renovaciones, propinas y Reserve. Regalos: 60%.
+            Primero se resta el costo de PayPal. De lo que queda, esta parte es para ti. Aplica a suscripciones, renovaciones, propinas y Reserve. Los regalos te dejan el 60% de su valor.
           </p>
         </div>
         <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Fans atraídos este mes</p>
+          <p className="text-sm text-gray-500">Fans nuevos con tu enlace</p>
           <p className="text-2xl font-bold text-pink-600 mt-1" data-testid="rewards-attracted">{data.attractedThisMonth}</p>
-          <p className="text-xs text-gray-500 mt-1">Se registraron con tu enlace y ya te pagaron algo</p>
+          <p className="text-xs text-gray-500 mt-1">Se registraron este mes con tu enlace y ya hicieron un pago para ti.</p>
         </div>
       </div>
 
       <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm" data-testid="levels">
-        <h3 className="font-bold text-gray-900 mb-1"><i aria-hidden="true" className="fas fa-medal text-amber-500 mr-2"></i>Niveles y lo que desbloquean</h3>
+        <h3 className="font-bold text-gray-900 mb-1"><i aria-hidden="true" className="fas fa-medal text-amber-500 mr-2"></i>Qué ganas al subir de nivel</h3>
         <p className="text-sm text-gray-500 mb-4">
-          Subes con fans activos (los de tu enlace cuentan doble) o con lo que vendes en 30 días. Desde Plata, sin reportes confirmados;
-          desde Oro, respondiendo a tiempo el 95% de tus solicitudes de Reserve.
+          Puedes subir de dos formas: por tus fans con pagos recientes o por tus ventas de los últimos 30 días. Basta alcanzar una de esas dos metas.
+          Desde Plata necesitas no tener reportes confirmados en los últimos 90 días. Para Oro y Diamante también debes responder a tiempo al menos el 95% de tus solicitudes de Reserve.
         </p>
+        <details className="text-sm text-gray-600 mb-4"><summary className="cursor-pointer font-medium">¿Qué significa «fan activo»?</summary><p className="mt-2 max-w-prose">Es un fan que hizo un pago para ti en los últimos 30 días. Si llegó con tu enlace, cuenta como dos para esta meta. Por eso este número puede ser mayor que la cantidad de personas.</p></details>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {LEVELS.map((l) => (
             <div key={l.id} data-testid="level-card" className={`rounded-xl p-4 border text-sm ${l.id === level.id ? 'border-pink-400 bg-pink-50' : 'border-gray-100'}`}>
               <p className="font-semibold text-gray-900">{l.icon} {l.name}{l.id === level.id ? ' · tu nivel' : ''}</p>
               <p className="text-gray-500 text-xs mt-1">
-                {l.minFans === 0 ? 'Al empezar' : `${l.minFans}+ fans activos o ${money(l.minSales)} al mes`}
+                {l.minFans === 0 ? 'Tu nivel al empezar' : `${l.minFans} fans activos o ${money(l.minSales)} en ventas en 30 días`}
               </p>
-              <p className="text-green-600 font-bold mt-1">{pct(l.share)}</p>
+              <p className="text-green-600 font-bold mt-1">{pct(l.share)} para ti</p>
+              <p className="text-xs text-gray-600 mt-1">Después del costo de cobrar al fan.</p>
               <ul className="mt-2 space-y-1 text-xs text-gray-700">
                 {l.perks.map((p) => (
                   <li key={p} className="flex gap-1.5"><i aria-hidden="true" className="fas fa-check text-green-500 mt-0.5"></i>{p}</li>
@@ -126,8 +129,9 @@ const CreatorRewardsPanel: React.FC<{ onOpenInvites?: () => void }> = ({ onOpenI
       <div className="bg-gradient-to-br from-pink-500 to-purple-600 text-white rounded-2xl p-4 sm:p-6">
         <h3 className="font-bold text-lg"><i aria-hidden="true" className="fas fa-link mr-2"></i>Tu enlace de invitación</h3>
         <p className="text-sm opacity-90 mt-1">
-          Compártelo en Instagram, TikTok o X. De cada fan que se registre con él te quedas con el {pct(REFERRAL_SHARE)} de lo que te pague durante {REFERRAL_DAYS} días, y cuenta doble para subir de nivel.
+          Compártelo en Instagram, TikTok o X. Cuando un fan se registra con tu enlace, recibes el {pct(REFERRAL_SHARE)} de lo que queda después del costo de PayPal en sus pagos para ti, durante {REFERRAL_DAYS} días desde su registro. Si tu parte habitual es mayor, se conserva. Ese fan también cuenta doble para subir de nivel cuando te paga.
         </p>
+        <p className="text-sm opacity-90 mt-2">Aplica a suscripciones, renovaciones, propinas y Reserve. Los regalos mantienen su reparto del 60%.</p>
         <div className="mt-4 flex flex-col sm:flex-row gap-2">
           <input readOnly value={link} aria-label="Enlace de invitación" data-testid="referral-link" className="flex-1 px-4 py-2.5 rounded-xl text-gray-900 text-sm" onFocus={(e) => e.target.select()} />
           <button type="button" onClick={() => copy(link)} className="bg-white text-pink-600 px-5 py-2.5 rounded-xl font-bold hover:bg-pink-50">
@@ -146,9 +150,9 @@ const CreatorRewardsPanel: React.FC<{ onOpenInvites?: () => void }> = ({ onOpenI
           )}
         </div>
         <p className="text-sm text-gray-500 mb-4">
-          Cuando un creador que invitaste se verifica y vende sus primeros ${CREATOR_INVITE_QUALIFY}, ganas un {pct(CREATOR_INVITE_BONUS)} extra
-          de todo lo que venda durante {CREATOR_INVITE_MONTHS} meses, hasta ${CREATOR_INVITE_CAP} al mes por creador.
-          Lo pone {BRAND.name}: al creador que invitas no se le descuenta nada.
+          Tu bono empieza cuando el creador que invitaste verifica su identidad y llega a ${CREATOR_INVITE_QUALIFY} en ventas.
+          Durante los {CREATOR_INVITE_MONTHS} meses siguientes ganas el {pct(CREATOR_INVITE_BONUS)} de lo que queda después del costo de PayPal en sus suscripciones, renovaciones, propinas y Reserve, hasta ${CREATOR_INVITE_CAP} al mes por cada creador invitado.
+          {' '}{BRAND.name} lo paga de su propia parte: no se le quita dinero al creador que invitaste.
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
           <input readOnly value={creatorLink} aria-label="Enlace para invitar creadores" data-testid="creator-invite-link" className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm" onFocus={(e) => e.target.select()} />
