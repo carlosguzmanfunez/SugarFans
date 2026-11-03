@@ -147,7 +147,7 @@ const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner,
         )}
       </div>
       <div className="p-4">
-        {post.content && <p className="text-gray-700 whitespace-pre-line">{post.content}</p>}
+        {canView && post.content && <p className="text-gray-700 whitespace-pre-line">{post.content}</p>}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mt-4 text-[13px] text-gray-500 max-[380px]:gap-x-2.5 sm:gap-x-6 sm:text-sm">
           <button
             onClick={toggleLike}

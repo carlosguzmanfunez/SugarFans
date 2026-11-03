@@ -136,4 +136,23 @@ finish(async () => {
     raises(() => as(otra, `update public.profiles set avatar = '${URL_BASE + path}' where id = '${otra}'`), /en revisión/, 'usar la foto aprobada de otra persona');
     as(lola, `update public.profiles set avatar = '${URL_BASE + path}' where id = '${lola}'`);
   });
+  await check('El texto de un post exclusivo solo lo leen sus suscriptores, el autor y los admins', async () => {
+    const lolaProfile = psql(DB, `select creator_profile_id from public.profiles where id = '${lola}'`);
+    as(lola, `insert into public.creator_posts (creator_id, content, is_locked) values ('${lola}', 'secreto', true)`);
+    expect(sees(fan, 'secreto') === '0', 'un fan sin suscripción lee el texto');
+    expect(anonSees('secreto') === '0', 'un visitante lee el texto');
+    expect(sees(lola, 'secreto') === '1' && sees(admin, 'secreto') === '1', 'el autor o el admin no lo ven');
+    // The fan still gets the locked card, without text or file.
+    const preview = as(fan, `select count(*) || '|' || bool_and(is_locked) from public.locked_post_previews('${lolaProfile}')`);
+    expect(preview === '1|true', `vista previa: ${preview}`);
+    expect(psql(DB, `set role anon; select count(*) from public.locked_post_previews('${lolaProfile}')`) === '1', 'el visitante no ve la tarjeta bloqueada');
+    expect(as(lola, `select count(*) from public.locked_post_previews('${lolaProfile}')`) === '0', 'al autor le sale como bloqueado');
+    // Counted for "En tendencia" even when locked.
+    expect(psql(DB, `set role anon; select posts from public.recent_post_counts(now() - interval '7 days') where creator_profile_id = '${lolaProfile}'`) !== '', 'no cuenta en tendencia');
+    psql(DB, `insert into public.subscriptions (fan_id, creator_id, price) values ('${fan}', '${lolaProfile}', 9.99)`);
+    expect(sees(fan, 'secreto') === '1', 'el suscriptor no lo lee');
+    expect(as(fan, `select count(*) from public.locked_post_previews('${lolaProfile}')`) === '0', 'al suscriptor le sale bloqueado');
+    psql(DB, `update public.subscriptions set cancel_at = now() - interval '1 day' where fan_id = '${fan}'`);
+    expect(sees(fan, 'secreto') === '0', 'con la suscripción vencida lo sigue leyendo');
+  });
 });
