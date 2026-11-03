@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { homeForRole } from '../config/homes';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, type UserRole } from '../context/AuthContext';
 import { readJSON, removeKey } from '../lib/storage';
@@ -22,7 +23,6 @@ const providerError = (): string => {
 };
 
 // Signing in lands on Inicio (fans and creators each get their own); admins on their panel.
-const homeFor = (role: UserRole) => (role === 'admin' ? '/admin' : '/');
 
 // Landing page after Google/Microsoft. Existing accounts go straight in; a new
 // account first picks fan or creator and accepts the terms (18+).
@@ -45,7 +45,7 @@ const AuthCallback: React.FC = () => {
   useEffect(() => {
     if (!user || user.signupCompleted === false || completing.current) return;
     removeKey(SOCIAL_INTENT_KEY);
-    navigate(intent.from || homeFor(user.role), { replace: true });
+    navigate(intent.from || homeForRole(user.role), { replace: true });
   }, [user, intent.from, navigate]);
 
   // The session is read from the URL on load; don't spin forever if it never comes.
