@@ -6,16 +6,22 @@ const DB='fr_reserve_cancel_test';
 const {setup,user,psql,as,raises,check,expect,finish}=createDbTest(DB);
 finish(async()=>{
  setup();
+ // Isolate accounting scenarios sharing one fan; quotas have their own suite.
+ psql(DB,'alter table vip_bookings disable trigger aa_reserve_fan_lifecycle');
  const creator=user('rc-creator@example.invalid','creator');
  const fan=user('rc-fan@example.invalid','fan');
  const other=user('rc-other@example.invalid','fan');
  const cp=psql(DB,`select creator_profile_id from profiles where id='${creator}'`);
  const method=psql(DB,`insert into payment_methods(user_id,kind,label) values('${fan}','card','Visa QA') returning id`);
- let slot=0;
+ const slotsByHours=new Map();
  // A booking that starts `hours` from now, in Honduras time like the creator's clock.
  const booking=(hours,status='accepted',details='{"kind":"custom"}',price=20)=>{
-  slot++;
-  const at=`(now()+interval '${hours} hours'+interval '${slot} minutes') at time zone 'America/Tegucigalpa'`;
+  const slot=slotsByHours.get(hours)??0;
+  slotsByHours.set(hours,slot+1);
+  // These scenarios share a creator. Keep their default one-hour sessions apart;
+  // minute-only offsets used to create overlapping reservations in the fixture.
+  const minutes=(hours<0?-1:1)*slot*65;
+  const at=`(now()+interval '${hours} hours'+interval '${minutes} minutes') at time zone 'America/Tegucigalpa'`;
   return psql(DB,`insert into vip_bookings(experience_id,creator_profile_id,title,creator_name,price,fan_id,fan_name,fan_email,date,time,status,details,time_zone)
    values('custom','${cp}','QA cancelación','Creadora QA',${price},'${fan}','Fan QA','rc-fan@example.invalid',(${at})::date,to_char(${at},'HH24:MI'),'${status}','${details}','America/Tegucigalpa') returning id`);
  };
@@ -26,7 +32,7 @@ finish(async()=>{
  const tx=id=>psql(DB,`select amount||'/'||creator_share||'/'||creator_refund_loss||'/'||status from transactions where key='vip:${id}'`).split('/');
  const earned=id=>Number(psql(DB,`select round(amount*creator_share-creator_refund_loss,2) from transactions where key='vip:${id}'`));
  const status=id=>psql(DB,`select status from vip_bookings where id='${id}'`);
- const cancel=(uid,id)=>JSON.parse(as(uid,`select reserve_cancel('${id}')`));
+ const cancel=(uid,id)=>JSON.parse(as(uid,`select reserve_cancel_v2('${id}','credits','voluntary')`));
 
  await check('Antes de pagar: el fan cancela sin costo y no recibe créditos',()=>{
   const id=booking(72);const r=cancel(fan,id);
@@ -54,7 +60,8 @@ finish(async()=>{
  await check('Si cancela el creador: 100% al fan, aunque falten menos de 24 h, y cuenta en su historial',()=>{
   const id=booking(3);pay(id);const w=wallet(fan);const r=cancel(creator,id);
   expect(r.by==='creator'&&r.refundPercent===100,'regla del creador '+JSON.stringify(r));
-  expect(wallet(fan)===w+2000,'no devolvió 100%');expect(earned(id)===0,'el creador conserva ganancia');
+  expect(wallet(fan)===w,'emitió Créditos obligatorios');expect(earned(id)===0,'el creador conserva ganancia');
+  expect(psql(DB,`select amount from reserve_refund_requests where booking_id='${id}'`)==='20.00','no solicitó devolución del 100% al medio original');
   expect(psql(DB,`select details->'cancellation'->>'by' from vip_bookings where id='${id}'`)==='creator','no quedó registrado');
   expect(psql(DB,`select count(*) from notifications where user_id='${fan}' and title like '%canceló tu reserva'`)==='1','sin aviso al fan');
  });
@@ -62,7 +69,7 @@ finish(async()=>{
   const id=booking(-1,'confirmed');
   raises(()=>cancel(fan,id),/ya empezó/,'ya empezó');
   const done=booking(48);pay(done);cancel(fan,done);
-  raises(()=>cancel(fan,done),/ya no se puede cancelar/,'doble cancelación');
+  const already=wallet(fan);cancel(fan,done);expect(wallet(fan)===already,'la repetición duplicó la devolución');
   raises(()=>cancel(other,booking(48)),/no encontrada/,'extraño');
  });
  await check('Una venta con devolución o disputa en curso no se cancela automáticamente',()=>{

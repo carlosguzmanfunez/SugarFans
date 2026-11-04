@@ -6,10 +6,12 @@ import { Link } from 'react-router-dom';
 import ReserveModal from './ReserveModal';
 import { ReserveNotice } from './ReserveBits';
 import BookingCalendar from '../BookingCalendar';
+import ReserveScheduleTime from './ReserveScheduleTime';
+import ReserveAccessNotice, { useReserveAccess } from './ReserveAccessNotice';
 import { backend } from '../../lib/backend';
 import { money } from '../../lib/platform';
 import { moderate } from '../../lib/moderation';
-import { DEFAULT_AVAILABILITY, formatLongDate, proposalAvailability, validateCustomRequest, type Availability, type CustomRequestInput, type TakenSlot } from '../../lib/vip';
+import { DEFAULT_AVAILABILITY, proposalAvailability, validateCustomRequest, type Availability, type CustomRequestInput, type TakenSlot } from '../../lib/vip';
 import {
   LOCATION_TYPES,
   isHomeService,
@@ -46,6 +48,8 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
+  const access = useReserveAccess();
+  const blocked = !!access.data.blockedUntil && new Date(access.data.blockedUntil).getTime() > Date.now();
   const [availability, setAvailability] = useState<Availability>(DEFAULT_AVAILABILITY);
   const [taken, setTaken] = useState<TakenSlot[]>([]);
   const [form, setForm] = useState<CustomRequestInput>({
@@ -72,7 +76,7 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
     Promise.all([backend.getAvailability(creator.id), backend.takenSlots(creator.id)]).then(([a, t]) => {
       setAvailability(proposalAvailability(a));
       setTaken(t);
-    });
+    }).catch(() => setError('No pudimos comprobar los horarios. Cierra esta ventana y vuelve a intentarlo.'));
   }, [creator.id]);
 
   const pickModality = (modality: ReserveModality) => {
@@ -116,7 +120,7 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
     const check = validateCustomRequest(input, creator.category);
     if (!check.ok) return setError(check.error!);
     setSending(true);
-    const result = await backend.requestCustomExperience(user, input);
+    const result = await backend.requestCustomExperience(user, { ...input, timeZone: availability.timeZone });
     setSending(false);
     if (!result.ok) return setError(result.error || 'No se pudo enviar la solicitud');
     setDone(true);
@@ -165,13 +169,15 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
           {step < STEPS.length - 1 ? (
             <button type="button" onClick={next} className="h-11 rounded-full bg-ink px-6 text-sm font-semibold text-white">Siguiente</button>
           ) : (
-            <button type="button" onClick={send} disabled={sending} className="h-11 rounded-full bg-gradient-to-r from-brand-600 to-iris-600 px-6 text-sm font-semibold text-white disabled:opacity-60">
+            <button type="button" onClick={send} disabled={sending || blocked || access.loading || !!access.error} className="h-11 rounded-full bg-gradient-to-r from-brand-600 to-iris-600 px-6 text-sm font-semibold text-white disabled:opacity-60">
               Enviar solicitud
             </button>
           )}
         </div>
       }
     >
+      <ReserveAccessNotice />
+      <p className="mb-4 text-sm text-ink/70">Enviar una propuesta no aparta el horario. Si el creador acepta, tendrás 2 horas para pagar y confirmar.</p>
       <ol className="mb-5 grid grid-cols-5 gap-1.5" aria-label="Pasos">
         {STEPS.map((s, i) => (
           <li key={s} aria-current={i === step ? 'step' : undefined} className="min-w-0">
@@ -227,7 +233,7 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
 
       {step === 2 && (
         <div className="space-y-4">
-          <BookingCalendar availability={availability} taken={taken} creatorName={creator.name} date={form.date} time={form.time} onChange={(date, time) => set({ date, time })} />
+          <BookingCalendar availability={availability} taken={taken} creatorName={creator.name} date={form.date} time={form.time} durationMinutes={form.durationMinutes} onChange={(date, time) => set({ date, time })} />
           <div className="grid grid-cols-2 gap-3">
             <label className="block text-sm">
               <span className="font-semibold text-ink">Duración</span>
@@ -294,7 +300,7 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
           <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-2xl bg-gray-50 p-4 text-sm" data-testid="custom-summary">
             <dt className="text-ink/60">Modalidad</dt><dd className="font-medium text-ink">{RESERVE_MODALITIES[form.modality].label}</dd>
             <dt className="text-ink/60">Propósito</dt><dd className="font-medium text-ink">{form.purpose === 'other' ? form.purposeNote : PURPOSES[form.purpose].label}</dd>
-            <dt className="text-ink/60">Fecha</dt><dd className="font-medium text-ink first-letter:uppercase">{form.date ? `${formatLongDate(form.date)} · ${form.time}` : '—'}</dd>
+            <dt className="text-ink/60">Fecha</dt><dd className="font-medium text-ink first-letter:uppercase">{form.date ? <ReserveScheduleTime date={form.date} time={form.time} zone={availability.timeZone} /> : '—'}</dd>
             <dt className="text-ink/60">Duración</dt><dd className="font-medium text-ink">{form.durationMinutes} min · {form.participants} {form.participants === 1 ? 'persona' : 'personas'}</dd>
             <dt className="text-ink/60">Lugar</dt><dd className="font-medium text-ink">{form.modality === 'virtual' ? 'Online' : [LOCATION_TYPES[form.locationType].label, destination ? locationLabel(destination) : ''].filter(Boolean).join(' · ')}</dd>
             <dt className="text-ink/60">Presupuesto</dt><dd className="font-medium text-ink">{money(form.budget)}</dd>

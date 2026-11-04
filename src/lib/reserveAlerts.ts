@@ -4,6 +4,7 @@
 // backend uses this copy. Keep both in step.
 import { RESERVE_RESPONSE_HOURS } from '../config/reserve';
 import type { VipBooking } from './backend/types';
+import { zonedDate, zoneCity } from './timeZones';
 
 export interface BookingAlert {
   to: 'creator' | 'fan';
@@ -18,7 +19,7 @@ export const FAN_RESERVE_LINK = '/profile#mis-reservas';
 const first = (name: string | undefined, fallback: string) => (name?.trim() || fallback).split(' ')[0];
 
 export const bookingAlert = (prev: VipBooking | undefined, b: VipBooking): BookingAlert | null => {
-  const when = `${b.date.slice(8, 10)}/${b.date.slice(5, 7)} · ${b.time}`;
+  const when = `${b.date.slice(8, 10)}/${b.date.slice(5, 7)} · ${b.time}${b.timeZone ? ` (hora de ${zoneCity(b.timeZone)})` : ''}`;
   const fan = first(b.fanName, 'Un fan');
   const creator = first(b.creatorName, 'El creador');
   const forCreator = (title: string, body: string): BookingAlert => ({ to: 'creator', title, body, link: CREATOR_RESERVE_LINK });
@@ -56,9 +57,9 @@ export const bookingAlert = (prev: VipBooking | undefined, b: VipBooking): Booki
 
 // Deadline for a booking that starts waiting for an answer now: the response
 // time, but never after the experience itself (and at least an hour).
-export const respondByFrom = (b: Pick<VipBooking, 'date' | 'time'>, now = new Date()): string => {
+export const respondByFrom = (b: Pick<VipBooking, 'date' | 'time' | 'timeZone'>, now = new Date()): string => {
   const limit = now.getTime() + RESERVE_RESPONSE_HOURS * 3600_000;
-  const start = new Date(`${b.date}T${b.time || '00:00'}:00`).getTime();
+  const start = zonedDate(b.date, b.time || '00:00', b.timeZone).getTime();
   const capped = Number.isNaN(start) ? limit : Math.min(limit, Math.max(start, now.getTime() + 3600_000));
   return new Date(capped).toISOString();
 };

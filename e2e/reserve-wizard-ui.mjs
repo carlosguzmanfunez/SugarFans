@@ -23,7 +23,7 @@ const expect = (cond, msg) => {
   if (!cond) throw new Error(msg);
 };
 
-const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'pipe' });
+const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'pipe', windowsHide: true });
 for (let i = 0; i < 50; i++) {
   try {
     if ((await fetch(BASE)).ok) break;

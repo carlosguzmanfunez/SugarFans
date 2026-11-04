@@ -22,7 +22,7 @@ const offsetMinutes = (instant: Date, zone: string): number => {
   return Math.round((asUtc - instant.getTime()) / 60_000);
 };
 
-const isZone = (zone?: string | null): zone is string => {
+export const isTimeZone = (zone?: string | null): zone is string => {
   if (!zone) return false;
   try {
     new Intl.DateTimeFormat('en-US', { timeZone: zone });
@@ -32,21 +32,48 @@ const isZone = (zone?: string | null): zone is string => {
   }
 };
 
+// Keep every supported region available: a country can have several clocks.
+export const timeZoneOptions = (): string[] => {
+  const intl = Intl as typeof Intl & { supportedValuesOf?: (key: string) => string[] };
+  const zones = intl.supportedValuesOf?.('timeZone') ?? [
+    'America/Tegucigalpa', 'America/Mexico_City', 'America/Bogota', 'America/Lima',
+    'America/Santiago', 'America/Argentina/Buenos_Aires', 'America/Sao_Paulo',
+    'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
+    'Europe/Madrid', 'Europe/London', 'Asia/Tokyo', 'Australia/Sydney', 'Pacific/Auckland',
+  ];
+  return [...new Set([...zones, viewerTimeZone(), 'UTC'].filter(isTimeZone))]
+    .sort((a, b) => zoneCity(a).localeCompare(zoneCity(b), 'es'));
+};
+
+export const dateInZone = (instant: Date, zone?: string | null): string => {
+  if (!isTimeZone(zone)) return `${instant.getFullYear()}-${String(instant.getMonth() + 1).padStart(2, '0')}-${String(instant.getDate()).padStart(2, '0')}`;
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(instant).map(p => [p.type, p.value]));
+  return `${parts.year}-${parts.month}-${parts.day}`;
+};
+
+const instants = new Map<string, number>();
 // The instant of a wall-clock date ("2026-11-02") and time ("18:00") in a zone.
 export const zonedDate = (date: string, time: string, zone?: string | null): Date => {
   const [y, m, d] = date.split('-').map(Number);
   const [h, mm] = (time || '00:00').split(':').map(Number);
-  if (!isZone(zone)) return new Date(y, m - 1, d, h || 0, mm || 0, 0, 0);
+  if (!isTimeZone(zone)) return new Date(y, m - 1, d, h || 0, mm || 0, 0, 0);
+  const key = `${date}|${time}|${zone}`;
+  if (instants.has(key)) return new Date(instants.get(key)!);
   const guess = Date.UTC(y, m - 1, d, h || 0, mm || 0);
-  const first = guess - offsetMinutes(new Date(guess), zone) * 60_000;
-  // Around a daylight-saving change the offset at the result can differ.
-  return new Date(guess - offsetMinutes(new Date(first), zone) * 60_000);
+  // Compare both sides of a clock change. Nonexistent wall times cannot be
+  // booked. For repeated hours choose the later occurrence, as PostgreSQL does.
+  const offsets = new Set([-36, 0, 36].map(hours => offsetMinutes(new Date(guess + hours * 3_600_000), zone)));
+  const matches = [...offsets].map(offset => guess - offset * 60_000).filter(at => at + offsetMinutes(new Date(at), zone) * 60_000 === guess);
+  const at = matches.length ? Math.max(...matches) : NaN;
+  if (instants.size >= 10000) instants.clear();
+  instants.set(key, at);
+  return new Date(at);
 };
 
 // Whether the viewer's clock reads differently from the zone at that instant.
 export const differsFromViewer = (instant: Date, zone?: string | null): boolean => {
   const mine = viewerTimeZone();
-  return isZone(zone) && !!mine && offsetMinutes(instant, zone) !== offsetMinutes(instant, mine);
+  return Number.isFinite(instant.getTime()) && isTimeZone(zone) && !!mine && offsetMinutes(instant, zone) !== offsetMinutes(instant, mine);
 };
 
 // "Tegucigalpa" for America/Tegucigalpa, "Ciudad de México" for America/Mexico_City.
@@ -69,5 +96,5 @@ export const viewerSlotLabel = (date: string, time: string, zone?: string | null
   const at = zonedDate(date, time, zone);
   if (!differsFromViewer(at, zone)) return null;
   const localDay = `${at.getFullYear()}-${String(at.getMonth() + 1).padStart(2, '0')}-${String(at.getDate()).padStart(2, '0')}`;
-  return localDay === date ? hourOf(at) : `${hourOf(at)} · ${at.toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/[.,]/g, '')}`;
+  return localDay === date ? hourOf(at) : `${hourOf(at)} · ${at.toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short', ...(at.getFullYear() !== Number(date.slice(0, 4)) ? { year: 'numeric' } : {}) }).replace(/[.,]/g, '')}`;
 };

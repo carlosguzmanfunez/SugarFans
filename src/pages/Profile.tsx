@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { useCreatorCatalog } from '../lib/catalog';
 import { formatLongDate, type VipBooking } from '../lib/vip';
 import ReserveBookingCard from '../components/reserve/ReserveBookingCard';
+import ReserveAccessNotice from '../components/reserve/ReserveAccessNotice';
 import PushOptIn from '../components/PushOptIn';
 import { onNewNotification } from '../lib/live';
 import CheckoutDialog from '../components/CheckoutDialog';
@@ -111,6 +112,7 @@ const Profile: React.FC = () => {
               </h3>
               <Link to="/reserve" className="text-sm font-medium text-brand-700">Ver Reserve</Link>
             </div>
+            <ReserveAccessNotice />
             {myBookings.length === 0 ? (
               <p className="text-sm text-gray-500">
                 Aún no tienes reservas. <Link to="/reserve" className="text-pink-600">Ver experiencias</Link>

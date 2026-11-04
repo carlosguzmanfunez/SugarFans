@@ -11,7 +11,7 @@ import {
   type Availability,
   type TakenSlot,
 } from '../lib/vip';
-import { differsFromViewer, viewerSlotLabel, zoneCity, zonedDate } from '../lib/timeZones';
+import { viewerSlotLabel, viewerTimeZone, zoneCity } from '../lib/timeZones';
 
 interface Props {
   availability: Availability;
@@ -22,12 +22,13 @@ interface Props {
   onChange: (date: string, time: string) => void;
   // Hours closer than this to now are not offered (the experience's minimum notice).
   minNoticeHours?: number;
+  durationMinutes?: number;
 }
 
 // Month calendar limited to the bookable window; only the creator's working
 // days are selectable, and only their free hours are offered.
-const BookingCalendar: React.FC<Props> = ({ availability, taken: takenSlots, creatorName, date, time, onChange, minNoticeHours = 0 }) => {
-  const { min, max } = bookingWindow();
+const BookingCalendar: React.FC<Props> = ({ availability, taken: takenSlots, creatorName, date, time, onChange, minNoticeHours = 0, durationMinutes = 60 }) => {
+  const { min, max } = bookingWindow(new Date(), availability.timeZone);
   const minDate = fromISODate(min);
   const maxDate = fromISODate(max);
   const [month, setMonth] = useState(() => {
@@ -44,17 +45,16 @@ const BookingCalendar: React.FC<Props> = ({ availability, taken: takenSlots, cre
     const blanks = Array.from({ length: first.getDay() }, () => null);
     const days = Array.from({ length: daysInMonth }, (_, i) => {
       const iso = toISODate(new Date(month.getFullYear(), month.getMonth(), i + 1));
-      return { iso, day: i + 1, free: freeHoursOn(availability, takenSlots, iso, minNoticeHours).length > 0 };
+      return { iso, day: i + 1, free: freeHoursOn(availability, takenSlots, iso, minNoticeHours, durationMinutes).length > 0 };
     });
     return [...blanks, ...days];
-  }, [month, availability, takenSlots, minNoticeHours]);
+  }, [month, availability, takenSlots, minNoticeHours, durationMinutes]);
 
   const monthLabel = month.toLocaleDateString('es', { month: 'long', year: 'numeric' });
   const taken = date ? takenHoursOn(takenSlots, date) : [];
-  const free = date ? freeHoursOn(availability, takenSlots, date, minNoticeHours) : [];
+  const free = date ? freeHoursOn(availability, takenSlots, date, minNoticeHours, durationMinutes) : [];
   // Hours are in the creator's clock; a fan elsewhere also sees theirs.
   const zone = availability.timeZone;
-  const otherClock = !!zone && differsFromViewer(zonedDate(date || min, availability.hours[0] ?? '12:00', zone), zone);
 
   if (availability.days.length === 0 || availability.hours.length === 0) {
     return (
@@ -66,6 +66,7 @@ const BookingCalendar: React.FC<Props> = ({ availability, taken: takenSlots, cre
 
   return (
     <div className="space-y-4" data-testid="booking-calendar">
+      {zone && <p className="text-sm text-ink/70" data-testid="slot-time-zone">Horarios de {creatorName}: hora de {zoneCity(zone)}. También verás tu hora de {zoneCity(viewerTimeZone())} si es diferente.</p>}
       <div className="border border-gray-200 rounded-2xl p-4">
         <div className="flex items-center justify-between mb-3">
           <button
@@ -127,15 +128,11 @@ const BookingCalendar: React.FC<Props> = ({ availability, taken: takenSlots, cre
       {date && (
         <div>
           <p className="text-sm font-semibold text-gray-700 mb-2 first-letter:uppercase">{formatLongDate(date)}</p>
-          {otherClock && (
-            <p className="text-xs text-gray-500 mb-2" data-testid="slot-time-zone">
-              <i aria-hidden="true" className="fas fa-globe mr-1"></i>Horario de {creatorName}: hora de {zoneCity(zone)}. Debajo de cada hora ves la tuya.
-            </p>
-          )}
           <div className="flex flex-wrap gap-2" data-testid="time-slots">
             {availability.hours.map((h) => {
               const isTaken = taken.includes(h);
               const isFree = free.includes(h);
+              const localHour = isFree ? viewerSlotLabel(date, h, zone) : null;
               return (
                 <button
                   key={h}
@@ -153,9 +150,9 @@ const BookingCalendar: React.FC<Props> = ({ availability, taken: takenSlots, cre
                   }`}
                 >
                   {h}
-                  {otherClock && isFree && (
+                  {localHour && (
                     <span className={`block text-[11px] font-normal ${time === h ? 'text-white/85' : 'text-gray-500'}`}>
-                      {viewerSlotLabel(date, h, zone)} tu hora
+                      {localHour} tu hora
                     </span>
                   )}
                 </button>

@@ -584,7 +584,7 @@ const webhook = async (request: Request, e: Env): Promise<Response> => {
 export async function GET(): Promise<Response> {
   const e = env();
   const enabled = !!(e.clientId && e.secret && e.serviceKey);
-  return json(200, { enabled, clientId: enabled ? e.clientId : null, env: e.mode });
+  return json(200, { enabled, clientId: enabled ? e.clientId : null, env: e.mode, refundsEnabled: e.mode === 'sandbox' && process.env.RESERVE_REFUNDS_ENABLED === 'true' });
 }
 
 // POST /api/paypal {action: 'create', kind, params} → {orderId}
@@ -624,6 +624,7 @@ export async function POST(request: Request): Promise<Response> {
     subscriptionId?: unknown;
     creatorProfileId?: unknown;
     payoutId?: unknown;
+    requestId?: unknown;
   };
   // A signed-in action that queued an email (e.g. a changed payout account) asks
   // for it to go out now. It only sends what is already queued, to its own address.
@@ -675,8 +676,8 @@ export async function POST(request: Request): Promise<Response> {
     if (body.action === 'capture') {
       const orderId = typeof body.orderId === 'string' ? body.orderId.slice(0, 64) : '';
       if (!orderId) return json(400, { error: 'Falta el pedido.' });
-      const mine = await supabase(`/rest/v1/paypal_orders?id=eq.${encodeURIComponent(orderId)}&select=status,amount,capture_id`, asUser(token));
-      const row = Array.isArray(mine.data) ? (mine.data[0] as { status: string; amount: number; capture_id: string | null } | undefined) : undefined;
+      const mine = await supabase(`/rest/v1/paypal_orders?id=eq.${encodeURIComponent(orderId)}&select=status,amount,capture_id,kind`, asUser(token));
+      const row = Array.isArray(mine.data) ? (mine.data[0] as { status: string; amount: number; capture_id: string | null; kind?: string } | undefined) : undefined;
       if (!row) return json(404, { error: 'Pedido no encontrado.' });
       if (row.status === 'completed') return json(200, { ok: true, captureId: row.capture_id });
       if (row.status !== 'created') return json(409, { error: 'Este pedido ya no está pendiente.' });
@@ -686,12 +687,18 @@ export async function POST(request: Request): Promise<Response> {
         error: attendance.data?.message || 'No se pudo comprobar la ciudad de esta reserva. No repitas el pago; revisa la reserva antes de continuar.',
         orderId,
       });
+      if (row.kind === 'booking') {
+        const begin = await rpc(e, 'reserve_capture_begin', { p_order: orderId, p_user: userId });
+        if (!begin.ok) return json(409, { error: begin.error || 'Terminó el plazo para pagar esta reserva. No se realizó el cobro.' });
+      }
 
       let result = await paypal(e, ppToken, `/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`, {}, `capture-${orderId}`);
+      const instrumentDeclined = result.data?.details?.some((detail: { issue?: string }) => detail.issue === 'INSTRUMENT_DECLINED');
       // Captured already (a repeated call): read the order instead.
       if (result.status === 422) result = await paypal(e, ppToken, `/v2/checkout/orders/${encodeURIComponent(orderId)}`);
       const capture = captureOf(result.data);
       if (!capture) {
+        if (row.kind === 'booking' && instrumentDeclined) await rpc(e, 'reserve_capture_finish', { p_order: orderId, p_failed: true });
         const declined = result.data?.details?.[0]?.issue === 'INSTRUMENT_DECLINED';
         return json(402, { error: declined ? 'PayPal rechazó el método de pago. Prueba con otro.' : 'PayPal no completó el pago.' });
       }
@@ -707,6 +714,28 @@ export async function POST(request: Request): Promise<Response> {
       }
 
       return json(409,{error:'El cobro quedó guardado y falta comprobar su resultado o lo que descontó PayPal. No repitas el pago; su referencia se conserva para revisión.',captureId:capture.id,pending:true});
+    }
+
+    if (body.action === 'reserve-refund') {
+      // Explicit QA-only execution; Production remains closed until separately approved.
+      if (e.mode !== 'sandbox' || process.env.RESERVE_REFUNDS_ENABLED !== 'true') return json(403, { error: 'Los envíos de devoluciones están desactivados. La solicitud sigue registrada para atención.' });
+      const id = typeof body.requestId === 'string' ? body.requestId : '';
+      if (!/^[0-9a-f-]{36}$/i.test(id)) return json(400, { error: 'Falta la solicitud de devolución.' });
+      const plan = await supabase('/rest/v1/rpc/reserve_refund_prepare', asUser(token), { p_id: id });
+      if (!plan.ok) return json(403, { error: plan.error || 'No puedes ejecutar esta devolución.' });
+      if (plan.data.state === 'completed') return json(200, { ok: true });
+      if (!/^[A-Za-z0-9-]+$/.test(plan.data.capture)) return json(409, { error: 'El cobro requiere revisión manual.' });
+      const claim = await supabase('/rest/v1/rpc/reserve_refund_claim', asUser(token), { p_id: id });
+      if (!claim.ok) return json(409, { error: claim.error });
+      if (!claim.data.send) {
+        if (claim.data.refundId) return refundWebhook(e, ppToken, { id: `provider-query/refund/${claim.data.refundId}`, event_type: 'PAYMENT.CAPTURE.REFUNDED', resource: { id: claim.data.refundId } });
+        return json(409, { error: 'El envío anterior necesita comprobación antes de repetirlo. No se enviará otra devolución.' });
+      }
+      const refund = await paypal(e, ppToken, `/v2/payments/captures/${plan.data.capture}/refund`, { amount: { value: Number(plan.data.amount).toFixed(2), currency_code: 'USD' } }, plan.data.requestKey);
+      if (refund.status >= 300 || !refund.data?.id) return json(409, { error: 'La devolución requiere comprobación. Conservamos la misma referencia; no envíes un pago aparte.' });
+      const receipt = await rpc(e, 'reserve_refund_sent', { p_id: id, p_ref: refund.data.id });
+      if (!receipt.ok) return json(409, { error: 'PayPal respondió; falta guardar y conciliar el comprobante. No repitas la devolución.' });
+      return refundWebhook(e, ppToken, { id: `provider-query/refund/${refund.data.id}`, event_type: 'PAYMENT.CAPTURE.REFUNDED', resource: { id: refund.data.id } });
     }
 
     if (body.action === 'subscribe') {

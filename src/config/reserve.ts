@@ -462,14 +462,16 @@ export type CancellationPolicyId = 'flexible' | 'moderate' | 'strict';
 export const CANCELLATION_POLICY_IDS: CancellationPolicyId[] = ['flexible', 'moderate', 'strict'];
 export const CANCELLATION_RULE = {
   label: 'Regla única de Fans Reserve',
-  summary: 'Hasta 24 h antes, el fan recibe el 100% en Créditos; con menos de 24 h, el 50%. Si el creador cancela, el fan recibe el 100%.',
+  summary: 'La devolución se solicita al medio original. Los Créditos son opcionales. Los derechos legales y los incumplimientos se revisan por separado.',
   bullets: [
-    'El fan cancela 24 horas o más antes: recibe el 100% de lo que pagó en Créditos, al instante.',
-    'El fan cancela con menos de 24 horas: recibe el 50% en Créditos; el creador conserva la mitad de su ganancia.',
-    'El fan no se presenta: no hay devolución.',
-    'El creador cancela una reserva pagada: el fan recibe el 100% en Créditos, el creador no cobra esa reserva y cuenta en su historial.',
+    'Cancelación voluntaria: 100% con 24 horas o más de anticipación y 50% con menos, salvo que corresponda una devolución distinta por ley.',
+    'Las devoluciones se solicitan al medio original. El fan puede elegir Créditos voluntariamente; si pagó con Créditos, se restituye ese mismo medio.',
+    'Si el fan no se presenta, no hay devolución comercial por esa causa, sin limitar los derechos legales ni una revisión por incumplimiento del creador.',
+    'Incumplimiento confirmado del creador: devolución del 100% al fan. El creador pierde la ganancia de esa reserva y cubre el costo real comprobado de PayPal que no haya sido devuelto, mediante un ajuste explicado en sus ingresos.',
     'Un cambio de fecha gratis por reserva 1:1, pedido con 24 horas o más de anticipación; el creador lo acepta o lo rechaza.',
     'Antes de pagar, cancelar no tiene costo.',
+    'Tres reservas vencidas sin pagar o tres cancelaciones voluntarias en 30 días suspenden nuevos apartados durante 72 horas desde el último incumplimiento. Las devoluciones legales y los fallos del creador o la plataforma quedan excluidos.',
+    'Máximo una reserva y una propuesta por creador; hasta tres reservas y tres propuestas simultáneas con creadores diferentes. Una propuesta pendiente no bloquea la agenda. Reserva publicada: 15 minutos para pagar; propuesta aceptada: 2 horas.',
   ],
 };
 

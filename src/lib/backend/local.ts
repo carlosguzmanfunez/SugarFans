@@ -42,7 +42,8 @@ import {
   validateSignupExtras,
 } from './shared';
 import type { AuthResult, Availability, Backend, BookingInput, BookingStatus, User, VipBooking, VipExperience } from './types';
-import { viewerTimeZone } from '../timeZones';
+import { isTimeZone, viewerTimeZone, zoneCity } from '../timeZones';
+import { paymentOverdue, reservationDue, reserveAccessOf, reserveBucket, type ReserveIncident, type ReserveRefundRequest } from '../reserveControl';
 import { VIRTUAL_CURRENCY, currencyWord } from '../../config/currency';
 import { CANCEL_FULL_REFUND_HOURS, bookingStart, canRequestReschedule, cancellationOutcome, hoursUntil } from '../reserveCancellation';
 import type { InfraUsage } from '../infraUsage';
@@ -72,6 +73,21 @@ const SESSION_KEY = 'session';
 const SEEDED_KEY = 'seeded_v1';
 const AVAILABILITY_KEY = 'vip_availability';
 const BOOKINGS_KEY = 'vip_bookings';
+const INCIDENTS_KEY = 'reserve_incidents';
+const REFUNDS_KEY = 'reserve_refund_requests';
+const recordReserveIncident = (b: VipBooking, kind: ReserveIncident['kind'], at = new Date().toISOString()) => {
+  const all = readJSON<ReserveIncident[]>(INCIDENTS_KEY, []);
+  if (!all.some(i => i.bookingId === b.id && i.kind === kind)) writeJSON(INCIDENTS_KEY, [...all, { bookingId: b.id, fanId: b.fanId, kind, at }]);
+};
+const reserveLimitError = (fanId: string, creatorId: string, bucket: 'reservation' | 'proposal', exclude?: string): string | null => {
+  const all = listBookings().filter(b => b.id !== exclude);
+  const access = reserveAccessOf(fanId, all, readJSON(INCIDENTS_KEY, []));
+  if (access.blockedUntil) return `Tu acceso a nuevas reservas está suspendido hasta ${new Date(access.blockedUntil).toLocaleString('es')}. Puedes pagar las existentes, cancelar, pedir devoluciones y reportar.`;
+  const mine = all.filter(b => b.fanId === fanId && reserveBucket(b) === bucket);
+  if (mine.some(b => b.creatorProfileId === creatorId)) return `Solo puedes tener una ${bucket === 'reservation' ? 'reserva' : 'propuesta'} activa por creador.`;
+  if (mine.length >= 3) return `Puedes tener hasta tres ${bucket === 'reservation' ? 'reservas' : 'propuestas'} simultáneas con creadores diferentes.`;
+  return null;
+};
 const INFRA_KEY = 'infra_settings';
 const OUTBOX_KEY = 'email_outbox';
 const EXPERIENCES_KEY = 'vip_experiences_v1';
@@ -232,6 +248,13 @@ const saveBookings = (bookings: VipBooking[]) => {
   const before = new Map(readJSON<VipBooking[]>(BOOKINGS_KEY, []).map((b) => [b.id, b]));
   for (const b of bookings) {
     const prev = before.get(b.id);
+    if (!prev) b.rulesVersion = 1;
+    if (b.status === 'accepted' && prev?.status !== 'accepted') {
+      b.details = { ...b.details, approvalRequired: b.details?.kind === 'custom' || prev?.status === 'pending' || prev?.status === 'countered' };
+      b.paymentDueAt = reservationDue(b);
+      b.rulesVersion = 1;
+    }
+    if (b.status === 'confirmed') { b.paymentDueAt = undefined; b.paymentChecking = false; }
     // A Meta de experiencia ticket pays for the booking: accepting it confirms it.
     if (b.details?.ticketId && b.status === 'accepted' && prev?.status !== 'accepted') {
       b.status = 'confirmed';
@@ -255,9 +278,17 @@ const saveBookings = (bookings: VipBooking[]) => {
 // Requests nobody answered in time expire when read (the server runs a job).
 const listBookings = (): VipBooking[] => {
   const all = readJSON<VipBooking[]>(BOOKINGS_KEY, []);
-  if (!all.some((b) => isOverdue(b))) return all;
+  let grace = false;
+  for (const b of all) if (b.status === 'accepted' && !b.paymentDueAt) { b.paymentDueAt = new Date(Date.now() + 2 * 3600_000).toISOString(); b.rulesVersion = 0; grace = true; }
+  if (!all.some((b) => isOverdue(b) || paymentOverdue(b))) { if (grace) writeJSON(BOOKINGS_KEY, all); return all; }
   const now = new Date().toISOString();
-  const next = all.map((b): VipBooking => (isOverdue(b) ? { ...b, status: 'expired', updatedAt: now } : b));
+  const next = all.map((b): VipBooking => {
+    if (paymentOverdue(b)) {
+      if (b.rulesVersion === 1 && !b.details?.ticketId) recordReserveIncident(b, 'unpaid', b.paymentDueAt!);
+      return { ...b, status: 'expired', updatedAt: now, details: { ...b.details, paymentExpiredAt: b.paymentDueAt } };
+    }
+    return isOverdue(b) ? { ...b, status: 'expired', updatedAt: now } : b;
+  });
   saveBookings(next);
   return next;
 };
@@ -265,8 +296,8 @@ const loadAvailability = (id: string): Availability =>
   readJSON<Record<string, Availability>>(AVAILABILITY_KEY, {})[id] ?? DEFAULT_AVAILABILITY;
 const takenFor = (id: string) =>
   listBookings()
-    .filter((b) => b.creatorProfileId === id && ACTIVE_STATUSES.includes(b.status))
-    .map((b) => ({ date: b.date, time: b.time }));
+    .filter((b) => b.creatorProfileId === id && (b.status === 'accepted' || b.status === 'confirmed'))
+    .map((b) => ({ date: b.date, time: b.time, timeZone: b.timeZone, durationMinutes: b.durationMinutes }));
 
 // A Reserve 1:1 request (also used to book with a Meta de experiencia ticket).
 const createBooking = async (user: User, input: BookingInput): Promise<AuthResult & { bookingId?: string }> => {
@@ -276,6 +307,8 @@ const createBooking = async (user: User, input: BookingInput): Promise<AuthResul
   if (!exp) return fail('Experiencia no encontrada');
   if (isEventExperience(exp)) return fail('Reserva tu plaza desde el evento');
   if (user.creatorProfileId === exp.creatorProfileId) return fail('No puedes reservar tu propia experiencia');
+  const limit = reserveLimitError(user.id, exp.creatorProfileId, needsApproval(exp) ? 'proposal' : 'reservation');
+  if (limit) return fail(limit);
   const note = moderate(input.message ?? '', 'request');
   if (!note.ok) return fail(note.error!);
   if (platform.ledger.cutOff(user.id, exp.creatorProfileId)) return fail('No puedes reservar con este perfil');
@@ -285,11 +318,12 @@ const createBooking = async (user: User, input: BookingInput): Promise<AuthResul
   const participants = input.participants ?? 1;
   if (!Number.isInteger(participants) || participants < 1 || participants > d.maxParticipants)
     return fail(`Esta experiencia admite hasta ${d.maxParticipants} participante${d.maxParticipants === 1 ? '' : 's'}`);
-  const { min, max } = bookingWindow();
-  if (input.date < min || input.date > max) return fail('La fecha debe estar dentro de los próximos 3 meses');
   const availability = experienceAvailability(loadAvailability(exp.creatorProfileId), exp);
+  if (input.timeZone !== undefined && input.timeZone !== availability.timeZone) return fail('La zona horaria cambió. Vuelve a abrir la experiencia y elige el horario actualizado.');
+  const { min, max } = bookingWindow(new Date(), availability.timeZone);
+  if (input.date < min || input.date > max) return fail('La fecha debe estar dentro de los próximos 3 meses');
   if (!meetsNotice(input.date, input.time, d.minNoticeHours, new Date(), availability.timeZone)) return fail(`Reserva con al menos ${d.minNoticeHours} horas de anticipación`);
-  if (!freeHoursOn(availability, takenFor(exp.creatorProfileId), input.date).includes(input.time)) {
+  if (!freeHoursOn(availability, takenFor(exp.creatorProfileId), input.date, d.minNoticeHours, exp.durationMinutes).includes(input.time)) {
     return fail('Ese horario ya no está disponible. Elige otro.');
   }
   const price = priceFor(exp, subscribed);
@@ -746,8 +780,9 @@ export const localBackend: Backend = {
   async setAvailability(id, availability) {
     if (availability.days.length === 0 || availability.hours.length === 0) return fail('Elige al menos un día y una hora');
     const all = readJSON<Record<string, Availability>>(AVAILABILITY_KEY, {});
-    const zone = viewerTimeZone();
-    all[id] = normalizeAvailability({ ...availability, ...(zone ? { timeZone: zone } : {}) });
+    const zone = availability.timeZone ?? all[id]?.timeZone ?? viewerTimeZone();
+    if (!isTimeZone(zone)) return fail('Elige una ciudad o zona horaria válida');
+    all[id] = normalizeAvailability({ ...availability, timeZone: zone });
     writeJSON(AVAILABILITY_KEY, all);
     notify();
     return ok;
@@ -776,10 +811,12 @@ export const localBackend: Backend = {
 
   createBooking: (user, input) => createBooking(user, input),
 
-  async bookEventSeat(user, experienceId, message) {
+  async bookEventSeat(user, experienceId, message, timeZone) {
     const exp = listExperiences().find((e) => e.id === experienceId && e.active);
     if (!exp) return fail('Evento no encontrado');
     if (!isEventExperience(exp)) return fail('Esta experiencia no es un Reserve Event');
+    const limit = reserveLimitError(user.id, exp.creatorProfileId, exp.details?.approval === 'automatic' ? 'reservation' : 'proposal');
+    if (limit) return fail(limit);
     if (user.creatorProfileId === exp.creatorProfileId) return fail('No puedes reservar tu propio evento');
     if (platform.ledger.cutOff(user.id, exp.creatorProfileId)) return fail('No puedes reservar con este perfil');
     const note = moderate(message ?? '', 'request');
@@ -788,7 +825,8 @@ export const localBackend: Backend = {
     if (!visibleAtLocation(exp, attendanceLocation(user))) return fail(attendanceError);
     const subscribed = user.subscriptions.some((s) => s.creatorId === exp.creatorProfileId);
     if (!isUpcomingEvent(exp)) return fail('Este evento ya pasó');
-    const seats = listBookings().filter((b) => b.experienceId === exp.id && b.details?.kind === 'event' && ACTIVE_STATUSES.includes(b.status));
+    if (timeZone !== undefined && exp.timeZone !== timeZone) return fail('La zona horaria cambió. Vuelve a abrir el evento y revisa su horario.');
+    const seats = listBookings().filter((b) => b.experienceId === exp.id && b.details?.kind === 'event' && (b.status === 'accepted' || b.status === 'confirmed'));
     if (seats.some((b) => b.fanId === user.id)) return fail('Ya tienes una plaza en este evento');
     if (seats.length >= d.maxParticipants) return fail('No quedan plazas para este evento');
     const price = priceFor(exp, subscribed);
@@ -829,12 +867,15 @@ export const localBackend: Backend = {
   async eventSeats(experienceIds) {
     const taken: Record<string, number> = {};
     for (const b of listBookings())
-      if (b.details?.kind === 'event' && experienceIds.includes(b.experienceId) && ACTIVE_STATUSES.includes(b.status))
+        if (b.details?.kind === 'event' && experienceIds.includes(b.experienceId) && (b.status === 'accepted' || b.status === 'confirmed'))
         taken[b.experienceId] = (taken[b.experienceId] ?? 0) + 1;
     return taken;
   },
 
   async requestCustomExperience(user, input) {
+    const limit = reserveLimitError(user.id, input.creatorProfileId, 'proposal');
+    if (limit) return fail(limit);
+    if (input.timeZone !== undefined && input.timeZone !== loadAvailability(input.creatorProfileId).timeZone) return fail('La zona horaria cambió. Vuelve a abrir la propuesta y revisa su horario.');
     const where = attendanceLocation(user);
     if (input.modality !== 'virtual' && (!where || input.city.trim() !== where.city || !listExperiences().some((e) => e.active && e.creatorProfileId === input.creatorProfileId && inPerson(e.details) && visibleAtLocation(e, where)))) return fail(attendanceError);
     if (user.creatorProfileId === input.creatorProfileId) return fail('No puedes enviarte una solicitud a ti mismo');
@@ -843,9 +884,9 @@ export const localBackend: Backend = {
     const demo = demoCreators.find((c) => c.id === input.creatorProfileId);
     const check = validateCustomRequest(input, owner?.settings.category || demo?.category);
     if (!check.ok) return fail(check.error!);
-    const { min, max } = bookingWindow();
+    const { min, max } = bookingWindow(new Date(), loadAvailability(input.creatorProfileId).timeZone);
     if (input.date < min || input.date > max) return fail('La fecha debe estar dentro de los próximos 3 meses');
-    if (!freeHoursOn(proposalAvailability(loadAvailability(input.creatorProfileId)), takenFor(input.creatorProfileId), input.date).includes(input.time))
+    if (!freeHoursOn(proposalAvailability(loadAvailability(input.creatorProfileId)), takenFor(input.creatorProfileId), input.date, 0, input.durationMinutes).includes(input.time))
       return fail('Ese horario ya no está disponible. Elige otro.');
     const now = new Date().toISOString();
     saveBookings([
@@ -860,6 +901,7 @@ export const localBackend: Backend = {
         durationMinutes: input.durationMinutes,
         date: input.date,
         time: input.time,
+        ...(loadAvailability(input.creatorProfileId).timeZone ? { timeZone: loadAvailability(input.creatorProfileId).timeZone } : {}),
         message: input.message.trim().slice(0, 500),
         fanId: user.id,
         fanName: user.name,
@@ -913,6 +955,7 @@ export const localBackend: Backend = {
     const c = b.details?.counter;
     if (b.status !== 'countered' || !c) return fail('Esta reserva no tiene una contraoferta pendiente');
     if (accept) {
+      const limit = reserveLimitError(b.fanId, b.creatorProfileId, 'reservation', b.id); if (limit) return fail(limit);
       const clash = takenFor(b.creatorProfileId).some((t) => t.date === c.date && t.time === c.time);
       if (clash) return fail('Ese horario ya no está disponible. Pide al creador otra fecha.');
       b.price = c.price;
@@ -936,6 +979,15 @@ export const localBackend: Backend = {
       (isCreator && b.status === 'pending' && (next === 'accepted' || next === 'rejected')) ||
       (isFan && (b.status === 'pending' || b.status === 'accepted' || b.status === 'countered') && next === 'cancelled');
     if (!allowed) return fail('Esta acción no está permitida');
+    if (next === 'accepted') {
+      const limit = reserveLimitError(b.fanId, b.creatorProfileId, 'reservation', b.id); if (limit) return fail(limit);
+      const start = bookingStart(b).getTime();
+      if (start <= Date.now()) return fail('La experiencia ya comenzó. Elige una nueva fecha antes de aceptar.');
+      if (b.details?.kind === 'event') {
+        const event = listExperiences().find(e => e.id === b.experienceId);
+        if (bookings.filter(other => other.experienceId === b.experienceId && (other.status === 'accepted' || other.status === 'confirmed')).length >= (event?.details?.maxParticipants ?? 0)) return fail('No quedan plazas para este evento.');
+      } else if (bookings.some(other => other.id !== b.id && other.creatorProfileId === b.creatorProfileId && (other.status === 'accepted' || other.status === 'confirmed') && bookingStart(other).getTime() < start + (b.durationMinutes ?? 60) * 60_000 && bookingStart(other).getTime() + (other.durationMinutes ?? 60) * 60_000 > start)) return fail('Ese horario ya no está disponible. Propón otra fecha.');
+    }
     b.status = next;
     b.updatedAt = new Date().toISOString();
     saveBookings(bookings);
@@ -988,7 +1040,7 @@ export const localBackend: Backend = {
         id: newId(),
         to: b.fanEmail,
         subject: `Confirmación: ${b.title}`,
-        body: `Hola ${b.fanName}, tu experiencia "${b.title}" con ${b.creatorName} está confirmada para el ${formatLongDate(b.date)} a las ${b.time}. Pago recibido: $${b.price} USD.`,
+         body: `Hola ${b.fanName}, tu experiencia "${b.title}" con ${b.creatorName} está confirmada para el ${formatLongDate(b.date)} a las ${b.time}${b.timeZone ? ` (hora de ${zoneCity(b.timeZone)})` : ''}. Pago recibido: $${b.price} USD. Consulta Mis reservas para ver tu hora local.`,
         sentAt: now,
       },
     ]);
@@ -1037,40 +1089,84 @@ export const localBackend: Backend = {
     return ok;
   },
 
-  async cancelBooking(user, bookingId) {
+  async cancelBooking(user, bookingId, choice = 'original', reason = 'voluntary') {
     const bookings = listBookings();
     const b = bookings.find((x) => x.id === bookingId);
     const isFan = !!b && b.fanId === user.id;
     const isCreator = !!b && !!user.creatorProfileId && b.creatorProfileId === user.creatorProfileId;
     if (!b || !(isFan || isCreator)) return fail('Reserva no encontrada');
+    const existingRefund = readJSON<ReserveRefundRequest[]>(REFUNDS_KEY, []).find(r => r.bookingId === b.id);
+    if (existingRefund) return { ok: true, refundState: existingRefund.state, refundCoins: 0 };
     const by = isCreator && !isFan ? 'creator' : 'fan';
-    const outcome = cancellationOutcome(b, by);
+    const outcome = cancellationOutcome(b, by) ?? ((by === 'creator' || reason === 'creator_failure') && (b.status === 'confirmed' || b.status === 'completed')
+      ? { paid: true, refundPercent: 100, refundCoins: Math.round(b.price * 100), ticket: !!b.details?.ticketId, ticketBack: true, late: false } : null);
     if (!outcome) return fail(b.status === 'confirmed' ? 'La experiencia ya empezó: ya no se puede cancelar. Si hubo un problema, repórtalo.' : 'Esta reserva ya no se puede cancelar');
     const now = new Date().toISOString();
+    if (reason === 'withdrawal' || reason === 'creator_failure') { outcome.refundPercent = 100; outcome.refundCoins = Math.round(b.price * 100); }
+    let refundState: string | undefined;
     if (outcome.paid && !outcome.ticket) {
       const tx = platform.ledger.transactions().find((t) => (t as { key?: string }).key === `vip:${b.id}` && t.kind === 'vip');
       if (!tx) return fail('No encontramos el pago de esta reserva. Escríbenos a soporte.');
       if (tx.status !== 'paid' || tx.refundedAmount || tx.creatorRefundLoss) return fail('Este pago tiene una devolución o disputa en curso. Escríbenos a soporte.');
       platform.ledger.setRefundLoss(tx.id, (tx.amount * (tx.share ?? 0) * outcome.refundPercent) / 100);
-      addReserveCreditMove('grants', { userId: b.fanId, coins: outcome.refundCoins, bookingId: b.id, at: now });
+      if ((choice === 'credits' && reason === 'voluntary' && by === 'fan') || tx.methodLabel === VIRTUAL_CURRENCY.displayName) {
+        addReserveCreditMove('grants', { userId: b.fanId, coins: outcome.refundCoins, bookingId: b.id, at: now });
+        if (by === 'fan' && reason === 'voluntary') writeJSON(REFUNDS_KEY, [...readJSON<ReserveRefundRequest[]>(REFUNDS_KEY, []), { id: newId(), bookingId: b.id, fanId: b.fanId, title: b.title, fanName: b.fanName, amount: outcome.refundCoins / 100, reason, funding: 'credits', state: 'pending', createdAt: now, note: 'Créditos ya acreditados voluntariamente. Revisar si corresponde contar una cancelación.' }]);
+      } else {
+        const requests = readJSON<ReserveRefundRequest[]>(REFUNDS_KEY, []);
+        const existing = requests.find(r => r.bookingId === b.id);
+        const request: ReserveRefundRequest = existing ?? { id: newId(), bookingId: b.id, fanId: b.fanId, title: b.title, fanName: b.fanName,
+          amount: round2(b.price * outcome.refundPercent / 100), reason: by === 'creator' ? 'creator_cancelled' : reason,
+          state: by === 'creator' || reason === 'voluntary' ? 'approved' : 'pending', createdAt: now };
+        if (!existing) writeJSON(REFUNDS_KEY, [...requests, request]);
+        b.details = { ...b.details, refundRequest: { id: request.id, state: request.state, reason: request.reason } };
+        refundState = 'pending'; outcome.refundCoins = 0;
+      }
     }
     const { reschedule: _pending, ...rest } = b.details ?? {};
     b.details = {
       ...rest,
-      cancellation: { by, at: now, paid: outcome.paid, refundPercent: outcome.refundPercent, refundCoins: outcome.refundCoins, ...(outcome.ticket ? { ticketBack: outcome.ticketBack } : {}) },
+      cancellation: { by, at: now, paid: outcome.paid, refundPercent: outcome.refundPercent, refundCoins: outcome.refundCoins, reason,
+        refundChoice: refundState ? 'original' : 'credits', ...(refundState ? { refundState: 'pending' as const } : {}), ...(outcome.ticket ? { ticketBack: outcome.ticketBack } : {}) },
     };
-    b.status = 'cancelled';
+    if (reason !== 'creator_failure' || by === 'creator') b.status = 'cancelled';
     b.updatedAt = now;
     saveBookings(bookings);
+    if (by === 'fan' && reason === 'voluntary' && !outcome.paid && b.paymentDueAt) recordReserveIncident(b, 'cancelled', now);
     if (outcome.paid) {
       const when = `${b.date.slice(8, 10)}/${b.date.slice(5, 7)} · ${b.time}`;
       if (by === 'fan')
         for (const a of loadAccounts().filter((x) => x.role === 'creator' && x.creatorProfileId === b.creatorProfileId))
           addLocalNotification(a.id, { kind: 'reserve_request', creatorProfileId: b.creatorProfileId, title: `${b.fanName.split(' ')[0]} canceló su reserva`, body: `${b.title} · ${when}`, link: '/creator/dashboard?tab=vip' });
       else
-        addLocalNotification(b.fanId, { kind: 'reserve_update', creatorProfileId: b.creatorProfileId, title: `${b.creatorName.split(' ')[0]} canceló tu reserva`, body: `${b.title} · ${when}. Te devolvimos ${outcome.refundCoins} ${currencyWord}.`, link: '/profile#mis-reservas' });
+        addLocalNotification(b.fanId, { kind: 'reserve_update', creatorProfileId: b.creatorProfileId, title: `${b.creatorName.split(' ')[0]} canceló tu reserva`, body: `${b.title} · ${when}. ${refundState ? 'Se registró la devolución completa al medio original.' : `Te devolvimos ${outcome.refundCoins} ${currencyWord}.`}`, link: '/profile#mis-reservas' });
     }
-    return { ok: true, refundCoins: outcome.refundCoins, refundPercent: outcome.refundPercent };
+    return { ok: true, refundCoins: outcome.refundCoins, refundPercent: outcome.refundPercent, refundState };
+  },
+  async reserveAccess(user) {
+    return reserveAccessOf(user.id, listBookings(), readJSON(INCIDENTS_KEY, []));
+  },
+  async reserveRefunds(user) {
+    return readJSON<ReserveRefundRequest[]>(REFUNDS_KEY, []).filter(r => user.role === 'admin' || r.fanId === user.id || listBookings().find(b => b.id === r.bookingId)?.creatorProfileId === user.creatorProfileId);
+  },
+  async decideReserveRefund(user, id, decision, note) {
+    if (user.role !== 'admin') return fail('Solo el equipo puede revisar esta devolución');
+    if (note.trim().length < 10) return fail('Documenta la decisión con al menos diez caracteres');
+    const all = readJSON<ReserveRefundRequest[]>(REFUNDS_KEY, []), request = all.find(r => r.id === id);
+    if (!request || request.state !== 'pending') return fail('La solicitud ya no está pendiente de revisión');
+    if (decision === 'legal' && request.funding === 'credits' && request.amount < (listBookings().find(b => b.id === request.bookingId)?.price ?? 0)) return fail('Ya se acreditó una parte en Créditos. Primero se necesita una corrección supervisada para evitar una devolución doble.');
+    request.state = decision === 'decline' ? 'declined' : request.funding === 'credits' ? 'completed' : 'approved'; request.note = note.trim();
+    if (decision === 'legal') { request.reason = 'withdrawal'; request.amount = listBookings().find(b => b.id === request.bookingId)?.price ?? request.amount; }
+    writeJSON(REFUNDS_KEY, all);
+    const bookings = listBookings(), b = bookings.find(b => b.id === request.bookingId);
+    if (b) {
+      b.details = { ...b.details, refundRequest: { id, state: request.state, reason: request.reason } };
+      if (decision === 'approve' && request.reason === 'creator_failure') b.status = 'cancelled';
+      if (decision === 'decline' && request.reason === 'creator_failure') { const tx = platform.ledger.transactions().find(t => (t as { key?: string }).key === `vip:${b.id}`); if (tx?.status === 'paid' && !tx.refundedAmount) platform.ledger.setRefundLoss(tx.id, 0); }
+      if (decision === 'approve' && request.reason === 'voluntary') recordReserveIncident(b, 'cancelled', request.createdAt);
+      saveBookings(bookings);
+    }
+    return ok;
   },
 
   async requestReschedule(user, bookingId, input) {
@@ -1129,6 +1225,9 @@ export const localBackend: Backend = {
     const list = listExperiences();
     const existing = id ? list.find((e) => e.id === id) : undefined;
     if (id && (!existing || existing.creatorProfileId !== user.creatorProfileId)) return fail('Experiencia no encontrada');
+    const zone = input.timeZone ?? existing?.timeZone ?? loadAvailability(user.creatorProfileId).timeZone ?? viewerTimeZone();
+    if (!isTimeZone(zone)) return fail('Elige una ciudad o zona horaria válida');
+    if (existing?.details?.format === 'event' && zone !== existing.timeZone && listBookings().some(b => b.experienceId === id && ACTIVE_STATUSES.includes(b.status))) return fail('Este evento ya tiene reservas. Conserva su zona horaria.');
     // Reserve Event seats depend on the creator's level (an event saved earlier keeps its seats).
     const seats = input.details?.format === 'event' ? input.details.maxParticipants : 0;
     const cap = rewards.eventSeatCap(user.creatorProfileId);
@@ -1145,7 +1244,7 @@ export const localBackend: Backend = {
       ...(input.details ? { details: cleanDetails(input.details) } : {}),
       creatorProfileId: user.creatorProfileId,
       creatorName: user.name,
-      ...(viewerTimeZone() ? { timeZone: viewerTimeZone() } : {}),
+      timeZone: zone,
     };
     saveExperiences(
       existing
