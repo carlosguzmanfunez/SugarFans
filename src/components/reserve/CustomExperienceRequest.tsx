@@ -176,7 +176,7 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
         </div>
       }
     >
-      <ReserveAccessNotice />
+      <ReserveAccessNotice showPolicy={false} />
       <p className="mb-4 text-sm text-ink/70">Enviar una propuesta no aparta el horario. Si el creador acepta, tendrás 2 horas para pagar y confirmar.</p>
       <ol className="mb-5 grid grid-cols-5 gap-1.5" aria-label="Pasos">
         {STEPS.map((s, i) => (
