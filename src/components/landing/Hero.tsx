@@ -78,7 +78,7 @@ const Hero: React.FC = () => {
     const base: React.CSSProperties = {
       zIndex: 10 - abs,
       opacity: abs > 2 ? 0 : 1,
-      filter: off === 0 ? 'none' : `brightness(${1 - abs * 0.18})`,
+      ['--pass-shade' as string]: abs * 0.18,
       transform: `translateX(calc(${off} * var(--deck-step, 112px))) translateZ(${-abs * 170}px) rotateY(${-off * 20}deg)`,
       pointerEvents: abs > 1 ? 'none' : 'auto',
     };
@@ -133,6 +133,7 @@ const Hero: React.FC = () => {
             }
           }}
         >
+          <div className="deck-cards">
           {deck.map((experience, i) => {
             const front = i === cur;
             return (
@@ -173,6 +174,7 @@ const Hero: React.FC = () => {
               </article>
             );
           })}
+          </div>
           <div className="deck-ui"><div className="dots" aria-hidden="true">
             {deck.map((experience, i) => (
               <i key={experience.id} className={i === cur ? 'on' : ''} onPointerDown={(e) => e.stopPropagation()} onClick={() => { go(i); restart(); }} />
