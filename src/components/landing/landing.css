@@ -152,25 +152,20 @@
 .lv2 .j-head h2{font-size:clamp(30px,3.4vw,42px);line-height:1.1;letter-spacing:-.035em}
 .lv2 .j-head h2 em{font-style:normal;color:var(--brand)}
 .lv2 .journey-options{display:grid;grid-template-columns:1fr 1.1fr 1fr;gap:26px;align-items:stretch}
-.lv2 .journey-option{display:grid;grid-template-rows:1fr auto;min-width:0;overflow:hidden;border-radius:26px;background:var(--iris-1);color:#382065;scroll-margin-top:110px}
+.lv2 .journey-option{min-width:0;overflow:hidden;border-radius:26px;background:var(--iris-1);color:#382065;scroll-margin-top:110px}
 .lv2 .journey-reserve{background:var(--night-7);color:#fff}
 .lv2 .journey-proposal{background:var(--brand-1);color:#73143e}
-.lv2 .journey-copy{padding:22px 22px 12px}
+.lv2 .journey-copy{padding:22px}
 .lv2 .journey-copy h3{font-size:clamp(23px,2vw,27px);line-height:1.2;letter-spacing:-.025em}
 .lv2 .journey-reserve h3{color:var(--gold-2)}
 .lv2 .journey-copy>p{margin-top:10px;font-size:15px;line-height:1.6}
 .lv2 .journey-reserve .journey-copy>p{color:#eee5f6}
-.lv2 .journey-action{position:relative;padding:16px 22px 22px;background:inherit}
-.lv2 .journey-action>.v-btn{width:100%;min-height:46px;padding-inline:14px;white-space:normal;text-align:center;background:#fff;color:var(--ink);box-shadow:none}
-.lv2 .journey-reserve .journey-action>.v-btn{background:var(--gold-2)}
-.lv2 .journey-action>.v-btn:hover{background:var(--ink);color:#fff}
-.lv2 .journey-reserve .journey-action>.v-btn:hover{background:#fff;color:var(--ink)}
 .lv2 .journey-option :focus-visible{outline-color:currentColor;outline-offset:4px}
 .lv2 .journey-option ::selection{background:var(--ink);color:#fff}
 .lv2 .journey-reserve ::selection{background:var(--gold-2);color:var(--ink)}
-@media(max-width:1050px){.lv2 .journey-options{gap:20px;grid-template-columns:repeat(3,minmax(0,1fr))}.lv2 .journey-copy{padding:20px 18px 12px}.lv2 .journey-action{padding:16px 18px 20px}.lv2 .journey-copy h3{font-size:23px}}
-@media(max-width:760px){.lv2 .journey{padding-block:36px}.lv2 .journey-options{grid-template-columns:1fr;gap:20px}.lv2 .journey-option{position:relative;grid-template-columns:1fr;grid-template-rows:auto auto}.lv2 .journey-copy{padding:20px 20px 12px}.lv2 .journey-copy h3{font-size:24px}.lv2 .journey-action{grid-column:1;padding:0 20px 20px}.lv2 .journey-action>.v-btn{width:auto;justify-content:flex-start;font-size:14px}}
-@media(max-width:380px){.lv2 .journey-copy h3{font-size:22px}.lv2 .journey-copy>p{font-size:14px}.lv2 .journey-action>.v-btn{padding-inline:12px}}
+@media(max-width:1050px){.lv2 .journey-options{gap:20px;grid-template-columns:repeat(3,minmax(0,1fr))}.lv2 .journey-copy{padding:20px 18px}.lv2 .journey-copy h3{font-size:23px}}
+@media(max-width:760px){.lv2 .journey{padding-block:36px}.lv2 .journey-options{grid-template-columns:1fr;gap:20px}.lv2 .journey-copy{padding:20px}.lv2 .journey-copy h3{font-size:24px}}
+@media(max-width:380px){.lv2 .journey-copy h3{font-size:22px}.lv2 .journey-copy>p{font-size:14px}}
 .lv2 #comunidades .sec-head{max-width:900px}
 .lv2 .sec-head h2 em.grad{font-style:normal;background:linear-gradient(90deg,var(--brand),var(--iris) 60%,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
 .lv2 .cats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}

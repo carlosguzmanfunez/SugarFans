@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { HOW } from '../../content/landing';
 
 // Independent options, rather than steps the fan has to complete in order.
@@ -8,22 +8,16 @@ const options = [
     key: 'subscription',
     title: 'Suscríbete',
     description: 'Accede cada mes a las fotos, videos y publicaciones exclusivas de tu creador.',
-    action: 'Ver creadores',
-    to: '/explore',
   },
   {
     key: 'reserve',
     title: 'Reserve',
     description: 'Elige una videollamada, clase o evento que el creador ya publicó.',
-    action: 'Explorar experiencias',
-    to: '/reserve',
   },
   {
     key: 'proposal',
     title: 'Propón tu experiencia',
     description: 'Envía tu propia idea al creador con la fecha y el presupuesto que tienes en mente.',
-    action: 'Elegir creador',
-    to: '/explore',
   },
 ];
 
@@ -64,9 +58,6 @@ const HowItWorks: React.FC = () => {
                 <div className="journey-copy">
                   <h3 id={`how-${option.key}`}>{option.title}</h3>
                   <p>{option.description}</p>
-                </div>
-                <div className="journey-action">
-                  <Link to={option.to} className="v-btn">{option.action}</Link>
                 </div>
               </article>
           ))}
