@@ -80,8 +80,15 @@
 .lv2 .pass.is-front:hover .shine{opacity:1}
 .lv2 .hero-experiences h1{font-size:clamp(38px,4.1vw,56px);line-height:1.06;letter-spacing:-.035em}
 .lv2 .hero-title-accent{color:var(--brand)}
-.lv2 .hero-experiences .deck{isolation:isolate;--deck-step:100px}
-.lv2 .hero-experiences .pass{--pass-bg:#be1b59;--pass-ink:#fff;--pass-copy:#ffe7f0;--pass-rule:#e578a2;border:1px solid var(--pass-rule);background:var(--pass-bg);color:var(--pass-ink)}
+.lv2 .hero-experiences .deck{isolation:isolate;perspective:none;--deck-step:100px;--deck-shadow-offset:200px;--deck-shadow-width:380px;--deck-shadow-height:68px}
+/* Keep the floor shadow outside the perspective/filter surfaces. A rotating,
+   blurred card shadow can expose rectangular raster tiles on mobile GPUs. */
+.lv2 .hero-experiences .deck::before{content:"";position:absolute;z-index:0;left:50%;top:calc(50% + var(--deck-shadow-offset));width:min(var(--deck-shadow-width),100%);height:var(--deck-shadow-height);transform:translateX(-50%);background:radial-gradient(ellipse at center,rgb(40 10 40 / .16),rgb(40 10 40 / .06) 40%,rgb(40 10 40 / 0) 72%);pointer-events:none}
+.lv2 .hero-experiences .deck-cards{position:absolute;inset:0;z-index:1;perspective:1400px}
+.lv2 .hero-experiences .deck-ui{z-index:2}
+.lv2 .hero-experiences .pass{--pass-bg:#be1b59;--pass-ink:#fff;--pass-copy:#ffe7f0;--pass-rule:#e578a2;border:1px solid var(--pass-rule);background:var(--pass-bg);color:var(--pass-ink);box-shadow:none;transition:transform .8s var(--ease),opacity .6s}
+/* Opacity shades rear cards without filtering/rasterizing their moving content. */
+.lv2 .hero-experiences .pass::after{content:"";position:absolute;inset:0;z-index:2;border-radius:inherit;background:#000;opacity:var(--pass-shade,0);transition:opacity .6s;pointer-events:none}
 .lv2 .hero-experiences .pass[data-experience="group-experience"]{--pass-bg:#21654e;--pass-copy:#e2f5eb;--pass-rule:#66a68d}
 .lv2 .hero-experiences .pass[data-experience="exclusive-content"]{--pass-bg:#6543a7;--pass-copy:#ede4ff;--pass-rule:#a68bd3}
 .lv2 .hero-experiences .pass[data-experience="your-proposal"]{--pass-bg:#f2d792;--pass-ink:#2a1d36;--pass-copy:#4a3451;--pass-rule:#b28a3d}
@@ -99,7 +106,7 @@
 .lv2 .hero-experiences .pass-link:focus-visible{outline-color:var(--pass-ink)}
 .lv2 .hero-experiences .pass .shine{display:none}
 .lv2 .hero-experiences .pass ::selection{background:var(--pass-ink);color:var(--pass-bg)}
-@media(min-width:901px) and (max-width:1100px){.lv2 .hero-experiences .hero-grid{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:32px}.lv2 .hero-experiences .deck{height:480px;--deck-step:80px}.lv2 .hero-experiences .pass{width:292px;height:420px;margin:-210px 0 0 -146px}.lv2 .hero-experiences .pass .fig{height:260px}.lv2 .hero-experiences .pass .info h3{font-size:24px}}
+@media(min-width:901px) and (max-width:1100px){.lv2 .hero-experiences .hero-grid{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:32px}.lv2 .hero-experiences .deck{height:480px;--deck-step:80px;--deck-shadow-offset:176px;--deck-shadow-width:340px}.lv2 .hero-experiences .pass{width:292px;height:420px;margin:-210px 0 0 -146px}.lv2 .hero-experiences .pass .fig{height:260px}.lv2 .hero-experiences .pass .info h3{font-size:24px}}
 @media(max-width:560px){.lv2 .hero-experiences .deck{--deck-step:76px}.lv2 .hero-experiences .pass .fig{height:220px}.lv2 .hero-experiences .pass .top{top:12px;left:12px;right:12px}.lv2 .hero-experiences .pass .top .chip{font-size:10.5px;padding:6px 9px}.lv2 .hero-experiences .pass .info{padding:18px 18px 14px}.lv2 .hero-experiences .pass .info h3{font-size:21px;line-height:1.15}.lv2 .hero-experiences .pass .meta{margin-top:7px;font-size:12.5px;line-height:1.5}.lv2 .hero-experiences .pass .slot{margin-top:10px;padding-top:5px}.lv2 .hero-experiences .pass-link{min-height:40px;font-size:14px}}
 .lv2 .deck-ui{position:absolute;left:0;right:0;bottom:-6px;display:flex;justify-content:center;align-items:center;gap:14px}
 .lv2 .round{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:var(--surface);border:1px solid var(--line);box-shadow:0 8px 20px -14px rgb(40 10 40 / .5);transition:transform .2s var(--ease)}
@@ -370,7 +377,9 @@
 @media(max-width:560px){
   .lv2 .hero-experiences h1{font-size:clamp(31px,9vw,38px)}
   .lv2 .hero-title-accent{display:block}
-  .lv2 .hero-experiences .deck{--deck-step:66px}
+  .lv2 .hero-experiences .ctas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .lv2 .hero-experiences .ctas>.v-btn{min-width:0;min-height:46px;padding:12px 8px;gap:6px;font-size:clamp(12px,3.5vw,14px)}
+  .lv2 .hero-experiences .deck{--deck-step:66px;--deck-shadow-offset:146px;--deck-shadow-width:300px;--deck-shadow-height:52px}
   .lv2 .hero-experiences .pass{--hero-pass-width:min(280px,calc(100vw - 52px));width:var(--hero-pass-width);margin-left:calc(var(--hero-pass-width) / -2)}
 }
 @media(max-width:1279px){
