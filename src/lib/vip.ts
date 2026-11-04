@@ -40,7 +40,8 @@ import {
 } from '../config/reserve';
 import { moderate } from './moderation';
 import { isOverdue } from './reserveAlerts';
-import { zonedDate } from './timeZones';
+import { paymentOverdue } from './reserveControl';
+import { dateInZone, isTimeZone, zonedDate } from './timeZones';
 
 export type {
   Availability,
@@ -80,9 +81,12 @@ export const fromISODate = (iso: string): Date => {
 };
 
 // Bookable window: from tomorrow up to MAX_BOOKING_MONTHS ahead.
-export const bookingWindow = (now = new Date()) => {
-  const min = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-  const max = new Date(now.getFullYear(), now.getMonth() + MAX_BOOKING_MONTHS, now.getDate());
+export const bookingWindow = (now = new Date(), zone?: string) => {
+  const today = fromISODate(dateInZone(now, zone));
+  const min = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  // Match PostgreSQL's calendar-month arithmetic (Jan 31 + 3 months = Apr 30).
+  const lastDay = new Date(today.getFullYear(), today.getMonth() + MAX_BOOKING_MONTHS + 1, 0).getDate();
+  const max = new Date(today.getFullYear(), today.getMonth() + MAX_BOOKING_MONTHS, Math.min(today.getDate(), lastDay));
   return { min: toISODate(min), max: toISODate(max) };
 };
 
@@ -92,11 +96,18 @@ export const formatLongDate = (iso: string): string =>
 export const takenHoursOn = (taken: TakenSlot[], date: string): string[] =>
   taken.filter((s) => s.date === date).map((s) => s.time);
 
-export const freeHoursOn = (availability: Availability, taken: TakenSlot[], date: string, minNoticeHours = 0): string[] => {
-  const { min, max } = bookingWindow();
+export const freeHoursOn = (availability: Availability, taken: TakenSlot[], date: string, minNoticeHours = 0, duration = 60): string[] => {
+  const { min, max } = bookingWindow(new Date(), availability.timeZone);
   if (date < min || date > max || !availability.days.includes(fromISODate(date).getDay())) return [];
-  const busy = takenHoursOn(taken, date);
-  return availability.hours.filter((h) => !busy.includes(h) && (!minNoticeHours || meetsNotice(date, h, minNoticeHours, new Date(), availability.timeZone)));
+  return availability.hours.filter(h => {
+    const start = zonedDate(date, h, availability.timeZone).getTime();
+    const end = start + duration * 60_000;
+    const busy = taken.some(slot => {
+      const at = zonedDate(slot.date, slot.time, slot.timeZone ?? availability.timeZone).getTime();
+      return start < at + (slot.durationMinutes ?? 60) * 60_000 && end > at;
+    });
+    return !busy && Number.isFinite(start) && (!minNoticeHours || meetsNotice(date, h, minNoticeHours, new Date(), availability.timeZone));
+  });
 };
 
 // A fan's proposal is not bound to the creator's schedule: any day and any hour
@@ -114,7 +125,8 @@ export const normalizeAvailability = (a: Availability): Availability => ({
 });
 
 // Status as Reserve names it: a confirmed experience whose time has passed reads "Realizada".
-export const reserveStatusOf = (b: Pick<VipBooking, 'status' | 'date' | 'time' | 'durationMinutes' | 'respondBy' | 'timeZone'>, now = new Date()): ReserveStatus => {
+export const reserveStatusOf = (b: Pick<VipBooking, 'status' | 'date' | 'time' | 'durationMinutes' | 'respondBy' | 'timeZone' | 'paymentDueAt' | 'paymentChecking'>, now = new Date()): ReserveStatus => {
+  if (paymentOverdue(b as VipBooking, now)) return 'expired';
   if (isOverdue(b, now)) return 'expired';
   if (b.status === 'confirmed') {
     const end = liveWindow(b.date, b.time, b.durationMinutes ?? 60, b.timeZone).closes;
@@ -233,6 +245,7 @@ const cleanList = (items: string[] | undefined) => (items ?? []).map((x) => x.tr
 
 // Explicit experience categories take precedence over the legacy profile fallback.
 export const validateExperience = (input: VipExperienceInput, categoryName?: string): { ok: boolean; error?: string } => {
+  if (input.timeZone !== undefined && !isTimeZone(input.timeZone)) return { ok: false, error: 'Elige una ciudad o zona horaria válida' };
   const title = input.title.trim();
   if (title.length < 3 || title.length > 80) return { ok: false, error: 'El título debe tener entre 3 y 80 caracteres' };
   if (input.description.trim().length > 600) return { ok: false, error: 'La descripción admite hasta 600 caracteres' };
@@ -269,8 +282,8 @@ export const validateExperience = (input: VipExperienceInput, categoryName?: str
       if (!type.minutes || input.durationMinutes === undefined) return { ok: false, error: 'Indica la duración del evento' };
       if (!d.eventDate || !d.eventTime || !/^\d{4}-\d{2}-\d{2}$/.test(d.eventDate) || !/^\d{2}:\d{2}$/.test(d.eventTime))
         return { ok: false, error: 'Indica la fecha y la hora del evento' };
-      const { max } = bookingWindow();
-      if (!isUpcomingEvent({ details: d }) || d.eventDate > max) return { ok: false, error: 'La fecha del evento debe estar dentro de los próximos 3 meses' };
+      const { max } = bookingWindow(new Date(), input.timeZone);
+      if (!isUpcomingEvent({ details: d, timeZone: input.timeZone }) || d.eventDate > max) return { ok: false, error: 'La fecha del evento debe estar dentro de los próximos 3 meses y tener una hora válida en tu zona' };
       if (!Number.isInteger(d.maxParticipants) || d.maxParticipants < MIN_EVENT_SEATS || d.maxParticipants > MAX_PARTICIPANTS)
         return { ok: false, error: `Un Reserve Event tiene entre ${MIN_EVENT_SEATS} y ${MAX_PARTICIPANTS} plazas` };
     } else if (!Number.isInteger(d.maxParticipants) || d.maxParticipants < 1 || d.maxParticipants > Math.min(MAX_PARTICIPANTS, type.maxParticipants))
@@ -327,13 +340,13 @@ export const cleanDetails = (d: ReserveDetails): ReserveDetails => ({
 });
 
 // The experience's own days/hours narrow the creator's availability.
-export const experienceAvailability = (availability: Availability, exp?: Pick<VipExperience, 'details'> | null): Availability => {
+export const experienceAvailability = (availability: Availability, exp?: Pick<VipExperience, 'details' | 'timeZone'> | null): Availability => {
   const d = exp?.details;
   return {
     // Its own days and hours (any day, any hour) replace the general schedule.
     days: d?.days?.length ? [...d.days].sort((a, b) => a - b) : availability.days,
     hours: d?.hours?.length ? ALL_HOURS.filter((h) => d.hours!.includes(h)) : availability.hours,
-    ...(availability.timeZone ? { timeZone: availability.timeZone } : {}),
+    ...((availability.timeZone ?? exp?.timeZone) ? { timeZone: availability.timeZone ?? exp?.timeZone } : {}),
   };
 };
 

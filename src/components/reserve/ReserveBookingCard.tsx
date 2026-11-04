@@ -1,10 +1,10 @@
 import { inPerson, locationLabel, bookingHasAttendance } from '../../lib/reserveLocation';
 import ReserveCitySelector from './ReserveCitySelector';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { backend } from '../../lib/backend';
 import { money } from '../../lib/platform';
 import { formatLongDate, reserveStatusOf, typeOf, CUSTOM_EXPERIENCE, MIN_SESSION_MINUTES, MAX_SESSION_MINUTES, type VipBooking } from '../../lib/vip';
-import { viewerSlotLabel, zoneCity } from '../../lib/timeZones';
+import ReserveScheduleTime from './ReserveScheduleTime';
 import { LOCATION_TYPES, PURPOSES, RESERVE_MODALITIES } from '../../config/reserve';
 import { MODERATION_RULES } from '../../lib/moderation';
 import type { User } from '../../context/AuthContext';
@@ -17,6 +17,7 @@ import { canRequestReschedule, cancellationOutcome, rescheduleMinDate } from '..
 import { formatCoins } from '../../lib/giftRules';
 import { platformChanged } from '../../lib/platform';
 import { useLanguage } from '../../context/LanguageContext';
+import type { CancellationReason, RefundChoice } from '../../lib/reserveControl';
 
 const ago = (iso: string) => {
   const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -51,16 +52,21 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
   const [reporting, setReporting] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [clock, setClock] = useState(() => Date.now());
+  const [refundChoice, setRefundChoice] = useState<RefundChoice>('original');
+  const [cancelReason, setCancelReason] = useState<CancellationReason>('voluntary');
+  useEffect(() => { if (b.status !== 'accepted' || !b.paymentDueAt) return; const timer = window.setInterval(() => setClock(Date.now()), 1000); return () => window.clearInterval(timer); }, [b.status, b.paymentDueAt]);
   const [willAttend, setWillAttend] = useState(false);
   const [counter, setCounter] = useState({ price: String(b.price), date: b.date, time: b.time, duration: String(b.durationMinutes ?? 30), note: '' });
   const d = b.details ?? {};
-  const status = reserveStatusOf(b);
+  const status = reserveStatusOf(b, new Date(clock));
+  const overdue = b.status === 'accepted' && !!b.paymentDueAt && new Date(b.paymentDueAt).getTime() <= clock && !b.paymentChecking;
+  useEffect(() => { if (overdue) onChanged(); }, [overdue]);
   const isCustom = b.experienceId === CUSTOM_EXPERIENCE || d.kind === 'custom';
   // A seat in a Reserve Event: same day and time for everyone, so no counter-offer.
   const isEvent = d.kind === 'event';
   const modality = d.modality ?? 'virtual';
   // Booked in the creator's clock; someone elsewhere also sees their own hour.
-  const theirHour = viewerSlotLabel(b.date, b.time, b.timeZone);
 
   const run = async (fn: () => Promise<{ ok: boolean; error?: string }>) => {
     setBusy(true);
@@ -79,7 +85,7 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
   };
   const outcome = cancellationOutcome(b, as);
   const priceCoins = Math.round(b.price * 100);
-  const canPayWithCredits = as === 'fan' && b.status === 'accepted' && !d.ticketId && credits !== undefined && credits >= priceCoins;
+  const canPayWithCredits = as === 'fan' && status === 'accepted' && !b.paymentChecking && !d.ticketId && credits !== undefined && credits >= priceCoins;
   const canMove = as === 'fan' && canRequestReschedule(b);
   const other = (as === 'fan' ? b.creatorName : b.fanName).split(' ')[0];
   const cancelled = b.status === 'cancelled' ? d.cancellation : undefined;
@@ -111,15 +117,9 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
           </p>
           <p className="mt-0.5 text-sm font-semibold text-ink">{b.title}</p>
           <p className="mt-0.5 text-xs text-ink/60 first-letter:uppercase">
-            {formatLongDate(b.date)} · {b.time}
-            {theirHour ? ` (hora de ${zoneCity(b.timeZone)})` : ''}
+            <ReserveScheduleTime date={b.date} time={b.time} zone={b.timeZone} />
             {b.durationMinutes ? ` · ${b.durationMinutes} min` : ''}
           </p>
-          {theirHour && (
-            <p className="text-xs font-semibold text-ink/75" data-testid="booking-local-time">
-              <i aria-hidden="true" className="fas fa-globe mr-1 text-brand-600"></i>Tu hora: {theirHour}
-            </p>
-          )}
         </div>
         <div className="text-right">
           {d.ticketId ? (
@@ -157,7 +157,7 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
             {as === 'fan' ? `${b.creatorName.split(' ')[0]} te propone:` : 'Tu contraoferta:'}
           </p>
           <p className="mt-1 text-ink/80 first-letter:uppercase">
-            {formatLongDate(d.counter.date)} · {d.counter.time}
+            <ReserveScheduleTime date={d.counter.date} time={d.counter.time} zone={b.timeZone} />
             {d.counter.durationMinutes ? ` · ${d.counter.durationMinutes} min` : ''} · <strong>{money(d.counter.price)}</strong>
           </p>
           {d.counter.note && <p className="mt-1 italic text-ink/70">“{d.counter.note}”</p>}
@@ -172,7 +172,7 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
         </label>
       </div>}
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-        <ReserveStatusBadge status={status} />
+        <ReserveStatusBadge status={status} label={status === 'expired' && (d.paymentExpiredAt || overdue) ? 'Vencida · sin pagar' : undefined} />
         <div className="flex flex-wrap items-center gap-2">
           <LiveRoomButton booking={b} />
           {as === 'creator' && status === 'pending' && (
@@ -200,8 +200,8 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
               </button>
             </>
           )}
-          {as === 'fan' && b.status === 'accepted' && onPay && (
-            <button type="button" disabled={busy || (inPerson(d) && !willAttend)} onClick={async () => {
+          {as === 'fan' && status === 'accepted' && !overdue && onPay && (
+            <button type="button" disabled={busy || b.paymentChecking || (inPerson(d) && !willAttend)} onClick={async () => {
               if (inPerson(d)) {
                 setBusy(true);
                 try {
@@ -231,12 +231,19 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
             </button>
           )}
           {(status === 'confirmed' || status === 'completed') && (
+            <button type="button" onClick={() => { setCancelReason('creator_failure'); setPanel('cancel'); }} className={`${btn} text-ink/70`}>Solicitar devolución</button>
+          )}
+          {(status === 'confirmed' || status === 'completed' || status === 'accepted') && (
             <button type="button" onClick={() => setReporting(true)} className={`${btn} text-ink/60 hover:text-ink`} aria-label={`Reportar un problema con ${b.title}`}>
               <i aria-hidden="true" className="fas fa-flag mr-1.5 text-[10px]"></i>Reportar
             </button>
           )}
         </div>
       </div>
+      {b.status === 'accepted' && b.paymentDueAt && <p className="mt-3 text-sm text-ink/80" role="status" data-testid="payment-deadline">
+        {b.paymentChecking ? 'Estamos comprobando el pago con PayPal. No repitas el cobro; el horario sigue protegido.' : overdue ? 'Terminó el plazo de pago. El horario se libera al comprobar que no hay un cobro pendiente.' : `Paga antes del ${new Date(b.paymentDueAt).toLocaleString('es')}, en tu hora local. Quedan ${Math.max(0, Math.ceil((new Date(b.paymentDueAt).getTime() - clock) / 60_000))} minutos.`}
+      </p>}
+      {d.refundRequest && <p className="mt-3 rounded-xl border border-line p-3 text-sm" data-testid="refund-request-status">Devolución {d.refundRequest.state === 'completed' ? 'confirmada' : d.refundRequest.state === 'declined' ? 'revisada; consulta al equipo' : 'registrada y pendiente de confirmación'}. No se acreditaron Créditos por esta solicitud.</p>}
 
       {countering && (
         <div className="mt-3 space-y-3 rounded-xl border border-line bg-gray-50 p-3" data-testid="counter-form">
@@ -325,6 +332,7 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
       {panel === 'reschedule' && canMove && (
         <div className="mt-3 space-y-3 rounded-xl border border-line bg-gray-50 p-3" data-testid="reschedule-form">
           <p className="text-xs text-ink/70">{fill(t('reserveCancel.rescheduleHelp'), { name: other })}</p>
+          <p className="text-sm text-ink/70">La nueva fecha usa la misma zona horaria de esta reserva.</p>
           <div className="grid grid-cols-2 gap-2">
             <label className="text-xs">
               <span className="font-semibold text-ink">{t('reserveCancel.newDate')}</span>
@@ -335,6 +343,7 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
               <input name="rescheduleTime" type="time" step={3600} value={move.time} onChange={(e) => setMove({ ...move, time: e.target.value })} className="mt-1 w-full rounded-lg border border-line px-2 py-2 text-sm" />
             </label>
           </div>
+          {move.date && move.time && <div className="text-sm text-ink/80"><ReserveScheduleTime date={move.date} time={move.time} zone={b.timeZone} /></div>}
           <label className="block text-xs">
             <span className="font-semibold text-ink">{t('reserveCancel.note')}</span>
             <input name="rescheduleNote" maxLength={300} value={move.note} onChange={(e) => setMove({ ...move, note: e.target.value })} className="mt-1 w-full rounded-lg border border-line px-2 py-2 text-sm" />
@@ -348,27 +357,35 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
         </div>
       )}
 
-      {panel === 'cancel' && outcome && (
+      {panel === 'cancel' && (outcome || cancelReason === 'creator_failure') && (
         <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900" data-testid="cancel-panel">
-          <p>
-            {!outcome.paid
-              ? t('reserveCancel.unpaid')
-              : as === 'creator'
-                ? outcome.ticket ? t('reserveCancel.creatorTicket') : fill(t('reserveCancel.creator'), { coins: formatCoins(outcome.refundCoins) })
-                : outcome.ticket
-                  ? t(outcome.ticketBack ? 'reserveCancel.fanTicketFull' : 'reserveCancel.fanTicketLate')
-                  : fill(t(outcome.late ? 'reserveCancel.fanLate' : 'reserveCancel.fanFull'), { coins: formatCoins(outcome.refundCoins) })}
-          </p>
+          <p>{!outcome?.paid && cancelReason !== 'creator_failure' ? 'Aún no pagaste. Cancelar no mueve dinero; si ya estaba aceptada, cuenta como cancelación voluntaria.' : as === 'creator' ? 'Se registrará la devolución del 100% al medio original del fan. No cobras esta reserva. El costo real de PayPal que no sea devuelto se descontará de tus ingresos, con comprobante y explicación.' : 'Elige el motivo y cómo solicitar la devolución. No renuncias a los derechos que te reconoce la ley.'}</p>
+          {as === 'fan' && (outcome?.paid || cancelReason === 'creator_failure') && <div className="mt-3 space-y-3">
+            <label className="block">Motivo
+              <select aria-label="Motivo de cancelación" value={cancelReason} onChange={e => setCancelReason(e.target.value as CancellationReason)} className="mt-1 w-full rounded-xl border border-line bg-white px-3 py-2 text-base text-ink">
+                <option value="voluntary">Ya no puedo asistir; cancelación voluntaria</option>
+                <option value="withdrawal">Solicitar mi derecho legal de devolución</option>
+                <option value="creator_failure">El creador incumplió; solicitar revisión</option>
+              </select>
+            </label>
+            {cancelReason === 'voluntary' && <label className="block">Forma de devolución
+              <select aria-label="Forma de devolución" value={refundChoice} onChange={e => setRefundChoice(e.target.value as RefundChoice)} className="mt-1 w-full rounded-xl border border-line bg-white px-3 py-2 text-base text-ink">
+                <option value="original">Al medio con el que pagué</option><option value="credits">Prefiero recibir Créditos voluntariamente</option>
+              </select>
+            </label>}
+            <p>{cancelReason === 'voluntary' ? `La regla comercial ofrece ${outcome?.refundPercent ?? 0}% según la anticipación, salvo que corresponda una devolución legal distinta. Las cancelaciones voluntarias cuentan para el límite de tres en 30 días.` : 'El equipo revisará tu solicitud. No se contará como cancelación voluntaria ni se sustituirá la devolución por Créditos obligatorios.'}</p>
+          </div>}
           <div className="mt-2 flex justify-end gap-2">
             <button type="button" onClick={() => setPanel(null)} className={`${btn} border border-line bg-white text-ink/70`}>{t('reserveCancel.back')}</button>
-            <button type="button" disabled={busy} onClick={() => run(() => backend.cancelBooking(user, b.id))} className={`${btn} bg-red-600 text-white hover:bg-red-700`} data-testid="cancel-confirm">
-              {t('reserveCancel.confirm')}
+            <button type="button" disabled={busy} onClick={() => run(() => backend.cancelBooking(user, b.id, as === 'creator' || cancelReason !== 'voluntary' ? 'original' : refundChoice, cancelReason))} className={`${btn} bg-red-600 text-white hover:bg-red-700`} data-testid="cancel-confirm">
+              {cancelReason === 'creator_failure' ? 'Enviar para revisión' : t('reserveCancel.confirm')}
             </button>
           </div>
         </div>
       )}
 
-      {cancelled?.paid && (
+      {cancelled?.paid && cancelled.refundChoice === 'original' && <p className="mt-2 text-sm text-ink/70">Devolución del {cancelled.refundPercent}% al medio original: {cancelled.refundState === 'completed' ? 'confirmada' : 'registrada, pendiente de confirmación'}. No se emitieron Créditos.</p>}
+      {cancelled?.paid && cancelled.refundChoice !== 'original' && (
         <p className="mt-2 rounded-xl bg-gray-50 px-3 py-2 text-xs text-ink/70" data-testid="cancel-result">
           <i aria-hidden="true" className="fas fa-coins mr-1.5 text-gold-600"></i>
           {d.ticketId
@@ -433,7 +450,9 @@ const WaitingNote: React.FC<{ booking: VipBooking; status: ReturnType<typeof res
     return (
       <p className={`${line} text-ink/60`}>
         <i aria-hidden="true" className="fas fa-clock mt-0.5"></i>
-        {as === 'fan' ? 'Nadie respondió a tiempo. No se te cobró nada y puedes enviar otra solicitud.' : 'Se cerró porque pasó el tiempo para responder. El horario quedó libre.'}
+        {b.details?.paymentExpiredAt || (b.status === 'accepted' && b.paymentDueAt)
+          ? 'Terminó el plazo de pago y se liberó el horario. Revisa tu acceso a Reserve antes de apartar otra experiencia.'
+          : as === 'fan' ? 'Nadie respondió a tiempo. No se te cobró nada; podrás enviar otra solicitud si tu acceso está habilitado.' : 'Se cerró porque pasó el tiempo para responder.'}
       </p>
     );
   return null;

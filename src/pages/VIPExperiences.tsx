@@ -14,6 +14,7 @@ import ReserveExperienceCard from '../components/reserve/ReserveExperienceCard';
 import ReserveBookingDialog from '../components/reserve/ReserveBookingDialog';
 import { ReserveNotice } from '../components/reserve/ReserveBits';
 import ReserveLanguageSelector, { useReserveLanguage } from '../components/reserve/ReserveLanguageSelector';
+import ReserveAccessNotice from '../components/reserve/ReserveAccessNotice';
 import { catalogOrder, experienceCopy } from '../content/reserveCatalog';
 
 // Reserve: experiences fans can book with creators. Each one is defined by its
@@ -94,6 +95,7 @@ const ReservePage: React.FC = () => {
             placeholder="Buscar creadores o experiencias..."
           />
         </div>
+        <ReserveAccessNotice />
         <ReserveCitySelector experiences={experiences} />
         <ReserveLanguageSelector />
         <div className="mb-6 space-y-3 sm:mb-8">

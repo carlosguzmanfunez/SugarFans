@@ -15,6 +15,7 @@ export type PaypalPurchase =
   | { kind: 'subscription'; params: { creatorProfileId: string } };
 
 export interface PaypalConfig {
+  refundsEnabled?: boolean;
   enabled: boolean;
   clientId: string | null;
   env: 'sandbox' | 'live';
@@ -27,7 +28,7 @@ export const paypalConfig = (): Promise<PaypalConfig> => {
   if (backend.mode !== 'supabase') return Promise.resolve(DISABLED);
   configPromise ??= fetch('/api/paypal', { headers: { accept: 'application/json' } })
     .then((r) => (r.ok ? r.json() : DISABLED))
-    .then((c: Partial<PaypalConfig>) => (c.enabled && c.clientId ? { enabled: true, clientId: c.clientId, env: c.env === 'live' ? 'live' : 'sandbox' } : DISABLED) as PaypalConfig)
+    .then((c: Partial<PaypalConfig>) => (c.enabled && c.clientId ? { enabled: true, clientId: c.clientId, env: c.env === 'live' ? 'live' : 'sandbox', refundsEnabled: c.refundsEnabled === true } : DISABLED) as PaypalConfig)
     .catch(() => DISABLED);
   return configPromise;
 };
@@ -97,6 +98,7 @@ export const createPaypalOrder = async (purchase: Exclude<PaypalPurchase, { kind
 // Returns PayPal's operation number for the receipt.
 export const capturePaypalOrder = async (orderId: string) =>
   (await call<{ ok: true; captureId?: string | null }>({ action: 'capture', orderId })).captureId || orderId;
+export const sendReserveRefund = async (requestId: string) => call<{ ok: boolean }>({ action: 'reserve-refund', requestId });
 
 export const createPaypalSubscription = async (creatorProfileId: string) =>
   (await call<{ subscriptionId: string }>({ action: 'subscribe', creatorProfileId })).subscriptionId;

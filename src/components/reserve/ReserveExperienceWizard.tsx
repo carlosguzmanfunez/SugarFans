@@ -44,6 +44,8 @@ import {
 import { moderate } from '../../lib/moderation';
 import { ExperienceFacts, ExperienceTerms } from './ReserveBits';
 import ReserveExperienceCard from './ReserveExperienceCard';
+import ReserveTimeZoneSelector from './ReserveTimeZoneSelector';
+import { viewerTimeZone, zoneCity } from '../../lib/timeZones';
 
 interface Props {
   user: User;
@@ -92,7 +94,7 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category: profileCateg
       image: DEFAULT_EXPERIENCE_IMAGE,
       active: true,
     };
-    return { ...base, details: { ...defaultDetails(), ...(editing?.details ?? {}), categoryId: editing?.details?.categoryId ?? profileCategory.id } };
+    return { ...base, timeZone: editing?.timeZone ?? availability.timeZone ?? viewerTimeZone(), details: { ...defaultDetails(), ...(editing?.details ?? {}), categoryId: editing?.details?.categoryId ?? profileCategory.id } };
   });
   // The price as typed, so "0" → "25" doesn't become "025" and clearing the field works.
   const [priceText, setPriceText] = useState(String(input.price));
@@ -384,19 +386,21 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category: profileCateg
         <div className="grid gap-3 sm:grid-cols-2" data-testid="event-schedule">
           <label className="block text-sm">
             <span className="font-semibold text-ink">Fecha del evento</span>
-            <input name="eventDate" type="date" min={bookingWindow().min} max={bookingWindow().max} value={d.eventDate ?? ''} onChange={(e) => setD({ eventDate: e.target.value })} className={field} />
+            <input name="eventDate" type="date" min={bookingWindow(new Date(), input.timeZone).min} max={bookingWindow(new Date(), input.timeZone).max} value={d.eventDate ?? ''} onChange={(e) => setD({ eventDate: e.target.value })} className={field} />
           </label>
           <label className="block text-sm">
             <span className="font-semibold text-ink">Hora</span>
             <input name="eventTime" type="time" step={900} value={d.eventTime ?? ''} onChange={(e) => setD({ eventTime: e.target.value })} className={field} />
           </label>
-          <p className="text-xs text-muted sm:col-span-2">Es la misma para todos los participantes, en tu hora local.</p>
+          <div className="sm:col-span-2"><ReserveTimeZoneSelector value={input.timeZone ?? ''} onChange={timeZone => set({ timeZone })} name="eventTimeZone" /></div>
+          <p className="text-sm text-ink/70 sm:col-span-2">La fecha y la hora son las mismas para todos. Los fans también verán su hora local. Las plazas ya reservadas conservan su horario.</p>
         </div>
       )}
 
       {step === 6 && !isEvent && (
         <div className="space-y-4">
           <p className="text-sm text-ink/70">Elige cualquier día de la semana y cualquier hora del día. Empieza marcado con tus horarios generales.</p>
+          <p className="text-sm text-ink/70">Hora de {zoneCity(availability.timeZone ?? input.timeZone)}. Puedes cambiar tu zona en Disponibilidad; las reservas anteriores conservan su hora acordada.</p>
           <div>
             <p className="mb-2 text-sm font-semibold text-ink">Días</p>
             <div className="flex flex-wrap gap-2">

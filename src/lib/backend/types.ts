@@ -122,6 +122,8 @@ export interface Availability {
 export interface TakenSlot {
   date: string;
   time: string;
+  timeZone?: string;
+  durationMinutes?: number;
 }
 
 // pending: waiting for the creator · countered: the creator proposed other
@@ -155,6 +157,9 @@ export interface CounterOffer {
 // What a Reserve booking was for (vip_bookings.details). Empty on bookings made
 // before Reserve: those are virtual, for one person.
 export interface BookingDetails {
+  refundRequest?: { id: string; state: string; reason: string };
+  approvalRequired?: boolean;
+  paymentExpiredAt?: string;
   country?: string;
   region?: string;
   attendance?: AttendanceLocation;
@@ -185,6 +190,9 @@ export interface BookingDetails {
 }
 
 export interface BookingCancellation {
+  reason?: string;
+  refundChoice?: 'original' | 'credits';
+  refundState?: 'pending' | 'completed';
   by: 'fan' | 'creator';
   at: string;
   paid: boolean;
@@ -193,9 +201,12 @@ export interface BookingCancellation {
   ticketBack?: boolean;
 }
 
-export type CancelResult = AuthResult & { refundCoins?: number; refundPercent?: number };
+export type CancelResult = AuthResult & { refundCoins?: number; refundPercent?: number; refundState?: string };
 
 export interface VipBooking {
+  rulesVersion?: number;
+  paymentDueAt?: string;
+  paymentChecking?: boolean;
   id: string;
   experienceId: string;
   creatorProfileId: string;
@@ -227,6 +238,7 @@ export interface VipBooking {
 
 // The creator, title and price come from the experience itself (server side).
 export interface BookingInput {
+  timeZone?: string;
   experienceId: string;
   date: string;
   time: string;
@@ -236,6 +248,7 @@ export interface BookingInput {
 
 // "Solicitar experiencia personalizada": a structured proposal to a creator.
 export interface CustomRequestInput {
+  timeZone?: string;
   creatorProfileId: string;
   modality: ReserveModality;
   purpose: PurposeId;
@@ -298,6 +311,7 @@ export interface ReserveDetails {
 }
 
 export interface VipExperienceInput {
+  timeZone?: string;
   title: string;
   description: string;
   type: ExperienceType;
@@ -373,7 +387,7 @@ export interface Backend {
   selectAttendanceLocation(user: User, location: ReserveLocation): Promise<AuthResult>;
   confirmBookingAttendance(user: User, bookingId: string): Promise<AuthResult>;
   // Reserve Event: one seat for the signed-in fan (day and time come from the event).
-  bookEventSeat(user: User, experienceId: string, message: string): Promise<AuthResult>;
+  bookEventSeat(user: User, experienceId: string, message: string, timeZone?: string): Promise<AuthResult>;
   // Seats already held per event (pending, accepted or confirmed), without who holds them.
   eventSeats(experienceIds: string[]): Promise<Record<string, number>>;
   // Creator accepts/rejects, fan cancels. Paying goes through payBooking.
@@ -389,7 +403,10 @@ export interface Backend {
   payBookingWithCredits(user: User, bookingId: string): Promise<AuthResult>;
   // Cancels a booking (either side). After payment the fan gets Créditos back by
   // the single rule in src/lib/reserveCancellation.ts.
-  cancelBooking(user: User, bookingId: string): Promise<CancelResult>;
+  cancelBooking(user: User, bookingId: string, choice?: import('../reserveControl').RefundChoice, reason?: import('../reserveControl').CancellationReason): Promise<CancelResult>;
+  reserveAccess(user: User): Promise<import('../reserveControl').ReserveAccess>;
+  reserveRefunds(user: User): Promise<import('../reserveControl').ReserveRefundRequest[]>;
+  decideReserveRefund(user: User, id: string, decision: 'approve' | 'decline' | 'legal', note: string): Promise<AuthResult>;
   // The fan's one free date change and the creator's answer.
   requestReschedule(user: User, bookingId: string, input: { date: string; time: string; note: string }): Promise<AuthResult>;
   respondReschedule(user: User, bookingId: string, accept: boolean): Promise<AuthResult>;

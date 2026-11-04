@@ -4,14 +4,15 @@ import { detailsOf, eventStart, isEventExperience, locationSummary, needsApprova
 import { money } from '../../lib/platform';
 import { experienceCopy } from '../../content/reserveCatalog';
 import { useReserveLanguage } from './ReserveLanguageSelector';
+import ReserveScheduleTime from './ReserveScheduleTime';
 
 // Status with icon and text (never colour alone).
-export const ReserveStatusBadge: React.FC<{ status: ReserveStatus }> = ({ status }) => {
+export const ReserveStatusBadge: React.FC<{ status: ReserveStatus; label?: string }> = ({ status, label }) => {
   const s = RESERVE_STATUSES[status];
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${s.className}`}>
       <i aria-hidden="true" className={`fas ${s.icon} text-[10px]`}></i>
-      {s.label}
+      {label ?? s.label}
     </span>
   );
 };
@@ -32,8 +33,7 @@ export const EventFacts: React.FC<{ exp: VipExperience; seatsTaken?: number }> =
     <div className="flex flex-wrap gap-x-3 gap-y-1" data-testid="event-facts">
       {start && (
         <Fact icon="fa-calendar-day" strong>
-          <span className="first-letter:uppercase">{start.toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' })}</span> ·{' '}
-          {start.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
+          <ReserveScheduleTime date={exp.details!.eventDate!} time={exp.details!.eventTime!} zone={exp.timeZone} />
         </Fact>
       )}
       <Fact icon="fa-chair" strong>{left ? `${left} de ${seats} plazas libres` : `Sin plazas (${seats})`}</Fact>

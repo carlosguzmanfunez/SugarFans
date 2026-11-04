@@ -2,6 +2,8 @@ import { attendanceLocation, attendanceError, inPerson, locationLabel, visibleAt
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ReserveModal from './ReserveModal';
+import ReserveScheduleTime from './ReserveScheduleTime';
+import ReserveAccessNotice, { useReserveAccess } from './ReserveAccessNotice';
 import { EventFacts, ExperienceFacts, ExperienceTerms, PriceTag, ReserveNotice } from './ReserveBits';
 import { bookLabel } from './ReserveExperienceCard';
 import BookingCalendar from '../BookingCalendar';
@@ -12,7 +14,6 @@ import {
   DEFAULT_AVAILABILITY,
   detailsOf,
   experienceAvailability,
-  formatLongDate,
   isEventExperience,
   needsApproval,
   reserveProductOf,
@@ -47,6 +48,8 @@ interface Props {
 // approval books it and leaves it waiting for payment.
 const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeedLogin, onClose, seatsTaken = 0, ticket }) => {
   const d = detailsOf(exp);
+  const access = useReserveAccess();
+  const blocked = !!access.data.blockedUntil && new Date(access.data.blockedUntil).getTime() > Date.now();
   const type = typeOf(exp.type);
   const language = useReserveLanguage();
   const copy = experienceCopy(exp, language);
@@ -82,7 +85,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
       setAvailability(experienceAvailability(a, exp));
       setTaken(t);
       setLoadingSlots(false);
-    });
+    }).catch(() => { setError('No pudimos comprobar los horarios. Cierra esta ventana y vuelve a intentarlo.'); setLoadingSlots(false); });
   }, [exp]);
 
   const begin = () => {
@@ -102,12 +105,12 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
     const result = ticket
       ? await rewardsApi.bookWithTicket(user, ticket.id, date, time, message.trim())
       : isEvent
-      ? await backend.bookEventSeat(user, exp.id, message.trim())
-      : await backend.createBooking(user, { experienceId: exp.id, date, time, message: message.trim(), participants });
+      ? await backend.bookEventSeat(user, exp.id, message.trim(), exp.timeZone)
+      : await backend.createBooking(user, { experienceId: exp.id, date, time, timeZone: availability.timeZone, message: message.trim(), participants });
     setSending(false);
     if (!result.ok) {
       setError(result.error || 'No se pudo enviar la reserva');
-      backend.takenSlots(exp.creatorProfileId).then(setTaken);
+      backend.takenSlots(exp.creatorProfileId).then(setTaken).catch(() => setError('No pudimos comprobar los horarios. Cierra esta ventana y vuelve a intentarlo.'));
       return;
     }
     setError('');
@@ -125,7 +128,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
           </span>
           <p lang={copy.language} className="font-semibold text-ink">{copy.title}</p>
           <p className="mt-1 text-sm text-ink/70">
-            <span className="first-letter:uppercase">{formatLongDate(date)}</span> · {time}
+            <ReserveScheduleTime date={date} time={time} zone={isEvent ? exp.timeZone : availability.timeZone} />
           </p>
           <p className="mt-4 text-sm text-ink/70">
             {ticket
@@ -134,7 +137,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
                 : 'Tu experiencia quedó confirmada con tu ticket. No pagas nada.'
               : approval
               ? `${exp.creatorName} revisará tu solicitud y tiene ${RESERVE_RESPONSE_HOURS} horas para responder. Te avisaremos cuando la vea y cuando responda. Si la acepta, pagas desde Mis reservas; si no responde a tiempo, se cierra sola y no se te cobra nada.`
-              : 'Esta experiencia se confirma al pagar. Completa el pago desde Mis reservas.'}
+              : 'Tienes 15 minutos para pagar desde Mis reservas. Si no pagas, el horario se libera automáticamente.'}
           </p>
           <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
             <button type="button" onClick={onClose} className="h-11 rounded-full border border-line px-6 text-sm font-semibold text-ink">Cerrar</button>
@@ -167,7 +170,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
             <button type="button" onClick={() => setStep('details')} className="h-11 rounded-full border border-line px-5 text-sm font-semibold text-ink">
               Volver a los detalles
             </button>
-            <button type="button" onClick={submit} disabled={sending || (inPerson(d) && !willAttend)} className="h-11 rounded-full bg-gradient-to-r from-brand-600 to-iris-600 px-6 text-sm font-semibold text-white disabled:opacity-60">
+            <button type="button" onClick={submit} disabled={sending || blocked || !!access.error || access.loading || (inPerson(d) && !willAttend)} className="h-11 rounded-full bg-gradient-to-r from-brand-600 to-iris-600 px-6 text-sm font-semibold text-white disabled:opacity-60">
               {ticket ? 'Reservar con mi ticket' : <>{isEvent ? (approval ? 'Solicitar plaza' : 'Reservar plaza') : approval ? 'Enviar solicitud' : 'Confirmar reserva'} · {money(price)}</>}
             </button>
           </div>
@@ -176,6 +179,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
     >
       {step === 'details' ? (
         <div className="space-y-5">
+          <ReserveAccessNotice />
           <p lang={copy.language} className="text-sm leading-relaxed text-ink/80" data-testid="experience-description">{copy.description}</p>
           {isEvent && <EventFacts exp={exp} seatsTaken={seatsTaken} />}
           <ExperienceFacts exp={exp} />
@@ -211,6 +215,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
                 date={date}
                 time={time}
                 minNoticeHours={d.minNoticeHours}
+                durationMinutes={exp.durationMinutes}
                 onChange={(nd, nt) => { setDate(nd); setTime(nt); setError(''); }}
               />
             )}
@@ -260,11 +265,12 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
             </div>
             {price !== exp.price && <p className="mt-1 text-xs text-iris-700">Incluye tu descuento de suscriptor ({d.subscriberDiscount}%).</p>}
             <p className="mt-2 text-xs text-ink/70">
-              {approval ? `${exp.creatorName} acepta o rechaza tu solicitud. Solo pagas si la acepta.` : 'Confirmación inmediata: pagas desde Mis reservas para confirmarla.'}
+              {approval ? `${exp.creatorName} acepta o rechaza tu solicitud. Solo pagas si la acepta; tendrás 2 horas para hacerlo. La solicitud pendiente no aparta el horario.` : 'Apartas este horario durante 15 minutos para completar el pago desde Mis reservas.'}
             </p>
           </div>
           )}
           {!ticket && <ReserveNotice kind="payments" />}
+          {date && time && <div className="text-sm text-ink/80" aria-live="polite"><ReserveScheduleTime date={date} time={time} zone={isEvent ? exp.timeZone : availability.timeZone} /></div>}
           {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
           <p className="sr-only">{RESERVE_COPY.principle}</p>
         </div>

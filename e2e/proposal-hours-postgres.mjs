@@ -20,11 +20,13 @@ finish(async()=>{
   expect(psql(DB,`select extract(dow from date)::int||' '||time from vip_bookings where id='${id}'`)==='6 23:00','no guardó sábado 23:00');
  });
  await check('También de madrugada y en domingo',()=>{
+  const previous=psql(DB,`select id from vip_bookings where fan_id='${fan}' and status='pending' limit 1`);
+  as(fan,`select reserve_cancel('${previous}')`);
   propose('02:00',`${saturday}+1`);
  });
- await check('Rechaza una hora mal formada y el mismo horario dos veces',()=>{
+ await check('Rechaza una hora mal formada y una segunda propuesta al mismo creador',()=>{
   raises(()=>propose('25:00'),/Elige una hora/,'hora inválida');
   raises(()=>propose('9pm'),/Elige una hora/,'hora inválida');
-  raises(()=>propose('23:00'),/ya no está disponible/,'horario repetido');
+  raises(()=>propose('23:00'),/propuesta activa/,'segunda propuesta');
  });
 });

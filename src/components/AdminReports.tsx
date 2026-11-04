@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { resolveReport, restorePost, type Report } from '../lib/platform';
 import { adminDate } from '../lib/adminWorkspace';
 import { AdminConfirmation, type AdminDecision } from './AdminDialog';
+import ReserveRefundReview from './ReserveRefundReview';
 
 export default function AdminReports({ reports, removedPosts }: { reports: Report[]; removedPosts: string[] }) {
   const [filter, setFilter] = useState('pending');
@@ -25,7 +26,7 @@ export default function AdminReports({ reports, removedPosts }: { reports: Repor
       label: titles[choice], destructive: choice === 'remove', run: () => choice === 'restore' ? restorePost(r.targetId!) : resolveReport(r.id, choice) });
   };
   const button = 'min-h-11 px-3 py-2 rounded-lg border border-gray-300 text-sm hover:bg-gray-50';
-  return <section className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6" data-testid="admin-reports">
+  return <><ReserveRefundReview /><section className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6" data-testid="admin-reports">
     <h2 className="text-lg font-bold">Denuncias y solicitudes</h2>
     <p className="text-sm text-gray-600 mt-1">Lee lo ocurrido y revisa el efecto antes de tomar una decisión.</p>
     <div className="flex flex-wrap gap-3 my-4 text-sm">
@@ -47,5 +48,5 @@ export default function AdminReports({ reports, removedPosts }: { reports: Repor
     </li>)}</ul>
     <div className="flex flex-wrap items-center justify-between gap-3 mt-3 text-sm"><p>{matching.length} resultados · Página {current + 1} de {pages}</p><div className="flex gap-2"><button disabled={!current} className={`${button} disabled:opacity-40`} onClick={() => setPage(current - 1)}>Anterior</button><button disabled={current >= pages - 1} className={`${button} disabled:opacity-40`} onClick={() => setPage(current + 1)}>Siguiente</button></div></div>
     {decision && <AdminConfirmation decision={decision} onClose={() => setDecision(null)} onDone={() => { setDecision(null); setNotice('Decisión guardada. La lista se actualizará con el estado confirmado.'); }} />}
-  </section>;
+  </section></>;
 }

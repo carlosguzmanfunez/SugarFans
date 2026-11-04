@@ -21,6 +21,8 @@ import { useCreatorBalance } from '../lib/useCreatorBalance';
 import { useBackendData } from '../lib/useBackendData';
 import NewPostForm from '../components/NewPostForm';
 import CreatorReservePanel from '../components/reserve/CreatorReservePanel';
+import ReserveTimeZoneSelector from '../components/reserve/ReserveTimeZoneSelector';
+import { viewerTimeZone } from '../lib/timeZones';
 import { RedDot } from '../components/MobileTabBar';
 import ScrollStrip from '../components/ScrollStrip';
 import { onNewNotification } from '../lib/live';
@@ -82,11 +84,22 @@ const CreatorDashboard: React.FC = () => {
   const profileId = user?.creatorProfileId ?? user?.id ?? '';
   const [availDays, setAvailDays] = useState<number[]>(DEFAULT_AVAILABILITY.days);
   const [availHours, setAvailHours] = useState<string[]>(DEFAULT_AVAILABILITY.hours);
+  const [availZone, setAvailZone] = useState(viewerTimeZone() ?? '');
+  const [savedAvailability, setSavedAvailability] = useState(DEFAULT_AVAILABILITY);
+  const [savingAvailability, setSavingAvailability] = useState(false);
+  const [availabilityLoaded, setAvailabilityLoaded] = useState(false);
   useEffect(() => {
+    let active = true;
+    setAvailabilityLoaded(false);
     backend.getAvailability(profileId).then((a) => {
+      if (!active) return;
       setAvailDays(a.days);
       setAvailHours(a.hours);
-    });
+      setAvailZone(a.timeZone ?? viewerTimeZone() ?? '');
+      setSavedAvailability(a);
+      setAvailabilityLoaded(true);
+    }).catch(() => { if (active) setNotice({ ok: false, text: 'No pudimos consultar tus horarios. Recarga la página para volver a intentarlo.' }); });
+    return () => { active = false; };
   }, [profileId]);
   const { data: vipBookings, reload: reloadBookings } = useBackendData(() => backend.creatorBookings(profileId), [profileId], []);
   const pendingVip = vipBookings.filter((b) => needsCreatorAnswer(b)).length;
@@ -122,7 +135,14 @@ const CreatorDashboard: React.FC = () => {
     setNotice(result.ok ? { ok: true, text: okText } : { ok: false, text: result.error || 'Error al guardar' });
 
   const handleSaveAvailability = async () => {
-    show(await backend.setAvailability(profileId, { days: availDays, hours: availHours }), 'Horarios guardados');
+    setSavingAvailability(true);
+    try {
+      const availability = { days: availDays, hours: availHours, timeZone: availZone };
+      const result = await backend.setAvailability(profileId, availability);
+      if (result.ok) setSavedAvailability(availability);
+      show(result, 'Horarios y zona horaria guardados. Las reservas anteriores conservan su hora acordada.');
+    } catch { show({ ok: false, error: 'No pudimos guardar los horarios. Vuelve a intentarlo.' }, ''); }
+    finally { setSavingAvailability(false); }
   };
 
   // My published posts (with their photo/video) and likes/comments on everything on my profile.
@@ -572,7 +592,7 @@ const CreatorDashboard: React.FC = () => {
 
         {activeTab === 'vip' && (
           <CreatorReservePanel
-            availability={{ days: availDays, hours: availHours }}
+            availability={savedAvailability}
             bookings={vipBookings}
             reloadBookings={reloadBookings}
             availabilityEditor={
@@ -581,6 +601,10 @@ const CreatorDashboard: React.FC = () => {
                 <p className="text-sm text-gray-500 mb-5">
                   Los fans solo podrán reservar en estos días y horas (en tu zona horaria), con hasta {MAX_BOOKING_MONTHS} meses de antelación. Cada experiencia puede limitarlos aún más. Las propuestas de los fans pueden pedir cualquier día y hora: tú decides si las aceptas.
                 </p>
+                <div className="mb-5 max-w-xl">
+                  <ReserveTimeZoneSelector value={availZone} onChange={setAvailZone} />
+                  <p className="mt-2 text-sm text-ink/70">Si cambias de zona, se aplica a las próximas reservas. Las que ya existen conservan el momento acordado.</p>
+                </div>
                 <p className="text-sm font-medium text-gray-700 mb-2">Días</p>
                 <div className="flex flex-wrap gap-2 mb-5">
                   {WEEKDAYS.map((d, i) => (
@@ -613,8 +637,8 @@ const CreatorDashboard: React.FC = () => {
                     </button>
                   ))}
                 </div>
-                <button onClick={handleSaveAvailability} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition">
-                  Guardar horarios
+                <button onClick={handleSaveAvailability} disabled={savingAvailability || !availabilityLoaded} className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition disabled:opacity-60">
+                  {savingAvailability ? 'Guardando…' : 'Guardar horarios'}
                 </button>
               </div>
             }

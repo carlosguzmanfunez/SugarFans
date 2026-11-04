@@ -158,20 +158,21 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
     sections: [
       {
         heading: 'Una sola regla para todas las experiencias',
-        paragraphs: ['La regla es la misma en toda Reserve y se aplica sola desde "Mis reservas". Cuenta la hora de inicio en el horario del creador. Las devoluciones se hacen en Créditos, que sirven para otra Reserve o para regalos y no se pueden cambiar por dinero.'],
+        paragraphs: ['Cuenta la hora de inicio en la zona horaria guardada con la reserva. La política comercial no sustituye los derechos legales de devolución. El fan puede solicitar la devolución al medio original o elegir Créditos voluntariamente cuando corresponda.'],
         bullets: CANCELLATION_RULE.bullets,
       },
       {
         heading: 'Antes del pago',
-        paragraphs: ['El fan puede cancelar una solicitud pendiente, aceptada o con contraoferta sin coste. El creador puede rechazarla.'],
+        paragraphs: ['Una propuesta pendiente no aparta el horario. Una experiencia de confirmación inmediata se aparta durante 15 minutos para pagar; si hubo aprobación del creador, el plazo es de 2 horas. Al vencer sin pago se libera, salvo que PayPal esté comprobando un cobro incierto. El fan puede cancelar antes de pagar sin mover dinero.'],
       },
       {
         heading: 'Reembolsos e incumplimientos',
         bullets: [
           'El creador no se presenta, llega más de 15 minutos tarde, cambia por su cuenta la fecha, la hora o el lugar, o la experiencia no corresponde a lo publicado: el fan recibe el reembolso completo, previa verificación.',
           'Live 1:1 y videollamadas: si el creador no entra a la sala en los primeros 10 minutos, o la sesión no se puede dar por un fallo de su lado, el fan recibe el reembolso completo.',
-          'El fan es responsable de cumplir lo que el creador publicó: fecha, hora, lugar, requisitos y condiciones. Si no se presenta, llega tarde o no cumple los requisitos, no hay devolución y el tiempo perdido no se repone.',
-          'Para pedir el reembolso, el fan abre una revisión con "Reportar" en Mis reservas dentro de las 48 horas siguientes a la hora programada. El equipo revisa la reserva y lo que aporten ambas partes y resuelve en un máximo de 7 días.',
+          'El fan es responsable de cumplir la fecha, hora, lugar, requisitos y condiciones publicados. La ausencia o llegada tarde del fan no genera una devolución comercial ni repone el tiempo perdido, sin limitar los derechos legales aplicables.',
+          'Para pedir la devolución por incumplimiento, el fan usa Solicitar devolución o Reportar en Mis reservas. Se recomienda hacerlo dentro de 48 horas para conservar la evidencia, sin reducir plazos ni derechos legales. La solicitud queda registrada para revisión.',
+          'Si se confirma el incumplimiento del creador, se solicita la devolución del 100% al medio original del fan. El costo real de PayPal no devuelto se registra como cargo separado contra los ingresos presentes o futuros del creador, con comprobante y explicación. Los errores atribuibles a Fans Reserve no se cargan al creador.',
         ],
       },
       {
@@ -184,7 +185,7 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
       },
       {
         heading: 'Cómo se devuelve el dinero',
-        paragraphs: ['Las cancelaciones se devuelven en Créditos al instante, en tu billetera de Fans Reserve. Si el creador no se presenta o la experiencia no corresponde a lo publicado, tras la revisión el reembolso completo se hace en Créditos o, si el fan lo pide, con PayPal al mismo medio con el que pagó.'],
+        paragraphs: ['La devolución al medio original queda pendiente hasta comprobar su ejecución. No se entrega simultáneamente dinero y Créditos por el mismo importe. La revocación legal de una contratación a distancia se revisa conforme a la normativa aplicable: en Honduras, los artículos 58 a 60 de la Ley de Protección al Consumidor contemplan cinco días hábiles para revocar un servicio aún no iniciado y hasta cinco días hábiles desde la notificación para restituir lo pagado. Una solicitud legal o un incumplimiento del creador no se cuenta como cancelación voluntaria.'],
       },
     ],
   },

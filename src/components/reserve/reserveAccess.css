@@ -1,0 +1,3 @@
+.reserve-access-lock { animation: reserve-lock-close .65s ease-out both; }
+@keyframes reserve-lock-close { from { transform: translateY(-4px) rotate(-8deg); } to { transform: translateY(0) rotate(0); } }
+@media (prefers-reduced-motion: reduce) { .reserve-access-lock { animation: none; } }

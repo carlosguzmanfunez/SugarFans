@@ -34,6 +34,7 @@ finish(async () => {
   await check('Las experiencias virtuales siguen abiertas sin seleccionar ciudad', () => {
     const id = book('city-online'); expect(state(id)==='accepted','no aceptó la virtual');
     expect(JSON.parse(quote(fan,id)).amount===25,'cotización virtual');
+    as(fan, `select reserve_cancel('${id}')`); // End this scenario before the next reservation for this creator.
   });
   await check('Mismo nombre de ciudad en otro país no habilita la reserva', () => {
     select(fan,{...loc,country:'MX'});
@@ -60,7 +61,9 @@ finish(async () => {
   });
   await check('Acentos, mayúsculas y espacios no cambian el destino', () => {
     select(other,{country:'HN',region:' FRANCISCO  MORAZAN ',city:'TEGUCIGALPA'});
-    expect(state(book('city-physical',other))==='accepted','normalización distinta');
+    const id=book('city-physical',other);
+    expect(state(id)==='accepted','normalización distinta');
+    as(other, `select reserve_cancel('${id}')`);
   });
   await check('Cambiar la ciudad para otro viaje no invalida la reserva previamente confirmada', () => {
     select(fan,{...loc,country:'MX'});
@@ -114,6 +117,7 @@ finish(async () => {
     select(fan);
     const id=as(fan,"select reserve_book_event_seat('city-event','')");
     expect(field(id,"details->>'country'")==='HN','sin país en el asiento');
+    as(fan, `select reserve_cancel('${id}')`);
   });
   await check('Un ticket gratuito tampoco salta el control de ciudad', () => {
     const ticket=psql(DB,`insert into experience_tickets(fan_id,creator_profile_id,experience_id,experience_title,amount,bonus) values('${fan}','${cp}','city-physical','Clase QA',25,'thank-you') returning id`);
@@ -127,7 +131,9 @@ finish(async () => {
   await check('Solicitudes personalizadas solo donde el creador ofrece presencia física', () => {
     select(fan);
     const custom = (city) => as(fan,`select reserve_request_custom('${cp}',current_date+${++day},'12:00',30,25,1,'Quiero una clase de prueba.','Experiencia personalizada · Clase','{"modality":"presencial","purpose":"class","locationType":"gym","city":"${city}"}')`);
-    expect(field(custom('Tegucigalpa'),"details->>'country'")==='HN','país personalizado');
+    const id=custom('Tegucigalpa');
+    expect(field(id,"details->>'country'")==='HN','país personalizado');
+    as(fan, `select reserve_cancel('${id}')`);
     raises(()=>custom('San Pedro Sula'), /no ofrece|Selecciona/, 'otra ciudad');
     select(fan,{...loc,country:'MX'});
     raises(()=>custom('Tegucigalpa'), /no ofrece|Selecciona/, 'sin cobertura');
