@@ -10,7 +10,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const root = resolve(tmpdir());
 const dir = mkdtempSync(join(root, 'fansreserve-public-config-'));
 const originalFetch = globalThis.fetch;
-const keys = ['LIVEKIT_URL', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET', 'PAYPAL_CLIENT_ID', 'PAYPAL_CLIENT_SECRET', 'PAYPAL_ENV', 'PAYPAL_WEBHOOK_ID', 'SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'RESEND_API_KEY'];
+const keys = ['LIVEKIT_URL', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET', 'PAYPAL_CLIENT_ID', 'PAYPAL_CLIENT_SECRET', 'PAYPAL_ENV', 'PAYPAL_WEBHOOK_ID', 'SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'RESEND_API_KEY', 'RESERVE_REFUNDS_ENABLED'];
 const originalEnv = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
 const live = { LIVEKIT_URL: 'wss://private-livekit.example.invalid', LIVEKIT_API_KEY: 'API_PRIVATE_QA_ONLY', LIVEKIT_API_SECRET: 'PRIVATE_LIVEKIT_SECRET_QA_ONLY' };
 const paypal = { PAYPAL_CLIENT_ID: 'public-client-qa', PAYPAL_CLIENT_SECRET: 'PRIVATE_PAYPAL_SECRET_QA_ONLY', PAYPAL_ENV: 'sandbox', SUPABASE_SERVICE_ROLE_KEY: 'sb_secret_PRIVATE_QA_ONLY', PAYPAL_WEBHOOK_ID: 'PRIVATE_WEBHOOK_QA_ONLY', RESEND_API_KEY: 're_PRIVATE_QA_ONLY' };
@@ -66,36 +66,36 @@ try {
     configure({ ...paypal, ...Object.fromEntries(Object.entries(live).map(([key, value]) => [key, ` "${value}" \n`])) });
     await response(apis['live-token'].GET, { configured: true });
   });
-  await check('PayPal Sandbox: únicamente enabled, clientId público y env', async () => {
+  await check('PayPal Sandbox: configuración pública e indicador de devoluciones', async () => {
     configure({ ...live, ...paypal });
-    await response(apis.paypal.GET, { enabled: true, clientId: paypal.PAYPAL_CLIENT_ID, env: 'sandbox' });
+    await response(apis.paypal.GET, { enabled: true, clientId: paypal.PAYPAL_CLIENT_ID, env: 'sandbox', refundsEnabled: false });
   });
   await check('El indicador live se conserva con valores ficticios y cero red', async () => {
     configure({ ...live, ...paypal, PAYPAL_ENV: 'live' });
-    await response(apis.paypal.GET, { enabled: true, clientId: paypal.PAYPAL_CLIENT_ID, env: 'live' });
+    await response(apis.paypal.GET, { enabled: true, clientId: paypal.PAYPAL_CLIENT_ID, env: 'live', refundsEnabled: false });
   });
   for (const key of ['PAYPAL_CLIENT_ID', 'PAYPAL_CLIENT_SECRET', 'SUPABASE_SERVICE_ROLE_KEY']) {
     await check(`PayPal sin ${key}: desactivado y sin Client ID`, async () => {
       configure({ ...live, ...paypal }); delete process.env[key];
-      await response(apis.paypal.GET, { enabled: false, clientId: null, env: 'sandbox' });
+      await response(apis.paypal.GET, { enabled: false, clientId: null, env: 'sandbox', refundsEnabled: false });
     });
     await check(`PayPal con ${key} vacío: desactivado`, async () => {
       configure({ ...live, ...paypal, [key]: '  \n  ' });
-      await response(apis.paypal.GET, { enabled: false, clientId: null, env: 'sandbox' });
+      await response(apis.paypal.GET, { enabled: false, clientId: null, env: 'sandbox', refundsEnabled: false });
     });
   }
   await check('PayPal admite espacios y comillas en la configuración', async () => {
     configure({ ...live, ...Object.fromEntries(Object.entries(paypal).map(([key, value]) => [key, ` "${value}" \n`])) });
-    await response(apis.paypal.GET, { enabled: true, clientId: paypal.PAYPAL_CLIENT_ID, env: 'sandbox' });
+    await response(apis.paypal.GET, { enabled: true, clientId: paypal.PAYPAL_CLIENT_ID, env: 'sandbox', refundsEnabled: false });
   });
   await check('La consulta pública no certifica el webhook ni el servicio de correo', async () => {
     configure({ ...live, ...paypal }); delete process.env.PAYPAL_WEBHOOK_ID; delete process.env.RESEND_API_KEY;
-    await response(apis.paypal.GET, { enabled: true, clientId: paypal.PAYPAL_CLIENT_ID, env: 'sandbox' });
+    await response(apis.paypal.GET, { enabled: true, clientId: paypal.PAYPAL_CLIENT_ID, env: 'sandbox', refundsEnabled: false });
   });
   await check('Sin ninguna configuración los dos GET responden desactivados', async () => {
     configure({});
     await response(apis['live-token'].GET, { configured: false });
-    await response(apis.paypal.GET, { enabled: false, clientId: null, env: 'sandbox' });
+    await response(apis.paypal.GET, { enabled: false, clientId: null, env: 'sandbox', refundsEnabled: false });
   });
   assert.equal(requests.length, 0, 'Hubo intentos de red');
 } finally {

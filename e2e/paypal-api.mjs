@@ -384,7 +384,8 @@ await check('GET da el Client ID público y nunca el Secret', async () => {
   expect(!JSON.stringify(data).includes('PP-SECRET-VALUE'), 'muestra el secret');
   expect(!JSON.stringify(data).includes('sb_secret_test'), 'muestra la service role');
   expect(!('checks' in data), 'el GET público revela diagnósticos internos');
-  expect(Object.keys(data).sort().join(',') === 'clientId,enabled,env', 'se exponen campos de configuración no necesarios');
+  expect(Object.keys(data).sort().join(',') === 'clientId,enabled,env,refundsEnabled', 'se exponen campos de configuración no necesarios');
+  expect(data.refundsEnabled === false, 'las devoluciones deben seguir apagadas');
   expect(calls.length === callsBefore, 'la consulta pública contacta a PayPal o Supabase');
 });
 

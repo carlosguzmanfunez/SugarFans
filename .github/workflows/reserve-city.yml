@@ -8,6 +8,8 @@ on:
       - 'supabase/migrations/**'
       - 'e2e/reserve-city-*.mjs'
       - 'e2e/reserve-catalog-ui.mjs'
+      - 'e2e/reserve-controls-*.mjs'
+      - 'e2e/reserve-creator-zone-ui.mjs'
       - 'e2e/db-harness.mjs'
       - 'package*.json'
       - '.github/workflows/reserve-city.yml'
@@ -53,6 +55,12 @@ jobs:
       - run: npm run test:reserve-city-db
       - run: npm run test:reserve-cancellation-db
       - run: npm run test:reserve-time-zones-db
+      - run: node e2e/reserve-controls-postgres.mjs
+      - run: node e2e/reserve-controls-api.mjs
+      - run: npm run test:proposal-hours-db
+      - run: npm run test:time-zones
       - run: npx playwright install --with-deps chromium
       - run: npm run test:reserve-city-ui
       - run: node e2e/reserve-catalog-ui.mjs
+      - run: node e2e/reserve-controls-ui.mjs
+      - run: node e2e/reserve-creator-zone-ui.mjs

@@ -75,5 +75,3 @@ try{
  });
 }catch(error){console.error(error.message);results.push({ok:false,error:error.message});process.exitCode=1;}
 finally{writeFileSync(new URL('ui-resultados.json',root),JSON.stringify(results,null,2));await browser.close();server.kill();}
-
-

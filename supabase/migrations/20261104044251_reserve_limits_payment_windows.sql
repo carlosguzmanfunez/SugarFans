@@ -444,5 +444,3 @@ end $$;
 revoke all on function public.reserve_refund_sent(uuid,text) from public,anon,authenticated;
 grant execute on function public.reserve_refund_sent(uuid,text) to service_role;
 commit;
-
-

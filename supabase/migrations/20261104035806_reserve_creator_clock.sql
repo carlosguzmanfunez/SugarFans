@@ -238,6 +238,3 @@ $$;
 revoke execute on function public.reserve_request_custom_in_zone(text,date,text,integer,numeric,integer,text,text,jsonb,text) from public,anon,authenticated;
 grant execute on function public.reserve_request_custom_in_zone(text,date,text,integer,numeric,integer,text,text,jsonb,text) to authenticated;
 commit;
-
-
-
