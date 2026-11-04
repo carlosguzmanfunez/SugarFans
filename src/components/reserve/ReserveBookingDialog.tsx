@@ -177,9 +177,9 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
         )
       }
     >
+      <ReserveAccessNotice showPolicy={false} />
       {step === 'details' ? (
         <div className="space-y-5">
-          <ReserveAccessNotice />
           <p lang={copy.language} className="text-sm leading-relaxed text-ink/80" data-testid="experience-description">{copy.description}</p>
           {isEvent && <EventFacts exp={exp} seatsTaken={seatsTaken} />}
           <ExperienceFacts exp={exp} />

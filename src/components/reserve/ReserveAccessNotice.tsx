@@ -12,14 +12,14 @@ export function useReserveAccess() {
   return usePlatformQuery(() => user ? backend.reserveAccess(user) : Promise.resolve(EMPTY_RESERVE_ACCESS), [user?.id, tick], EMPTY_RESERVE_ACCESS);
 }
 
-export default function ReserveAccessNotice() {
+export default function ReserveAccessNotice({ showPolicy = true }: { showPolicy?: boolean }) {
   const { user } = useAuth();
   const { data, loading, error } = useReserveAccess();
   if (!user || user.role !== 'fan') return null;
   if (error) return <p role="alert" className="mb-4 text-sm text-red-700">No pudimos comprobar tu acceso a Reserve. Vuelve a intentarlo antes de apartar.</p>;
   if (loading) return <p className="mb-4 text-sm text-ink/70">Comprobando tu acceso a Reserve…</p>;
   const blocked = data.blockedUntil && new Date(data.blockedUntil).getTime() > Date.now();
-  if (!blocked) return <p className="mb-4 text-sm text-ink/70" data-testid="reserve-quota">Puedes mantener hasta 3 reservas y 3 propuestas, con creadores diferentes. Una reserva y una propuesta por creador. Tres impagos o tres cancelaciones voluntarias en 30 días suspenden los nuevos apartados durante 72 horas.</p>;
+  if (!blocked) return showPolicy ? <p className="mb-4 text-sm text-ink/70" data-testid="reserve-quota">Puedes mantener hasta 3 reservas y 3 propuestas, con creadores diferentes. Una reserva y una propuesta por creador. Tres impagos o tres cancelaciones voluntarias en 30 días suspenden los nuevos apartados durante 72 horas.</p> : null;
   return (
     <div className="mb-4 flex items-start gap-4 rounded-2xl border border-line bg-white p-4 text-ink" role="status" data-testid="reserve-locked">
       <i aria-hidden="true" className="fas fa-lock reserve-access-lock mt-1 text-2xl text-brand-700" />
