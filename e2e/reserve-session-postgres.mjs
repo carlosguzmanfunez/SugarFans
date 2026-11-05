@@ -90,14 +90,18 @@ finish(async()=>{
   const cp2=psql(DB,`select creator_profile_id from profiles where id='${owner}'`);
   const exp=as(owner,`insert into vip_experiences(creator_profile_id,creator_name,title,type,price,duration_minutes,time_zone,details)
    values('${cp2}','QA','Evento QA','qa-session',25,30,'UTC',jsonb_build_object('modality','virtual','locationTypes',jsonb_build_array('online'),'format','event',
-   'eventDate',to_char(now()+interval '1 minute','YYYY-MM-DD'),'eventTime',to_char(now()+interval '1 minute','HH24:MI'),'includes','[]'::jsonb,'excludes','[]'::jsonb,
+   'eventDate',to_char(now()+interval '5 minutes','YYYY-MM-DD'),'eventTime',to_char(now()+interval '5 minutes','HH24:MI'),'includes','[]'::jsonb,'excludes','[]'::jsonb,
    'requirements',jsonb_build_object('verifiedFans',false,'subscribersOnly',false),'minNoticeHours',0,'maxParticipants',5,'approval','automatic','cancellationPolicy','moderate')) returning id`);
   const ba=as(a,`select reserve_book_event_seat('${exp}','QA')`),bz=as(z,`select reserve_book_event_seat('${exp}','QA')`);
   psql(DB,`update vip_bookings set status='confirmed' where id in ('${ba}','${bz}')`);
   expect(psql(DB,'select reserve_dispatch_session_reminders()')==='3','duplicó avisos al creador del evento');
   const room=psql(DB,`select 'event-'||experience_id||'-'||date::text||'-'||replace(time,':','') from vip_bookings where id='${ba}'`);
-  expect(provider(ba,'group-fan','participant_joined',a,room)==='1','atribuyó un fan a dos plazas');
-  expect(provider(ba,'group-owner','participant_joined',owner,room,'PA_OWNER')==='2','no vinculó al creador con las dos plazas');
+  // Stay clear of the minute-boundary expiry of the one-minute reminder. A
+  // connection during preparation is valid, but its event time must be now,
+  // not the future contractual start supplied separately in the metadata.
+  const joinedAt=psql(DB,'select clock_timestamp()');
+  expect(provider(ba,'group-fan','participant_joined',a,room,'PA_TEST',joinedAt)==='1','atribuyó un fan a dos plazas');
+  expect(provider(ba,'group-owner','participant_joined',owner,room,'PA_OWNER',joinedAt)==='2','no vinculó al creador con las dos plazas');
   expect(psql(DB,`select count(*) from reserve_session_events where booking_id='${bz}' and participant_role='fan'`)==='0','filtró presencia de otro fan');
   const source=psql(DB,`select booking_id from reserve_session_reminders where user_id='${owner}' limit 1`);
   const nid=psql(DB,`select notification_id from reserve_session_reminders where user_id='${owner}' limit 1`);
