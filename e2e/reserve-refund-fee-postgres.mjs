@@ -33,10 +33,10 @@ const money=n=>({currency_code:'USD',value:n.toFixed(2)});
 const lit=v=>"'"+String(typeof v==='object'?JSON.stringify(v):v).replaceAll("'","''")+"'";
 const approve=id=>as(admin,`select reserve_refund_decide((select id from reserve_refund_requests where booking_id='${id}'),'approve','Cancelación revisada por QA')`);
 // PayPal confirms a refund on the original capture (fictitious sandbox receipt).
-const paypalRefund=(p,amount)=>{
+const paypalRefund=(p,amount,feeBack=0)=>{
  const id='RF-'+(++seq),ev=JSON.parse(psql(DB,`set role service_role;select paypal_refund_receive('sandbox','QA',${lit({id:'EV-'+id,event_type:'PAYMENT.CAPTURE.REFUNDED',resource:{id}})})`)).id;
  const payment={id:p.ref,status:'PARTIALLY_REFUNDED',amount:money(100)};
- const proof={id,status:'COMPLETED',amount:money(amount),seller_payable_breakdown:{paypal_fee:money(0)},links:[{rel:'up',href:'https://api-m.sandbox.paypal.com/v2/payments/captures/'+p.ref}]};
+ const proof={id,status:'COMPLETED',amount:money(amount),seller_payable_breakdown:{paypal_fee:money(feeBack)},links:[{rel:'up',href:'https://api-m.sandbox.paypal.com/v2/payments/captures/'+p.ref}]};
  return JSON.parse(psql(DB,`set role service_role;select paypal_refund_apply('${ev}','${p.ref}',${lit(proof)},${lit(payment)})`));
 };
 const holds=c=>psql(DB,`select count(*) from finance_payout_holds where user_id='${c}'`);
@@ -44,7 +44,7 @@ const cases=tx=>psql(DB,`select count(*) from finance_incidents where code='DISP
 finish(async()=>{
  setup();
  admin=user('rf-admin@example.invalid','fan');psql(DB,`update profiles set role='admin' where id='${admin}'`);
- for(let i=0;i<7;i++){creators[i]=user('rf-creator-'+i+'@example.invalid','creator');cp[i]=psql(DB,`select creator_profile_id from profiles where id='${creators[i]}'`);}
+ for(let i=0;i<8;i++){creators[i]=user('rf-creator-'+i+'@example.invalid','creator');cp[i]=psql(DB,`select creator_profile_id from profiles where id='${creators[i]}'`);}
  console.log('\nDevoluciones de Reserve sin la comisión de PayPal (pago de USD 100, comisión USD 5.70)');
  await check('Cancela 24 h o más antes: devuelve 100% menos la comisión y el creador no cobra',()=>{
   const f=fan(),p=paid(f,cp[0],0,true),r=cancel(f,p.id);
@@ -83,6 +83,12 @@ finish(async()=>{
   const r=paypalRefund(p,50);
   expect(r.state==='applied',`resultado ${JSON.stringify(r)}`);
   expect(holds(creators[6])==='1',`bloqueos ${holds(creators[6])}`);
+  expect(cases(p.tx)==='1',`casos abiertos ${cases(p.tx)}`);
+ });
+ await check('Si PayPal devuelve parte de su comisión, se abre revisión para devolvérsela al fan',()=>{
+  const f=fan(),p=paid(f,cp[7],0,true);cancel(f,p.id);approve(p.id);
+  const r=paypalRefund(p,94.3,1.2);
+  expect(r.state==='applied',`resultado ${JSON.stringify(r)}`);
   expect(cases(p.tx)==='1',`casos abiertos ${cases(p.tx)}`);
  });
 });
