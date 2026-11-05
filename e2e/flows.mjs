@@ -2779,7 +2779,17 @@ const run = async () => {
       await dlg.getByTestId('time-slots').locator('button:not([disabled])').filter({ hasText: '16:00' }).click();
       await dlg.getByRole('button', { name: 'Siguiente', exact: true }).click();
       await step(4, 'Presupuesto');
-      await dlg.locator('input[name=budget]').fill('180');
+      const budget = dlg.locator('input[name=budget]');
+      await budget.fill('25');
+      await budget.press('End');
+      await budget.press('Backspace');
+      await budget.press('Backspace');
+      expect((await budget.inputValue()) === '', 'al borrar el presupuesto aparece un cero');
+      await dlg.getByRole('button', { name: 'Siguiente', exact: true }).click();
+      await step(4, 'Presupuesto');
+      await dlg.getByText('El presupuesto debe estar entre $5 y $5000', { exact: true }).waitFor();
+      expect((await budget.inputValue()) === '', 'la validación reemplaza el campo vacío por un cero');
+      await budget.fill('180');
       await dlg.getByRole('button', { name: 'Siguiente', exact: true }).click();
       await step(5, 'Mensaje');
       await dlg.locator('textarea[name=message]').fill('Mejor nos vemos en tu casa');

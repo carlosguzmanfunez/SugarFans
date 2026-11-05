@@ -33,6 +33,7 @@ interface Props {
 
 const STEPS = ['Modalidad', 'Propósito', 'Fecha y lugar', 'Presupuesto', 'Mensaje'] as const;
 const DURATIONS = [15, 20, 30, 45, 60, 90, 120, 180];
+type CustomRequestForm = Omit<CustomRequestInput, 'budget'> & { budget: string };
 
 // "Solicitar experiencia personalizada": not a blank box but five structured
 // steps, with options that depend on the creator's category. The creator then
@@ -52,7 +53,7 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
   const blocked = !!access.data.blockedUntil && new Date(access.data.blockedUntil).getTime() > Date.now();
   const [availability, setAvailability] = useState<Availability>(DEFAULT_AVAILABILITY);
   const [taken, setTaken] = useState<TakenSlot[]>([]);
-  const [form, setForm] = useState<CustomRequestInput>({
+  const [form, setForm] = useState<CustomRequestForm>({
     creatorProfileId: creator.id,
     modality: category.modalities[0],
     purpose: purposesFor(category, category.modalities[0])[0] ?? 'other',
@@ -64,10 +65,10 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
     locationType: 'online',
     city: '',
     venue: '',
-    budget: 100,
+    budget: '100',
     message: '',
   });
-  const set = (patch: Partial<CustomRequestInput>) => {
+  const set = (patch: Partial<CustomRequestForm>) => {
     setForm((f) => ({ ...f, ...patch }));
     setError('');
   };
@@ -104,7 +105,10 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
       const m = moderate([form.city, form.venue], 'request', { homeAllowed });
       if (!m.ok) return m.error!;
     }
-    if (i === 3 && (!Number.isFinite(form.budget) || form.budget < 5 || form.budget > 5000)) return 'El presupuesto debe estar entre $5 y $5000';
+    if (i === 3) {
+      const budget = Number(form.budget);
+      if (!Number.isFinite(budget) || budget < 5 || budget > 5000) return 'El presupuesto debe estar entre $5 y $5000';
+    }
     return null;
   };
 
@@ -116,7 +120,7 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
 
   const send = async () => {
     if (form.modality !== 'virtual' && !physicalAvailable) return setError(attendanceError);
-    const input = { ...form, city: form.modality === 'virtual' ? '' : destination?.city ?? '' };
+    const input = { ...form, budget: Number(form.budget), city: form.modality === 'virtual' ? '' : destination?.city ?? '' };
     const check = validateCustomRequest(input, creator.category);
     if (!check.ok) return setError(check.error!);
     setSending(true);
@@ -282,7 +286,7 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
         <div className="space-y-3">
           <label className="block text-sm">
             <span className="font-semibold text-ink">Valor que propones por la experiencia (USD)</span>
-            <input name="budget" type="number" min={5} max={5000} step="1" value={form.budget} onChange={(e) => set({ budget: Number(e.target.value) })} className="mt-1 block w-full rounded-xl border border-line px-3 py-2.5 text-lg font-semibold" />
+            <input name="budget" type="number" min={5} max={5000} step="1" value={form.budget} onChange={(e) => set({ budget: e.target.value })} className="mt-1 block w-full rounded-xl border border-line px-3 py-2.5 text-lg font-semibold" />
           </label>
           <p className="text-xs text-ink/60">
             {first} puede aceptarlo o proponerte otro precio. Solo pagas si acepta y tú confirmas.
@@ -303,7 +307,7 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
             <dt className="text-ink/60">Fecha</dt><dd className="font-medium text-ink first-letter:uppercase">{form.date ? <ReserveScheduleTime date={form.date} time={form.time} zone={availability.timeZone} /> : '—'}</dd>
             <dt className="text-ink/60">Duración</dt><dd className="font-medium text-ink">{form.durationMinutes} min · {form.participants} {form.participants === 1 ? 'persona' : 'personas'}</dd>
             <dt className="text-ink/60">Lugar</dt><dd className="font-medium text-ink">{form.modality === 'virtual' ? 'Online' : [LOCATION_TYPES[form.locationType].label, destination ? locationLabel(destination) : ''].filter(Boolean).join(' · ')}</dd>
-            <dt className="text-ink/60">Presupuesto</dt><dd className="font-medium text-ink">{money(form.budget)}</dd>
+            <dt className="text-ink/60">Presupuesto</dt><dd className="font-medium text-ink">{money(Number(form.budget))}</dd>
           </dl>
           <ReserveNotice kind="reserve" />
         </div>
