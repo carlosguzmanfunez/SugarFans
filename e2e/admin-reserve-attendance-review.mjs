@@ -28,4 +28,4 @@ export async function startAttendanceReview(){
  await new Promise(r=>server.listen(0,'127.0.0.1',r));
  return {server,out,base:`http://127.0.0.1:${server.address().port}`};
 }
-if(import.meta.url===pathToFileURL(process.argv[1]).href){const {base}=await startAttendanceReview();console.log(base+'/admin?section=attendance');}
+if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){const {base}=await startAttendanceReview();console.log(base+'/admin?section=attendance');}
