@@ -3,14 +3,15 @@ import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const sourceDir = dirname(fileURLToPath(import.meta.url));
-// [eyebrow, title, step 1, label 1, step 2, label 2, step 3]; step 3 label is "Reserve Event · 1:1" everywhere.
+// [eyebrow, title, step 1, line 1, step 2, line 2, step 3]. Steps 1 and 2 show a big verb with the
+// rest of the sentence under it; step 3 keeps the "Reserve Event · 1:1" label everywhere.
 // Order matches the creator profile: subscribe (exclusive content), propose an experience, book a Reserve.
 export const languages = {
-  es: ['ASÍ FUNCIONA', 'Cada paso te acerca más.', 'Suscríbete', 'Contenido exclusivo', 'Propón', 'Tu experiencia', 'Reserva'],
-  en: ['HOW IT WORKS', 'Every step brings you closer.', 'Subscribe', 'Exclusive content', 'Propose', 'Your experience', 'Reserve'],
-  pt: ['COMO FUNCIONA', 'Cada passo te deixa mais perto.', 'Assine', 'Conteúdo exclusivo', 'Proponha', 'Sua experiência', 'Reserve'],
-  fr: ['COMMENT ÇA MARCHE', 'Chaque étape te rapproche.', "S’abonner", 'Contenu exclusif', 'Propose', 'Ton expérience', 'Réserver'],
-  it: ['COME FUNZIONA', 'Ogni passo ti porta più vicino.', 'Abbonati', 'Contenuto esclusivo', 'Proponi', 'La tua esperienza', 'Prenota'],
+  es: ['ASÍ FUNCIONA', 'Cada paso te acerca más.', 'Suscríbete', 'a su contenido exclusivo', 'Propón', 'tu experiencia', 'Reserva'],
+  en: ['HOW IT WORKS', 'Every step brings you closer.', 'Subscribe', 'to their exclusive content', 'Propose', 'your experience', 'Reserve'],
+  pt: ['COMO FUNCIONA', 'Cada passo te deixa mais perto.', 'Assine', 'o conteúdo exclusivo', 'Proponha', 'sua experiência', 'Reserve'],
+  fr: ['COMMENT ÇA MARCHE', 'Chaque étape te rapproche.', "Abonne-toi", 'à son contenu exclusif', 'Propose', 'ton expérience', 'Réserve'],
+  it: ['COME FUNZIONA', 'Ogni passo ti porta più vicino.', 'Abbonati', 'al suo contenuto esclusivo', 'Proponi', 'la tua esperienza', 'Prenota'],
 };
 export function generate(out, tools) {
   const template = readFileSync(join(sourceDir, 'scene.html'), 'utf8');

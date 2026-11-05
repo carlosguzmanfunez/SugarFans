@@ -1,6 +1,6 @@
 # Correction to the presentation film
 
-The original editable project is not in this repository. This HyperFrames source replaces only the "how it works" steps scene in the ten existing MP4 files. Since November 2026 it shows Subscribe (exclusive content) → Propose (your experience) → Reserve, with no Follow step, in Spanish, English, Portuguese, French and Italian. Reserve Event and Reserve 1:1 stay available.
+The original editable project is not in this repository. This HyperFrames source replaces only the "how it works" steps scene in the ten existing MP4 files. Since November 2026 it shows "Subscribe to their exclusive content" → "Propose your experience" (big verb, rest of the sentence below) → Reserve, with no Follow step, in Spanish, English, Portuguese, French and Italian. Reserve Event and Reserve 1:1 stay available.
 
 The originals are silent, 31.6 seconds at 30 fps, in 1280×720 and 720×1280. The replacement runs from 19.2 to 25.0 seconds with 0.4-second crossfades. The source footage before 19.2 and after 25.0 stays at its original timeline position. Encoding is H.264 CRF 18 with fast-start metadata.
 
