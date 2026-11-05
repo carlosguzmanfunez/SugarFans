@@ -16,7 +16,7 @@ Use Sora Variable from the existing app font package, matching the original vide
 
 ## Motion
 
-Sequential entrances for Follow, Subscribe, Reserve. Smooth 0.4-second crossfades into and out of the replacement scene. Keep the surrounding footage at its original timeline positions. No infinite animation or media playback controlled from script.
+Sequential entrances for Subscribe, Propose, Reserve (no Follow step). Smooth 0.4-second crossfades into and out of the replacement scene. Keep the surrounding footage at its original timeline positions. No infinite animation or media playback controlled from script.
 
 ## What not to do
 
