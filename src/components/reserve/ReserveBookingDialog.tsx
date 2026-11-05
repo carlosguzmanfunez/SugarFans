@@ -271,6 +271,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
           </div>
           )}
           {!ticket && <ReserveNotice kind="payments" />}
+          {(d.modality??'virtual')==='virtual'&&<p className="text-xs text-ink/70">La sesión conserva su horario si llegas tarde por causas de tu lado. Mantén el celular desbloqueado y acepta cámara y micrófono al prepararla. <Link to="/legal?doc=cancellation" target="_blank" className="underline underline-offset-4">Condiciones de asistencia</Link></p>}
           {date && time && <div className="text-sm text-ink/80" aria-live="polite"><ReserveScheduleTime date={date} time={time} zone={isEvent ? exp.timeZone : availability.timeZone} /></div>}
           {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
           <p className="sr-only">{RESERVE_COPY.principle}</p>

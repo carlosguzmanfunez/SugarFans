@@ -10,7 +10,7 @@ import { createECDH, randomBytes } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { createServer } from 'node:https';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join,resolve,sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const dir = mkdtempSync(join(tmpdir(), 'push-api-'));
@@ -23,12 +23,13 @@ const api = await import(pathToFileURL(join(process.cwd(), 'e2e', '.push-api.mjs
 execFileSync('openssl', ['req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:prime256v1', '-nodes', '-days', '1', '-subj', '/CN=localhost',
   '-keyout', join(dir, 'k.pem'), '-out', join(dir, 'c.pem')], { stdio: 'ignore' });
 const received = [];
+let pushFailure=false;
 const server = createServer({ key: readFileSync(join(dir, 'k.pem')), cert: readFileSync(join(dir, 'c.pem')) }, (req, res) => {
   const chunks = [];
   req.on('data', (c) => chunks.push(c));
   req.on('end', () => {
-    received.push({ path: req.url, auth: req.headers.authorization ?? '', encoding: req.headers['content-encoding'], bytes: Buffer.concat(chunks).length });
-    res.statusCode = req.url.startsWith('/gone') ? 410 : 201;
+    received.push({ path: req.url, auth: req.headers.authorization ?? '', encoding: req.headers['content-encoding'], bytes: Buffer.concat(chunks).length,ttl:Number(req.headers.ttl) });
+    res.statusCode = pushFailure?503:req.url.startsWith('/gone') ? 410 : 201;
     res.end();
   });
 });
@@ -42,6 +43,7 @@ const device = (path) => {
 
 // --- fake Supabase -----------------------------------------------------------------
 const db = {
+  reminder:null,
   secrets: [],
   subs: [{ user_id: 'creator-1', ...device('/phone') }, { user_id: 'creator-1', ...device('/gone/old-phone') }, { user_id: 'fan-1', ...device('/fan') }],
   notifications: [
@@ -57,6 +59,11 @@ globalThis.fetch = async (url, init = {}) => {
   const h = init.headers ?? {};
   if (u.pathname === '/auth/v1/user') return h.authorization === 'Bearer creator-token' ? res(200, { id: 'creator-1' }) : res(401, {});
   if (h.apikey !== 'sb_secret_test') return res(401, { message: 'sin service role' });
+  if(u.pathname==='/rest/v1/rpc/reserve_reminder_delivery_context')return res(200,db.reminder);
+  if(u.pathname==='/rest/v1/reserve_session_reminders'){
+    if(init.method==='PATCH')Object.assign(db.reminder,JSON.parse(init.body));
+    return res(200,[db.reminder]);
+  }
   const q = u.searchParams;
   const body = init.body ? JSON.parse(init.body) : undefined;
   if (u.pathname === '/rest/v1/app_secrets') {
@@ -130,7 +137,26 @@ await check('El aviso de prueba necesita sesión y llega solo a quien lo pide', 
   expect(r.sent === 1, `respuesta ${JSON.stringify(r)}`);
 });
 
+const reminderNotice=()=>{
+ const id='44444444-4444-4444-4444-'+String(db.notifications.length).padStart(12,'0');
+ const n={id,user_id:'creator-1',title:'Tu Reserve está por comenzar',body:'Celular desbloqueado y pantalla visible',link:'/live/qa?reserveReminder=qa',created_at:new Date().toISOString(),pushed_at:null};
+ db.notifications.push(n);db.reminder={id:'test-reminder',valid:true,start_at:new Date(Date.now()+45000).toISOString(),minutes_before:1,push_attempts:0};return n;
+};
+await check('Aviso de un minuto con vencimiento y constancia de aceptación del proveedor, sin inventar lectura',async()=>{
+ const n=reminderNotice();const r=await(await post({id:n.id})).json();
+ expect(r.sent===1,'no llegó al proveedor');expect(received.at(-1).ttl>0&&received.at(-1).ttl<=45,'vencimiento incorrecto');
+ expect(!!db.reminder.push_accepted_at&&!db.reminder.opened_at,'confundió envío con lectura');
+});
+await check('Una reserva cancelada o reprogramada ya no genera un aviso al celular',async()=>{
+ const n=reminderNotice();db.reminder.valid=false;const before=received.length;const r=await(await post({id:n.id})).json();expect(r.expired&&r.sent===0,'no descartó aviso');expect(received.length===before,'envió aviso inválido');
+});
+await check('Un fallo temporal no se presenta como entrega y permite recuperar el aviso',async()=>{
+ const n=reminderNotice();pushFailure=true;const first=await(await post({id:n.id})).json();pushFailure=false;
+ expect(first.sent===0&&!db.reminder.push_accepted_at,'inventó entrega');
+ n.pushed_at=null;const second=await(await post({id:n.id})).json();expect(second.sent===1&&db.reminder.push_attempts===2,'no recuperó el envío');
+});
 server.close();
+if(!resolve(dir).startsWith(resolve(tmpdir())+sep))throw new Error('Unsafe temporary test directory');
 rmSync(dir, { recursive: true, force: true });
 rmSync(join(process.cwd(), 'e2e', '.push-api.mjs'), { force: true });
 const failed = results.filter((x) => !x).length;

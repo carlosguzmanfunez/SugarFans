@@ -12,6 +12,7 @@ self.addEventListener('push', (event) => {
     data = { title: event.data ? event.data.text() : '' };
   }
   const title = data.title || 'Fans Reserve';
+  if(data.expiresAt&&Date.now()>=data.expiresAt)return;
   event.waitUntil(
     self.registration.showNotification(title, {
       body: data.body || '',

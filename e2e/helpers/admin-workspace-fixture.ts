@@ -29,6 +29,7 @@ const moderation = [{bucket:'post-media',path:'qa/file.jpg',ownerId:'qa-1',owner
 const noPending = () => scenario === 'empty';
 export const backend: any = {
   mode:'local', onChange: (fn: () => void) => {listeners.add(fn);return()=>{listeners.delete(fn);};},
+  getCurrentUser: () => read(accounts[0]),
   listAccounts: () => read(accounts),
   moderationQueue: () => scenario === 'content-error' ? Promise.reject(Error('Fallo ficticio de contenido')) : read(noPending() ? [] : moderation),
   appErrors: () => read(noPending() ? [] : [{id:'error-1',source:'email',message:'Fallo ficticio del proveedor',detail:'Datos de diagnóstico de prueba',url:'/qa',userAgent:'QA',userName:'Mariana',count:2,firstSeen:at,lastSeen:at}]),

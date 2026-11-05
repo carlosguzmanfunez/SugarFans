@@ -70,8 +70,35 @@ try {
         await menu.locator(`a[href="${link.href}"]`).click();
         await menu.waitFor({ state: 'detached' });
         await page.waitForURL(url => url.pathname + url.search + url.hash === link.href);
-        // Guest home is the separate sign-up page without the app navbar.
-        if (!(await trigger.count())) await page.goto(base + '/explore');
+        // These guest destinations deliberately omit the app navbar. The URL
+        // changes before React commits the replacement layout; an immediate
+        // count can still see the previous navbar and race its unmount.
+        const destination = new URL(link.href, base);
+        const guestLayout = role === 'visitor' && ['/', '/login', '/register'].includes(destination.pathname);
+        if (guestLayout) {
+          await trigger.waitFor({ state: 'hidden' });
+          await page.goto(base + '/explore');
+          await page.getByRole('heading', { name: 'Explora creadores', exact: true }).waitFor();
+        } else {
+          // BrowserRouter can update the address before a lazy destination
+          // commits. Seeing the old navbar is not proof the new page is ready:
+          // opening it at that point races its replacement. Verify real page
+          // content instead of sleeping, forcing clicks or skipping a link.
+          const ready = {
+            '/profile': () => page.getByTestId('bookings'),
+            '/settings': () => page.getByRole('heading', { name: 'Configuración', exact: true }),
+            '/creator/dashboard': () => page.getByRole('heading', { name: 'Panel de creador', exact: true }),
+            '/admin': () => page.getByRole('heading', { name: 'Panel de administración', exact: true }),
+            '/owner': () => page.getByRole('heading', { name: 'Dirección general', exact: true }),
+            '/explore': () => page.getByRole('heading', { name: 'Explora creadores', exact: true }),
+            '/reserve': () => page.getByRole('heading', { name: 'Reserve', exact: true }),
+            '/help': () => page.getByRole('heading', { name: 'Centro de ayuda', exact: true }),
+            '/': () => page.locator('#journey'),
+          }[destination.pathname];
+          assert.ok(ready, `Missing destination readiness check for ${link.href}`);
+          await ready().waitFor({ state: 'visible' });
+        }
+        await trigger.waitFor({ state: 'visible' });
       }
       if (role !== 'visitor') {
         await page.goto(base + '/settings?section=wallet');

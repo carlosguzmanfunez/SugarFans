@@ -5,6 +5,10 @@ on:
     paths:
       - 'src/**'
       - 'api/paypal.ts'
+      - 'api/*reserve-session*.ts'
+      - 'api/live-token.ts'
+      - 'api/push.ts'
+      - 'public/sw.js'
       - 'supabase/migrations/**'
       - 'e2e/reserve-city-*.mjs'
       - 'e2e/reserve-catalog-ui.mjs'
@@ -13,6 +17,12 @@ on:
       - 'e2e/reserve-wizard-ui.mjs'
       - 'e2e/reserve-short-notice*.mjs'
       - 'e2e/account-navigation-ui.mjs'
+      - 'e2e/navigation-security.mjs'
+      - 'e2e/reserve-session-*.mjs'
+      - 'e2e/admin-reserve-attendance*.mjs'
+      - 'e2e/helpers/admin-reserve-attendance-fixture.ts'
+      - 'e2e/helpers/admin-workspace-fixture.ts'
+      - 'e2e/push-api.mjs'
       - 'e2e/db-harness.mjs'
       - 'e2e/notification-dismiss.mjs'
       - 'e2e/push-device-state.mjs'
@@ -58,9 +68,16 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run test:navigation-security
       - run: npm run test:notification-dismiss
       - run: npm run test:push-device-state
       - run: npm run test:subscription-notifications
+      - run: npm run test:reserve-session-api
+      - run: npm run test:reserve-session-db
+      - run: npm run test:admin-reserve-attendance
+      - run: npm run test:admin-reserve-attendance-db
+      - run: node e2e/admin-workspace-data.mjs
+      - run: npm run test:push
       - run: npm run test:reserve-city-db
       - run: npm run test:reserve-cancellation-db
       - run: npm run test:reserve-time-zones-db
@@ -75,6 +92,17 @@ jobs:
       - name: Install Chromium
         run: npx playwright install chromium
         timeout-minutes: 4
+      - name: Prepare verified LiveKit test server
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/fansreserve-livekit"
+          curl --fail --location --retry 2 --max-time 120 https://github.com/livekit/livekit/releases/download/v1.13.11/livekit_1.13.11_linux_amd64.tar.gz -o "$RUNNER_TEMP/fansreserve-livekit/server.tar.gz"
+          echo "1e9ee90ca301e1842b2887fc77cb122759756a9c8aeb4334ee91de3325ec43fb  $RUNNER_TEMP/fansreserve-livekit/server.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/fansreserve-livekit/server.tar.gz" -C "$RUNNER_TEMP/fansreserve-livekit"
+          echo "LIVEKIT_SERVER=$RUNNER_TEMP/fansreserve-livekit/livekit-server" >> "$GITHUB_ENV"
+          echo "SESSION_EVIDENCE_DIR=$RUNNER_TEMP/fansreserve-session-evidence" >> "$GITHUB_ENV"
+      - run: npm run test:reserve-session-native
+      - run: npm run test:admin-reserve-attendance-ui
       - run: npm run test:reserve-city-ui
       - run: node e2e/reserve-catalog-ui.mjs
       - run: node e2e/account-navigation-ui.mjs

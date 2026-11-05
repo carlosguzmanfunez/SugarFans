@@ -1,16 +1,17 @@
 # Administración clara
 
-Superficie de operación para una persona que administra Fans Reserve sin formación técnica. Conserva marca, tipografía, colores, reglas de reparto, accesos y controles de pagos. No hay migraciones ni permisos nuevos.
+Superficie de operación para una persona que administra Fans Reserve sin formación técnica. Conserva marca, tipografía, colores, reglas de reparto, accesos y controles de pagos. La sección de asistencia añade una consulta protegida para administradores; no concede lectura directa de sus tablas ni permisos para cambiar constancias.
 
 ## Organización
 
 - Inicio: asuntos pendientes y acceso opcional a cuentas y actividad del periodo.
 - Personas: búsqueda, verificación de identidades, perfiles de la plataforma y cuentas especiales.
 - Contenido: denuncias/solicitudes y revisión de fotos y videos.
+- Asistencia de Reserve: búsqueda por personas o reserva, fechas, constancias de conexiones y avisos. Consulta de solo lectura, con descarga legible y estados incompletos separados de una ausencia comprobada.
 - Dinero: panel de pagos a creadores, retiros/devoluciones y todos los movimientos.
 - Estado del servicio: problemas de la página y costos/límites.
 
-Se conservan las doce secciones anteriores. `?section=...` conserva la selección al recargar y admite atrás/adelante. Una sección desconocida vuelve al inicio. Los enlaces son navegación; las autorizaciones siguen en el servidor y en la ruta protegida.
+Se conservan las secciones anteriores y se añade Asistencia de Reserve. `?section=...` conserva la selección al recargar y admite atrás/adelante. Una sección desconocida vuelve al inicio. Los enlaces son navegación; las autorizaciones siguen en el servidor y en la ruta protegida.
 
 ## Prioridades y confianza
 

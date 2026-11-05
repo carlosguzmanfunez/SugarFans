@@ -13,6 +13,7 @@
     "test:payout-operational-recovery": "node e2e/payout-supervised-recovery.mjs && node e2e/payout-watchdog.mjs && node e2e/payout-review-runtime.mjs",
     "test:payout-operational-recovery-ui": "node e2e/payout-operational-recovery-ui.mjs",
     "typecheck": "tsc --noEmit",
+    "test:navigation-security": "node e2e/navigation-security.mjs",
     "test:notification-dismiss": "node e2e/notification-dismiss.mjs",
     "test:push-device-state": "node e2e/push-device-state.mjs",
     "test:subscription-notifications": "node e2e/subscription-notifications.mjs",
@@ -24,6 +25,12 @@
     "test:didit": "node e2e/didit-api.mjs",
     "test:didit-db": "node e2e/didit-kyc.mjs",
     "test:access": "node e2e/live-access.mjs",
+    "test:reserve-session-api": "node e2e/reserve-session-api.mjs",
+    "test:reserve-session-db": "node e2e/reserve-session-postgres.mjs",
+    "test:reserve-session-native": "node e2e/reserve-session-native.mjs",
+    "test:admin-reserve-attendance": "node e2e/admin-reserve-attendance.mjs",
+    "test:admin-reserve-attendance-db": "node e2e/admin-reserve-attendance-postgres.mjs",
+    "test:admin-reserve-attendance-ui": "node e2e/admin-reserve-attendance-ui.mjs",
     "test:public-config": "node e2e/public-provider-config.mjs",
     "test:db": "node e2e/db-access.mjs",
     "test:terms-acceptance-db": "node e2e/terms-acceptance-db.mjs",
@@ -128,7 +135,7 @@
     "nodemailer": "^10.3.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.30.6",
+    "react-router-dom": "7.18.5",
     "web-push": "^3.6.7"
   },
   "devDependencies": {
@@ -143,6 +150,6 @@
     "playwright": "^1.56.1",
     "tailwindcss": "^4.1.7",
     "typescript": "^5.7.0",
-    "vite": "^6.3.5"
+    "vite": "6.4.5"
   }
 }

@@ -191,12 +191,24 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
       {
         heading: 'Reembolsos e incumplimientos',
         bullets: [
-          'El creador no se presenta, llega más de 15 minutos tarde, cambia por su cuenta la fecha, la hora o el lugar, o la experiencia no corresponde a lo publicado: el fan recibe el reembolso completo, previa verificación.',
+          'En experiencias presenciales, si el creador no se presenta, llega más de 15 minutos tarde, cambia por su cuenta la fecha, la hora o el lugar, o la experiencia no corresponde a lo publicado, el fan recibe el reembolso completo, previa verificación.',
+          'En sesiones virtuales, el creador dispone de un minuto de tolerancia desde el inicio confirmado, sin penalización por esa demora. Debe cumplir la duración contratada: la tolerancia no permite reducirla. Una demora mayor o una sesión que no pueda realizarse por causas del creador se registra para revisión; si se confirma incumplimiento, corresponde la devolución completa.',
           'Si el creador cancela una reserva pagada, se trata como un incumplimiento: el fan recibe el 100% por el medio original (o en Créditos si así pagó) y la cancelación cuenta en el historial de fiabilidad del creador.',
-          'Live 1:1 y videollamadas: si el creador no entra a la sala en los primeros 10 minutos, o la sesión no se puede dar por un fallo de su lado, el fan recibe el reembolso completo.',
           'El fan es responsable de cumplir la fecha, hora, lugar, requisitos y condiciones publicados. La ausencia o llegada tarde del fan no genera una devolución comercial ni repone el tiempo perdido, sin limitar los derechos legales aplicables.',
           'Para pedir la devolución por incumplimiento, el fan usa Solicitar devolución o Reportar en Mis reservas. Se recomienda hacerlo dentro de 48 horas para conservar la evidencia, sin reducir plazos ni derechos legales. La solicitud queda registrada para revisión.',
           'Si se confirma el incumplimiento del creador, se solicita la devolución del 100% al medio original del fan. El costo real de PayPal no devuelto se registra como cargo separado contra los ingresos presentes o futuros del creador, con comprobante y explicación. Los errores atribuibles a Fans Reserve no se cargan al creador.',
+        ],
+      },
+      {
+        heading: 'Preparación y puntualidad en las sesiones virtuales',
+        bullets: [
+          'Se programan avisos para el fan y el creador diez minutos y un minuto antes de la sesión. Son una ayuda: la fecha y hora confirmadas siguen siendo responsabilidad de cada participante. Su entrega depende también de la conexión y los permisos del dispositivo.',
+          'Mantén el celular desbloqueado, Fans Reserve abierto y visible, una conexión estable y los permisos de cámara y micrófono disponibles. Al preparar la llamada, acepta los permisos solicitados por el navegador y comprueba que los dispositivos funcionen. En eventos de solo visualización no se requiere publicar cámara o micrófono del fan.',
+          'El fan debe ingresar puntualmente. El tiempo perdido por su ausencia, llegada tardía o problemas comprobados de su propio dispositivo no se repone ni extiende el horario reservado. No se aplica esta regla a fallas de Fans Reserve, incumplimiento del creador o derechos legales de devolución, reparación o compensación.',
+          'Que el sistema haya enviado una notificación no prueba que se recibió, leyó o que el teléfono causó un problema. La responsabilidad se determina mediante los registros y la revisión del caso; una falta de evidencia no se considera por sí sola ausencia o culpa del fan.',
+          'La preparación y espera anteriores a la hora acordada no consumen la duración contratada. El inicio automático requiere que la persona haya aceptado prepararse y que la pantalla siga visible. Cada participante puede cancelar esa preparación.',
+          'Se conservan por separado la versión de las indicaciones aceptadas, la preparación declarada por el navegador, los avisos y las entradas y salidas confirmadas por el servidor de videollamada. No se graba audio, video ni el contenido de la conversación. Estos datos sirven para revisar incidencias y responder reclamaciones, con acceso limitado a los participantes de su reserva y al personal autorizado.',
+          'Las condiciones nuevas se identifican por su versión y no sustituyen retroactivamente las condiciones de una reserva anterior. Se conservan los derechos y las vías de reclamación legales aplicables.',
         ],
       },
       {

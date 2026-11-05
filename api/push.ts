@@ -87,7 +87,7 @@ interface Subscription {
   auth: string;
 }
 
-const sendTo = async (userId: string, payload: { title: string; body: string; link: string; tag?: string }) => {
+const sendTo = async (userId: string, payload: { title: string; body: string; link: string; tag?: string; expiresAt?:number }) => {
   const k = await pushKeys();
   const subs = (await rest('GET', `push_subscriptions?select=endpoint,p256dh,auth&user_id=eq.${encodeURIComponent(userId)}`)) as Subscription[];
   let sent = 0;
@@ -95,7 +95,7 @@ const sendTo = async (userId: string, payload: { title: string; body: string; li
     subs.map(async (s) => {
       try {
         await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(payload), {
-          TTL: 24 * 3600,
+          TTL: payload.expiresAt?Math.max(0,Math.floor((payload.expiresAt-Date.now())/1000)):24 * 3600,
           urgency: 'high',
           vapidDetails: { subject: SUBJECT, publicKey: k.publicKey, privateKey: k.privateKey },
         });
@@ -122,6 +122,17 @@ const deliver = async (id: string) => {
   )) as { id: string; user_id: string; title: string; body: string; link: string }[];
   const n = rows?.[0];
   if (!n) return json(200, { sent: 0 });
+  if(n.link.includes('?reserveReminder=')){
+    const context=await rest('POST','rpc/reserve_reminder_delivery_context',{p_notification_id:n.id});
+    if(!context?.valid)return json(200,{sent:0,expired:true});
+    if(context.link&&context.link!==n.link){await rest('PATCH',`notifications?id=eq.${n.id}`,{link:context.link});n.link=context.link;}
+    const expiresAt=Date.parse(context.start_at)-(context.minutes_before===10?60000:0);
+    const reminderRows=await rest('GET',`reserve_session_reminders?id=eq.${context.id}&select=push_attempts`);
+    await rest('PATCH',`reserve_session_reminders?id=eq.${context.id}`,{push_attempted_at:new Date().toISOString(),push_attempts:(reminderRows?.[0]?.push_attempts||0)+1});
+    const result=await sendTo(n.user_id,{title:n.title,body:n.body,link:n.link,tag:`reserve-${context.booking_id||context.id}`,expiresAt});
+    await rest('PATCH',`reserve_session_reminders?id=eq.${context.id}`,{push_devices:result.devices,...(result.sent?{push_accepted_at:new Date().toISOString()}: {})});
+    return json(200,result);
+  }
   return json(200, await sendTo(n.user_id, { title: n.title, body: n.body, link: n.link || '/', tag: n.id }));
 };
 
