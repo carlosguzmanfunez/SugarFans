@@ -70,7 +70,11 @@ jobs:
       - run: node e2e/reserve-controls-api.mjs
       - run: npm run test:proposal-hours-db
       - run: npm run test:time-zones
-      - run: npx playwright install --with-deps chromium
+      # ubuntu-24.04 already provides Chromium's runtime libraries. Avoid fetching
+      # unrelated font packs from apt mirrors; keep every browser check below.
+      - name: Install Chromium
+        run: npx playwright install chromium
+        timeout-minutes: 4
       - run: npm run test:reserve-city-ui
       - run: node e2e/reserve-catalog-ui.mjs
       - run: node e2e/account-navigation-ui.mjs
