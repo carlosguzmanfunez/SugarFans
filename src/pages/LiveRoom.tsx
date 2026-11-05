@@ -49,6 +49,8 @@ const LiveRoom: React.FC = () => {
   const [gifting, setGifting] = useState(false);
   const [celebration, setCelebration] = useState<{ gift: Gift; caption: string } | null>(null);
   const [showLooks, setShowLooks] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const cam = useCameraLook();
   const { bind: bindLook, captureOptions } = cam;
 
@@ -56,6 +58,62 @@ const LiveRoom: React.FC = () => {
   const remoteVideo = useRef<HTMLVideoElement>(null);
   const audioBox = useRef<HTMLDivElement>(null);
   const roomRef = useRef<Room | null>(null);
+  const callView = useRef<HTMLDivElement>(null);
+
+  const closeExpanded = useCallback(() => {
+    setExpanded(false);
+    setChatOpen(false);
+    callView.current?.querySelector<HTMLButtonElement>('[data-testid="call-expand"]')?.focus();
+    if (document.fullscreenElement === callView.current) {
+      document.exitFullscreen().catch(() => undefined);
+    }
+  }, []);
+
+  const toggleExpanded = () => {
+    if (expanded) return closeExpanded();
+    setChatOpen(false);
+    setShowLooks(false);
+    setExpanded(true);
+    // The viewport-filling layout also works when native fullscreen is unavailable.
+    callView.current?.requestFullscreen?.().catch(() => undefined);
+  };
+
+  useEffect(() => {
+    if (!expanded) return;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onFullscreenChange = () => {
+      if (!document.fullscreenElement) closeExpanded();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (chatOpen) setChatOpen(false);
+        else closeExpanded();
+      }
+      if (event.key !== 'Tab') return;
+      const controls = Array.from(callView.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input, a[href], [tabindex="0"]') ?? [])
+        .filter((element) => element.getClientRects().length > 0);
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (!callView.current?.contains(document.activeElement)) {
+        event.preventDefault();
+        first?.focus();
+      } else if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = overflow;
+      document.removeEventListener('fullscreenchange', onFullscreenChange);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [expanded, chatOpen, closeExpanded]);
 
   const isCreator = !!booking && !!user?.creatorProfileId && user.creatorProfileId === booking.creatorProfileId;
   const otherName = booking ? (isCreator ? booking.fanName : booking.creatorName) : '';
@@ -311,24 +369,29 @@ const LiveRoom: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white" data-testid="live-room">
-      <div className="max-w-6xl mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-4 gap-3">
-          <div>
+    <div ref={callView} className={`${expanded ? 'fixed inset-0 z-[100] h-dvh overflow-hidden' : 'min-h-screen'} bg-gray-900 text-white`} data-testid="live-room" data-expanded={expanded} role={expanded ? 'dialog' : undefined} aria-modal={expanded ? true : undefined} aria-label={expanded ? `Videollamada con ${otherName}` : undefined}>
+      <div className={expanded ? 'flex h-full min-h-0 flex-col px-3 pt-[max(.75rem,env(safe-area-inset-top))] pb-[max(.75rem,env(safe-area-inset-bottom))]' : 'max-w-6xl mx-auto px-4 py-6'}>
+        <div className="flex shrink-0 items-center justify-between mb-3 gap-3">
+          <div className="min-w-0">
             <p className="text-xs uppercase tracking-wide text-red-400 font-bold flex items-center">
               <span className="w-2 h-2 rounded-full bg-red-500 mr-2 animate-pulse"></span>En vivo
             </p>
-            <h1 className="text-lg font-bold">{booking.title} · con {otherName}</h1>
+            <h1 className={`${expanded ? 'truncate text-sm' : 'text-lg'} font-bold`}>{expanded ? otherName : `${booking.title} · con ${otherName}`}</h1>
           </div>
-          <span data-testid="live-status" className={`text-xs px-3 py-1 rounded-full ${connected ? 'bg-green-500/20 text-green-300' : 'bg-white/10 text-gray-300'}`}>
-            {connected ? 'Conectado' : 'Sin conexión'}
-          </span>
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            <span data-testid="live-status" className={`text-xs px-3 py-1 rounded-full ${connected ? 'bg-green-500/20 text-green-300' : 'bg-white/10 text-gray-300'}`}>
+              {connected ? 'Conectado' : 'Sin conexión'}
+            </span>
+            <button type="button" onClick={toggleExpanded} aria-pressed={expanded} data-testid="call-expand" className="min-h-11 rounded-lg px-2 text-sm font-semibold underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">
+              <i aria-hidden="true" className={`fas ${expanded ? 'fa-compress' : 'fa-expand'} mr-2`}></i>{expanded ? 'Volver' : 'Pantalla completa'}
+            </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2">
-            <div className="relative aspect-video bg-black rounded-2xl overflow-hidden">
-              <video ref={remoteVideo} autoPlay playsInline {...noCaptureVideoProps} data-testid="remote-video" className="w-full h-full object-cover" />
+        <div className={expanded ? 'relative flex min-h-0 flex-1 flex-col' : 'grid grid-cols-1 lg:grid-cols-3 gap-4'}>
+          <div className={expanded ? 'flex min-h-0 flex-1 flex-col' : 'min-w-0 lg:col-span-2'}>
+            <div className={`relative ${expanded ? 'min-h-0 flex-1' : 'aspect-video'} bg-black rounded-2xl overflow-hidden`} data-testid="call-video-stage">
+              <video ref={remoteVideo} autoPlay playsInline {...noCaptureVideoProps} data-testid="remote-video" className="w-full h-full object-contain" />
               <div ref={audioBox} className="hidden" />
               {needsAudio && connected && (
                 <button onClick={() => roomRef.current?.startAudio()} className="absolute top-3 left-3 z-10 px-3 py-2 rounded-lg bg-white/90 text-gray-900 text-sm font-medium">
@@ -347,7 +410,7 @@ const LiveRoom: React.FC = () => {
                   </div>
                 </div>
               )}
-              <div className="absolute bottom-3 right-3 w-32 sm:w-44 aspect-video bg-gray-800 rounded-xl overflow-hidden border border-white/20">
+              <div className={`absolute bottom-3 right-3 ${expanded ? 'w-24 sm:w-36' : 'w-28 sm:w-44'} aspect-video bg-gray-800 rounded-xl overflow-hidden border border-white/20`}>
                 <video ref={localVideo} autoPlay playsInline muted data-testid="local-video" className={`w-full h-full object-cover -scale-x-100 ${hasMedia && camOn ? '' : 'hidden'}`} />
                 {!(hasMedia && camOn) && (
                   <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
@@ -362,8 +425,8 @@ const LiveRoom: React.FC = () => {
                 No pudimos usar tu cámara ni tu micrófono. Revisa los permisos del navegador; mientras tanto puedes ver, escuchar y usar el chat.
               </p>
             )}
-            {showLooks && hasMedia && camOn && <LookPicker cam={cam} className="mt-4" />}
-            <div className="flex justify-center gap-3 mt-4">
+            {showLooks && hasMedia && camOn && <div className={expanded ? 'absolute bottom-20 left-0 right-0 z-20 max-h-[35dvh] overflow-y-auto rounded-xl bg-gray-900 p-3' : 'mt-4'}><LookPicker cam={cam} /></div>}
+            <div className="flex shrink-0 justify-center gap-1 min-[360px]:gap-2 mt-3">
               <button onClick={() => toggleTrack('audio')} disabled={!hasMedia} aria-label={micOn ? 'Silenciar micrófono' : 'Activar micrófono'} className={`w-12 h-12 rounded-full ${micOn ? 'bg-white/10 hover:bg-white/20' : 'bg-red-500'} disabled:opacity-40`}>
                 <i aria-hidden="true" className={`fas ${micOn ? 'fa-microphone' : 'fa-microphone-slash'}`}></i>
               </button>
@@ -373,15 +436,21 @@ const LiveRoom: React.FC = () => {
               <button onClick={() => setShowLooks((v) => !v)} disabled={!hasMedia || !camOn} aria-label="Filtros de cámara" aria-expanded={showLooks} data-testid="looks-button" className={`w-12 h-12 rounded-full ${showLooks || cam.enhance || cam.look !== 'natural' ? 'bg-pink-600 hover:bg-pink-500' : 'bg-white/10 hover:bg-white/20'} disabled:opacity-40`}>
                 <i aria-hidden="true" className="fas fa-wand-magic-sparkles"></i>
               </button>
-              <button onClick={hangUp} aria-label="Salir de la llamada" className="px-6 h-12 rounded-full bg-red-600 hover:bg-red-700 font-medium">
+              <button type="button" onClick={() => { setChatOpen((value) => !value); setShowLooks(false); }} aria-label={chatOpen ? 'Ocultar chat' : 'Abrir chat'} aria-expanded={chatOpen} aria-controls="call-chat" className={`${expanded ? '' : 'lg:hidden'} w-12 h-12 rounded-full ${chatOpen ? 'bg-pink-600' : 'bg-white/10 hover:bg-white/20'}`}>
+                <i aria-hidden="true" className="fas fa-comments"></i>
+              </button>
+              <button onClick={hangUp} aria-label="Salir de la llamada" className="whitespace-nowrap px-3 sm:px-4 h-12 rounded-full bg-red-600 hover:bg-red-700 font-medium">
                 <i aria-hidden="true" className="fas fa-phone-slash mr-2"></i>Salir
               </button>
             </div>
           </div>
 
-          <div className="bg-gray-800 rounded-2xl p-4 flex flex-col h-[28rem] lg:h-auto" data-testid="live-chat">
-            <h2 className="font-bold mb-3"><i aria-hidden="true" className="fas fa-comments mr-2"></i>Chat</h2>
-            <div className="flex-1 overflow-y-auto space-y-2 text-sm">
+          <div id="call-chat" className={`${chatOpen ? 'flex' : expanded ? 'hidden' : 'hidden lg:flex'} ${expanded ? 'absolute bottom-16 right-0 z-20 h-[45dvh] max-h-96 w-full max-w-md' : 'h-64 lg:h-auto lg:max-h-[36rem]'} min-h-0 bg-gray-800 rounded-2xl p-4 flex-col`} data-testid="live-chat">
+            <div className="mb-3 flex shrink-0 items-center justify-between">
+              <h2 className="font-bold"><i aria-hidden="true" className="fas fa-comments mr-2"></i>Chat</h2>
+              <button type="button" onClick={() => setChatOpen(false)} aria-label="Cerrar chat" className={`${expanded ? '' : 'lg:hidden'} -mr-2 grid h-11 w-11 place-items-center rounded-lg hover:bg-white/10`}><i aria-hidden="true" className="fas fa-xmark"></i></button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto space-y-2 text-sm">
               {chat.length === 0 && <p className="text-gray-400">Los mensajes solo los ven ustedes dos.</p>}
               {chat.map((c, i) => (
                 <div key={i} data-testid="chat-line" className={`max-w-[85%] px-3 py-2 rounded-xl ${c.mine ? 'ml-auto bg-pink-600' : 'bg-white/10'}`}>
@@ -390,8 +459,8 @@ const LiveRoom: React.FC = () => {
                 </div>
               ))}
             </div>
-            <form onSubmit={sendChat} className="flex gap-2 mt-3">
-              <input value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={500} aria-label="Mensaje" placeholder="Escribe un mensaje…" className="flex-1 px-3 py-2 rounded-xl bg-white/10 outline-none focus:ring-2 focus:ring-pink-500 text-sm" />
+            <form onSubmit={sendChat} className="flex shrink-0 gap-2 mt-3">
+              <input value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={500} aria-label="Mensaje" placeholder="Escribe un mensaje…" className="min-w-0 flex-1 px-3 py-2 rounded-xl bg-white/10 outline-none focus:ring-2 focus:ring-pink-500 text-base" />
               <button type="submit" className="px-4 py-2 rounded-xl bg-pink-600 text-sm font-medium">Enviar</button>
               {!isCreator && (
                 <button type="button" onClick={() => setGifting(true)} aria-label="Regalar" title="Enviar un regalo" className="px-3 py-2 rounded-xl bg-white/10 text-sm">
