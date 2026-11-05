@@ -310,6 +310,7 @@ const CustomExperienceRequest: React.FC<Props> = ({ creator, user, onClose }) =>
             <dt className="text-ink/60">Presupuesto</dt><dd className="font-medium text-ink">{money(Number(form.budget))}</dd>
           </dl>
           <ReserveNotice kind="reserve" />
+          {form.modality==='virtual'&&<p className="text-xs text-ink/70">Revisa antes de enviar las <a href="/legal?doc=cancellation" target="_blank" rel="noreferrer" className="underline underline-offset-4">condiciones de asistencia y puntualidad</a>. Prepara la sesión con el celular desbloqueado y Fans Reserve visible.</p>}
         </div>
       )}
 

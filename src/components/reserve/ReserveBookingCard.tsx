@@ -19,6 +19,7 @@ import { processorFee } from '../../lib/rewardRules';
 import { platformChanged } from '../../lib/platform';
 import { useLanguage } from '../../context/LanguageContext';
 import type { CancellationReason, RefundChoice } from '../../lib/reserveControl';
+import SessionAttendance from './SessionAttendance';
 
 const ago = (iso: string) => {
   const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -176,6 +177,7 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
         <ReserveStatusBadge status={status} label={status === 'expired' && (d.paymentExpiredAt || overdue) ? 'Vencida · sin pagar' : undefined} />
         <div className="flex flex-wrap items-center gap-2">
           <LiveRoomButton booking={b} />
+          {modality==='virtual'&&!!b.durationMinutes&&['confirmed','completed','disputed'].includes(b.status)&&<SessionAttendance booking={b}/>}
           {as === 'creator' && status === 'pending' && (
             <>
               <button type="button" disabled={busy} onClick={() => run(() => backend.updateBooking(user, b.id, 'rejected'))} className={`${btn} border border-line text-ink/70 hover:bg-gray-50`}>

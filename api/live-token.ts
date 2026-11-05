@@ -12,6 +12,20 @@
 import { AccessToken } from 'livekit-server-sdk';
 // Node runs this file as an ES module, so the relative import needs its .js extension.
 import { decideBooking, decideBroadcast, type BookingRow, type Decision } from '../src/lib/liveAccess.js';
+import {zonedDate} from '../src/lib/timeZones.js';
+import {GET as sessionClock,POST as sessionAction} from './_reserve-session-handler.js';
+import {POST as sessionWebhook} from './_reserve-session-webhook.js';
+
+// The two public aliases share this function's bundle to fit the current plan.
+// Dispatch changes no authority: the handlers still require a user session or
+// a verified LiveKit signature. Accept both rewritten and original URL shapes.
+const reserveRoute=(request?:Request)=>{
+  if(!request)return null;
+  const url=new URL(request.url);
+  if(url.pathname==='/api/reserve-session')return 'session';
+  if(url.pathname==='/api/reserve-session-webhook')return 'webhook';
+  return url.searchParams.get('reserveSession');
+};
 
 // Public values (same as .env.production); the anon key is meant to be public.
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://odugxvqwuvewsvifwmwb.supabase.co';
@@ -41,12 +55,20 @@ const livekitEnv = () => ({
 // Public health response: never disclose API key fragments, credential lengths,
 // infrastructure hostnames or provider error details. A public GET must not make
 // a privileged listRooms call; Reserve access is exclusively decided in POST.
-export async function GET(): Promise<Response> {
+export async function GET(request?:Request): Promise<Response> {
+  const route=reserveRoute(request);
+  if(route==='session')return sessionClock();
+  if(route==='webhook')return json(405,{error:'El registro de asistencia requiere POST.'});
+  if(route)return json(400,{error:'Operación no válida.'});
   const { LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET } = livekitEnv();
   return json(200, { configured: !!(LIVEKIT_URL && LIVEKIT_API_KEY && LIVEKIT_API_SECRET) });
 }
 
 export async function POST(request: Request): Promise<Response> {
+  const route=reserveRoute(request);
+  if(route==='session')return sessionAction(request);
+  if(route==='webhook')return sessionWebhook(request);
+  if(route)return json(400,{error:'Operación no válida.'});
   const { LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET } = livekitEnv();
   if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
     return json(503, { error: 'El video del Live aún no está configurado.' });
@@ -66,9 +88,12 @@ export async function POST(request: Request): Promise<Response> {
     name?: string;
     creator_profile_id?: string | null;
   }>;
+  let reserveStartAt:string|undefined;
+  let reserveTtl:number|undefined;
   const sign = async (room: string, canPublish: boolean, ttl: string) => {
-    const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, { identity: authUser.id, name: profile?.name || 'Fan', ttl });
-    at.addGrant({ room, roomJoin: true, canPublish, canPublishData: true, canSubscribe: true });
+    const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, { identity: authUser.id, name: profile?.name || 'Fan', ttl:reserveTtl??ttl,
+      ...(reserveStartAt?{metadata:JSON.stringify({reserveStartAt})}:{}) });
+    at.addGrant({ room, roomJoin: true, canPublish, canPublishData: true, canSubscribe: true,canUpdateOwnMetadata:false });
     return at.toJwt();
   };
   const answer = async (d: Decision, extra: Record<string, unknown> = {}) =>
@@ -79,10 +104,16 @@ export async function POST(request: Request): Promise<Response> {
   if (bookingId) {
     // Row security only shows a booking to its fan and its creator.
     const [b] = ((await rest(
-      `/rest/v1/vip_bookings?id=eq.${encodeURIComponent(bookingId)}&select=id,experience_id,status,date,time,duration_minutes,fan_id,creator_profile_id,details`,
+      `/rest/v1/vip_bookings?id=eq.${encodeURIComponent(bookingId)}&select=id,experience_id,status,date,time,time_zone,duration_minutes,fan_id,creator_profile_id,details`,
       token
     )) ?? []) as BookingRow[];
-    return answer(decideBooking({ booking: b ?? null, userId: authUser.id, myCreatorProfileId: profile?.creator_profile_id }));
+    const decision=decideBooking({ booking: b ?? null, userId: authUser.id, myCreatorProfileId: profile?.creator_profile_id });
+    if(decision.ok&&b){
+      const start=zonedDate(b.date,b.time,b.time_zone||'UTC').getTime();
+      reserveStartAt=new Date(start).toISOString();
+      reserveTtl=Math.max(1,Math.min(14400,Math.ceil((start+((b.duration_minutes||0)+30)*60000-Date.now())/1000)));
+    }
+    return answer(decision);
   }
 
   const since = new Date(Date.now() - LIVE_MAX_HOURS * 3600_000).toISOString();

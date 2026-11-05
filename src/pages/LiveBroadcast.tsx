@@ -3,12 +3,14 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Room, RoomEvent, Track, VideoPresets, type LocalVideoTrack, type RemoteParticipant, type RemoteTrack } from 'livekit-client';
 import { useAuth } from '../context/AuthContext';
 import CameraPreview from '../components/CameraPreview';
+import SessionPreparation from '../components/reserve/SessionPreparation';
 import LookPicker from '../components/LookPicker';
 import { useCameraLook } from '../hooks/useCameraLook';
 import ViewerWatermark, { noCaptureVideoProps } from '../components/ViewerWatermark';
 import { useLeaveGuard } from '../hooks/useLeaveGuard';
 import { liveApi, endLive, useCurrentLive, LIVE_HEARTBEAT_SECONDS, LIVE_STALE_MINUTES } from '../lib/live';
 import { backend } from '../lib/backend';
+import {sessionNow,sessionRequest} from '../lib/reserveSessionClient';
 import { ENABLE_OPEN_LIVE } from '../config/features';
 import { LIVE_MODES } from '../lib/liveAccess';
 import { formatLongDate, liveState, liveWindow, sessionMinutes, type VipBooking } from '../lib/vip';
@@ -46,10 +48,20 @@ const LiveBroadcast: React.FC<{ event?: boolean }> = ({ event: isEvent = false }
         backend.fanBookings(user.id),
         user.creatorProfileId ? backend.creatorBookings(user.creatorProfileId) : Promise.resolve([]),
       ]);
-      const b = lists.flat().find((x) => x.id === bookingId) ?? null;
+      let b = lists.flat().find((x) => x.id === bookingId) ?? null;
+      // A cancelled seat does not close the creator's event while others remain.
+      if(b&&b.status!=='confirmed'&&b.details?.kind==='event'&&user.creatorProfileId===b.creatorProfileId){
+        const original=b;
+        b=lists.flat().find(x=>x.status==='confirmed'&&x.details?.kind==='event'&&x.experienceId===original.experienceId&&x.date===original.date&&x.time===original.time&&x.timeZone===original.timeZone)??b;
+      }
       if (!active) return;
+      if(b){
+        try{await sessionRequest(b,'status');}
+        catch{if(active)setSeatProblem('No pudimos comprobar el horario de este evento. Actualiza la página para volver a intentarlo.');return;}
+      }
+      if(!active)return;
       const mins = sessionMinutes(b);
-      const state = b && mins ? liveState(b.date, b.time, mins, new Date(), b.timeZone) : null;
+      const state = b && mins ? liveState(b.date, b.time, mins, new Date(sessionNow()), b.timeZone) : null;
       setSeat(b);
       setSeatProblem(
         !b || b.details?.kind !== 'event'
@@ -147,7 +159,7 @@ const LiveBroadcast: React.FC<{ event?: boolean }> = ({ event: isEvent = false }
     if (!creatorId) return;
     setPhase('connecting');
     setProblem('');
-    const r = isEvent ? await liveApi.callAccess(bookingId) : await liveApi.broadcastAccess(creatorId);
+    const r = isEvent ? await liveApi.callAccess(seat?.id||bookingId) : await liveApi.broadcastAccess(creatorId);
     if (!r.ok || !r.access) {
       setProblem(r.error ?? 'No se pudo conectar al Live.');
       setPhase('error');
@@ -227,7 +239,7 @@ const LiveBroadcast: React.FC<{ event?: boolean }> = ({ event: isEvent = false }
       setProblem(`No se pudo conectar al servidor de video. Inténtalo de nuevo. (Detalle: ${detail.slice(0, 160)})`);
       setPhase('error');
     }
-  }, [creatorId, isEvent, bookingId, user?.name, captureOptions, bindLook]);
+  }, [creatorId, isEvent, bookingId,seat?.id, user?.name, captureOptions, bindLook]);
 
   useEffect(
     () => () => {
@@ -422,9 +434,10 @@ const LiveBroadcast: React.FC<{ event?: boolean }> = ({ event: isEvent = false }
                   {phase === 'idle' || phase === 'error' ? (
                     <div>
                       {problem && <p role="alert" data-testid="live-problem" className="mb-4 text-sm text-red-200">{problem}</p>}
-                      <button onClick={join} className="px-6 py-3 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 font-medium">
+                      {!isEvent&&<button onClick={join} className="px-6 py-3 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 font-medium">
                         {owner ? 'Encender cámara y empezar' : isEvent ? 'Entrar al evento' : 'Entrar al Live'}
-                      </button>
+                      </button>}
+                      {isEvent&&<p className="text-sm text-gray-200">Prepara tu entrada al evento debajo de esta pantalla.</p>}
                     </div>
                   ) : (
                     <p className="text-gray-300">
@@ -440,7 +453,8 @@ const LiveBroadcast: React.FC<{ event?: boolean }> = ({ event: isEvent = false }
               )}
             </div>
             {problem && (phase === 'on' || phase === 'ended') && <p role="alert" data-testid="live-notice" className="text-sm text-yellow-300 mt-3">{problem}</p>}
-            {owner && (phase === 'idle' || phase === 'error') && (
+            {isEvent&&seat&&(phase==='idle'||phase==='error')&&<div className="mt-4 rounded-2xl bg-white p-4 text-ink"><SessionPreparation booking={seat} isCreator={owner} needsMedia={owner} onReady={join} cam={cam}/></div>}
+            {!isEvent && owner && (phase === 'idle' || phase === 'error') && (
               <div className="mt-4 max-w-xl mx-auto">
                 <p className="text-sm text-gray-300 mb-2">Elige tu filtro antes de empezar. Tus fans verán el video ya con el filtro.</p>
                 <CameraPreview cam={cam} />

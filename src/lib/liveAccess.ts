@@ -11,6 +11,7 @@
 // Gifts never appear here: no gift grants a seat, a subscription or a call.
 // A subscription never grants a Reserve Event or a Reserve 1:1 either.
 
+import {zonedDate} from './timeZones.js';
 export type LiveMode = 'open' | 'subscriber' | 'reserve_event' | 'reserve_1to1';
 
 export const LIVE_MODES: Record<LiveMode, { label: string; badge: string; who: string; cta: string }> = {
@@ -66,6 +67,7 @@ export interface BookingRow {
   date: string;
   time: string;
   duration_minutes: number | null;
+  time_zone?: string | null;
   fan_id: string;
   creator_profile_id: string;
   details: { modality?: string; kind?: string } | null;
@@ -95,11 +97,10 @@ export const decideBooking = (input: {
   if (!b || (!isFan && !isCreator)) return deny(404, 'No encontramos esta reserva en tu cuenta.');
   if (b.status !== 'confirmed') return deny(403, 'La sala se abre cuando la reserva está aceptada y pagada.');
   if (!b.duration_minutes || (b.details?.modality ?? 'virtual') !== 'virtual') return deny(403, 'Esta experiencia no es una sesión en vivo.');
-  // The app opens the room at the exact local time; the server, which doesn't know the
-  // time zone, only refuses calls far from the booked day.
-  const day = Date.parse(`${b.date}T${b.time || '00:00'}:00Z`);
-  if (Number.isNaN(day) || Math.abs((input.now ?? Date.now()) - day) > CALL_DAY_SLACK_HOURS * 3600_000) {
-    return deny(403, 'La sala solo abre el día de la reserva.');
+  const start=zonedDate(b.date,b.time||'00:00',b.time_zone||'UTC').getTime();
+  const now=input.now??Date.now();
+  if(!Number.isFinite(start)||now<start-15*60000||now>start+(b.duration_minutes+30)*60000) {
+    return deny(403,'La sala está fuera del horario de esta reserva.');
   }
   if (isEventBooking(b)) {
     // Group room: the creator presents, participants watch and use the chat.

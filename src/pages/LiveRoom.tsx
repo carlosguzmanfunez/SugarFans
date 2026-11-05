@@ -5,7 +5,10 @@ import GiftDialog from '../components/GiftDialog';
 import GiftCelebration from '../components/GiftCelebration';
 import { giftById, type Gift } from '../lib/gifts';
 import { useAuth } from '../context/AuthContext';
-import CameraPreview from '../components/CameraPreview';
+import SessionPreparation from '../components/reserve/SessionPreparation';
+import SessionTiming from '../components/reserve/SessionTiming';
+import ReserveScheduleTime from '../components/reserve/ReserveScheduleTime';
+import {sessionEvent,sessionNow,sessionRequest} from '../lib/reserveSessionClient';
 import LookPicker from '../components/LookPicker';
 import { useCameraLook } from '../hooks/useCameraLook';
 import ViewerWatermark, { noCaptureVideoProps } from '../components/ViewerWatermark';
@@ -135,16 +138,21 @@ const LiveRoom: React.FC = () => {
         navigate(`/evento/${b.id}`, { replace: true });
         return;
       }
+      if(b){
+        try{await sessionRequest(b,'status');}
+        catch{if(active){setProblem('No pudimos comprobar el horario de esta reserva. Actualiza la página para volver a intentarlo.');setPhase('unavailable');}return;}
+      }
+      if(!active)return;
       setBooking(b);
       const mins = sessionMinutes(b);
       if (!b) setProblem('No encontramos esta reserva en tu cuenta.');
       else if (b.status !== 'confirmed') setProblem('La sala se abre cuando la reserva está aceptada y pagada.');
       else if (!mins) setProblem('Esta experiencia no es una sesión en vivo.');
-      else if (liveState(b.date, b.time, mins, new Date(), b.timeZone) === 'early') {
+      else if (liveState(b.date, b.time, mins, new Date(sessionNow()), b.timeZone) === 'early') {
         const opens = liveWindow(b.date, b.time, mins, b.timeZone).opens;
         setProblem(`La sala se abre el ${formatLongDate(b.date)} a las ${opens.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}.`);
-      } else if (liveState(b.date, b.time, mins, new Date(), b.timeZone) === 'over') setProblem('Esta sesión ya terminó.');
-      setPhase(!b || b.status !== 'confirmed' || !mins || liveState(b.date, b.time, mins, new Date(), b.timeZone) !== 'open' ? 'unavailable' : 'lobby');
+      } else if (liveState(b.date, b.time, mins, new Date(sessionNow()), b.timeZone) === 'over') setProblem('Esta sesión ya terminó.');
+      setPhase(!b || b.status !== 'confirmed' || !mins || liveState(b.date, b.time, mins, new Date(sessionNow()), b.timeZone) !== 'open' ? 'unavailable' : 'lobby');
     })();
     return () => {
       active = false;
@@ -197,6 +205,7 @@ const LiveRoom: React.FC = () => {
         setStatus(`${otherName} salió de la sala. Puedes esperar a que vuelva.`);
       })
       .on(RoomEvent.Reconnecting, () => {
+        sessionEvent(booking,'connection_problem',{participantRole:isCreator?'creator':'fan'}).catch(()=>undefined);
         setConnected(false);
         setStatus('Conexión inestable… reconectando.');
       })
@@ -257,7 +266,8 @@ const LiveRoom: React.FC = () => {
     if (!user || !booking) return;
     setPhase('joining');
     setProblem('');
-    const error = await connect();
+    let error:string|null;
+    try{error=await connect();}catch{error='No se pudo conectar. Comprueba tu conexión y vuelve a preparar la llamada.';}
     if (error) {
       setProblem(error);
       setPhase('lobby');
@@ -348,21 +358,14 @@ const LiveRoom: React.FC = () => {
           </div>
           <h1 className="text-xl font-bold text-gray-900">{booking.title}</h1>
           <p className="text-gray-600 mt-1">con {otherName}</p>
-          <p className="text-sm text-gray-500 mt-1 first-letter:uppercase">{formatLongDate(booking.date)} · {booking.time} · {minutes} min</p>
-          <p className="text-sm text-gray-500 mt-4">Tu navegador te pedirá permiso para usar la cámara y el micrófono. Solo están ustedes dos en la llamada y no se graba.</p>
+          <div className="mt-1 text-sm text-muted"><ReserveScheduleTime date={booking.date} time={booking.time} zone={booking.timeZone}/><span>{minutes} min</span></div>
           {phase === 'lobby' && (
             <div className="mt-5">
-              <CameraPreview cam={cam} />
+              <SessionPreparation booking={booking} isCreator={isCreator} onReady={join} cam={cam}/>
             </div>
           )}
           {problem && <p role="alert" className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{problem}</p>}
-          <button
-            onClick={join}
-            disabled={phase === 'joining'}
-            className="mt-6 w-full bg-gradient-to-r from-red-500 to-pink-600 text-white py-3 rounded-xl font-bold hover:opacity-90 disabled:opacity-50"
-          >
-            {phase === 'joining' ? 'Entrando…' : 'Entrar a la sala'}
-          </button>
+          {phase==='joining'&&<p role="status" className="mt-4 text-sm font-semibold">Entrando a tu Reserve…</p>}
         </div>
       </div>
     );
@@ -371,6 +374,7 @@ const LiveRoom: React.FC = () => {
   return (
     <div ref={callView} className={`${expanded ? 'fixed inset-0 z-[100] h-dvh overflow-hidden' : 'min-h-screen'} bg-gray-900 text-white`} data-testid="live-room" data-expanded={expanded} role={expanded ? 'dialog' : undefined} aria-modal={expanded ? true : undefined} aria-label={expanded ? `Videollamada con ${otherName}` : undefined}>
       <div className={expanded ? 'flex h-full min-h-0 flex-col px-3 pt-[max(.75rem,env(safe-area-inset-top))] pb-[max(.75rem,env(safe-area-inset-bottom))]' : 'max-w-6xl mx-auto px-4 py-6'}>
+        <SessionTiming booking={booking}/>
         <div className="flex shrink-0 items-center justify-between mb-3 gap-3">
           <div className="min-w-0">
             <p className="text-xs uppercase tracking-wide text-red-400 font-bold flex items-center">

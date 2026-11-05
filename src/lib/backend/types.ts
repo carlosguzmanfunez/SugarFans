@@ -165,6 +165,7 @@ export interface CounterOffer {
 // What a Reserve booking was for (vip_bookings.details). Empty on bookings made
 // before Reserve: those are virtual, for one person.
 export interface BookingDetails {
+  sessionPolicyVersion?: string;
   refundRequest?: { id: string; state: string; reason: string };
   approvalRequired?: boolean;
   paymentExpiredAt?: string;
