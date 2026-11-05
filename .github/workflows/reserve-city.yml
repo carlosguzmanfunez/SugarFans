@@ -12,6 +12,7 @@ on:
       - 'e2e/reserve-creator-zone-ui.mjs'
       - 'e2e/reserve-wizard-ui.mjs'
       - 'e2e/reserve-short-notice*.mjs'
+      - 'e2e/account-navigation-ui.mjs'
       - 'e2e/db-harness.mjs'
       - 'package*.json'
       - '.github/workflows/reserve-city.yml'
@@ -66,6 +67,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:reserve-city-ui
       - run: node e2e/reserve-catalog-ui.mjs
+      - run: node e2e/account-navigation-ui.mjs
       - run: node e2e/reserve-short-notice-ui.mjs
       - run: node e2e/reserve-controls-ui.mjs
       - run: node e2e/reserve-creator-zone-ui.mjs
