@@ -2,9 +2,9 @@ import React, { useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { BRAND } from '../config/brand';
-import { RESERVE_POLICIES, LEGAL_REVIEW_NOTICE, LEGAL_UPDATED } from '../content/reservePolicies';
+import { RESERVE_POLICIES, PLATFORM_POLICIES, LEGAL_REVIEW_NOTICE, LEGAL_UPDATED } from '../content/reservePolicies';
 import { CREATOR_SHARE, MIN_PAYOUT } from '../lib/platformRules';
-import { LEVELS as CREATOR_LEVELS, MAX_SHARE, REFERRAL_DAYS, REFERRAL_SHARE, pct } from '../lib/rewardRules';
+import { LEVELS as CREATOR_LEVELS, MAX_SHARE, REFERRAL_DAYS, REFERRAL_SHARE, FOUNDER_SHARE, FOUNDER_SEATS, CREATOR_INVITE_BONUS, CREATOR_INVITE_MONTHS, CREATOR_INVITE_QUALIFY, CREATOR_INVITE_CAP, pct } from '../lib/rewardRules';
 import { GIFT_SHARE } from '../lib/giftRules';
 
 const LegalPolicies: React.FC = () => {
@@ -14,11 +14,12 @@ const LegalPolicies: React.FC = () => {
     { id: 'privacy', name: 'Política de Privacidad', icon: 'fa-lock' },
     { id: 'creator', name: 'Contrato de Creadores', icon: 'fa-handshake' },
     { id: 'minors', name: 'Protección de menores', icon: 'fa-user-shield' },
+    ...PLATFORM_POLICIES.map(({ id, name, icon }) => ({ id, name, icon })),
     { id: 'cookies', name: 'Política de Cookies', icon: 'fa-cookie-bite' },
     { id: 'dmca', name: 'Política DMCA', icon: 'fa-scale-balanced' },
     ...RESERVE_POLICIES.map(({ id, name, icon }) => ({ id, name, icon })),
   ];
-  const reserveDoc = (id: string) => RESERVE_POLICIES.find((d) => d.id === id);
+  const reserveDoc = (id: string) => [...PLATFORM_POLICIES, ...RESERVE_POLICIES].find((d) => d.id === id);
   // The open document lives in the address (?doc=<id>), so footer links switch it
   // even while /legal is already open, and back/forward move between documents.
   const [params, setParams] = useSearchParams();
@@ -89,10 +90,10 @@ const LegalPolicies: React.FC = () => {
                     <p><strong>RESTRICCIÓN DE EDAD:</strong> Debe tener al menos DIECIOCHO (18) AÑOS de edad. Al entrar y al registrarse confirma que tiene 18 años o más.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">3. Cuentas de Usuario</h3>
-                    <p>Para crear una cuenta debe proporcionar información veraz. Los Creadores verifican su identidad con una foto del frente de su documento oficial y un selfie de frente; las imágenes se eliminan al aprobarse la verificación.</p>
+                    <p>Para crear una cuenta debe proporcionar información veraz. Los Creadores verifican su identidad con Didit (documento oficial, prueba de vida y comparación del rostro) antes de publicar y cobrar; su país queda fijado al de su documento. Ver <a href="/legal?doc=verification" className="underline">Verificación de identidad</a>.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">4. Contenido del Usuario</h3>
-                    <p>Usted conserva los derechos de su Contenido original. Al publicar, nos otorga licencia para distribuirlo en la Plataforma. Todo el Contenido debe cumplir con nuestras políticas.</p>
+                    <p>Usted conserva los derechos de su Contenido original. Al publicar, nos otorga licencia para mostrarlo y distribuirlo en la Plataforma. Todo el Contenido debe cumplir con nuestras políticas: las fotos y los videos se analizan automáticamente antes de publicarse y el equipo revisa los casos dudosos y los reportes.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">5. Contenido y Servicios prohibidos</h3>
                     <ul className="list-disc pl-5 space-y-2">
@@ -106,10 +107,11 @@ const LegalPolicies: React.FC = () => {
                     </ul>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">6. Reserve</h3>
-                    <p>{BRAND.name} permite reservar experiencias, no personas. Los servicios profesionales con un propósito definido están permitidos; vender la compañía o la intimidad de una persona no. Si el creador no cumple lo publicado, el fan recibe el reembolso completo, previa verificación. Las videollamadas y los Lives no se graban y está prohibido grabarlos. Las reservas se rigen por la <a href="/legal?doc=reserve-policy" className="underline">Política de Reserve</a> y la de <a href="/legal?doc=cancellation" className="underline">Cancelación y No-show</a>.</p>
+                    <p>La suscripción da acceso al contenido exclusivo del Creador. Todo el video en vivo (Reserve 1:1, Reserve Event, Meet &amp; Greet) se reserva y se paga aparte en Reserve, abierto a cualquier usuario registrado, esté suscrito o no.</p>
+                    <p>{BRAND.name} permite reservar experiencias, no personas. Los servicios profesionales con un propósito definido están permitidos; vender la compañía o la intimidad de una persona no. Si el fan cancela con 24 horas o más de anticipación recibe el 100%; con menos, el 50%; si no se presenta, nada. Si el creador cancela o no cumple lo publicado, el fan recibe el reembolso completo, previa verificación. Las devoluciones se solicitan al medio de pago original; el fan puede elegir Créditos. Las videollamadas y los Lives no se graban y está prohibido grabarlos. Las reservas se rigen por la <a href="/legal?doc=reserve-policy" className="underline">Política de Reserve</a> y la de <a href="/legal?doc=cancellation" className="underline">Cancelación y No-show</a>.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">7. Pagos y Comisiones</h3>
-                    <p>{BRAND.name} facilita la contratación y procesa el pago en nombre del Creador, que es el proveedor de cada suscripción, contenido o experiencia; la comisión de intermediación es ingreso propio de {BRAND.name} y la parte del Creador se registra como saldo a su favor hasta que se liquida. Métodos de pago: PayPal (incluido el pago con tarjeta a través de PayPal, cuando esté disponible). Todos los precios y pagos son en dólares estadounidenses (USD). Para el reparto inicial de suscripciones, propinas y reservas de Reserve, se descuenta del pago el costo de cobro comprobado o, si aún no se conoce, la estimación identificada como tal. El Creador recibe ordinariamente el 80% del importe resultante y Fans Reserve el 20%; los niveles y recompensas pueden elevar la parte del Creador hasta el 90%. Los regalos conservan su reparto del 60%. Las diferencias comprobadas posteriormente se tratan por separado, conforme a la regla siguiente. Suscripción mínima $4.99 USD al mes y propina mínima $3 USD. Las ganancias se acumulan del 26 al 25 siguiente y se acreditan al comenzar el 26; el pago se solicita del 26 al día 1 siguiente, ambos incluidos, en hora de Fans Reserve (UTC−6), a la cuenta PayPal del Creador desde $50 USD ($25 en Oro y Diamante); el costo real de enviar el retiro corresponde al creador. La estimación del panel se concilia con PayPal y cualquier diferencia comprobada se registra como ajuste a su favor o a su cargo.</p>
+                    <p>{BRAND.name} facilita la contratación y procesa el pago en nombre del Creador, que es el proveedor de cada suscripción, contenido o experiencia; la comisión de intermediación es ingreso propio de {BRAND.name} y la parte del Creador se registra como saldo a su favor hasta que se liquida. Métodos de pago: PayPal (incluido el pago con tarjeta a través de PayPal, cuando esté disponible). Todos los precios y pagos son en dólares estadounidenses (USD). Para el reparto inicial de suscripciones, propinas y reservas de Reserve, se descuenta del pago el costo de cobro comprobado o, si aún no se conoce, la estimación identificada como tal. El Creador recibe ordinariamente el 80% del importe resultante y Fans Reserve el 20%; los niveles, el programa de Creadores Fundadores, los fans de su enlace y las recompensas pueden elevar la parte del Creador hasta el 90%. Los regalos conservan su reparto del 60%. Las diferencias comprobadas posteriormente se tratan por separado, conforme a la regla siguiente. Suscripción mínima $4.99 USD al mes y propina mínima $3 USD. Las ganancias se acumulan del 26 al 25 siguiente y se acreditan al comenzar el 26; el pago se solicita del 26 al día 1 siguiente, ambos incluidos, en hora de Fans Reserve (UTC−6), a la cuenta PayPal del Creador desde $50 USD ($25 en Oro y Diamante); el costo real de enviar el retiro corresponde al creador. La estimación del panel se concilia con PayPal y cualquier diferencia comprobada se registra como ajuste a su favor o a su cargo.</p>
 
                     <p>Para enviar pagos en USD desde nuestra cuenta central de {BRAND.name}, el cálculo es el 2% de lo que recibe cada Creador, hasta USD 1 por envío individual. Ese costo se aparta de su saldo antes de enviar el pago. Se comprueba después cuánto cobró PayPal y cualquier diferencia se registra a favor o a cargo del Creador según el costo real comprobado. Un centavo sobrante por redondeo sigue perteneciendo al Creador y no es ingreso de {BRAND.name}. Los pagos ya preparados conservan sus importes y comprobantes originales.</p>
                     <p>En nuevas decisiones de corrección de costos de cobro, la comisión de intermediación fijada en el reparto inicial se conserva. El Creador asume íntegramente el costo adicional comprobado frente al costo usado en ese reparto, y recibe íntegramente cualquier ahorro comprobado. La diferencia posterior no se vuelve a dividir al 80%/20% ni se presenta como un nuevo reparto sobre el costo real. El costo real de enviarle el retiro también le corresponde íntegramente. Para un pago de USD 100 con costo inicial USD 5,70, la parte inicial del Creador es USD 75,44 y la de Fans Reserve USD 18,86: si el costo comprobado es USD 8, se descuentan USD 2,30 al Creador; si es USD 3, se le abonan USD 2,70. Fans Reserve conserva USD 18,86 en ambos casos. La estimación estándar que usamos para los cobros comerciales en USD recibidos en nuestra cuenta central es 5,4% más USD 0,30 por cada cobro, no un 5,70% general, sin perjuicio de condiciones efectivas distintas de la cuenta. Ambos ajustes nuevos se incorporan al pago mensual del mes calendario siguiente a su registro, dentro de la ventana del 26 al día 1 siguiente, sin otra transferencia independiente. Si no hay saldo suficiente para recuperar todo el exceso, la cantidad restante queda pendiente. Cada corrección mostrará el pago original, el costo calculado, el costo comprobado, su motivo, el importe que corresponde al Creador y la fecha de incorporación. Se aplica el costo del proveedor que corresponde a la operación original; un cambio de tarifas para operaciones futuras no se aplica por sí solo a operaciones pasadas. No se añaden multas ni intereses por esta corrección. El Creador puede solicitar revisión y aportar comprobantes, sin limitar sus derechos legales aplicables. Los regalos conservan su reparto y las decisiones anteriores documentadas conservan sus condiciones.</p>
@@ -144,7 +146,7 @@ const LegalPolicies: React.FC = () => {
                     <p className="text-sm text-gray-500"><strong>Última actualización:</strong> {LEGAL_UPDATED}</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">1. Información que Recopilamos</h3>
-                    <p>Datos de cuenta (nombre o alias, email, país, teléfono si decide darlo, género si decide darlo, foto de perfil), actividad en la Plataforma (publicaciones, mensajes, suscripciones, reservas), datos de verificación de los Creadores y, de los métodos de pago, solo la marca y los últimos 4 dígitos.</p>
+                    <p>Datos de cuenta (nombre o alias, email, país, teléfono si decide darlo, género si decide darlo, foto de perfil), actividad en la Plataforma (publicaciones, suscripciones, reservas, propuestas y reportes), datos de verificación de los Creadores (nombre legal, fecha de nacimiento, país y documento) y, de los pagos, el importe y la referencia de PayPal; nunca vemos ni guardamos números de tarjeta. Para los retiros, el email de la cuenta PayPal del Creador.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">2. Cómo Usamos su Información</h3>
                     <ul className="list-disc pl-5 space-y-2">
@@ -155,11 +157,12 @@ const LegalPolicies: React.FC = () => {
                       <li>Ver cuántos usuarios hay por país (en totales, sin datos individuales) y, en el caso de los Creadores, filtrarlos por país en Explorar y en el Top del mes de su país. El teléfono es opcional, solo lo usa el equipo para contactarle sobre su cuenta o sus reservas, y nunca se muestra en su perfil ni se comparte con otros usuarios</li>
                       <li>Elegir los colores de su cuenta según el género que indique (opcional: Mujer, Hombre o Prefiero no decirlo). Solo se usa para eso, nunca se muestra en su perfil ni se comparte con otros usuarios, y puede cambiarlo cuando quiera en Configuración</li>
                       <li>Si un Creador conecta su TikTok, confirmar que la cuenta es suya y guardar su usuario, nombre, foto y números públicos (seguidores, me gusta y videos). No guardamos el acceso a su cuenta de TikTok y puede desconectarla cuando quiera en Configuración</li>
+                      <li>Si nuestro equipo invita a un creador a unirse, usar los datos públicos de su perfil profesional (por ejemplo, de Instagram) y su email de contacto público para escribirle. Cada invitación incluye un enlace para no recibir más mensajes</li>
                       <li>Cumplir con obligaciones legales</li>
                     </ul>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">3. Con quién la compartimos</h3>
-                    <p>Solo con los proveedores que hacen funcionar el servicio: Supabase (base de datos, cuentas y archivos), Vercel (alojamiento web), LiveKit (video en vivo), Google si inicia sesión con su cuenta de Google y TikTok si conecta su cuenta de TikTok. No vendemos datos personales.</p>
+                    <p>Solo con los proveedores que hacen funcionar el servicio: PayPal (pagos y retiros), Supabase (base de datos, cuentas y archivos), Vercel (alojamiento web), LiveKit (video en vivo, que no se graba), Didit (verificación de identidad de los Creadores), Sightengine (análisis automático de fotos y videos antes de publicarse), Resend y Zoho Mail (envío de emails), Google si inicia sesión con su cuenta de Google y TikTok si conecta su cuenta de TikTok. No vendemos datos personales.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">4. Sus Derechos</h3>
                     <p>Tiene derecho a acceder, rectificar, eliminar y portar sus datos. Desde Configuración &gt; Privacidad puede descargar sus datos o eliminar su cuenta.</p>
@@ -168,7 +171,7 @@ const LegalPolicies: React.FC = () => {
                     <p>Las comunicaciones van cifradas (TLS), las contraseñas se guardan con hash y el acceso a los datos está limitado por cuenta en la base de datos.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">6. Retención de Datos</h3>
-                    <p>Conservamos los datos mientras su cuenta esté activa; al eliminarla se borran su cuenta, sus métodos de pago y sus documentos. Las imágenes de verificación se eliminan al aprobarse. Los registros de pagos pueden conservarse el tiempo que exija la ley fiscal.</p>
+                    <p>Conservamos los datos mientras su cuenta esté activa; al eliminarla se borran su cuenta, sus métodos de pago y sus documentos. Fans Reserve no guarda las imágenes de verificación: las procesa Didit conforme a su política (y las del formulario manual de respaldo se eliminan al aprobarse). Los registros de pagos pueden conservarse el tiempo que exija la ley fiscal.</p>
 
                     <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-xl">
                       <p className="text-sm text-blue-800">
@@ -191,9 +194,9 @@ const LegalPolicies: React.FC = () => {
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">2. Obligaciones del Creador</h3>
                     <ul className="list-disc pl-5 space-y-2">
-                      <li>Completar la verificación de identidad (frente del documento y selfie)</li>
+                      <li>Completar la verificación de identidad con Didit antes de publicar y cobrar; su país queda fijado al de su documento</li>
                       <li>Obtener consentimiento de todas las personas en su Contenido</li>
-                      <li>Cumplir lo publicado en sus suscripciones y experiencias de Reserve</li>
+                      <li>Cumplir lo publicado en sus suscripciones y experiencias de Reserve. Si cancela una reserva pagada o no cumple, el fan recibe el 100%, usted pierde esa ganancia, cubre el costo de PayPal no recuperado y cuenta en su historial de fiabilidad</li>
                       <li>Mantener la comunicación y los pagos dentro de la Plataforma</li>
                       <li>Cumplir con todas las leyes, permisos e impuestos aplicables</li>
                     </ul>
@@ -219,7 +222,7 @@ const LegalPolicies: React.FC = () => {
                         </tbody>
                       </table>
                     </div>
-                    <p>Aplica a suscripciones, renovaciones, propinas y reservas de Reserve, sobre el neto: lo que paga el fan menos la comisión de PayPal por ese pago. Desde Plata se pide no tener reportes confirmados en 90 días, y desde Oro responder a tiempo el 95% de las solicitudes de Reserve. Los fans de su enlace de invitación le dejan el {pct(REFERRAL_SHARE)} durante {REFERRAL_DAYS} días, y el bono por invitar creadores lo paga la Plataforma; nada supera el {pct(MAX_SHARE)} del neto. Los regalos le dejan el {pct(GIFT_SHARE)}. Las ganancias se acumulan del 26 al 25 siguiente y se acreditan al comenzar el 26; se solicita el saldo completo del 26 al día 1 siguiente, ambos incluidos, en hora de Fans Reserve (UTC−6), a su cuenta PayPal, desde ${MIN_PAYOUT} USD (${CREATOR_LEVELS[2].payoutMin} USD en Oro y Diamante). Todo se paga en dólares estadounidenses (USD). El costo real de enviar cada retiro lo paga usted. El panel muestra una estimación; cualquier diferencia comprobada se registra a su favor o a su cargo, sin cambiar el retiro original ni atribuir culpa automáticamente. Si PayPal no puede entregar un retiro (por ejemplo, el email no tiene cuenta PayPal y no se reclama), el monto vuelve a su saldo.</p>
+                    <p>Aplica a suscripciones, renovaciones, propinas y reservas de Reserve, sobre el neto: lo que paga el fan menos la comisión de PayPal por ese pago. Desde Plata se pide no tener reportes confirmados en 90 días, y desde Oro responder a tiempo el 95% de las solicitudes de Reserve. Los fans de su enlace de invitación le dejan el {pct(REFERRAL_SHARE)} durante {REFERRAL_DAYS} días, Los Creadores Fundadores (solo por invitación del equipo, {FOUNDER_SEATS} por país) reciben el {pct(FOUNDER_SHARE)} mientras lleguen a Oro en 2 meses y se mantengan ahí. Si un creador que usted invitó se verifica y vende sus primeros ${CREATOR_INVITE_QUALIFY}, usted recibe un {pct(CREATOR_INVITE_BONUS)} extra del neto de lo que venda durante {CREATOR_INVITE_MONTHS} meses, hasta ${CREATOR_INVITE_CAP} al mes por creador; lo paga la Plataforma y al invitado no se le descuenta nada. Nada supera el {pct(MAX_SHARE)} del neto. Los regalos le dejan el {pct(GIFT_SHARE)}. Las ganancias se acumulan del 26 al 25 siguiente y se acreditan al comenzar el 26; se solicita el saldo completo del 26 al día 1 siguiente, ambos incluidos, en hora de Fans Reserve (UTC−6), a su cuenta PayPal, desde ${MIN_PAYOUT} USD (${CREATOR_LEVELS[2].payoutMin} USD en Oro y Diamante). Todo se paga en dólares estadounidenses (USD). El costo real de enviar cada retiro lo paga usted. El panel muestra una estimación; cualquier diferencia comprobada se registra a su favor o a su cargo, sin cambiar el retiro original ni atribuir culpa automáticamente. Si PayPal no puede entregar un retiro (por ejemplo, el email no tiene cuenta PayPal y no se reclama), el monto vuelve a su saldo.</p>
 
                     <p>Para enviarle su pago en USD desde nuestra cuenta central de {BRAND.name}, calculamos el 2% de lo que recibirá, hasta USD 1 por envío individual. El cobro se aparta de su saldo. Por ejemplo, con USD 100 disponibles, se enviarían USD 99 a su PayPal y se apartaría USD 1 para el envío: USD 99 + USD 1 = USD 100. Después comprobamos el costo real de PayPal y registramos cualquier diferencia a su favor o a su cargo. Un centavo que sobre por redondeo sigue siendo suyo. Este costo no es una comisión adicional de {BRAND.name}. Los pagos ya preparados conservan sus importes y comprobantes originales.</p>
                     <p>En Reserve, el descuento para suscriptores que activa usted se absorbe de su parte; la parte de la Plataforma conserva como referencia el precio sin descuento. Las cuentas con condiciones especiales mantienen sus reglas.</p>
@@ -267,13 +270,13 @@ const LegalPolicies: React.FC = () => {
                     </ul>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">2. Verificación de Edad</h3>
-                    <p>Todos los Usuarios confirman que son mayores de 18 años al entrar y al registrarse. Los Creadores verifican su edad con documento oficial y selfie, y deben verificar la edad de todas las personas que aparecen en su Contenido. Ninguna experiencia de Reserve puede involucrar a menores.</p>
+                    <p>Todos los Usuarios confirman que son mayores de 18 años al entrar y al registrarse. Los Creadores verifican su edad con Didit (documento oficial, prueba de vida y comparación del rostro); se rechaza a cualquier menor. Los Creadores además deben verificar la edad de todas las personas que aparecen en su Contenido. Ninguna experiencia de Reserve puede involucrar a menores.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">3. Monitoreo y Detección</h3>
-                    <p>Combinamos una revisión automática básica de textos, los reportes de los usuarios y la revisión humana del equipo. Herramientas especializadas de detección (como PhotoDNA) están previstas antes del lanzamiento a producción.</p>
+                    <p>Las fotos y los videos se analizan automáticamente antes de publicarse y los dudosos quedan retenidos para revisión humana. Además revisamos automáticamente los textos de experiencias y solicitudes, y atendemos los reportes de los usuarios. La comparación con bases de imágenes ilegales conocidas (como PhotoDNA) está prevista.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">4. Cooperación con Autoridades</h3>
-                    <p>Reportamos inmediatamente a NCMEC, Europol, Interpol y autoridades locales. Cooperamos totalmente con investigaciones.</p>
+                    <p>Retiramos el contenido, conservamos la evidencia y lo reportamos al CyberTipline de NCMEC y a las autoridades competentes. Cooperamos con las investigaciones.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">5. Consecuencias</h3>
                     <p>Violaciones resultan en: terminación inmediata, retención de fondos, reporte a autoridades, acciones legales civiles y penales.</p>
@@ -306,6 +309,7 @@ const LegalPolicies: React.FC = () => {
                     </ul>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">Gestión</h3>
+                    <p>Algunos servicios de terceros usan sus propias cookies solo cuando usted los usa: PayPal al pagar (para procesar el pago y prevenir fraude), Google si inicia sesión con Google y Didit durante la verificación de identidad.</p>
                     <p>Puede borrar estos datos desde la configuración de su navegador; al hacerlo se cerrará su sesión. Si en el futuro añadimos analítica o publicidad, actualizaremos esta política y pediremos su consentimiento.</p>
                   </div>
                 </div>
@@ -330,7 +334,7 @@ const LegalPolicies: React.FC = () => {
                     </ul>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">Contra-notificación</h3>
-                    <p>Si cree que su Contenido fue eliminado erróneamente, puede enviar una contra-notificación.</p>
+                    <p>Si cree que su Contenido fue eliminado erróneamente, puede enviar una contra-notificación al mismo email. Aplicamos este procedimiento a las reclamaciones de derechos de autor de cualquier país.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">Infractores reincidentes</h3>
                     <p>Las cuentas que infrinjan derechos de autor repetidamente serán terminadas.</p>
