@@ -1,6 +1,6 @@
 # POLÍTICA DE COOKIES - FANS RESERVE
 
-**Última actualización:** Octubre 2026 (borrador)
+**Última actualización:** Noviembre 2026 (borrador)
 
 > **Borrador.** Requires legal review before production launch. Requiere revisión legal antes del lanzamiento a producción.
 
@@ -21,13 +21,13 @@ Fans Reserve **no usa cookies de publicidad ni de analítica de terceros** (no u
 | Dato | Propósito | Duración |
 |------|-----------|----------|
 | Sesión de Supabase | Mantener su sesión iniciada | Hasta que cierre sesión |
-| Datos de la cuenta en modo de prueba | Funcionamiento de la Plataforma | Hasta que los borre |
+| Dispositivo de confianza (solo cuentas del equipo con verificación en dos pasos) | No pedir el segundo paso en cada inicio de sesión | 30 días |
 
 ### 2.2. Funcional
 
 | Dato | Propósito | Duración |
 |------|-----------|----------|
-| Preferencias (`fansreserve_*`) | Recordar ajustes y avisos ya vistos | Hasta que los borre |
+| Preferencias (`fansreserve_*`) | Recordar ajustes, idioma, colores de la cuenta, confirmación de mayoría de edad y avisos ya vistos | Hasta que los borre |
 | Enlace de invitación | Atribuir su registro al Creador que lo invitó | 30 días |
 
 ---
@@ -35,7 +35,9 @@ Fans Reserve **no usa cookies de publicidad ni de analítica de terceros** (no u
 ## 3. TERCEROS
 
 - **Google**: si elige "Continuar con Google", Google puede usar sus propias cookies durante el inicio de sesión, según su política.
-- **Procesadores de pago**: cuando se integren (previsto: Stripe y PayPal), podrán usar cookies propias durante el pago para prevenir fraude.
+- **PayPal**: al pagar, el botón y la ventana de PayPal usan sus propias cookies para procesar el pago y prevenir fraude, según la política de PayPal.
+- **Didit**: durante la verificación de identidad de los Creadores, Didit puede usar sus propias cookies en su página, según su política.
+- **Notificaciones push**: si las activa, su navegador guarda una suscripción para poder enviarle avisos; puede desactivarlas desde el navegador.
 
 ---
 

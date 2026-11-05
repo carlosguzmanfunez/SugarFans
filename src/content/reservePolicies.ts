@@ -55,7 +55,20 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
       {
         heading: '4. Pagos',
         paragraphs: [
-          'El flujo es: solicitud, aceptación, pago, confirmación, experiencia y liquidación. El fan paga con PayPal cuando el creador acepta. Fans Reserve procesa el pago en nombre del creador, retiene su comisión y registra la parte del creador como saldo a su favor, que se acumula en ciclos del 26 al 25, se acredita al comenzar el 26 y se solicita a su cuenta PayPal del 26 al día 1 siguiente, ambos incluidos, en hora de Fans Reserve (UTC−6).',
+          'El flujo es: solicitud, aceptación, pago, confirmación, experiencia y liquidación. En las experiencias con aprobación, el fan paga cuando aceptas; en las de confirmación inmediata, paga al reservar. Paga con PayPal o con sus Créditos. Fans Reserve procesa el pago en nombre del creador, retiene su comisión y registra la parte del creador como saldo a su favor, que se acumula en ciclos del 26 al 25, se acredita al comenzar el 26 y se solicita a su cuenta PayPal del 26 al día 1 siguiente, ambos incluidos, en hora de Fans Reserve (UTC−6).',
+          'Recibes el 80% del neto de cada reserva (lo que paga el fan menos la comisión de PayPal), o el porcentaje mayor que te dé tu nivel, el programa de Creadores Fundadores o los fans de tu enlace, según el Contrato de Creadores.',
+          'Si activas un descuento para suscriptores (del 5% al 25%), lo absorbes de tu parte: la parte de Fans Reserve se calcula sobre el precio sin descuento.',
+        ],
+      },
+      {
+        heading: '5. Cancelaciones y fiabilidad',
+        bullets: [
+          'Si el fan cancela con 24 horas o más de anticipación, se le devuelve el 100% menos la comisión de cobro de PayPal y esa venta no se te acredita.',
+          'Si el fan cancela con menos de 24 horas, se le devuelve el 50% menos la comisión de cobro de PayPal; la otra mitad se reparte como una venta normal y recibes tu porcentaje de ella.',
+          'Si el fan no se presenta, conservas tu ganancia completa.',
+          'Si cancelas una reserva pagada o no cumples lo publicado, el fan recibe el 100%, pierdes la ganancia de esa reserva, cubres el costo de PayPal que no se recupere (con comprobante) y cuenta en tu historial de fiabilidad, que influye en tu nivel. Si ya retiraste esa ganancia, el ajuste se descuenta de tus ingresos futuros.',
+          'El fan tiene un cambio de fecha gratis por reserva 1:1, pedido con 24 horas o más de anticipación. Tú lo aceptas o lo rechazas; mientras tanto la reserva sigue confirmada.',
+          'Los detalles están en la política de Cancelación y No-show.',
         ],
       },
     ],
@@ -69,6 +82,16 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
       {
         heading: 'Principio',
         paragraphs: ['Fans Reserve permite reservar experiencias, no personas. Una reserva da derecho únicamente a la experiencia descrita, en las condiciones publicadas.'],
+      },
+      {
+        heading: 'Quién puede reservar y qué se reserva',
+        bullets: [
+          'Cualquier persona registrada y mayor de 18 años puede reservar o proponer una experiencia. No hace falta estar suscrito.',
+          'Solo se puede reservar a creadores con identidad verificada.',
+          'Formatos: Reserve 1:1 (videollamada privada en la sala de Fans Reserve, solo el fan y el creador), Reserve Event y Meet & Greet (experiencias de grupo con plazas limitadas, una plaza por fan) y experiencias presenciales o entregadas, según la categoría del creador.',
+          'Todo el video en vivo con un creador se reserva y se paga en Reserve. La suscripción no incluye Lives ni videollamadas.',
+          'Proponer experiencia: el fan describe lo que quiere y el creador la acepta, la rechaza o responde con una contraoferta. Una propuesta no aparta el horario hasta que se paga.',
+        ],
       },
       {
         heading: 'Estados de una reserva',
@@ -145,7 +168,7 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
       {
         heading: 'Cómo lo aplicamos',
         paragraphs: [
-          'Las experiencias y solicitudes pasan por una revisión automática básica que bloquea los casos claros y marca los dudosos para que el creador y el equipo los revisen. Los usuarios pueden reportar cualquier perfil, experiencia o reserva. Las infracciones pueden suponer la retirada de la experiencia y el cierre de la cuenta.',
+          'Las experiencias y solicitudes pasan por una revisión automática básica que bloquea los casos claros y marca los dudosos para que el creador y el equipo los revisen. Las fotos y los videos se analizan automáticamente antes de publicarse. Los usuarios pueden reportar cualquier perfil, experiencia o reserva. Las infracciones pueden suponer la retirada de la experiencia y el cierre de la cuenta.',
         ],
       },
     ],
@@ -169,6 +192,7 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
         heading: 'Reembolsos e incumplimientos',
         bullets: [
           'El creador no se presenta, llega más de 15 minutos tarde, cambia por su cuenta la fecha, la hora o el lugar, o la experiencia no corresponde a lo publicado: el fan recibe el reembolso completo, previa verificación.',
+          'Si el creador cancela una reserva pagada, se trata como un incumplimiento: el fan recibe el 100% por el medio original (o en Créditos si así pagó) y la cancelación cuenta en el historial de fiabilidad del creador.',
           'Live 1:1 y videollamadas: si el creador no entra a la sala en los primeros 10 minutos, o la sesión no se puede dar por un fallo de su lado, el fan recibe el reembolso completo.',
           'El fan es responsable de cumplir la fecha, hora, lugar, requisitos y condiciones publicados. La ausencia o llegada tarde del fan no genera una devolución comercial ni repone el tiempo perdido, sin limitar los derechos legales aplicables.',
           'Para pedir la devolución por incumplimiento, el fan usa Solicitar devolución o Reportar en Mis reservas. Se recomienda hacerlo dentro de 48 horas para conservar la evidencia, sin reducir plazos ni derechos legales. La solicitud queda registrada para revisión.',
@@ -185,7 +209,7 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
       },
       {
         heading: 'Cómo se devuelve el dinero',
-        paragraphs: ['La devolución al medio original queda pendiente hasta comprobar su ejecución. No se entrega simultáneamente dinero y Créditos por el mismo importe. La revocación legal de una contratación a distancia se revisa conforme a la normativa aplicable: en Honduras, los artículos 58 a 60 de la Ley de Protección al Consumidor contemplan cinco días hábiles para revocar un servicio aún no iniciado y hasta cinco días hábiles desde la notificación para restituir lo pagado. Una solicitud legal o un incumplimiento del creador no se cuenta como cancelación voluntaria.'],
+        paragraphs: ['Ejemplo con una reserva de USD 25 pagada con PayPal y una comisión de cobro de USD 1.65: con 24 horas o más se devuelven USD 23.35; con menos de 24 horas, USD 10.85 (la mitad, USD 12.50, menos la comisión); en Créditos, 2,500 o 1,250 Créditos sin descuento; si el creador cancela, USD 25. La comisión exacta de cada pago aparece en Mis reservas.', 'La devolución al medio original queda pendiente hasta comprobar su ejecución. No se entrega simultáneamente dinero y Créditos por el mismo importe. La revocación legal de una contratación a distancia se revisa conforme a la normativa aplicable: en Honduras, los artículos 58 a 60 de la Ley de Protección al Consumidor contemplan cinco días hábiles para revocar un servicio aún no iniciado y hasta cinco días hábiles desde la notificación para restituir lo pagado. Una solicitud legal o un incumplimiento del creador no se cuenta como cancelación voluntaria.'],
       },
     ],
   },
@@ -215,6 +239,43 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
       {
         heading: 'Contenido',
         paragraphs: ['Contenido sexual explícito no permitido. Sin contenido que involucre a menores, violencia o discriminación.'],
+      },
+    ],
+  },
+];
+
+// Platform policies that use the same simple layout as the Reserve ones (also drafts).
+export const PLATFORM_POLICIES: PolicyDoc[] = [
+  {
+    id: 'verification',
+    name: 'Verificación de identidad',
+    icon: 'fa-id-card',
+    intro: 'Quién verifica su identidad en Fans Reserve, cómo se hace y qué datos se guardan.',
+    sections: [
+      {
+        heading: 'Quién se verifica',
+        bullets: [
+          'Solo los creadores. Los fans confirman que son mayores de 18 años al entrar y al registrarse, y no suben documentos.',
+          'Un creador sin verificar puede preparar su perfil y guardar publicaciones como borrador, pero no puede publicarlas ni recibir pagos. Al verificarse, sus borradores se publican.',
+        ],
+      },
+      {
+        heading: 'Cómo se hace',
+        bullets: [
+          'La verificación la hace Didit, nuestro proveedor de verificación de identidad: foto del documento oficial, prueba de vida con la cámara y comparación del rostro con el del documento.',
+          'En un ordenador sin cámara, puede continuar en el móvil con el código QR que muestra la pantalla.',
+          'Se rechaza a cualquier persona menor de 18 años. Si Didit no puede decidir, la revisa una persona del equipo.',
+          'Al aprobarse, el perfil muestra la insignia "Verificado". El país del creador queda fijado al país del documento.',
+        ],
+      },
+      {
+        heading: 'Qué datos se guardan',
+        bullets: [
+          'Fans Reserve guarda el resultado, el nombre legal, la fecha de nacimiento, el país y el tipo y número del documento. Estos datos nunca se muestran en el perfil.',
+          'Las imágenes del documento y del rostro las procesa Didit conforme a su propia política de privacidad; Fans Reserve no las guarda.',
+          'Si la verificación se hace con el formulario manual de respaldo, las imágenes se eliminan al aprobarse.',
+          'Podemos pedir una nueva verificación si hay indicios de suplantación o de un error.',
+        ],
       },
     ],
   },

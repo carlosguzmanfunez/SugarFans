@@ -1,10 +1,10 @@
 # POLÍTICA DE PROTECCIÓN DE MENORES - FANS RESERVE
 
-**Última actualización:** Octubre 2026 (borrador)  
-**Versión:** 1.1.0  
+**Última actualización:** Noviembre 2026 (borrador)  
+**Versión:** 1.2.0  
 **Prioridad:** CRÍTICA - Tolerancia Cero
 
-> **Borrador.** Requires legal review before production launch. Requiere revisión legal antes del lanzamiento a producción. Donde esta política dice "previsto", la medida aún no está implementada y debe estarlo antes del lanzamiento.
+> **Borrador.** Requires legal review before production launch. Requiere revisión legal antes del lanzamiento a producción. Donde esta política dice "previsto", la medida aún no está implementada.
 
 ---
 
@@ -24,7 +24,7 @@ Cualquier persona que no haya cumplido los DIECIOCHO (18) AÑOS de edad, según 
 ### 1.2. Contenido con Menores
 Cualquier material que:
 - Represente visualmente a una persona menor de 18 años
-- Describa actividades sexuales o sugestivas involving menores
+- Describa actividades sexuales o sugestivas con menores
 - Promueva o normalice relaciones inapropiadas con menores
 - Sea producido con participación de menores (directa o indirecta)
 
@@ -64,7 +64,7 @@ Cualquier forma de abuso, uso inapropiado, o comercialización de menores, inclu
 
 2.2.4. **Lolita/Shotacon**: Cualquier contenido que sexualice personajes con apariencia de menores.
 
-2.2.5. **Contenido Educativo Inapropiado**: Material que enseñe o facilite el acceso de menores a contenido para adultos.
+2.2.5. **Contenido Educativo Inapropiado**: Material que enseñe o facilite el acceso de menores a contenido sexual o a la Plataforma.
 
 ---
 
@@ -74,29 +74,23 @@ Cualquier forma de abuso, uso inapropiado, o comercialización de menores, inclu
 
 3.1.1. **Declaración de Edad**: Todos los Usuarios confirman que son mayores de 18 años al entrar en la Plataforma y al registrarse.
 
-3.1.2. **Verificación Automática**: El sistema rechaza la verificación de Creadores cuya fecha de nacimiento indica menos de 18 años. Previsto: verificación de edad de fans cuando la ley del país lo exija.
+3.1.2. **Fans**: Los fans no suben documentos; confirman su mayoría de edad al entrar y al registrarse, y aceptan los Términos. Previsto: verificación de edad de fans cuando la ley del país lo exija.
 
-3.1.3. **Verificación Documental**: Para Creadores y en casos sospechosos, requerimos:
-- Foto del frente de un documento de identidad oficial
-- Selfie de frente, que se compara con la foto del documento
+3.1.3. **Creadores**: Todo Creador debe verificarse antes de publicar o cobrar. La verificación la hace Didit, nuestro proveedor de verificación: foto de un documento oficial, prueba de vida con la cámara y comparación del rostro con el del documento. El sistema rechaza a cualquier persona cuya fecha de nacimiento indique menos de 18 años.
 
 3.1.4. **Reserve**: Ninguna experiencia puede involucrar a menores ni realizarse con ellos presentes como participantes. Las menciones a menores en solicitudes y experiencias se marcan automáticamente para revisión.
 
 ### 3.2. Validación de Documentos
 
-3.2.1. **Autenticidad**: Verificamos que los documentos sean:
-- Originales (no fotocopias)
-- Vigentes (no vencidos)
-- No alterados o manipulados
-- Correspondientes a la persona
+3.2.1. **Autenticidad**: Didit comprueba que el documento sea auténtico, esté vigente, no haya sido alterado y corresponda a la persona que se verifica.
 
-3.2.2. **Revisión**: Hoy la verificación la revisa una persona del equipo, que comprueba la mayoría de edad y que el rostro coincide con el documento. Sistemas automáticos de detección de documentos falsos y verificación biométrica están previstos (por ejemplo, Stripe Identity).
+3.2.2. **Revisión**: Si Didit no puede decidir, la verificación queda en revisión y la decide una persona del equipo. Una verificación aprobada nunca se concede a un menor.
 
 ### 3.3. Verificación Continua
 
 3.3.1. **Monitoreo Periódico**: Podemos solicitar re-verificación en cualquier momento.
 
-3.3.2. **Análisis de Contenido**: Previsto: sistemas automáticos que analicen imágenes para detectar posibles menores.
+3.3.2. **Análisis de Contenido**: Las fotos y los videos se analizan automáticamente antes de publicarse; el contenido sexual o dudoso queda retenido y lo revisa una persona del equipo.
 
 3.3.3. **Reportes de Usuarios**: Investigamos inmediatamente cualquier reporte sobre menores.
 
@@ -110,11 +104,10 @@ Cuando un Creador publica Contenido que incluye a otras personas:
 
 4.1.1. **Verificación de Edad Obligatoria**: Debe verificar que TODAS las personas que aparecen son mayores de 18 años.
 
-4.1.2. **Documentación Requerida**:
-- Copia del documento de identidad de cada persona
-- Formulario de consentimiento firmado
-- Selfie de verificación de cada persona
-- Declaración de mayoría de edad
+4.1.2. **Documentación Requerida**: El Creador debe conservar, para cada persona que aparece:
+- Copia de su documento de identidad
+- Su consentimiento por escrito
+- Su declaración de mayoría de edad
 
 4.1.3. **Consentimiento Específico**: El consentimiento debe ser:
 - **Específico**: Para el Contenido particular
@@ -124,13 +117,11 @@ Cuando un Creador publica Contenido que incluye a otras personas:
 
 ### 4.2. Registro de Consentimientos
 
-4.2.1. **Almacenamiento Seguro**: Todos los consentimientos se almacenan de forma segura y encriptada.
+4.2.1. **Conservación**: El Creador conserva estos documentos durante al menos 5 años después de retirar el Contenido.
 
-4.2.2. **Acceso Restringido**: Solo personal autorizado puede acceder a estos registros.
+4.2.2. **Entrega**: Debe entregarlos a Fans Reserve en cuanto se le pidan; si no puede hacerlo, el Contenido se retira.
 
-4.2.3. **Retención**: Se mantienen durante 5 años después de la eliminación del Contenido.
-
-4.2.4. **Auditoría**: Pueden ser solicitados por autoridades o en caso de disputas.
+4.2.3. **Autoridades**: Fans Reserve puede entregarlos a las autoridades competentes cuando la ley lo exija.
 
 ### 4.3. Responsabilidad del Creador
 
@@ -150,33 +141,23 @@ Cuando un Creador publica Contenido que incluye a otras personas:
 
 ### 5.1. Sistemas Automatizados
 
-5.1.1. **Hoy**: Una revisión automática básica de textos (experiencias, solicitudes y títulos de Lives) bloquea los casos claros; en experiencias y solicitudes, además, marca para revisión las menciones a menores.
+5.1.1. **Fotos y videos**: Se analizan automáticamente antes de publicarse (hoy con Sightengine). El contenido sexual explícito no se publica y el dudoso queda retenido para revisión humana.
 
-5.1.2. **Previsto antes del lanzamiento**: Análisis automático de imágenes y videos, comparación con bases de hashes de contenido ilegal conocido (como PhotoDNA) y detección de patrones de comportamiento sospechoso.
+5.1.2. **Textos**: Una revisión automática básica de experiencias y solicitudes bloquea los casos claros y marca para revisión las menciones a menores.
+
+5.1.3. **Previsto**: Comparación con bases de hashes de contenido ilegal conocido (como PhotoDNA) y detección de patrones de comportamiento sospechoso.
 
 ### 5.2. Revisión Humana
 
-5.2.1. **Equipo de Moderación**: Equipo especializado revisa:
-- Contenido reportado
-- Contenido marcado por la revisión automática
-- Cuentas sospechosas
-- Patrones de comportamiento
+5.2.1. **Equipo**: El equipo de Fans Reserve revisa el contenido reportado, el contenido retenido por la revisión automática y las cuentas sospechosas, con prioridad máxima para cualquier caso que involucre a menores.
 
-5.2.2. **Capacitación**: Moderadores reciben capacitación en:
-- Identificación de CSAM
-- Técnicas de grooming
-- Señales de alerta
-- Protocolos de reporte
-
-5.2.3. **Soporte Psicológico**: Moderadores reciben apoyo psicológico por la naturaleza del contenido.
+5.2.2. **Formación**: Quienes revisan contenido conocen esta política, las señales de alerta y el protocolo de reporte.
 
 ### 5.3. Cooperación con Autoridades
 
-5.3.1. **Reporte Obligatorio**: Reportamos inmediatamente a:
-- NCMEC (National Center for Missing & Exploited Children)
-- Europol (para casos en Europa)
-- Autoridades locales de protección de menores
-- Interpol (casos internacionales)
+5.3.1. **Reporte**: Reportamos sin demora el material de abuso sexual infantil y la explotación de menores:
+- Al CyberTipline de NCMEC (National Center for Missing & Exploited Children)
+- A las autoridades competentes del país donde ocurran los hechos
 
 5.3.2. **Preservación de Evidencia**: Preservamos toda la evidencia relacionada con casos de menores.
 
@@ -240,25 +221,11 @@ Cuando recibimos una solicitud de autoridades:
 
 ### 7.1. Para Creadores
 
-7.1.1. **Capacitación Obligatoria**: Todos los Creadores deben completar capacitación sobre:
-- Políticas de protección de menores
-- Requisitos de verificación
-- Consecuencias legales
-- Señales de alerta
+7.1.1. **Información**: Al hacerse Creador, cada persona acepta el Contrato de Creadores y esta política, que explican las prohibiciones, la verificación y sus consecuencias legales.
 
-7.1.2. **Actualizaciones**: Capacitación de refuerzo anual.
+### 7.2. Para el Equipo
 
-7.1.3. **Certificación**: Certificación que debe renovarse periódicamente.
-
-### 7.2. Para Empleados
-
-7.2.1. **Capacitación Especializada**: Todo el personal recibe capacitación en:
-- Identificación de CSAM
-- Protocolos de respuesta
-- Aspectos legales
-- Sensibilidad al trauma
-
-7.2.2. **Actualizaciones Continuas**: Capacitación trimestral sobre nuevas amenazas y técnicas.
+7.2.1. **Formación**: Las personas del equipo que revisan contenido conocen los protocolos de respuesta y reporte de esta política.
 
 ### 7.3. Para Usuarios
 
@@ -268,33 +235,25 @@ Cuando recibimos una solicitud de autoridades:
 - Recursos para víctimas
 - Consecuencias de violaciones
 
-7.3.2. **Campañas de Concientización**: Campañas periódicas sobre protección de menores.
-
 ---
 
 ## 8. TECNOLOGÍA Y HERRAMIENTAS
 
 ### 8.1. Sistemas de Detección
 
-8.1.1. **Hoy**: Revisión automática básica de textos, reportes de usuarios y revisión humana.
+8.1.1. **Hoy**: Verificación de identidad y edad de Creadores con Didit, análisis automático de fotos y videos antes de publicarse, revisión automática básica de textos, reportes de usuarios y revisión humana.
 
-8.1.2. **Previsto**: PhotoDNA o una tecnología equivalente para detectar CSAM conocido, comparación de hashes y verificación biométrica de edad.
+8.1.2. **Previsto**: PhotoDNA o una tecnología equivalente para detectar CSAM conocido mediante comparación de hashes.
 
 ### 8.2. Herramientas de Moderación
 
-8.2.1. **Panel de Moderación**: Herramientas avanzadas para moderadores.
-
-8.2.2. **Sistema de Colas**: Priorización automática de casos urgentes.
-
-8.2.3. **Base de Conocimiento**: Acceso a información actualizada sobre amenazas.
+8.2.1. **Panel de Moderación**: El equipo revisa en el panel de administración el contenido retenido, los reportes y las verificaciones pendientes.
 
 ### 8.3. Seguridad de Datos
 
-8.3.1. **Encriptación**: Todos los datos sensibles están encriptados.
+8.3.1. **Acceso Restringido**: Solo personal autorizado accede a la información de verificación y de los reportes.
 
-8.3.2. **Acceso Restringido**: Solo personal autorizado accede a información de verificación.
-
-8.3.3. **Auditoría**: Registros de auditoría de todo el acceso.
+8.3.2. **Registros**: Las decisiones de moderación quedan registradas.
 
 ---
 
@@ -304,7 +263,7 @@ Cuando recibimos una solicitud de autoridades:
 
 9.1.1. **Terminación Inmediata**: Cuenta eliminada permanentemente.
 
-9.1.2. **Retención de Fondos**: Todos los fondos retenidos hasta resolver investigaciones.
+9.1.2. **Retención de Fondos**: Los fondos quedan retenidos mientras se investiga y se resuelven según la ley aplicable y las instrucciones de las autoridades.
 
 9.1.3. **Reporte a Autoridades**: Reporte inmediato a policía y agencias relevantes.
 
@@ -316,55 +275,31 @@ Cuando recibimos una solicitud de autoridades:
 
 Además de las consecuencias anteriores:
 
-9.2.1. **Pérdida de Ingresos**: Todos los Ingresos pendientes confiscados.
+9.2.1. **Ingresos**: Los Ingresos pendientes quedan retenidos y no se liberan mientras la ley o las autoridades lo impidan; las ventas relacionadas se reembolsan a los fans.
 
 9.2.2. **Responsabilidad Civil**: Responsabilidad por daños y perjuicios.
 
 9.2.3. **Cargos Penales**: Posibles cargos penales por producción/distribución de CSAM.
 
-9.2.4. **Registro de Delincuentes Sexuales**: Inclusión en registros según jurisdicción.
+9.2.4. **Otras Consecuencias Legales**: Las que establezca la ley de cada jurisdicción.
 
-### 9.3. Para Empleados que Violan Protocolos
+### 9.3. Para el Equipo
 
-9.3.1. **Terminación Laboral**: Despido inmediato.
-
-9.3.2. **Acciones Legales**: Posibles acciones legales por negligencia.
-
-9.3.3. **Responsabilidad Personal**: Responsabilidad personal por fallas en reportes.
+9.3.1. Quien forme parte del equipo y no siga estos protocolos queda fuera de las tareas de moderación y responde según la ley y su contrato.
 
 ---
 
 ## 10. COOPERACIÓN INTERNACIONAL
 
-### 10.1. Organizaciones con las que Cooperamos
+### 10.1. A quién Reportamos
 
-10.1.1. **NCMEC** (National Center for Missing & Exploited Children)
-- CyberTipline
-- Análisis de contenido
-- Recursos para víctimas
+10.1.1. **NCMEC**: Reportes al CyberTipline.
 
-10.1.2. **Europol**
-- Unidad de Explotación Infantil
-- Cooperación europea
-- Intercambio de información
+10.1.2. **Autoridades competentes**: Policía y fiscalía del país donde ocurran los hechos, y los organismos internacionales que intervengan a través de ellas.
 
-10.1.3. **Interpol**
-- Base de datos internacional
-- Operaciones coordinadas
-- Alertas globales
+### 10.2. Cooperación
 
-10.1.4. **INHOPE**
-- Red de líneas de ayuda
-- Cooperación internacional
-- Mejores prácticas
-
-### 10.2. Mecanismos de Cooperación
-
-10.2.1. **Reportes Automáticos**: Reportes automáticos a NCMEC para contenido detectado.
-
-10.2.2. **Intercambio de Información**: Intercambio seguro de información con autoridades.
-
-10.2.3. **Operaciones Conjuntas**: Participación en operaciones internacionales.
+10.2.1. Respondemos a las solicitudes legítimas de las autoridades y preservamos la evidencia que nos pidan.
 
 ---
 
@@ -390,13 +325,9 @@ Si usted o alguien que conoce es víctima de explotación:
 - SAPTEL: 55 5259-8121
 - Línea de la Vida: 800 911-2000
 
-### 11.2. Apoyo Legal
+### 11.2. Orientación
 
-11.2.1. **Asesoría Gratuita**: Conectamos víctimas con abogados especializados.
-
-11.2.2. **Apoyo Psicológico**: Recursos de salud mental para víctimas.
-
-11.2.3. **Acompañamiento**: Acompañamiento durante procesos legales.
+11.2.1. Si nos escribe una víctima o su familia, le orientamos hacia las líneas de ayuda y las autoridades de su país.
 
 ---
 
@@ -431,25 +362,13 @@ Al reportar, proporcione:
 
 ## 13. AUDITORÍA Y CUMPLIMIENTO
 
-### 13.1. Auditorías Internas
+### 13.1. Revisión Interna
 
-13.1.1. **Frecuencia**: Auditorías trimestrales de cumplimiento.
+13.1.1. **Frecuencia**: Revisamos al menos cada trimestre los procesos de verificación, la efectividad de la revisión automática y los tiempos de respuesta.
 
-13.1.2. **Alcance**: Revisión de:
-- Procesos de verificación
-- Efectividad de sistemas de detección
-- Tiempos de respuesta
-- Capacitación del personal
+### 13.2. Previsto
 
-13.1.3. **Reportes**: Reportes detallados a la dirección.
-
-### 13.2. Auditorías Externas
-
-13.2.1. **Terceros Independientes**: Auditorías anuales por firmas externas.
-
-13.2.2. **Certificaciones**: Buscamos certificaciones de organizaciones de protección infantil.
-
-13.2.3. **Transparencia**: Publicamos reportes anuales de cumplimiento.
+13.2.1. Auditorías externas y reportes públicos de transparencia cuando la Plataforma tenga el volumen que lo justifique.
 
 ### 13.3. Objetivos
 
@@ -489,7 +408,7 @@ Reconocemos que operamos en un entorno sensible y asumimos la responsabilidad de
 
 15.1.2. **Cooperar con Autoridades**: Cooperación total y proactiva.
 
-15.1.3. **Invertir en Seguridad**: Inversión continua en tecnología y personal.
+15.1.3. **Invertir en Seguridad**: Mejorar la tecnología y los procesos a medida que crezca la Plataforma.
 
 15.1.4. **Transparencia**: Transparencia sobre nuestras prácticas y resultados.
 
@@ -497,7 +416,7 @@ Reconocemos que operamos en un entorno sensible y asumimos la responsabilidad de
 
 ### 15.2. Declaración Final
 
-**FANS RESERVE SE COMPROMETE A SER LÍDER EN PROTECCIÓN DE MENORES Y A MANTENER LOS MÁS ALTOS ESTÁNDARES DE SEGURIDAD Y ÉTICA.**
+**FANS RESERVE SE COMPROMETE A PROTEGER A LOS MENORES Y A ACTUAR CON LA MÁXIMA SEVERIDAD ANTE CUALQUIER RIESGO PARA ELLOS.**
 
 Cualquier violación de esta Política será tratada con la máxima severidad y cooperación total con autoridades.
 

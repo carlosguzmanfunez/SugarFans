@@ -1,7 +1,7 @@
 # POLÍTICA DE PRIVACIDAD - FANS RESERVE
 
-**Última actualización:** Octubre 2026 (borrador)  
-**Versión:** 1.1.0  
+**Última actualización:** Noviembre 2026 (borrador)  
+**Versión:** 1.2.0  
 **Marco de referencia:** GDPR, CCPA y LGPD (el cumplimiento debe validarse en la revisión legal)
 
 > **Borrador.** Requires legal review before production launch. Requiere revisión legal antes del lanzamiento a producción.
@@ -25,24 +25,32 @@ Recopilamos la siguiente información personal:
 **a) Información de Registro:**
 - Nombre completo o nombre artístico
 - Dirección de correo electrónico
-- Confirmación de mayoría de edad
-- Fotografía de perfil
+- Confirmación de mayoría de edad y aceptación de los Términos
+- País
+- Teléfono, solo si decide darlo: lo usa el equipo para contactarle sobre su cuenta o sus reservas y nunca se muestra en su perfil
+- Género, solo si decide darlo (Mujer, Hombre o Prefiero no decirlo): solo se usa para elegir los colores de su cuenta, nunca se muestra ni se comparte, y puede cambiarlo en Configuración
+- Fotografía de perfil y de portada
 - Si inicia sesión con Google: nombre, email y foto que Google comparte
+- Si un Creador conecta su TikTok: usuario, nombre, foto y números públicos (seguidores, me gusta y videos); no guardamos el acceso a su cuenta
 
 **b) Información de Verificación (Creadores):**
-- Nombre legal, fecha de nacimiento, país, tipo y número de documento
-- Foto del frente del documento y selfie de frente (se eliminan al aprobarse la verificación)
+- La verificación la hace Didit (documento oficial, prueba de vida y comparación del rostro). Didit trata las imágenes del documento y del rostro, incluidos datos biométricos, conforme a su propia política de privacidad
+- Fans Reserve recibe y guarda el resultado, el nombre legal, la fecha de nacimiento, el país y el tipo y número de documento; no guarda las imágenes
+- Si se usa el formulario manual de respaldo: foto del frente del documento y selfie, que se eliminan al aprobarse la verificación
 
 **c) Información de Pago:**
-- De cada método de pago, solo la marca y los últimos 4 dígitos (nunca el número completo)
-- Historial de transacciones
-- Cuenta bancaria de destino (para Creadores que retiran ingresos)
+- De cada pago, el importe, el concepto y la referencia de PayPal; nunca vemos ni guardamos números de tarjeta
+- Historial de transacciones, devoluciones y Créditos
+- Email de la cuenta PayPal donde el Creador recibe sus retiros
 
 **d) Información de Perfil:**
-- Biografía y descripción
-- Preferencias de contenido
-- Configuración de privacidad
-- Historial de suscripciones
+- Biografía, categoría, usuario (@) y redes sociales que el Creador enlaza
+- Configuración de privacidad y de notificaciones
+- Historial de suscripciones y reservas
+
+**e) Creadores a los que invitamos:**
+- Si nuestro equipo invita a un creador que aún no es Usuario, usa los datos públicos de su perfil profesional (por ejemplo, de Instagram: nombre, usuario, foto, biografía y números públicos) y su email de contacto público para escribirle
+- Cada invitación incluye un enlace para no recibir más mensajes; puede pedirnos que borremos sus datos en privacy@fansreserve.com
 
 ### 1.2. Información de Uso
 
@@ -57,7 +65,8 @@ Recopilamos automáticamente información sobre su uso de la Plataforma:
 
 ### 1.3. Información de Comunicaciones
 
-- Mensajes enviados a través de la Plataforma
+- Propuestas y solicitudes de Reserve, con sus mensajes y contraofertas (la Plataforma no tiene mensajes privados entre Usuarios)
+- Reportes enviados y su resolución
 - Correos electrónicos intercambiados
 - Registros de soporte al cliente
 - Historial de reservas de Reserve (solicitudes, contraofertas, confirmaciones y reportes)
@@ -66,7 +75,11 @@ Recopilamos automáticamente información sobre su uso de la Plataforma:
 
 Las videollamadas y los Lives se transmiten en tiempo real a través de nuestro proveedor de video y **no se graban ni se guardan**. Sobre el video se muestra el nombre y un código de la cuenta de quien lo ve, para disuadir grabaciones.
 
-### 1.5. Almacenamiento en el navegador
+### 1.5. Fotos y videos publicados
+
+Antes de publicarse, las fotos y los videos se envían a Sightengine, nuestro proveedor de análisis automático, para detectar contenido que incumpla nuestras normas. Los dudosos los revisa una persona del equipo.
+
+### 1.6. Almacenamiento en el navegador
 
 Guardamos su sesión y sus preferencias en el almacenamiento local de su navegador. Ver nuestra Política de Cookies para más detalles.
 
@@ -86,7 +99,7 @@ Utilizamos su información para:
 - Personalizar su experiencia
 
 **b) Seguridad y Verificación:**
-- Verificar su identidad y edad
+- Verificar la identidad y la edad de los Creadores
 - Prevenir fraude y actividades ilegales
 - Proteger la seguridad de la Plataforma
 - Cumplir con obligaciones legales
@@ -96,6 +109,7 @@ Utilizamos su información para:
 - Informar sobre actualizaciones del servicio
 - Responder a consultas y soporte
 - Enviar marketing (con su consentimiento)
+- Enviar notificaciones push, solo si las activa en su dispositivo
 
 **d) Análisis y Estadísticas:**
 - Analizar tendencias de uso
@@ -122,13 +136,16 @@ Compartimos información con terceros que nos ayudan a operar:
 
 **a) Procesadores de Pago:**
 - PayPal procesa los pagos de los fans y los retiros de los creadores; recibe solo la información necesaria para cada transacción (monto, concepto y la cuenta PayPal o tarjeta que la persona usa en PayPal). No guardamos números de tarjeta
-- Previsto: Stripe, que recibirá la misma información mínima cuando se integre
 
 **b) Proveedores de Servicios:**
 - Supabase: base de datos, cuentas y almacenamiento de archivos
 - Vercel: alojamiento del sitio web
-- LiveKit: transmisión de video en vivo
+- LiveKit: transmisión de video en vivo (no se graba)
+- Didit: verificación de identidad de los Creadores
+- Sightengine: análisis automático de fotos y videos antes de publicarse
+- Resend y Zoho Mail: envío y recepción de emails
 - Google: inicio de sesión, solo si usted elige "Continuar con Google"
+- TikTok e Instagram: datos públicos de perfiles de creadores, solo cuando el Creador conecta su cuenta o cuando nuestro equipo prepara una invitación
 
 **c) Asesores Legales y Fiscales:**
 - Cuando sea requerido por ley
@@ -187,9 +204,9 @@ Conservamos su información solo el tiempo necesario:
 - Según requisitos legales de su jurisdicción
 
 **c) Datos de Verificación:**
-- Las imágenes del documento y el selfie se eliminan al aprobarse la verificación
-- Los datos del formulario y el resultado se conservan mientras la cuenta esté activa
-- Al eliminar la cuenta se borran sus documentos de verificación
+- Fans Reserve no conserva las imágenes del documento ni del rostro: las trata Didit según su política (las del formulario manual de respaldo se eliminan al aprobarse)
+- El resultado y los datos del documento se conservan mientras la cuenta esté activa
+- Al eliminar la cuenta se borran sus datos de verificación
 
 **d) Registros de Actividad:**
 - 2 años para análisis y seguridad
@@ -278,7 +295,7 @@ Respondemos dentro de:
 **a) Cifrado:**
 - TLS para todas las comunicaciones
 - Contraseñas guardadas con hash y sal, nunca en texto plano
-- Los mensajes privados no tienen cifrado de extremo a extremo
+- Las videollamadas viajan cifradas hasta el proveedor de video, sin cifrado de extremo a extremo
 
 **b) Infraestructura:**
 - Servicios en la nube de nuestros proveedores (ver sección 3.1)
@@ -286,6 +303,7 @@ Respondemos dentro de:
 
 **c) Acceso:**
 - Control de acceso basado en roles (fan, creador, administrador)
+- Verificación en dos pasos para las cuentas del equipo con acceso de administrador
 - Revisiones periódicas de permisos
 
 ### 7.2. Medidas Organizacionales
@@ -310,7 +328,7 @@ En caso de violación de datos:
 **NO recopilamos conscientemente información de menores de 18 años.**
 
 - La Plataforma es solo para mayores de 18 años
-- Todos los Usuarios confirman que son mayores de 18 años al entrar y al registrarse; los Creadores verifican su edad con documento y selfie
+- Todos los Usuarios confirman que son mayores de 18 años al entrar y al registrarse; los Creadores verifican su edad con Didit (documento, prueba de vida y comparación del rostro)
 - Eliminamos inmediatamente cualquier cuenta de menor identificada
 - Reportamos a autoridades cualquier sospecha de contenido con menores
 
@@ -405,10 +423,11 @@ Ver nuestra Política de Cookies completa para detalles sobre:
 | Categoría | Ejemplos | Finalidad | Retención |
 |-----------|----------|-----------|-----------|
 | Identificación | Nombre, email, foto | Cuenta, comunicación | Duración cuenta + 30 días |
-| Financiera | Tarjeta, historial | Pagos, facturación | 7 años |
+| Financiera | Referencia de PayPal, historial, email de retiro | Pagos, facturación | 7 años |
 | Uso | IP, navegador, actividad | Análisis, seguridad | 2 años |
-| Contenido | Posts, mensajes | Servicio | Duración cuenta |
-| Verificación | ID, selfie | Verificar identidad y edad | Imágenes: hasta la aprobación. Datos del formulario: duración cuenta |
+| Contenido | Publicaciones, experiencias, propuestas | Servicio | Duración cuenta |
+| Verificación | Resultado y datos del documento | Verificar identidad y edad de Creadores | Duración cuenta (imágenes: las trata Didit) |
+| Opcional | Teléfono, género | Contacto del equipo, colores de la cuenta | Hasta que lo borre o cierre la cuenta |
 
 ---
 

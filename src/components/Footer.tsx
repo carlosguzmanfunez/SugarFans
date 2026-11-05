@@ -31,7 +31,7 @@ const columnsFor = (role: UserRole | undefined, canSwitch = false): { title: str
     links: [
       ...(account.creators ? [account.creators] : []),
       { label: 'Contrato de creadores', to: '/legal?doc=creator' },
-      { label: 'Verificación de identidad', to: '/help' },
+      { label: 'Verificación de identidad', to: '/legal?doc=verification' },
     ],
   },
   {
@@ -47,7 +47,7 @@ const columnsFor = (role: UserRole | undefined, canSwitch = false): { title: str
     title: 'Seguridad',
     links: [
       { label: 'Protección de menores', to: '/legal?doc=minors' },
-      { label: 'Reportar contenido', to: '/help' },
+      { label: 'Reportar contenido', to: '/help#report-form' },
       { label: 'Derechos de autor (DMCA)', to: '/legal?doc=dmca' },
     ],
   },

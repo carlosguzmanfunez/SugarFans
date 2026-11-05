@@ -1,7 +1,7 @@
 # CONTRATO PARA CREADORES Y AFILIADOS - FANS RESERVE
 
-**Última actualización:** Octubre 2026 (borrador)  
-**Versión:** 1.1.0  
+**Última actualización:** Noviembre 2026 (borrador)  
+**Versión:** 1.2.0  
 **Tipo:** Acuerdo Legal Vinculante
 
 > **Borrador.** Requires legal review before production launch. Requiere revisión legal antes del lanzamiento a producción. Los pagos se procesan con PayPal. Mientras la plataforma está en fase de prelanzamiento, el acceso está restringido.
@@ -70,10 +70,12 @@ Este Contrato para Creadores y Afiliados ("Contrato") constituye un acuerdo lega
 
 ### 3.1. Verificación y Cumplimiento
 
-3.1.1. **Verificación de Identidad**: Debe completar el proceso de verificación proporcionando:
-- Foto del frente de un documento de identidad oficial válido
-- Selfie de frente, que se compara con la foto del documento
-- Al aprobarse, las imágenes se eliminan y su perfil muestra la insignia "Verificado"
+3.1.1. **Verificación de Identidad**: Debe completar la verificación con Didit, nuestro proveedor de verificación:
+- Foto de un documento de identidad oficial válido
+- Prueba de vida con la cámara y comparación del rostro con el del documento
+- Al aprobarse, su perfil muestra la insignia "Verificado" y su país queda fijado al país de su documento
+- Hasta verificarse puede preparar su perfil y guardar borradores, pero no publicarlos ni recibir pagos; al verificarse, sus borradores se publican
+- Fans Reserve guarda el resultado y los datos del documento, no las imágenes (ver la política de Verificación de identidad)
 
 3.1.2. **Mayoría de Edad**: Declara y garantiza que tiene 18 años o más.
 
@@ -95,9 +97,9 @@ Este Contrato para Creadores y Afiliados ("Contrato") constituye un acuerdo lega
 
 3.3.1. **Libertad de publicación**: Usted decide cuándo y cuánto publica. No hay una frecuencia mínima.
 
-3.3.2. **Comunicación**: No está obligado a responder mensajes ni a aceptar solicitudes; puede rechazar, bloquear o reportar a cualquier usuario.
+3.3.2. **Comunicación**: No está obligado a aceptar solicitudes ni propuestas; puede rechazarlas, y bloquear o reportar a cualquier usuario. Desde el nivel Oro se pide responder a tiempo el 95% de las solicitudes de Reserve.
 
-3.3.3. **Experiencias de Reserve**: Debe cumplir las experiencias confirmadas en la fecha, hora y lugar acordados, ofrecer solo servicios con un propósito definido y respetar el Acuerdo de Creator (Reserve) y la política de Servicios Prohibidos. Si no cumple, el fan recibe el reembolso completo previa verificación y ese importe no se le acredita. Se aplica una sola regla de cancelación para todas las experiencias: si el fan cancela 24 horas o más antes, recibe el 100% en Créditos y la venta no se le acredita; si cancela con menos de 24 horas, recibe el 50% en Créditos y usted conserva la mitad de su ganancia de esa venta; si el fan no se presenta, usted conserva su ganancia completa. Si usted cancela una reserva pagada, el fan recibe el 100% en Créditos, la venta no se le acredita y la cancelación cuenta en su historial de fiabilidad y puede bajar su nivel. Si la ganancia ya se le pagó, el ajuste se descuenta de sus ingresos futuros, como en 6.2.3. El fan puede pedir un cambio de fecha gratis por reserva 1:1 con 24 horas o más de anticipación; usted lo acepta o lo rechaza.
+3.3.3. **Experiencias de Reserve**: Debe cumplir las experiencias confirmadas en la fecha, hora y lugar acordados, ofrecer solo servicios con un propósito definido y respetar el Acuerdo de Creator (Reserve) y la política de Servicios Prohibidos. Si no cumple, el fan recibe el reembolso completo previa verificación y ese importe no se le acredita. Se aplica una sola regla de cancelación para todas las experiencias: si el fan cancela 24 horas o más antes, se le devuelve el 100% menos la comisión de cobro de PayPal y la venta no se le acredita; si cancela con menos de 24 horas, se le devuelve el 50% menos esa comisión, y la otra mitad se reparte como una venta, de la que usted recibe su porcentaje; si el fan no se presenta, usted conserva su ganancia completa. Las devoluciones se solicitan al medio de pago original del fan, que puede elegir Créditos (en ese caso sin descuento de la comisión). Si usted cancela una reserva pagada, se trata como un incumplimiento: el fan recibe el 100%, la venta no se le acredita, usted cubre el costo comprobado de PayPal que no se recupere y la cancelación cuenta en su historial de fiabilidad y puede bajar su nivel. Si la ganancia ya se le pagó, el ajuste se descuenta de sus ingresos futuros, como en 6.2.3. El fan puede pedir un cambio de fecha gratis por reserva 1:1 con 24 horas o más de anticipación; usted lo acepta o lo rechaza.
 
 ### 3.4. Conducta Profesional
 
@@ -186,7 +188,7 @@ Este Contrato para Creadores y Afiliados ("Contrato") constituye un acuerdo lega
 ### 6.1. Estructura de Ingresos
 
 6.1.1. **Fuentes de Ingresos**:
-- Suscripciones mensuales y sus renovaciones
+- Suscripciones mensuales y sus renovaciones (dan acceso a su contenido exclusivo; no incluyen Lives ni videollamadas)
 - Propinas
 - Regalos enviados con Créditos
 - Reservas de experiencias en Reserve
@@ -196,10 +198,16 @@ Este Contrato para Creadores y Afiliados ("Contrato") constituye un acuerdo lega
 En el reparto ordinario de suscripciones, renovaciones, propinas y Reserve, los porcentajes se calculan sobre el **neto** de cada pago: lo que paga el fan menos la comisión que cobra el procesador de pagos (PayPal) por ese pago.
 - **Suscripciones, renovaciones, propinas y reservas de Reserve**: 80% del neto; 83% en el nivel Diamante
 - **Fans de su enlace de invitación**: 85% del neto de lo que le paguen durante 60 días (o su parte de nivel, si es mayor)
-- **Invitar Creadores**: cuando al menos 2 Creadores que invitó con su enlace de creadores estén verificados y hayan vendido sus primeros $100 USD, recibe un 5% extra del neto de lo que venda cada uno (suscripciones, renovaciones y propinas) durante un mes, hasta $100 USD por Creador invitado, sin que a ellos se les descuente nada
+- **Creador Fundador**: 82% del neto (o su parte de nivel, si es mayor), según 6.1.3
+- **Invitar Creadores**: cuando un Creador que invitó con su enlace de creadores se verifica y vende sus primeros $100 USD, usted recibe un 5% extra del neto de lo que venda (suscripciones, renovaciones, propinas y Reserve) durante 6 meses, hasta $100 USD por mes calendario y por Creador invitado. Lo paga la Plataforma y al invitado no se le descuenta nada.
 - **Regalos**: 60%
 - **Tope**: sumando todos los beneficios, nunca recibe más del 90% del neto de una venta
 - **Precios mínimos**: suscripción $4.99 USD al mes; propina $3 USD
+
+6.1.3. **Creadores Fundadores**: Es un programa solo por invitación personal del equipo de Fans Reserve, con un máximo de 100 Fundadores por país, elegidos por el equipo. El Fundador recibe el 82% del neto y la insignia "Fundador" mientras se cumplan estas condiciones:
+- Llegar al nivel Oro dentro de los 2 meses siguientes a unirse
+- Mantenerse en Oro o en un nivel superior; si baja, tiene 30 días para recuperarlo
+- Si no se cumplen, pierde el título y el 82% desde ese momento, con aviso previo en su panel; nunca se le quita dinero ya ganado y su plaza queda libre
 
 ### 6.2. Cálculo de Pagos
 
@@ -492,7 +500,7 @@ Este Contrato se rige por las leyes del país donde esté constituida la socieda
 
 14.2.1. **Negociación**: Primero intentaremos resolver disputas mediante negociación de buena fe durante 30 días.
 
-14.2.2. **Mediación**: Si la negociación falla, mediación vinculante ante un mediador neutral.
+14.2.2. **Mediación**: Si la negociación falla, mediación ante un mediador neutral.
 
 14.2.3. **Arbitraje**: Para disputas mayores a $10,000 USD, arbitraje vinculante según reglas de la Cámara de Comercio Internacional (ICC).
 
@@ -566,12 +574,12 @@ Este Contrato está sujeto a las siguientes políticas adicionales:
 
 | Nivel | Requisito (fans activos o ventas en 30 días) | Su parte del neto | Beneficios |
 |-------|----------------------------------------------|-------------------|------------|
-| Bronce | Al empezar | 80% | Reserve Event de hasta 10 plazas |
+| Bronce | Al empezar | 80% | Reserve Event de hasta 10 plazas, retiros desde $50 |
 | Plata | 10+ fans o $250, sin reportes confirmados en 90 días | 80% | "En ascenso" en Explorar, Reserve Event de hasta 20 plazas |
 | Oro | 50+ fans o $1,000, sin reportes y respondiendo a tiempo el 95% de las solicitudes | 80% | Destacado en Explorar, retiros desde $25, Reserve Event de hasta 50 plazas |
 | Diamante | 200+ fans o $5,000, mismas condiciones que Oro | 83% | Todo lo de Oro, primero en la portada de su categoría |
 
-Los fans que llegan con su enlace cuentan doble para el nivel. Las medallas (Primer Reserve, Imán de fans, Puntual, Constante y Embajador) dan días destacado en Explorar o una insignia visible. Tope de cualquier combinación de beneficios: 90% del neto.
+Los fans que llegan con su enlace cuentan doble para el nivel. Las medallas (Fundador, Primer Reserve, Imán de fans, Puntual, Constante y Embajador) dan días destacado en Explorar o una insignia visible. Los Creadores Fundadores reciben el 82% del neto (ver 6.1.3). Tope de cualquier combinación de beneficios: 90% del neto.
 
 ---
 
