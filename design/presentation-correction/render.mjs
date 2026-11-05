@@ -58,12 +58,12 @@ for (let i = 0; i < projects.length; i += 2) {
     }
     const scene = join(work, `${name}-scene.mp4`);
     await run(process.execPath, [cli, 'render', folder, '--output', scene, '--fps', '30', '--quality', 'high', '--workers', '2'], join(work, `${name}-render.log`));
-    const filter = '[0:v]split=2[h][t];[h]trim=end=19.6,setpts=PTS-STARTPTS,format=yuv420p,setsar=1[head];[t]trim=start=24.6,setpts=PTS-STARTPTS,format=yuv420p,setsar=1[tail];[1:v]setpts=PTS-STARTPTS,format=yuv420p,setsar=1[scene];[head][scene]xfade=transition=fade:duration=0.4:offset=19.2[first];[first][tail]xfade=transition=fade:duration=0.4:offset=24.6[v]';
+    const filter = '[0:v]split=2[h][t];[h]trim=end=19.6,setpts=PTS-STARTPTS,fps=30,format=yuv420p,setsar=1[head];[t]trim=start=24.6,setpts=PTS-STARTPTS,fps=30,format=yuv420p,setsar=1[tail];[1:v]setpts=PTS-STARTPTS,fps=30,format=yuv420p,setsar=1[scene];[head][scene]xfade=transition=fade:duration=0.4:offset=19.2[first];[first][tail]xfade=transition=fade:duration=0.4:offset=24.6[v]';
     await run(ffmpeg, ['-hide_banner', '-y', '-i', input, '-i', scene, '-filter_complex', filter, '-map', '[v]', '-map', '0:a?', '-c:v', 'libx264', '-crf', '18', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-r', '30', '-c:a', 'copy', '-t', '31.6', '-movflags', '+faststart', output], join(work, `${name}-splice.log`));
     const result = await probe(output, join(work, `${name}-output.json`));
     const finalVideo = result.streams.find(s => s.codec_type === 'video');
     if (Math.abs(Number(result.format.duration) - 31.6) > .02 || finalVideo.width !== video.width || finalVideo.height !== video.height || finalVideo.r_frame_rate !== '30/1' || Number(finalVideo.nb_frames) !== 948) throw new Error(`Output format mismatch: ${file}`);
-    manifest.push({ file, sourceSha256: hash(input), outputSha256: hash(output), duration: result.format.duration, video: finalVideo, checks: ['lint', 'validate', 'inspect'], exclusiveLabel: languages[lang][5] });
+    manifest.push({ file, sourceSha256: hash(input), outputSha256: hash(output), duration: result.format.duration, video: finalVideo, checks: ['lint', 'validate', 'inspect'], exclusiveLabel: languages[lang][3], proposeLabel: languages[lang][4] });
     writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
     console.log(`OK ${name}: ${file}`);
   }));

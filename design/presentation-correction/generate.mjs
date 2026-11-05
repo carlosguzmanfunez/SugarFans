@@ -3,12 +3,14 @@ import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const sourceDir = dirname(fileURLToPath(import.meta.url));
+// [eyebrow, title, step 1, label 1, step 2, label 2, step 3]; step 3 label is "Reserve Event · 1:1" everywhere.
+// Order matches the creator profile: subscribe (exclusive content), propose an experience, book a Reserve.
 export const languages = {
-  es: ['ASÍ FUNCIONA', 'Cada paso te acerca más.', 'Sigue', 'Gratis', 'Suscríbete', 'Contenido exclusivo', 'Reserva'],
-  en: ['HOW IT WORKS', 'Every step brings you closer.', 'Follow', 'Free', 'Subscribe', 'Exclusive content', 'Reserve'],
-  pt: ['COMO FUNCIONA', 'Cada passo te deixa mais perto.', 'Siga', 'Grátis', 'Assine', 'Conteúdo exclusivo', 'Reserve'],
-  fr: ['COMMENT ÇA MARCHE', 'Chaque étape te rapproche.', 'Suivre', 'Gratuit', "S’abonner", 'Contenu exclusif', 'Réserver'],
-  it: ['COME FUNZIONA', 'Ogni passo ti porta più vicino.', 'Segui', 'Gratis', 'Abbonati', 'Contenuto esclusivo', 'Prenota'],
+  es: ['ASÍ FUNCIONA', 'Cada paso te acerca más.', 'Suscríbete', 'Contenido exclusivo', 'Propón', 'Tu experiencia', 'Reserva'],
+  en: ['HOW IT WORKS', 'Every step brings you closer.', 'Subscribe', 'Exclusive content', 'Propose', 'Your experience', 'Reserve'],
+  pt: ['COMO FUNCIONA', 'Cada passo te deixa mais perto.', 'Assine', 'Conteúdo exclusivo', 'Proponha', 'Sua experiência', 'Reserve'],
+  fr: ['COMMENT ÇA MARCHE', 'Chaque étape te rapproche.', "S’abonner", 'Contenu exclusif', 'Propose', 'Ton expérience', 'Réserver'],
+  it: ['COME FUNZIONA', 'Ogni passo ti porta più vicino.', 'Abbonati', 'Contenuto esclusivo', 'Proponi', 'La tua esperienza', 'Prenota'],
 };
 export function generate(out, tools) {
   const template = readFileSync(join(sourceDir, 'scene.html'), 'utf8');
@@ -22,7 +24,7 @@ export function generate(out, tools) {
       copyFileSync(resolve(sourceDir, '../../node_modules/@fontsource-variable/sora/files/sora-latin-wght-normal.woff2'), join(folder, 'assets/sora.woff2'));
       copyFileSync(join(sourceDir, 'DESIGN.md'), join(folder, 'DESIGN.md'));
       const values = { LANG: lang, SHAPE: portrait ? 'portrait' : 'landscape', WIDTH: portrait ? 720 : 1280, HEIGHT: portrait ? 1280 : 720 };
-      ['EYEBROW', 'TITLE', 'FOLLOW', 'FREE', 'SUBSCRIBE', 'EXCLUSIVE', 'RESERVE'].forEach((key, i) => values[key] = copy[i]);
+      ['EYEBROW', 'TITLE', 'STEP1', 'LABEL1', 'STEP2', 'LABEL2', 'STEP3'].forEach((key, i) => values[key] = copy[i]);
       writeFileSync(join(folder, 'index.html'), template.replace(/\{\{(\w+)\}\}/g, (_, key) => String(values[key])));
       writeFileSync(join(folder, 'hyperframes.json'), JSON.stringify({ media: { autoProxy: false } }, null, 2));
       projects.push({ lang, portrait, name, folder });

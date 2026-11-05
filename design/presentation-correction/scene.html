@@ -10,11 +10,11 @@
     html, body { width: {{WIDTH}}px; height: {{HEIGHT}}px; overflow: hidden; background: #160d1f; }
     #root { width: 100%; height: 100%; color: #fff6fa; font-family: Sora, sans-serif; position: relative; background: #160d1f; }
     .glow { position: absolute; inset: 0; background: radial-gradient(ellipse at 22% 12%, #730b47 0%, rgba(115,11,71,0) 64%), radial-gradient(ellipse at 85% 86%, #54229c 0%, rgba(84,34,156,0) 58%); }
-    .scene-content { position: relative; width: 100%; height: 100%; padding: 46px 126px 100px; display: flex; flex-direction: column; }
+    .scene-content { position: relative; width: 100%; height: 100%; padding: 46px 84px 100px; display: flex; flex-direction: column; }
     header { text-align: center; }
     .eyebrow { color: #f2d792; font-size: 20px; letter-spacing: .25em; font-weight: 600; }
     h1 { font-size: 53px; font-weight: 750; line-height: 1.12; letter-spacing: -.045em; margin-top: 8px; }
-    .steps { display: grid; grid-template-columns: .85fr 1.3fr 1.05fr; gap: 38px; height: 316px; margin-top: auto; }
+    .steps { display: grid; grid-template-columns: 1.2fr 1fr 1.08fr; gap: 30px; height: 316px; margin-top: auto; }
     .card { padding: 30px; border: 1px solid rgba(255,246,250,.13); border-radius: 30px; background: rgba(255,246,250,.09); display: flex; flex-direction: column; gap: 27px; }
     .card:last-child { background: linear-gradient(145deg, rgba(160,18,116,.65), rgba(84,34,156,.72)); }
     .topline { display: flex; align-items: flex-start; }
@@ -42,9 +42,9 @@
     <div class="scene-content">
       <header><p class="eyebrow">{{EYEBROW}}</p><h1>{{TITLE}}</h1></header>
       <div class="steps">
-        <section class="card" id="step-1"><div class="topline"><span class="number">1</span></div><h2>{{FOLLOW}}</h2><span class="benefit">{{FREE}}</span></section>
-        <section class="card" id="step-2"><div class="topline"><span class="number">2</span></div><h2>{{SUBSCRIBE}}</h2><span class="benefit">{{EXCLUSIVE}}</span></section>
-        <section class="card" id="step-3"><div class="topline"><span class="number">3</span></div><h2>{{RESERVE}}</h2><span class="benefit">Reserve Event · 1:1</span></section>
+        <section class="card" id="step-1"><div class="topline"><span class="number">1</span></div><h2>{{STEP1}}</h2><span class="benefit">{{LABEL1}}</span></section>
+        <section class="card" id="step-2"><div class="topline"><span class="number">2</span></div><h2>{{STEP2}}</h2><span class="benefit">{{LABEL2}}</span></section>
+        <section class="card" id="step-3"><div class="topline"><span class="number">3</span></div><h2>{{STEP3}}</h2><span class="benefit">Reserve Event · 1:1</span></section>
       </div>
       <div class="progress" aria-hidden="true"><span></span></div>
     </div>

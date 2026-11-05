@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import BrandLogo from '../components/BrandLogo';
 import PresentationCover from '../components/landing/PresentationCover';
@@ -13,11 +13,21 @@ import '../components/landing/landing.css';
 const JoinPage: React.FC = () => {
   const root = useRef<HTMLDivElement>(null);
   useLandingMotion(root);
+  // The top bar stays on screen; once the page scrolls it turns into a floating capsule,
+  // like the bar members see on their home page.
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   return (
     <div ref={root} className="lv2 join min-h-screen">
-      <header className="join-top">
-        <div className="wrap join-bar">
+      <header className={`join-top${scrolled ? ' is-scrolled' : ''}`} data-testid="join-top">
+        <div className="wrap">
+        <div className="join-bar">
           <BrandLogo size="sm" tone="dark" />
           <nav className="join-nav" aria-label="Fans Reserve" data-testid="join-nav">
             <a href="#journey">Cómo funciona</a>
@@ -30,6 +40,7 @@ const JoinPage: React.FC = () => {
           <Link to="/login" className="join-login">
             Iniciar sesión
           </Link>
+        </div>
         </div>
       </header>
       <PresentationCover />
