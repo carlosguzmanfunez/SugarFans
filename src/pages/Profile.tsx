@@ -152,7 +152,7 @@ const Profile: React.FC = () => {
             </div>
           )}
 
-          <div className="bg-white rounded-2xl border border-line p-5" data-testid="subscriptions">
+          <div id="mis-suscripciones" className="bg-white rounded-2xl border border-line p-5 scroll-mt-28" data-testid="subscriptions">
             <h3 className="font-semibold text-ink mb-3">
               <Icon name="fa-star" className="text-iris-600 mr-2" /> Mis suscripciones
             </h3>

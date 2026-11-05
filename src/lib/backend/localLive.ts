@@ -169,6 +169,13 @@ export const createLocalLive = (deps: Deps): LiveBackend => {
       save({ ...st, notifications: { ...st.notifications, [user.id]: mine.map((n) => ({ ...n, read: true })) } });
     },
 
+    async dismissNotification(user, id) {
+      if (deps.currentUserId() !== user.id) return fail('Inicia sesión para borrar tus avisos.');
+      const st = load();
+      return save({ ...st, notifications: { ...st.notifications, [user.id]: (st.notifications[user.id] ?? []).filter((n) => n.id !== id) } })
+        ? ok : fail('No se pudo borrar el aviso. Inténtalo de nuevo.');
+    },
+
     broadcastAccess(creatorProfileId) {
       return liveToken({ creatorProfileId }, 'El video del Live solo funciona en la web publicada.');
     },

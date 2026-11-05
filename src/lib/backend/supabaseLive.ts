@@ -131,6 +131,11 @@ export const createSupabaseLive = (sb: SupabaseClient, url: string, anonKey: str
       await sb.rpc('mark_notifications_read');
     },
 
+    async dismissNotification(user, id) {
+      const { error } = await sb.from('notifications').delete().eq('id', id).eq('user_id', user.id);
+      return error ? fail('No se pudo borrar el aviso. Inténtalo de nuevo.') : ok;
+    },
+
     broadcastAccess(creatorProfileId) {
       return liveToken(sb, { creatorProfileId }, 'No se pudo obtener el acceso al Live');
     },
