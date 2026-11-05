@@ -80,20 +80,24 @@ const Footer: React.FC = () => {
           </ul>
         </div>
 
-        <nav aria-label="Enlaces del sitio" className={`grid grid-cols-2 sm:grid-cols-4 ${compact ? 'gap-x-4 gap-y-4 sm:gap-5' : 'gap-x-6 gap-y-7 sm:gap-8'}`}>
+        {/* Each column folds to its heading so the footer stays short; tap to open its links. */}
+        <nav aria-label="Enlaces del sitio" className="grid grid-cols-2 gap-x-4 gap-y-1 self-start sm:grid-cols-4 sm:gap-x-6">
           {columnsFor(user?.role, canBecomeCreator(user)).map((col) => (
-            <div key={col.title}>
-              <h3 className={`font-display font-semibold text-white ${compact ? 'text-[13px] leading-5' : 'text-sm'}`}>{col.title}</h3>
-              <ul className={compact ? 'mt-1 text-[13px] leading-5' : 'mt-3 space-y-2.5 text-sm sm:mt-4 sm:space-y-3'}>
+            <details key={col.title} className="group">
+              <summary className={`flex min-h-10 cursor-pointer list-none items-center justify-between gap-2 rounded-lg font-display font-semibold text-white transition-colors hover:text-gold-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white [&::-webkit-details-marker]:hidden ${compact ? 'text-[13px] leading-5' : 'text-sm'}`}>
+                {col.title}
+                <i className="fas fa-chevron-down text-[10px] text-white/45 transition-transform duration-200 group-open:rotate-180" aria-hidden="true"></i>
+              </summary>
+              <ul className={compact ? 'pb-2 text-[13px] leading-5' : 'space-y-1 pb-3 text-sm'}>
                 {col.links.map((link) => (
                   <li key={link.label}>
-                    <Link to={link.to} className={`${compact ? 'flex min-h-8 items-center py-1.5' : ''} text-white/60 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white`}>
+                    <Link to={link.to} className="flex min-h-8 items-center py-1 text-white/60 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
                       {link.label}
                     </Link>
                   </li>
                 ))}
               </ul>
-            </div>
+            </details>
           ))}
         </nav>
       </div>
