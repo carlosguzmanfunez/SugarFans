@@ -13,6 +13,7 @@
     "test:payout-operational-recovery": "node e2e/payout-supervised-recovery.mjs && node e2e/payout-watchdog.mjs && node e2e/payout-review-runtime.mjs",
     "test:payout-operational-recovery-ui": "node e2e/payout-operational-recovery-ui.mjs",
     "typecheck": "tsc --noEmit",
+    "test:navigation-security": "node e2e/navigation-security.mjs",
     "test:notification-dismiss": "node e2e/notification-dismiss.mjs",
     "test:push-device-state": "node e2e/push-device-state.mjs",
     "test:subscription-notifications": "node e2e/subscription-notifications.mjs",
@@ -128,7 +129,7 @@
     "nodemailer": "^10.3.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.30.6",
+    "react-router-dom": "7.18.5",
     "web-push": "^3.6.7"
   },
   "devDependencies": {
@@ -143,6 +144,6 @@
     "playwright": "^1.56.1",
     "tailwindcss": "^4.1.7",
     "typescript": "^5.7.0",
-    "vite": "^6.3.5"
+    "vite": "6.4.5"
   }
 }
