@@ -6,9 +6,9 @@ finish(async()=>{
  setup();
  const creator=user('short-creator@example.invalid','creator');
  const cp=psql(DB,`select creator_profile_id from profiles where id='${creator}'`);
- const zone=psql(DB,`select z from unnest(array['America/Tegucigalpa','Pacific/Honolulu','Asia/Tokyo']) with ordinality t(z,n) where extract(hour from now() at time zone z)<=18 order by n limit 1`);
+ const zone=psql(DB,`select z from unnest(array['America/Tegucigalpa','Pacific/Honolulu','Asia/Tokyo']) with ordinality t(z,n) where extract(hour from now() at time zone z)<=17 order by n limit 1`);
  const day=psql(DB,`select (now() at time zone '${zone}')::date`);
- const first=`date_trunc('hour',now() at time zone '${zone}')+interval '2 hours'`;
+ const first=`date_trunc('hour',now() at time zone '${zone}')+interval '3 hours'`;
  const times=JSON.parse(psql(DB,`select json_agg(to_char(${first}+n*interval '30 minutes','HH24:MI')) from generate_series(0,6) n`));
  const soon=psql(DB,`select to_char(date_trunc('hour',now() at time zone '${zone}')+interval '1 hour','HH24:MI')`);
  as(creator,`insert into vip_availability(creator_profile_id,days,hours,time_zone) values('${cp}',array[0,1,2,3,4,5,6]::smallint[],array[${[soon,...times].map(t=>"'"+t+"'").join(',')}],'${zone}')`);
