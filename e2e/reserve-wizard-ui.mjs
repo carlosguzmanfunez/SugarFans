@@ -87,10 +87,13 @@ try {
     expect((await days.count()) === 7, 'faltan días');
     const hours = form.getByRole('button', { name: /^\d\d:00$/ });
     expect((await hours.count()) === 24, 'no están las 24 horas');
+    expect((await form.getByRole('button', { name: /^\d\d:30$/ }).count()) === 24, 'faltan los inicios cada media hora');
     for (const b of [...(await days.all()), ...(await hours.all())]) expect(await b.isEnabled(), 'hay días u horas bloqueados');
     await form.getByRole('button', { name: 'Dom' }).click();
     await form.getByRole('button', { name: '03:00' }).click();
     expect((await form.getByRole('button', { name: '03:00' }).getAttribute('aria-pressed')) === 'true', 'no se marcó las 03:00');
+    await form.getByRole('button', { name: '03:30', exact: true }).click();
+    await form.locator('select[name=expNotice]').selectOption('1');
     await shot('7-disponibilidad');
   });
 
@@ -113,6 +116,7 @@ try {
     expect(!exp.details.requirements.verifiedFans && !exp.details.requirements.subscribersOnly, 'quedó un requisito para fans');
     expect(exp.details.conditions === 'Llega 10 minutos antes.', 'no guardó las condiciones');
     expect(exp.details.days?.includes(0) && exp.details.hours?.includes('03:00'), 'no guardó domingo a las 03:00');
+    expect(exp.details.hours?.includes('03:30') && exp.details.minNoticeHours === 1, 'no guardó la media hora y la anticipación elegida');
   });
 } finally {
   await browser.close();

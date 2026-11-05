@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { matchesCreatorSearch } from '../lib/creatorSearch';
 import { Link, useSearchParams } from 'react-router-dom';
 import { categories, posts } from '../data/mockData';
 import { useCreatorCatalog, useCreatorCountries, useVipCreatorIds } from '../lib/catalog';
@@ -82,8 +83,7 @@ const Explore: React.FC = () => {
 
   const filteredCreators = ranked.filter(c => {
     if (hidden(c.id)) return false;
-    const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.username.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = matchesCreatorSearch(c, searchQuery);
     const matchesCategory = !selectedCategory || (!!c.category && categoryFor(c.category).id === categoryFor(selectedCategory).id);
     const matchesCountry = !selectedCountry || creatorCountries[c.id] === selectedCountry;
     return matchesSearch && matchesCategory && matchesCountry && (!liveOnly || liveIds.has(c.id));
@@ -132,7 +132,7 @@ const Explore: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-3.5 md:py-4 bg-white border border-line rounded-2xl shadow-[var(--shadow-card)] focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-base md:text-lg"
-              placeholder="Buscar creadores, contenido..."
+              placeholder="Buscar por nombre o @usuario..."
             />
           </div>
 

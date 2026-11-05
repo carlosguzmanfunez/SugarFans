@@ -55,7 +55,7 @@ export const ExperienceFacts: React.FC<{ exp: VipExperience; compact?: boolean }
         </Fact>
       )}
       {!compact && <Fact icon={needsApproval(exp) ? 'fa-user-check' : 'fa-bolt'}>{needsApproval(exp) ? 'El creador aprueba cada solicitud' : 'Confirmación inmediata'}</Fact>}
-      {!compact && !isEventExperience(exp) && <Fact icon="fa-hourglass-start">Reserva con {noticeLabel(d.minNoticeHours)} de anticipación</Fact>}
+      {!compact && !isEventExperience(exp) && <Fact icon="fa-hourglass-start">{d.minNoticeHours === 0 ? 'Puedes reservar hasta antes de comenzar' : `Reserva con al menos ${noticeLabel(d.minNoticeHours)} de anticipación`}</Fact>}
     </div>
   );
 };

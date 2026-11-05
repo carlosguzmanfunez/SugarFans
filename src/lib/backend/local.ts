@@ -320,10 +320,10 @@ const createBooking = async (user: User, input: BookingInput): Promise<AuthResul
     return fail(`Esta experiencia admite hasta ${d.maxParticipants} participante${d.maxParticipants === 1 ? '' : 's'}`);
   const availability = experienceAvailability(loadAvailability(exp.creatorProfileId), exp);
   if (input.timeZone !== undefined && input.timeZone !== availability.timeZone) return fail('La zona horaria cambió. Vuelve a abrir la experiencia y elige el horario actualizado.');
-  const { min, max } = bookingWindow(new Date(), availability.timeZone);
+  const { min, max } = bookingWindow(new Date(), availability.timeZone, true);
   if (input.date < min || input.date > max) return fail('La fecha debe estar dentro de los próximos 3 meses');
   if (!meetsNotice(input.date, input.time, d.minNoticeHours, new Date(), availability.timeZone)) return fail(`Reserva con al menos ${d.minNoticeHours} horas de anticipación`);
-  if (!freeHoursOn(availability, takenFor(exp.creatorProfileId), input.date, d.minNoticeHours, exp.durationMinutes).includes(input.time)) {
+  if (!freeHoursOn(availability, takenFor(exp.creatorProfileId), input.date, d.minNoticeHours, exp.durationMinutes, { sameDay: true }).includes(input.time)) {
     return fail('Ese horario ya no está disponible. Elige otro.');
   }
   const price = priceFor(exp, subscribed);

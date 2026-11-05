@@ -1,6 +1,7 @@
 import ReserveCitySelector, { useReserveDestination } from '../components/reserve/ReserveCitySelector';
 import { visibleAtLocation } from '../lib/reserveLocation';
 import React, { useState } from 'react';
+import { matchesCreatorSearch, searchText } from '../lib/creatorSearch';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../lib/backend';
@@ -45,9 +46,10 @@ const ReservePage: React.FC = () => {
   const goLogin = () => navigate('/login', { state: { from: location.pathname } });
 
   // Search by creator (name or @username) or by the experience's title, like Explorar.
-  const query = search.trim().toLowerCase();
+  const query = searchText(search);
   const matchesSearch = (e: VipExperience) =>
-    !query || [e.creatorName, creatorOf(e)?.username ?? '', e.title, experienceCopy(e, language).title, experienceCopy(e, language).description].some((text) => text.toLowerCase().includes(query));
+    matchesCreatorSearch({ name: e.creatorName, username: creatorOf(e)?.username }, query) ||
+    (!query.startsWith('@') && [e.title, experienceCopy(e, language).title, experienceCopy(e, language).description].some((text) => searchText(text).includes(query)));
 
   const visible = experiences
     .filter((e) => e.active)
@@ -92,7 +94,7 @@ const ReservePage: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-2xl border border-line bg-white py-3.5 pl-12 pr-4 text-base shadow-[var(--shadow-card)] outline-none focus:border-transparent focus:ring-2 focus:ring-brand-500 md:py-4 md:text-lg"
-            placeholder="Buscar creadores o experiencias..."
+            placeholder="Buscar nombre, @usuario o experiencia..."
           />
         </div>
         <ReserveAccessNotice />

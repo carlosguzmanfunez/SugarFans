@@ -475,7 +475,7 @@ export const CANCELLATION_RULE = {
   ],
 };
 
-export const MIN_NOTICE_OPTIONS = [24, 48, 72, 168];
+export const MIN_NOTICE_OPTIONS = [0, 1, 2, 6, 12, 24, 48, 72, 168];
 export const SUBSCRIBER_DISCOUNTS = [0, 5, 10, 15, 20, 25];
 export const MAX_PARTICIPANTS = 50;
 
@@ -499,7 +499,7 @@ export const RESERVE_FORMATS = {
 } as const;
 export const MAX_LIST_ITEMS = 6;
 
-export const noticeLabel = (hours: number) => (hours === 168 ? '1 semana' : `${hours} horas`);
+export const noticeLabel = (hours: number) => hours === 0 ? 'Sin anticipación mínima' : hours === 1 ? '1 hora' : hours === 168 ? '1 semana' : `${hours} horas`;
 
 // --- States ---------------------------------------------------------------------------
 // Stored statuses (vip_bookings.status) and how Reserve names them. "realizada"
