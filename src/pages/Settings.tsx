@@ -23,6 +23,8 @@ import { VIRTUAL_CURRENCY, displayMethodLabel } from '../config/currency';
 import { displayEmail, isDemoEmail } from '../config/demoAccounts';
 import CountryPhoneFields, { phoneFromForm } from '../components/CountryPhoneFields';
 import { nationalPart } from '../config/countries';
+import GenderField from '../components/GenderField';
+import type { Gender } from '../lib/backend';
 import { useLanguage } from '../context/LanguageContext';
 import { SOCIALS, normalizeUsername, parseSocial, profileLink, type SocialKey, type SocialLinks } from '../lib/creatorLinks';
 import ProfileImageButton from '../components/ProfileImageButton';
@@ -138,6 +140,16 @@ const Settings: React.FC = () => {
   const setActiveSection = (id: string) => {
     setError('');
     setSearchParams({ section: id }, { replace: true });
+  };
+
+  // Saved on tap, so the colours change right away (blue for men).
+  const [savingGender, setSavingGender] = useState(false);
+  const saveGender = async (gender: Gender) => {
+    if (gender === user?.gender) return;
+    setSavingGender(true);
+    const result = await updateUser({ gender });
+    setSavingGender(false);
+    showResult(result, t('gender.saved'));
   };
 
   const showResult = (result: { ok: boolean; error?: string }, message = 'Cambios guardados exitosamente') => {
@@ -303,6 +315,7 @@ const Settings: React.FC = () => {
                     )}
                   </div>
                   <CountryPhoneFields country={country} phone={phone} countryLocked={!!user?.idCountry} onCountry={setCountry} onPhone={setPhone} />
+                  <GenderField value={user?.gender} onChange={saveGender} disabled={savingGender} />
                   {user?.role === 'creator' && (
                     <>
                       <div>

@@ -560,6 +560,7 @@ export const localBackend: Backend = {
         ageVerified: true,
         country: extras?.country,
         ...(extras?.phone ? { phone: extras.phone } : {}),
+        ...(extras?.gender ? { gender: extras.gender } : {}),
         ...(role === 'creator' ? { subscriptionPrice: 9.99, followers: 0, following: 0, posts: 0, bio: '', creatorProfileId: id, username: freeHandle(name, id) } : {}),
       }),
       salt,
