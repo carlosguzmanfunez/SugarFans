@@ -233,7 +233,7 @@ const Navbar: React.FC = () => {
                 </Link>
                 <Link
                   to="/register"
-                  className="inline-flex items-center rounded-full bg-[linear-gradient(120deg,#e5337a,#c81b63_55%,#9b2fb8)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_16px_34px_-16px_rgba(200,27,99,0.7)] transition-transform active:scale-[0.98]"
+                  className="inline-flex items-center rounded-full bg-[linear-gradient(120deg,var(--grad-soft),var(--grad-main)_55%,var(--grad-cta-end))] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_16px_34px_-16px_rgb(var(--brand-rgb)/0.7)] transition-transform active:scale-[0.98]"
                 >
                   {t('nav.register')}
                 </Link>

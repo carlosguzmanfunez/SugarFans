@@ -17,7 +17,7 @@ export interface PolicyDoc {
 }
 
 export const LEGAL_REVIEW_NOTICE = 'Requires legal review before production launch.';
-export const LEGAL_UPDATED = 'Octubre 2026 (borrador)';
+export const LEGAL_UPDATED = 'Noviembre 2026 (borrador)';
 
 export const RESERVE_POLICIES: PolicyDoc[] = [
   {

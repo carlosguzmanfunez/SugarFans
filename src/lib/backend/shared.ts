@@ -1,7 +1,7 @@
 // Defaults and validation shared by every backend.
 import { isValidEmail } from '../storage';
 import { MIN_SUBSCRIPTION } from '../platformRules';
-import type { AuthResult, ProfilePatch, SignupExtras, UserRole, UserSettings } from './types';
+import { isGender, type AuthResult, type ProfilePatch, type SignupExtras, type UserRole, type UserSettings } from './types';
 import { isCountryCode, isValidPhone } from '../../config/countries';
 import { cleanSocials, normalizeUsername, usernameError } from '../creatorLinks';
 
@@ -54,6 +54,7 @@ export const validateRegistration = (name: string, email: string, password: stri
 export const validateSignupExtras = (extras?: SignupExtras): AuthResult => {
   if (!isCountryCode(extras?.country)) return { ok: false, error: 'Elige tu país' };
   if (extras?.phone && !isValidPhone(extras.phone)) return { ok: false, error: 'Revisa tu número de teléfono' };
+  if (extras?.gender !== undefined && !isGender(extras.gender)) return { ok: false, error: 'Elige una opción válida' };
   return { ok: true };
 };
 
@@ -74,6 +75,7 @@ export const cleanPatch = (patch: ProfilePatch): { patch?: ProfilePatch; error?:
     next.phone = next.phone.trim();
     if (next.phone && !isValidPhone(next.phone)) return { error: 'Revisa tu número de teléfono' };
   }
+  if (next.gender !== undefined && !isGender(next.gender)) return { error: 'Elige una opción válida' };
   if (next.username !== undefined) {
     next.username = normalizeUsername(next.username);
     const bad = usernameError(next.username);

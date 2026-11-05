@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { readJSON, writeJSON } from '../lib/storage';
+import { applyPalette, paletteFor } from '../lib/palette';
 import { backend, type AuthResult, type MediaUpload, type ProfilePatch, type SignupExtras, type SocialProvider, type Subscription, type User, type UserRole } from '../lib/backend';
 
 export type { SocialProvider, User, UserRole, UserSettings, Subscription, CreatorPost, AuthResult } from '../lib/backend';
@@ -70,6 +71,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       unsubscribe();
     };
   }, [refreshUser]);
+
+  // Blue for men, pink for everyone else (and for visitors once signed out).
+  const gender = user?.gender;
+  useEffect(() => {
+    if (!loading) applyPalette(user ? paletteFor(gender) : 'pink');
+  }, [loading, user, gender]);
 
   // Run a mutation, then reload the user so every screen sees the saved state.
   const run = async (fn: () => Promise<AuthResult>): Promise<AuthResult> => {

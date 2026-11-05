@@ -11,6 +11,8 @@ import BrandLogo from '../components/BrandLogo';
 import SocialLoginButtons from '../components/SocialLoginButtons';
 import CountryPhoneFields, { phoneFromForm } from '../components/CountryPhoneFields';
 import { detectCountry } from '../config/countries';
+import GenderField from '../components/GenderField';
+import type { Gender } from '../lib/backend';
 
 // What a creator account includes (all of it works in the app today).
 const CREATOR_BENEFITS = [
@@ -44,6 +46,8 @@ const Register: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   // Pre-selected from the browser's time zone / language; the phone is optional.
   const [country, setCountry] = useState(detectCountry);
   const [phone, setPhone] = useState('');
+  // Optional: Mujer / Hombre / Prefiero no decirlo (blue colours for men).
+  const [gender, setGender] = useState<Gender | undefined>();
 
   const handleNext = () => {
     if (step === 1) {
@@ -90,7 +94,7 @@ const Register: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
     }
     setSubmitting(true);
     const checked = phoneFromForm(country, phone, t);
-    const result = await register(name, email, password, role, readRefCode(), { country, phone: 'phone' in checked ? checked.phone : '' });
+    const result = await register(name, email, password, role, readRefCode(), { country, phone: 'phone' in checked ? checked.phone : '', gender });
     setSubmitting(false);
     if (!result.ok) {
       setError(result.error || 'No se pudo crear la cuenta');
@@ -186,6 +190,7 @@ const Register: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
             />
           </div>
           <CountryPhoneFields country={country} phone={phone} onCountry={setCountry} onPhone={setPhone} />
+          <GenderField value={gender} onChange={setGender} />
           <button onClick={handleNext} className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-xl font-bold hover:opacity-90 transition">
             {t('register.continue')}
           </button>

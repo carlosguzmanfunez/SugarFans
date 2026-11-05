@@ -11,6 +11,8 @@ import { SOCIAL_INTENT_KEY, type SocialIntent } from '../components/SocialLoginB
 import TermsConsent from '../components/TermsConsent';
 import CountryPhoneFields, { phoneFromForm } from '../components/CountryPhoneFields';
 import { detectCountry } from '../config/countries';
+import GenderField from '../components/GenderField';
+import type { Gender } from '../lib/backend';
 import { useLanguage } from '../context/LanguageContext';
 
 // The provider sends errors (e.g. the user pressed "Cancel") in the query or the hash.
@@ -36,6 +38,7 @@ const AuthCallback: React.FC = () => {
   const { t } = useLanguage();
   const [country, setCountry] = useState(detectCountry);
   const [phone, setPhone] = useState('');
+  const [gender, setGender] = useState<Gender | undefined>();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(providerError);
   const [timedOut, setTimedOut] = useState(false);
@@ -73,7 +76,7 @@ const AuthCallback: React.FC = () => {
     setSubmitting(true);
     setError('');
     completing.current = true;
-    const result = await completeSocialSignup(role, readRefCode(), { country, phone: checked.phone });
+    const result = await completeSocialSignup(role, readRefCode(), { country, phone: checked.phone, gender });
     completing.current = false;
     setSubmitting(false);
     if (!result.ok) {
@@ -150,6 +153,7 @@ const AuthCallback: React.FC = () => {
 
               <div className="space-y-4 mb-4">
                 <CountryPhoneFields country={country} phone={phone} onCountry={setCountry} onPhone={setPhone} />
+                <GenderField value={gender} onChange={setGender} />
               </div>
 
               <TermsConsent checked={agreeTerms} onChange={setAgreeTerms} className="mb-6" />

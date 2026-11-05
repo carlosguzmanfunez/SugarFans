@@ -20,6 +20,12 @@ export type * from './giftTypes';
 
 export type UserRole = 'fan' | 'creator' | 'admin';
 
+// Optional, asked at sign-up and in Ajustes. Private (only the user and admins).
+// 'male' gets the blue palette; 'female', 'unspecified' and no answer keep pink.
+export type Gender = 'female' | 'male' | 'unspecified';
+export const GENDERS: Gender[] = ['female', 'male', 'unspecified'];
+export const isGender = (v: unknown): v is Gender => typeof v === 'string' && (GENDERS as string[]).includes(v);
+
 // Sign-in buttons: Google, and Microsoft (Supabase calls it "azure").
 export type SocialProvider = 'google' | 'azure';
 
@@ -97,12 +103,14 @@ export interface User {
   // Country of the identity document, set when a creator is verified. While set,
   // country always equals it and the person can't change it.
   idCountry?: string;
+  gender?: Gender;
 }
 
 // Asked at sign-up besides name, email and password.
 export interface SignupExtras {
   country?: string;
   phone?: string;
+  gender?: Gender;
 }
 
 export interface AuthResult {
@@ -332,7 +340,7 @@ export interface VipExperience extends VipExperienceInput {
   timeZone?: string;
 }
 
-export type ProfilePatch = Partial<Pick<User, 'name' | 'email' | 'avatar' | 'bio' | 'subscriptionPrice' | 'settings' | 'ageVerified' | 'country' | 'phone' | 'username'>>;
+export type ProfilePatch = Partial<Pick<User, 'name' | 'email' | 'avatar' | 'bio' | 'subscriptionPrice' | 'settings' | 'ageVerified' | 'country' | 'phone' | 'username' | 'gender'>>;
 
 export interface Backend {
   mode: 'supabase' | 'local';

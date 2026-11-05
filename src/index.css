@@ -113,16 +113,110 @@
   --radius-card: 1.25rem;
   --shadow-card: 0 1px 2px rgb(22 13 31 / 0.04), 0 8px 24px -12px rgb(22 13 31 / 0.12);
   --shadow-lift: 0 2px 4px rgb(22 13 31 / 0.05), 0 22px 40px -18px rgb(22 13 31 / 0.28);
-  --shadow-glow: 0 18px 40px -16px rgb(200 27 99 / 0.45);
+  --shadow-glow: 0 18px 40px -16px rgb(var(--brand-rgb) / 0.45);
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ==========================================================================
+   Palettes. Pink is the default (women, "prefiero no decirlo", visitors).
+   <html data-palette="blue"> (men, see src/lib/palette.ts) swaps the brand
+   scale and the signature gradients for blue ones built the same way: light
+   tone -> main tone -> deep end tone. The logo keeps its own colours.
+   ========================================================================== */
+:root {
+  --brand-rgb: 200 27 99;
+  --grad-light: #f7639b;
+  --grad-soft: #e5337a;
+  --grad-main: #c81b63;
+  --grad-end: #6d3ce6;
+  --grad-cta-end: #9b2fb8;
+  --grad-band-mid: #a42596;
+  --grad-glow-rgb: 255 70 140;
+  --grad-highlight: #ff9cc0;
+  --grad-tint: #ffe3ee;
+  --grad-tint-50: #fff1f6;
+  --grad-end-tint: #ece8ff;
+}
+:root[data-palette="blue"] {
+  --brand-rgb: 37 99 235;
+  --grad-light: #60a5fa;
+  --grad-soft: #3b82f6;
+  --grad-main: #2563eb;
+  --grad-end: #4f46e5;
+  --grad-cta-end: #3f3fd6;
+  --grad-band-mid: #2546c4;
+  --grad-glow-rgb: 70 140 255;
+  --grad-highlight: #93c5fd;
+  --grad-tint: #dbeafe;
+  --grad-tint-50: #eff6ff;
+  --grad-end-tint: #e0e7ff;
+
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-300: #93c5fd;
+  --color-brand-400: #60a5fa;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-800: #1e40af;
+  --color-brand-900: #1e3a8a;
+  --color-brand-950: #172554;
+  --color-secondary: #4f46e5;
+  /* Iris turns indigo so pink-to-purple gradients become blue-to-indigo. */
+  --color-iris-50: #eef2ff;
+  --color-iris-100: #e0e7ff;
+  --color-iris-200: #c7d2fe;
+  --color-iris-300: #a5b4fc;
+  --color-iris-400: #818cf8;
+  --color-iris-500: #6366f1;
+  --color-iris-600: #4f46e5;
+  --color-iris-700: #4338ca;
+  --color-iris-800: #3730a3;
+  --color-iris-900: #312e81;
+  --color-iris-950: #1e1b4b;
+  /* The pink and fuchsia utilities read the brand scale; restated here so they
+     resolve against the blue values on this same element. */
+  --color-pink-50: var(--color-brand-50);
+  --color-pink-100: var(--color-brand-100);
+  --color-pink-200: var(--color-brand-200);
+  --color-pink-300: var(--color-brand-300);
+  --color-pink-400: var(--color-brand-400);
+  --color-pink-500: var(--color-brand-500);
+  --color-pink-600: var(--color-brand-600);
+  --color-pink-700: var(--color-brand-700);
+  --color-pink-800: var(--color-brand-800);
+  --color-pink-900: var(--color-brand-900);
+  --color-fuchsia-50: var(--color-brand-50);
+  --color-fuchsia-100: var(--color-brand-100);
+  --color-fuchsia-200: var(--color-brand-200);
+  --color-fuchsia-300: var(--color-brand-300);
+  --color-fuchsia-400: var(--color-brand-400);
+  --color-fuchsia-500: var(--color-brand-500);
+  --color-fuchsia-600: var(--color-brand-600);
+  --color-fuchsia-700: var(--color-brand-700);
+  --color-fuchsia-800: var(--color-brand-800);
+  --color-fuchsia-900: var(--color-brand-900);
+  --color-purple-50: var(--color-iris-50);
+  --color-purple-100: var(--color-iris-100);
+  --color-purple-200: var(--color-iris-200);
+  --color-purple-300: var(--color-iris-300);
+  --color-purple-400: var(--color-iris-400);
+  --color-purple-500: var(--color-iris-500);
+  --color-purple-600: var(--color-iris-600);
+  --color-purple-700: var(--color-iris-700);
+  --color-purple-800: var(--color-iris-800);
+  --color-purple-900: var(--color-iris-900);
 }
 
 /* Signature gradient: used sparingly (primary CTA, logo mark, key accents). */
 @utility bg-reserve {
-  background-image: linear-gradient(120deg, #f7639b 0%, #c81b63 45%, #6d3ce6 100%);
+  background-image: linear-gradient(120deg, var(--grad-light) 0%, var(--grad-main) 45%, var(--grad-end) 100%);
 }
 @utility text-reserve {
-  background-image: linear-gradient(120deg, #e5337a 0%, #c81b63 40%, #6d3ce6 100%);
+  background-image: linear-gradient(120deg, var(--grad-soft) 0%, var(--grad-main) 40%, var(--grad-end) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -206,8 +300,8 @@
   .btn-sm { padding: 0.4rem 0.9rem; font-size: 0.8125rem; }
   .btn-md { padding: 0.625rem 1.25rem; font-size: 0.9375rem; }
   .btn-lg { padding: 0.9rem 1.6rem; font-size: 1rem; }
-  .btn-primary { color: #fff; background-image: linear-gradient(120deg, #e5337a 0%, #c81b63 55%, #9b2fb8 100%); box-shadow: var(--shadow-glow); }
-  .btn-primary:hover { box-shadow: 0 22px 44px -16px rgb(200 27 99 / 0.55); }
+  .btn-primary { color: #fff; background-image: linear-gradient(120deg, var(--grad-soft) 0%, var(--grad-main) 55%, var(--grad-cta-end) 100%); box-shadow: var(--shadow-glow); }
+  .btn-primary:hover { box-shadow: 0 22px 44px -16px rgb(var(--brand-rgb) / 0.55); }
   .btn-dark { color: #fff; background: var(--color-ink); }
   .btn-dark:hover { background: var(--color-ink-soft); }
   .btn-outline { color: var(--color-ink); background: #fff; border: 1px solid var(--color-line); }

@@ -70,7 +70,7 @@ const ReservePage: React.FC = () => {
     <div className="min-h-screen bg-canvas">
       <div className="relative overflow-hidden bg-night-950 text-white">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-32 -top-40 h-[480px] w-[480px] rounded-full bg-[radial-gradient(closest-side,rgba(200,27,99,0.35),transparent)]" />
+          <div className="absolute -left-32 -top-40 h-[480px] w-[480px] rounded-full bg-[radial-gradient(closest-side,rgb(var(--brand-rgb)/0.35),transparent)]" />
           <div className="absolute -bottom-48 -right-32 h-[480px] w-[480px] rounded-full bg-[radial-gradient(closest-side,rgba(109,60,230,0.3),transparent)]" />
         </div>
         <div className="relative z-10 mx-auto max-w-7xl px-4 py-10 text-center sm:px-6 sm:py-14 md:py-20 lg:px-8">

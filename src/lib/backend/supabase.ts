@@ -6,6 +6,7 @@ import { PAID_WITH_PAYPAL, WRONG_CREDENTIALS, ACCOUNT_SUSPENDED, avatarOrEmpty, 
 import { REJECTED_MESSAGE, inReviewNotice, moderateUpload, moderationOf } from './supabaseModeration';
 import { DEFAULT_AVAILABILITY, cleanDetails, customTitle, normalizeAvailability, validateCounter, validateCustomRequest, validateExperience } from '../vip';
 import type { Backend, BookingDetails, BookingStatus, ExperienceType, ReserveDetails, SocialProvider, User, UserRole, VipBooking, VipExperience } from './types';
+import { isGender } from './types';
 import { isTimeZone, viewerTimeZone } from '../timeZones';
 import { creators as demoCreators } from '../../data/mockData';
 import { createSupabasePlatform } from './supabasePlatform';
@@ -74,6 +75,8 @@ interface ProfileRow {
   phone?: string | null;
   // Missing until migration 20261016000001_creator_country_from_id is applied.
   id_country?: string | null;
+  // Missing until migration 20261105000001_profile_gender is applied.
+  gender?: string | null;
   // Missing until migration 20261010000004_creator_username_socials is applied.
   username?: string | null;
 }
@@ -171,6 +174,7 @@ const toUser = (p: ProfileRow, extra?: Pick<User, 'subscriptions' | 'createdPost
   country: p.country ?? undefined,
   phone: p.phone ?? undefined,
   idCountry: p.id_country ?? undefined,
+  gender: isGender(p.gender) ? p.gender : undefined,
   username: p.username ?? undefined,
 });
 
@@ -404,6 +408,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
             age_verified: true,
             country: extras?.country,
             ...(extras?.phone ? { phone: extras.phone } : {}),
+            ...(extras?.gender ? { gender: extras.gender } : {}),
             ...(ref ? { ref } : {}),
           },
           emailRedirectTo: `${window.location.origin}/login`,
@@ -455,7 +460,13 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       // Until migration 20261006000003_country_phone is applied the function has no
       // country/phone arguments: finish the sign-up without them.
       if (error?.code === 'PGRST202') ({ error } = await sb.rpc('complete_social_signup', { p_role: role, p_ref: ref ?? null }));
-      return error ? dbError(error, 'No se pudo completar el registro') : ok;
+      if (error) return dbError(error, 'No se pudo completar el registro');
+      // Optional; a failure here never blocks the sign-up (it can be set in Ajustes).
+      if (extras?.gender) {
+        const { data } = await sb.auth.getUser();
+        if (data.user) await sb.from('profiles').update({ gender: extras.gender }).eq('id', data.user.id);
+      }
+      return ok;
     },
 
     async becomeCreator(user) {
@@ -569,7 +580,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
     async updateProfile(user, patch) {
       const cleaned = cleanPatch(patch);
       if (!cleaned.patch) return fail(cleaned.error!);
-      const { email, name, avatar, bio, subscriptionPrice, settings, ageVerified, country, phone, username } = cleaned.patch;
+      const { email, name, avatar, bio, subscriptionPrice, settings, ageVerified, country, phone, username, gender } = cleaned.patch;
       const row: Record<string, unknown> = {};
       if (name !== undefined) row.name = name;
       if (avatar !== undefined) row.avatar = avatar;
@@ -579,6 +590,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       if (ageVerified !== undefined) row.age_verified = ageVerified;
       if (country !== undefined) row.country = country || null;
       if (phone !== undefined) row.phone = phone || null;
+      if (gender !== undefined) row.gender = gender;
       if (username !== undefined && username !== user.username) row.username = username;
       if (Object.keys(row).length) {
         const { error } = await sb.from('profiles').update(row).eq('id', user.id);
