@@ -9,9 +9,16 @@ export async function POST(request:Request):Promise<Response> {
   const raw=await request.text();
   if(raw.length>4096) return reply(413,{error:'Registro demasiado grande.'});
   let b:any;try {b=JSON.parse(raw);} catch {return reply(400,{error:'Registro no válido.'});}
-  if(!b||!uuid.test(b.bookingId||'')) return reply(400,{error:'Reserva no válida.'});
+  if(!b||typeof b!=='object'||Array.isArray(b)) return reply(400,{error:'Registro no válido.'});
   let name:string, args:unknown;
-  if(b.action==='status') {name='reserve_session_status';args={p_booking_id:b.bookingId};}
+  if(b.action==='admin-list') {
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(b.from||'')||!/^\d{4}-\d{2}-\d{2}$/.test(b.to||'')||
+      typeof b.search!=='string'||b.search.length>120||!Number.isInteger(b.offset)||b.offset<0||b.offset>100000)
+      return reply(400,{error:'Revisa las fechas y los filtros de la consulta.'});
+    name='reserve_admin_session_list';args={p_from:b.from,p_to:b.to,p_search:b.search,p_offset:b.offset,p_limit:20};
+  }
+  else if(!uuid.test(b.bookingId||'')) return reply(400,{error:'Reserva no válida.'});
+  else if(b.action==='status') {name='reserve_session_status';args={p_booking_id:b.bookingId};}
   else if(b.action==='event'&&kinds.has(b.kind)) {name='reserve_session_event';args={p_booking_id:b.bookingId,p_kind:b.kind,p_data:b.data||{}};}
   else if(b.action==='open-reminder'&&uuid.test(b.reminderId||'')) {name='reserve_open_reminder';args={p_id:b.reminderId};}
   else return reply(400,{error:'Acción no válida.'});

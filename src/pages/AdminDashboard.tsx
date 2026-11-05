@@ -31,6 +31,7 @@ import AdminModeration from '../components/AdminModeration';
 import AdminErrors from '../components/AdminErrors';
 import AdminInfra from '../components/AdminInfra';
 import AdminProspects from '../components/AdminProspects';
+import AdminReserveAttendance from '../components/AdminReserveAttendance';
 import { backend } from '../lib/backend';
 import AdminUserSheet, { isSuspendedNow } from '../components/AdminUserSheet';
 import { countryName } from '../config/countries';
@@ -48,6 +49,7 @@ const ago = (iso: string) => {
 const roleName = { fan: 'Fan', creator: 'Creador', admin: 'Administrador' } as const;
 
 const AdminDashboard: React.FC = () => {
+  const [attendanceRefresh,setAttendanceRefresh]=useState(0);
   const [caseReference,setCaseReference]=useState<string>();
   const { user, listAccounts } = useAuth();
   const { data: accounts, reload: reloadAccounts, loading: accountsLoading, error: accountsError } = usePlatformQuery(listAccounts, [], []);
@@ -102,10 +104,10 @@ const AdminDashboard: React.FC = () => {
   const loading = accountsLoading || platformLoading || moderationLoading;
   const loadError = accountsError || platformError || moderationError;
   // A failed content query must not hide the independent payments or error panels.
-  const independent = activeTab === 'finance' || activeTab === 'errors' || activeTab === 'prospects';
+  const independent = activeTab === 'finance' || activeTab === 'errors' || activeTab === 'prospects' || activeTab === 'attendance';
   const sectionLoading = independent ? false : activeTab === 'moderation' ? moderationLoading : activeTab === 'overview' ? loading : accountsLoading || platformLoading;
   const sectionError = independent ? '' : activeTab === 'moderation' ? moderationError : activeTab === 'overview' ? loadError : accountsError || platformError;
-  const refresh = () => { void Promise.all([reloadAccounts(), reloadPlatform(), reloadModeration()]); };
+  const refresh = () => { setAttendanceRefresh(v=>v+1); void Promise.all([reloadAccounts(), reloadPlatform(), reloadModeration()]); };
   const toggleCover = (id: string, cover: boolean) => {
     const sale = moneyBack.find(t => t.id === id);
     if (!sale) return;
@@ -232,6 +234,7 @@ const AdminDashboard: React.FC = () => {
         {activeTab === 'finance' && <AdminFinance caseReference={caseReference}/>}
 
         {activeTab === 'prospects' && <AdminProspects />}
+        {activeTab === 'attendance' && <AdminReserveAttendance refreshToken={attendanceRefresh} />}
 
         {activeTab === 'infra' && <AdminInfra transactions={platform.transactions} coins={platform.coins} />}
 

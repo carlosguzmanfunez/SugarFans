@@ -19,6 +19,9 @@ on:
       - 'e2e/account-navigation-ui.mjs'
       - 'e2e/navigation-security.mjs'
       - 'e2e/reserve-session-*.mjs'
+      - 'e2e/admin-reserve-attendance*.mjs'
+      - 'e2e/helpers/admin-reserve-attendance-fixture.ts'
+      - 'e2e/helpers/admin-workspace-fixture.ts'
       - 'e2e/push-api.mjs'
       - 'e2e/db-harness.mjs'
       - 'e2e/notification-dismiss.mjs'
@@ -71,6 +74,9 @@ jobs:
       - run: npm run test:subscription-notifications
       - run: npm run test:reserve-session-api
       - run: npm run test:reserve-session-db
+      - run: npm run test:admin-reserve-attendance
+      - run: npm run test:admin-reserve-attendance-db
+      - run: node e2e/admin-workspace-data.mjs
       - run: npm run test:push
       - run: npm run test:reserve-city-db
       - run: npm run test:reserve-cancellation-db
@@ -96,6 +102,7 @@ jobs:
           echo "LIVEKIT_SERVER=$RUNNER_TEMP/fansreserve-livekit/livekit-server" >> "$GITHUB_ENV"
           echo "SESSION_EVIDENCE_DIR=$RUNNER_TEMP/fansreserve-session-evidence" >> "$GITHUB_ENV"
       - run: npm run test:reserve-session-native
+      - run: npm run test:admin-reserve-attendance-ui
       - run: npm run test:reserve-city-ui
       - run: node e2e/reserve-catalog-ui.mjs
       - run: node e2e/account-navigation-ui.mjs

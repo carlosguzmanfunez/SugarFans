@@ -64,6 +64,17 @@ try{
   assert.equal((await api.POST(req({bookingId:id,action:'status'},''))).status,401);
   assert.equal((await api.POST(req({bookingId:'bad',action:'status'}))).status,400);
  });
+ await check('La lista administrativa conserva el token del usuario y limita cada página sin confiar en su rol declarado',async()=>{
+  const body={action:'admin-list',from:'2026-11-01',to:'2026-11-30',search:'Mariana',offset:20,role:'admin',limit:9999};
+  assert.equal((await api.POST(req(body,''))).status,401);
+  assert.equal((await api.POST(req(body,'real-admin-session'))).status,200);
+  assert.equal(calls.at(-1).headers.authorization,'Bearer real-admin-session');
+  assert.ok(calls.at(-1).url.endsWith('reserve_admin_session_list'));
+  assert.deepEqual(calls.at(-1).body,{p_from:body.from,p_to:body.to,p_search:body.search,p_offset:20,p_limit:20});
+  const before=calls.length;
+  for(const bad of [{...body,offset:-1},{...body,from:'bad'},{...body,search:'x'.repeat(121)},{...body,search:{role:'admin'}}])assert.equal((await api.POST(req(bad))).status,400);
+  assert.equal(calls.length,before);
+ });
  await check('El navegador no puede declarar asistencia confirmada ni elegir la identidad del registro',async()=>{
   assert.equal((await api.POST(req({bookingId:id,action:'event',kind:'participant_joined'}))).status,400);
   assert.equal((await api.POST(req({bookingId:id,action:'event',kind:'ready',userId:'intruder'}))).status,200);

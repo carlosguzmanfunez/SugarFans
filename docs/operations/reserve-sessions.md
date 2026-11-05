@@ -57,6 +57,18 @@ Los recordatorios de diez minutos caducan al entrar en la ventana del recordator
 
 Para detener los avisos, desactivar `reminders_enabled`. Los registros se conservan. Este control no toca la ejecución de pagos ni el saldo de creadores o fans.
 
+## Consulta desde Administración
+
+`/admin?section=attendance` abre **Asistencia de Reserve**. Permite buscar por creador, fan, título o referencia y filtrar las fechas en hora de Fans Reserve (UTC−6). La consulta usa páginas de veinte reservas virtuales con duración; las canceladas aparecen cuando conservan registros. No enumera experiencias presenciales ni solicitudes todavía sin confirmar.
+
+Cada reserva muestra su estado de conexión. La constancia detalla entradas, salidas, tiempo compartido comprobado y estado de los avisos. Puede descargarse como texto legible. Falta de evidencia, datos incompletos, duración menor y condiciones anteriores exigen revisión; no se convierten en una ausencia, multa o devolución automática. Los datos corresponden al horario actual guardado para la reserva. Los eventos históricos permanecen protegidos en la base.
+
+La migración `20261105215719_reserve_admin_attendance.sql` añade solo una consulta administrativa: valida `auth.uid()` y `is_admin()` (incluida la verificación adicional de la cuenta), fija `search_path`, limita intervalo/página/búsqueda y revoca ejecución anónima y del rol de servicio sin identidad. Los nombres provienen de la reserva; no entrega correos, mensajes privados ni permisos de lectura directa de las tablas de asistencia. La API usa el token del administrador y el enlace existente, sin crear una función adicional de Vercel ni emplear su clave de servicio para saltar la autorización.
+
+El panel distingue carga, fallo y búsqueda vacía, descarta respuestas antiguas, conserva el acceso aunque falle la consulta general de contenido y mantiene la sección al recargar. La hora de evaluación procede de la respuesta del servidor. No permite editar constancias ni resolver responsabilidades desde este apartado.
+
+Pruebas: `test:admin-reserve-attendance`, `test:admin-reserve-attendance-db` y `test:admin-reserve-attendance-ui`. La revisión visual ficticia se sirve con `node e2e/admin-reserve-attendance-review.mjs`, después de compilar la aplicación. Sus ejemplos están exclusivamente en archivos de prueba y no se cargan en el panel publicado con datos reales.
+
 ## Ensayo publicado en QA, 4–5 de noviembre de 2026
 
 Se instaló la actualización únicamente en Supabase `pcxblbctafwmijfcwgdd` y se publicó una aplicación separada en `fansreserve-reserve-qa.vercel.app`. LiveKit usa el proyecto exclusivo `fansreserve-reserve-qa`, con su receptor firmado en `/api/reserve-session-webhook`. No se sustituyó el proyecto de reportes `fansreserve-payouts-qa` ni se configuraron proveedores de pagos en esta aplicación.
