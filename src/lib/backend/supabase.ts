@@ -909,7 +909,8 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
     },
 
     async deletePushSubscription(endpoint) {
-      await sb.rpc('delete_push_subscription', { p_endpoint: endpoint });
+      const { error } = await sb.rpc('delete_push_subscription', { p_endpoint: endpoint });
+      return error ? fail('No se pudieron desactivar los avisos. Inténtalo de nuevo.') : ok;
     },
 
     async creatorBookings(id) {

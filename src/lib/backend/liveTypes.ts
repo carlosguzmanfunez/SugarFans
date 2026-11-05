@@ -19,7 +19,7 @@ export interface LiveBroadcast {
 
 // reserve_request: to the creator (new request, cancellation, payment) ·
 // reserve_update: to the fan (accepted, counter-offer, rejected, expired).
-export type NotificationKind = 'live_started' | 'reserve_request' | 'reserve_update' | 'creator_goal';
+export type NotificationKind = 'live_started' | 'reserve_request' | 'reserve_update' | 'creator_goal' | 'subscription_payment' | 'subscription_update';
 
 export interface AppNotification {
   id: string;
@@ -66,6 +66,7 @@ export interface LiveBackend {
   setLiveAlerts(user: User, creatorProfileId: string, on: boolean): Promise<AuthResult>;
   notifications(user: User): Promise<AppNotification[]>;
   markNotificationsRead(user: User): Promise<void>;
+  dismissNotification(user: User, id: string): Promise<AuthResult>;
   // LiveKit access to a creator's Live: the owner publishes; subscribers (Subscriber
   // Live) or anyone signed in (Open Live, when enabled) watch.
   broadcastAccess(creatorProfileId: string): Promise<AuthResult & { access?: BroadcastAccess }>;

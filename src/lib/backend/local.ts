@@ -26,6 +26,7 @@ import {
   validateExperience,
 } from '../vip';
 import { nextRenewal, round2 } from '../platformRules';
+import { localSubscriptionChangeNotice } from './localSubscriptionNotifications';
 import { absorbDiscount, processorFee } from '../rewardRules';
 import { absorbSpecialDiscount } from '../specialRules';
 import {
@@ -230,6 +231,16 @@ const mutate = (id: string, fn: (a: StoredAccount) => StoredAccount) => {
   return true;
 };
 
+const setLocalCancelAt = (userId: string, creatorId: string, at: string | undefined) => {
+  const fan = loadAccounts().find((a) => a.id === userId);
+  const sub = fan?.subscriptions.find((s) => s.creatorId === creatorId);
+  if (!fan || !sub) return;
+  if (!mutate(userId, (a) => ({ ...a, subscriptions: a.subscriptions.map((s) => s.creatorId === creatorId ? { ...s, cancelAt: at } : s) }))) return;
+  const creator = creatorAccount(creatorId);
+  localSubscriptionChangeNotice(userId, fan.name, creatorId, creator?.name ?? 'tu creador', creator?.id, sub.cancelAt, at);
+  notify();
+};
+
 // Verified: their drafts go public, dated now so they show up as new.
 const publishDrafts = (a: StoredAccount): StoredAccount => {
   const now = new Date().toISOString();
@@ -379,11 +390,7 @@ const platform = createLocalPlatform({
       ...a,
       subscriptions: [...a.subscriptions.filter((s) => s.creatorId !== creatorId), { creatorId, price, since: new Date().toISOString() }],
     })),
-  setCancelAt: (userId, creatorId, at) =>
-    mutate(userId, (a) => ({
-      ...a,
-      subscriptions: a.subscriptions.map((s) => (s.creatorId === creatorId ? { ...s, cancelAt: at } : s)),
-    })),
+  setCancelAt: (userId, creatorId, at) => setLocalCancelAt(userId, creatorId, at),
   creatorPrice: (creatorProfileId) => creatorAccount(creatorProfileId)?.subscriptionPrice ?? null,
   setVerified: (userId) => mutate(userId, publishDrafts),
   setUnverified: (userId) => mutate(userId, (a) => ({ ...a, isVerified: false })),
@@ -697,7 +704,7 @@ export const localBackend: Backend = {
     const sub = account?.subscriptions.find((s) => s.creatorId === creatorId && isActiveSub(s));
     if (!sub) return fail('No tienes una suscripción activa a este perfil');
     const until = sub.cancelAt ?? nextRenewal(sub.since).toISOString();
-    mutate(user.id, (a) => ({ ...a, subscriptions: a.subscriptions.map((s) => (s.creatorId === creatorId ? { ...s, cancelAt: until } : s)) }));
+    setLocalCancelAt(user.id, creatorId, until);
     return { ok: true, until };
   },
 
@@ -1295,7 +1302,7 @@ export const localBackend: Backend = {
     return fail('Los avisos al celular solo funcionan en la web publicada.');
   },
 
-  async deletePushSubscription() {},
+  async deletePushSubscription() { return ok; },
 
   async creatorBookings(id) {
     return listBookings()

@@ -5,6 +5,7 @@ import { readJSON, writeJSONChecked, newId } from '../storage';
 import { payoutWindow } from '../payoutCalendar';
 import { addMonths, round2, validateReport, validateTip, validateVerification, computeEarnings, payoutFee, payoutAccountLabel, money, buildManagedProfile } from '../platformRules';
 import { creators as catalogue } from '../../data/mockData';
+import { localSubscriptionPaymentNotice } from './localSubscriptionNotifications';
 import type { AuthResult, User } from './types';
 import type { AccountRestriction, AdminActionLog, Block, ManagedProfile, PaymentMethod, Payout, PayoutAccount, PlatformBackend, Report, Transaction, VerificationRequest } from './platformTypes';
 
@@ -21,6 +22,7 @@ interface Store {
   managedProfiles: ManagedProfile[];
   restrictions: AccountRestriction[];
   adminActions: AdminActionLog[];
+  subscriptionNoticeIds: string[];
 }
 
 interface Deps {
@@ -60,6 +62,7 @@ const empty = (): Store => ({
   managedProfiles: [],
   restrictions: [],
   adminActions: [],
+  subscriptionNoticeIds: [],
 });
 
 const now = () => new Date().toISOString();
@@ -107,8 +110,14 @@ export const createLocalPlatform = (
   };
 
   const commit = (fn: (s: Store) => Store): AuthResult => {
-    const next = fn(load());
+    const previous = load();
+    const seen = new Set([...previous.subscriptionNoticeIds, ...previous.transactions.filter((t) => ['subscription', 'renewal'].includes(t.kind) && t.status === 'paid').map((t) => t.id)]);
+    const next = fn(previous);
+    const paid = next.transactions.filter((t) => ['subscription', 'renewal'].includes(t.kind) && t.status === 'paid' && t.amount > 0);
+    const notices = paid.filter((t) => !seen.has(t.id));
+    next.subscriptionNoticeIds = [...new Set([...seen, ...paid.map((t) => t.id)])];
     if (!writeJSONChecked(KEY, { ...next, transactions: deps.withInviteBonuses(next.transactions) })) return fail('No se pudo guardar: el almacenamiento del navegador está lleno');
+    for (const t of notices) localSubscriptionPaymentNotice(t, ownerOf(t.creatorProfileId)?.id);
     deps.notify();
     return ok;
   };
