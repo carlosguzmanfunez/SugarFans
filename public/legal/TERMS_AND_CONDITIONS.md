@@ -164,12 +164,13 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 - En las experiencias con aprobación, el fan envía una solicitud y el Creador la acepta, la rechaza o hace una contraoferta; el fan paga después de la aceptación (tiene 2 horas). En las experiencias de confirmación inmediata, el horario se aparta 15 minutos para pagar
 - Se paga con PayPal o con Créditos
 - Una sola regla de cancelación para todas las experiencias (ver Cancelación y No-show), contada desde la hora de inicio en la zona horaria guardada con la reserva:
-  - El fan cancela 24 horas o más antes: se le devuelve el 100%
-  - El fan cancela con menos de 24 horas: se le devuelve el 50% y el Creador conserva la mitad de su ganancia
+  - El fan cancela 24 horas o más antes: se le devuelve el 100%, menos la comisión de cobro de PayPal
+  - El fan cancela con menos de 24 horas: se le devuelve el 50%, menos la comisión de cobro de PayPal; la otra mitad se reparte entre el Creador y la Plataforma como una venta
   - El fan no se presenta: no hay devolución comercial
   - El Creador cancela una reserva pagada: el fan recibe el 100%
   - Antes de pagar, cancelar no tiene costo
-- Las devoluciones se solicitan al medio de pago original. El fan puede elegir recibirlas en Créditos; si pagó con Créditos, se le devuelven en Créditos
+- Las devoluciones se solicitan al medio de pago original. La comisión de cobro de PayPal de ese pago no es reembolsable y se descuenta de las devoluciones por cancelación voluntaria; se muestra antes de pagar y en Mis reservas. El fan puede elegir recibir la devolución en Créditos, y entonces recibe el importe completo sin descuento; si pagó con Créditos, se le devuelven en Créditos
+- Ejemplo: en una reserva de USD 25 con una comisión de USD 1.65, con 24 horas o más se devuelven USD 23.35 y con menos de 24 horas USD 10.85
 - El fan tiene un cambio de fecha gratis por reserva 1:1, pedido con 24 horas o más de anticipación; el Creador lo acepta o lo rechaza
 - Tres reservas vencidas sin pagar o tres cancelaciones voluntarias en 30 días suspenden nuevas reservas durante 72 horas
 - Estas reglas comerciales no limitan los derechos que la ley de protección al consumidor reconozca al fan

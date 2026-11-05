@@ -15,6 +15,7 @@ import { displayEmail } from '../../config/demoAccounts';
 import { deadlineLabel, timeLeft } from '../../lib/reserveAlerts';
 import { canRequestReschedule, cancellationOutcome, rescheduleMinDate } from '../../lib/reserveCancellation';
 import { formatCoins } from '../../lib/giftRules';
+import { processorFee } from '../../lib/rewardRules';
 import { platformChanged } from '../../lib/platform';
 import { useLanguage } from '../../context/LanguageContext';
 import type { CancellationReason, RefundChoice } from '../../lib/reserveControl';
@@ -373,7 +374,7 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
                 <option value="original">Al medio con el que pagué</option><option value="credits">Prefiero recibir Créditos voluntariamente</option>
               </select>
             </label>}
-            <p>{cancelReason === 'voluntary' ? `La regla comercial ofrece ${outcome?.refundPercent ?? 0}% según la anticipación, salvo que corresponda una devolución legal distinta. Las cancelaciones voluntarias cuentan para el límite de tres en 30 días.` : 'El equipo revisará tu solicitud. No se contará como cancelación voluntaria ni se sustituirá la devolución por Créditos obligatorios.'}</p>
+            <p>{cancelReason === 'voluntary' ? `La regla comercial ofrece ${outcome?.refundPercent ?? 0}% según la anticipación, salvo que corresponda una devolución legal distinta. Las cancelaciones voluntarias cuentan para el límite de tres en 30 días.${refundChoice === 'original' ? ' ' + fill(t('reserveCancel.feeNote'), { fee: money(processorFee(b.price)) }) : ''}` : 'El equipo revisará tu solicitud. No se contará como cancelación voluntaria ni se sustituirá la devolución por Créditos obligatorios.'}</p>
           </div>}
           <div className="mt-2 flex justify-end gap-2">
             <button type="button" onClick={() => setPanel(null)} className={`${btn} border border-line bg-white text-ink/70`}>{t('reserveCancel.back')}</button>
@@ -384,7 +385,9 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
         </div>
       )}
 
-      {cancelled?.paid && cancelled.refundChoice === 'original' && <p className="mt-2 text-sm text-ink/70">Devolución del {cancelled.refundPercent}% al medio original: {cancelled.refundState === 'completed' ? 'confirmada' : 'registrada, pendiente de confirmación'}. No se emitieron Créditos.</p>}
+      {cancelled?.paid && cancelled.refundChoice === 'original' && (cancelled.refundFee
+        ? <p className="mt-2 text-sm text-ink/70" data-testid="refund-amount">{fill(t('reserveCancel.refundAmount'), { amount: money(cancelled.refundAmount ?? 0), fee: money(cancelled.refundFee), state: cancelled.refundState === 'completed' ? 'confirmada' : 'registrada, pendiente de confirmación' })}</p>
+        : <p className="mt-2 text-sm text-ink/70">Devolución del {cancelled.refundPercent}% al medio original: {cancelled.refundState === 'completed' ? 'confirmada' : 'registrada, pendiente de confirmación'}. No se emitieron Créditos.</p>)}
       {cancelled?.paid && cancelled.refundChoice !== 'original' && (
         <p className="mt-2 rounded-xl bg-gray-50 px-3 py-2 text-xs text-ink/70" data-testid="cancel-result">
           <i aria-hidden="true" className="fas fa-coins mr-1.5 text-gold-600"></i>

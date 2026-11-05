@@ -63,8 +63,8 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
       {
         heading: '5. Cancelaciones y fiabilidad',
         bullets: [
-          'Si el fan cancela con 24 horas o más de anticipación, se le devuelve el 100% y esa venta no se te acredita.',
-          'Si el fan cancela con menos de 24 horas, se le devuelve el 50% y conservas la mitad de tu ganancia de esa venta.',
+          'Si el fan cancela con 24 horas o más de anticipación, se le devuelve el 100% menos la comisión de cobro de PayPal y esa venta no se te acredita.',
+          'Si el fan cancela con menos de 24 horas, se le devuelve el 50% menos la comisión de cobro de PayPal; la otra mitad se reparte como una venta normal y recibes tu porcentaje de ella.',
           'Si el fan no se presenta, conservas tu ganancia completa.',
           'Si cancelas una reserva pagada o no cumples lo publicado, el fan recibe el 100%, pierdes la ganancia de esa reserva, cubres el costo de PayPal que no se recupere (con comprobante) y cuenta en tu historial de fiabilidad, que influye en tu nivel. Si ya retiraste esa ganancia, el ajuste se descuenta de tus ingresos futuros.',
           'El fan tiene un cambio de fecha gratis por reserva 1:1, pedido con 24 horas o más de anticipación. Tú lo aceptas o lo rechazas; mientras tanto la reserva sigue confirmada.',
@@ -209,7 +209,7 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
       },
       {
         heading: 'Cómo se devuelve el dinero',
-        paragraphs: ['La devolución al medio original queda pendiente hasta comprobar su ejecución. No se entrega simultáneamente dinero y Créditos por el mismo importe. La revocación legal de una contratación a distancia se revisa conforme a la normativa aplicable: en Honduras, los artículos 58 a 60 de la Ley de Protección al Consumidor contemplan cinco días hábiles para revocar un servicio aún no iniciado y hasta cinco días hábiles desde la notificación para restituir lo pagado. Una solicitud legal o un incumplimiento del creador no se cuenta como cancelación voluntaria.'],
+        paragraphs: ['Ejemplo con una reserva de USD 25 pagada con PayPal y una comisión de cobro de USD 1.65: con 24 horas o más se devuelven USD 23.35; con menos de 24 horas, USD 10.85 (la mitad, USD 12.50, menos la comisión); en Créditos, 2,500 o 1,250 Créditos sin descuento; si el creador cancela, USD 25. La comisión exacta de cada pago aparece en Mis reservas.', 'La devolución al medio original queda pendiente hasta comprobar su ejecución. No se entrega simultáneamente dinero y Créditos por el mismo importe. La revocación legal de una contratación a distancia se revisa conforme a la normativa aplicable: en Honduras, los artículos 58 a 60 de la Ley de Protección al Consumidor contemplan cinco días hábiles para revocar un servicio aún no iniciado y hasta cinco días hábiles desde la notificación para restituir lo pagado. Una solicitud legal o un incumplimiento del creador no se cuenta como cancelación voluntaria.'],
       },
     ],
   },

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import type { User } from '../context/AuthContext';
 import { usePlatformQuery, platformApi, money } from '../lib/platform';
 import { backend } from '../lib/backend';
+import { useLanguage } from '../context/LanguageContext';
 import PaymentMethodForm, { paymentKindIcon } from './PaymentMethodForm';
 import {
   PAID_WITH_PAYPAL,
@@ -33,6 +34,7 @@ interface Props {
 // PayPal's buttons for one purchase. The server creates and captures the order
 // (or creates and activates the subscription).
 const PaypalCheckout: React.FC<{ purchase: PaypalPurchase; config: PaypalConfig; onPaid: (operation: string) => void }> = ({ purchase, config, onPaid }) => {
+  const { t } = useLanguage();
   const box = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'paying'>('loading');
   const [error, setError] = useState('');
@@ -103,6 +105,11 @@ const PaypalCheckout: React.FC<{ purchase: PaypalPurchase; config: PaypalConfig;
       <h4 className="text-sm font-medium text-gray-700 mb-2">{purchase.kind === 'subscription' ? 'Suscríbete con PayPal' : 'Paga con PayPal o con tarjeta'}</h4>
       {purchase.kind === 'subscription' && (
         <p className="text-xs text-gray-500 mb-3">PayPal cobra este monto cada mes de forma automática. Cancela cuando quieras desde Mi cuenta; sigues con acceso hasta el final del mes pagado.</p>
+      )}
+      {purchase.kind === 'booking' && (
+        <p className="text-xs text-gray-600 mb-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2" data-testid="reserve-pay-notice">
+          {t('reserveCancel.payNotice')} <a href="/legal?doc=cancellation" target="_blank" rel="noreferrer" className="underline">Ver política</a>
+        </p>
       )}
       {status === 'loading' && <p className="text-sm text-gray-500 py-3"><i aria-hidden="true" className="fas fa-spinner fa-spin mr-2"></i>Cargando PayPal…</p>}
       {status === 'paying' && <p className="text-sm text-gray-600 py-3"><i aria-hidden="true" className="fas fa-spinner fa-spin mr-2"></i>Confirmando tu pago…</p>}
