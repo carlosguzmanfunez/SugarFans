@@ -9,6 +9,7 @@ import { CoverImage, isPlaceholderImage } from './CoverArt';
 import DeferredImage from './DeferredImage';
 import VideoPreview from './VideoPreview';
 import OnDemandVideo from './OnDemandVideo';
+import { ENABLE_PAY_PER_POST } from '../config/features';
 
 // A post from the demo catalogue or one a creator published from their panel.
 export interface DisplayPost {
@@ -125,7 +126,7 @@ const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner,
           <span className="bg-pink-50 text-pink-600 px-3 py-1 rounded-full text-xs font-medium"><i aria-hidden="true" className="fas fa-star mr-1"></i>Exclusivo</span>
         ) : (
           <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-medium">
-            <i aria-hidden="true" className="fas fa-lock mr-1"></i>{post.price ? `$${post.price}` : 'Suscriptores'}
+            <i aria-hidden="true" className="fas fa-lock mr-1"></i>{ENABLE_PAY_PER_POST && post.price ? `$${post.price}` : 'Suscriptores'}
           </span>
         ))}
       </div>

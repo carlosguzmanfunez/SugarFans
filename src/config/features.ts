@@ -42,8 +42,22 @@ export const ENABLE_CREATOR_LIVE: boolean = ENABLE_OPEN_LIVE || ENABLE_SUBSCRIBE
 // Whether a creator Live of this mode may be shown and entered.
 export const broadcastModeEnabled = (mode: 'open' | 'subscriber'): boolean => (mode === 'open' ? ENABLE_OPEN_LIVE : ENABLE_SUBSCRIBER_LIVE);
 
+// PAY PER POST (a single locked post sold on its own, e.g. a "$4.99" photo) is not
+// part of the model (Carlos, 2026-11-05): Subscribe gives the creator's exclusive
+// content and live video is sold through Reserve. There has never been a checkout
+// for it; only the demo catalogue carries a per-post price (src/data/mockData.ts
+// `price`), which the post card used to show as "$4.99" on the lock. With the flag
+// off a locked post always reads "Suscriptores" and unlocks only with the
+// subscription. The price field stays so the idea can be built later:
+//
+//   front end:  VITE_ENABLE_PAY_PER_POST=true   (Vercel env, then redeploy)
+//
+// Defaults to off. Turning it on would still need a real checkout on the server.
+export const ENABLE_PAY_PER_POST: boolean = import.meta.env.VITE_ENABLE_PAY_PER_POST === 'true';
+
 export const FEATURES = {
   openLive: ENABLE_OPEN_LIVE,
   subscriberLive: ENABLE_SUBSCRIBER_LIVE,
   happeningNow: ENABLE_HAPPENING_NOW,
+  payPerPost: ENABLE_PAY_PER_POST,
 } as const;
