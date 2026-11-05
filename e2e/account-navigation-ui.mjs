@@ -70,8 +70,16 @@ try {
         await menu.locator(`a[href="${link.href}"]`).click();
         await menu.waitFor({ state: 'detached' });
         await page.waitForURL(url => url.pathname + url.search + url.hash === link.href);
-        // Guest home is the separate sign-up page without the app navbar.
-        if (!(await trigger.count())) await page.goto(base + '/explore');
+        // These guest destinations deliberately omit the app navbar. The URL
+        // changes before React commits the replacement layout; an immediate
+        // count can still see the previous navbar and race its unmount.
+        const destination = new URL(link.href, base);
+        const guestLayout = role === 'visitor' && ['/', '/login', '/register'].includes(destination.pathname);
+        if (guestLayout) {
+          await trigger.waitFor({ state: 'hidden' });
+          await page.goto(base + '/explore');
+        }
+        await trigger.waitFor({ state: 'visible' });
       }
       if (role !== 'visitor') {
         await page.goto(base + '/settings?section=wallet');
