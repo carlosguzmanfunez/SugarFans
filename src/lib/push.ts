@@ -3,9 +3,56 @@
 // notification in the bell. iPhone only allows them once the site is added to
 // the home screen (iOS 16.4+), so that case gets its own explanation.
 import { backend } from './backend';
+import { useEffect, useState } from 'react';
 
 // local: the browser-only demo backend (no alerts at all, nothing to show).
 export type PushState = 'local' | 'unsupported' | 'install-first' | 'denied' | 'off' | 'on';
+type PushResult = { ok: boolean; error?: string };
+let changing = false;
+let revision = 0;
+const listeners = new Set<() => void>();
+const reads = new Map<string, Promise<PushState>>();
+const changed = () => { revision++; listeners.forEach(fn => fn()); };
+const visible = () => { if (document.visibilityState === 'visible') changed(); };
+
+// The bell, invitations and Settings all follow the same device subscription.
+export const usePushState = (userId: string) => {
+  const [value, setValue] = useState<{ owner: string; state: PushState | null }>({ owner: userId, state: null });
+  const [busy, setBusy] = useState(changing);
+  useEffect(() => {
+    let alive = true;
+    let request = 0;
+    const refresh = () => {
+      const current = ++request;
+      setBusy(changing);
+      if (changing) return;
+      const key = `${userId}:${revision}`;
+      let read = reads.get(key);
+      if (!read) { read = pushState().finally(() => reads.delete(key)); reads.set(key, read); }
+      read.catch(() => 'off' as PushState).then(state => {
+        if (alive && current === request) setValue({ owner: userId, state });
+      });
+    };
+    if (listeners.size === 0) { window.addEventListener('focus', changed); document.addEventListener('visibilitychange', visible); }
+    listeners.add(refresh);
+    refresh();
+    return () => {
+      alive = false;
+      listeners.delete(refresh);
+      if (listeners.size === 0) { window.removeEventListener('focus', changed); document.removeEventListener('visibilitychange', visible); }
+    };
+  }, [userId]);
+  return { state: value.owner === userId ? value.state : null, busy };
+};
+
+const change = async (action: () => Promise<PushResult>): Promise<PushResult> => {
+  if (changing) return { ok: false, error: 'Espera a que termine el cambio de notificaciones.' };
+  changing = true;
+  changed();
+  try { return await action(); }
+  catch { return { ok: false, error: 'No se pudo completar el cambio. Revisa tu conexión e inténtalo de nuevo.' }; }
+  finally { changing = false; changed(); }
+};
 
 const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const standalone = () => window.matchMedia?.('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true;
@@ -33,11 +80,11 @@ export const pushState = async (): Promise<PushState> => {
   const sub = await reg?.pushManager.getSubscription();
   if (!sub) return 'off';
   // Keep this device tied to whoever is signed in now.
-  await save(sub);
-  return 'on';
+  return (await save(sub)).ok ? 'on' : 'off';
 };
 
-export const enablePush = async (): Promise<{ ok: boolean; error?: string }> => {
+export const enablePush = (): Promise<PushResult> => change(async () => {
+  if (backend.mode !== 'supabase') return { ok: false, error: 'Las notificaciones se activan en la versión publicada.' };
   if (!supported()) return { ok: false, error: 'Este navegador no permite avisos.' };
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') return { ok: false, error: 'No diste permiso para los avisos. Puedes activarlos en los ajustes del navegador.' };
@@ -52,15 +99,17 @@ export const enablePush = async (): Promise<{ ok: boolean; error?: string }> => 
   } catch (err) {
     return { ok: false, error: `No se pudieron activar los avisos. (${err instanceof Error ? err.message : 'sin detalle'})` };
   }
-};
+});
 
-export const disablePush = async () => {
+export const disablePush = (): Promise<PushResult> => change(async () => {
+  if (!supported()) return { ok: false, error: 'Este navegador no permite avisos.' };
   const reg = await navigator.serviceWorker.getRegistration('/');
   const sub = await reg?.pushManager.getSubscription();
-  if (!sub) return;
-  await backend.deletePushSubscription(sub.endpoint);
-  await sub.unsubscribe();
-};
+  if (!sub) return { ok: true };
+  const removed = await backend.deletePushSubscription(sub.endpoint);
+  if (!removed.ok) return removed;
+  return await sub.unsubscribe() ? { ok: true } : { ok: false, error: 'No se pudieron desactivar las notificaciones. Inténtalo de nuevo.' };
+});
 
 export const testPush = async (): Promise<{ ok: boolean; error?: string }> => {
   const token = await backend.accessToken();

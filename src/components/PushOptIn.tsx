@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { User } from '../context/AuthContext';
 import { isInstalledApp, useInstallApp } from '../lib/install';
-import { disablePush, enablePush, pushState, testPush, type PushState } from '../lib/push';
+import { disablePush, enablePush, testPush, usePushState } from '../lib/push';
 
 const btn = 'inline-flex h-9 items-center justify-center rounded-full px-4 text-xs font-semibold transition disabled:opacity-50';
 
@@ -10,31 +10,26 @@ const btn = 'inline-flex h-9 items-center justify-center rounded-full px-4 text-
 // they are on, green once they are, so it can't be missed. With `untilOn` (Reserve
 // panels) it disappears once alerts are on; Ajustes > Notificaciones always shows it.
 const PushOptIn: React.FC<{ user: User; untilOn?: boolean }> = ({ user, untilOn = false }) => {
-  const [state, setState] = useState<PushState | null>(null);
-  const [busy, setBusy] = useState(false);
+  const { state, busy: changing } = usePushState(user.id);
+  const [running, setRunning] = useState(false);
+  const busy = running || changing;
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  useEffect(() => setMsg(null), [state, user.id]);
   const { canInstall, install } = useInstallApp();
-
-  useEffect(() => {
-    let live = true;
-    pushState().then((s) => live && setState(s)).catch(() => live && setState('unsupported'));
-    return () => {
-      live = false;
-    };
-  }, [user.id]);
 
   if (!state || state === 'local') return null;
   const creator = user.role === 'creator';
   const on = state === 'on';
-  // Just turned on here: keep the green card (and "Probar aviso") until they leave.
-  if (untilOn && on && !msg) return null;
+  // Settings retains the controls; invitations disappear after either entry point succeeds.
+  if (untilOn && on) return null;
 
   const run = async (fn: () => Promise<{ ok: boolean; error?: string } | void>, okText: string) => {
-    setBusy(true);
-    const r = (await fn()) ?? { ok: true };
-    setBusy(false);
-    setMsg(r.ok ? { ok: true, text: okText } : { ok: false, text: r.error || 'No se pudo completar.' });
-    setState(await pushState().catch(() => 'unsupported' as const));
+    setRunning(true);
+    try {
+      const r = (await fn()) ?? { ok: true };
+      setMsg(r.ok ? { ok: true, text: okText } : { ok: false, text: r.error || 'No se pudo completar.' });
+    } catch { setMsg({ ok: false, text: 'No se pudo completar. Revisa tu conexión e inténtalo de nuevo.' }); }
+    finally { setRunning(false); }
   };
 
   return (
@@ -62,11 +57,11 @@ const PushOptIn: React.FC<{ user: User; untilOn?: boolean }> = ({ user, untilOn 
                     ? 'Bloqueaste los avisos para este sitio. Actívalos en los ajustes del navegador y vuelve aquí.'
                     : on
                       ? creator
-                        ? 'Te avisaremos al instante cuando un fan te envíe una solicitud de Reserve.'
-                        : 'Te avisaremos cuando el creador responda a tu solicitud.'
+                        ? 'Recibirás avisos de tus reservas, nuevas suscripciones y renovaciones.'
+                        : 'Recibirás avisos de tus reservas y de los pagos y cambios de tus suscripciones.'
                       : creator
-                        ? 'Te avisamos al instante cuando un fan te envía una solicitud de Reserve.'
-                        : 'Te avisamos cuando el creador responde a tu solicitud.'}
+                        ? 'Recibe avisos de tus reservas, nuevas suscripciones y renovaciones.'
+                        : 'Recibe avisos de tus reservas y de los pagos y cambios de tus suscripciones.'}
             </p>
           </div>
         </div>
@@ -111,3 +106,28 @@ const PushOptIn: React.FC<{ user: User; untilOn?: boolean }> = ({ user, untilOn 
 };
 
 export default PushOptIn;
+
+export const PushToggle: React.FC<{ user: User }> = ({ user }) => {
+  const { state, busy } = usePushState(user.id);
+  const [error, setError] = useState('');
+  useEffect(() => { if (state === 'on') setError(''); }, [state]);
+  useEffect(() => setError(''), [user.id]);
+  const toggle = async (on: boolean) => {
+    setError('');
+    if (state === 'denied') return setError('Activa las notificaciones en los ajustes del navegador y vuelve aquí.');
+    if (state === 'install-first') return setError('Añade Fans Reserve a la pantalla de inicio y ábrelo desde ese ícono para activar las notificaciones.');
+    if (state === 'unsupported') return setError('Este navegador no permite notificaciones. Usa Chrome en Android o la app instalada desde Safari en iPhone.');
+    const result = await (on ? enablePush() : disablePush());
+    if (!result.ok) setError(result.error || 'No se pudo completar el cambio.');
+  };
+  return <div className="max-w-[15rem] text-right">
+    <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-xs text-ink/70 has-[:disabled]:cursor-default">
+      <input type="checkbox" checked={state === 'on'} disabled={busy || !state || state === 'local'}
+        onChange={e => void toggle(e.currentTarget.checked)} data-testid="push-toggle"
+        title={state === 'local' ? 'Disponible en la versión publicada' : undefined}
+        className="h-3.5 w-3.5 shrink-0 accent-emerald-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:opacity-50" />
+      <span>Activar notificaciones</span>
+    </label>
+    {error && <p role="alert" className="pb-2 text-xs text-red-700">{error}</p>}
+  </div>;
+};

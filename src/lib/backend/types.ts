@@ -427,7 +427,7 @@ export interface Backend {
   markBookingsSeen(user: User): Promise<void>;
   // This device's Web Push subscription (phone alerts), tied to the signed-in person.
   savePushSubscription(sub: { endpoint: string; p256dh: string; auth: string }): Promise<AuthResult>;
-  deletePushSubscription(endpoint: string): Promise<void>;
+  deletePushSubscription(endpoint: string): Promise<AuthResult>;
   creatorBookings(creatorProfileId: string): Promise<VipBooking[]>;
 
   // Verification, payments, payouts, reports and blocks (see platformTypes.ts).

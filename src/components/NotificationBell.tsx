@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import Icon from './Icon';
-import { Link } from 'react-router-dom';
 import type { User } from '../context/AuthContext';
-import { useNotifications, markNotificationsRead, type AppNotification } from '../lib/live';
+import { useNotifications, markNotificationsRead, dismissNotification, type AppNotification } from '../lib/live';
 import { useDismiss } from '../hooks/useDismiss';
+import NotificationItem from './NotificationItem';
+import { PushToggle } from './PushOptIn';
 
 const timeAgo = (iso: string) => {
   const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -17,17 +18,38 @@ const timeAgo = (iso: string) => {
 const KIND_ICON: Record<AppNotification['kind'], { icon: string; className: string }> = {
   live_started: { icon: 'fa-tower-broadcast', className: 'bg-red-50 text-red-600' },
   creator_goal: { icon: 'fa-crown', className: 'bg-amber-50 text-amber-600' },
+  subscription_payment: { icon: 'fa-star', className: 'bg-emerald-50 text-emerald-700' },
+  subscription_update: { icon: 'fa-bell', className: 'bg-brand-50 text-brand-700' },
   reserve_request: { icon: 'fa-ticket', className: 'bg-brand-50 text-brand-700' },
   reserve_update: { icon: 'fa-ticket', className: 'bg-iris-50 text-iris-700' },
 };
 
-// "Campanita": Subscriber Lives of the creators a fan subscribes to, and Reserve
-// news for both sides (new requests for the creator, answers for the fan).
+// The account inbox: Reserve updates, confirmed subscription payments and changes.
 const NotificationBell: React.FC<{ user: User }> = ({ user }) => {
-  const { data: items } = useNotifications(user);
+  const { data } = useNotifications(user);
+  const [removed, setRemoved] = useState<{ userId: string; ids: string[] }>({ userId: user.id, ids: [] });
+  const [feedback, setFeedback] = useState({ userId: user.id, error: '', message: '' });
+  const panel = useRef<HTMLDivElement>(null);
+  const items = data.filter(n => removed.userId !== user.id || !removed.ids.includes(n.id));
   const [open, setOpen] = useState(false);
   const ref = useDismiss<HTMLDivElement>(open, () => setOpen(false));
   const unread = items.filter((n) => !n.read).length;
+
+  const remove = async (id: string) => {
+    const activeRow = document.activeElement?.closest('[data-notification-id]');
+    if (activeRow?.getAttribute('data-notification-id') === id) panel.current?.focus();
+    setFeedback({ userId: user.id, error: '', message: '' });
+    try {
+      const result = await dismissNotification(user, id);
+      if (!result.ok) throw new Error(result.error);
+      setRemoved(previous => ({ userId: user.id, ids: [...(previous.userId === user.id ? previous.ids : []), id] }));
+      setFeedback({ userId: user.id, error: '', message: 'Aviso eliminado.' });
+      return true;
+    } catch {
+      setFeedback({ userId: user.id, error: 'No se pudo borrar el aviso. Revisa tu conexión e inténtalo de nuevo.', message: '' });
+      return false;
+    }
+  };
 
   const toggle = () => {
     const next = !open;
@@ -54,37 +76,30 @@ const NotificationBell: React.FC<{ user: User }> = ({ user }) => {
       </button>
       {open && (
         <div
+          ref={panel}
+          tabIndex={-1}
           role="region"
           aria-label="Avisos"
           data-testid="notification-panel"
           className="absolute right-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] max-sm:inset-x-2 max-sm:top-full max-sm:w-auto max-sm:max-w-none overflow-hidden rounded-2xl border border-line bg-white shadow-[var(--shadow-lift)]"
         >
-          <p className="border-b border-line px-4 py-3 text-sm font-semibold text-ink">Avisos</p>
+          <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-1">
+            <p className="text-sm font-semibold text-ink">Avisos</p>
+            <PushToggle user={user} />
+          </div>
+          <span className="sr-only">Desliza un aviso a la derecha o a la izquierda para eliminarlo.</span>
+          {feedback.userId === user.id && feedback.error && <p role="alert" className="px-4 py-2 text-xs text-red-700">{feedback.error}</p>}
+          <span role="status" className="sr-only">{feedback.userId === user.id ? feedback.message : ''}</span>
           {items.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-muted">
               {user.role === 'creator'
-                ? 'Aún no tienes avisos. Aquí verás cada nueva solicitud de Reserve.'
-                : 'Aún no tienes avisos. Te avisaremos de las respuestas a tus reservas.'}
+                ? 'Aún no tienes avisos. Aquí verás las novedades de tus reservas y suscriptores.'
+                : 'Aún no tienes avisos. Aquí verás las novedades de tus reservas y suscripciones.'}
             </p>
           ) : (
-            <ul className="max-h-96 overflow-y-auto">
+            <ul className="max-h-96 overflow-y-auto overscroll-contain">
               {items.map((n) => (
-                <li key={n.id}>
-                  <Link
-                    to={n.link || '/'}
-                    onClick={() => setOpen(false)}
-                    className={`flex gap-3 px-4 py-3 text-left hover:bg-canvas ${n.read ? '' : 'bg-brand-50/60'}`}
-                  >
-                    <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${(KIND_ICON[n.kind] ?? KIND_ICON.live_started).className}`}>
-                      <i aria-hidden="true" className={`fas ${(KIND_ICON[n.kind] ?? KIND_ICON.live_started).icon} text-xs`}></i>
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-sm font-semibold text-ink">{n.title}</span>
-                      {n.body && <span className="block truncate text-xs text-ink/70">{n.body}</span>}
-                      <span className="block text-[11px] text-muted">{timeAgo(n.createdAt)}</span>
-                    </span>
-                  </Link>
-                </li>
+                <NotificationItem key={`${user.id}:${n.id}`} notification={n} icon={KIND_ICON[n.kind] ?? KIND_ICON.live_started} time={timeAgo(n.createdAt)} onOpen={() => setOpen(false)} onDismiss={remove} />
               ))}
             </ul>
           )}
