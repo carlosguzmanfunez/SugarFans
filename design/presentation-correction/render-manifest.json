@@ -2,7 +2,7 @@
   {
     "file": "fans-reserve-presentacion.mp4",
     "sourceSha256": "f2edf9b0edf87c29c7bd98f12b2a79687db2b0a42e6fe8bcceff6ce0d3c5852e",
-    "outputSha256": "fcd01d8965f05a52253bda7bba616d9919f3367b58ee9ba7ac521bd271b46211",
+    "outputSha256": "6cf27f535e89f9a79c50017662106259cf48ac6dcadd648df5fbf7a7ab316822",
     "duration": "31.600000",
     "video": {
       "codec_type": "video",
@@ -22,7 +22,7 @@
   {
     "file": "fans-reserve-presentacion-vertical.mp4",
     "sourceSha256": "8f3eb5ef59dc642b1064112ce87c06fc6e0d181dc0e908c2960bccf3e80ff223",
-    "outputSha256": "e97d38a666779aea52c24402937fe882a41df5e0e832fd1d41be7336698ee527",
+    "outputSha256": "0f34144d7c96b4090c5983bbb5e4e800573f195b2ef03fa5c386c8ebb74c3fbc",
     "duration": "31.600000",
     "video": {
       "codec_type": "video",
@@ -42,7 +42,7 @@
   {
     "file": "fans-reserve-presentacion-en.mp4",
     "sourceSha256": "25a44875a4e253e34e86056abdb9e5da0c19b50c10e0229633ab01d87a7750be",
-    "outputSha256": "5f867e22c385e99af8fce39468aeb5cc621c4ae1c556a7b28f87387097caffbe",
+    "outputSha256": "cb38b6a44ecec5f0285f77eb72288931759ad3c6de067517b6cc8feec407d305",
     "duration": "31.600000",
     "video": {
       "codec_type": "video",
@@ -62,7 +62,7 @@
   {
     "file": "fans-reserve-presentacion-vertical-en.mp4",
     "sourceSha256": "20ee58605c854c500400fe3fda0d9938dbf7076a3f0b6feb8107748282cb0331",
-    "outputSha256": "a04e9b96eef1da024182e99930667f9f136627a349e43a0abd3cdac67a5d399e",
+    "outputSha256": "2d0c693e92854030e7671feda18661e7c1c9aaa6d5246282583fc9a5795f3716",
     "duration": "31.600000",
     "video": {
       "codec_type": "video",
@@ -82,7 +82,7 @@
   {
     "file": "fans-reserve-presentacion-pt.mp4",
     "sourceSha256": "1b8073bfe15f3c873485e3ff7a71fe107c47be916854cbf02377cc5e58929554",
-    "outputSha256": "4d963e9b50d6306dc740c2c78fa834eafee35943f61872582aa673f8ac2908df",
+    "outputSha256": "2d46943db6c268f962ae696866940f671ed42df5e64b329ae81b73f673a028ad",
     "duration": "31.600000",
     "video": {
       "codec_type": "video",
@@ -102,7 +102,7 @@
   {
     "file": "fans-reserve-presentacion-vertical-pt.mp4",
     "sourceSha256": "d26a3f11914b2e5204a93c821147f460c8ae6fd5f1b3abdc612ae00ae37c2adf",
-    "outputSha256": "096d036f16988b2ce35dc2b9e7bdadbfeeb4bc175daebeb8a3a1ede4f570a1f8",
+    "outputSha256": "30eb770d7bf9800f90f0154a65771bcb663da1fc0be34ded52da71c344e87f92",
     "duration": "31.600000",
     "video": {
       "codec_type": "video",
@@ -122,7 +122,7 @@
   {
     "file": "fans-reserve-presentacion-fr.mp4",
     "sourceSha256": "5af8df0eca39e19562cffa9d9f07e2b9da6ff98803490b21742eea7bc242801d",
-    "outputSha256": "1ceebc44daa789085a3c10d92ba86a15ccd526b843c10b549e2b25555f32e2d0",
+    "outputSha256": "548d46fc669ea8336ebb8ac3a4ffa49f67da77e51ccc2edccc1abb3b1dfd943a",
     "duration": "31.600000",
     "video": {
       "codec_type": "video",
@@ -142,7 +142,7 @@
   {
     "file": "fans-reserve-presentacion-vertical-fr.mp4",
     "sourceSha256": "bf6549bb35b17646bb068c05bba53963cca3bd50230d96c4a0f926e36bcda057",
-    "outputSha256": "1056876eb00a9f5b24a376b0a4ced407084bd564732f82b0429ce78728b8879a",
+    "outputSha256": "3b30c063adbd014d4ef0f2477e60bc07ec730c3fdc7093e002ce0d7584d79bde",
     "duration": "31.600000",
     "video": {
       "codec_type": "video",
@@ -162,7 +162,7 @@
   {
     "file": "fans-reserve-presentacion-it.mp4",
     "sourceSha256": "6f093852fc4a22f2f6864191a2634d32e501eb93c96e51f5244dd726eb8a117d",
-    "outputSha256": "c18ae215c6329481f39ab44c7d0acd970b53c2f0fc2afe415e396975ae52a84a",
+    "outputSha256": "a7dc90b2d5d190adb97b77b07623cc8ceb0670aeb45fb0d672472df5989376e3",
     "duration": "31.600000",
     "video": {
       "codec_type": "video",
@@ -182,7 +182,7 @@
   {
     "file": "fans-reserve-presentacion-vertical-it.mp4",
     "sourceSha256": "10c845a2e79b7b3c61ccde18bb930127fbe3269213c6be353f27f832e48d7add",
-    "outputSha256": "68fa765a4c74f7c6d5cccd4411b66cacf2de5dd0632e790f23e0c88d9c65a71c",
+    "outputSha256": "bcc094e6553cd0f8f035b3ea91d0833130484348d20b31ceb09efa3594fd9f6e",
     "duration": "31.600000",
     "video": {
       "codec_type": "video",

@@ -19,3 +19,7 @@ To retry a single language after an interrupted render, use the same output dire
 The input folder is read-only. Review the outputs before copying them to `public/presentacion`. Original posters have no subscription promise and are retained. The React component's asset version must be bumped when replacing films so cached videos refresh.
 
 See `DESIGN.md` for the established identity and motion rules. These are local tooling dependencies, separate from the website's dependencies.
+
+## Turn-taking fix in the opening call (November 2026)
+
+In the original take the man also moves his mouth while the woman says her line. The same render step now replaces only his half of the call (vertical 488×412 at 116,820; horizontal 338×302 at 788,358) between 7.0 and 8.45 seconds with his own silent listening frames from 8.45 to 9.75 seconds, played in reverse with a 0.2-second fade-in. His own line, his bubble and everything else are unchanged.

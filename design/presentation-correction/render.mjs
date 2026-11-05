@@ -58,7 +58,13 @@ for (let i = 0; i < projects.length; i += 2) {
     }
     const scene = join(work, `${name}-scene.mp4`);
     await run(process.execPath, [cli, 'render', folder, '--output', scene, '--fps', '30', '--quality', 'high', '--workers', '2'], join(work, `${name}-render.log`));
-    const filter = '[0:v]split=2[h][t];[h]trim=end=19.6,setpts=PTS-STARTPTS,fps=30,format=yuv420p,setsar=1[head];[t]trim=start=24.6,setpts=PTS-STARTPTS,fps=30,format=yuv420p,setsar=1[tail];[1:v]setpts=PTS-STARTPTS,fps=30,format=yuv420p,setsar=1[scene];[head][scene]xfade=transition=fade:duration=0.4:offset=19.2[first];[first][tail]xfade=transition=fade:duration=0.4:offset=24.6[v]';
+    // Turn-taking fix in the opening call: while she says her line (about 7.0-8.45 s) his half of the
+    // call came from a take where he talks too. Replace only his half with his own silent listening
+    // frames from 8.45-9.75 s (before his bubble appears), played in reverse so the last patched frame
+    // is exactly the one at 8.45 s, with a 0.2 s fade-in. Everything else stays untouched.
+    const [px, py, pw, ph] = portrait ? [116, 820, 488, 412] : [788, 358, 338, 302];
+    const callFix = `[0:v]split=2[base][src];[src]trim=start=8.45:end=9.75,setpts=PTS-STARTPTS,crop=${pw}:${ph}:${px}:${py},reverse,setpts=1.12*PTS,fps=30,format=yuva420p,fade=t=in:st=0:d=0.2:alpha=1,setpts=PTS+7.0/TB[quiet];[base][quiet]overlay=${px}:${py}:eof_action=pass:enable='between(t,7.0,8.45)',format=yuv420p,settb=1/15360,setpts=N*512[fixed];`; // exact 1/30 s timestamps so the later trims keep all 948 frames
+    const filter = callFix + '[fixed]split=2[h][t];[h]trim=end=19.6,setpts=PTS-STARTPTS,fps=30,format=yuv420p,setsar=1[head];[t]trim=start=24.6,setpts=PTS-STARTPTS,fps=30,format=yuv420p,setsar=1[tail];[1:v]setpts=PTS-STARTPTS,fps=30,format=yuv420p,setsar=1[scene];[head][scene]xfade=transition=fade:duration=0.4:offset=19.2[first];[first][tail]xfade=transition=fade:duration=0.4:offset=24.6[v]';
     await run(ffmpeg, ['-hide_banner', '-y', '-i', input, '-i', scene, '-filter_complex', filter, '-map', '[v]', '-map', '0:a?', '-c:v', 'libx264', '-crf', '18', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-r', '30', '-c:a', 'copy', '-t', '31.6', '-movflags', '+faststart', output], join(work, `${name}-splice.log`));
     const result = await probe(output, join(work, `${name}-output.json`));
     const finalVideo = result.streams.find(s => s.codec_type === 'video');
