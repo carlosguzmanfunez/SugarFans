@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   bookingWindow,
   fromISODate,
@@ -11,7 +11,7 @@ import {
   type Availability,
   type TakenSlot,
 } from '../lib/vip';
-import { viewerSlotLabel, viewerTimeZone, zoneCity } from '../lib/timeZones';
+import { dateInZone, viewerSlotLabel, viewerTimeZone, zoneCity } from '../lib/timeZones';
 
 interface Props {
   availability: Availability;
@@ -23,12 +23,17 @@ interface Props {
   // Hours closer than this to now are not offered (the experience's minimum notice).
   minNoticeHours?: number;
   durationMinutes?: number;
+  allowSameDay?: boolean;
 }
 
 // Month calendar limited to the bookable window; only the creator's working
 // days are selectable, and only their free hours are offered.
-const BookingCalendar: React.FC<Props> = ({ availability, taken: takenSlots, creatorName, date, time, onChange, minNoticeHours = 0, durationMinutes = 60 }) => {
-  const { min, max } = bookingWindow(new Date(), availability.timeZone);
+const BookingCalendar: React.FC<Props> = ({ availability, taken: takenSlots, creatorName, date, time, onChange, minNoticeHours = 0, durationMinutes = 60, allowSameDay = false }) => {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => { const timer = window.setInterval(() => setNow(new Date()), 30_000); return () => window.clearInterval(timer); }, []);
+  const bookableWindow = bookingWindow(now, availability.timeZone, allowSameDay);
+  const min = allowSameDay ? dateInZone(new Date(now.getTime() + minNoticeHours * 3_600_000), availability.timeZone) : bookableWindow.min;
+  const max = bookableWindow.max;
   const minDate = fromISODate(min);
   const maxDate = fromISODate(max);
   const [month, setMonth] = useState(() => {
@@ -45,14 +50,16 @@ const BookingCalendar: React.FC<Props> = ({ availability, taken: takenSlots, cre
     const blanks = Array.from({ length: first.getDay() }, () => null);
     const days = Array.from({ length: daysInMonth }, (_, i) => {
       const iso = toISODate(new Date(month.getFullYear(), month.getMonth(), i + 1));
-      return { iso, day: i + 1, free: freeHoursOn(availability, takenSlots, iso, minNoticeHours, durationMinutes).length > 0 };
+      return { iso, day: i + 1, free: freeHoursOn(availability, takenSlots, iso, minNoticeHours, durationMinutes, { sameDay: allowSameDay, now }).length > 0 };
     });
     return [...blanks, ...days];
-  }, [month, availability, takenSlots, minNoticeHours, durationMinutes]);
+  }, [month, availability, takenSlots, minNoticeHours, durationMinutes, allowSameDay, now]);
 
   const monthLabel = month.toLocaleDateString('es', { month: 'long', year: 'numeric' });
   const taken = date ? takenHoursOn(takenSlots, date) : [];
-  const free = date ? freeHoursOn(availability, takenSlots, date, minNoticeHours, durationMinutes) : [];
+  const free = date ? freeHoursOn(availability, takenSlots, date, minNoticeHours, durationMinutes, { sameDay: allowSameDay, now }) : [];
+  const selectedAvailable = free.includes(time);
+  useEffect(() => { if (time && !selectedAvailable) onChange(date, ''); }, [date, time, selectedAvailable, onChange]);
   // Hours are in the creator's clock; a fan elsewhere also sees theirs.
   const zone = availability.timeZone;
 

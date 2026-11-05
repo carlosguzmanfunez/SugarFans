@@ -5,7 +5,7 @@ import { BRAND } from '../../config/brand';
 import { backend } from '../../lib/backend';
 import type { User } from '../../context/AuthContext';
 import {
-  ALL_HOURS,
+  EXPERIENCE_START_TIMES,
   WEEKDAYS,
   DEFAULT_EXPERIENCE_IMAGE,
   MIN_EXPERIENCE_PRICE,
@@ -401,6 +401,13 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category: profileCateg
         <div className="space-y-4">
           <p className="text-sm text-ink/70">Elige cualquier día de la semana y cualquier hora del día. Empieza marcado con tus horarios generales.</p>
           <p className="text-sm text-ink/70">Hora de {zoneCity(availability.timeZone ?? input.timeZone)}. Puedes cambiar tu zona en Disponibilidad; las reservas anteriores conservan su hora acordada.</p>
+          <label className="block text-sm sm:max-w-xs">
+            <span className="font-semibold text-ink">Anticipación mínima</span>
+            <select name="expNotice" value={d.minNoticeHours} onChange={(e) => setD({ minNoticeHours: Number(e.target.value) })} className={field}>
+              {MIN_NOTICE_OPTIONS.map((h) => <option key={h} value={h}>{noticeLabel(h)}</option>)}
+            </select>
+            <span className="mt-1 block text-xs text-muted">Define cuánto tiempo necesitas para prepararte. Si eliges 1 hora, podrán reservar hoy los horarios que comiencen dentro de una hora o más.</span>
+          </label>
           <div>
             <p className="mb-2 text-sm font-semibold text-ink">Días</p>
             <div className="flex flex-wrap gap-2">
@@ -415,9 +422,9 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category: profileCateg
             </div>
           </div>
           <div>
-            <p className="mb-2 text-sm font-semibold text-ink">Horas</p>
+            <p className="mb-2 text-sm font-semibold text-ink">Horarios de inicio</p>
             <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-              {ALL_HOURS.map((h) => {
+              {EXPERIENCE_START_TIMES.map((h) => {
                 const on = (d.hours ?? availability.hours).includes(h);
                 return (
                   <button key={h} type="button" aria-pressed={on} onClick={() => setD({ hours: toggle(d.hours ?? availability.hours, h) })} className={`h-10 rounded-xl border text-sm font-medium ${on ? 'border-brand-600 bg-brand-600 text-white' : 'border-line text-ink/70'}`}>
@@ -426,13 +433,8 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category: profileCateg
                 );
               })}
             </div>
+            <p className="mt-2 text-xs text-muted">Marca cuándo puede comenzar cada reserva. Para sesiones de media hora puedes elegir, por ejemplo, 11:00, 11:30 y 12:00.</p>
           </div>
-          <label className="block text-sm sm:max-w-xs">
-            <span className="font-semibold text-ink">Anticipación mínima</span>
-            <select name="expNotice" value={d.minNoticeHours} onChange={(e) => setD({ minNoticeHours: Number(e.target.value) })} className={field}>
-              {MIN_NOTICE_OPTIONS.map((h) => <option key={h} value={h}>{noticeLabel(h)}</option>)}
-            </select>
-          </label>
         </div>
       )}
 
@@ -537,7 +539,7 @@ const ReserveExperienceWizard: React.FC<Props> = ({ user, category: profileCateg
       {step === 11 && (
         <div className="rounded-2xl border border-line bg-gray-50 p-4" data-testid="cancellation-rule">
           <p className="text-sm font-semibold text-ink">{CANCELLATION_RULE.label}</p>
-          <p className="mt-1 text-xs text-ink/60">La misma para todas las experiencias: no tienes que elegir nada. Las devoluciones se hacen en Créditos y se aplican solas.</p>
+          <p className="mt-1 text-xs text-ink/60">La misma para todas las experiencias. La devolución se solicita al medio original; los Créditos son opcionales.</p>
           <ul className="mt-3 space-y-1.5 text-sm text-ink/80">
             {CANCELLATION_RULE.bullets.map((x) => (
               <li key={x} className="flex gap-2"><i aria-hidden="true" className="fas fa-check mt-1 text-[11px] text-emerald-600"></i><span>{x}</span></li>

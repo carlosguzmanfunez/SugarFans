@@ -63,6 +63,7 @@ export const WEEKDAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 // Every hour of the day: creators choose their own (fans in other time zones may
 // want a call at what is night for the creator).
 export const ALL_HOURS = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`); // 00:00–23:00
+export const EXPERIENCE_START_TIMES = Array.from({ length: 48 }, (_, i) => `${String(Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`);
 export const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 
 export const DEFAULT_AVAILABILITY: Availability = {
@@ -80,10 +81,10 @@ export const fromISODate = (iso: string): Date => {
   return new Date(y, m - 1, d);
 };
 
-// Bookable window: from tomorrow up to MAX_BOOKING_MONTHS ahead.
-export const bookingWindow = (now = new Date(), zone?: string) => {
+// Published experiences can opt into today; other booking flows retain their window.
+export const bookingWindow = (now = new Date(), zone?: string, sameDay = false) => {
   const today = fromISODate(dateInZone(now, zone));
-  const min = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  const min = new Date(today.getFullYear(), today.getMonth(), today.getDate() + (sameDay ? 0 : 1));
   // Match PostgreSQL's calendar-month arithmetic (Jan 31 + 3 months = Apr 30).
   const lastDay = new Date(today.getFullYear(), today.getMonth() + MAX_BOOKING_MONTHS + 1, 0).getDate();
   const max = new Date(today.getFullYear(), today.getMonth() + MAX_BOOKING_MONTHS, Math.min(today.getDate(), lastDay));
@@ -96,8 +97,9 @@ export const formatLongDate = (iso: string): string =>
 export const takenHoursOn = (taken: TakenSlot[], date: string): string[] =>
   taken.filter((s) => s.date === date).map((s) => s.time);
 
-export const freeHoursOn = (availability: Availability, taken: TakenSlot[], date: string, minNoticeHours = 0, duration = 60): string[] => {
-  const { min, max } = bookingWindow(new Date(), availability.timeZone);
+export const freeHoursOn = (availability: Availability, taken: TakenSlot[], date: string, minNoticeHours = 0, duration = 60, options: { sameDay?: boolean; now?: Date } = {}): string[] => {
+  const now = options.now ?? new Date();
+  const { min, max } = bookingWindow(now, availability.timeZone, options.sameDay);
   if (date < min || date > max || !availability.days.includes(fromISODate(date).getDay())) return [];
   return availability.hours.filter(h => {
     const start = zonedDate(date, h, availability.timeZone).getTime();
@@ -106,7 +108,7 @@ export const freeHoursOn = (availability: Availability, taken: TakenSlot[], date
       const at = zonedDate(slot.date, slot.time, slot.timeZone ?? availability.timeZone).getTime();
       return start < at + (slot.durationMinutes ?? 60) * 60_000 && end > at;
     });
-    return !busy && Number.isFinite(start) && (!minNoticeHours || meetsNotice(date, h, minNoticeHours, new Date(), availability.timeZone));
+    return !busy && Number.isFinite(start) && meetsNotice(date, h, minNoticeHours, now, availability.timeZone);
   });
 };
 
@@ -345,14 +347,16 @@ export const experienceAvailability = (availability: Availability, exp?: Pick<Vi
   return {
     // Its own days and hours (any day, any hour) replace the general schedule.
     days: d?.days?.length ? [...d.days].sort((a, b) => a - b) : availability.days,
-    hours: d?.hours?.length ? ALL_HOURS.filter((h) => d.hours!.includes(h)) : availability.hours,
+    hours: d?.hours?.length ? [...new Set(d.hours)].filter(h => /^([01]\d|2[0-3]):[0-5]\d$/.test(h)).sort() : availability.hours,
     ...((availability.timeZone ?? exp?.timeZone) ? { timeZone: availability.timeZone ?? exp?.timeZone } : {}),
   };
 };
 
 // Earliest start allowed by the minimum notice.
-export const meetsNotice = (date: string, time: string, hours: number, now = new Date(), timeZone?: string) =>
-  zonedDate(date, time, timeZone).getTime() - now.getTime() >= hours * 3_600_000;
+export const meetsNotice = (date: string, time: string, hours: number, now = new Date(), timeZone?: string) => {
+  const remaining = zonedDate(date, time, timeZone).getTime() - now.getTime();
+  return remaining > 0 && remaining >= hours * 3_600_000;
+};
 
 // Checks a custom request before it is sent (the server repeats the essentials).
 export const validateCustomRequest = (input: CustomRequestInput, categoryName?: string): { ok: boolean; error?: string; flags?: string[] } => {

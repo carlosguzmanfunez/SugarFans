@@ -137,7 +137,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
                 : 'Tu experiencia quedó confirmada con tu ticket. No pagas nada.'
               : approval
               ? `${exp.creatorName} revisará tu solicitud y tiene ${RESERVE_RESPONSE_HOURS} horas para responder. Te avisaremos cuando la vea y cuando responda. Si la acepta, pagas desde Mis reservas; si no responde a tiempo, se cierra sola y no se te cobra nada.`
-              : 'Tienes 15 minutos para pagar desde Mis reservas. Si no pagas, el horario se libera automáticamente.'}
+              : 'Paga desde Mis reservas en un máximo de 15 minutos y siempre antes de que empiece la experiencia. Si no pagas a tiempo, el horario se libera automáticamente.'}
           </p>
           <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
             <button type="button" onClick={onClose} className="h-11 rounded-full border border-line px-6 text-sm font-semibold text-ink">Cerrar</button>
@@ -215,6 +215,7 @@ const ReserveBookingDialog: React.FC<Props> = ({ exp, user, startBooking, onNeed
                 date={date}
                 time={time}
                 minNoticeHours={d.minNoticeHours}
+                allowSameDay
                 durationMinutes={exp.durationMinutes}
                 onChange={(nd, nt) => { setDate(nd); setTime(nt); setError(''); }}
               />
