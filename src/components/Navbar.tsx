@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useId } from 'react';
+import React, { useState, useEffect, useId, useRef } from 'react';
 import Icon from './Icon';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -43,26 +43,15 @@ const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [showMenu, setShowMenu] = useState(false);
-  const [showMobile, setShowMobile] = useState(false);
-  const compactMenuId = useId();
+  const accountMenuId = useId();
+  const accountButtonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useDismiss<HTMLDivElement>(showMenu, () => setShowMenu(false));
-  const navRef = useDismiss<HTMLElement>(showMobile, () => setShowMobile(false));
 
-  // Close menus whenever the address changes (also ?section= / #anchor links to the
+  // Close the account menu whenever the address changes (also ?section= / #anchor links to the
   // page already open).
   useEffect(() => {
     setShowMenu(false);
-    setShowMobile(false);
   }, [location.pathname, location.search, location.hash, location.key]);
-
-  // Keep the complete compact navigation until the longest authenticated header
-  // fits. Match AppLayout and MobileTabBar so tablet users never lose navigation.
-  useEffect(() => {
-    const desktop = window.matchMedia('(min-width: 1280px)');
-    const closeCompact = () => { if (desktop.matches) setShowMobile(false); };
-    desktop.addEventListener('change', closeCompact);
-    return () => desktop.removeEventListener('change', closeCompact);
-  }, []);
 
   const handleLogout = async () => {
     setShowMenu(false);
@@ -96,16 +85,35 @@ const Navbar: React.FC = () => {
     `relative rounded-full px-3.5 py-2 text-sm font-medium transition-colors ${
       location.pathname === path ? 'bg-brand-50 text-brand-700' : 'text-ink/70 hover:bg-ink/5 hover:text-ink'
     }`;
-  const mobileLinkCls = (path: string) =>
-    `flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] font-medium ${location.pathname === path ? 'bg-brand-50 text-brand-700' : 'text-ink/80 hover:bg-ink/5'}`;
+  const accountLinks = [
+    ...(isAuthenticated ? [
+      { to: '/profile', label: t('nav.profile'), icon: 'fa-user' },
+      { to: '/settings?section=wallet', label: VIRTUAL_CURRENCY.displayName, icon: 'fa-coins' },
+      { to: '/settings', label: t('nav.settings'), icon: 'fa-gear' },
+    ] : [
+      { to: '/login', label: t('nav.login'), icon: 'fa-circle-user' },
+      { to: '/register', label: t('nav.register'), icon: 'fa-user' },
+    ]),
+    ...(isCreator ? [{ to: '/creator/dashboard', label: 'Mi panel de creador', icon: 'fa-chart-line' }] : []),
+    ...(isAuthenticated && (user?.role === 'admin' || user?.isOwner)
+      ? [{ to: '/admin', label: 'Administración', icon: 'fa-shield-halved' }] : []),
+    ...(user?.isOwner ? [{ to: '/owner', label: 'Dirección general', icon: 'fa-crown' }] : []),
+  ];
+  const navigationLinks = [
+    { to: '/explore', label: t('nav.explore'), icon: 'fa-compass' },
+    { to: isCreator ? CREATOR_RESERVE_LINK : '/reserve', label: isCreator ? 'Reservas' : 'Reserve', icon: 'fa-ticket' },
+    ...(showCreators ? [{ to: isAuthenticated ? '/#creadores' : '/register?role=creator', label: 'Para creadores', icon: 'fa-star' }] : []),
+    { to: '/#journey', label: 'Cómo funciona', icon: 'fa-circle-question' },
+    { to: '/help', label: t('nav.help'), icon: 'fa-circle-question' },
+  ];
+  const accountItemCls = 'flex min-h-11 items-center gap-3 px-4 py-2.5 text-sm focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600';
+  const accountLinkCls = `${accountItemCls} text-ink/80 hover:bg-canvas`;
 
   return (
     // Floating glass pill.
-    <nav ref={navRef} aria-label="Principal" className="sticky top-3 z-50 mx-auto mt-3.5 w-full max-w-[1240px] px-2 min-[400px]:px-2.5 sm:px-6 lg:px-10">
+    <nav aria-label="Principal" className="sticky top-3 z-50 mx-auto mt-3.5 w-full max-w-[1240px] px-2 min-[400px]:px-2.5 sm:px-6 lg:px-10">
       <div
-        className={`border border-white/80 bg-white/75 pl-3 pr-2 shadow-[0_10px_40px_-18px_rgba(70,20,60,0.25),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl backdrop-saturate-150 sm:pl-[18px] sm:pr-2.5 ${
-          showMobile ? 'rounded-[28px]' : 'rounded-full'
-        }`}
+        className="rounded-full border border-white/80 bg-white/75 pl-3 pr-2 shadow-[0_10px_40px_-18px_rgba(70,20,60,0.25),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl backdrop-saturate-150 sm:pl-[18px] sm:pr-2.5"
       >
         <div className="flex h-16 items-center justify-between gap-2 sm:gap-4">
           {/* Logo */}
@@ -167,48 +175,58 @@ const Navbar: React.FC = () => {
             {isAuthenticated && user && <NotificationBell user={user} />}
             {isAuthenticated && user && (user.role === 'fan' || user.role === 'creator') && <CreditsPill user={user} />}
 
-            {isAuthenticated ? (
-              <div ref={menuRef} className="relative">
+            <div ref={menuRef} className="relative">
                 <button
-                  onClick={() => setShowMenu(!showMenu)}
+                  ref={accountButtonRef}
+                  type="button"
+                  onClick={() => setShowMenu(open => !open)}
                   aria-label="Menú de cuenta"
                   aria-expanded={showMenu}
-                  className="flex items-center gap-2 rounded-full p-0.5 pr-0.5 ring-1 ring-line transition hover:ring-brand-200 sm:pr-2.5"
+                  aria-controls={showMenu ? accountMenuId : undefined}
+                  className="flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full p-1 pr-2 ring-1 ring-line transition hover:ring-brand-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
                 >
                   <Avatar src={user?.avatar} name={user?.name ?? 'Cuenta'} size={34} decorative />
-                  <Icon name="fa-chevron-down" className="text-[10px] text-ink/50 max-sm:hidden!" />
+                  <Icon name="fa-chevron-down" className="text-[10px] text-ink/50" />
                 </button>
                 {showMenu && (
-                  <div className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-line bg-white py-2 shadow-[var(--shadow-lift)]">
+                  <div
+                    id={accountMenuId}
+                    role="region"
+                    aria-label="Opciones de cuenta"
+                    data-testid="account-menu"
+                    onKeyDown={event => {
+                      if (event.key === 'Escape') accountButtonRef.current?.focus();
+                    }}
+                    className="absolute right-0 z-50 mt-2 max-h-[calc(100dvh-11rem)] w-72 max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain rounded-2xl border border-line bg-white py-2 shadow-[var(--shadow-lift)]"
+                  >
                     <div className="border-b border-line px-4 pb-3 pt-1">
-                      <p className="truncate text-sm font-semibold text-ink">{user?.name}</p>
-                      <p className="truncate text-xs text-muted">{displayEmail(user?.email)}</p>
+                      <p className="truncate text-sm font-semibold text-ink">{user?.name ?? t('nav.profile')}</p>
+                      {user && <p className="truncate text-xs text-muted">{displayEmail(user.email)}</p>}
                     </div>
-                    {user?.isOwner && (
-                      <Link to="/owner" className="flex items-center gap-3 border-b border-line px-4 py-3 text-sm font-semibold text-brand-700">
-                        <Icon name="fa-crown" className="w-4" /> Dirección general
+                    {accountLinks.map(item => (
+                      <Link key={item.to} to={item.to} onClick={() => setShowMenu(false)} className={accountLinkCls}>
+                        <Icon name={item.icon} className="w-4 text-ink/50" /> {item.label}
                       </Link>
-                    )}
-                    <Link to="/profile" className="flex items-center gap-3 px-4 py-2.5 text-sm text-ink/80 hover:bg-canvas">
-                      <Icon name="fa-user" className="w-4 text-ink/40" /> {t('nav.profile')}
-                    </Link>
-                    <Link to="/settings?section=wallet" className="flex items-center gap-3 px-4 py-2.5 text-sm text-ink/80 hover:bg-canvas">
-                      <Icon name="fa-coins" className="w-4 text-ink/40" /> {VIRTUAL_CURRENCY.displayName}
-                    </Link>
-                    <Link to="/settings" className="flex items-center gap-3 px-4 py-2.5 text-sm text-ink/80 hover:bg-canvas">
-                      <Icon name="fa-gear" className="w-4 text-ink/40" /> {t('nav.settings')}
-                    </Link>
-                    <Link to="/help" className="flex items-center gap-3 px-4 py-2.5 text-sm text-ink/80 hover:bg-canvas">
-                      <Icon name="fa-circle-question" className="w-4 text-ink/40" /> {t('nav.help')}
-                    </Link>
+                    ))}
                     <div className="my-1 border-t border-line" />
-                    <button onClick={handleLogout} className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-danger hover:bg-red-50">
-                      <Icon name="fa-arrow-right-from-bracket" className="w-4" /> {t('nav.logout')}
-                    </button>
+                    {navigationLinks.map(item => (
+                      <Link key={item.to} to={item.to} onClick={() => setShowMenu(false)} className={accountLinkCls}>
+                        <Icon name={item.icon} className="w-4 text-ink/50" /> {item.label}
+                        {isCreator && item.to === CREATOR_RESERVE_LINK && !!waiting && <RedDot count={waiting} className="ml-auto" />}
+                      </Link>
+                    ))}
+                    {isAuthenticated && (
+                      <>
+                        <div className="my-1 border-t border-line" />
+                        <button onClick={handleLogout} className={`${accountItemCls} w-full text-left text-danger hover:bg-red-50`}>
+                          <Icon name="fa-arrow-right-from-bracket" className="w-4" /> {t('nav.logout')}
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
-              </div>
-            ) : (
+            </div>
+            {!isAuthenticated && (
               <div className="hidden sm:flex items-center gap-2">
                 <Link to="/login" className="inline-flex items-center rounded-full border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-canvas">
                   {t('nav.login')}
@@ -222,82 +240,9 @@ const Navbar: React.FC = () => {
               </div>
             )}
 
-            {/* Mobile menu button */}
-            <button
-              type="button"
-              onClick={() => setShowMobile(!showMobile)}
-              aria-label="Menú"
-              aria-expanded={showMobile}
-              aria-controls={showMobile ? compactMenuId : undefined}
-              className="xl:hidden flex h-10 w-10 items-center justify-center rounded-full text-ink ring-1 ring-line"
-            >
-              <Icon name={showMobile ? 'fa-xmark' : 'fa-bars'} className="text-xl" />
-            </button>
           </div>
         </div>
 
-        {/* Mobile Nav */}
-        {showMobile && (
-          <div id={compactMenuId} className="xl:hidden border-t border-line pb-5 pt-3">
-            <div className="flex flex-col gap-1">
-              <Link to="/explore" className={mobileLinkCls('/explore')} onClick={() => setShowMobile(false)}>
-                <Icon name="fa-compass" className="w-5 text-brand-600" /> {t('nav.explore')}
-              </Link>
-              <Link to={isCreator ? CREATOR_RESERVE_LINK : '/reserve'} className={mobileLinkCls(isCreator ? '/creator/dashboard' : '/reserve')} onClick={() => setShowMobile(false)}>
-                <Icon name="fa-ticket" className="w-5 text-gold-600" /> {isCreator ? 'Reservas' : 'Reserve'}
-                {isCreator && !!waiting && <RedDot count={waiting} className="ml-auto" />}
-              </Link>
-              {showCreators && (
-                // Visitors have no landing with this section ("/" is the sign-up page): go to the creator sign-up.
-                <Link to={isAuthenticated ? '/#creadores' : '/register?role=creator'} className={mobileLinkCls('/#creadores')} onClick={() => setShowMobile(false)}>
-                  <Icon name="fa-star" className="w-5 text-iris-600" /> Para creadores
-                </Link>
-              )}
-              <Link to="/#journey" className={mobileLinkCls('/#journey')} onClick={() => setShowMobile(false)}>
-                <Icon name="fa-circle-question" className="w-5 text-ink/40" /> Cómo funciona
-              </Link>
-              {isAuthenticated && user?.role === 'creator' && (
-                <Link to="/creator/dashboard" className={mobileLinkCls('/creator/dashboard')} onClick={() => setShowMobile(false)}>
-                  <Icon name="fa-chart-line" className="w-5 text-iris-600" /> {t('nav.dashboard')}
-                </Link>
-              )}
-              {isAuthenticated && (user?.role === 'admin' || user?.isOwner) && (
-                <Link to="/admin" className={mobileLinkCls('/admin')} onClick={() => setShowMobile(false)}>
-                  <Icon name="fa-shield-halved" className="w-5 text-iris-600" /> {t('nav.admin')}
-                </Link>
-              )}
-              {isAuthenticated && (
-                <>
-                  <Link to="/profile" className={mobileLinkCls('/profile')}>
-                    <Icon name="fa-user" className="w-5 text-ink/40" /> {t('nav.profile')}
-                  </Link>
-                  <Link to="/settings?section=wallet" className={mobileLinkCls('/settings?section=wallet')}>
-                    <Icon name="fa-coins" className="w-5 text-ink/40" /> {VIRTUAL_CURRENCY.displayName}
-                  </Link>
-                  <Link to="/settings" className={mobileLinkCls('/settings')}>
-                    <Icon name="fa-gear" className="w-5 text-ink/40" /> {t('nav.settings')}
-                  </Link>
-                  <Link to="/help" className={mobileLinkCls('/help')}>
-                    <Icon name="fa-circle-question" className="w-5 text-ink/40" /> {t('nav.help')}
-                  </Link>
-                  <button onClick={handleLogout} className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] font-medium text-danger hover:bg-red-50">
-                    <Icon name="fa-arrow-right-from-bracket" className="w-5" /> {t('nav.logout')}
-                  </button>
-                </>
-              )}
-            </div>
-            {!isAuthenticated && (
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <Link to="/login" className="btn btn-outline btn-md" onClick={() => setShowMobile(false)}>
-                  {t('nav.login')}
-                </Link>
-                <Link to="/register" className="btn btn-primary btn-md" onClick={() => setShowMobile(false)}>
-                  {t('nav.register')}
-                </Link>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </nav>
   );

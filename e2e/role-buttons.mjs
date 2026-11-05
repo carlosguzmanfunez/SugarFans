@@ -170,12 +170,12 @@ try {
     ['creador', 'creator@sugarfans.com', ['Inicio', 'Explorar', 'Mi panel', 'Reservas']],
     ['admin', 'admin@sugarfans.com', ['Inicio', 'Explorar', 'Reserve', 'Admin']],
   ]) {
-    await check(`${role}: barra de abajo y Ayuda en el menú ☰`, async () => {
+    await check(`${role}: barra de abajo y Ayuda en Mi cuenta`, async () => {
       const page = await session(email, 390);
       await page.goto(`${BASE}/explore`);
       const labels = (await page.getByTestId('tab-bar').getByRole('link').allInnerTexts()).map((t) => t.split('\n')[0].trim());
       expect(JSON.stringify(labels) === JSON.stringify(tabs), `pestañas: ${labels.join(', ')}`);
-      await page.getByRole('button', { name: 'Menú', exact: true }).click();
+      await page.getByRole('button', { name: 'Menú de cuenta', exact: true }).click();
       await page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Ayuda' }).click();
       await page.waitForURL(/\/help$/);
       await page.context().close();
