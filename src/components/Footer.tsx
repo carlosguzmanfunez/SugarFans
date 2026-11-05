@@ -60,8 +60,8 @@ const Footer: React.FC = () => {
   return (
   <footer className="relative overflow-hidden bg-night-950 text-white/70" data-compact={compact}>
     <div aria-hidden="true" className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-500/50 to-transparent" />
-    <div className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 ${compact ? 'py-4 sm:py-5' : 'pb-8 pt-10 sm:pb-10 sm:pt-14 md:pt-16'}`}>
-      <div className={compact ? 'grid gap-5 lg:grid-cols-[1fr_2.5fr] lg:gap-8' : 'grid gap-8 sm:gap-12 lg:grid-cols-[1.3fr_2fr]'}>
+    <div className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 ${compact ? 'py-4 sm:py-5' : 'pb-6 pt-8 sm:pb-8 sm:pt-10 md:pt-12'}`}>
+      <div className={compact ? 'grid gap-5 lg:grid-cols-[1fr_2.5fr] lg:gap-8' : 'grid gap-4 sm:gap-8 lg:grid-cols-[1.3fr_2fr] lg:gap-12'}>
         <div className="max-w-sm">
           <BrandLogo size={compact ? 'xs' : 'sm'} tone="dark" className={compact ? 'min-h-8' : ''} />
           <p className={compact ? 'mt-2 text-[13px] leading-5 text-white/60' : 'mt-4 text-[15px] leading-relaxed text-white/60'}>
@@ -81,17 +81,17 @@ const Footer: React.FC = () => {
         </div>
 
         {/* Each column folds to its heading so the footer stays short; tap to open its links. */}
-        <nav aria-label="Enlaces del sitio" className="grid grid-cols-2 gap-x-4 gap-y-1 self-start sm:grid-cols-4 sm:gap-x-6">
+        <nav aria-label="Enlaces del sitio" className="grid grid-cols-2 gap-x-4 self-start sm:grid-cols-4 sm:gap-x-6">
           {columnsFor(user?.role, canBecomeCreator(user)).map((col) => (
             <details key={col.title} className="group">
-              <summary className={`flex min-h-10 cursor-pointer list-none items-center justify-between gap-2 rounded-lg font-display font-semibold text-white transition-colors hover:text-gold-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white [&::-webkit-details-marker]:hidden ${compact ? 'text-[13px] leading-5' : 'text-sm'}`}>
+              <summary className={`flex min-h-8 w-fit cursor-pointer list-none items-center gap-1.5 rounded-lg font-display font-semibold text-white transition-colors hover:text-gold-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white [&::-webkit-details-marker]:hidden ${compact ? 'text-[13px] leading-5' : 'text-sm'}`}>
                 {col.title}
                 <i className="fas fa-chevron-down text-[10px] text-white/45 transition-transform duration-200 group-open:rotate-180" aria-hidden="true"></i>
               </summary>
-              <ul className={compact ? 'pb-2 text-[13px] leading-5' : 'space-y-1 pb-3 text-sm'}>
+              <ul className={compact ? 'pb-1.5 text-[13px] leading-5' : 'pb-2 text-sm'}>
                 {col.links.map((link) => (
                   <li key={link.label}>
-                    <Link to={link.to} className="flex min-h-8 items-center py-1 text-white/60 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+                    <Link to={link.to} className="flex min-h-8 items-center text-white/60 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
                       {link.label}
                     </Link>
                   </li>
@@ -102,7 +102,7 @@ const Footer: React.FC = () => {
         </nav>
       </div>
 
-      <div className={`flex flex-col border-t border-white/10 text-xs md:flex-row md:items-center md:justify-between ${compact ? 'mt-4 gap-1 pt-3 leading-4 text-white/60' : 'mt-10 gap-3 pt-6 text-white/45 sm:mt-14'}`}>
+      <div className={`flex flex-col border-t border-white/10 text-xs md:flex-row md:items-center md:justify-between ${compact ? 'mt-4 gap-1 pt-3 leading-4 text-white/60' : 'mt-5 gap-2 pt-4 text-white/45 sm:mt-8 sm:pt-5'}`}>
         <p>
           © {new Date().getFullYear()} {BRAND.name}. Todos los derechos reservados. Solo para mayores de 18 años.
         </p>
