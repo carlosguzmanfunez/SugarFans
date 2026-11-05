@@ -1307,7 +1307,11 @@ const run = async () => {
       await page.locator('#creator-home-title').waitFor();
       expect(await page.locator('a[href^="/register"]').count() === 0, 'la portada enlaza al registro con sesión iniciada');
       await page.getByTestId('creator-home').getByRole('link', { name: /Ir a mi panel/ }).waitFor();
-      await page.locator('#creator-cta-title').locator('..').getByRole('link', { name: /Ir a mi panel/ }).waitFor();
+      const monetization = page.getByTestId('creator-monetization');
+      await monetization.getByRole('heading', { name: 'Trae a tu comunidad, sea cual sea tu contenido.' }).waitFor();
+      expect(await monetization.locator('article').count() === 3, 'faltan las tres formas de generar ingresos');
+      expect(await page.getByTestId('how-it-works').count() === 0, 'el creador sigue viendo las opciones para fans');
+      expect(await page.locator('#comunidades, #creator-cta-title').count() === 0, 'quedan bloques anteriores duplicados');
       await page.locator('footer').getByRole('link', { name: 'Mi panel de creador' }).waitFor();
       await page.goto(`${BASE}/creator/dashboard?tab=earnings`);
     });
