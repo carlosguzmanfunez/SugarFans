@@ -1,6 +1,6 @@
 # Administración clara
 
-Superficie de operación para una persona que administra Fans Reserve sin formación técnica. Conserva marca, tipografía, colores, reglas de reparto, accesos y controles de pagos. No hay migraciones ni permisos nuevos.
+Superficie de operación para una persona que administra Fans Reserve sin formación técnica. Conserva marca, tipografía, colores, reglas de reparto, accesos y controles de pagos. La sección de asistencia añade una consulta protegida para administradores; no concede lectura directa de sus tablas ni permisos para cambiar constancias.
 
 ## Organización
 
