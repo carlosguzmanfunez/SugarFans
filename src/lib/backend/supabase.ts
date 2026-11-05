@@ -1,6 +1,7 @@
 // Supabase backend: accounts via Supabase Auth, data in Postgres with Row Level
 // Security. Rules that span users (booking lifecycle, account deletion) run in
 // SECURITY DEFINER functions, see supabase/migrations.
+import { TERMS_VERSION } from '../../config/legal';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { PAID_WITH_PAYPAL, WRONG_CREDENTIALS, ACCOUNT_SUSPENDED, avatarOrEmpty, cleanPatch, mergeSettings, normalizeEmail, validateRegistration, validateSignupExtras } from './shared';
 import { REJECTED_MESSAGE, inReviewNotice, moderateUpload, moderationOf } from './supabaseModeration';
@@ -409,6 +410,8 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
             country: extras?.country,
             ...(extras?.phone ? { phone: extras.phone } : {}),
             ...(extras?.gender ? { gender: extras.gender } : {}),
+            // The required terms checkbox: the server stamps the date (profiles.terms_accepted_at).
+            terms_version: TERMS_VERSION,
             ...(ref ? { ref } : {}),
           },
           emailRedirectTo: `${window.location.origin}/login`,
@@ -461,6 +464,9 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       // country/phone arguments: finish the sign-up without them.
       if (error?.code === 'PGRST202') ({ error } = await sb.rpc('complete_social_signup', { p_role: role, p_ref: ref ?? null }));
       if (error) return dbError(error, 'No se pudo completar el registro');
+      // Record the accepted Terms version; the server sets the date. Never blocks
+      // the sign-up (until migration 20261105000002 the function doesn't exist).
+      await sb.rpc('accept_terms', { p_version: TERMS_VERSION }).then(() => undefined, () => undefined);
       // Optional; a failure here never blocks the sign-up (it can be set in Ajustes).
       if (extras?.gender) {
         const { data } = await sb.auth.getUser();
