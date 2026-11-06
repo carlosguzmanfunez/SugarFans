@@ -1,0 +1,65 @@
+/* The same framing is used by private calls and group broadcasts. */
+.reserve-video-stage > .reserve-main-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+
+.reserve-call-stage {
+  height: min(68dvh, 44rem);
+  container-type: size;
+}
+
+.reserve-broadcast-stage {
+  aspect-ratio: var(--r);
+}
+
+[data-expanded="true"] .reserve-call-stage {
+  height: auto;
+}
+
+.reserve-self-preview {
+  position: absolute;
+  right: .75rem;
+  bottom: .75rem;
+  width: clamp(4.5rem, 23vw, 7rem);
+  aspect-ratio: 3 / 4;
+}
+
+@supports (width: 1cqw) {
+  .reserve-self-preview {
+    /* Keep the portrait card small in both a tall phone and a short landscape view. */
+    width: min(24cqw, 24cqh, 7rem);
+  }
+}
+
+.reserve-video-stage:fullscreen {
+  width: 100%;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  aspect-ratio: auto;
+  border-radius: 0;
+}
+
+.reserve-video-stage:fullscreen [data-testid="live-fullscreen"] {
+  top: max(.75rem, env(safe-area-inset-top));
+  right: max(.75rem, env(safe-area-inset-right));
+}
+
+/* Fill matching orientations; preserve the whole picture when they differ. */
+@media (orientation: portrait) {
+  .reserve-video-stage[data-video-portrait="true"] > .reserve-main-video {
+    object-fit: cover;
+  }
+}
+
+@media (orientation: landscape) {
+  .reserve-video-stage[data-video-portrait="false"] > .reserve-main-video {
+    object-fit: cover;
+  }
+}
