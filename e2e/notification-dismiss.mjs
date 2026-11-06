@@ -65,6 +65,14 @@ try {
     storageFails = true; const result = await local.dismissNotification({ id: 'a' }, mine[1].id); storageFails = false;
     assert.equal(result.ok, false); assert.equal((await local.notifications({ id: 'a' })).length, 1);
   });
+  await check('Borrar todo vacía solo los avisos de esa persona', async () => {
+    modules.local.addLocalNotification('a', { kind: 'reserve_request', title: 'Otro aviso', body: '', link: '/profile' });
+    signedIn = 'b'; assert.equal((await local.dismissAllNotifications({ id: 'a' })).ok, false); signedIn = 'a';
+    assert.equal((await local.notifications({ id: 'a' })).length, 2);
+    assert.equal((await local.dismissAllNotifications({ id: 'a' })).ok, true);
+    assert.equal((await local.notifications({ id: 'a' })).length, 0);
+    assert.deepEqual(await local.notifications({ id: 'b' }), others);
+  });
   const queries = []; let remoteError = null;
   const sb = { auth: { getSession: async () => ({ data: { session: null } }), onAuthStateChange: () => {} }, from(table) {
     const query = { table, filters: [] }; queries.push(query);
@@ -75,6 +83,12 @@ try {
     assert.equal((await remote.dismissNotification({ id: 'a' }, 'notice-1')).ok, true);
     assert.deepEqual(queries[0], { table: 'notifications', operation: 'delete', filters: [['id', 'notice-1'], ['user_id', 'a']] });
     remoteError = { message: 'Permission denied' }; assert.equal((await remote.dismissNotification({ id: 'a' }, 'notice-1')).ok, false);
+  });
+  await check('Supabase borra todo solo con el filtro del propietario', async () => {
+    remoteError = null; queries.length = 0;
+    assert.equal((await remote.dismissAllNotifications({ id: 'a' })).ok, true);
+    assert.deepEqual(queries[0], { table: 'notifications', operation: 'delete', filters: [['user_id', 'a']] });
+    remoteError = { message: 'Permission denied' }; assert.equal((await remote.dismissAllNotifications({ id: 'a' })).ok, false);
   });
   await check('PostgreSQL impide borrar avisos de otro propietario incluso sin filtro de usuario', async () => {
     pg = new PGlite();

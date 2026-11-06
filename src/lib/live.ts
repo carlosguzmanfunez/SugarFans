@@ -28,6 +28,7 @@ export const markNotificationsRead = async (user: User) => {
   platformChanged();
 };
 export const dismissNotification = (user: User, id: string) => after(l.dismissNotification(user, id));
+export const dismissAllNotifications = (user: User) => after(l.dismissAllNotifications(user));
 
 // A creator's Live on air, only when its mode is on offer (both kinds are off today).
 export const useCurrentLive = (creatorProfileId: string | undefined) => {
