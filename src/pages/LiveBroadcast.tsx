@@ -4,6 +4,7 @@ import { Room, RoomEvent, Track, VideoPresets, type LocalVideoTrack, type Remote
 import { useAuth } from '../context/AuthContext';
 import CameraPreview from '../components/CameraPreview';
 import SessionPreparation from '../components/reserve/SessionPreparation';
+import '../components/reserve/reserveVideo.css';
 import LookPicker from '../components/LookPicker';
 import { useCameraLook } from '../hooks/useCameraLook';
 import ViewerWatermark, { noCaptureVideoProps } from '../components/ViewerWatermark';
@@ -409,8 +410,9 @@ const LiveBroadcast: React.FC<{ event?: boolean }> = ({ event: isEvent = false }
           <div className="min-w-0">
             <div
               ref={stage}
-              style={{ aspectRatio: ratio, '--r': ratio } as React.CSSProperties}
-              className="relative -mx-4 w-[calc(100%+2rem)] max-h-[78dvh] sm:mx-auto sm:w-full sm:max-w-[calc(78dvh*var(--r))] bg-black sm:rounded-2xl overflow-hidden"
+              style={{ '--r': ratio } as React.CSSProperties}
+              data-video-portrait={ratio < 1}
+              className="reserve-video-stage reserve-broadcast-stage relative mx-auto w-full max-w-[calc(70dvh*var(--r))] max-h-[70dvh] bg-black rounded-2xl overflow-hidden"
             >
               <video
                 ref={video}
@@ -420,7 +422,7 @@ const LiveBroadcast: React.FC<{ event?: boolean }> = ({ event: isEvent = false }
                 {...(host ? {} : noCaptureVideoProps)}
                 onLoadedMetadata={readRatio}
                 onResize={readRatio}
-                className={`w-full h-full object-contain ${host ? '-scale-x-100' : ''} ${hasVideo ? '' : 'hidden'}`}
+                className={`reserve-main-video ${host ? '-scale-x-100' : ''} ${hasVideo ? '' : 'hidden'}`}
               />
               {hasVideo && (
                 <button onClick={fullscreen} aria-label="Pantalla completa" data-testid="live-fullscreen" className="absolute top-3 right-3 w-10 h-10 rounded-full bg-black/50 hover:bg-black/70">

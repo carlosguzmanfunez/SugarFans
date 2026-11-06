@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import SessionPreparation from '../components/reserve/SessionPreparation';
 import SessionTiming from '../components/reserve/SessionTiming';
 import ReserveScheduleTime from '../components/reserve/ReserveScheduleTime';
+import '../components/reserve/reserveVideo.css';
 import {sessionEvent,sessionNow,sessionRequest} from '../lib/reserveSessionClient';
 import LookPicker from '../components/LookPicker';
 import { useCameraLook } from '../hooks/useCameraLook';
@@ -54,6 +55,7 @@ const LiveRoom: React.FC = () => {
   const [showLooks, setShowLooks] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [remotePortrait, setRemotePortrait] = useState<boolean | null>(null);
   const cam = useCameraLook();
   const { bind: bindLook, captureOptions } = cam;
 
@@ -62,6 +64,11 @@ const LiveRoom: React.FC = () => {
   const audioBox = useRef<HTMLDivElement>(null);
   const roomRef = useRef<Room | null>(null);
   const callView = useRef<HTMLDivElement>(null);
+
+  const readRemoteOrientation = () => {
+    const video = remoteVideo.current;
+    if (video?.videoWidth && video.videoHeight) setRemotePortrait(video.videoHeight > video.videoWidth);
+  };
 
   const closeExpanded = useCallback(() => {
     setExpanded(false);
@@ -394,8 +401,8 @@ const LiveRoom: React.FC = () => {
 
         <div className={expanded ? 'relative flex min-h-0 flex-1 flex-col' : 'grid grid-cols-1 lg:grid-cols-3 gap-4'}>
           <div className={expanded ? 'flex min-h-0 flex-1 flex-col' : 'min-w-0 lg:col-span-2'}>
-            <div className={`relative ${expanded ? 'min-h-0 flex-1' : 'aspect-video'} bg-black rounded-2xl overflow-hidden`} data-testid="call-video-stage">
-              <video ref={remoteVideo} autoPlay playsInline {...noCaptureVideoProps} data-testid="remote-video" className="w-full h-full object-contain" />
+            <div className={`reserve-video-stage reserve-call-stage relative ${expanded ? 'min-h-0 flex-1' : ''} bg-black rounded-2xl overflow-hidden`} data-testid="call-video-stage" data-video-portrait={remotePortrait ?? undefined}>
+              <video ref={remoteVideo} autoPlay playsInline {...noCaptureVideoProps} onLoadedMetadata={readRemoteOrientation} onResize={readRemoteOrientation} data-testid="remote-video" className="reserve-main-video" />
               <div ref={audioBox} className="hidden" />
               {needsAudio && connected && (
                 <button onClick={() => roomRef.current?.startAudio()} className="absolute top-3 left-3 z-10 px-3 py-2 rounded-lg bg-white/90 text-gray-900 text-sm font-medium">
@@ -414,11 +421,11 @@ const LiveRoom: React.FC = () => {
                   </div>
                 </div>
               )}
-              <div className={`absolute bottom-3 right-3 ${expanded ? 'w-24 sm:w-36' : 'w-28 sm:w-44'} aspect-video bg-gray-800 rounded-xl overflow-hidden border border-white/20`}>
-                <video ref={localVideo} autoPlay playsInline muted data-testid="local-video" className={`w-full h-full object-cover -scale-x-100 ${hasMedia && camOn ? '' : 'hidden'}`} />
+              <div className="reserve-self-preview bg-gray-800 rounded-xl overflow-hidden border border-white/20" data-testid="self-preview">
+                <video ref={localVideo} autoPlay playsInline muted aria-label="Tu cámara" data-testid="local-video" className={`w-full h-full object-cover -scale-x-100 ${hasMedia && camOn ? '' : 'hidden'}`} />
                 {!(hasMedia && camOn) && (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                    <i aria-hidden="true" className="fas fa-video-slash mr-1"></i>{hasMedia ? 'Cámara apagada' : 'Sin cámara'}
+                  <div className="w-full h-full flex flex-col gap-2 items-center justify-center px-1 text-center text-gray-300 text-xs">
+                    <i aria-hidden="true" className="fas fa-video-slash"></i>{hasMedia ? 'Cámara apagada' : 'Sin cámara'}
                   </div>
                 )}
               </div>
