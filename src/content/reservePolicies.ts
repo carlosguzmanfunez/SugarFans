@@ -243,7 +243,7 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
         heading: 'Seguridad',
         bullets: [
           'Las experiencias presenciales se hacen en lugares públicos o profesionales; en el lugar del creador o del fan solo servicios profesionales aprobados por el creador, y nunca en Tu gente. Nunca en hoteles ni lugares discretos.',
-          'Las videollamadas y los Lives no se graban. Está prohibido grabarlos o capturarlos por cualquier medio: el video muestra el nombre de quien lo ve y una copia filtrada identifica a su autor.',
+          'Las videollamadas y los Lives no se graban. Está prohibido grabarlos o capturarlos por cualquier medio, y también descargar o compartir las fotos y videos para suscriptores: muestran de forma discreta el @usuario de quien los ve y una copia filtrada identifica a su autor. Filtrar contenido cierra la cuenta sin reembolso y puede llevar a un reclamo DMCA.',
           'Mantén la comunicación y los pagos dentro de Fans Reserve.',
           'Reporta cualquier conducta que te haga sentir inseguro.',
         ],

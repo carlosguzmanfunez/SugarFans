@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import VideoPreview from './VideoPreview';
+import { noCaptureVideoProps } from './ViewerWatermark';
 
 interface Props {
   src: string;
@@ -28,7 +29,7 @@ const OnDemandVideo: React.FC<Props> = ({ src, seed, className = '', videoClassN
     };
   }, [requested, src]);
   return requested === src ? (
-    <video ref={video} src={src} controls playsInline autoPlay preload="none" className={`${className} ${videoClassName}`} data-testid={testId} />
+    <video ref={video} src={src} controls playsInline autoPlay preload="none" {...noCaptureVideoProps} className={`${className} ${videoClassName}`} data-testid={testId} />
   ) : (
     <button type="button" onClick={() => setRequested(src)} aria-label="Reproducir video" className={`block w-full max-w-2xl ${className}`} data-testid="play-video">
       <VideoPreview seed={seed} />

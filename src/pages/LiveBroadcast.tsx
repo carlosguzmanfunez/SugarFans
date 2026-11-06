@@ -429,7 +429,7 @@ const LiveBroadcast: React.FC<{ event?: boolean }> = ({ event: isEvent = false }
                   <i aria-hidden="true" className="fas fa-expand"></i>
                 </button>
               )}
-              {hasVideo && !host && user && <ViewerWatermark name={user.name} userId={user.id} />}
+              {hasVideo && !host && user && <ViewerWatermark viewer={user} />}
               <div ref={audioBox} className="hidden" />
               {!hasVideo && (
                 <div className="absolute inset-0 flex items-center justify-center text-center p-6">

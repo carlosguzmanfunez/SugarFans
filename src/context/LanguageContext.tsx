@@ -238,6 +238,8 @@ const translations: Record<Language, Record<string, string>> = {
     'mfa.forget': 'Olvidar dispositivos de confianza',
     'mfa.forgotten': 'Listo: todos tus dispositivos pedirán el código la próxima vez que entres.',
     'mfa.disableCode': 'Escribe el código de tu app para desactivarla.',
+    'legal.leaksTitle': 'Grabaciones y filtraciones',
+    'legal.leaks': 'Está prohibido grabar, capturar, descargar o compartir fuera de {brand} el contenido exclusivo de un Creador (sus fotos y videos para suscriptores) y cualquier videollamada, Live o evento. Las fotos, los videos y las videollamadas muestran de forma discreta el @usuario de quien los ve, para identificar cualquier copia. Si graba o filtra contenido, cerraremos su cuenta sin reembolso de suscripciones, reservas ni Créditos, salvo cuando la ley lo exija, y el Creador o {brand} podrán presentar un reclamo DMCA y las acciones legales que correspondan. Para reportar una filtración, escriba a {dmca}.',
   },
   
   en: {
@@ -450,6 +452,8 @@ const translations: Record<Language, Record<string, string>> = {
     'mfa.forget': 'Forget trusted devices',
     'mfa.forgotten': 'Done: every device will ask for the code next time you sign in.',
     'mfa.disableCode': 'Type the code from your app to turn it off.',
+    'legal.leaksTitle': 'Recordings and leaks',
+    'legal.leaks': 'Recording, capturing, downloading or sharing outside {brand} a Creator\'s exclusive content (their subscriber-only photos and videos) or any video call, Live or event is prohibited. Photos, videos and video calls discreetly show the viewer\'s @username so any copy can be traced. If you record or leak content, we will close your account without refunding subscriptions, bookings or Credits, except where the law requires it, and the Creator or {brand} may file a DMCA claim and take any appropriate legal action. To report a leak, write to {dmca}.',
   },
   
   pt: {
@@ -662,6 +666,8 @@ const translations: Record<Language, Record<string, string>> = {
     'mfa.forget': 'Esquecer dispositivos confiáveis',
     'mfa.forgotten': 'Pronto: todos os seus dispositivos vão pedir o código na próxima vez que você entrar.',
     'mfa.disableCode': 'Digite o código do seu app para desativá-la.',
+    'legal.leaksTitle': 'Gravações e vazamentos',
+    'legal.leaks': 'É proibido gravar, capturar, baixar ou compartilhar fora do {brand} o conteúdo exclusivo de um Criador (suas fotos e vídeos para assinantes) e qualquer videochamada, Live ou evento. As fotos, os vídeos e as videochamadas mostram de forma discreta o @usuário de quem os vê, para identificar qualquer cópia. Se você gravar ou vazar conteúdo, encerraremos sua conta sem reembolso de assinaturas, reservas nem Créditos, salvo quando a lei exigir, e o Criador ou o {brand} poderão apresentar uma reclamação DMCA e tomar as medidas legais cabíveis. Para denunciar um vazamento, escreva para {dmca}.',
   },
   
   fr: {
@@ -874,6 +880,8 @@ const translations: Record<Language, Record<string, string>> = {
     'mfa.forget': 'Oublier les appareils de confiance',
     'mfa.forgotten': 'C’est fait : chaque appareil demandera le code à votre prochaine connexion.',
     'mfa.disableCode': 'Saisissez le code de votre application pour la désactiver.',
+    'legal.leaksTitle': 'Enregistrements et fuites',
+    'legal.leaks': 'Il est interdit d\'enregistrer, de capturer, de télécharger ou de partager en dehors de {brand} le contenu exclusif d\'un Créateur (ses photos et vidéos réservées aux abonnés) ainsi que tout appel vidéo, Live ou événement. Les photos, les vidéos et les appels vidéo affichent discrètement le @pseudo de la personne qui les regarde, afin d\'identifier toute copie. Si vous enregistrez ou divulguez du contenu, nous fermerons votre compte sans remboursement des abonnements, réservations ou Crédits, sauf si la loi l\'exige, et le Créateur ou {brand} pourront déposer une réclamation DMCA et engager les actions légales appropriées. Pour signaler une fuite, écrivez à {dmca}.',
   },
   
   it: {
@@ -1086,6 +1094,8 @@ const translations: Record<Language, Record<string, string>> = {
     'mfa.forget': 'Dimentica i dispositivi affidabili',
     'mfa.forgotten': 'Fatto: ogni dispositivo chiederà il codice al prossimo accesso.',
     'mfa.disableCode': 'Scrivi il codice della tua app per disattivarla.',
+    'legal.leaksTitle': 'Registrazioni e fughe di contenuti',
+    'legal.leaks': 'È vietato registrare, catturare, scaricare o condividere fuori da {brand} i contenuti esclusivi di un Creator (le sue foto e i suoi video per abbonati) e qualsiasi videochiamata, Live o evento. Le foto, i video e le videochiamate mostrano in modo discreto il @nomeutente di chi li guarda, per identificare qualsiasi copia. Se registri o diffondi contenuti, chiuderemo il tuo account senza rimborso di abbonamenti, prenotazioni o Crediti, salvo quando la legge lo richieda, e il Creator o {brand} potranno presentare un reclamo DMCA e intraprendere le azioni legali opportune. Per segnalare una fuga di contenuti, scrivi a {dmca}.',
   },
 };
 

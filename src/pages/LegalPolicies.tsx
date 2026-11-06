@@ -120,13 +120,16 @@ const LegalPolicies: React.FC = () => {
                     <h3 className="text-xl font-bold text-gray-900 mt-6">8. Propiedad Intelectual</h3>
                     <p>Los Creadores conservan derechos de autor de su Contenido. La Plataforma posee derechos sobre el software, diseño y marcas.</p>
 
-                    <h3 className="text-xl font-bold text-gray-900 mt-6">9. Limitación de Responsabilidad</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mt-6" data-testid="terms-leaks">9. {t('legal.leaksTitle')}</h3>
+                    <p>{t('legal.leaks').replace('{dmca}', BRAND.emails.dmca)}</p>
+
+                    <h3 className="text-xl font-bold text-gray-900 mt-6">10. Limitación de Responsabilidad</h3>
                     <p>La Plataforma se proporciona "TAL CUAL". No garantizamos resultados específicos. Nuestra responsabilidad máxima está limitada a los pagos recibidos en los últimos 12 meses.</p>
 
-                    <h3 className="text-xl font-bold text-gray-900 mt-6">10. Terminación</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mt-6">11. Terminación</h3>
                     <p>Puede cerrar su cuenta en cualquier momento desde Configuración. Podemos suspender cuentas que violen estos Términos.</p>
 
-                    <h3 className="text-xl font-bold text-gray-900 mt-6">11. Ley Aplicable</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mt-6">12. Ley Aplicable</h3>
                     <p>Las leyes del país donde esté constituida la sociedad que opera {BRAND.name}, sin perjuicio de los derechos irrenunciables del consumidor en su país. Los delitos e infracciones cometidos a través de la Plataforma se someten a las leyes y autoridades del lugar donde se cometan, y cooperamos con ellas.</p>
 
                     <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-xl">
@@ -335,6 +338,9 @@ const LegalPolicies: React.FC = () => {
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">Contra-notificación</h3>
                     <p>Si cree que su Contenido fue eliminado erróneamente, puede enviar una contra-notificación al mismo email. Aplicamos este procedimiento a las reclamaciones de derechos de autor de cualquier país.</p>
+
+                    <h3 className="text-xl font-bold text-gray-900 mt-6">{t('legal.leaksTitle')}</h3>
+                    <p>{t('legal.leaks').replace('{dmca}', BRAND.emails.dmca)}</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">Infractores reincidentes</h3>
                     <p>Las cuentas que infrinjan derechos de autor repetidamente serán terminadas.</p>

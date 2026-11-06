@@ -1,7 +1,7 @@
 # TÉRMINOS Y CONDICIONES DE SERVICIO - FANS RESERVE
 
 **Última actualización:** Noviembre 2026 (borrador)  
-**Versión:** 1.2.0  
+**Versión:** 1.3.0  
 **Jurisdicción aplicable:** Ver sección 13
 
 > **Borrador.** Requires legal review before production launch. Requiere revisión legal antes del lanzamiento a producción. Los pagos se procesan con PayPal. Mientras la plataforma está en fase de prelanzamiento, el acceso está restringido.
@@ -182,7 +182,7 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 - Los Fans deben tratar a los Creadores con respeto; un Creador puede rechazar cualquier solicitud
 - Los Creadores deben cumplir con las experiencias confirmadas
 - Está prohibido el acoso, amenazas o comportamiento abusivo
-- La Plataforma no graba videollamadas ni Lives, y está prohibido grabarlos o capturarlos por cualquier medio. El video muestra el nombre de quien lo ve para identificar copias; grabar supone el cierre de la cuenta y puede tener consecuencias legales
+- La Plataforma no graba videollamadas ni Lives, y está prohibido grabarlos o capturarlos por cualquier medio. El video muestra de forma discreta el @usuario de quien lo ve para identificar copias; grabar supone el cierre de la cuenta sin reembolso y puede tener consecuencias legales (ver 8.6)
 - La comunicación y los pagos se mantienen dentro de la Plataforma
 
 5.4. **Suscripciones y regalos no incluyen Reserve**: La suscripción da acceso al contenido exclusivo; todo el video en vivo con un Creador (Reserve 1:1, Reserve Event, Meet & Greet) se reserva y se paga en Reserve. Un Creador puede ofrecer a sus suscriptores un descuento del 5% al 25% en sus experiencias. Los regalos son apoyo voluntario y por sí solos no desbloquean nada. Ninguno incluye experiencias de Reserve, salvo la Meta de experiencia (5.5).
@@ -249,6 +249,7 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 - Realizar ingeniería inversa del software
 - Usar marcas o logotipos sin autorización
 - Eliminar avisos de derechos de autor
+- Grabar, capturar, descargar o compartir fuera de la Plataforma el contenido exclusivo de un Creador o cualquier videollamada, Live o evento (ver 8.6)
 
 ---
 
@@ -270,6 +271,8 @@ f) Su firma física o electrónica
 8.4. **Contra-notificación**: Si cree que su Contenido fue eliminado erróneamente, puede enviar una contra-notificación.
 
 8.5. **Política de Infractores Reincidentes**: Las cuentas de Usuarios que infrinjan derechos de autor de manera repetida serán terminadas.
+
+8.6. **Grabaciones y filtraciones**: Está prohibido grabar, capturar, descargar o compartir fuera de la Plataforma el contenido exclusivo de un Creador (sus fotos y videos para suscriptores) y cualquier videollamada, Live o evento. Las fotos, los videos y las videollamadas muestran de forma discreta el @usuario de quien los ve, para identificar cualquier copia. Si un Usuario graba o filtra contenido, cerraremos su cuenta sin reembolso de suscripciones, reservas ni Créditos, salvo cuando la ley lo exija, y el Creador o Fans Reserve podrán presentar un reclamo DMCA y las acciones legales que correspondan. Las filtraciones se reportan a dmca@fansreserve.com.
 
 ---
 
