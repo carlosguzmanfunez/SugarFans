@@ -542,3 +542,12 @@ details[open] summary ~ * {
   .gift-float, .gift-pop, .gift-caption, .gift-spark, .gift-halo, .gift-tile:hover .gift-art, .gift-tile[aria-pressed='true'] .gift-art { animation: none; }
   .gift-tile, .gift-tile:hover { transition: none; transform: none; }
 }
+
+/* Someone else's subscriber photos and videos: no long-press "Guardar imagen" on
+   phones, no dragging the file out, no selecting it (ViewerWatermark.tsx). */
+.protected-media, .protected-media img, .protected-media video {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}

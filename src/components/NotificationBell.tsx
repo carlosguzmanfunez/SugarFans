@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
 import Icon from './Icon';
 import type { User } from '../context/AuthContext';
-import { useNotifications, markNotificationsRead, dismissNotification, type AppNotification } from '../lib/live';
+import { useNotifications, markNotificationsRead, dismissNotification, dismissAllNotifications, type AppNotification } from '../lib/live';
+import { useLanguage } from '../context/LanguageContext';
 import { useDismiss } from '../hooks/useDismiss';
 import NotificationItem from './NotificationItem';
 import { PushToggle } from './PushOptIn';
@@ -27,6 +28,8 @@ const KIND_ICON: Record<AppNotification['kind'], { icon: string; className: stri
 // The account inbox: Reserve updates, confirmed subscription payments and changes.
 const NotificationBell: React.FC<{ user: User }> = ({ user }) => {
   const { data } = useNotifications(user);
+  const { t } = useLanguage();
+  const [clearing, setClearing] = useState(false);
   const [removed, setRemoved] = useState<{ userId: string; ids: string[] }>({ userId: user.id, ids: [] });
   const [feedback, setFeedback] = useState({ userId: user.id, error: '', message: '' });
   const panel = useRef<HTMLDivElement>(null);
@@ -48,6 +51,25 @@ const NotificationBell: React.FC<{ user: User }> = ({ user }) => {
     } catch {
       setFeedback({ userId: user.id, error: 'No se pudo borrar el aviso. Revisa tu conexión e inténtalo de nuevo.', message: '' });
       return false;
+    }
+  };
+
+  // Like Android's "Borrar todo": one tap empties the inbox, no confirmation.
+  const removeAll = async () => {
+    if (clearing) return;
+    setClearing(true);
+    setFeedback({ userId: user.id, error: '', message: '' });
+    try {
+      const result = await dismissAllNotifications(user);
+      if (!result.ok) throw new Error(result.error);
+      const ids = items.map((n) => n.id);
+      setRemoved(previous => ({ userId: user.id, ids: [...(previous.userId === user.id ? previous.ids : []), ...ids] }));
+      setFeedback({ userId: user.id, error: '', message: t('notifications.clearedAll') });
+      panel.current?.focus();
+    } catch {
+      setFeedback({ userId: user.id, error: t('notifications.clearAllError'), message: '' });
+    } finally {
+      setClearing(false);
     }
   };
 
@@ -102,6 +124,13 @@ const NotificationBell: React.FC<{ user: User }> = ({ user }) => {
                 <NotificationItem key={`${user.id}:${n.id}`} notification={n} icon={KIND_ICON[n.kind] ?? KIND_ICON.live_started} time={timeAgo(n.createdAt)} onOpen={() => setOpen(false)} onDismiss={remove} />
               ))}
             </ul>
+          )}
+          {items.length > 0 && (
+            <div className="flex justify-center border-t border-line py-1.5">
+              <button type="button" onClick={removeAll} disabled={clearing} data-testid="notifications-clear-all" className="rounded-full px-3 py-1 text-xs font-medium text-muted transition hover:text-ink disabled:opacity-50">
+                {t('notifications.clearAll')}
+              </button>
+            </div>
           )}
         </div>
       )}

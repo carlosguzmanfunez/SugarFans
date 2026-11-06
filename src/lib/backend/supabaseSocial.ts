@@ -5,6 +5,7 @@ import { cleanSocials } from '../creatorLinks';
 import { avatarOrEmpty } from './shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { newId } from '../storage';
+import { signPostMedia } from './signedMedia';
 import { extensionOf, validateMedia } from '../media';
 import type { AuthResult } from './types';
 import { REJECTED_MESSAGE, moderateUpload, moderationOf } from './supabaseModeration';
@@ -13,7 +14,6 @@ import type { FeedPost, PostComment, PublicCreator, SocialBackend } from './soci
 type Row = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 const BUCKET = 'post-media';
-const URL_TTL = 60 * 60; // signed URLs last an hour
 
 const ok: AuthResult = { ok: true };
 const fail = (error: string): AuthResult => ({ ok: false, error });
@@ -57,12 +57,9 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
         .map((r): Row => ({ ...r, content: '', media_path: null, is_draft: false })),
     ].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
     const paths = rows.map((r) => r.media_path).filter(Boolean) as string[];
-    // Storage only signs files this viewer may see (locked posts need a subscription).
-    const signed = new Map<string, string>();
-    if (paths.length) {
-      const { data: urls } = await sb.storage.from(BUCKET).createSignedUrls(paths, URL_TTL);
-      for (const u of urls ?? []) if (u.path && u.signedUrl && !u.error) signed.set(u.path, u.signedUrl);
-    }
+    // Storage only signs files this viewer may see (locked posts need a subscription),
+    // with links that expire in minutes (signedMedia.ts).
+    const signed = await signPostMedia(sb, BUCKET, rows.filter((r) => r.media_path).map((r) => ({ path: r.media_path as string, video: r.media_type === 'video' })));
     // Only the author and admins get rows here: their files still waiting for moderation.
     const moderation = await moderationOf(sb, BUCKET, paths);
     return rows.map(

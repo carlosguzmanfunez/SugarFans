@@ -136,6 +136,12 @@ export const createSupabaseLive = (sb: SupabaseClient, url: string, anonKey: str
       return error ? fail('No se pudo borrar el aviso. Inténtalo de nuevo.') : ok;
     },
 
+    async dismissAllNotifications(user) {
+      // RLS ("notifications: user deletes own") only lets each person delete their own.
+      const { error } = await sb.from('notifications').delete().eq('user_id', user.id);
+      return error ? fail('No se pudieron borrar los avisos. Inténtalo de nuevo.') : ok;
+    },
+
     broadcastAccess(creatorProfileId) {
       return liveToken(sb, { creatorProfileId }, 'No se pudo obtener el acceso al Live');
     },

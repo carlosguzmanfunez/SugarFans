@@ -91,12 +91,6 @@ const ZoomablePostImage: React.FC<{ src: string; alt: string; onGestureStart: ()
           onLoad={(event) => setNatural({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })}
           style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})` }} />
       </div>
-      <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/85 p-1 text-white" role="group" aria-label="Ampliar foto"
-        onPointerDown={(event) => event.stopPropagation()} onPointerUp={(event) => event.stopPropagation()} onDoubleClick={(event) => event.stopPropagation()}>
-        <button type="button" aria-label="Reducir foto" disabled={view.zoom <= 1} onClick={() => zoomTo((zoom) => zoom / 1.5)} className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-white/20 disabled:opacity-40"><i className="fas fa-minus" aria-hidden="true" /></button>
-        <button type="button" aria-label="Restablecer tamaño de foto" onClick={() => zoomTo(1)} className="h-11 min-w-16 rounded-full px-2 text-sm tabular-nums hover:bg-white/20">{Math.round(view.zoom * 100)}%</button>
-        <button type="button" aria-label="Ampliar foto" disabled={view.zoom >= 4} onClick={() => zoomTo((zoom) => zoom * 1.5)} className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-white/20 disabled:opacity-40"><i className="fas fa-plus" aria-hidden="true" /></button>
-      </div>
     </div>
   );
 };

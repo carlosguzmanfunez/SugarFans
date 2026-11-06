@@ -5,11 +5,15 @@ import type { DisplayPost } from './PostCard';
 import OnDemandVideo from './OnDemandVideo';
 import VideoPreview from './VideoPreview';
 import ZoomablePostImage from './ZoomablePostImage';
+import ViewerWatermark, { ProtectedMedia } from './ViewerWatermark';
 
 interface Props {
   posts: DisplayPost[]; // only the ones with a photo or video the viewer may see
   startId: string;
   onClose: () => void;
+  // Someone else's profile: photos can't be saved and subscriber-only ones carry
+  // this viewer's faint @usuario. Left out for the creator viewing their own posts.
+  viewer?: { id: string; name: string; username?: string } | null;
 }
 
 // Swipe distance (share of the screen width) that moves to the next post.
@@ -17,7 +21,7 @@ const SWIPE = 0.18;
 
 // Full-screen photo/video viewer, like Facebook's: swipe sideways on a phone,
 // arrows (or the keyboard) on a computer, Esc / X / the back button close it.
-const MediaViewer: React.FC<Props> = ({ posts, startId, onClose }) => {
+const MediaViewer: React.FC<Props> = ({ posts, startId, onClose, viewer }) => {
   const [index, setIndex] = useState(() => Math.max(0, posts.findIndex((p) => p.id === startId)));
   const [drag, setDrag] = useState(0);
   const start = useRef<{ x: number; y: number; t: number } | null>(null);
@@ -133,9 +137,8 @@ const MediaViewer: React.FC<Props> = ({ posts, startId, onClose }) => {
             transition: drag ? 'none' : 'transform 300ms cubic-bezier(0.22, 1, 0.36, 1)',
           }}
         >
-          {posts.map((p, i) => (
-            <div key={p.id} className="w-full h-full shrink-0 flex items-center justify-center" aria-hidden={i !== index}>
-              {Math.abs(i - index) <= 1 &&
+          {posts.map((p, i) => {
+            const slide = Math.abs(i - index) <= 1 &&
                 (p.mediaType === 'video' && p.mediaUrl ? (
                   // Leaving a slide unmounts its player, stopping playback and downloads.
                   i === index ? <OnDemandVideo
@@ -148,9 +151,18 @@ const MediaViewer: React.FC<Props> = ({ posts, startId, onClose }) => {
                   i === index ? <ZoomablePostImage key={`${p.id}-${index}`} src={p.mediaUrl} alt={p.content || 'Foto'} onGestureStart={cancelSwipe} /> : <img src={p.mediaUrl} alt="" draggable={false} className="max-w-full max-h-full object-contain" />
                 ) : (
                   <CoverImage seed={`post-${p.id}`} className="w-full max-w-2xl aspect-square" />
-                ))}
-            </div>
-          ))}
+                ));
+            return (
+              <div key={p.id} className="w-full h-full shrink-0 flex items-center justify-center" aria-hidden={i !== index}>
+                {viewer && slide ? (
+                  <ProtectedMedia className="flex h-full w-full items-center justify-center">
+                    {slide}
+                    {p.isLocked && i === index && <ViewerWatermark viewer={viewer} />}
+                  </ProtectedMedia>
+                ) : slide}
+              </div>
+            );
+          })}
         </div>
 
         {index > 0 && (

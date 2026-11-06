@@ -67,6 +67,8 @@ export interface LiveBackend {
   notifications(user: User): Promise<AppNotification[]>;
   markNotificationsRead(user: User): Promise<void>;
   dismissNotification(user: User, id: string): Promise<AuthResult>;
+  // "Borrar todo" at the foot of the bell: removes every notice of this account.
+  dismissAllNotifications(user: User): Promise<AuthResult>;
   // LiveKit access to a creator's Live: the owner publishes; subscribers (Subscriber
   // Live) or anyone signed in (Open Live, when enabled) watch.
   broadcastAccess(creatorProfileId: string): Promise<AuthResult & { access?: BroadcastAccess }>;

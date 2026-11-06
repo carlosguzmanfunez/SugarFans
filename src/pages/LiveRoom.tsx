@@ -409,7 +409,8 @@ const LiveRoom: React.FC = () => {
                   <i aria-hidden="true" className="fas fa-volume-high mr-1"></i>Activar sonido
                 </button>
               )}
-              {connected && user && <ViewerWatermark name={user.name} userId={user.id} />}
+              {/* Only the fan sees their own mark; the creator's screen stays clean. */}
+              {connected && user && !isCreator && <ViewerWatermark viewer={user} />}
               {!connected && (
                 <div className="absolute inset-0 flex items-center justify-center text-center p-6">
                   <div>

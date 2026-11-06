@@ -20,6 +20,8 @@ import CheckoutDialog from '../components/CheckoutDialog';
 import ReportDialog from '../components/ReportDialog';
 import PostCard, { type DisplayPost } from '../components/PostCard';
 import MediaViewer from '../components/MediaViewer';
+import ViewerWatermark from '../components/ViewerWatermark';
+import { MEDIA_REFRESH_MS } from '../lib/backend/signedMedia';
 import VideoPreview from '../components/VideoPreview';
 import ProfileImageButton from '../components/ProfileImageButton';
 import ProfileImageViewer from '../components/ProfileImageViewer';
@@ -136,7 +138,7 @@ const CreatorProfile: React.FC = () => {
   }, [location.hash, profileReady]);
 
   // Posts published from the creator panel, then like/comment totals for every post.
-  const { data: feed, loading: feedLoading } = usePlatformQuery(
+  const { data: feed, loading: feedLoading, reload: reloadFeed } = usePlatformQuery(
     async () => {
       if (!id) return { own: [] as DisplayPost[], engagement: {} as Awaited<ReturnType<typeof socialApi.engagement>> };
       const published = await socialApi.postsByCreator(id);
@@ -162,6 +164,14 @@ const CreatorProfile: React.FC = () => {
     [id, user?.id],
     { own: [] as DisplayPost[], engagement: {} as Awaited<ReturnType<typeof socialApi.engagement>> }
   );
+
+  // Photo and video links expire in minutes: fetch fresh ones while the page stays open.
+  useEffect(() => {
+    const timer = window.setInterval(() => { if (document.visibilityState === 'visible') void reloadFeed(); }, MEDIA_REFRESH_MS);
+    const onVisible = () => { if (document.visibilityState === 'visible') void reloadFeed(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', onVisible); };
+  }, [reloadFeed]);
 
   if (!creator && (catalogLoading || creatorLoading)) {
     return (
@@ -323,7 +333,7 @@ const CreatorProfile: React.FC = () => {
     <div className="min-h-screen bg-canvas">
       {setup.step === 'photo' && <div className="mx-auto max-w-4xl px-4 py-3"><Link to={FIRST_STEPS_PATH} className="inline-flex min-h-11 items-center text-sm font-semibold text-brand-700 underline underline-offset-4">Volver a Primeros pasos</Link><p className="text-sm text-muted">Añade tu foto de perfil y tu portada. Cuando ambas estén guardadas, volverás a la lista.</p></div>}
       {viewing && viewable.some((p) => p.id === viewing) && (
-        <MediaViewer posts={viewable} startId={viewing} onClose={closeViewer} />
+        <MediaViewer posts={viewable} startId={viewing} onClose={closeViewer} viewer={isOwner ? null : user} />
       )}
       {toast && (
         <div role="status" className="toast-in fixed bottom-24 left-1/2 z-[90] -translate-x-1/2 rounded-full bg-ink px-5 py-3 text-sm font-medium text-white shadow-xl md:bottom-8" data-testid="toast">
@@ -556,7 +566,7 @@ const CreatorProfile: React.FC = () => {
             </div>
             <div className="flex flex-col text-center">
               <dt className="order-last text-gray-500">Videos</dt>
-              <dd className="font-bold text-gray-900" aria-label={feedLoading ? 'Cargando cantidad de videos' : undefined}>{feedLoading ? '…' : videoCount}</dd>
+              <dd className="font-bold text-gray-900" aria-label={feedLoading && !feed.own.length ? 'Cargando cantidad de videos' : undefined}>{feedLoading && !feed.own.length ? '…' : videoCount}</dd>
             </div>
           </dl>
           {isDemoProfile(creator) && (
@@ -681,7 +691,9 @@ const CreatorProfile: React.FC = () => {
                   } else setActiveTab('posts');
                 }}
                 data-testid="media-tile"
-                className="relative aspect-square rounded-xl overflow-hidden group cursor-pointer">
+                draggable={false}
+                onContextMenu={isOwner ? undefined : (e) => e.preventDefault()}
+                className={`relative aspect-square rounded-xl overflow-hidden group cursor-pointer ${isOwner ? '' : 'protected-media'}`}>
                 {post.mediaType === 'video' && post.mediaUrl && canView(post) ? (
                   <VideoPreview seed={`post-${post.id}`} className="w-full h-full" />
                 ) : (
@@ -692,6 +704,7 @@ const CreatorProfile: React.FC = () => {
                     imgClassName="group-hover:scale-105 transition-transform"
                   />
                 )}
+                {post.isLocked && canView(post) && !isOwner && user && <ViewerWatermark viewer={user} compact />}
                 {post.mediaType === 'video' && canView(post) && (
                   <span className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full"><i aria-hidden="true" className="fas fa-play"></i></span>
                 )}
