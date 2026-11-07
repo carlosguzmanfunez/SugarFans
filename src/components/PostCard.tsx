@@ -143,13 +143,19 @@ const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner,
       <div className="relative">
         {media}
         {!canView && (
-          <div className={`${media ? 'absolute inset-0' : 'py-10'} bg-black/60 backdrop-blur-sm flex items-center justify-center`}>
+          // Tapping anywhere on the locked photo or video opens the subscription
+          // (visitors go to sign in first). The button inside stays the keyboard target.
+          <div
+            onClick={!isOwner && onSubscribe ? onSubscribe : undefined}
+            data-testid="locked-post-overlay"
+            className={`${media ? 'absolute inset-0' : 'py-10'} bg-black/60 backdrop-blur-sm flex items-center justify-center ${!isOwner && onSubscribe ? 'cursor-pointer' : ''}`}
+          >
             <div className="text-center text-white p-6">
               <i aria-hidden="true" className="fas fa-lock text-4xl mb-3"></i>
               <p className="font-bold text-lg">Contenido exclusivo para suscriptores</p>
               <p className="text-sm mt-2 text-pink-200">Suscríbete para desbloquear todo el contenido</p>
               {!isOwner && onSubscribe && (
-                <button onClick={onSubscribe} className="mt-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-2 rounded-full font-medium hover:opacity-90">
+                <button type="button" onClick={(e) => { e.stopPropagation(); onSubscribe(); }} data-testid="locked-post-subscribe" className="mt-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-2 rounded-full font-medium hover:opacity-90">
                   {subscribeLabel}
                 </button>
               )}
