@@ -8,7 +8,7 @@ import type { SpecialBackend } from './specialTypes';
 import type { ProspectsBackend } from './prospectTypes';
 import type { SocialLinks } from '../creatorLinks';
 import type { InfraUsage } from '../infraUsage';
-import type { MonitorData, MonitorSnapshot } from '../adminMonitor';
+import type { MonitorData, MonitorKey, MonitorNewKey, MonitorSnapshot } from '../adminMonitor';
 import type { FinanceBackend } from '../creatorFinance';
 import type { ReserveLocation, AttendanceLocation } from '../reserveLocation';
 import type { ApprovalMode, CancellationPolicyId, CreatorCategoryId, LocationType, PurposeId, ReserveModality } from '../../config/reserve';
@@ -379,6 +379,10 @@ export interface Backend {
   monitor(): Promise<MonitorData>;
   // Admins: take a snapshot now ("Actualizar ahora"); at most one per minute.
   monitorRefresh(): Promise<MonitorSnapshot | null>;
+  // Owner only: private keys for the phone control page (/control).
+  monitorKeys(): Promise<MonitorKey[]>;
+  monitorKeyCreate(label: string): Promise<MonitorNewKey>;
+  monitorKeyRevoke(id: string): Promise<boolean>;
   finance: FinanceBackend;
   setInfraSettings(plans: InfraUsage['plans'], fundPct: number): Promise<AuthResult>;
   changePassword(user: User, current: string, next: string): Promise<AuthResult>;

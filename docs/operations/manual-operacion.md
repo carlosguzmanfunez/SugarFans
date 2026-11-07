@@ -71,6 +71,8 @@ La base hace la revisión sola (ver `mano-derecha.md`). La Mano derecha solo tie
 5. Mirar **Movimiento**: Reserve por responder, Reserve próximas, retiros enviándose.
 6. Dejar en el hilo un resumen corto solo si hay algo que Carlos deba decidir.
 
+**Desde el celular, sin entrar a la web:** https://fansreserve.com/control con la llave privada de Carlos (se crea y se revoca en Mano derecha › Control en el celular). Muestra lo mismo que el panel, en vivo, y solo lee. Si Carlos pierde el celular, lo primero es revocar esa llave.
+
 **Días especiales del calendario de pagos (hora Honduras):**
 
 - **Día 26:** se cierra el ciclo (26 → 25) y se acreditan las ganancias. Revisar que no haya incidentes de finanzas antes de que los creadores retiren.

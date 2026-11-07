@@ -67,6 +67,21 @@ try {
     }
     checks.push(`${name}: avisos, abrir sección, actualizar y reporte`);
 
+    // Control en el celular: llave existente, crear una (se ve una vez) y revocar.
+    await page.getByTestId('monitor-phone-keys').getByText('iPhone de Carlos').waitFor();
+    await page.getByLabel('Nombre de la llave').fill('Android');
+    await page.getByTestId('monitor-phone-create').click();
+    assert.match(await page.getByTestId('monitor-phone-new').innerText(), /no se vuelve a mostrar/);
+    assert.match(await page.getByTestId('monitor-phone-key').innerText(), /^frc_[0-9a-f]{64}$/);
+    assert.match(await page.getByRole('link', { name: 'Abrir aquí' }).getAttribute('href'), /\/control#k=frc_/);
+    if (shots) await page.getByTestId('monitor-phone-card').screenshot({ path: join(shots, `${name}-control-celular.png`) });
+    const androidRow = page.getByTestId('monitor-phone-keys').locator('li', { hasText: 'Android' });
+    await androidRow.getByRole('button', { name: 'Revocar' }).click();
+    await androidRow.getByRole('button', { name: 'Sí, revocar' }).click();
+    await page.getByTestId('monitor-phone-new').waitFor({ state: 'detached' });
+    assert.equal(await page.getByTestId('monitor-phone-keys').locator('li').count(), 1);
+    checks.push(`${name}: llave del celular (crear, ver una vez, revocar)`);
+
     await page.goto(`${base}/?s=ok`);
     await page.getByTestId('monitor-ok').waitFor();
     assert.match(await page.getByTestId('monitor-status').innerText(), /Todo en orden/);

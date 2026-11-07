@@ -42,4 +42,5 @@ jobs:
       - run: npm run test:reserve-refund-fee-db
       - run: npm run test:special
       - run: npm run test:creator-statement
+      - run: npm run test:monitor-live-db
       - run: npm run build

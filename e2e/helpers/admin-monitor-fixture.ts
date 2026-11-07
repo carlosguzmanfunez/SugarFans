@@ -64,9 +64,20 @@ const data: MonitorData = scenario === 'empty'
       reports: [report('midday', 2, 'Reporte de mediodía · 07/11/2026'), report('midnight', 14, 'Cierre del día · 06/11/2026')],
     };
 
+let keys = scenario === 'alert'
+  ? [{ id: 'k0', label: 'iPhone de Carlos', createdAt: new Date(now - 3 * 86400e3).toISOString(), lastUsedAt: new Date(now - 7 * 60e3).toISOString(), uses: 41 }]
+  : [];
+
 export const backend = {
   mode: 'local',
   onChange: () => () => {},
   monitor: async () => { await new Promise((r) => setTimeout(r, 50)); return data; },
   monitorRefresh: async () => { calls.push('refresh'); await new Promise((r) => setTimeout(r, 300)); return null; },
+  monitorKeys: async () => keys,
+  monitorKeyCreate: async (label: string) => {
+    const k = { id: `k${keys.length + 1}`, label, key: `frc_${'ab12'.repeat(16)}` };
+    keys = [{ id: k.id, label, createdAt: new Date().toISOString(), lastUsedAt: null, uses: 0 }, ...keys];
+    return k;
+  },
+  monitorKeyRevoke: async (id: string) => { keys = keys.filter((k) => k.id !== id); return true; },
 };
