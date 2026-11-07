@@ -1,7 +1,7 @@
 # TÉRMINOS Y CONDICIONES DE SERVICIO - FANS RESERVE
 
 **Última actualización:** Noviembre 2026 (borrador)  
-**Versión:** 1.3.0  
+**Versión:** 1.3.1  
 **Jurisdicción aplicable:** Ver sección 13
 
 > **Borrador.** Requires legal review before production launch. Requiere revisión legal antes del lanzamiento a producción. Los pagos se procesan con PayPal. Mientras la plataforma está en fase de prelanzamiento, el acceso está restringido.
@@ -272,7 +272,7 @@ f) Su firma física o electrónica
 
 8.5. **Política de Infractores Reincidentes**: Las cuentas de Usuarios que infrinjan derechos de autor de manera repetida serán terminadas.
 
-8.6. **Grabaciones y filtraciones**: Está prohibido grabar, capturar, descargar o compartir fuera de la Plataforma el contenido exclusivo de un Creador (sus fotos y videos para suscriptores) y cualquier videollamada, Live o evento. Las fotos, los videos y las videollamadas muestran de forma discreta el @usuario de quien los ve, para identificar cualquier copia. Si un Usuario graba o filtra contenido, cerraremos su cuenta sin reembolso de suscripciones, reservas ni Créditos, salvo cuando la ley lo exija, y el Creador o Fans Reserve podrán presentar un reclamo DMCA y las acciones legales que correspondan. Las filtraciones se reportan a dmca@fansreserve.com.
+8.6. **Grabaciones y filtraciones**: Está prohibido grabar, capturar, descargar o compartir fuera de la Plataforma el contenido exclusivo de un Creador (sus fotos y videos para suscriptores) y cualquier videollamada, Live o evento. Las videollamadas, los Lives y los eventos muestran de forma discreta el @usuario de quien los ve, para identificar cualquier copia. Si un Usuario graba o filtra contenido, cerraremos su cuenta sin reembolso de suscripciones, reservas ni Créditos, salvo cuando la ley lo exija, y el Creador o Fans Reserve podrán presentar un reclamo DMCA y las acciones legales que correspondan. Las filtraciones se reportan a dmca@fansreserve.com.
 
 ---
 

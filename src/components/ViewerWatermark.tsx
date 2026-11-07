@@ -6,7 +6,7 @@ import React, { useEffect, useState } from 'react';
 // few seconds: any copy that leaks shows who made it, and a moving mark can't be
 // cropped out. Each viewer only sees their own; the creator never sees one over
 // their own content or camera. Used on live video (1:1, Meet & Greet, events,
-// Lives) and on subscriber-only photos and videos.
+// Lives). Not on posts: Carlos removed it from photos and videos 2026-11-07.
 
 type Viewer = { id: string; name: string; username?: string };
 

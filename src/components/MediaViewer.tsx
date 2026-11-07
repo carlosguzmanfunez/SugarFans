@@ -5,14 +5,14 @@ import type { DisplayPost } from './PostCard';
 import OnDemandVideo from './OnDemandVideo';
 import VideoPreview from './VideoPreview';
 import ZoomablePostImage from './ZoomablePostImage';
-import ViewerWatermark, { ProtectedMedia } from './ViewerWatermark';
+import { ProtectedMedia } from './ViewerWatermark';
 
 interface Props {
   posts: DisplayPost[]; // only the ones with a photo or video the viewer may see
   startId: string;
   onClose: () => void;
-  // Someone else's profile: photos can't be saved and subscriber-only ones carry
-  // this viewer's faint @usuario. Left out for the creator viewing their own posts.
+  // Someone else's profile: their photos and videos can't be saved. Left out for
+  // the creator viewing their own posts.
   viewer?: { id: string; name: string; username?: string } | null;
 }
 
@@ -166,8 +166,7 @@ const MediaViewer: React.FC<Props> = ({ posts, startId, onClose, viewer }) => {
                     testId="media-viewer-video"
                   /> : <VideoPreview seed={`post-${p.id}`} />
                 ) : p.mediaUrl && !isPlaceholderImage(p.mediaUrl) ? (
-                  i === index ? <ZoomablePostImage key={`${p.id}-${index}`} src={p.mediaUrl} alt={p.content || 'Foto'} onGestureStart={cancelSwipe}
-                    overlay={viewer && p.isLocked ? <ViewerWatermark viewer={viewer} /> : undefined} /> : <img src={p.mediaUrl} alt="" draggable={false} className="max-w-full max-h-full object-contain" />
+                  i === index ? <ZoomablePostImage key={`${p.id}-${index}`} src={p.mediaUrl} alt={p.content || 'Foto'} onGestureStart={cancelSwipe} /> : <img src={p.mediaUrl} alt="" draggable={false} className="max-w-full max-h-full object-contain" />
                 ) : (
                   <CoverImage seed={`post-${p.id}`} className="w-full max-w-2xl aspect-square" />
                 ));
@@ -176,8 +175,6 @@ const MediaViewer: React.FC<Props> = ({ posts, startId, onClose, viewer }) => {
                 {viewer && slide ? (
                   <ProtectedMedia className="flex h-full w-full items-center justify-center">
                     {slide}
-                    {/* Photos carry it inside the zoomable picture; videos over the slide. */}
-                    {p.isLocked && i === index && p.mediaType === 'video' && <ViewerWatermark viewer={viewer} />}
                   </ProtectedMedia>
                 ) : slide}
               </div>

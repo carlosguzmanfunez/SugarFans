@@ -9,7 +9,7 @@ import { CoverImage, isPlaceholderImage } from './CoverArt';
 import DeferredImage from './DeferredImage';
 import VideoPreview from './VideoPreview';
 import OnDemandVideo from './OnDemandVideo';
-import ViewerWatermark, { ProtectedMedia } from './ViewerWatermark';
+import { ProtectedMedia } from './ViewerWatermark';
 import { ENABLE_PAY_PER_POST } from '../config/features';
 
 // A post from the demo catalogue or one a creator published from their panel.
@@ -99,13 +99,11 @@ const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner,
       {shown}
     </button>
   ) : shown;
-  // Someone else's photo or video: no saving it, and subscriber-only content carries
-  // the viewer's own faint @usuario so a leaked copy shows who took it.
+  // Someone else's photo or video: no saving it (no watermark on posts; Carlos 2026-11-07).
   const guarded = !!shown && canView && !isOwner && !!post.mediaUrl;
   const media = guarded ? (
     <ProtectedMedia>
       {clickable}
-      {post.isLocked && viewer && <ViewerWatermark viewer={viewer} />}
     </ProtectedMedia>
   ) : clickable;
 

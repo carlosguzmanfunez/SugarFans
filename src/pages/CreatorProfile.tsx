@@ -22,7 +22,6 @@ import CheckoutDialog from '../components/CheckoutDialog';
 import ReportDialog from '../components/ReportDialog';
 import PostCard, { type DisplayPost } from '../components/PostCard';
 import MediaViewer from '../components/MediaViewer';
-import ViewerWatermark from '../components/ViewerWatermark';
 import { MEDIA_REFRESH_MS } from '../lib/backend/signedMedia';
 import VideoPreview from '../components/VideoPreview';
 import ProfileImageButton from '../components/ProfileImageButton';
@@ -717,7 +716,6 @@ const CreatorProfile: React.FC = () => {
                     imgClassName="group-hover:scale-105 transition-transform"
                   />
                 )}
-                {post.isLocked && canView(post) && !isOwner && user && <ViewerWatermark viewer={user} compact />}
                 {post.mediaType === 'video' && canView(post) && (
                   <span className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full"><i aria-hidden="true" className="fas fa-play"></i></span>
                 )}
