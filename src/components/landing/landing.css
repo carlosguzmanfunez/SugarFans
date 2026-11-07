@@ -109,7 +109,7 @@
    like an LED strip. Still ring when the visitor prefers less motion. */
 @property --ring-angle{syntax:"<angle>";inherits:false;initial-value:0deg}
 .lv2 .hero-experiences .pass{--pass-glow:color-mix(in srgb,var(--pass-rule) 50%,#fff)}
-.lv2 .hero-experiences .pass{border:4px solid transparent;background:linear-gradient(var(--pass-bg),var(--pass-bg)) padding-box,conic-gradient(from var(--ring-angle),var(--pass-rule) 0deg,var(--pass-rule) 170deg,var(--pass-glow) 225deg,#fff 250deg,var(--pass-glow) 275deg,var(--pass-rule) 330deg) border-box;box-shadow:0 22px 44px -26px rgb(40 30 110 / .55);animation:pass-ring 4s linear infinite}
+.lv2 .hero-experiences .pass{border:3.5px solid transparent;background:linear-gradient(var(--pass-bg),var(--pass-bg)) padding-box,conic-gradient(from var(--ring-angle),var(--pass-rule) 0deg,var(--pass-rule) 170deg,var(--pass-glow) 225deg,#fff 250deg,var(--pass-glow) 275deg,var(--pass-rule) 330deg) border-box;box-shadow:0 22px 44px -26px rgb(40 30 110 / .55);animation:pass-ring 4s linear infinite}
 @keyframes pass-ring{to{--ring-angle:360deg}}
 @media(prefers-reduced-motion:reduce){.lv2 .hero-experiences .pass{animation:none}}
 .lv2 .hero-experiences .pass ::selection{background:var(--pass-ink);color:var(--pass-bg)}
