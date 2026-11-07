@@ -2,6 +2,7 @@ import { backend, type VipBooking } from './backend';
 import { readJSON } from './storage';
 import { sessionRequest } from './reserveSessionClient';
 import { attendanceDay, attendanceFilterError, ATTENDANCE_PAGE_SIZE, type AttendanceFilters, type AttendancePage, type AttendanceRow } from './adminReserveAttendance';
+import { DOSSIER_REFERENCE, dossierFileName, dossierHtml, type DisputeDossier } from './disputeDossier';
 
 export async function adminAttendanceList(filters: AttendanceFilters, offset: number): Promise<AttendancePage> {
  const error=attendanceFilterError(filters);if(error)throw new Error(error);
@@ -41,4 +42,43 @@ export async function adminAttendanceDetail(row: AttendanceRow): Promise<Attenda
   body:JSON.stringify({action:'status',bookingId:row.booking_id}),signal:AbortSignal.timeout(15000)});
  const body=await r.json();if(!r.ok||body.data?.booking_id!==row.booking_id)throw new Error('No pudimos consultar la constancia. Vuelve a intentarlo.');
  return {...row,receipt:body.data,checked_at:body.serverNow};
+}
+export async function adminDisputeDossier(reference: string): Promise<DisputeDossier> {
+ const ref=reference.trim();
+ if(!DOSSIER_REFERENCE.test(ref))throw new Error('Escribe la referencia de la reserva o el ID de transacción de PayPal.');
+ if(backend.mode==='local') {
+  const user=await backend.getCurrentUser();if(!user||!(user.role==='admin'||user.isOwner))throw new Error('Acceso no autorizado.');
+  const b=readJSON<VipBooking[]>('vip_bookings',[]).find(b=>b.id===ref);
+  if(!b)throw new Error('No encontramos una reserva con esa referencia o transacción de PayPal.');
+  const virtual=!!b.durationMinutes&&(b.details?.modality??'virtual')==='virtual';
+  return {generated_at:new Date().toISOString(),
+   booking:{id:b.id,title:b.title,creator_name:b.creatorName,fan_name:b.fanName,fan_email:b.fanEmail,price:b.price,status:b.status,date:b.date,time:b.time,
+    time_zone:b.timeZone??'America/Tegucigalpa',duration_minutes:b.durationMinutes??null,modality:b.details?.modality??'virtual',
+    session_policy_version:b.details?.sessionPolicyVersion??'legacy',created_at:b.createdAt,paid_at:b.paidAt??null},
+   fan:{id:b.fanId,terms_accepted_at:null,terms_version:null,terms_history:[]},payments:[],refund_requests:[],disputes:[],
+   attendance:virtual?await sessionRequest(b,'status'):null};
+ }
+ const token=await backend.accessToken();if(!token)throw new Error('Inicia sesión de nuevo.');
+ const r=await fetch('/api/reserve-session',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${token}`},
+  body:JSON.stringify({action:'admin-dossier',reference:ref}),signal:AbortSignal.timeout(15000)});
+ const body=await r.json().catch(()=>({}));
+ if(r.status===404||r.status===400)throw new Error(body.error||'No encontramos una reserva con esa referencia o transacción de PayPal.');
+ if(!r.ok||!body.data?.booking?.id)throw new Error('No pudimos preparar el expediente. Vuelve a intentarlo.');
+ return body.data;
+}
+export function downloadDisputeDossier(d: DisputeDossier) {
+ const url=URL.createObjectURL(new Blob([dossierHtml(d)],{type:'text/html;charset=utf-8'}));
+ const a=document.createElement('a');a.href=url;a.download=dossierFileName(d);a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+export async function adminDisputeFee(reference: string, fee: number, payer: 'platform'|'creator', note=''): Promise<{payer:string;fee:number|string;adjustment_id:string|null}> {
+ const ref=reference.trim();
+ if(!DOSSIER_REFERENCE.test(ref))throw new Error('Escribe la referencia de la reserva o el ID de transacción de PayPal.');
+ if(!(fee>0&&fee<=100))throw new Error('Indica la comisión del contracargo en USD (hasta 100).');
+ if(backend.mode==='local')throw new Error('Disponible con la base real.');
+ const token=await backend.accessToken();if(!token)throw new Error('Inicia sesión de nuevo.');
+ const r=await fetch('/api/reserve-session',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${token}`},
+  body:JSON.stringify({action:'admin-dispute-fee',reference:ref,fee,payer,note,key:crypto.randomUUID()}),signal:AbortSignal.timeout(15000)});
+ const body=await r.json().catch(()=>({}));
+ if(!r.ok||!body.data?.payer)throw new Error(body.error||'No pudimos guardar la decisión. Vuelve a intentarlo.');
+ return body.data;
 }
