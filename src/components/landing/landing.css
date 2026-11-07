@@ -105,6 +105,13 @@
 .lv2 .hero-experiences .pass-link:hover{text-decoration:underline}
 .lv2 .hero-experiences .pass-link:focus-visible{outline-color:var(--pass-ink)}
 .lv2 .hero-experiences .pass .shine{display:none}
+/* Frame: a ring in each card's own color with a light that travels around it
+   like an LED strip. Still ring when the visitor prefers less motion. */
+@property --ring-angle{syntax:"<angle>";inherits:false;initial-value:0deg}
+.lv2 .hero-experiences .pass{--pass-glow:color-mix(in srgb,var(--pass-rule) 50%,#fff)}
+.lv2 .hero-experiences .pass{border:3.2px solid transparent;background:linear-gradient(var(--pass-bg),var(--pass-bg)) padding-box,conic-gradient(from var(--ring-angle),var(--pass-rule) 0deg,var(--pass-rule) 170deg,var(--pass-glow) 225deg,#fff 250deg,var(--pass-glow) 275deg,var(--pass-rule) 330deg) border-box;box-shadow:0 22px 44px -26px rgb(40 30 110 / .55);animation:pass-ring 4s linear infinite}
+@keyframes pass-ring{to{--ring-angle:360deg}}
+@media(prefers-reduced-motion:reduce){.lv2 .hero-experiences .pass{animation:none}}
 .lv2 .hero-experiences .pass ::selection{background:var(--pass-ink);color:var(--pass-bg)}
 @media(min-width:901px) and (max-width:1100px){.lv2 .hero-experiences .hero-grid{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:32px}.lv2 .hero-experiences .deck{height:480px;--deck-step:80px;--deck-shadow-offset:176px;--deck-shadow-width:340px}.lv2 .hero-experiences .pass{width:292px;height:420px;margin:-210px 0 0 -146px}.lv2 .hero-experiences .pass .fig{height:260px}.lv2 .hero-experiences .pass .info h3{font-size:24px}}
 @media(max-width:560px){.lv2 .hero-experiences .deck{--deck-step:76px}.lv2 .hero-experiences .pass .fig{height:220px}.lv2 .hero-experiences .pass .top{top:12px;left:12px;right:12px}.lv2 .hero-experiences .pass .top .chip{font-size:10.5px;padding:6px 9px}.lv2 .hero-experiences .pass .info{padding:18px 18px 14px}.lv2 .hero-experiences .pass .info h3{font-size:21px;line-height:1.15}.lv2 .hero-experiences .pass .meta{margin-top:7px;font-size:12.5px;line-height:1.5}.lv2 .hero-experiences .pass .slot{margin-top:10px;padding-top:5px}.lv2 .hero-experiences .pass-link{min-height:40px;font-size:14px}}
