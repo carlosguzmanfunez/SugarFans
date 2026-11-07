@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSeoPage } from '../hooks/usePageMeta';
 import { Link } from 'react-router-dom';
 import { BECOME_CREATOR_LINK, canBecomeCreator } from '../lib/becomeCreator';
 import { useAuth } from '../context/AuthContext';
@@ -48,6 +49,7 @@ const PERKS = [
 ];
 
 const SalesTour: React.FC = () => {
+  useSeoPage('tour', '/recorrido');
   const { user } = useAuth();
   const cta = user ? (
     user.role === 'creator' ? (

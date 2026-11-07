@@ -40,6 +40,19 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.logout': 'Cerrar sesión',
     'nav.login': 'Iniciar sesión',
     'nav.register': 'Crear cuenta',
+
+    // Search engines and link previews (page title and description)
+    'seo.explore.title': 'Explorar creadores',
+    'seo.explore.description': 'Descubre creadores de contenido por categoría y país. Síguelos, suscríbete a su contenido exclusivo y reserva una experiencia en vivo con ellos.',
+    'seo.reserve.title': 'Reserve: videollamadas 1:1, Meet & Greet y eventos',
+    'seo.reserve.description': 'Reserva una videollamada 1:1, un Meet & Greet o un evento en vivo con tus creadores favoritos. Pago seguro y cancelación clara.',
+    'seo.tour.title': 'Cómo funciona',
+    'seo.tour.description': 'Sigue, suscríbete y reserva: así funciona {brand} para fans y creadores, paso a paso.',
+    'seo.help.title': 'Ayuda',
+    'seo.help.description': 'Respuestas sobre cuentas, pagos, suscripciones, Reserve y cancelaciones en {brand}.',
+    'seo.legal.title': 'Términos y políticas',
+    'seo.legal.description': 'Términos de servicio, privacidad, reembolsos y reglas de cancelación de {brand}.',
+    'seo.creator.description': 'Sigue a {name}, suscríbete a su contenido exclusivo y reserva una videollamada 1:1 o un evento en vivo en {brand}.',
     
     // Age verification
     'age.title': 'Verificación de edad',
@@ -257,6 +270,19 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.logout': 'Log out',
     'nav.login': 'Log in',
     'nav.register': 'Sign up',
+
+    // Search engines and link previews (page title and description)
+    'seo.explore.title': 'Explore creators',
+    'seo.explore.description': 'Discover content creators by category and country. Follow them, subscribe to their exclusive content and book a live experience with them.',
+    'seo.reserve.title': 'Reserve: 1:1 video calls, Meet & Greets and events',
+    'seo.reserve.description': 'Book a 1:1 video call, a Meet & Greet or a live event with your favorite creators. Secure payment and clear cancellation.',
+    'seo.tour.title': 'How it works',
+    'seo.tour.description': 'Follow, subscribe and book: how {brand} works for fans and creators, step by step.',
+    'seo.help.title': 'Help',
+    'seo.help.description': 'Answers about accounts, payments, subscriptions, Reserve and cancellations on {brand}.',
+    'seo.legal.title': 'Terms and policies',
+    'seo.legal.description': 'Terms of service, privacy, refunds and cancellation rules of {brand}.',
+    'seo.creator.description': 'Follow {name}, subscribe to their exclusive content and book a 1:1 video call or a live event on {brand}.',
     
     // Age verification
     'age.title': 'Age verification',
@@ -474,6 +500,19 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.logout': 'Sair',
     'nav.login': 'Entrar',
     'nav.register': 'Cadastrar',
+
+    // Search engines and link previews (page title and description)
+    'seo.explore.title': 'Explorar criadores',
+    'seo.explore.description': 'Descubra criadores de conteúdo por categoria e país. Siga, assine o conteúdo exclusivo e reserve uma experiência ao vivo com eles.',
+    'seo.reserve.title': 'Reserve: videochamadas 1:1, Meet & Greet e eventos',
+    'seo.reserve.description': 'Reserve uma videochamada 1:1, um Meet & Greet ou um evento ao vivo com seus criadores favoritos. Pagamento seguro e cancelamento claro.',
+    'seo.tour.title': 'Como funciona',
+    'seo.tour.description': 'Siga, assine e reserve: como o {brand} funciona para fãs e criadores, passo a passo.',
+    'seo.help.title': 'Ajuda',
+    'seo.help.description': 'Respostas sobre contas, pagamentos, assinaturas, Reserve e cancelamentos no {brand}.',
+    'seo.legal.title': 'Termos e políticas',
+    'seo.legal.description': 'Termos de serviço, privacidade, reembolsos e regras de cancelamento do {brand}.',
+    'seo.creator.description': 'Siga {name}, assine o conteúdo exclusivo e reserve uma videochamada 1:1 ou um evento ao vivo no {brand}.',
     
     // Age verification
     'age.title': 'Verificação de idade',
@@ -691,6 +730,19 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.logout': 'Déconnexion',
     'nav.login': 'Connexion',
     'nav.register': 'S\'inscrire',
+
+    // Search engines and link previews (page title and description)
+    'seo.explore.title': 'Explorer les créateurs',
+    'seo.explore.description': 'Découvrez des créateurs de contenu par catégorie et par pays. Suivez-les, abonnez-vous à leur contenu exclusif et réservez une expérience en direct avec eux.',
+    'seo.reserve.title': 'Reserve : appels vidéo 1:1, Meet & Greet et événements',
+    'seo.reserve.description': 'Réservez un appel vidéo 1:1, un Meet & Greet ou un événement en direct avec vos créateurs préférés. Paiement sécurisé et annulation claire.',
+    'seo.tour.title': 'Comment ça marche',
+    'seo.tour.description': 'Suivez, abonnez-vous et réservez : le fonctionnement de {brand} pour les fans et les créateurs, étape par étape.',
+    'seo.help.title': 'Aide',
+    'seo.help.description': 'Réponses sur les comptes, paiements, abonnements, Reserve et annulations sur {brand}.',
+    'seo.legal.title': 'Conditions et politiques',
+    'seo.legal.description': 'Conditions d\'utilisation, confidentialité, remboursements et règles d\'annulation de {brand}.',
+    'seo.creator.description': 'Suivez {name}, abonnez-vous à son contenu exclusif et réservez un appel vidéo 1:1 ou un événement en direct sur {brand}.',
     
     // Age verification
     'age.title': 'Vérification de l\'âge',
@@ -908,6 +960,19 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.logout': 'Esci',
     'nav.login': 'Accedi',
     'nav.register': 'Registrati',
+
+    // Search engines and link previews (page title and description)
+    'seo.explore.title': 'Esplora i creator',
+    'seo.explore.description': 'Scopri creator di contenuti per categoria e paese. Seguili, abbonati ai loro contenuti esclusivi e prenota un\'esperienza dal vivo con loro.',
+    'seo.reserve.title': 'Reserve: videochiamate 1:1, Meet & Greet ed eventi',
+    'seo.reserve.description': 'Prenota una videochiamata 1:1, un Meet & Greet o un evento dal vivo con i tuoi creator preferiti. Pagamento sicuro e cancellazione chiara.',
+    'seo.tour.title': 'Come funziona',
+    'seo.tour.description': 'Segui, abbonati e prenota: come funziona {brand} per fan e creator, passo dopo passo.',
+    'seo.help.title': 'Aiuto',
+    'seo.help.description': 'Risposte su account, pagamenti, abbonamenti, Reserve e cancellazioni su {brand}.',
+    'seo.legal.title': 'Termini e politiche',
+    'seo.legal.description': 'Termini di servizio, privacy, rimborsi e regole di cancellazione di {brand}.',
+    'seo.creator.description': 'Segui {name}, abbonati ai suoi contenuti esclusivi e prenota una videochiamata 1:1 o un evento dal vivo su {brand}.',
     
     // Age verification
     'age.title': 'Verifica dell\'età',

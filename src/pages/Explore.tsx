@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSeoPage } from '../hooks/usePageMeta';
 import { matchesCreatorSearch } from '../lib/creatorSearch';
 import { Link, useSearchParams } from 'react-router-dom';
 import { categories, posts } from '../data/mockData';
@@ -21,6 +22,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { countryName } from '../config/countries';
 
 const Explore: React.FC = () => {
+  useSeoPage('explore', '/explore');
   const { isAuthenticated, user } = useAuth();
   const { creators } = useCreatorCatalog();
   const featured = useFeatured();

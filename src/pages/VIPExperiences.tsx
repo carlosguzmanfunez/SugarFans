@@ -1,6 +1,7 @@
 import ReserveCitySelector, { useReserveDestination } from '../components/reserve/ReserveCitySelector';
 import { visibleAtLocation } from '../lib/reserveLocation';
 import React, { useState } from 'react';
+import { useSeoPage } from '../hooks/usePageMeta';
 import { matchesCreatorSearch, searchText } from '../lib/creatorSearch';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -30,6 +31,7 @@ const PRODUCTS: { id: ReserveProduct | 'all'; label: string; icon: string }[] = 
 ];
 
 const ReservePage: React.FC = () => {
+  useSeoPage('reserve', '/reserve');
   const { user } = useAuth();
   const language = useReserveLanguage();
   const destination = useReserveDestination();

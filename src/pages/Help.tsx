@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSeoPage } from '../hooks/usePageMeta';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { submitReport } from '../lib/platform';
@@ -43,6 +44,7 @@ const helpCategories = [
 ];
 
 const Help: React.FC = () => {
+  useSeoPage('help', '/help');
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');

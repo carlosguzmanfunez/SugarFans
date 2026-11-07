@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { useSeoPage } from '../hooks/usePageMeta';
 import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { BRAND } from '../config/brand';
@@ -8,6 +9,7 @@ import { LEVELS as CREATOR_LEVELS, MAX_SHARE, REFERRAL_DAYS, REFERRAL_SHARE, FOU
 import { GIFT_SHARE } from '../lib/giftRules';
 
 const LegalPolicies: React.FC = () => {
+  useSeoPage('legal', '/legal');
   const { t } = useLanguage();
   const policies = [
     { id: 'terms', name: 'Términos y Condiciones', icon: 'fa-file-contract' },
