@@ -20,6 +20,7 @@ import { createSupabaseProspects } from './supabaseProspects';
 import { BRAND } from '../../config/brand';
 import { fromRpc } from '../infraUsage';
 import type { MonitorSnapshot } from '../adminMonitor';
+import type { ReserveResponseLog } from '../reserveResponseReminders';
 import { createSupabaseFinance } from './supabaseFinance';
 import { isDemoEmail } from '../../config/demoAccounts';
 
@@ -927,6 +928,17 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
     async markBookingsSeen() {
       // Quietly does nothing until the migration is applied.
       await sb.rpc('reserve_mark_seen');
+    },
+
+    async openReserveNudge(id) {
+      // Proof that the creator opened the reminder; never blocks the page.
+      await sb.rpc('reserve_open_response_reminder', { p_id: id });
+    },
+
+    async reserveResponseLog(days = 7) {
+      const { data, error } = await sb.rpc('admin_reserve_response_log', { p_days: days });
+      if (error) throw Error('No pudimos consultar los recordatorios.');
+      return (data as ReserveResponseLog | null) ?? { as_of: new Date().toISOString(), items: [] };
     },
 
     async savePushSubscription(sub) {

@@ -133,7 +133,17 @@ const deliver = async (id: string) => {
     await rest('PATCH',`reserve_session_reminders?id=eq.${context.id}`,{push_devices:result.devices,...(result.sent?{push_accepted_at:new Date().toISOString()}: {})});
     return json(200,result);
   }
-  return json(200, await sendTo(n.user_id, { title: n.title, body: n.body, link: n.link || '/', tag: n.id }));
+  const result = await sendTo(n.user_id, { title: n.title, body: n.body, link: n.link || '/', tag: n.id });
+  // Reminder to a creator about a Reserve request without answer: keep proof of
+  // delivery (supabase/migrations/20261107230000_reserve_response_reminders.sql).
+  const nudge = /[?&]reserveNudge=([0-9a-f-]{36})/i.exec(n.link || '')?.[1];
+  if (nudge)
+    await rest('PATCH', `reserve_response_reminders?id=eq.${nudge}&notification_id=eq.${n.id}`, {
+      push_attempted_at: new Date().toISOString(),
+      push_devices: result.devices,
+      push_sent: result.sent,
+    }).catch(() => null);
+  return json(200, result);
 };
 
 // The signed-in person behind a session token, asked to Supabase Auth.

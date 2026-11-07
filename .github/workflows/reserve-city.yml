@@ -76,6 +76,7 @@ jobs:
       - run: npm run test:reserve-session-db
       - run: npm run test:admin-reserve-attendance
       - run: npm run test:admin-reserve-attendance-db
+      - run: npm run test:reserve-response-reminders-db
       - run: node e2e/admin-workspace-data.mjs
       - run: npm run test:push
       - run: npm run test:reserve-city-db

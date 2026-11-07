@@ -27,12 +27,21 @@ const usage = {month:at.slice(0,7), measuredAt:at, dbBytes:0,storageBytes:0,mau:
 const reports = [{id:'report-1',kind:'post',targetId:'post-1',targetLabel:'Publicación de Mariana',reason:'Publicación por revisar',description:'Un fan reportó que este contenido necesita revisión. Todos estos datos son ficticios.',reporterName:'Fan de prueba',reporterId:'qa-2',status:'pending',createdAt:at}];
 const moderation = [{bucket:'post-media',path:'qa/file.jpg',ownerId:'qa-1',ownerName:'Mariana Silva',kind:'post',mediaType:'image',status:'review',reason:'Revisión ficticia',provider:'simulado',createdAt:at}];
 const noPending = () => scenario === 'empty';
+const ago = (min: number) => new Date(Date.now() - min * 60000).toISOString();
+const send = (step: string, min: number, extra: Record<string, unknown> = {}) => ({step, due_at: ago(min), sent_at: ago(min), skipped: false, bell: step !== 'inicio', bell_read_at: null, push_attempted_at: null, push_devices: null, push_sent: null, email: step === 'inicio' || step === 'h24' || step === 'h1', email_delivered_at: null, email_error: null, opened_at: null, ...extra});
+const nudges = [
+  {booking_id: 'booking-nudge-1', title: 'Videollamada 1:1 de prueba', creator_name: 'Mariana Silva', fan_name: 'Persona de prueba 2', status: 'pending', waiting: true, respond_by: new Date(Date.now() + 5 * 3600000).toISOString(), seen_at: null, requested_at: ago(43 * 60),
+    reminders: [send('inicio', 43 * 60, {email_delivered_at: ago(43 * 60)}), send('r3h', 40 * 60, {push_attempted_at: ago(40 * 60), push_devices: 2, push_sent: 2, bell_read_at: ago(39 * 60)}), send('h24', 19 * 60, {skipped: true, bell: false, email: false}), send('h6', 60, {push_attempted_at: ago(60), push_devices: 1, push_sent: 0})]},
+  {booking_id: 'booking-nudge-2', title: 'Clase de prueba', creator_name: 'Persona de prueba 3', fan_name: 'Persona de prueba 4', status: 'accepted', waiting: false, respond_by: ago(-600), seen_at: ago(200), requested_at: ago(300),
+    reminders: [send('inicio', 300, {email_error: 'Resend 422: ficticio'}), send('r3h', 120, {opened_at: ago(110)})]},
+];
 export const backend: any = {
   mode:'local', onChange: (fn: () => void) => {listeners.add(fn);return()=>{listeners.delete(fn);};},
   getCurrentUser: () => read(accounts[0]),
   listAccounts: () => read(accounts),
   moderationQueue: () => scenario === 'content-error' ? Promise.reject(Error('Fallo ficticio de contenido')) : read(noPending() ? [] : moderation),
   appErrors: () => read(noPending() ? [] : [{id:'error-1',source:'email',message:'Fallo ficticio del proveedor',detail:'Datos de diagnóstico de prueba',url:'/qa',userAgent:'QA',userName:'Mariana',count:2,firstSeen:at,lastSeen:at}]),
+  reserveResponseLog: () => read({as_of: at, items: noPending() ? [] : nudges}),
   infraUsage: () => read(usage), setInfraSettings: () => mutation('Guardar planificación'), reviewMedia: () => mutation('Decidir sobre archivo'),
   platform: {
     listVerifications: () => read(noPending() ? [] : [verification]), listReports: () => read(noPending() ? [] : reports),
