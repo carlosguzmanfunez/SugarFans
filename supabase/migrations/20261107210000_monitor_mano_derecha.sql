@@ -207,7 +207,8 @@ begin
      'titulo', n || case when n = 1 then ' retiro lleva más de 2 horas enviándose' else ' retiros llevan más de 2 horas enviándose' end,
      'donde','Dinero > Retiros y devoluciones'); end if;
 
-  select count(*) into n from cron.job_run_details d where d.status = 'failed' and d.start_time >= p_from;
+  -- Cuenta tareas distintas (no ejecuciones), para avisar solo cuando otra empieza a fallar.
+  select count(distinct d.jobid) into n from cron.job_run_details d where d.status = 'failed' and d.start_time >= p_from;
   if n > 0 then
     select string_agg(distinct j.jobname, ', ') into t from cron.job_run_details d join cron.job j on j.jobid = d.jobid
      where d.status = 'failed' and d.start_time >= p_from;
@@ -241,7 +242,7 @@ begin
 
   select count(*) into n from public.monitor_reports where emailed_at is null and email_error is not null and created_at > now() - interval '2 days';
   if n > 0 then items := items || jsonb_build_object('code','reporte_correo','nivel','media','n',n,
-     'titulo', 'El reporte de las 12 no llegó a tu correo', 'detalle','Revisa RESEND_API_KEY y CRON_SECRET en Vercel; el reporte sí está aquí.'); end if;
+     'titulo', 'El reporte de las 12 no llegó a tu correo', 'detalle','Revisa RESEND_API_KEY en Vercel; el reporte sí está aquí en el panel.'); end if;
 
   select coalesce(sum(count), 0) into n from public.app_errors where source = 'api' and last_seen >= p_from;
   if n > 0 then items := items || jsonb_build_object('code','errores_servidor','nivel','media','n',n,
