@@ -190,10 +190,10 @@ Cada alerta del panel tiene un código. Las fichas dicen qué significa, dónde 
 - **Los retiros automáticos están APAGADOS.** Los manuales sí mandan dinero real.
 
 **Reserve: cancelaciones** (regla única, `cancelacion-reserve` + PR #159):
-- Fan cancela con 24 h o más: 100%. Con menos de 24 h: 50% (Fans Reserve se queda su parte de lo no devuelto). Fan no se presenta: 0.
+- Fan cancela con 24 h o más: se le devuelve todo **menos la comisión de PayPal** ($25 → $23.35); Fans Reserve no se queda nada (decisión de Carlos del 5 nov 2026, PR #159). Con menos de 24 h: la mitad menos la comisión ($25 → $10.85); creador $10.00 y Fans Reserve $2.50 de lo que no se devuelve. Fan no se presenta: 0.
 - Creador cancela una Reserve pagada: 100% al fan; cuenta en contra del creador y el creador cubre la comisión no recuperada.
 - Un cambio de fecha gratis (pedido con 24 h o más).
-- La devolución va al método original menos la comisión de PayPal; si el fan elige Créditos, 100%.
+- La devolución va al método original; si el fan elige Créditos, recibe el 100% en Créditos, sin descuento.
 - 3 reservas sin pagar o 3 cancelaciones voluntarias en 30 días → bloqueo de 72 h.
 
 **Devoluciones y disputas:** se descuentan de ganancias futuras del creador cuando le toca; el admin puede cubrirlas. Nadie puede pagarse a sí mismo.
