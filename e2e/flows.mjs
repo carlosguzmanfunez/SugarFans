@@ -1292,15 +1292,15 @@ const run = async () => {
       await login(page, 'creator@sugarfans.com', 'demo1234');
       await waitPath(page, '/');
       await page.goto(`${BASE}/creator/dashboard?tab=earnings`);
-      // 80% of the net of each $9.99 payment (minus PayPal's 5.4% + $0.30) is $7.32:
-      // subscription + 2 renewals = 21.96 in total, no demo money.
+      // 70% of the net of each $9.99 payment (minus PayPal's 5.4% + $0.30) is $6.41:
+      // subscription + 2 renewals = 19.23 in total, no demo money.
       // On the 26th the completed cycle is credited; new earnings wait for its next closure.
       const available = (await readAmount(page, 'available-balance'));
       const pending = (await readAmount(page, 'pending-balance'));
-      expect(Math.abs(available + pending - 21.96) < 0.02, `total inesperado: ${available} + ${pending}`);
+      expect(Math.abs(available + pending - 19.23) < 0.02, `total inesperado: ${available} + ${pending}`);
       await page.getByTestId('earnings-cycle').getByText(/Hora de Fans Reserve \(UTC−6\)/).waitFor();
       await page.getByTestId('payout-window').getByText(/Ventana de pago abierta/).waitFor();
-      await page.getByText('+$7.32').first().waitFor();
+      await page.getByText('+$6.41').first().waitFor();
     });
     await check('Con sesión de creadora la portada lleva a su panel en lugar del registro', async () => {
       await page.goto(`${BASE}/`);
@@ -2136,13 +2136,13 @@ const run = async () => {
     await check('El creador ve su nivel, su parte, lo que desbloquea cada nivel, sus medallas y su enlace', async () => {
       const panel = await openRewards();
       await panel.getByTestId('rewards-level').getByText('Bronce').waitFor();
-      await panel.getByTestId('rewards-share').getByText('80%').waitFor();
+      await panel.getByTestId('rewards-share').getByText('70%').waitFor();
       await panel.getByText(/después de la comisión de PayPal/).first().waitFor();
       expect((await panel.getByTestId('level-card').count()) === 4, 'no se ven los 4 niveles');
       await panel.getByTestId('level-card').filter({ hasText: 'Oro' }).getByText(/Retiras desde \$25/).waitFor();
       await panel.getByTestId('level-next').getByText(/Para Plata: 10 fans activos más/).waitFor();
       expect((await panel.getByTestId('referral-link').inputValue()).endsWith('/r/1'), 'el enlace no apunta a /r/1');
-      await panel.getByText(/85% de lo que te pague durante 60 días/).waitFor();
+      await panel.getByText(/75% de lo que te pague durante 60 días/).waitFor();
       const goals = await openGoals();
       await goals.getByTestId('next-goal').getByText('Llegar a Plata').waitFor();
       await goals.getByRole('progressbar', { name: 'Fans activos' }).waitFor();
@@ -2151,7 +2151,7 @@ const run = async () => {
       expect((await goals.getByTestId('medal-constante').count()) === 0, 'muestra la medalla Constante');
       expect((await goals.getByTestId('medal-iman').getAttribute('data-earned')) === 'false', 'Imán ganado sin fans');
     });
-    await check('Un fan que llega con el enlace queda invitado y el creador cobra el 85% del neto de su suscripción', async () => {
+    await check('Un fan que llega con el enlace queda invitado y el creador cobra el 75% del neto de su suscripción', async () => {
       await rf.goto(`${BASE}/r/1`);
       await waitPath(rf, '/creator/1');
       await register(rf, { name: 'Lucía Invitada', email: 'lucia.invitada@test.com', password: 'password123' });
@@ -2164,10 +2164,10 @@ const run = async () => {
       await dialog.getByRole('button', { name: /Suscribirme y pagar/ }).click();
       await rf.getByRole('button', { name: /Suscrito/ }).waitFor();
       const sub = (await platformData(rf)).transactions.find((t) => t.payerName === 'Lucía Invitada');
-      const want = W.netShare(0.85, sub.amount);
-      expect(sub?.share === want && sub.gatewayFee === W.processorFee(sub.amount), `la suscripción del invitado no paga 85% del neto (${sub?.share} ≠ ${want})`);
+      const want = W.netShare(0.75, sub.amount);
+      expect(sub?.share === want && sub.gatewayFee === W.processorFee(sub.amount), `la suscripción del invitado no paga 75% del neto (${sub?.share} ≠ ${want})`);
       const panel = await openRewards();
-      await panel.getByTestId('referred-fan').filter({ hasText: 'Lucía Invitada' }).getByText(/85% hasta el/).waitFor();
+      await panel.getByTestId('referred-fan').filter({ hasText: 'Lucía Invitada' }).getByText(/75% hasta el/).waitFor();
       await panel.getByTestId('rewards-attracted').getByText('1', { exact: true }).waitFor();
     });
     await check('Un fan que se registra sin enlace no cuenta como invitado', async () => {
@@ -2183,7 +2183,7 @@ const run = async () => {
       await seedFans(rc, 4, new Date(Date.now() - 86400000).toISOString(), true);
       const panel = await openRewards();
       await panel.getByTestId('rewards-level').getByText('Plata').waitFor();
-      await panel.getByTestId('rewards-share').getByText('80%').waitFor();
+      await panel.getByTestId('rewards-share').getByText('70%').waitFor();
       await rf.goto(`${BASE}/creator/1`);
       await rf.getByTestId('level-badge').getByText('Plata').waitFor();
       await rc.goto(`${BASE}/explore`);
@@ -2199,7 +2199,7 @@ const run = async () => {
       const card = rc.locator('a[href="/creator/1"]').filter({ has: rc.getByTestId('featured-tag') }).first();
       await card.getByTestId('featured-tag').getByText('Destacado').waitFor();
     });
-    await check('Un fan sin enlace paga el 80% del neto aunque el creador sea Plata', async () => {
+    await check('Un fan sin enlace paga el 70% del neto aunque el creador sea Plata', async () => {
       await login(rf, 'fan@sugarfans.com', 'demo1234');
       await waitPath(rf, '/');
       await rf.goto(`${BASE}/creator/1`);
@@ -2208,7 +2208,7 @@ const run = async () => {
       await rf.getByRole('button', { name: /Suscribirme y pagar/ }).click();
       await rf.getByRole('button', { name: /Suscrito/ }).waitFor();
       const sub = (await platformData(rf)).transactions.find((t) => t.payerId === 'demo-fan' && t.kind === 'subscription');
-      expect(sub?.share === W.netShare(0.8, sub.amount), `la suscripción no se registró al 80% del neto (${sub?.share})`);
+      expect(sub?.share === W.netShare(0.7, sub.amount), `la suscripción no se registró al 70% del neto (${sub?.share})`);
     });
     // Signs a creator up through Valentina's creator link and returns their profile id.
     const inviteCreator = async (name, email) => {
@@ -2258,14 +2258,14 @@ const run = async () => {
       maraId = await inviteCreator('Mara Invitada', 'mara.invitada@test.com');
       nicoId = await inviteCreator('Nico Invitado', 'nico.invitado@test.com');
       const { tip, bonus } = await tipAsDemoFan(maraId, 'Mara Invitada');
-      expect(tip?.share === W.netShare(0.8, 10), `a la creadora invitada se le descontó (${tip?.share})`);
+      expect(tip?.share === W.netShare(0.7, 10), `a la creadora invitada se le descontó (${tip?.share})`);
       expect(!bonus, 'hubo bono con creadores sin verificar ni vender');
     });
     await check('Con un invitado verificado y $100 vendidos, quien invita gana 5% del neto 6 meses, sin descontarle nada', async () => {
       await qualify(maraId);
       await qualify(nicoId);
       const nico = await tipAsDemoFan(nicoId, 'Nico Invitado');
-      expect(nico.tip?.share === W.netShare(0.8, 10), `al creador invitado se le descontó (${nico.tip?.share})`);
+      expect(nico.tip?.share === W.netShare(0.7, 10), `al creador invitado se le descontó (${nico.tip?.share})`);
       const want = W.inviteBonusFor(nico.tip);
       expect(nico.bonus?.creatorProfileId === '1' && nico.bonus.amount === want && nico.bonus.share === 1, `no se generó el bono de $${want} por Nico (${JSON.stringify(nico.bonus)})`);
       // Local mode can also credit sales made after qualifying but before this tip: show what was paid.
@@ -3101,7 +3101,7 @@ const run = async () => {
       await p.getByTestId('ch-metas').getByRole('progressbar', { name: /^Avance a / }).waitFor();
       await p.getByTestId('ch-metas').tap();
       await p.getByTestId('goals-panel').waitFor();
-      await p.getByTestId('goals-share').getByText('80%').waitFor();
+      await p.getByTestId('goals-share').getByText('70%').waitFor();
       await p.getByTestId('goals-share').getByText('Tu ganancia actual:').waitFor();
       await p.goto(`${BASE}/`);
       await p.getByTestId('ch-perfil').tap();

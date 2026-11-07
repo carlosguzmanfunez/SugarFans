@@ -47,7 +47,7 @@ finish(async () => {
     expect(u.emails_month === 1, `correos ${u.emails_month}`);
     expect(u.scans_month === 1, `revisiones ${u.scans_month}`);
     expect(u.kyc_month === 1, `didit ${u.kyc_month}`);
-    expect(u.db_bytes > 0 && u.fund_pct === 10, JSON.stringify(u));
+    expect(u.db_bytes > 0 && u.fund_pct === 15, JSON.stringify(u));
   });
   await check('Minutos de video: 1:1 por dos, evento por asiento más el creador una vez', async () => {
     const u = usage((q) => as(admin, q));

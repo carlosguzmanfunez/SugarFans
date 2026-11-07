@@ -41,7 +41,7 @@ const payoutBadge: Record<Payout['status'], { label: string; chip: string; icon:
   failed: { label: 'Devuelto al saldo', chip: 'bg-red-100 text-red-700', icon: 'fa-times-circle text-red-600' },
 };
 
-// Creator dashboard > Ingresos: real balance (80% of fan payments), PayPal account and withdrawals.
+// Creator dashboard > Ingresos: real balance (70% of fan payments), PayPal account and withdrawals.
 const CreatorPayouts: React.FC = () => {
   const setup = useCreatorSetup();
   const { user } = useAuth();

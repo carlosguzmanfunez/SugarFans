@@ -20,11 +20,12 @@ export const SERVICE_RATE = 0.05;
 
 // What a special account keeps from a Reserve payment: the amount minus the
 // processor's fee, the 5% service fee and the plan's tax.
-export const netReserve = (amount: number, taxRate: number, fee = estimatedFee(amount)) => {
+export const netReserve = (amount: number, taxRate: number, fee = estimatedFee(amount), listPrice = amount, legacy = false) => {
   const gatewayFee = Math.min(amount, fee);
-  const service = Math.min(amount - gatewayFee, round2(amount * SERVICE_RATE));
+  const service = Math.min(amount - gatewayFee, round2(Math.max(amount, listPrice) * SERVICE_RATE));
   const tax = Math.min(amount - gatewayFee - service, round2(amount * taxRate));
-  const share = amount > 0 ? Math.max(0, Math.min(1, Math.round(((amount - gatewayFee - service - tax) / amount) * 10000) / 10000)) : 0;
+  const ratio = amount > 0 ? round2(amount - gatewayFee - service - tax) / amount : 0;
+  const share = Math.max(0, Math.min(1, legacy ? Math.round(ratio * 10000) / 10000 : ratio));
   return { gatewayFee, service, tax, share };
 };
 

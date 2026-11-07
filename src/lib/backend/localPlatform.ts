@@ -3,6 +3,9 @@
 // callbacks local.ts passes in.
 import { readJSON, writeJSONChecked, newId } from '../storage';
 import { payoutWindow } from '../payoutCalendar';
+import { REVENUE_POLICY, BASE_CREATOR_SHARE } from '../revenuePolicy';
+import { allocateCreatorIncome } from '../incomeAllocation';
+import { processorFee } from '../rewardRules';
 import { addMonths, round2, validateReport, validateTip, validateVerification, computeEarnings, payoutFee, payoutAccountLabel, money, buildManagedProfile } from '../platformRules';
 import { creators as catalogue } from '../../data/mockData';
 import { localSubscriptionPaymentNotice } from './localSubscriptionNotifications';
@@ -111,12 +114,22 @@ export const createLocalPlatform = (
 
   const commit = (fn: (s: Store) => Store): AuthResult => {
     const previous = load();
+    const existingIds = new Set(previous.transactions.map(t => t.id));
+    const snapshot = (t: Store['transactions'][number]) => {
+      if (existingIds.has(t.id)) return t;
+      const policy = t.allocationPolicyVersion ?? REVENUE_POLICY;
+      const share = t.share ?? (t.kind === 'gift' ? .6 : t.kind === 'referral' ? 1 :
+        allocateCreatorIncome({amount:t.amount,fee:t.gatewayFee ?? processorFee(t.amount),rate:BASE_CREATOR_SHARE}).share);
+      return {...t, share, allocationPolicyVersion:policy,
+        creatorInitialAmount:policy === REVENUE_POLICY ? round2(t.amount*share) : undefined};
+    };
     const seen = new Set([...previous.subscriptionNoticeIds, ...previous.transactions.filter((t) => ['subscription', 'renewal'].includes(t.kind) && t.status === 'paid').map((t) => t.id)]);
     const next = fn(previous);
+    next.transactions = next.transactions.map(snapshot);
     const paid = next.transactions.filter((t) => ['subscription', 'renewal'].includes(t.kind) && t.status === 'paid' && t.amount > 0);
     const notices = paid.filter((t) => !seen.has(t.id));
     next.subscriptionNoticeIds = [...new Set([...seen, ...paid.map((t) => t.id)])];
-    if (!writeJSONChecked(KEY, { ...next, transactions: deps.withInviteBonuses(next.transactions) })) return fail('No se pudo guardar: el almacenamiento del navegador está lleno');
+    if (!writeJSONChecked(KEY, { ...next, transactions: deps.withInviteBonuses(next.transactions).map(snapshot) })) return fail('No se pudo guardar: el almacenamiento del navegador está lleno');
     for (const t of notices) localSubscriptionPaymentNotice(t, ownerOf(t.creatorProfileId)?.id);
     deps.notify();
     return ok;

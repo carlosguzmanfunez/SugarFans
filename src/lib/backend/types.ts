@@ -215,6 +215,7 @@ export interface BookingCancellation {
 export type CancelResult = AuthResult & { refundCoins?: number; refundPercent?: number; refundState?: string; refundAmount?: number; refundFee?: number };
 
 export interface VipBooking {
+  incomePolicyVersion?: string;
   rulesVersion?: number;
   paymentDueAt?: string;
   paymentChecking?: boolean;

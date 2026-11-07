@@ -2,7 +2,7 @@
 // Usage: npm run test:incentives (needs psql and a Postgres server you can create databases on)
 //
 // Checks: the creator's cut comes from the net (after the processor's fee); levels by
-// active fans or sales, with the quality conditions; link fans at 85% for 60 days;
+// active fans or sales, with the quality conditions; link fans at 75% for 60 days;
 // no cash goals; creator invites from each invited creator's own $100, for 6 months,
 // capped at $100 a month; Creadores Fundadores; minimum prices; withdrawals by level; Reserve Event seats by level; medals
 // and the featured list; the Meta de experiencia from gifts and tips to a ticket and
@@ -24,28 +24,28 @@ const run = async () => {
       `insert into public.transactions (key, payer_id, payer_name, creator_profile_id, creator_name, kind, amount, method_label, status, created_at)
        values ('${kind}:t${n++}', ${payer ? `'${payer}'` : 'null'}, 'Fan', '${creator}', 'Creador', '${kind}', ${amount}, 'PayPal', 'paid', ${when}) returning id`
     );
-  const share = (id) => psql(DB, `select creator_share || '|' || coalesce(gateway_fee::text, '') from public.transactions where id = '${id}'`);
+  const share = (id) => psql(DB, `select round(amount*creator_share,2) || '|' || coalesce(gateway_fee::text, '') from public.transactions where id = '${id}'`);
   const level = (c) => psql(DB, `select public.reward_level_for('${c}', now())`);
   const fans = (count, tag) => Array.from({ length: count }, (_, i) => user(`${tag}${i}@test.local`, 'fan'));
 
   console.log('Comisión sobre el neto');
   const vale = user('vale@test.local', 'creator');
   const fan = user('fan@test.local', 'fan');
-  await check('Bronce: 80% de lo que queda después de PayPal (estimado 5.4% + $0.30)', async () => {
-    // $9.99: fee 0.84 → net 9.15 → creator 7.32 (73.27% of the gross)
-    expect(share(sale(vale, fan, 9.99)) === '0.7327|0.84', share(sale(vale, fan, 9.99)));
+  await check('Bronce: 70% de lo que queda después de PayPal (estimado 5.4% + $0.30)', async () => {
+    // $9.99: fee 0.84 → net 9.15 × 70% = 6.405 → 6.41 per payment
+    expect(share(sale(vale, fan, 9.99)) === '6.41|0.84', share(sale(vale, fan, 9.99)));
   });
   await check('Las propinas y los Reserve también van sobre el neto; los regalos siguen al 60%', async () => {
-    expect(share(sale(vale, fan, 20, 'tip')) === '0.7448|1.38', 'propina');
-    expect(share(sale(vale, fan, 100, 'vip')) === '0.7544|5.70', 'Reserve');
-    expect(share(sale(vale, fan, 5, 'gift')) === '0.8000|', 'el regalo pasó por la regla neta');
+    expect(share(sale(vale, fan, 20, 'tip')) === '13.03|1.38', 'propina');
+    expect(share(sale(vale, fan, 100, 'vip')) === '66.01|5.70', 'Reserve');
+    expect(share(sale(vale, fan, 5, 'gift')) === '3.00|', 'el regalo pasó por la regla neta');
   });
   await check('Con la comisión real de PayPal se usa esa', async () => {
     const booking = psql(DB, 'select gen_random_uuid()');
     psql(DB, `insert into public.paypal_orders (id, user_id, kind, params, amount, fee) values ('O1', '${fan}', 'booking', '{"bookingId":"${booking}"}', 50, 2.00)`);
     const id = psql(DB, `insert into public.transactions (key, payer_id, payer_name, creator_profile_id, creator_name, kind, amount, method_label, status) values ('vip:${booking}', '${fan}', 'Fan', '${vale}', 'C', 'vip', 50, 'PayPal', 'paid') returning id`);
-    // (50 - 2) × 80% = 38.40
-    expect(share(id) === '0.7680|2.00', share(id));
+    // (50 - 2) × 70% = 33.60
+    expect(share(id) === '33.60|2.00', share(id));
   });
 
   console.log('Niveles');
@@ -53,10 +53,10 @@ const run = async () => {
     expect(level(user('nuevo@test.local', 'creator')) === 'bronce', 'nivel');
   });
   const plata = user('plata@test.local', 'creator');
-  await check('$250 vendidos en 30 días dan Plata aunque tenga pocos fans (sigue al 80%)', async () => {
+  await check('$250 vendidos en 30 días dan Plata aunque tenga pocos fans (sigue al 70%)', async () => {
     sale(plata, fan, 250, 'tip');
     expect(level(plata) === 'plata', level(plata));
-    expect(psql(DB, `select public.reward_base_share('${plata}', now())`) === '0.80', 'Plata cambió el porcentaje');
+    expect(psql(DB, `select public.reward_base_share('${plata}', now())`) === '0.70', 'Plata cambió el porcentaje');
   });
   await check('Un reporte confirmado contra el creador lo deja en Bronce', async () => {
     psql(DB, `insert into public.reports (kind, target_id, target_label, reason, description, reporter_name, status, resolved_at) values ('creator', '${plata}', 'x', 'x', 'reporte de prueba', 'x', 'resolved', now())`);
@@ -64,18 +64,18 @@ const run = async () => {
     psql(DB, `delete from public.reports`);
   });
   const oro = user('oro@test.local', 'creator');
-  await check('$1,000 vendidos dan Oro (80%); dejar expirar solicitudes de Reserve lo baja', async () => {
+  await check('$1,000 vendidos dan Oro (70%); dejar expirar solicitudes de Reserve lo baja', async () => {
     sale(oro, fan, 1000, 'tip');
     expect(level(oro) === 'oro', level(oro));
     psql(DB, Array.from({ length: 5 }, (_, i) => `insert into public.vip_bookings (experience_id, creator_profile_id, title, creator_name, price, fan_id, fan_name, fan_email, date, time, status) values ('x${i}', '${oro}', 'x', 'x', 10, '${fan}', 'f', 'f@x', current_date - ${i + 1}, '10:00', '${i === 0 ? 'expired' : 'confirmed'}');`).join('\n'));
     expect(level(oro) === 'plata', `con 1 de 5 sin responder: ${level(oro)}`);
   });
   const diamante = user('diamante@test.local', 'creator');
-  await check('$5,000 vendidos dan Diamante: 83% del neto', async () => {
+  await check('$5,000 vendidos dan Diamante: 73% del neto', async () => {
     sale(diamante, fan, 5000, 'tip');
     expect(level(diamante) === 'diamante', level(diamante));
-    // $10: fee 0.84 → 9.16 × 83% = 7.6028
-    expect(share(sale(diamante, fan, 10)) === '0.7603|0.84', 'Diamante');
+    // $10: fee 0.84 → 9.16 × 73% = 6.6868 → 6.69
+    expect(share(sale(diamante, fan, 10)) === '6.69|0.84', 'Diamante');
   });
   await check('Los fans del enlace cuentan doble para subir de nivel', async () => {
     const c = user('doble@test.local', 'creator');
@@ -87,13 +87,13 @@ const run = async () => {
   });
 
   console.log('Enlace de fans');
-  await check('Un fan del enlace deja 85% del neto durante 60 días, después el del nivel', async () => {
+  await check('Un fan del enlace deja 75% del neto durante 60 días, después el del nivel', async () => {
     const c = user('enlace@test.local', 'creator');
     const f = user('fanenlace@test.local', 'fan');
     psql(DB, `insert into public.referrals (fan_id, creator_profile_id, joined_at) values ('${f}', '${c}', now() - interval '10 days')`);
-    expect(share(sale(c, f, 10)) === '0.7786|0.84', 'dentro de los 60 días');
+    expect(share(sale(c, f, 10)) === '6.87|0.84', 'dentro de los 60 días');
     psql(DB, `update public.referrals set joined_at = now() - interval '61 days' where fan_id = '${f}'`);
-    expect(share(sale(c, f, 10)) === '0.7328|0.84', 'después de 60 días');
+    expect(share(sale(c, f, 10)) === '6.41|0.84', 'después de 60 días');
   });
   await check('Ya no hay metas en dinero', async () => {
     expect(psql(DB, `select public.reward_goal_bonus(50)`) === '0', 'meta');
@@ -121,7 +121,7 @@ const run = async () => {
     const id = sale(inv2, fan, 100, 'tip');
     // net 94.30 → 5% = 4.72
     expect(bonuses() === '4.72', `bono: ${bonuses()}`);
-    expect(share(id) === '0.7544|5.70', 'al invitado le descontaron');
+    expect(share(id) === '66.01|5.70', 'al invitado le descontaron');
     const m = JSON.parse(psql(DB, `select public.creator_medal_state('${inviter}', now())`));
     expect(m.embajador === true && m.qualified_invites === 1, JSON.stringify(m));
   });
@@ -155,15 +155,15 @@ const run = async () => {
     return { id, code, claim: () => as(id, `select public.prospect_claim('${code}')`) };
   };
   const founderRow = (id) => psql(DB, `select coalesce((select (lost_at is null)::text from public.creator_founders where creator_profile_id = '${id}'), 'no')`);
-  await check('Solo es Fundador quien el equipo invitó con su enlace; gana 82% e insignia', async () => {
+  await check('Solo es Fundador quien el equipo invitó con su enlace; gana 72% e insignia', async () => {
     const plain = user('sininvitacion@test.local', 'creator');
     sale(plain, fan, 150, 'tip');
     expect(founderRow(plain) === 'no', 'Fundador sin invitación');
     const f = invited('fundadora@test.local');
     f.claim();
     expect(founderRow(f.id) === 'true', 'no quedó Fundador');
-    // $100 net 94.30 × 82% = 77.33 → 77.33% of the gross
-    expect(share(sale(f.id, fan, 100, 'tip')) === '0.7733|5.70', 'no subió al 82%');
+    // $100 net 94.30 × 72% = 67.896 → 67.90
+    expect(share(sale(f.id, fan, 100, 'tip')) === '67.90|5.70', 'no subió al 72%');
     expect(psql(DB, `select fundador from public.creator_badges(array['${f.id}'])`) === 't', 'sin insignia');
     const st = JSON.parse(psql(DB, `select public.founder_state('${f.id}', now())`));
     expect(st.active === true && st.country === 'HN' && st.below_oro_since === null, JSON.stringify(st));
@@ -198,7 +198,7 @@ const run = async () => {
     expect(founderRow(f.id) === 'true', 'lo perdió antes de los 30 días');
     check(92);
     expect(founderRow(f.id) === 'false', 'no lo perdió');
-    expect(psql(DB, `select public.reward_base_share('${f.id}', now() + interval '93 days')`) === '0.80', 'sigue al 82%');
+    expect(psql(DB, `select public.reward_base_share('${f.id}', now() + interval '93 days')`) === '0.70', 'sigue al 72%');
     expect(psql(DB, `select count(*) from public.notifications where user_id = '${f.id}' and kind = 'creator_goal'`) === '3', 'faltan avisos');
     // A lost title doesn't come back by claiming again.
     f.claim();
@@ -324,6 +324,8 @@ const run = async () => {
     expect(psql(DB, `select count(*) from public.transactions where key = 'vip:${booking}'`) === '0', 'se cobró');
   });
   await check('Una experiencia de aprobación automática queda confirmada al momento', async () => {
+    // Close the prior ticket booking before testing a second active booking.
+    psql(DB, `update public.vip_bookings set status='completed' where id='${booking}'`);
     sale(vale, goalFan, 50, 'tip');
     const t = JSON.parse(as(goalFan, `select public.claim_experience_ticket('${vale}', '${auto}')`));
     const b = as(goalFan, `select public.book_with_ticket('${t.id}', '${day}', '16:00', '')`);

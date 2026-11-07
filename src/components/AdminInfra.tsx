@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { backend } from '../lib/backend';
+import { PROVIDER_RESERVE_PERCENT } from '../lib/revenuePolicy';
 import { usePlatformQuery, money, type Transaction } from '../lib/platform';
 import type { CoinPurchase } from '../lib/gifts';
 import { summarize } from '../lib/adminLedger';
@@ -22,7 +23,7 @@ const AdminInfra: React.FC<Props> = ({ transactions, coins }) => {
   const { data: usage, reload, loading, error } = usePlatformQuery(() => backend.infraUsage(), [], null as InfraUsage | null);
   const [decision, setDecision] = useState<AdminDecision | null>(null);
   const [plans, setPlans] = useState<InfraUsage['plans']>({});
-  const [fundPct, setFundPct] = useState(10);
+  const [fundPct, setFundPct] = useState(PROVIDER_RESERVE_PERCENT);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {

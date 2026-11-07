@@ -197,7 +197,7 @@ Solicitud → Aceptación → Pago → Confirmación → Experiencia → Liquida
 
 **Hoy:**
 
-- `vip_pay_booking` simula el pago en modo de prueba y acredita al creator el 80% según las reglas de ingresos existentes. No se mueve dinero real.
+- `vip_pay_booking` simula el pago en modo de prueba y acredita al creator el 70% según las reglas de ingresos existentes. No se mueve dinero real.
 - Wallet y Créditos (id interno `terrones`) no cambian.
 
 **Para producción hará falta:**

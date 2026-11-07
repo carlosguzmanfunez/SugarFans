@@ -74,7 +74,7 @@ try {
 
     await ok(`${label}: "Tus metas": el Fundador ve su barra hacia Oro y sus invitados`, async () => {
       await goals.waitFor();
-      await goals.getByTestId('my-goals-founder').getByText(/Fundador · hoy ganas 82%/).waitFor();
+      await goals.getByTestId('my-goals-founder').getByText(/Fundador · hoy ganas 72%/).waitFor();
       const founder = goals.getByTestId('my-goal-founder');
       await founder.getByText(/Fundador: llega a .*Oro antes del/).waitFor();
       await founder.getByText(/\$45\.00 \/ \$1,?000\.00/).waitFor();
@@ -123,11 +123,11 @@ try {
       await view.waitFor();
     });
 
-    await ok(`${label}: en Metas tiene la medalla Fundador y gana 82%; los fans ven la insignia`, async () => {
+    await ok(`${label}: en Metas tiene la medalla Fundador y gana 72%; los fans ven la insignia`, async () => {
       await page.goto(`${BASE}/creator/dashboard?tab=goals`);
       const medal = page.locator('[data-testid=medal-fundador][data-earned=true]');
       await medal.getByText('Activo: llega a Oro, te quedan 50 días').waitFor();
-      await page.getByTestId('goals-share').getByText('82%').waitFor();
+      await page.getByTestId('goals-share').getByText('72%').waitFor();
       await page.getByTestId('medal-embajador').getByText('Bono de invitación activo').waitFor();
       await page.goto(`${BASE}/creator/1`);
       await page.getByTestId('badge-fundador').first().waitFor();
@@ -143,7 +143,7 @@ try {
       await page.goto(`${BASE}/creator/dashboard`);
       const founder = goals.getByTestId('my-goal-founder');
       await founder.getByText(/Recupera .*Oro para seguir siendo Fundador/).waitFor();
-      await founder.getByText(/te quedan 25 días; si no, pierdes Fundador y el 82%/).waitFor();
+      await founder.getByText(/te quedan 25 días; si no, pierdes Fundador y el 72%/).waitFor();
       if (shots) await goals.screenshot({ path: join(shots, `${label}-4-recupera-oro.png`) });
       await page.evaluate(() => {
         const list = JSON.parse(localStorage.getItem('fansreserve_creator_founders'));

@@ -1,3 +1,4 @@
+import { BASE_CREATOR_SHARE } from '../revenuePolicy';
 // Supabase implementation of creator rewards and the Meta de experiencia. Referrals
 // are recorded by a trigger at sign-up and the cut of each payment by a trigger on
 // transactions; see supabase/migrations/20261006000001_creator_incentives_v2.sql.
@@ -8,7 +9,7 @@ import type { CreatorRewards, ExperienceTicket, FeaturedCreator, LevelId, Reward
 type Row = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 const EMPTY: CreatorRewards = {
-  level: 'bronce', activeFans: 0, sales: 0, clean: true, reliable: true, share: 0.8, attractedThisMonth: 0, attractedLastMonth: 0,
+  level: 'bronce', activeFans: 0, sales: 0, clean: true, reliable: true, share: BASE_CREATOR_SHARE, attractedThisMonth: 0, attractedLastMonth: 0,
   medals: EMPTY_MEDALS, referrals: [], invitedCreators: [],
 };
 

@@ -2,19 +2,19 @@
 
 ## Regla aprobada por Carlos
 
-Regla actualizada: la comisión de Fans Reserve se fija en el reparto inicial, después de restar el costo conocido o estimado de recibir ese pago. Toda diferencia de costo comprobada después se asigna íntegramente al creador: el ahorro se le acredita y el costo adicional se le descuenta. No se recalcula la comisión inicial ni se reparte esa diferencia al 80%/20%. Las decisiones anteriores ya documentadas conservan su regla y sus importes. El reparto de los regalos se conserva; el modelo ordinario sigue entregando el 60% de su valor al creador.
+Regla actualizada: la comisión de Fans Reserve se fija en el reparto inicial, después de restar el costo conocido o estimado de recibir ese pago. Toda diferencia de costo comprobada después se asigna íntegramente al creador: el ahorro se le acredita y el costo adicional se le descuenta. No se recalcula la comisión inicial ni se reparte esa diferencia según el reparto inicial. Las decisiones anteriores ya documentadas conservan su regla y sus importes. El reparto de los regalos se conserva; el modelo ordinario sigue entregando el 60% de su valor al creador.
 
-El costo de recibir el pago del fan y el costo de enviar dinero al creador son servicios diferentes. Esta entrega no modifica el costo del envío ni vuelve a descontar el 20% de Fans Reserve.
+El costo de recibir el pago del fan y el costo de enviar dinero al creador son servicios diferentes. Esta entrega no modifica el costo del envío ni vuelve a descontar la comisión de Fans Reserve.
 
 ## Ejemplos ficticios
 
-Un fan pagó USD 100. Se guardaron USD 5,70 como costo estimado. Los USD 94,30 restantes se repartieron: 80% para el creador, USD 75,44, y 20% para Fans Reserve, USD 18,86. El comprobante posterior demuestra que PayPal cobró USD 3. USD 5,70 − USD 3 = USD 2,70. Esos USD 2,70 completos se abonan al creador en el mes siguiente: USD 75,44 + USD 2,70 = USD 78,14. Fans Reserve conserva USD 18,86. Comprobación: USD 3 + USD 78,14 + USD 18,86 = USD 100.
+Un fan pagó USD 100. Se guardaron USD 5,70 como costo estimado. Los USD 94,30 restantes se repartieron: 70% para el creador, USD 66,01, y 30% para Fans Reserve, USD 28,29. El comprobante posterior demuestra que PayPal cobró USD 3. USD 5,70 − USD 3 = USD 2,70. Esos USD 2,70 completos se abonan al creador en el mes siguiente: USD 66,01 + USD 2,70 = USD 68,71. Fans Reserve conserva USD 28,29. Comprobación: USD 3 + USD 68,71 + USD 28,29 = USD 100.
 
-Si el comprobante hubiera mostrado USD 8: USD 8 − USD 5,70 = USD 2,30. Esos USD 2,30 completos se recuperan del creador en el mes siguiente: USD 75,44 − USD 2,30 = USD 73,14. Fans Reserve conserva USD 18,86. Comprobación: USD 8 + USD 73,14 + USD 18,86 = USD 100. El 80%/20% describe el reparto inicial; no se presenta como el reparto final sobre un costo comprobado diferente. Esta regla sustituye la propuesta anterior de ajustar al creador USD 1,84 y a Fans Reserve USD 0,46.
+Si el comprobante hubiera mostrado USD 8: USD 8 − USD 5,70 = USD 2,30. Esos USD 2,30 completos se recuperan del creador en el mes siguiente: USD 66,01 − USD 2,30 = USD 63,71. Fans Reserve conserva USD 28,29. Comprobación: USD 8 + USD 63,71 + USD 28,29 = USD 100. El 70%/30% describe el reparto inicial; no se presenta como el reparto final sobre un costo comprobado diferente. Esta regla sustituye la propuesta anterior de ajustar al creador USD 1,84 y a Fans Reserve USD 0,46.
 
 Ambos ajustes se incorporan al pago mensual del mes calendario siguiente a su registro. Una corrección registrada en octubre se incorpora desde el 26 de noviembre, dentro de la ventana hasta el 1 de diciembre inclusive, hora de Honduras. Registrar un ajuste en el sistema no inicia otra transferencia. Si falta saldo para recuperar un exceso, la deuda restante se conserva para compensarla con ganancias posteriores; no se inventan multas ni intereses ni se carga una cuenta PayPal externa.
 
-El costo de enviar el dinero al creador le corresponde íntegramente: si se apartó USD 1 y el comprobante dice USD 1,20, se programa recuperar USD 0,20; si dice USD 0,80, se añaden USD 0,20. Estos dos importes son ejemplos. El reparto 80%/20% no se vuelve a aplicar al costo de envío.
+El costo de enviar el dinero al creador le corresponde íntegramente: si se apartó USD 1 y el comprobante dice USD 1,20, se programa recuperar USD 0,20; si dice USD 0,80, se añaden USD 0,20. Estos dos importes son ejemplos. El reparto inicial no se vuelve a aplicar al costo de envío.
 
 Una compra de Créditos de USD 100 con costo comprobado de USD 3 conserva todas las unidades compradas. Si después se envía un regalo cuyo valor es USD 100, el creador recibe USD 60. No se genera otro cobro de PayPal al gastar los Créditos. El resultado de esos cobros y repartos sería USD 37 antes de ajustes y otros gastos. Los Créditos todavía sin usar no se presentan como dinero libre de la plataforma; su valor para regalar puede incluir unidades extra del paquete.
 
