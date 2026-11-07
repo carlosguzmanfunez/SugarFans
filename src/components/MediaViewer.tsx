@@ -18,12 +18,16 @@ interface Props {
 
 // Swipe distance (share of the screen width) that moves to the next post.
 const SWIPE = 0.18;
+// Pulling a photo or video this far down (or flicking it down) closes the viewer, like the back button.
+const CLOSE_PULL = 110;
 
 // Full-screen photo/video viewer, like Facebook's: swipe sideways on a phone,
-// arrows (or the keyboard) on a computer, Esc / X / the back button close it.
+// arrows (or the keyboard) on a computer, Esc / X / the back button / pulling
+// the photo down close it.
 const MediaViewer: React.FC<Props> = ({ posts, startId, onClose, viewer }) => {
   const [index, setIndex] = useState(() => Math.max(0, posts.findIndex((p) => p.id === startId)));
   const [drag, setDrag] = useState(0);
+  const [pull, setPull] = useState(0);
   const start = useRef<{ x: number; y: number; t: number } | null>(null);
   const horizontal = useRef<boolean | null>(null);
   const frame = useRef<HTMLDivElement>(null);
@@ -73,6 +77,11 @@ const MediaViewer: React.FC<Props> = ({ posts, startId, onClose, viewer }) => {
     const dx = e.clientX - start.current.x;
     const dy = e.clientY - start.current.y;
     if (horizontal.current === null && Math.abs(dx) + Math.abs(dy) > 8) horizontal.current = Math.abs(dx) > Math.abs(dy);
+    if (horizontal.current === false) {
+      // Only downward: the photo follows the finger and the black fades out.
+      setPull(Math.max(0, dy));
+      return;
+    }
     if (!horizontal.current) return;
     // Resist at the first and last post.
     const edge = (index === 0 && dx > 0) || (index === posts.length - 1 && dx < 0);
@@ -85,12 +94,19 @@ const MediaViewer: React.FC<Props> = ({ posts, startId, onClose, viewer }) => {
     const fast = Math.abs(dx) > 40 && Date.now() - start.current.t < 250;
     const width = frame.current?.clientWidth ?? window.innerWidth;
     if (horizontal.current && (Math.abs(dx) > width * SWIPE || fast)) go(dx < 0 ? 1 : -1);
-    else if (horizontal.current === false && dy > 120) onClose(); // swipe down closes
+    else if (horizontal.current === false && (dy > CLOSE_PULL || (dy > 40 && Date.now() - start.current.t < 250))) {
+      start.current = null;
+      horizontal.current = null;
+      onClose(); // swipe down closes, same as the back button
+      return;
+    }
     start.current = null;
     horizontal.current = null;
     setDrag(0);
+    setPull(0);
   };
-  const cancelSwipe = () => { start.current = null; horizontal.current = null; setDrag(0); };
+  const cancelSwipe = () => { start.current = null; horizontal.current = null; setDrag(0); setPull(0); };
+  const fade = Math.max(0, 1 - pull / 400);
 
   if (!post) return null;
 
@@ -100,9 +116,10 @@ const MediaViewer: React.FC<Props> = ({ posts, startId, onClose, viewer }) => {
       aria-modal="true"
       aria-label={`Publicación ${index + 1} de ${posts.length} de ${post.creatorName}`}
       data-testid="media-viewer"
-      className="fixed inset-0 z-[80] bg-black text-white flex flex-col select-none"
+      className="fixed inset-0 z-[80] text-white flex flex-col select-none"
+      style={{ backgroundColor: `rgba(0,0,0,${fade})`, transition: pull ? 'none' : 'background-color 200ms' }}
     >
-      <div className="flex items-center gap-3 px-4 py-3 shrink-0" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
+      <div className="flex items-center gap-3 px-4 py-3 shrink-0" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))', opacity: pull ? fade : 1 }}>
         <Avatar src={post.creatorAvatar} name={post.creatorName} size={36} decorative />
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-sm truncate">{post.creatorName}</p>
@@ -124,7 +141,8 @@ const MediaViewer: React.FC<Props> = ({ posts, startId, onClose, viewer }) => {
 
       <div
         ref={frame}
-        className="relative min-h-0 flex-1 overflow-hidden touch-pan-y"
+        className="relative min-h-0 flex-1 overflow-hidden touch-none"
+        data-testid="media-viewer-frame"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -133,8 +151,8 @@ const MediaViewer: React.FC<Props> = ({ posts, startId, onClose, viewer }) => {
         <div
           className="flex h-full"
           style={{
-            transform: `translateX(calc(${-index * 100}% + ${drag}px))`,
-            transition: drag ? 'none' : 'transform 300ms cubic-bezier(0.22, 1, 0.36, 1)',
+            transform: `translate(calc(${-index * 100}% + ${drag}px), ${pull}px)`,
+            transition: drag || pull ? 'none' : 'transform 300ms cubic-bezier(0.22, 1, 0.36, 1)',
           }}
         >
           {posts.map((p, i) => {
@@ -188,7 +206,7 @@ const MediaViewer: React.FC<Props> = ({ posts, startId, onClose, viewer }) => {
       </div>
 
       {post.content && (
-        <div className="shrink-0 px-5 pt-3 max-h-[25vh] overflow-y-auto" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>
+        <div className="shrink-0 px-5 pt-3 max-h-[25vh] overflow-y-auto" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))', opacity: pull ? fade : 1 }}>
           <p className="max-w-2xl mx-auto text-sm md:text-base text-white/90 whitespace-pre-line" data-testid="media-viewer-caption">{post.content}</p>
         </div>
       )}
