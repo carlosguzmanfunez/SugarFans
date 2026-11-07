@@ -1,0 +1,37 @@
+# Fans Reserve
+
+> Fans Reserve (fansreserve.com) es una plataforma para conectar con creadores de contenido más allá del feed: sigues a tus creadores favoritos, te suscribes a su contenido exclusivo y reservas experiencias en vivo con ellos (videollamada 1:1, Meet & Greet o un evento con entrada). Lema: "Reserva experiencias, no personas".
+
+In English: Fans Reserve is a creator platform where fans follow creators, subscribe to their exclusive content and book live experiences with them (1:1 video calls, Meet & Greets and ticketed group events). It is a fan-experience and booking platform, not an explicit-content site.
+
+## Qué es y qué no es
+
+- Tres pasos: Sigue (gratis), Suscríbete (contenido exclusivo del creador) y Reserva (experiencias en vivo pagadas).
+- Reserve incluye: Videollamada 1:1, Meet & Greet y Eventos grupales con entrada. Cualquier persona registrada puede reservar; algunos creadores dan un descuento a sus suscriptores.
+- La suscripción da acceso al contenido exclusivo; no incluye las experiencias de Reserve, que se pagan aparte.
+- Contenido sexual explícito no permitido. No se ofrecen citas, encuentros privados ni servicios en hoteles o domicilios.
+- Solo para mayores de 18 años porque en la plataforma se hacen pagos y reservas directamente con creadores.
+- Los creadores verifican su identidad antes de poder cobrar (insignia "Verificado").
+- Pago seguro con PayPal. La moneda interna se llama "Créditos".
+- Idioma principal: español. Creadores de Latinoamérica y otros países.
+
+## Páginas principales
+
+- [Inicio](https://fansreserve.com/): presentación de la plataforma.
+- [Explorar](https://fansreserve.com/explore): buscar creadores por categoría y país.
+- [Reserve](https://fansreserve.com/reserve): videollamadas 1:1, Meet & Greet y eventos disponibles.
+- [Cómo funciona](https://fansreserve.com/recorrido): recorrido paso a paso para fans y creadores.
+- [Ayuda](https://fansreserve.com/help): preguntas frecuentes.
+- [Términos y políticas](https://fansreserve.com/legal): términos de servicio, privacidad, reembolsos y cancelaciones de Reserve.
+
+## Para creadores
+
+- Cualquier fan puede convertirse en creador desde Ajustes, verificando su identidad.
+- El creador fija sus propios precios de suscripción y de experiencias, y cobra por PayPal.
+- Cada creador tiene su enlace propio: fansreserve.com/@usuario
+
+## Contacto
+
+- Soporte: support@fansreserve.com
+- Privacidad: privacy@fansreserve.com
+- Legal: legal@fansreserve.com

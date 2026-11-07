@@ -8,6 +8,8 @@ import { useCreatorCatalog, fromPublic } from '../lib/catalog';
 import ManagedBadge from '../components/ManagedBadge';
 import { isDemoProfile } from '../lib/demoProfiles';
 import { BRAND } from '../config/brand';
+import { useLanguage } from '../context/LanguageContext';
+import { usePageMeta } from '../hooks/usePageMeta';
 import Avatar from '../components/Avatar';
 import { CoverImage, isPlaceholderImage } from '../components/CoverArt';
 import LevelBadge, { MedalBadges } from '../components/LevelBadge';
@@ -118,6 +120,17 @@ const CreatorProfile: React.FC = () => {
     { socials: {} } as Awaited<ReturnType<typeof socialApi.creatorLinks>>
   );
   const socials = socialLinkList(links.socials);
+  // Google and AI search: "<name> (@usuario) | Fans Reserve" with its own description.
+  const { t } = useLanguage();
+  const handle = links.username || creator?.username;
+  usePageMeta(
+    {
+      title: creator ? (handle ? `${creator.name} (@${handle})` : creator.name) : '',
+      description: t('seo.creator.description').replace(/\{name\}/g, creator?.name ?? ''),
+      path: `/creator/${id}`,
+    },
+    !!creator,
+  );
   const follow = useFollow(id, user);
   const currentLive = useCurrentLive(id);
   const { data: experiences } = usePlatformQuery(
