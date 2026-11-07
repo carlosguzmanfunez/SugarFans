@@ -7,6 +7,9 @@ export const RESET_TABLES=[
  'finance_private.collection_cost_resolutions','finance_private.collection_credit_updates','finance_private.collection_refund_reviews',
  'public.credit_grants','public.credit_spends'
 ];
+// Reserve refund/capture attempts reference transactions and paypal_orders. They must be
+// empty (nothing in progress) and are truncated with the books so the FK doesn't block it.
+export const RESERVE_LINKED_TABLES=['public.reserve_refund_requests','public.reserve_capture_attempts','public.reserve_refund_attempts'];
 export const resetSnapshotSql=(existing=RESET_TABLES)=>`select jsonb_object_agg(name,part)as snapshot from(${RESET_TABLES.map(name=>existing.includes(name)?`select '${name}'as name,jsonb_build_object('count',count(*),'hash',md5(coalesce(jsonb_agg(to_jsonb(t)order by to_jsonb(t)::text),'[]')::text),'data',coalesce(jsonb_agg(to_jsonb(t)order by to_jsonb(t)::text),'[]'))as part from ${name} t`:`select '${name}'as name,jsonb_build_object('count',0,'hash',md5('[]'),'data','[]'::jsonb)as part`).join(' union all ')})parts`;
 const lit=v=>"'"+String(v).replaceAll("'","''")+"'";
 export function resetManifest(snapshot){return Object.fromEntries(RESET_TABLES.map(name=>{const row=snapshot[name];if(!row||!Number.isSafeInteger(row.count)||!/^[a-f0-9]{32}$/.test(row.hash))throw Error('Incomplete reset snapshot');return[name,{count:row.count,hash:row.hash}];}));}
@@ -14,7 +17,7 @@ export function buildTestResetSql(manifest,reference,{transaction=true}={}){
  if(!reference||reference.length>100)throw Error('Reset reference required');
  for(const table of RESET_TABLES)if(!manifest[table]||!/^[a-f0-9]{32}$/.test(manifest[table].hash))throw Error('Reviewed manifest required');
  return`${transaction?'begin;':''}set local lock_timeout='10s';set local statement_timeout='90s';select finance_private.lock_book();
- lock table ${RESET_TABLES.join(',')} in access exclusive mode;
+ lock table ${[...RESET_TABLES,...RESERVE_LINKED_TABLES].join(',')} in access exclusive mode;
  do $reset$declare current_snapshot jsonb;reviewed jsonb:=${lit(JSON.stringify(manifest))}::jsonb;archive uuid;r record;begin
  if(select execution_enabled from finance_private.automation_settings)or(select batch_handoff_enabled from finance_private.settings)then raise exception 'Los pagos deben seguir apagados';end if;
  if exists(select 1 from public.payouts)or exists(select 1 from public.finance_batches)or exists(select 1 from finance_private.income_events where state<>'applied')or exists(select 1 from finance_private.refund_events where state<>'applied')then raise exception 'Hay pagos, lotes o avisos que requieren conciliación; no reiniciar';end if;
@@ -30,7 +33,8 @@ export function buildTestResetSql(manifest,reference,{transaction=true}={}){
   union all select paypal_ref from public.coin_purchases union all select id from public.paypal_orders union all select capture_id from public.paypal_orders
   union all select id from public.paypal_subscriptions union all select paypal_subscription_id from public.subscriptions
  )refs where length(coalesce(value,''))>0 on conflict do nothing;
- truncate table ${RESET_TABLES.join(',')} restrict;
+ if ${RESERVE_LINKED_TABLES.map(t=>`exists(select 1 from ${t})`).join('or ')}then raise exception 'Hay devoluciones o cobros de Reserve en curso; no reiniciar';end if;
+ truncate table ${[...RESET_TABLES,...RESERVE_LINKED_TABLES].join(',')} restrict;
  if exists(select 1 from public.profiles p where public.coin_balance(p.id)<>0)then raise exception 'Los Créditos no quedaron en cero';end if;
  if exists(select 1 from public.profiles p where p.role='creator'and public.creator_available_balance(p.id)<>0)then raise exception 'Las ganancias no quedaron en cero';end if;
  if exists(select 1 from public.finance_journal)or exists(select 1 from public.finance_sources)then raise exception 'Los libros no quedaron en cero';end if;
