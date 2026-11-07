@@ -4,6 +4,7 @@ import {createDbTest} from './db-harness.mjs';
 import {spawn} from 'node:child_process';
 const DB='fr_reserve_refund_fee_test',{setup,user,psql,as,raises,check,expect,finish}=createDbTest(DB);
 let seq=0,cp=[],creators=[],admin;
+const nullSink=process.platform==='win32'?'NUL':'/dev/null';
 const fan=()=>user('fan-'+(++seq)+'@example.invalid','fan');
 const booking=(f,creator,status='accepted',kind='experience',time='12:00',days=20)=>psql(DB,`insert into vip_bookings(experience_id,creator_profile_id,title,creator_name,price,fan_id,fan_name,fan_email,date,time,status,details,time_zone)
  values('custom','${creator}','Prueba Reserve','QA',100,'${f}','Fan','qa@example.invalid',current_date+${days},'${time}','${status}','{"kind":"${kind}"}','America/Tegucigalpa') returning id`);
@@ -19,9 +20,9 @@ const paid=(f,creator,index=0,verified=false)=>{
  let receipt='';
  if(verified)receipt=psql(DB,`insert into finance_private.collection_receipts(environment,sender,kind,reference,gross,fee,order_id,payment_kind,payer_id,creator_profile_id,proof)
  values('sandbox','QA','capture','${ref}',100,5.70,'${order}','booking','${f}','${creator}','{"fixture":"synthetic trusted receipt"}') returning id`);
- psql(DB,`select set_config('request.jwt.claim.sub','${f}',false) \\g NUL
- select set_config('fansreserve.collection_receipt','${receipt}',false) \\g NUL
- select set_config('fansreserve.paypal_ref','${ref}',false) \\g NUL
+ psql(DB,`select set_config('request.jwt.claim.sub','${f}',false) \\g ${nullSink}
+ select set_config('fansreserve.collection_receipt','${receipt}',false) \\g ${nullSink}
+ select set_config('fansreserve.paypal_ref','${ref}',false) \\g ${nullSink}
  select vip_pay_booking('${id}','${method}')`);
  return {id,order,ref,tx:psql(DB,`select id from transactions where key='vip:${id}'`)};
 };
@@ -55,7 +56,7 @@ finish(async()=>{
  await check('Cancela con menos de 24 h: 50% menos la comisión; lo que queda se reparte como una venta',()=>{
   const f=fan(),p=paid(f,cp[1],0,true);soon(p.id);const r=cancel(f,p.id);
   expect(r.refundPercent===50&&r.refundAmount===44.3,`resultado ${JSON.stringify(r)}`);
-  expect(keep(p.tx)==='40.00',`el creador conserva ${keep(p.tx)} (esperado 80% de 50)`);
+  expect(keep(p.tx)==='35.00',`el creador conserva ${keep(p.tx)} (esperado 70% de 50)`);
  });
  await check('Elegir Créditos devuelve el importe completo, sin descontar la comisión',()=>{
   const f=fan(),p=paid(f,cp[2],0,true),r=cancel(f,p.id,'credits');

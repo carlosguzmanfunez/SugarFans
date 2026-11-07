@@ -18,13 +18,13 @@ El costo de cobro de este ejemplo es USD5; **no es una tarifa confirmada de la c
 
 1. El fan paga USD100.
 2. Se registran USD5 de costo por cobrar; quedan USD95 para repartir.
-3. En el reparto ordinario, el 20% de USD95 son USD19 para Fans Reserve. El 80% son USD76 para el creador.
-4. Si el retiro utiliza esos USD76, se aparta el costo de envío previsto según la política vigente. Si se aparta USD1, la entrega prevista es USD75.
-5. Al conciliar el comprobante del envío, cualquier diferencia se registra con el procedimiento de ajustes existente. El retiro original no se sobrescribe y no se vuelve a aplicar el 20%.
+3. En el reparto ordinario, el 30% de USD95 son USD28,50 para Fans Reserve. El 70% son USD66,50 para el creador.
+4. Si el retiro utiliza esos USD66,50, se aparta el costo de envío previsto según la política vigente. Si se aparta USD1, la entrega prevista es USD65,50.
+5. Al conciliar el comprobante del envío, cualquier diferencia se registra con el procedimiento de ajustes existente. El retiro original no se sobrescribe y no se vuelve a aplicar la comisión de Fans Reserve.
 
 Los contratos, regalos, invitaciones y recompensas pueden tener otros repartos. El estado utiliza lo que se registró en cada actividad.
 
-Otro ejemplo ficticio explica una devolución con componentes especiales: de un cobro de USD100, el costo fue USD5, el servicio USD5 y el impuesto USD10. Quedaron USD80 para repartir; el creador tenía el 80%, USD64. Si se devuelven USD20, de los cuales USD1 corresponde al servicio y USD2 al impuesto, y PayPal no devuelve costo de cobro, la parte restante es USD17. El 80% de USD17 son USD13,60. La ganancia del creador queda en USD50,40, salvo una decisión de cobertura documentada. El estado lee esos componentes de la resolución guardada.
+Un ejemplo histórico, conservado para interpretar devoluciones de operaciones anteriores al cambio 70%/30%, explica una devolución con componentes especiales: de un cobro de USD100, el costo fue USD5, el servicio USD5 y el impuesto USD10. Quedaron USD80 para repartir; el creador tenía el 80%, USD64. Si se devuelven USD20, de los cuales USD1 corresponde al servicio y USD2 al impuesto, y PayPal no devuelve costo de cobro, la parte restante es USD17. El 80% de USD17 son USD13,60. La ganancia del creador queda en USD50,40, salvo una decisión de cobertura documentada. El estado lee esos componentes de la resolución guardada.
 
 ## Datos y permisos
 

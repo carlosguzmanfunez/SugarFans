@@ -77,6 +77,8 @@ const toMethod = (r: Row): PaymentMethod => ({
 });
 
 const toTransaction = (r: Row): Transaction => ({
+  allocationPolicyVersion: r.allocation_policy_version ?? undefined,
+  creatorInitialAmount: r.creator_initial_amount == null ? undefined : Number(r.creator_initial_amount),
   id: r.id,
   payerId: r.payer_id,
   payerName: r.payer_name,

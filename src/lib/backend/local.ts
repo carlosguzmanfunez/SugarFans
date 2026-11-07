@@ -1,3 +1,4 @@
+import { REVENUE_POLICY, LEGACY_REVENUE_POLICY, PROVIDER_RESERVE_PERCENT } from '../revenuePolicy';
 // Browser-only backend (localStorage). Used when Supabase is not configured,
 // e.g. local development and the offline E2E suite. Data is per browser.
 import { attendanceLocation, attendanceError, bookingHasAttendance, inPerson, sameReserveLocation, validReserveLocation, visibleAtLocation } from '../reserveLocation';
@@ -28,7 +29,6 @@ import {
 import { nextRenewal, round2 } from '../platformRules';
 import { localSubscriptionChangeNotice } from './localSubscriptionNotifications';
 import { absorbDiscount, processorFee } from '../rewardRules';
-import { absorbSpecialDiscount } from '../specialRules';
 import {
   DEMO_PASSWORD,
   WRONG_CREDENTIALS,
@@ -259,7 +259,7 @@ const saveBookings = (bookings: VipBooking[]) => {
   const before = new Map(readJSON<VipBooking[]>(BOOKINGS_KEY, []).map((b) => [b.id, b]));
   for (const b of bookings) {
     const prev = before.get(b.id);
-    if (!prev) b.rulesVersion = 1;
+    if (!prev) { b.rulesVersion = 1; b.incomePolicyVersion = REVENUE_POLICY; }
     if (b.status === 'accepted' && prev?.status !== 'accepted') {
       b.details = { ...b.details, approvalRequired: b.details?.kind === 'custom' || prev?.status === 'pending' || prev?.status === 'countered' };
       b.paymentDueAt = reservationDue(b);
@@ -608,7 +608,7 @@ export const localBackend: Backend = {
 
   // Offline there are no providers: zero use, and the settings live in this browser.
   async infraUsage() {
-    const saved = readJSON<{ plans: InfraUsage['plans']; fundPct: number }>(INFRA_KEY, { plans: {}, fundPct: 10 });
+    const saved = readJSON<{ plans: InfraUsage['plans']; fundPct: number }>(INFRA_KEY, { plans: {}, fundPct: PROVIDER_RESERVE_PERCENT });
     const now = new Date();
     return {
       month: now.toISOString().slice(0, 7),
@@ -1026,11 +1026,11 @@ export const localBackend: Backend = {
       ...(() => {
         const amount = round2(b.price);
         const list = b.details?.listPrice;
-        const normal = rewards.shareFor(user.id, b.creatorProfileId, new Date(), amount);
-        const special_ = special.reserveShare(b.creatorProfileId, amount);
+        const normal = rewards.shareFor(user.id, b.creatorProfileId, new Date(), amount, b.incomePolicyVersion ?? LEGACY_REVENUE_POLICY);
+        const special_ = special.reserveShare(b.creatorProfileId, amount, list, normal.allocationPolicyVersion === LEGACY_REVENUE_POLICY);
         return special_ === undefined
-          ? { ...normal, share: absorbDiscount(normal.share, amount, normal.gatewayFee, list) }
-          : { share: absorbSpecialDiscount(special_, amount, list), gatewayFee: normal.gatewayFee };
+          ? { ...normal, share: absorbDiscount(normal.share, amount, normal.gatewayFee, list, normal.netRate, normal.allocationPolicyVersion === LEGACY_REVENUE_POLICY) }
+          : { share: special_, gatewayFee: normal.gatewayFee, allocationPolicyVersion: normal.allocationPolicyVersion };
       })(),
       note: b.title,
       methodLabel,
@@ -1069,8 +1069,8 @@ export const localBackend: Backend = {
     if (wallet.coins < coins) return fail(`No tienes suficientes ${currencyWord} para pagar esta reserva`);
     const now = new Date().toISOString();
     const amount = round2(b.price);
-    const normal = rewards.shareFor(user.id, b.creatorProfileId, new Date(), amount);
-    const special_ = special.reserveShare(b.creatorProfileId, amount);
+    const normal = rewards.shareFor(user.id, b.creatorProfileId, new Date(), amount, b.incomePolicyVersion ?? LEGACY_REVENUE_POLICY);
+    const special_ = special.reserveShare(b.creatorProfileId, amount, b.details?.listPrice, normal.allocationPolicyVersion === LEGACY_REVENUE_POLICY);
     const charged = platform.ledger.addTransaction({
       key: `vip:${b.id}`,
       payerId: user.id,
@@ -1080,8 +1080,8 @@ export const localBackend: Backend = {
       kind: 'vip',
       amount,
       ...(special_ === undefined
-        ? { ...normal, share: absorbDiscount(normal.share, amount, normal.gatewayFee, b.details?.listPrice) }
-        : { share: absorbSpecialDiscount(special_, amount, b.details?.listPrice), gatewayFee: normal.gatewayFee }),
+        ? { ...normal, share: absorbDiscount(normal.share, amount, normal.gatewayFee, b.details?.listPrice, normal.netRate, normal.allocationPolicyVersion === LEGACY_REVENUE_POLICY) }
+        : { share: special_, gatewayFee: normal.gatewayFee, allocationPolicyVersion: normal.allocationPolicyVersion }),
       note: b.title,
       methodLabel: VIRTUAL_CURRENCY.displayName,
       status: 'paid',

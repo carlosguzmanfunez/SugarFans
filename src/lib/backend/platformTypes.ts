@@ -46,6 +46,8 @@ export interface PaymentMethod extends NewPaymentMethod {
 }
 
 export interface Transaction {
+  allocationPolicyVersion?: string;
+  creatorInitialAmount?: number; // immutable amount credited by this payment, before later adjustments
   id: string;
   payerId: string | null; // null once the payer deleted their account
   payerName: string;
@@ -58,7 +60,7 @@ export interface Transaction {
   refundedAmount?: number; // verified gross returned, without editing the original sale
   refundedGatewayFee?: number; // verified collection-fee credit from the provider
   creatorRefundLoss?: number; // calculated from the original net share, before aggregate rounding
-  share?: number; // creator's cut as a fraction of the amount (80% of the net, gifts 60%)
+  share?: number; // creator's cut as a fraction of the amount (the saved fraction of the gross, gifts 60%)
   gatewayFee?: number; // what the payment processor kept (estimated when it didn't say)
   feeVerifiedLater?: boolean;
   collectionFeeStatus?: 'verified' | 'estimated' | 'not_applicable';

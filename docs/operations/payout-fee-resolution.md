@@ -4,7 +4,7 @@ Política confirmada por el propietario el 21 de octubre de 2026. Complementa `p
 
 ## Regla económica vigente
 
-En las ventas ordinarias, el costo de cobro se resta antes de repartir el neto. El reparto base sigue siendo 80% para el creador y 20% para Fans Reserve; niveles, referidos, regalos, descuentos y cuentas especiales conservan sus reglas. No se recalculan ventas históricas.
+En las ventas ordinarias, el costo de cobro se resta antes de repartir el neto. El reparto base sigue siendo 70% para el creador y 30% para Fans Reserve; niveles, referidos, regalos, descuentos y cuentas especiales conservan sus reglas. No se recalculan ventas históricas.
 
 El creador cubre el costo real de enviar su retiro, según el contrato de creadores 6.4.3. La actualización local del 23 de octubre añade la política de Honduras en USD: 2% de lo recibido, hasta USD1 por pago. Se calcula cuánto enviar para que el dinero recibido y el costo quepa en el saldo disponible. Un posible centavo sobrante por redondeo queda en el apartado y vuelve al creador mediante este procedimiento cuando el costo se comprueba. Véase [costo de envío de Honduras](honduras-payout-cost.md). Los envíos ya preparados conservan sus importes anteriores; no se reescribe su comprobante.
 

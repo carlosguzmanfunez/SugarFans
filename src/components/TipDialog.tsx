@@ -36,7 +36,7 @@ const TipDialog: React.FC<Props> = ({ user, creatorProfileId, creatorName, postI
         user={user}
         title={`Propina para ${creatorName}`}
         amount={value}
-        note={message.trim() ? `Mensaje: “${message.trim()}”` : 'El 80% va directo al saldo del creador.'}
+        note={message.trim() ? `Mensaje: “${message.trim()}”` : 'Después del costo de cobro, el creador recibe su porcentaje vigente.'}
         confirmLabel="Enviar propina"
         paypal={{ kind: 'tip', params: { creatorProfileId, amount: value, postId, message } }}
         onConfirm={async (methodId) => {
@@ -55,7 +55,7 @@ const TipDialog: React.FC<Props> = ({ user, creatorProfileId, creatorName, postI
         <div className="flex items-start justify-between mb-4">
           <div>
             <h3 className="text-lg font-bold text-gray-900">Enviar propina</h3>
-            <p className="text-sm text-gray-500 mt-1">Apoya a {creatorName}. El 80% va directo a su saldo.</p>
+            <p className="text-sm text-gray-500 mt-1">Apoya a {creatorName}. Después del costo de cobro, recibe el 70% o el porcentaje mayor de sus beneficios.</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Cerrar" className="p-1 text-gray-400 hover:text-gray-600">
             <i aria-hidden="true" className="fas fa-times"></i>

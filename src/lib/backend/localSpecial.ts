@@ -18,7 +18,7 @@ const newCode = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) 
 
 export const createLocalSpecial = (deps: Deps): SpecialBackend & {
   // The cut of a Reserve payment for a special account (undefined: the usual rules).
-  reserveShare(creatorProfileId: string, amount: number): number | undefined;
+  reserveShare(creatorProfileId: string, amount: number, listPrice?: number, legacy?: boolean): number | undefined;
   featuredIds(): string[];
 } => {
   const invites = () => readJSON<StoredInvite[]>(INVITES_KEY, []);
@@ -33,9 +33,9 @@ export const createLocalSpecial = (deps: Deps): SpecialBackend & {
   const active = (id: string) => accounts().find((a) => a.creatorProfileId === id && !a.revokedAt);
 
   return {
-    reserveShare(creatorProfileId, amount) {
+    reserveShare(creatorProfileId, amount, listPrice, legacy) {
       const a = active(creatorProfileId);
-      return a?.reserveNet ? netReserve(amount, a.taxRate).share : undefined;
+      return a?.reserveNet ? netReserve(amount, a.taxRate, undefined, listPrice, legacy).share : undefined;
     },
     featuredIds: () =>
       accounts()

@@ -63,16 +63,16 @@ finish(async () => {
       values ('vip:${b}', null, 'Fan', '${vale}', 'Vale', 'vip', ${amount}, 'PayPal', 'paid') returning id`);
     return psql(DB, `select round(amount * creator_share, 2) || '|' || gateway_fee from public.transactions where id = '${id}'`);
   };
-  await check('Sin descuento el creador recibe el 80% del neto, como siempre', async () => {
-    // $40: fee 2.46 → net 37.54 → creator 30.03
+  await check('Sin descuento el creador recibe el 70% del neto, como siempre', async () => {
+    // $40: fee 2.46 → net 37.54 → creator 26.28
     const r = sale('{"kind":"custom"}', 40);
-    expect(r === '30.03|2.46', r);
+    expect(r === '26.28|2.46', r);
   });
   await check('Con 10% de descuento, Fans Reserve se queda lo mismo que a precio completo', async () => {
-    // Paid $36 (list $40): fee 2.24 → net 33.76; Fans Reserve keeps 20% × (40 − 2.24) = 7.55; creator 33.76 − 7.55 = 26.21
+    // Paid $36 (list $40): fee 2.24 → net 33.76; Fans Reserve keeps 30% × (40 − 2.24) = 11.33; creator 33.76 − 11.33 = 22.43
     const r = sale('{"kind":"custom","listPrice":40,"discountPercent":10}', 36);
-    expect(r === '26.21|2.24', r);
+    expect(r === '22.43|2.24', r);
     const platform = psql(DB, `select round(amount - gateway_fee - amount * creator_share, 2) from public.transactions where key like 'vip:%' order by created_at desc limit 1`);
-    expect(platform === '7.55', `Fans Reserve se quedó ${platform}`);
+    expect(platform === '11.33', `Fans Reserve se quedó ${platform}`);
   });
 });
