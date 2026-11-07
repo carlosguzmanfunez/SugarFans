@@ -1,4 +1,5 @@
-import React, { Suspense, lazy, useEffect, useLayoutEffect } from 'react';
+import React, { Suspense, useEffect, useLayoutEffect } from 'react';
+import { lazyPage } from './lib/lazyPage';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate, useNavigationType, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
@@ -22,24 +23,24 @@ import MfaGate from './components/MfaGate';
 import HandleLink from './pages/HandleLink';
 
 // Less visited pages load on demand, so the first visit downloads less.
-const CreatorProfile = lazy(() => import('./pages/CreatorProfile'));
-const ReferralLink = lazy(() => import('./pages/ReferralLink'));
-const SpecialInviteLink = lazy(() => import('./pages/SpecialInviteLink'));
-const ProspectInvite = lazy(() => import('./pages/ProspectInvite'));
-const CreatorDashboard = lazy(() => import('./pages/CreatorDashboard'));
-const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
-const OwnerPanel = lazy(() => import('./pages/OwnerPanel'));
-const Help = lazy(() => import('./pages/Help'));
-const SalesTour = lazy(() => import('./pages/SalesTour'));
-const Settings = lazy(() => import('./pages/Settings'));
-const Profile = lazy(() => import('./pages/Profile'));
-const VIPExperiences = lazy(() => import('./pages/VIPExperiences'));
-const LegalPolicies = lazy(() => import('./pages/LegalPolicies'));
-const LiveRoom = lazy(() => import('./pages/LiveRoom'));
-const LiveBroadcast = lazy(() => import('./pages/LiveBroadcast'));
-const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
-const ResetPassword = lazy(() => import('./pages/ResetPassword'));
-const AuthCallback = lazy(() => import('./pages/AuthCallback'));
+const CreatorProfile = lazyPage(() => import('./pages/CreatorProfile'));
+const ReferralLink = lazyPage(() => import('./pages/ReferralLink'));
+const SpecialInviteLink = lazyPage(() => import('./pages/SpecialInviteLink'));
+const ProspectInvite = lazyPage(() => import('./pages/ProspectInvite'));
+const CreatorDashboard = lazyPage(() => import('./pages/CreatorDashboard'));
+const AdminDashboard = lazyPage(() => import('./pages/AdminDashboard'));
+const OwnerPanel = lazyPage(() => import('./pages/OwnerPanel'));
+const Help = lazyPage(() => import('./pages/Help'));
+const SalesTour = lazyPage(() => import('./pages/SalesTour'));
+const Settings = lazyPage(() => import('./pages/Settings'));
+const Profile = lazyPage(() => import('./pages/Profile'));
+const VIPExperiences = lazyPage(() => import('./pages/VIPExperiences'));
+const LegalPolicies = lazyPage(() => import('./pages/LegalPolicies'));
+const LiveRoom = lazyPage(() => import('./pages/LiveRoom'));
+const LiveBroadcast = lazyPage(() => import('./pages/LiveBroadcast'));
+const ForgotPassword = lazyPage(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazyPage(() => import('./pages/ResetPassword'));
+const AuthCallback = lazyPage(() => import('./pages/AuthCallback'));
 
 const LoadingScreen: React.FC = () => (
   <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-label="Cargando">
