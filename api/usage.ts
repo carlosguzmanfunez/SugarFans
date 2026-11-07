@@ -6,10 +6,12 @@
 //   ALERT_EMAIL (carlos@fansreserve.com by default) once per level and month.
 // - GET /api/usage without that header only says whether it is set up.
 // Limits and plans: src/lib/infraUsage.ts. Tables: 20261018000001_infra_usage.sql.
+// - GET /api/usage?report=1 emails the pending "Mano derecha" reports (20261107210000_monitor_mano_derecha.sql).
 //
 // Needs in the Vercel project settings: CRON_SECRET (any long random text),
 // SUPABASE_SERVICE_ROLE_KEY and RESEND_API_KEY (both already set).
-import { deliverOutbox, logServerError, resendKey, sendEmail } from './_mail.js';
+import { deliverOutbox, logServerError, resendKey, sendEmail, sendHtmlEmail } from './_mail.js';
+import { monitorReportEmail, type MonitorReportRow } from '../src/lib/monitorReportEmail.js';
 import { alertEmail, fromRpc, pendingAlerts } from '../src/lib/infraUsage.js';
 import { sitemapResponse } from './_sitemap.js';
 
@@ -40,10 +42,44 @@ const rest = async (key: string, path: string, body?: unknown, prefer = 'return=
   return text ? JSON.parse(text) : null;
 };
 
+const patch = (key: string, path: string, body: unknown) =>
+  fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    method: 'PATCH',
+    headers: { ...asServer(key), 'content-type': 'application/json', prefer: 'return=minimal' },
+    body: JSON.stringify(body),
+  });
+
+const sendMonitorReports = async (serviceKey: string | undefined, to: string) => {
+  if (!serviceKey || !resendKey()) return json(200, { ok: false, sent: 0 });
+  let sent = 0;
+  try {
+    const since = new Date(Date.now() - 12 * 3600 * 1000).toISOString();
+    const rows = (await rest(
+      serviceKey,
+      `monitor_reports?select=id,kind,title,body,window_from,window_to,data&emailed_at=is.null&created_at=gte.${since}&order=created_at.asc&limit=3`,
+    )) as MonitorReportRow[];
+    for (const row of rows) {
+      const mail = monitorReportEmail(row);
+      const error = await sendHtmlEmail(to, mail.subject, mail.text, mail.html, `monitor-report-${row.id}`);
+      await patch(serviceKey, `monitor_reports?id=eq.${row.id}`, error ? { email_error: error } : { emailed_at: new Date().toISOString(), email_error: null });
+      if (error) await logServerError(serviceKey, 'email', 'No se pudo enviar el reporte de Mano derecha', error, '/api/usage');
+      else sent += 1;
+    }
+  } catch (err) {
+    await logServerError(serviceKey, 'api', 'Falló el envío del reporte de Mano derecha', String(err), '/api/usage');
+  }
+  return json(200, { ok: true, sent });
+};
+
 export async function GET(request: Request): Promise<Response> {
   // /sitemap.xml (public, read-only): see api/_sitemap.ts.
-  if (new URL(request.url).searchParams.get('sitemap') === '1') return sitemapResponse();
+  const params = new URL(request.url).searchParams;
+  if (params.get('sitemap') === '1') return sitemapResponse();
   const e = env();
+  // ?report=1 (public, returns only a count): the database asks for the "Mano derecha"
+  // reports (12 AM / 12 PM Honduras) that were not emailed yet to go out now. It only
+  // sends reports already written, only to ALERT_EMAIL, each one once.
+  if (params.get('report') === '1') return sendMonitorReports(e.serviceKey, e.alertEmail);
   const auth = request.headers.get('authorization') ?? '';
   if (!e.cronSecret || auth !== `Bearer ${e.cronSecret}`) {
     return json(e.cronSecret && auth ? 401 : 200, {

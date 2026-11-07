@@ -1,5 +1,5 @@
 export const adminAreas = [
-  { id: 'home', label: 'Inicio', tabs: ['overview'] },
+  { id: 'home', label: 'Inicio', tabs: ['overview', 'monitor'] },
   { id: 'people', label: 'Personas', tabs: ['users', 'verifications', 'managed', 'special'] },
   { id: 'content', label: 'Contenido', tabs: ['reports', 'moderation'] },
   { id: 'reserve', label: 'Asistencia de Reserve', tabs: ['attendance'] },
@@ -9,7 +9,7 @@ export const adminAreas = [
 ] as const;
 
 export const adminSections = {
-  overview: 'Inicio', users: 'Buscar personas', verifications: 'Verificar identidades',
+  overview: 'Inicio', monitor: 'Mano derecha', users: 'Buscar personas', verifications: 'Verificar identidades',
   managed: 'Perfiles de la plataforma', special: 'Cuentas especiales',
   reports: 'Denuncias y solicitudes', moderation: 'Revisar fotos y videos',
   attendance: 'Asistencia de Reserve',

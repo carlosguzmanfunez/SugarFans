@@ -14,6 +14,7 @@
     "test:payout-operational-recovery-ui": "node e2e/payout-operational-recovery-ui.mjs",
     "typecheck": "tsc --noEmit",
     "test:seo": "node e2e/seo.mjs",
+    "test:admin-monitor-ui": "node e2e/admin-monitor-ui.mjs",
     "test:locked-post-subscribe": "node e2e/locked-post-subscribe.mjs",
     "test:navigation-security": "node e2e/navigation-security.mjs",
     "test:notification-dismiss": "node e2e/notification-dismiss.mjs",

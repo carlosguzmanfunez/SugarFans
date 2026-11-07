@@ -19,6 +19,7 @@ import { createSupabaseSpecial } from './supabaseSpecial';
 import { createSupabaseProspects } from './supabaseProspects';
 import { BRAND } from '../../config/brand';
 import { fromRpc } from '../infraUsage';
+import type { MonitorSnapshot } from '../adminMonitor';
 import { createSupabaseFinance } from './supabaseFinance';
 import { isDemoEmail } from '../../config/demoAccounts';
 
@@ -566,6 +567,30 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
           lastSeen: r.last_seen,
         };
       });
+    },
+
+    async monitor() {
+      const since = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
+      const [h, d, r] = await Promise.all([
+        sb.from('monitor_snapshots').select('taken_at, kind, data').gte('taken_at', since).order('taken_at', { ascending: false }).limit(48),
+        sb.from('monitor_daily').select('day, closed, updated_at, data').order('day', { ascending: false }).limit(31),
+        sb.from('monitor_reports').select('id, kind, day, title, body, created_at, window_from, window_to, emailed_at, email_error, data').order('created_at', { ascending: false }).limit(20),
+      ]);
+      if (h.error || d.error || r.error) throw Error('No pudimos consultar el monitoreo.');
+      return {
+        hours: (h.data ?? []).map((x) => ({ takenAt: x.taken_at, kind: x.kind, data: x.data })),
+        days: (d.data ?? []).map((x) => ({ day: x.day, closed: x.closed, updatedAt: x.updated_at, data: x.data })),
+        reports: (r.data ?? []).map((x) => ({
+          id: x.id, kind: x.kind, day: x.day, title: x.title, body: x.body, createdAt: x.created_at,
+          windowFrom: x.window_from, windowTo: x.window_to, emailedAt: x.emailed_at, emailError: x.email_error, data: x.data,
+        })),
+      };
+    },
+
+    async monitorRefresh() {
+      const { data, error } = await sb.rpc('monitor_refresh');
+      if (error) throw Error('No pudimos actualizar el monitoreo.');
+      return (data as MonitorSnapshot | null) ?? null;
     },
 
     async infraUsage() {
