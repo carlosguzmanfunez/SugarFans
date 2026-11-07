@@ -29,6 +29,7 @@ import AdminLedger from '../components/AdminLedger';
 import AdminFinance from '../components/AdminFinance';
 import AdminModeration from '../components/AdminModeration';
 import AdminErrors from '../components/AdminErrors';
+import AdminMonitor from '../components/AdminMonitor';
 import AdminInfra from '../components/AdminInfra';
 import AdminProspects from '../components/AdminProspects';
 import AdminReserveAttendance from '../components/AdminReserveAttendance';
@@ -104,7 +105,7 @@ const AdminDashboard: React.FC = () => {
   const loading = accountsLoading || platformLoading || moderationLoading;
   const loadError = accountsError || platformError || moderationError;
   // A failed content query must not hide the independent payments or error panels.
-  const independent = activeTab === 'finance' || activeTab === 'errors' || activeTab === 'prospects' || activeTab === 'attendance';
+  const independent = activeTab === 'finance' || activeTab === 'errors' || activeTab === 'monitor' || activeTab === 'prospects' || activeTab === 'attendance';
   const sectionLoading = independent ? false : activeTab === 'moderation' ? moderationLoading : activeTab === 'overview' ? loading : accountsLoading || platformLoading;
   const sectionError = independent ? '' : activeTab === 'moderation' ? moderationError : activeTab === 'overview' ? loadError : accountsError || platformError;
   const refresh = () => { setAttendanceRefresh(v=>v+1); void Promise.all([reloadAccounts(), reloadPlatform(), reloadModeration()]); };
@@ -231,6 +232,7 @@ const AdminDashboard: React.FC = () => {
         {activeTab === 'moderation' && <AdminModeration />}
 
         {activeTab === 'errors' && <AdminErrors />}
+        {activeTab === 'monitor' && <AdminMonitor onOpen={section => { setCaseReference(undefined); setActiveTab(adminSection(section)); }} />}
         {activeTab === 'finance' && <AdminFinance caseReference={caseReference}/>}
 
         {activeTab === 'prospects' && <AdminProspects />}

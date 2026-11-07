@@ -72,6 +72,26 @@ export const sendEmail = async (to: string, subject: string, body: string, idemp
   return sendOne(key, { id: idempotencyKey, to_email: to, subject, body, attempts: 0 }).catch((e) => String(e).slice(0, 300));
 };
 
+// One email with its own HTML design (the "Mano derecha" reports). Returns '' when it
+// went out, or the reason it didn't.
+export const sendHtmlEmail = async (to: string, subject: string, text: string, html: string, idempotencyKey: string) => {
+  const key = resendKey();
+  if (!key) return 'Falta RESEND_API_KEY';
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json', 'idempotency-key': idempotencyKey },
+      body: JSON.stringify({ from: FROM, to: [to], reply_to: REPLY_TO, subject, text, html }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (r.ok) return '';
+    const data = (await r.json().catch(() => ({}))) as { message?: string };
+    return `Resend ${r.status}: ${data.message ?? 'sin detalle'}`.slice(0, 300);
+  } catch (e) {
+    return String(e).slice(0, 300);
+  }
+};
+
 // Sends what is waiting in email_outbox (oldest first). Never throws; returns how
 // many went out. Without RESEND_API_KEY nothing is touched, so the emails wait
 // until the key is set.

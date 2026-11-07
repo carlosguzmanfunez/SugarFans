@@ -606,6 +606,14 @@ export const localBackend: Backend = {
     return [];
   },
 
+  // Offline there is no database job: the "Mano derecha" tab stays empty.
+  async monitor() {
+    return { hours: [], days: [], reports: [] };
+  },
+  async monitorRefresh() {
+    return null;
+  },
+
   // Offline there are no providers: zero use, and the settings live in this browser.
   async infraUsage() {
     const saved = readJSON<{ plans: InfraUsage['plans']; fundPct: number }>(INFRA_KEY, { plans: {}, fundPct: PROVIDER_RESERVE_PERCENT });

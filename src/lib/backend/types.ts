@@ -8,6 +8,7 @@ import type { SpecialBackend } from './specialTypes';
 import type { ProspectsBackend } from './prospectTypes';
 import type { SocialLinks } from '../creatorLinks';
 import type { InfraUsage } from '../infraUsage';
+import type { MonitorData, MonitorSnapshot } from '../adminMonitor';
 import type { FinanceBackend } from '../creatorFinance';
 import type { ReserveLocation, AttendanceLocation } from '../reserveLocation';
 import type { ApprovalMode, CancellationPolicyId, CreatorCategoryId, LocationType, PurposeId, ReserveModality } from '../../config/reserve';
@@ -374,6 +375,10 @@ export interface Backend {
   // Admins: this month's use of each provider's plan ("Consumo" tab), and the plans
   // in use plus the share of income set aside for providers.
   infraUsage(): Promise<InfraUsage | null>;
+  // Admins: "Mano derecha" (hourly snapshots, daily ledger, 12 AM / 12 PM reports).
+  monitor(): Promise<MonitorData>;
+  // Admins: take a snapshot now ("Actualizar ahora"); at most one per minute.
+  monitorRefresh(): Promise<MonitorSnapshot | null>;
   finance: FinanceBackend;
   setInfraSettings(plans: InfraUsage['plans'], fundPct: number): Promise<AuthResult>;
   changePassword(user: User, current: string, next: string): Promise<AuthResult>;

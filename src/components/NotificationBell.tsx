@@ -21,6 +21,7 @@ const KIND_ICON: Record<AppNotification['kind'], { icon: string; className: stri
   creator_goal: { icon: 'fa-crown', className: 'bg-amber-50 text-amber-600' },
   subscription_payment: { icon: 'fa-star', className: 'bg-emerald-50 text-emerald-700' },
   subscription_update: { icon: 'fa-bell', className: 'bg-brand-50 text-brand-700' },
+  admin_monitor: { icon: 'fa-chart-line', className: 'bg-gray-900 text-white' },
   reserve_request: { icon: 'fa-ticket', className: 'bg-brand-50 text-brand-700' },
   reserve_update: { icon: 'fa-ticket', className: 'bg-iris-50 text-iris-700' },
 };
