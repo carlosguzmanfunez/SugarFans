@@ -1,5 +1,6 @@
 -- New offer only. Applying this migration activates it in the target environment.
--- Production rollout requires the contractual notice and explicit publication.
+-- Initial pre-pilot structure: immediate activation authorized on 2026-11-07.
+-- The 30-day notice remains for material changes after the pilot starts.
 -- Historical shares, balances, adjustments and reservations are NOT recalculated.
 create table finance_private.revenue_policy_activation (
   singleton boolean primary key default true check(singleton),

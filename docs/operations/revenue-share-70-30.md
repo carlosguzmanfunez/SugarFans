@@ -1,6 +1,6 @@
 # Reparto de ganancias 70% / 30%
 
-Decisión de Carlos: 6 de noviembre de 2026. Preparado y comprobado en pruebas; requiere publicación coordinada para entrar en vigor en la página principal.
+Decisión de Carlos: 6 de noviembre de 2026; vigencia inmediata autorizada el 7 de noviembre de 2026 como estructura inicial anterior al piloto.
 
 | Actividad o beneficio | Creador | Fans Reserve antes de otros gastos |
 |---|---:|---:|
@@ -45,9 +45,9 @@ Las devoluciones y disputas leen el reparto guardado del pago original. No se ge
 
 ## Publicación y comprobación
 
-El Contrato de Creadores, sección 13.1.1, contempla aviso con 30 días de antelación para cambios materiales. Antes de activar en producción, definir la fecha aplicable y cumplir el aviso correspondiente; no se enviaron avisos en este trabajo. Los términos preparados pasan a la versión 1.4.0 y mantienen las incorporaciones de seguridad de la versión 1.3.0. Las aceptaciones anteriores no se sobrescriben.
+La adopción inicial del reparto entra en vigor de inmediato el 7 de noviembre de 2026, según instrucción expresa de Carlos durante la estructuración previa al piloto. Para esta adopción inicial no se exige esperar 30 días. El Contrato de Creadores, sección 13.1.1, conserva el aviso de 30 días para cambios materiales posteriores a partir del inicio del piloto. No se enviaron avisos a usuarios. Los términos preparados pasan a la versión 1.4.0 y mantienen las incorporaciones de seguridad de la versión 1.3.0. Las aceptaciones anteriores no se sobrescriben.
 
-En la fecha acordada: respaldar y verificar la base principal; aplicar primero `creator_revenue_70_30` y después `income_exact_cents_in_books`, y publicar servidor/cliente de forma coordinada. La primera migración fija su momento de entrada en vigor en la base de destino; no aplicarla anticipadamente en producción. La segunda hace que libros, saldo y estado de cuenta utilicen el importe exacto de los pagos nuevos, evitando diferencias de un centavo cuando se mezclan con fracciones antiguas. No recalcula movimientos ni ejecuta una sincronización de saldos históricos. Confirmar los porcentajes con una comprobación sin dinero y verificar que ambos controles de pagos reales sigan apagados. La autorización comercial de PayPal sigue siendo un requisito independiente.
+En esta activación inicial: respaldar y verificar la base principal; aplicar primero `creator_revenue_70_30` y después `income_exact_cents_in_books`, y publicar servidor/cliente de forma coordinada. La primera migración fija su momento de entrada en vigor en la base de destino; aplicarla ahora corresponde a la vigencia inicial inmediata autorizada. La segunda hace que libros, saldo y estado de cuenta utilicen el importe exacto de los pagos nuevos, evitando diferencias de un centavo cuando se mezclan con fracciones antiguas. No recalcula movimientos ni ejecuta una sincronización de saldos históricos. Confirmar los porcentajes con una comprobación sin dinero y verificar que ambos controles de pagos reales sigan apagados. La autorización comercial de PayPal sigue siendo un requisito independiente.
 
 Pruebas reproducibles: `npm run test:revenue-share`, `npm run test:incentives`, `npm run test:collection-cost-db`, `npm run test:monthly-costs`, `npm run test:credits-ledger`, `npm run test:refund-exceptions-db`, `npm run test:special`, `npm run test:reserve-discount-db` y `npm run test:creator-statement`, con PostgreSQL desechable local. La compilación y las comprobaciones de tipos se ejecutan por separado.
 

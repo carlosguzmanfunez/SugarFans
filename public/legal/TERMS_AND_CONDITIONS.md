@@ -237,6 +237,8 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 
 ---
 
+**Estructura inicial previa al piloto (7 de noviembre de 2026):** el reparto 70%/30% y sus beneficios entran en vigor de inmediato durante la preparación de Fans Reserve. El aviso de 30 días para cambios materiales posteriores se conserva a partir del inicio del piloto, conforme al Contrato de Creadores. Esta adopción inicial no está sujeta a esa espera. Las operaciones ya registradas conservan su reparto original.
+
 ## 7. PROPIEDAD INTELECTUAL
 
 7.1. **Nuestros Derechos**: La Plataforma, incluyendo pero no limitado a software, diseño, logotipos, marcas comerciales, es propiedad exclusiva de Fans Reserve y está protegida por leyes de propiedad intelectual.
