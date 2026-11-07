@@ -613,6 +613,16 @@ export const localBackend: Backend = {
   async monitorRefresh() {
     return null;
   },
+  // The phone page reads the real database, so offline there are no keys.
+  async monitorKeys() {
+    return [];
+  },
+  async monitorKeyCreate(): Promise<never> {
+    throw Error('La llave del celular solo existe con la base de datos real.');
+  },
+  async monitorKeyRevoke() {
+    return false;
+  },
 
   // Offline there are no providers: zero use, and the settings live in this browser.
   async infraUsage() {

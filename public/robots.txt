@@ -5,5 +5,6 @@ Disallow: /profile
 Disallow: /creator/dashboard
 Disallow: /reset-password
 Disallow: /auth/
+Disallow: /control
 
 Sitemap: https://fansreserve.com/sitemap.xml

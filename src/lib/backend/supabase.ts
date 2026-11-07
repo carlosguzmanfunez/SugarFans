@@ -19,7 +19,7 @@ import { createSupabaseSpecial } from './supabaseSpecial';
 import { createSupabaseProspects } from './supabaseProspects';
 import { BRAND } from '../../config/brand';
 import { fromRpc } from '../infraUsage';
-import type { MonitorSnapshot } from '../adminMonitor';
+import type { MonitorKey, MonitorNewKey, MonitorSnapshot } from '../adminMonitor';
 import { createSupabaseFinance } from './supabaseFinance';
 import { isDemoEmail } from '../../config/demoAccounts';
 
@@ -591,6 +591,25 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       const { data, error } = await sb.rpc('monitor_refresh');
       if (error) throw Error('No pudimos actualizar el monitoreo.');
       return (data as MonitorSnapshot | null) ?? null;
+    },
+
+    async monitorKeys() {
+      const { data, error } = await sb.rpc('monitor_key_list');
+      if (error) throw Error('No pudimos consultar las llaves del celular.');
+      return ((data ?? []) as { id: string; label: string; created_at: string; last_used_at: string | null; uses: number }[])
+        .map((k): MonitorKey => ({ id: k.id, label: k.label, createdAt: k.created_at, lastUsedAt: k.last_used_at, uses: k.uses }));
+    },
+
+    async monitorKeyCreate(label: string) {
+      const { data, error } = await sb.rpc('monitor_key_create', { p_label: label });
+      if (error) throw Error(/3 llaves/.test(error.message) ? 'Ya hay 3 llaves activas: revoca una antes de crear otra.' : 'No pudimos crear la llave.');
+      return data as MonitorNewKey;
+    },
+
+    async monitorKeyRevoke(id: string) {
+      const { data, error } = await sb.rpc('monitor_key_revoke', { p_id: id });
+      if (error) throw Error('No pudimos revocar la llave.');
+      return Boolean(data);
     },
 
     async infraUsage() {
