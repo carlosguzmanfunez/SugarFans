@@ -180,6 +180,7 @@ const toUser = (p: ProfileRow, extra?: Pick<User, 'subscriptions' | 'createdPost
 });
 
 const toBooking = (b: BookingRow): VipBooking => ({
+  incomePolicyVersion: (b as BookingRow & { income_policy_version?: string }).income_policy_version,
   paymentDueAt: (b as BookingRow & { payment_due_at?: string }).payment_due_at,
   paymentChecking: (b as BookingRow & { payment_checking?: boolean }).payment_checking,
   id: b.id,

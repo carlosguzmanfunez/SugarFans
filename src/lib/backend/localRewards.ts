@@ -2,6 +2,8 @@
 // Referrals are recorded at sign-up; levels, medals and featured spots are worked
 // out from the platform's books, like the database does.
 import { readJSON, writeJSON, newId } from '../storage';
+import { REVENUE_POLICY, LEGACY_REVENUE_POLICY } from '../revenuePolicy';
+import { allocateCreatorIncome } from '../incomeAllocation';
 import { round2 } from '../platformRules';
 import {
   REFERRAL_DAYS,
@@ -17,7 +19,6 @@ import {
   levelFor,
   medalsFor,
   monthStart,
-  netShare,
   processorFee,
   qualifiedAt,
   rateFor,
@@ -71,7 +72,7 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
   // if their country still has a free seat. Only once.
   grantFounder(user: User, prospectCountry?: string): boolean;
   withInviteBonuses(transactions: Row[]): Row[];
-  shareFor(fanId: string, creatorProfileId: string, at: Date, amount: number): { share: number; gatewayFee: number };
+  shareFor(fanId: string, creatorProfileId: string, at: Date, amount: number, policyVersion?: string): { share: number; gatewayFee: number; netRate: number; allocationPolicyVersion: string };
   payoutTermsFor(user: User): { min: number };
   eventSeatCap(creatorProfileId: string): number;
   // Keeps a ticket in step with its booking (confirmed: used; rejected, cancelled or expired: free again).
@@ -100,7 +101,7 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
     const f = founderOf(id, at);
     return !!f && founderStateOf(f, at).active;
   };
-  // The creator's rate for fans not covered by a referral: the level's, or 82% for a Fundador.
+  // The creator's rate for fans not covered by a referral: the level's, or 72% for a Fundador.
   const baseLevel = (id: string, at = new Date(), books = txs()) => {
     const level = levelAt(id, at, books);
     return founderActive(id, at) && FOUNDER_SHARE > level.share ? { ...level, share: FOUNDER_SHARE } : level;
@@ -138,7 +139,7 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
       const country = user.country || prospectCountry || 'ZZ';
       if (list.filter((f) => f.country === country && !f.lostAt).length >= FOUNDER_SEATS) return false;
       writeJSON(FOUNDERS_KEY, [...list, { creatorProfileId: id, userId: user.id, country, grantedAt: new Date().toISOString() }]);
-      deps.notify?.(user.id, { creatorProfileId: id, title: 'Eres Creador Fundador', body: 'Ganas 82% mientras te mantengas en Oro. Tienes 2 meses para llegar.', link: '/creator/dashboard' });
+      deps.notify?.(user.id, { creatorProfileId: id, title: 'Eres Creador Fundador', body: 'Ganas 72% mientras te mantengas en Oro. Tienes 2 meses para llegar.', link: '/creator/dashboard' });
       return true;
     },
 
@@ -203,9 +204,13 @@ export const createLocalRewards = (deps: Deps): RewardsBackend & {
       return added.length ? [...synced, ...added] : synced;
     },
 
-    shareFor(fanId, creatorProfileId, at, amount) {
+    shareFor(fanId, creatorProfileId, at, amount, policyVersion = REVENUE_POLICY) {
       const gatewayFee = processorFee(amount);
-      return { share: netShare(rateFor(baseLevel(creatorProfileId, at), refs(), fanId, creatorProfileId, at), amount, gatewayFee), gatewayFee };
+      const current = rateFor(baseLevel(creatorProfileId, at), refs(), fanId, creatorProfileId, at);
+      const legacy = policyVersion === LEGACY_REVENUE_POLICY;
+      const netRate = Math.round((current + (legacy ? 0.10 : 0)) * 10000) / 10000;
+      const share = legacy ? Math.round(netRate * (amount - gatewayFee) / amount * 10000) / 10000 : allocateCreatorIncome({amount, fee: gatewayFee, rate: netRate}).share;
+      return {share, gatewayFee, netRate, allocationPolicyVersion: policyVersion};
     },
 
     payoutTermsFor(user) {

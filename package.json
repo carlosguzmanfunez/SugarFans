@@ -14,6 +14,7 @@
     "test:payout-operational-recovery-ui": "node e2e/payout-operational-recovery-ui.mjs",
     "typecheck": "tsc --noEmit",
     "test:seo": "node e2e/seo.mjs",
+    "test:locked-post-subscribe": "node e2e/locked-post-subscribe.mjs",
     "test:navigation-security": "node e2e/navigation-security.mjs",
     "test:notification-dismiss": "node e2e/notification-dismiss.mjs",
     "test:push-device-state": "node e2e/push-device-state.mjs",
@@ -122,7 +123,8 @@
     "test:payout-funding-concurrency": "node e2e/payout-funding-concurrency.mjs",
     "test:prospects": "node e2e/prospects-rules.mjs && node e2e/prospects-api.mjs && node e2e/prospects-email-api.mjs && node e2e/prospects-digest-api.mjs && node e2e/tiktok-api.mjs",
     "test:prospects-db": "node e2e/prospects-db.mjs && node e2e/prospect-invites-db.mjs && node e2e/prospects-growth-db.mjs",
-    "test:prospects-ui": "vite build --mode offline && node e2e/prospects-ui.mjs"
+    "test:prospects-ui": "vite build --mode offline && node e2e/prospects-ui.mjs",
+    "test:revenue-share": "node e2e/income-allocation.mjs && node e2e/revenue-share-postgres.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",

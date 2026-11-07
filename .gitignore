@@ -8,3 +8,5 @@ build/
 .env.local
 .env.*.local
 supabase/.temp/
+.vercel
+.env*

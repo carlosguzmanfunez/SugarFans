@@ -3,8 +3,7 @@
 // over the rows the admin can read (transactions, Créditos purchases, withdrawals).
 import type { Payout, Transaction } from './backend/platformTypes';
 import type { CoinPurchase } from './backend/giftTypes';
-import { creditCutoff } from './platformRules';
-import { GIFT_SHARE } from './giftRules';
+import { creditCutoff, creatorCut } from './platformRules';
 import { earningsCycle, hondurasParts, hondurasMidnight, hondurasTimestamp } from './payoutCalendar';
 
 export type Period = 'today' | '7d' | 'month' | 'lastMonth' | 'cycle' | 'all';
@@ -47,10 +46,9 @@ export const feeEstimate = (amount: number) => round2(amount * 0.054 + 0.3);
 
 // Sales a fan paid with PayPal (Créditos are paid when bought; gifts spend them).
 const CASH_KINDS: Transaction['kind'][] = ['subscription', 'renewal', 'tip', 'vip'];
-const shareOf = (t: Transaction) => t.share ?? (t.kind === 'gift' ? GIFT_SHARE : t.kind === 'referral' ? 1 : 0.8);
 // What the creator gets from a sale; a refund Fans Reserve covers still counts for them.
 const counts = (t: Transaction) => t.status === 'paid' || (!!t.platformCovers && (t.status === 'refunded' || t.status === 'disputed'));
-const creatorPart = (t: Transaction) => (counts(t) ? round2(Math.max(0, t.amount * shareOf(t) - (t.platformCovers ? 0 : t.creatorRefundLoss ?? 0))) : 0);
+const creatorPart = (t: Transaction) => (counts(t) ? round2(creatorCut(t)) : 0);
 const purchaseOk = (c: CoinPurchase) => (c.status ?? 'paid') === 'paid';
 
 export interface Summary {

@@ -108,7 +108,7 @@ const CreatorDashboard: React.FC = () => {
   const book = useCreatorBalance(userId);
   useEffect(() => (userId ? onNewNotification(userId, reloadBookings) : undefined), [userId, reloadBookings]);
 
-  // Real verification state, fan payments (80% for the creator), subscribers and blocks.
+  // Real verification state, fan payments (70% for the creator), subscribers and blocks.
   const verified = !!user?.isVerified;
   const { data: live } = usePlatformQuery(
     async () => {

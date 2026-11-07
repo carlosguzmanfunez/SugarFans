@@ -1,0 +1,45 @@
+name: Creator income and financial history
+on:
+  pull_request:
+    paths: ['src/lib/**', 'src/config/legal.ts', 'src/components/Creator*.tsx', 'supabase/migrations/**', 'e2e/**', 'public/legal/**', '.github/workflows/revenue-share.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  income:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: local_ci_only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: local_ci_only
+      PGTZ: UTC
+      FANSRESERVE_TEST_EVIDENCE_DIR: /tmp/fansreserve-income-evidence
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run test:revenue-share
+      - run: npm run test:incentives
+      - run: npm run test:collection-cost-db
+      - run: npm run test:monthly-costs
+      - run: npm run test:credits-ledger
+      - run: npm run test:refund-exceptions-db
+      - run: npm run test:reserve-discount-db
+      - run: npm run test:reserve-refund-fee-db
+      - run: npm run test:special
+      - run: npm run test:creator-statement
+      - run: npm run build

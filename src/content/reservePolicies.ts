@@ -56,7 +56,7 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
         heading: '4. Pagos',
         paragraphs: [
           'El flujo es: solicitud, aceptación, pago, confirmación, experiencia y liquidación. En las experiencias con aprobación, el fan paga cuando aceptas; en las de confirmación inmediata, paga al reservar. Paga con PayPal o con sus Créditos. Fans Reserve procesa el pago en nombre del creador, retiene su comisión y registra la parte del creador como saldo a su favor, que se acumula en ciclos del 26 al 25, se acredita al comenzar el 26 y se solicita a su cuenta PayPal del 26 al día 1 siguiente, ambos incluidos, en hora de Fans Reserve (UTC−6).',
-          'Recibes el 80% del neto de cada reserva (lo que paga el fan menos la comisión de PayPal), o el porcentaje mayor que te dé tu nivel, el programa de Creadores Fundadores o los fans de tu enlace, según el Contrato de Creadores.',
+          'Recibes el 70% del neto de cada reserva (lo que paga el fan menos la comisión de PayPal), o el porcentaje mayor que te dé tu nivel, el programa de Creadores Fundadores o los fans de tu enlace, según el Contrato de Creadores.',
           'Si activas un descuento para suscriptores (del 5% al 25%), lo absorbes de tu parte: la parte de Fans Reserve se calcula sobre el precio sin descuento.',
         ],
       },

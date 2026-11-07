@@ -1,6 +1,7 @@
 // Pure rules shared by the UI and both backends: validation, dates and money.
 import { CREATOR_CATEGORIES } from '../config/reserve';
 import { creditCutoff } from './payoutCalendar';
+import { BASE_CREATOR_SHARE, originalCreatorAmount } from './revenuePolicy';
 export { creditCutoff, nextCreditDate } from './payoutCalendar';
 import type {
   DocType,
@@ -13,7 +14,7 @@ import type {
   VerificationInput,
 } from './backend/platformTypes';
 
-export const CREATOR_SHARE = 0.8;
+export const CREATOR_SHARE = BASE_CREATOR_SHARE;
 export const MIN_PAYOUT = 50;
 // Lowest monthly subscription price (database constraint profiles_subscription_price_check).
 export const MIN_SUBSCRIPTION = 4.99;
@@ -185,9 +186,9 @@ export const payoutAccountLabel = (account: PayoutAccount) => `PayPal · ${maskE
 
 export { validateReport } from './reportRules';
 
-// What the creator earns from one payment: 80%, or 60% of a gift.
-export const creatorCut = (t: Pick<Transaction, 'amount' | 'share' | 'creatorRefundLoss' | 'platformCovers'>) =>
-  Math.max(0, t.amount * (t.share ?? CREATOR_SHARE) - (t.platformCovers ? 0 : t.creatorRefundLoss ?? 0));
+// Read the original allocation; a new offer must never reprice old earnings.
+export const creatorCut = (t: Pick<Transaction, 'amount' | 'share' | 'creatorRefundLoss' | 'platformCovers'> & Partial<Pick<Transaction, 'kind' | 'creatorInitialAmount'>>) =>
+  Math.max(0, originalCreatorAmount(t) - (t.platformCovers ? 0 : t.creatorRefundLoss ?? 0));
 
 // Cycles close at midnight on the 26th in Honduras. Unpaid balances carry over;
 // sending/paid payouts remain deducted, including those from the old calendar.

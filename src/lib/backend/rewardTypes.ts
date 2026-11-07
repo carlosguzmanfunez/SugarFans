@@ -10,7 +10,7 @@ export interface ReferredFan {
   name: string;
   joinedAt: string;
   paid: boolean; // has paid the creator
-  referralUntil: string; // end of the 60 days at 85%
+  referralUntil: string; // end of the 60 days at 75%
 }
 
 export interface InvitedCreator {

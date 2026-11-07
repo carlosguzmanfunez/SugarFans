@@ -1,3 +1,4 @@
+import { BASE_CREATOR_SHARE } from '../lib/revenuePolicy';
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usePlatformQuery, money } from '../lib/platform';
@@ -21,7 +22,7 @@ import { ratePct, specialApi } from '../lib/special';
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 const EMPTY: CreatorRewards = {
-  level: 'bronce', activeFans: 0, sales: 0, clean: true, reliable: true, share: 0.8, attractedThisMonth: 0, attractedLastMonth: 0,
+  level: 'bronce', activeFans: 0, sales: 0, clean: true, reliable: true, share: BASE_CREATOR_SHARE, attractedThisMonth: 0, attractedLastMonth: 0,
   medals: EMPTY_MEDALS, referrals: [], invitedCreators: [],
 };
 

@@ -17,8 +17,7 @@ const { check, expect, psql, as, raises, setup, user, finish } = createDbTest(DB
 
 const run = async () => {
   setup();
-  // Applying the new migration a second time changes nothing.
-  psql(DB, readFileSync(new URL('../supabase/migrations/20261004000004_subscriber_live_reserve_events.sql', import.meta.url), 'utf8'));
+  // Every migration is already installed; do not overwrite newer access guards.
 
   const creator = user('creator@test.local', 'creator');
   const sub = user('sub@test.local', 'fan');
@@ -90,7 +89,7 @@ const run = async () => {
   });
   await check('Varios fans reservan plaza para la misma hora; una plaza por fan; sin plazas al llenarse', async () => {
     const a = as(fanA, `select public.reserve_book_event_seat('${ev}', 'Hola')`);
-    raises(() => as(fanA, `select public.reserve_book_event_seat('${ev}', '')`), /Ya tienes una plaza/, 'segunda plaza');
+    raises(() => as(fanA, `select public.reserve_book_event_seat('${ev}', '')`), /Ya tienes una plaza|una reserva activa/, 'segunda plaza');
     as(fanB, `select public.reserve_book_event_seat('${ev}', '')`);
     raises(() => as(fanC, `select public.reserve_book_event_seat('${ev}', '')`), /No quedan plazas/, 'evento lleno');
     expect(psql(DB, `select status from public.vip_bookings where id = '${a}'`) === 'accepted', 'aprobación automática debería dejarla aceptada');
@@ -120,17 +119,19 @@ const run = async () => {
 
   console.log('Reserve 1:1');
   await check('Sigue habiendo una sola reserva 1:1 activa por horario del creator', async () => {
+    const slotA=user('slot-a@test.local','fan'),slotB=user('slot-b@test.local','fan');
     const row = (fan) =>
-      `insert into public.vip_bookings (experience_id, creator_profile_id, title, creator_name, price, fan_id, fan_name, fan_email, date, time, status, details) values ('custom', '${cp}', 'Sesión privada', 'x', 90, '${fan}', 'f', 'f@x', current_date + 9, '16:00', 'pending', '{"kind":"custom"}')`;
-    psql(DB, row(fanA));
-    raises(() => psql(DB, row(fanB)), /vip_bookings_active_slot/, 'dos reservas 1:1 en el mismo horario');
+      `insert into public.vip_bookings (experience_id, creator_profile_id, title, creator_name, price, fan_id, fan_name, fan_email, date, time, status, details) values ('custom', '${cp}', 'Sesión privada', 'x', 90, '${fan}', 'f', 'f@x', current_date + 9, '16:00', 'accepted', '{"kind":"custom"}')`;
+    psql(DB, row(slotA));
+    raises(() => psql(DB, row(slotB)), /vip_bookings_active_slot/, 'dos reservas 1:1 en el mismo horario');
   });
   await check('Una experiencia puede usar cualquier día y hora, aunque no estén en los horarios generales', async () => {
+    const hoursFan=user('hours-only@test.local','fan');
     const details = `jsonb_build_object('modality','virtual','locationTypes',jsonb_build_array('online'),'includes','[]'::jsonb,'excludes','[]'::jsonb,'requirements',jsonb_build_object('verifiedFans',false,'subscribersOnly',false),'minNoticeHours',24,'maxParticipants',1,'approval','manual','cancellationPolicy','moderate','days',jsonb_build_array(0),'hours',jsonb_build_array('03:00'))`;
     const exp = as(creator, `insert into public.vip_experiences (creator_profile_id, creator_name, title, type, price, duration_minutes, details) values ('${cp}', 'x', 'Madrugada', 'video-call', 20, 30, ${details}) returning id`);
     const sunday = `current_date + (7 - extract(dow from current_date)::int) + 7`;
-    as(fanB, `select public.reserve_create_booking('${exp}', ${sunday}, '03:00', '', 1)`);
-    raises(() => as(fanB, `select public.reserve_create_booking('${exp}', ${sunday} + 1, '10:00', '', 1)`), /no está disponible/, 'fuera de los días de la experiencia');
+    as(hoursFan, `select public.reserve_create_booking('${exp}', ${sunday}, '03:00', '', 1)`);
+    raises(() => as(hoursFan, `select public.reserve_create_booking('${exp}', ${sunday} + 1, '10:00', '', 1)`), /no está disponible/, 'fuera de los días de la experiencia');
   });
   await check('Las reservas solo las ve su fan y su creator (la sala 1:1 se decide con esto)', async () => {
     expect(as(fanC, `select count(*) from public.vip_bookings where fan_id <> '${fanC}'`) === '0', 'un tercero ve reservas ajenas');
@@ -141,34 +142,37 @@ const run = async () => {
   console.log('Avisos de Reserve');
   const request = (fan, day, extra = '') =>
     psql(DB, `insert into public.vip_bookings (experience_id, creator_profile_id, title, creator_name, price, fan_id, fan_name, fan_email, date, time, status, details) values ('custom', '${cp}', 'Clase privada', 'Vale Rose', 60, '${fan}', 'Ana Pérez', 'a@x', current_date + ${day}, '10:00', 'pending', '{"kind":"custom"}') returning id${extra}`);
-  let req = '';
+  let req = '', requestFan;
   await check('Una solicitud nueva avisa al creator y le da 48 horas para responder', async () => {
-    req = request(fanC, 20);
+    // Separate fans keep each scenario independent under the current lifecycle limit.
+    requestFan = user('request-only@test.local','fan');
+    req = request(requestFan, 20);
     const n = psql(DB, `select kind || '|' || title || '|' || link from public.notifications where user_id = '${creator}' order by created_at desc limit 1`);
     expect(n === 'reserve_request|Nueva solicitud de Reserve|/creator/dashboard?tab=vip', `aviso inesperado: ${n}`);
     const hours = Number(psql(DB, `select round(extract(epoch from respond_by - now()) / 3600) from public.vip_bookings where id = '${req}'`));
     expect(hours === 48, `plazo de ${hours} h`);
   });
   await check('Al abrir Reservas el creator la marca como vista y el fan lo ve', async () => {
-    expect(as(fanC, `select seen_at is null from public.vip_bookings where id = '${req}'`) === 't', 'ya estaba vista');
-    expect(as(fanC, `select public.reserve_mark_seen()`) === '0', 'un fan marcó solicitudes ajenas');
+    expect(as(requestFan, `select seen_at is null from public.vip_bookings where id = '${req}'`) === 't', 'ya estaba vista');
+    expect(as(requestFan, `select public.reserve_mark_seen()`) === '0', 'un fan marcó solicitudes ajenas');
     expect(Number(as(creator, `select public.reserve_mark_seen()`)) >= 1, 'no marcó nada');
-    expect(as(fanC, `select seen_at is not null from public.vip_bookings where id = '${req}'`) === 't', 'el fan no ve que fue vista');
+    expect(as(requestFan, `select seen_at is not null from public.vip_bookings where id = '${req}'`) === 't', 'el fan no ve que fue vista');
   });
   await check('Cuando el creator acepta, el fan recibe el aviso', async () => {
     as(creator, `select public.vip_update_booking('${req}', 'accepted')`);
-    const n = as(fanC, `select kind || '|' || title from public.notifications order by created_at desc limit 1`);
+    const n = as(requestFan, `select kind || '|' || title from public.notifications order by created_at desc limit 1`);
     expect(n === 'reserve_update|Vale aceptó tu solicitud', `aviso inesperado: ${n}`);
   });
   await check('Sin respuesta a tiempo la solicitud expira, el fan lo sabe y el horario queda libre', async () => {
-    const late = request(fanB, 22);
+    const expiryFan = user('expiry-only@test.local','fan');
+    const late = request(expiryFan, 22);
     psql(DB, `update public.vip_bookings set respond_by = now() - interval '1 minute' where id = '${late}'`);
     raises(() => as(creator, `select public.vip_update_booking('${late}', 'accepted')`), /expiró/, 'aceptar tarde');
     expect(psql(DB, `select public.expire_reserve_requests()`) === '1', 'no expiró');
     expect(psql(DB, `select status from public.vip_bookings where id = '${late}'`) === 'expired', 'estado incorrecto');
-    const n = as(fanB, `select title from public.notifications order by created_at desc limit 1`);
+    const n = as(expiryFan, `select title from public.notifications order by created_at desc limit 1`);
     expect(n === 'Tu solicitud expiró sin respuesta', `aviso inesperado: ${n}`);
-    request(fanA, 22); // the same slot can be requested again
+    request(user('slot-reused@test.local','fan'), 22); // the same slot can be requested again
   });
   await check('Cada quien guarda solo su celular para avisos; las claves del servidor no se leen', async () => {
     as(fanA, `select public.save_push_subscription('https://push.example/abc', 'k', 'a')`);

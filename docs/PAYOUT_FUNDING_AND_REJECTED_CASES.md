@@ -6,7 +6,7 @@ A validated `INSUFFICIENT_FUNDS` rejection opens one `PAYER_FUNDS_INSUFFICIENT` 
 
 To resume, an administrator records fresh payer funding evidence after the stop. It must be no more than 24 hours old and cover uncertain commitments, payments after observation and the current cycle's remaining reserved items. Refresh the case, select the resume action and document Fans Reserve's responsibility for its payer funds. The existing case confirmation, source hash and request key guard the decision. It releases only this funding stop. Execution gates, provider waits, recipient restrictions, commercial authorization and all original snapshots remain in force. A later funding rejection can open a new episode. Previously rejected payouts are not retried by closing either case.
 
-Creator fees retain the existing actual-cost procedure: native item evidence plus a normalized statement line, administrative preview, documented resolution and paired ledger entries. A verified $0.98 cost against $1 estimated credits $0.02 to that creator in the next eligible cycle. Neither the original payout nor the platform's 20% sales commission is rewritten. A test normalization is not a real bank or PayPal account statement.
+Creator fees retain the existing actual-cost procedure: native item evidence plus a normalized statement line, administrative preview, documented resolution and paired ledger entries. A verified $0.98 cost against $1 estimated credits $0.02 to that creator in the next eligible cycle. Neither the original payout nor the platform's original sales commission is rewritten. A test normalization is not a real bank or PayPal account statement.
 
 ## Deployment
 

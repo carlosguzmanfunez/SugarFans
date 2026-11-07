@@ -1,3 +1,4 @@
+import { BASE_CREATOR_SHARE } from '../lib/revenuePolicy';
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usePlatformQuery, money } from '../lib/platform';
@@ -17,7 +18,7 @@ import {
 } from '../lib/rewards';
 
 const EMPTY: CreatorRewards = {
-  level: 'bronce', activeFans: 0, sales: 0, clean: true, reliable: true, share: 0.8, attractedThisMonth: 0, attractedLastMonth: 0,
+  level: 'bronce', activeFans: 0, sales: 0, clean: true, reliable: true, share: BASE_CREATOR_SHARE, attractedThisMonth: 0, attractedLastMonth: 0,
   medals: EMPTY_MEDALS, referrals: [], invitedCreators: [],
 };
 

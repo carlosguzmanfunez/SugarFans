@@ -1,4 +1,6 @@
 // Full schema, real local SQL, simulated provider proofs; no external calls.
+// Legacy malformed allocations are explicitly dated before the 70/30 change.
+// Current allocations are immutable and exercised by revenue-share and collection-cost tests.
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';import {spawn} from 'node:child_process';
 import {createDbTest} from './db-harness.mjs';
@@ -10,7 +12,7 @@ const sr=(fn,args)=>JSON.parse(psql(DB,'set role service_role;'+sql(fn,args)));
 const admin=(fn,args)=>JSON.parse(as(owner,sql(fn,args)));
 const concurrent=statement=>new Promise((yes,no)=>{let out='',err='';const p=spawn('psql',['-X','-q','-At','-v','ON_ERROR_STOP=1','-d',DB],{windowsHide:true,stdio:['pipe','pipe','pipe']});p.stdout.on('data',b=>out+=b);p.stderr.on('data',b=>err+=b);p.on('error',no);p.on('close',c=>c===0?yes(out.trim()):no(Error(err)));p.stdin.end(`set statement_timeout='12s';set role authenticated;set request.jwt.claim.sub=${lit(owner)};`+statement);});
 const money=v=>({value:Number(v).toFixed(2),currency_code:'USD'});let owner,creator,fan,cp,seq=0;
-const sale=(extra={})=>{const id=randomUUID(),ref='CAP-X-'+(++seq);psql(DB,`insert into transactions(id,key,payer_id,payer_name,creator_profile_id,creator_name,kind,amount,method_label,status,paypal_ref) values(${lit(id)},${lit('tip:'+id)},${lit(fan)},'Fan',${lit(cp)},'Creador','tip',100,'PayPal','paid',${lit(ref)});update transactions set gateway_fee=5,creator_share=.76,service_fee=0,tax_amount=0 where id=${lit(id)};`);if(extra.sql)psql(DB,extra.sql.replaceAll(':id',lit(id)));return {id,ref};};
+const sale=(extra={})=>{const id=randomUUID(),ref='CAP-X-'+(++seq);psql(DB,`insert into transactions(id,key,payer_id,payer_name,creator_profile_id,creator_name,kind,amount,method_label,status,paypal_ref,created_at) values(${lit(id)},${lit('tip:'+id)},${lit(fan)},'Fan',${lit(cp)},'Creador','tip',100,'PayPal','paid',${lit(ref)},'2026-10-10T12:00:00Z');update transactions set gateway_fee=5,creator_share=.76,service_fee=0,tax_amount=0 where id=${lit(id)};`);if(extra.sql)psql(DB,extra.sql.replaceAll(':id',lit(id)));return {id,ref};};
 const refund=(ref,amount,{gross=100,fee=0,id='RF-X-'+(++seq),event='EV-X-'+seq,payment={}}={})=>{
  const body={id:event,event_type:'PAYMENT.CAPTURE.REFUNDED',resource:{id}};
  const proof={id,status:'COMPLETED',amount:money(amount),seller_payable_breakdown:{paypal_fee:money(fee)},links:[{rel:'up',href:'https://api-m.sandbox.paypal.com/v2/payments/captures/'+ref}]};

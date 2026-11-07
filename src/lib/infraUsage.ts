@@ -1,3 +1,4 @@
+import { PROVIDER_RESERVE_PERCENT } from './revenuePolicy';
 // What Fans Reserve uses of each provider's plan, how close it is to the limit,
 // and which plan comes next. Shared by the admin's "Consumo" tab and the daily
 // check (api/usage.ts) that emails at 70% and 90%, so both always agree.
@@ -214,5 +215,5 @@ export const fromRpc = (r: Record<string, unknown>): InfraUsage => ({
   kycMonth: Number(r.kyc_month ?? 0),
   videoMinutesMonth: Number(r.video_minutes_month ?? 0),
   plans: (r.plans ?? {}) as InfraUsage['plans'],
-  fundPct: Number(r.fund_pct ?? 10),
+  fundPct: Number(r.fund_pct ?? PROVIDER_RESERVE_PERCENT),
 });

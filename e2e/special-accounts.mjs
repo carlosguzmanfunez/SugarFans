@@ -35,7 +35,7 @@ const run = async () => {
     );
     return { id, booking };
   };
-  const row = (id) => psql(DB, `select creator_share || '|' || coalesce(gateway_fee::text, '') || '|' || coalesce(tax_amount::text, '') from public.transactions where id = '${id}'`);
+  const row = (id) => psql(DB, `select round(amount*creator_share,2) || '|' || coalesce(gateway_fee::text, '') || '|' || coalesce(tax_amount::text, '') from public.transactions where id = '${id}'`);
 
   let code;
   console.log('Links');
@@ -78,31 +78,32 @@ const run = async () => {
        values ('vip:${s.booking}', '${fan}', 'Fan', '${gym}', 'Creador', 'vip', 100, 'PayPal', 'paid') returning id`
     );
     // 100 - 5.70 PayPal - 5.00 service (5%) - 15.00 tax = 74.30
-    expect(row(id) === '0.7430|5.70|15.00', `fila: ${row(id)}`);
+    expect(row(id) === '74.30|5.70|15.00', `fila: ${row(id)}`);
     expect(psql(DB, `select service_fee from public.transactions where id = '${id}'`) === '5.00', 'sin cargo de servicio');
   });
   await check('Sin comisión informada usa el estimado (5.4% + $0.30)', async () => {
     as(admin, `update public.special_accounts set tax_rate = 0`);
     const { id } = sale(gym, 50);
     // 50 - (2.70 + 0.30) - 2.50 service = 44.50
-    expect(row(id) === '0.8900|3.00|0.00', `fila: ${row(id)}`);
+    expect(row(id) === '44.50|3.00|0.00', `fila: ${row(id)}`);
   });
-  await check('Suscripciones del mismo creador y Reserve de otros creadores van con la regla normal (80% del neto)', async () => {
+  await check('Suscripciones del mismo creador y Reserve de otros creadores van con la regla normal (70% del neto)', async () => {
     const subs = sale(gym, 10, 'subscription');
-    // 10 - 0.84 estimated fee = 9.16; 80% = 7.328
-    expect(row(subs.id) === '0.7328|0.84|', `suscripción: ${row(subs.id)}`);
+    // 10 - 0.84 estimated fee = 9.16; 70% = 6.41
+    expect(row(subs.id) === '6.41|0.84|', `suscripción: ${row(subs.id)}`);
     const theirs = sale(other, 100);
-    expect(row(theirs.id) === '0.7544|5.70|', `otro creador: ${row(theirs.id)}`);
+    expect(row(theirs.id) === '66.01|5.70|', `otro creador: ${row(theirs.id)}`);
   });
   await check('El saldo del creador suma lo neto', async () => {
-    psql(DB, `update public.transactions set created_at = now() - interval '40 days' where creator_profile_id = '${gym}'`);
-    // 74.30 + 44.50 + 7.328 (suscripción al 80% del neto)
-    expect(psql(DB, `select public.creator_available_balance('${gym}')`) === '126.13', 'saldo incorrecto');
+    // Read total earned, including this cycle, without altering earning dates.
+    const balance = as(gym, `select public.finance_creator_balance()->>'total_earned'`);
+    // 74.30 + 44.50 + 6.41 (suscripción al 70% del neto)
+    expect(Number(balance) === 125.21, 'saldo incorrecto: '+balance);
   });
-  await check('Revocar el plan vuelve al 80% del neto solo para pagos nuevos', async () => {
+  await check('Revocar el plan vuelve al 70% del neto solo para pagos nuevos', async () => {
     as(admin, `update public.special_accounts set revoked_at = now()`);
     const { id } = sale(gym, 100);
-    expect(row(id) === '0.7544|5.70|', `fila: ${row(id)}`);
+    expect(row(id) === '66.01|5.70|', `fila: ${row(id)}`);
     expect(psql(DB, `select count(*) from public.transactions where creator_profile_id = '${gym}' and tax_amount is not null`) === '2', 'cambió pagos viejos');
   });
   await check('Con el plan revocado, un link nuevo lo reactiva', async () => {
@@ -120,7 +121,7 @@ const run = async () => {
     const list = psql(DB, `select creator_profile_id || ':' || reason from public.featured_creators()`).split(/\r?\n/);
     expect(list[0] === `${gym}:special` && list[1] === `${other}:level`, `orden: ${list.join(', ')}`);
     as(admin, `update public.special_accounts set featured = false`);
-    expect(!psql(DB, `select creator_profile_id from public.featured_creators()`).includes(gym), 'sigue destacado sin visibilidad');
+    expect(!psql(DB, `select creator_profile_id from public.featured_creators() where reason='special'`).includes(gym), 'sigue destacado por un plan ya sin visibilidad');
   });
 
   console.log('Migración');

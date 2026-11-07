@@ -1,7 +1,8 @@
 # TÉRMINOS Y CONDICIONES DE SERVICIO - FANS RESERVE
 
 **Última actualización:** Noviembre 2026 (borrador)  
-**Versión:** 1.3.1  
+**Versión:** 1.4.1
+
 **Jurisdicción aplicable:** Ver sección 13
 
 > **Borrador.** Requires legal review before production launch. Requiere revisión legal antes del lanzamiento a producción. Los pagos se procesan con PayPal. Mientras la plataforma está en fase de prelanzamiento, el acceso está restringido.
@@ -216,10 +217,10 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 - Sujetas a las mismas comisiones que otros pagos
 
 6.5. **Ingresos de los Creadores**:
-- Suscripciones, renovaciones, propinas y reservas ordinarias de Reserve: el Creador recibe el 80% del neto después del costo de cobro de PayPal, 82% como Creador Fundador, 83% en Diamante y 85% para fans de su enlace durante el período aplicable; el conjunto de beneficios respeta el tope del 90% del neto. El detalle está en el Contrato de Creadores
+- Suscripciones, renovaciones, propinas y reservas ordinarias de Reserve: el Creador recibe el 70% del neto después del costo de cobro de PayPal, 72% como Creador Fundador, 73% en Diamante y 75% para fans de su enlace durante el período aplicable; la parte del Creador y el bono de su invitador suman como máximo el 80% del neto de cada venta. El detalle está en el Contrato de Creadores
 - Regalos: el Creador recibe el 60%
 - Los descuentos de Reserve para suscriptores activados por el Creador se absorben de su parte; la parte de la Plataforma conserva como referencia el precio sin descuento
-- En ese reparto ordinario, la parte de la Plataforma se calcula sobre el mismo neto; es 20% en el reparto base y respeta un mínimo del 10% del neto al combinar beneficios. Los regalos y las cuentas con condiciones especiales conservan sus reglas
+- En ese reparto ordinario, la parte de la Plataforma se calcula sobre el mismo neto; es 30% en el reparto base y respeta un mínimo del 20% del neto al combinar beneficios. Los regalos y las cuentas con condiciones especiales conservan sus reglas
 - Las ganancias se acumulan del 26 al 25 siguiente y se acreditan al comenzar el 26. El pago se solicita del 26 al día 1 siguiente, ambos incluidos, en hora de Fans Reserve (UTC−6). Las ganancias del nuevo ciclo quedan pendientes para su propio cierre; los saldos anteriormente acreditados se conservan
 - Retiro del saldo completo a la cuenta PayPal del Creador durante esa ventana, desde $50 USD ($25 USD en los niveles Oro y Diamante)
 - El costo real de enviar el retiro corresponde al Creador. El panel muestra una estimación y las diferencias comprobadas se regularizan con ajustes a su favor o a su cargo, conservando el retiro original y sin atribuir culpa automáticamente
@@ -235,6 +236,8 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 - Los Creadores tienen su historial de ingresos y retiros en su panel
 
 ---
+
+**Estructura inicial previa al piloto (7 de noviembre de 2026):** el reparto 70%/30% y sus beneficios entran en vigor de inmediato durante la preparación de Fans Reserve. El aviso de 30 días para cambios materiales posteriores se conserva a partir del inicio del piloto, conforme al Contrato de Creadores. Esta adopción inicial no está sujeta a esa espera. Las operaciones ya registradas conservan su reparto original.
 
 ## 7. PROPIEDAD INTELECTUAL
 

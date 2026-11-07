@@ -7,6 +7,8 @@
 import type { Transaction } from './backend/platformTypes';
 import type { LevelId } from './backend/rewardTypes';
 import { BRAND } from '../config/brand';
+import { allocateCreatorIncome } from './incomeAllocation';
+import { BASE_CREATOR_SHARE, REVENUE_POLICY, originalCreatorAmount } from './revenuePolicy';
 
 // The payment processor's fee when it didn't report one: PayPal's usual rate for
 // international commercial payments.
@@ -29,30 +31,30 @@ export interface Level {
 
 export const LEVELS: Level[] = [
   {
-    id: 'bronce', name: 'Bronce', icon: '🥉', minFans: 0, minSales: 0, reliable: false, share: 0.8, eventSeats: 10, payoutMin: 50,
+    id: 'bronce', name: 'Bronce', icon: '🥉', minFans: 0, minSales: 0, reliable: false, share: BASE_CREATOR_SHARE, eventSeats: 10, payoutMin: 50,
     perks: ['Perfil, Suscribirse, Reserve 1:1 y regalos', 'Reserve Event de hasta 10 plazas'],
   },
   {
-    id: 'plata', name: 'Plata', icon: '🥈', minFans: 10, minSales: 250, reliable: false, share: 0.8, eventSeats: 20, payoutMin: 50,
+    id: 'plata', name: 'Plata', icon: '🥈', minFans: 10, minSales: 250, reliable: false, share: BASE_CREATOR_SHARE, eventSeats: 20, payoutMin: 50,
     perks: ['Sales en "En ascenso" en Explorar', 'Reserve Event de hasta 20 plazas', 'Insignia Plata en tu perfil'],
   },
   {
-    id: 'oro', name: 'Oro', icon: '🥇', minFans: 50, minSales: 1000, reliable: true, share: 0.8, eventSeats: 50, payoutMin: 25,
+    id: 'oro', name: 'Oro', icon: '🥇', minFans: 50, minSales: 1000, reliable: true, share: BASE_CREATOR_SHARE, eventSeats: 50, payoutMin: 25,
     perks: ['Destacado en Explorar y en tu categoría', 'Retiras desde $25', 'Reserve Event de hasta 50 plazas'],
   },
   {
-    id: 'diamante', name: 'Diamante', icon: '💎', minFans: 200, minSales: 5000, reliable: true, share: 0.83, eventSeats: 50, payoutMin: 25,
-    perks: ['83% después del costo de PayPal', 'Tu tarjeta va primero en la portada, en tu categoría', 'Todo lo de Oro'],
+    id: 'diamante', name: 'Diamante', icon: '💎', minFans: 200, minSales: 5000, reliable: true, share: 0.73, eventSeats: 50, payoutMin: 25,
+    perks: ['73% después del costo de PayPal', 'Tu tarjeta va primero en la portada, en tu categoría', 'Todo lo de Oro'],
   },
 ];
 
-// Fans who sign up with the creator's link pay the creator 85% of the net for 60 days.
-export const REFERRAL_SHARE = 0.85;
+// Fans who sign up with the creator's link pay the creator 75% of the net for 60 days.
+export const REFERRAL_SHARE = 0.75;
 export const REFERRAL_DAYS = 60;
 // A creator earns 5% of the net of what each creator they invited sells
 // (subscriptions, renewals, tips and Reserve) for 6 months, paid from the
 // platform's part. It starts on its own when that invited creator is verified and
-// has sold $100. At most $100 per invited creator.
+// has sold $100. At most $100 per invited creator and calendar month.
 export const CREATOR_INVITE_BONUS = 0.05;
 export const CREATOR_INVITE_MONTHS = 6;
 export const CREATOR_INVITE_MIN = 1; // qualified invited creators for the Embajador medal
@@ -60,16 +62,16 @@ export const CREATOR_INVITE_QUALIFY = 100;
 export const CREATOR_INVITE_CAP = 100; // per invited creator, per month
 
 // Creadores Fundadores: only by invitation of the team (Captar creadores link
-// /c/<code>), 100 per country. 82% of the net and the badge while they keep it:
+// /c/<code>), 100 per country. 72% of the net and the badge while they keep it:
 // 2 months to reach Oro, then stay Oro or higher (30 days to get it back after
 // dropping). Same rules as founder_rules() in the database.
-export const FOUNDER_SHARE = 0.82;
+export const FOUNDER_SHARE = 0.72;
 export const FOUNDER_SEATS = 100;
 export const FOUNDER_GRACE_DAYS = 60;
 export const FOUNDER_RECOVER_DAYS = 30;
 
 // Creator and inviter together never take more than this of a payment's net.
-export const MAX_SHARE = 0.9;
+export const MAX_SHARE = 0.8;
 // A fan counts as active with a payment to the creator in the last 30 days.
 export const ACTIVE_DAYS = 30;
 // Reliability: answer at least 95% of the Reserve requests of the last 90 days (from 5 on).
@@ -82,19 +84,19 @@ const UNANSWERED = ['expired', 'disputed'];
 
 const DAY = 24 * 60 * 60 * 1000;
 export const pct = (share: number) => `${Math.round(share * 100)}%`;
-const round4 = (n: number) => Math.round(n * 10000) / 10000;
 
 // The creator's cut of one payment, as a fraction of what the fan paid.
 export const netShare = (rate: number, amount: number, fee = processorFee(amount)) =>
-  amount > 0 ? Math.max(0, round4((Math.min(rate, MAX_SHARE) * (amount - fee)) / amount)) : 0;
+  amount > 0 ? allocateCreatorIncome({amount, fee, rate: Math.min(rate, MAX_SHARE)}).share : 0;
 
 // A Reserve fan discount comes out of the creator's part: Fans Reserve keeps
 // what it would have kept at the full price (same rule as the SQL trigger).
-export const absorbDiscount = (share: number, amount: number, fee: number, listPrice?: number) => {
+export const absorbDiscount = (share: number, amount: number, fee: number, listPrice?: number, netRate?: number, legacy = false) => {
   const net = amount - fee;
   if (!listPrice || listPrice <= amount || net <= 0) return share;
-  const rate = (share * amount) / net;
-  return Math.max(0, round4((net - (1 - rate) * (listPrice - fee)) / amount));
+  const rate = netRate ?? Math.round((share * amount) / net * 10000) / 10000;
+  if (legacy) return Math.max(0, Math.round((rate*net-(1-rate)*(listPrice-amount))/amount*10000)/10000);
+  return allocateCreatorIncome({amount, fee, rate, listPrice}).share;
 };
 
 export interface LevelInput {
@@ -163,7 +165,7 @@ export const attractedFans = (refs: Referral[], txs: Transaction[], creatorProfi
 };
 
 export const referralActive = (ref: Referral | undefined, creatorProfileId: string, at = new Date()) =>
-  !!ref && ref.creatorProfileId === creatorProfileId && at.getTime() - new Date(ref.joinedAt).getTime() < REFERRAL_DAYS * DAY;
+  !!ref && ref.creatorProfileId === creatorProfileId && at.getTime() >= new Date(ref.joinedAt).getTime() && at.getTime() - new Date(ref.joinedAt).getTime() < REFERRAL_DAYS * DAY;
 
 // The creator's rate (of the net) for one fan's payment.
 export const rateFor = (level: Level, refs: Referral[], fanId: string | null, creatorProfileId: string, at = new Date()) =>
@@ -249,12 +251,13 @@ export const daysLeft = (iso: string, now = Date.now()) => {
 export const inviteCapMonth = (iso: string) => new Date(Date.parse(iso) - 6 * 3_600_000).toISOString().slice(0, 7);
 
 // The inviter's bonus on one sale: 5% of the net, keeping creator + inviter within
-// 90% of the net, and within what is left of that month's $100 cap.
-export const inviteBonusFor = (sale: Pick<Transaction, 'amount' | 'share'> & { gatewayFee?: number }, paidSoFar = 0) => {
+// 80% of the net, and within what is left of that month's $100 cap.
+export const inviteBonusFor = (sale: Pick<Transaction, 'amount' | 'share'> & Partial<Pick<Transaction, 'gatewayFee' | 'creatorInitialAmount' | 'allocationPolicyVersion'>>, paidSoFar = 0) => {
   const net = sale.amount - (sale.gatewayFee ?? processorFee(sale.amount));
   if (net <= 0) return 0;
-  const rate = (sale.amount * (sale.share ?? 0.8)) / net;
-  const bonus = Math.round(net * Math.max(0, Math.min(CREATOR_INVITE_BONUS, MAX_SHARE - rate)) * 100) / 100;
+  const cap = sale.allocationPolicyVersion === REVENUE_POLICY ? MAX_SHARE : 0.90;
+  const room = Math.max(0, Math.floor((net * cap - originalCreatorAmount(sale)) * 100 + 1e-7) / 100);
+  const bonus = Math.min(Math.round(net * CREATOR_INVITE_BONUS * 100) / 100, room);
   return Math.max(0, Math.min(bonus, Math.round((CREATOR_INVITE_CAP - paidSoFar) * 100) / 100));
 };
 
@@ -272,7 +275,7 @@ export interface MedalInfo {
 }
 
 export const MEDALS: MedalInfo[] = [
-  { id: 'fundador', name: 'Fundador', icon: 'fa-crown', how: 'Solo por invitación del equipo de Fans Reserve (100 por país). Llega a Oro en 2 meses y mantente ahí.', unlocks: 'Insignia Fundador y 82% de cada pago mientras sigas en Oro o más.' },
+  { id: 'fundador', name: 'Fundador', icon: 'fa-crown', how: 'Solo por invitación del equipo de Fans Reserve (100 por país). Llega a Oro en 2 meses y mantente ahí.', unlocks: 'Insignia Fundador y 72% de cada pago mientras sigas en Oro o más.' },
   { id: 'primer-reserve', name: 'Primer Reserve', icon: 'fa-ticket', how: 'Completa tu primera experiencia de Reserve.', unlocks: '48 h destacado en Explorar.' },
   { id: 'iman', name: 'Imán de fans', icon: 'fa-magnet', how: 'Consigue 10, 25 o 50 fans nuevos con tu enlace en un mes (que te paguen algo).', unlocks: '2, 5 o 7 días destacado en tu categoría.' },
   { id: 'puntual', name: 'Puntual', icon: 'fa-clock', how: 'Responde a tiempo tus últimas 20 solicitudes de Reserve.', unlocks: 'Insignia "Puntual" visible para tus fans.' },

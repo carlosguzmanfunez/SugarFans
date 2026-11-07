@@ -196,18 +196,18 @@ Este Contrato para Creadores y Afiliados ("Contrato") constituye un acuerdo lega
 
 6.1.2. **Su parte de cada venta**:
 En el reparto ordinario de suscripciones, renovaciones, propinas y Reserve, los porcentajes se calculan sobre el **neto** de cada pago: lo que paga el fan menos la comisión que cobra el procesador de pagos (PayPal) por ese pago.
-- **Suscripciones, renovaciones, propinas y reservas de Reserve**: 80% del neto; 83% en el nivel Diamante
-- **Fans de su enlace de invitación**: 85% del neto de lo que le paguen durante 60 días (o su parte de nivel, si es mayor)
-- **Creador Fundador**: 82% del neto (o su parte de nivel, si es mayor), según 6.1.3
+- **Suscripciones, renovaciones, propinas y reservas de Reserve**: 70% del neto; 73% en el nivel Diamante
+- **Fans de su enlace de invitación**: 75% del neto de lo que le paguen durante 60 días (o su parte de nivel, si es mayor)
+- **Creador Fundador**: 72% del neto (o su parte de nivel, si es mayor), según 6.1.3
 - **Invitar Creadores**: cuando un Creador que invitó con su enlace de creadores se verifica y vende sus primeros $100 USD, usted recibe un 5% extra del neto de lo que venda (suscripciones, renovaciones, propinas y Reserve) durante 6 meses, hasta $100 USD por mes calendario y por Creador invitado. Lo paga la Plataforma y al invitado no se le descuenta nada.
 - **Regalos**: 60%
-- **Tope**: sumando todos los beneficios, nunca recibe más del 90% del neto de una venta
+- **Tope combinado**: la parte del Creador que genera una venta y el bono de su invitador suman como máximo el 80% del neto de esa venta. El redondeo también respeta ese límite
 - **Precios mínimos**: suscripción $4.99 USD al mes; propina $3 USD
 
-6.1.3. **Creadores Fundadores**: Es un programa solo por invitación personal del equipo de Fans Reserve, con un máximo de 100 Fundadores por país, elegidos por el equipo. El Fundador recibe el 82% del neto y la insignia "Fundador" mientras se cumplan estas condiciones:
+6.1.3. **Creadores Fundadores**: Es un programa solo por invitación personal del equipo de Fans Reserve, con un máximo de 100 Fundadores por país, elegidos por el equipo. El Fundador recibe el 72% del neto y la insignia "Fundador" mientras se cumplan estas condiciones:
 - Llegar al nivel Oro dentro de los 2 meses siguientes a unirse
 - Mantenerse en Oro o en un nivel superior; si baja, tiene 30 días para recuperarlo
-- Si no se cumplen, pierde el título y el 82% desde ese momento, con aviso previo en su panel; nunca se le quita dinero ya ganado y su plaza queda libre
+- Si no se cumplen, pierde el título y el 72% desde ese momento, con aviso previo en su panel; nunca se le quita dinero ya ganado y su plaza queda libre
 
 ### 6.2. Cálculo de Pagos
 
@@ -218,7 +218,9 @@ Pago al Creador = (Precio pagado por el fan − comisión del procesador por ese
 
 En Reserve, un descuento para suscriptores activado por el Creador se absorbe de su parte. La parte de la Plataforma conserva como referencia el precio sin descuento, conforme a la regla de Reserve vigente. Esta excepción no cambia el reparto ordinario de las demás ventas.
 
-6.2.2. **Ejemplo ilustrativo del reparto ordinario**: si el fan paga $100 USD y el costo de cobro de PayPal es $5.70 USD, el neto es $94.30 USD. Un Creador Bronce recibe el 80% de ese neto: $75.44 USD. Fans Reserve conserva $18.86 USD, el 20% del neto. Estos importes son anteriores al costo de enviar el retiro. El costo de $5.70 es un supuesto para explicar el cálculo, no una tarifa garantizada de PayPal. Los regalos y las cuentas con condiciones especiales conservan sus propias reglas.
+6.2.1.1. El reparto 70%/30% y sus beneficios se establecen con vigencia inmediata el 7 de noviembre de 2026 como estructura inicial de Fans Reserve, durante su preparación y antes de comenzar el piloto. Esta adopción inicial no tiene un período de espera de 30 días. El aviso de 30 días de la sección 13.1.1 se mantiene para los cambios materiales posteriores, a partir del inicio del piloto. Las ganancias registradas y las reservas ya solicitadas conservan su reparto original. Los importes se redondean por cada pago a centavos; la parte de la Plataforma es el neto restante. No se recalculan saldos históricos.
+
+6.2.2. **Ejemplo ilustrativo del reparto ordinario**: si el fan paga $100 USD y el costo de cobro de PayPal es $5.70 USD, el neto es $94.30 USD. Un Creador Bronce recibe el 70% de ese neto: $66.01 USD. Fans Reserve conserva $28.29 USD, el 30% del neto. Estos importes son anteriores al costo de enviar el retiro. El costo de $5.70 es un supuesto para explicar el cálculo, no una tarifa garantizada de PayPal. Los regalos y las cuentas con condiciones especiales conservan sus propias reglas.
 
 6.2.3. **Reembolsos, contracargos y disputas**: Mientras PayPal resuelve una disputa, su parte de esa venta queda congelada. Si la venta se reembolsa o el fan gana el contracargo o la disputa, su parte se descuenta de su saldo; si ya la retiró, se descuenta de sus ingresos futuros. Si el equipo de Fans Reserve determina que el problema no fue culpa suya, la Plataforma asume ese importe y no se le descuenta nada. Si el fan pierde la disputa, su parte se libera.
 
@@ -473,7 +475,7 @@ Las siguientes disposiciones sobreviven la terminación:
 
 ### 13.1. Cambios en el Contrato
 
-13.1.1. **Notificación**: Le notificaremos sobre cambios materiales con 30 días de anticipación.
+13.1.1. **Notificación**: A partir del inicio del piloto, le notificaremos sobre cambios materiales posteriores con 30 días de anticipación. La adopción de la estructura inicial de reparto del 7 de noviembre de 2026, descrita en 6.2.1.1, entra en vigor inmediatamente durante la preparación previa al piloto; esta aclaración se limita a esa adopción inicial.
 
 13.1.2. **Métodos de Notificación**:
 - Email a la dirección registrada
@@ -574,12 +576,12 @@ Este Contrato está sujeto a las siguientes políticas adicionales:
 
 | Nivel | Requisito (fans activos o ventas en 30 días) | Su parte del neto | Beneficios |
 |-------|----------------------------------------------|-------------------|------------|
-| Bronce | Al empezar | 80% | Reserve Event de hasta 10 plazas, retiros desde $50 |
-| Plata | 10+ fans o $250, sin reportes confirmados en 90 días | 80% | "En ascenso" en Explorar, Reserve Event de hasta 20 plazas |
-| Oro | 50+ fans o $1,000, sin reportes y respondiendo a tiempo el 95% de las solicitudes | 80% | Destacado en Explorar, retiros desde $25, Reserve Event de hasta 50 plazas |
-| Diamante | 200+ fans o $5,000, mismas condiciones que Oro | 83% | Todo lo de Oro, primero en la portada de su categoría |
+| Bronce | Al empezar | 70% | Reserve Event de hasta 10 plazas, retiros desde $50 |
+| Plata | 10+ fans o $250, sin reportes confirmados en 90 días | 70% | "En ascenso" en Explorar, Reserve Event de hasta 20 plazas |
+| Oro | 50+ fans o $1,000, sin reportes y respondiendo a tiempo el 95% de las solicitudes | 70% | Destacado en Explorar, retiros desde $25, Reserve Event de hasta 50 plazas |
+| Diamante | 200+ fans o $5,000, mismas condiciones que Oro | 73% | Todo lo de Oro, primero en la portada de su categoría |
 
-Los fans que llegan con su enlace cuentan doble para el nivel. Las medallas (Fundador, Primer Reserve, Imán de fans, Puntual, Constante y Embajador) dan días destacado en Explorar o una insignia visible. Los Creadores Fundadores reciben el 82% del neto (ver 6.1.3). Tope de cualquier combinación de beneficios: 90% del neto.
+Los fans que llegan con su enlace cuentan doble para el nivel. Las medallas (Fundador, Primer Reserve, Imán de fans, Puntual, Constante y Embajador) dan días destacado en Explorar o una insignia visible. Los Creadores Fundadores reciben el 72% del neto (ver 6.1.3). Tope combinado de la parte del Creador y el bono de su invitador: 80% del neto de cada venta.
 
 ---
 
