@@ -193,7 +193,7 @@ Cada alerta del panel tiene un código. Las fichas dicen qué significa, dónde 
 - Fan cancela con 24 h o más: se le devuelve todo **menos la comisión de PayPal** ($25 → $23.35); Fans Reserve no se queda nada (decisión de Carlos del 5 nov 2026, PR #159). Con menos de 24 h: la mitad menos la comisión ($25 → $10.85); creador $10.00 y Fans Reserve $2.50 de lo que no se devuelve. Fan no se presenta: 0.
 - Creador cancela una Reserve pagada: 100% al fan; cuenta en contra del creador y el creador cubre la comisión no recuperada.
 - Un cambio de fecha gratis (pedido con 24 h o más).
-- La devolución va al método original; si el fan elige Créditos, recibe el 100% en Créditos, sin descuento.
+- La devolución va al método original. Si el fan elige Créditos, recibe su tramo completo (100% o 50%) en Créditos, sin descontar la comisión ($25 → 2,500 o 1,250 Créditos).
 - 3 reservas sin pagar o 3 cancelaciones voluntarias en 30 días → bloqueo de 72 h.
 
 **Devoluciones y disputas:** se descuentan de ganancias futuras del creador cuando le toca; el admin puede cubrirlas. Nadie puede pagarse a sí mismo.
