@@ -4,9 +4,9 @@ type Point = { x: number; y: number };
 type View = Point & { zoom: number };
 const initial: View = { x: 0, y: 0, zoom: 1 };
 
-// Only the regular-publication viewer uses this. Zoom does not change the file,
-// its quality, access checks, or the separate avatar/cover viewer.
-const ZoomablePostImage: React.FC<{ src: string; alt: string; onGestureStart: () => void }> = ({ src, alt, onGestureStart }) => {
+// Pinch, wheel and double-tap zoom for the post viewer and the profile photo /
+// cover viewer. Zoom does not change the file, its quality or access checks.
+const ZoomablePostImage: React.FC<{ src: string; alt: string; onGestureStart: () => void; testId?: string }> = ({ src, alt, onGestureStart, testId = 'media-viewer-image' }) => {
   const box = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [natural, setNatural] = useState({ width: 0, height: 0 });
@@ -87,7 +87,7 @@ const ZoomablePostImage: React.FC<{ src: string; alt: string; onGestureStart: ()
       <div ref={box} className={`flex h-full w-full touch-none items-center justify-center overflow-hidden ${view.zoom > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-zoom-in'}`}
         onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
         onDoubleClick={() => zoomTo(view.zoom > 1 ? 1 : 2)}>
-        <img src={src} alt={alt} draggable={false} className="max-h-full max-w-full object-contain" data-testid="media-viewer-image"
+        <img src={src} alt={alt} draggable={false} className="max-h-full max-w-full object-contain" data-testid={testId}
           onLoad={(event) => setNatural({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })}
           style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})` }} />
       </div>
