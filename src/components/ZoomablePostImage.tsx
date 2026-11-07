@@ -6,7 +6,9 @@ const initial: View = { x: 0, y: 0, zoom: 1 };
 
 // Pinch, wheel and double-tap zoom for the post viewer and the profile photo /
 // cover viewer. Zoom does not change the file, its quality or access checks.
-const ZoomablePostImage: React.FC<{ src: string; alt: string; onGestureStart: () => void; testId?: string }> = ({ src, alt, onGestureStart, testId = 'media-viewer-image' }) => {
+// `overlay` (the viewer's watermark) is laid exactly over the visible photo and
+// zooms/pans with it, so it never lands on the black bars around the picture.
+const ZoomablePostImage: React.FC<{ src: string; alt: string; onGestureStart: () => void; testId?: string; overlay?: React.ReactNode }> = ({ src, alt, onGestureStart, testId = 'media-viewer-image', overlay }) => {
   const box = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [natural, setNatural] = useState({ width: 0, height: 0 });
@@ -49,6 +51,9 @@ const ZoomablePostImage: React.FC<{ src: string; alt: string; onGestureStart: ()
     return () => element.removeEventListener('wheel', wheel);
   }, [zoomTo]);
 
+  const fit = natural.width && natural.height ? Math.min(1, size.width / natural.width, size.height / natural.height) : 0;
+  const transform = `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`;
+
   const distance = () => {
     const [a, b] = [...pointers.current.values()];
     return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0;
@@ -84,12 +89,18 @@ const ZoomablePostImage: React.FC<{ src: string; alt: string; onGestureStart: ()
 
   return (
     <div className="relative h-full w-full min-h-0" data-testid="post-photo-zoom" data-zoom={view.zoom.toFixed(2)}>
-      <div ref={box} className={`flex h-full w-full touch-none items-center justify-center overflow-hidden ${view.zoom > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-zoom-in'}`}
+      <div ref={box} className={`relative flex h-full w-full touch-none items-center justify-center overflow-hidden ${view.zoom > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-zoom-in'}`}
         onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
         onDoubleClick={() => zoomTo(view.zoom > 1 ? 1 : 2)}>
         <img src={src} alt={alt} draggable={false} className="max-h-full max-w-full object-contain" data-testid={testId}
           onLoad={(event) => setNatural({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })}
-          style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})` }} />
+          style={{ transform }} />
+        {overlay && fit > 0 && (
+          <div className="pointer-events-none absolute left-1/2 top-1/2" data-testid="photo-overlay"
+            style={{ width: natural.width * fit, height: natural.height * fit, transform: `translate(-50%, -50%) ${transform}` }}>
+            {overlay}
+          </div>
+        )}
       </div>
     </div>
   );

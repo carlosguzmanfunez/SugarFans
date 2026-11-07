@@ -166,7 +166,8 @@ const MediaViewer: React.FC<Props> = ({ posts, startId, onClose, viewer }) => {
                     testId="media-viewer-video"
                   /> : <VideoPreview seed={`post-${p.id}`} />
                 ) : p.mediaUrl && !isPlaceholderImage(p.mediaUrl) ? (
-                  i === index ? <ZoomablePostImage key={`${p.id}-${index}`} src={p.mediaUrl} alt={p.content || 'Foto'} onGestureStart={cancelSwipe} /> : <img src={p.mediaUrl} alt="" draggable={false} className="max-w-full max-h-full object-contain" />
+                  i === index ? <ZoomablePostImage key={`${p.id}-${index}`} src={p.mediaUrl} alt={p.content || 'Foto'} onGestureStart={cancelSwipe}
+                    overlay={viewer && p.isLocked ? <ViewerWatermark viewer={viewer} /> : undefined} /> : <img src={p.mediaUrl} alt="" draggable={false} className="max-w-full max-h-full object-contain" />
                 ) : (
                   <CoverImage seed={`post-${p.id}`} className="w-full max-w-2xl aspect-square" />
                 ));
@@ -175,7 +176,8 @@ const MediaViewer: React.FC<Props> = ({ posts, startId, onClose, viewer }) => {
                 {viewer && slide ? (
                   <ProtectedMedia className="flex h-full w-full items-center justify-center">
                     {slide}
-                    {p.isLocked && i === index && <ViewerWatermark viewer={viewer} />}
+                    {/* Photos carry it inside the zoomable picture; videos over the slide. */}
+                    {p.isLocked && i === index && p.mediaType === 'video' && <ViewerWatermark viewer={viewer} />}
                   </ProtectedMedia>
                 ) : slide}
               </div>
