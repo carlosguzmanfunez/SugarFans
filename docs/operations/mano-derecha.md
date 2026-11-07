@@ -27,7 +27,7 @@ La base pide a `GET /api/usage?report=1` que mande los reportes pendientes (solo
 ```sql
 -- Pausar todo
 select cron.unschedule(jobid) from cron.job where jobname in ('monitor-hourly','monitor-midday','monitor-midnight');
--- Reactivar: volver a ejecutar el bloque 10 de supabase/migrations/20261107210000_monitor_mano_derecha.sql
+-- Reactivar: volver a ejecutar el bloque 10 (las 3 líneas cron.schedule) de supabase/migrations/20261107210000_monitor_mano_derecha.sql
 ```
 
 Código: `supabase/migrations/20261107210000_monitor_mano_derecha.sql`, `src/components/AdminMonitor.tsx`, `src/lib/monitorReportEmail.ts`, `api/usage.ts`. Prueba visual: `npm run build && node e2e/admin-monitor-ui.mjs`.

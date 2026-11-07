@@ -505,11 +505,8 @@ $$;
 revoke execute on function public.monitor_refresh() from public, anon;
 grant execute on function public.monitor_refresh() to authenticated;
 
--- 10) Horarios (UTC). Honduras = UTC-6 todo el año.
-do $$
-begin
-  perform cron.unschedule(jobid) from cron.job where jobname in ('monitor-hourly','monitor-midday','monitor-midnight');
-  perform cron.schedule('monitor-hourly', '5 * * * *', 'select public.monitor_hourly(''hourly'')');
-  perform cron.schedule('monitor-midday', '0 18 * * *', 'select public.monitor_report(''midday'')');
-  perform cron.schedule('monitor-midnight', '0 6 * * *', 'select public.monitor_report(''midnight'')');
-end $$;
+-- 10) Horarios (UTC). Honduras = UTC-6 todo el año. Con el mismo nombre, pg_cron
+--     reemplaza la tarea, así que volver a ejecutar esto no la duplica.
+select cron.schedule('monitor-hourly', '5 * * * *', 'select public.monitor_hourly(''hourly'')');
+select cron.schedule('monitor-midday', '0 18 * * *', 'select public.monitor_report(''midday'')');
+select cron.schedule('monitor-midnight', '0 6 * * *', 'select public.monitor_report(''midnight'')');
