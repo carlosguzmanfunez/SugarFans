@@ -30,4 +30,6 @@ select cron.unschedule(jobid) from cron.job where jobname in ('monitor-hourly','
 -- Reactivar: volver a ejecutar el bloque 10 (las 3 líneas cron.schedule) de supabase/migrations/20261107210000_monitor_mano_derecha.sql
 ```
 
+Qué hacer con cada alerta y el resto de procesos: `docs/operations/manual-operacion.md`.
+
 Código: `supabase/migrations/20261107210000_monitor_mano_derecha.sql`, `src/components/AdminMonitor.tsx`, `src/lib/monitorReportEmail.ts`, `api/usage.ts`. Prueba visual: `npm run build && node e2e/admin-monitor-ui.mjs`.
