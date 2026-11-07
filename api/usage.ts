@@ -11,6 +11,7 @@
 // SUPABASE_SERVICE_ROLE_KEY and RESEND_API_KEY (both already set).
 import { deliverOutbox, logServerError, resendKey, sendEmail } from './_mail.js';
 import { alertEmail, fromRpc, pendingAlerts } from '../src/lib/infraUsage.js';
+import { sitemapResponse } from './_sitemap.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://odugxvqwuvewsvifwmwb.supabase.co';
 
@@ -40,6 +41,8 @@ const rest = async (key: string, path: string, body?: unknown, prefer = 'return=
 };
 
 export async function GET(request: Request): Promise<Response> {
+  // /sitemap.xml (public, read-only): see api/_sitemap.ts.
+  if (new URL(request.url).searchParams.get('sitemap') === '1') return sitemapResponse();
   const e = env();
   const auth = request.headers.get('authorization') ?? '';
   if (!e.cronSecret || auth !== `Bearer ${e.cronSecret}`) {

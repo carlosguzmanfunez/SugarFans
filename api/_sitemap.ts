@@ -1,4 +1,7 @@
-// Vercel function: fansreserve.com/sitemap.xml (vercel.json rewrites it here).
+// fansreserve.com/sitemap.xml. Served by api/usage.ts (vercel.json rewrites
+// /sitemap.xml to /api/usage?sitemap=1): the Hobby plan allows 12 functions per
+// deployment and they are all in use, so this shares a bundle like reserve-session
+// shares live-token.
 // The public pages plus the profile of every verified creator, so Google and AI
 // search can find each creator's page (/creator/<id>). Reads the same public list
 // Explorar shows (public.public_creators, open to anyone); unverified creators,
@@ -54,7 +57,7 @@ const publicCreators = async (): Promise<CreatorRow[]> => {
   }
 };
 
-export async function GET(): Promise<Response> {
+export async function sitemapResponse(): Promise<Response> {
   return new Response(sitemapXml(await publicCreators()), {
     status: 200,
     headers: {

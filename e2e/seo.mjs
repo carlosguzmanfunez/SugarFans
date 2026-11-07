@@ -1,16 +1,16 @@
-// Search engines and AI search: the dynamic sitemap (api/sitemap.ts, Supabase
+// Search engines and AI search: the dynamic sitemap (api/_sitemap.ts via api/usage.ts, Supabase
 // replaced by a fake), llms.txt, and the per-page title/description hook on every
 // public page. Run: node e2e/seo.mjs
 import { build } from 'esbuild';
-import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, readFileSync, existsSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import assert from 'node:assert/strict';
 
 const dir = mkdtempSync(join(tmpdir(), 'seo-'));
-await build({ entryPoints: ['api/sitemap.ts'], outfile: join(dir, 'sitemap.mjs'), bundle: true, platform: 'node', format: 'esm', logLevel: 'silent' });
-const api = await import(pathToFileURL(join(dir, 'sitemap.mjs')).href);
+await build({ entryPoints: ['api/usage.ts'], outfile: join(dir, 'usage.mjs'), bundle: true, platform: 'node', format: 'esm', logLevel: 'silent' });
+const api = await import(pathToFileURL(join(dir, 'usage.mjs')).href);
 
 let passed = 0;
 const check = async (name, fn) => {
@@ -32,7 +32,7 @@ globalThis.fetch = async (url, init) => {
 };
 
 await check('El sitemap lista las páginas públicas y solo creadores verificados, sin repetir', async () => {
-  const r = await api.GET();
+  const r = await api.GET(new Request('https://fansreserve.com/api/usage?sitemap=1'));
   assert.equal(r.status, 200);
   assert.match(r.headers.get('content-type'), /application\/xml/);
   const xml = await r.text();
@@ -48,14 +48,19 @@ await check('Si Supabase falla, el sitemap sigue con las páginas públicas', as
   globalThis.fetch = async () => {
     throw new Error('sin red');
   };
-  const xml = await (await api.GET()).text();
+  const xml = await (await api.GET(new Request('https://fansreserve.com/api/usage?sitemap=1'))).text();
   assert.ok(xml.includes('<loc>https://fansreserve.com/explore</loc>'));
   assert.ok(!xml.includes('/creator/'));
 });
 
+await check('No pasa de 12 funciones (límite del plan Hobby de Vercel)', async () => {
+  const fns = readdirSync('api').filter((f) => /\.(ts|js|mjs)$/.test(f) && !f.startsWith('_'));
+  assert.ok(fns.length <= 12, `funciones: ${fns.length}`);
+});
+
 await check('vercel.json manda /sitemap.xml a la función antes del catch-all', async () => {
   const { rewrites } = JSON.parse(readFileSync('vercel.json', 'utf8'));
-  const i = rewrites.findIndex((r) => r.source === '/sitemap.xml' && r.destination === '/api/sitemap');
+  const i = rewrites.findIndex((r) => r.source === '/sitemap.xml' && r.destination === '/api/usage?sitemap=1');
   const spa = rewrites.findIndex((r) => r.destination === '/index.html');
   assert.ok(i >= 0 && i < spa);
   assert.ok(!existsSync('public/sitemap.xml'), 'un sitemap estático taparía la función');
