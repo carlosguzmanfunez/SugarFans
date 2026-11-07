@@ -72,6 +72,8 @@ const CreatorProfile: React.FC = () => {
     { removedPosts: [] as string[], blocks: [] as Awaited<ReturnType<typeof platformApi.blocks>> }
   );
   const [checkout, setCheckout] = useState(false);
+  // Came back from signing in after tapping Suscribirse or a locked photo (#suscribirse).
+  const [subscribeAfterLogin, setSubscribeAfterLogin] = useState(false);
   const [shared, setShared] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [reporting, setReporting] = useState<{ kind: 'post' | 'creator'; targetId: string; label: string } | null>(null);
@@ -149,6 +151,12 @@ const CreatorProfile: React.FC = () => {
   useEffect(() => {
     if (profileReady && ['#acceso', '#suscripcion'].includes(location.hash)) document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: 'start' });
   }, [location.hash, profileReady]);
+
+  useEffect(() => {
+    if (location.hash !== '#suscribirse') return;
+    setSubscribeAfterLogin(true);
+    navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: location.state });
+  }, [location.hash, location.pathname, location.search, location.state, navigate]);
 
   // Posts published from the creator panel, then like/comment totals for every post.
   const { data: feed, loading: feedLoading, reload: reloadFeed } = usePlatformQuery(
@@ -249,6 +257,7 @@ const CreatorProfile: React.FC = () => {
   const acceptsPayments = !(!catalogCreator && signedUp && !signedUp.isVerified);
   // Subscribing is for fans (visitors are sent to log in); creators and admins don't subscribe.
   const canSubscribe = !isOwner && !iBlocked && acceptsPayments && user?.role !== 'creator' && user?.role !== 'admin';
+  const subscribing = checkout || (subscribeAfterLogin && !!user && canSubscribe && !isSubscribed);
   // What the full-screen viewer swipes through: photos and videos this visitor may see.
   const viewable = creatorPosts.filter((p) => p.mediaUrl && canView(p));
   const videoCount = creatorPosts.filter((post) => post.mediaType === 'video' && !post.isDraft && (!post.moderation || post.moderation === 'approved')).length;
@@ -262,7 +271,8 @@ const CreatorProfile: React.FC = () => {
 
   const handleSubscribe = () => {
     if (!isAuthenticated) {
-      navigate('/login', { state: { from: location.pathname } });
+      // Back on this profile after signing in, the subscription opens by itself.
+      navigate('/login', { state: { from: `${location.pathname}#suscribirse` } });
       return;
     }
     if (isSubscribed) {
@@ -289,6 +299,7 @@ const CreatorProfile: React.FC = () => {
     await refreshUser();
     platformChanged();
     setCheckout(false);
+    setSubscribeAfterLogin(false);
     return result;
   };
 
@@ -701,6 +712,10 @@ const CreatorProfile: React.FC = () => {
                   if (post.mediaUrl && canView(post)) {
                     e.preventDefault();
                     setViewing(post.id);
+                  } else if (!canView(post) && canSubscribe) {
+                    // Locked for this fan or visitor: straight to Suscribirse.
+                    e.preventDefault();
+                    handleSubscribe();
                   } else setActiveTab('posts');
                 }}
                 data-testid="media-tile"
@@ -769,7 +784,7 @@ const CreatorProfile: React.FC = () => {
 
       <div className="h-8 sm:h-16"></div>
 
-      {checkout && user && (
+      {subscribing && user && (
         <CheckoutDialog
           user={user}
           title={`Suscripción a ${creator.name}`}
@@ -779,7 +794,7 @@ const CreatorProfile: React.FC = () => {
           extra={<ReserveNotice kind="subscription" />}
           paypal={{ kind: 'subscription', params: { creatorProfileId: creator.id } }}
           onConfirm={confirmPayment}
-          onClose={() => setCheckout(false)}
+          onClose={() => { setCheckout(false); setSubscribeAfterLogin(false); }}
         />
       )}
       {tipping && user && (
