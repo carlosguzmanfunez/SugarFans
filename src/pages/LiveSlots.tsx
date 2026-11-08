@@ -5,7 +5,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { backend, PAID_WITH_PAYPAL, type LiveSlotsStatus } from '../lib/backend';
 import { money, platformChanged } from '../lib/platform';
 import { saveRefCode } from '../lib/rewardRules';
-import { LIVE_HOLD_MINUTES, countdown, fill, viewerTime } from '../lib/liveSlots';
+import { AUTO_ENTER_SECONDS, LIVE_HOLD_MINUTES, countdown, fill, roomOpen, viewerTime } from '../lib/liveSlots';
 import { zonedDate } from '../lib/timeZones';
 import CheckoutDialog from '../components/CheckoutDialog';
 import SocialLoginButtons from '../components/SocialLoginButtons';
@@ -31,6 +31,7 @@ const LiveSlots: React.FC = () => {
   const [error, setError] = useState('');
   const [taking, setTaking] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [enterDeadline, setEnterDeadline] = useState<number | null>(null);
   usePageMeta({ title: status?.creatorName ? fill(t('liveSlots.page.title'), { name: status.creatorName }) : t('liveSlots.tab'), description: t('liveSlots.page.rules'), path: `/@${username}/ahora` }, !!status);
 
   const load = useCallback(() => {
@@ -96,6 +97,14 @@ const LiveSlots: React.FC = () => {
     return result;
   };
 
+  const paidLive = !!mine && mine.status === 'confirmed' && !!drop && roomOpen({ date: mine.date, time: mine.time, timeZone: drop.timeZone, durationMinutes: drop.minutes }, now + skew);
+  useEffect(() => {
+    if (paidLive && !enterDeadline) setEnterDeadline(Date.now() + AUTO_ENTER_SECONDS * 1000);
+  }, [paidLive, enterDeadline]);
+  useEffect(() => {
+    if (enterDeadline && mine && now >= enterDeadline) navigate(`/live/${mine.bookingId}`);
+  }, [enterDeadline, now, mine, navigate]);
+
   if (status === undefined && !error) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center" role="status" aria-label={t('liveSlots.tab')}>
@@ -121,7 +130,21 @@ const LiveSlots: React.FC = () => {
   const mineTime = mine ? viewerTime(zonedDate(mine.date, mine.time, drop?.timeZone).toISOString(), language) : '';
   const payLeft = mine?.paymentDueAt ? Math.min(Date.parse(mine.paymentDueAt) - serverNow, LIVE_HOLD_MINUTES * 60_000) : 0;
 
+  // Paid and the call room is already open ("Llamada ya"): go in after 10 seconds.
+  const live = !!mine && mine.status === 'confirmed' && !!drop && roomOpen({ date: mine.date, time: mine.time, timeZone: drop.timeZone, durationMinutes: drop.minutes }, serverNow);
+  const enterAt = live ? enterDeadline : null;
+
   const body = (() => {
+    if (mine && mine.status === 'confirmed' && enterAt) {
+      return (
+        <div className="text-center" data-testid="live-slots-entering">
+          <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600"><i aria-hidden="true" className="fas fa-video text-xl"></i></span>
+          <p className="text-lg font-bold text-ink">{fill(t('liveSlots.now.fanReady'), { name })}</p>
+          <p className="mt-1 text-sm text-ink/70">{fill(t('liveSlots.now.entering'), { s: Math.min(AUTO_ENTER_SECONDS, Math.max(0, Math.ceil((enterAt - now) / 1000))) })}</p>
+          <Link to={`/live/${mine.bookingId}`} className="btn-gold mt-5 inline-flex h-14 w-full max-w-sm items-center justify-center rounded-full text-base font-bold">{t('liveSlots.now.enter')}</Link>
+        </div>
+      );
+    }
     if (mine && (mine.status === 'confirmed' || mine.status === 'completed')) {
       return (
         <div className="text-center" data-testid="live-slots-paid">
@@ -200,7 +223,7 @@ const LiveSlots: React.FC = () => {
           </span>
           <h1 className="mt-3 text-2xl font-bold text-ink">{fill(t('liveSlots.page.title'), { name })}</h1>
           {drop && !drop.closed && (
-            <p className="mt-1 text-sm text-ink/70">{fill(t('liveSlots.page.what'), { slots: drop.slots, minutes: drop.minutes, time: viewerTime(drop.firstStartAt, language) })}</p>
+            <p className="mt-1 text-sm text-ink/70">{fill(t(drop.slots === 1 ? 'liveSlots.page.whatOne' : 'liveSlots.page.what'), { slots: drop.slots, minutes: drop.minutes, time: viewerTime(drop.firstStartAt, language) })}</p>
           )}
         </div>
         {error && <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" data-testid="live-slots-error">{error}</p>}

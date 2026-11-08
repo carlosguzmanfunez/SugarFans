@@ -73,7 +73,7 @@ begin
   if p_minutes is null or p_minutes not in (10, 15, 20, 30) then raise exception 'Elige 10, 15, 20 o 30 minutos por cupo'; end if;
   if p_price is null or p_price < 5 or p_price > 5000 then raise exception 'El precio va de $5 a $5,000'; end if;
   if coalesce(p_opens_in, -1) not in (0, 5, 10, 15, 30, 60) then raise exception 'Elige cuándo se abren los cupos'; end if;
-  if coalesce(p_gap, -1) not in (10, 15, 30, 60) then raise exception 'Elige cuándo empieza la primera llamada'; end if;
+  if coalesce(p_gap, -1) not in (5, 10, 15, 30, 60) then raise exception 'Elige cuándo empieza la primera llamada'; end if;
   if p_slots * p_minutes > 600 then raise exception 'Los cupos no pueden pasar de 10 horas seguidas'; end if;
 
   perform pg_advisory_xact_lock(hashtextextended('reserve-live:' || me.creator_profile_id, 0));

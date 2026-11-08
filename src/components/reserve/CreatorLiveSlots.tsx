@@ -1,18 +1,21 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import qrcode from 'qrcode-generator';
 import type { User } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { backend, type LiveSlotsStatus, type VipBooking } from '../../lib/backend';
 import { money } from '../../lib/platform';
 import {
-  LIVE_GAPS, LIVE_OPENS_IN, LIVE_SLOT_COUNTS, LIVE_SLOT_MINUTES, countdown, fill, firstCallAt, liveSlotsError, liveSlotsLink, slotStart, viewerTime,
+  AUTO_ENTER_SECONDS, LIVE_GAPS, LIVE_OPENS_IN, LIVE_SLOT_COUNTS, LIVE_SLOT_MINUTES, NOW_CALL, countdown, fill, firstCallAt, liveSlotsError, liveSlotsLink,
+  roomOpen, slotStart, viewerTime,
 } from '../../lib/liveSlots';
 
 interface Props {
   user: User;
   bookings: VipBooking[];
   onChanged: () => void;
+  // Re-reads the creator's bookings (to notice a slot that was just paid).
+  refreshBookings?: () => void;
 }
 
 const chip = (on: boolean) =>
@@ -20,7 +23,8 @@ const chip = (on: boolean) =>
 
 // Creator panel → Reserve → Cupos en vivo: open today's 1:1 slots during a live on
 // another network, share the short link / QR, and see who is next.
-const CreatorLiveSlots: React.FC<Props> = ({ user, bookings, onChanged }) => {
+const CreatorLiveSlots: React.FC<Props> = ({ user, bookings, onChanged, refreshBookings }) => {
+  const navigate = useNavigate();
   const { t, language } = useLanguage();
   const [status, setStatus] = useState<LiveSlotsStatus | null>(null);
   const [slots, setSlots] = useState(5);
@@ -68,12 +72,13 @@ const CreatorLiveSlots: React.FC<Props> = ({ user, bookings, onChanged }) => {
     return { from: viewerTime(first.toISOString(), language), to: viewerTime(last.toISOString(), language) };
   })();
 
-  const open = async () => {
-    const problem = liveSlotsError(input);
+  const open = async (now = false) => {
+    const values = now ? { ...input, ...NOW_CALL } : input;
+    const problem = liveSlotsError(values);
     if (problem) return setError(t(problem));
     setBusy(true);
     setError('');
-    const result = await backend.liveSlotsOpen(user, input);
+    const result = await backend.liveSlotsOpen(user, values);
     setBusy(false);
     if (!result.ok) return setError(result.error || t('liveSlots.err.load'));
     load();
@@ -109,6 +114,30 @@ const CreatorLiveSlots: React.FC<Props> = ({ user, bookings, onChanged }) => {
 
   const opensLeft = drop ? Date.parse(drop.opensAt) - (now + skew) : 0;
 
+  // While slots are on sale, look for new payments every 10 s (the bell also triggers a reload).
+  const selling = !!drop && !drop.closed;
+  useEffect(() => {
+    if (!selling || !refreshBookings) return;
+    const every = window.setInterval(refreshBookings, 10_000);
+    return () => window.clearInterval(every);
+  }, [selling, refreshBookings]);
+
+  // A slot paid while this panel is open and whose room is already open: both go in
+  // after a 10-second countdown ("Llamada ya"). Slots paid before opening the panel don't jump.
+  const paidAtStart = React.useRef<Set<string> | null>(null);
+  const [entering, setEntering] = useState<{ booking: VipBooking; at: number } | null>(null);
+  const [skipped, setSkipped] = useState<string[]>([]);
+  useEffect(() => {
+    const paid = order.filter((b) => stateOf(b) === 'paid');
+    if (!paidAtStart.current) { paidAtStart.current = new Set(paid.map((b) => b.id)); return; }
+    if (entering) return;
+    const fresh = paid.find((b) => !paidAtStart.current!.has(b.id) && !skipped.includes(b.id) && roomOpen(b, now + skew));
+    if (fresh) setEntering({ booking: fresh, at: Date.now() + AUTO_ENTER_SECONDS * 1000 });
+  }); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (entering && now >= entering.at) navigate(`/live/${entering.booking.id}`);
+  }, [entering, now, navigate]);
+
   return (
     <div className="space-y-4" data-testid="live-slots-panel">
       <div className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
@@ -124,13 +153,38 @@ const CreatorLiveSlots: React.FC<Props> = ({ user, bookings, onChanged }) => {
 
       {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
+      {entering && (
+        <div role="alert" className="rounded-2xl border-2 border-emerald-500 bg-emerald-50 p-5 text-center" data-testid="live-slots-entering">
+          <p className="text-lg font-bold text-emerald-800">{fill(t('liveSlots.now.paid'), { name: entering.booking.fanName.split(' ')[0] })}</p>
+          <p className="mt-1 text-sm text-emerald-800">{fill(t('liveSlots.now.entering'), { s: Math.min(AUTO_ENTER_SECONDS, Math.max(0, Math.ceil((entering.at - now) / 1000))) })}</p>
+          <div className="mt-3 flex flex-wrap justify-center gap-2">
+            <Link to={`/live/${entering.booking.id}`} className="inline-flex h-11 items-center rounded-full bg-emerald-600 px-6 text-sm font-bold text-white">{t('liveSlots.now.enter')}</Link>
+            <button type="button" onClick={() => { setSkipped((x) => [...x, entering.booking.id]); setEntering(null); }} className="h-11 rounded-full border border-emerald-300 px-5 text-sm font-semibold text-emerald-800">{t('liveSlots.now.later')}</button>
+          </div>
+        </div>
+      )}
+
+      {user.isVerified && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-5 sm:p-6" data-testid="live-slots-now">
+          <h3 className="font-bold text-ink"><i aria-hidden="true" className="fas fa-bolt mr-1.5 text-amber-500"></i>{t('liveSlots.now.title')}</h3>
+          <p className="mt-1 max-w-2xl text-sm text-ink/70">{t('liveSlots.now.intro')}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {LIVE_SLOT_MINUTES.map((n) => <button key={n} type="button" aria-pressed={minutes === n} onClick={() => setMinutes(n)} className={chip(minutes === n)}>{n} min</button>)}
+            <span className="ml-1 text-sm font-semibold text-ink">{money(Number(price.replace(',', '.')) || 0)}</span>
+          </div>
+          <button type="button" disabled={busy} onClick={() => open(true)} className="btn-gold mt-4 h-12 rounded-full px-7 text-sm font-bold disabled:opacity-60" data-testid="live-slots-now-open">
+            {busy ? t('liveSlots.opening') : t('liveSlots.now.open')}
+          </button>
+        </div>
+      )}
+
       {drop && !drop.closed && (
         <div className="rounded-2xl border-2 border-ink bg-white p-5 shadow-sm sm:p-6" data-testid="live-slots-active">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h3 className="text-lg font-bold text-ink">{t('liveSlots.active.title')}</h3>
               <p className="mt-1 text-sm text-ink/70">
-                {fill(t('liveSlots.page.what'), { slots: drop.slots, minutes: drop.minutes, time: viewerTime(drop.firstStartAt, language) })} · {money(drop.price)}
+                {fill(t(drop.slots === 1 ? 'liveSlots.page.whatOne' : 'liveSlots.page.what'), { slots: drop.slots, minutes: drop.minutes, time: viewerTime(drop.firstStartAt, language) })} · {money(drop.price)}
               </p>
             </div>
             <p className="rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-ink" data-testid="live-slots-left">
@@ -189,7 +243,7 @@ const CreatorLiveSlots: React.FC<Props> = ({ user, bookings, onChanged }) => {
       {!user.isVerified ? (
         <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">{t('liveSlots.verifyFirst')}</p>
       ) : (
-        <form className="space-y-5 rounded-2xl bg-white p-5 shadow-sm sm:p-6" onSubmit={(e) => { e.preventDefault(); open(); }} data-testid="live-slots-form">
+        <form className="space-y-5 rounded-2xl bg-white p-5 shadow-sm sm:p-6" onSubmit={(e) => { e.preventDefault(); open(false); }} data-testid="live-slots-form">
           <fieldset>
             <legend className="text-sm font-semibold text-ink">{t('liveSlots.field.slots')}</legend>
             <div className="mt-2 flex flex-wrap gap-2">

@@ -39,11 +39,13 @@ try {
     await page.getByTestId('live-slots-price').fill('20');
     assert.match(await page.getByTestId('live-slots-summary').innerText(), /3 cupos × 15 min/);
     if (shots) await page.screenshot({ path: `${shots}/${device}-1-creador-formulario.png`, fullPage: true });
-    await page.getByTestId('live-slots-open').click();
+    // Desktop opens planned slots; the phone run uses "Llamada ya" (1 slot, starts in minutes).
+    const now = device === 'movil';
+    await page.getByTestId(now ? 'live-slots-now-open' : 'live-slots-open').click();
     await page.getByTestId('live-slots-active').waitFor();
     const link = (await page.getByTestId('live-slots-link').innerText()).trim();
     assert.match(link, /^127\.0\.0\.1:\d+\/@[a-z0-9_]+\/ahora$/, link);
-    assert.equal(await page.getByTestId('live-slots-left').innerText(), 'Quedan 3 de 3');
+    assert.equal(await page.getByTestId('live-slots-left').innerText(), now ? 'Quedan 1 de 1' : 'Quedan 3 de 3');
     assert.ok((await page.getByTestId('live-slots-qr').getAttribute('src')).startsWith('data:image/gif'), 'QR image');
     if (shots) await page.getByTestId('live-slots-active').screenshot({ path: `${shots}/${device}-2-creador-enlace-qr.png` });
     // The hidden experience never shows in "Mis experiencias".
@@ -62,7 +64,7 @@ try {
       await page.reload();
     }
     await visitorView.waitFor();
-    assert.match(await page.getByTestId('live-slots-left').innerText(), /Quedan 3 de 3 cupos/);
+    assert.match(await page.getByTestId('live-slots-left').innerText(), now ? /Quedan 1 de 1 cupos/ : /Quedan 3 de 3 cupos/);
     if (shots) await page.screenshot({ path: `${shots}/${device}-3-visitante.png`, fullPage: true });
     await visitorView.getByRole('button', { name: 'Entrar con correo' }).click();
     await page.waitForURL((url) => url.pathname === '/login');
@@ -77,6 +79,14 @@ try {
     await page.getByTestId('live-slots-held').waitFor();
     assert.match(await page.getByTestId('live-slots-held').innerText(), /Tu cupo #1 está apartado/);
     if (shots) await page.screenshot({ path: `${shots}/${device}-5-apartado.png`, fullPage: true });
+    if (now) {
+      // Paid: the call room is already open, so after 10 seconds the fan goes in.
+      await page.getByTestId('live-slots-pay').click();
+      await page.getByRole('button', { name: /Pagar ahora \$20\.00/ }).last().click();
+      await page.getByTestId('live-slots-entering').waitFor({ timeout: 15000 });
+      if (shots) await page.screenshot({ path: `${shots}/${device}-6-entrando.png` });
+      await page.waitForURL((url) => url.pathname.startsWith('/live/'), { timeout: 15000 });
+    }
     console.log(`${device}: ok`);
     await context.close();
   }

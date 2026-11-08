@@ -2,14 +2,26 @@
 // fansreserve.com/@usuario/ahora and the local demo store. The database
 // (20261108010000_reserve_live_slots.sql) enforces the same values.
 import type { LiveDrop } from './backend/types';
+import { zonedDate } from './timeZones';
+import { LIVE_EARLY_MIN } from './vip';
 
 export const LIVE_SLOT_COUNTS = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20];
 export const LIVE_SLOT_MINUTES = [10, 15, 20, 30];
 export const LIVE_OPENS_IN = [0, 5, 10, 15, 30, 60];
-export const LIVE_GAPS = [10, 15, 30, 60];
+export const LIVE_GAPS = [5, 10, 15, 30, 60];
 export const LIVE_MIN_PRICE = 5;
 export const LIVE_MAX_PRICE = 5000;
 export const LIVE_HOLD_MINUTES = 15;
+// "Llamada ya": one slot, on sale now, starting on the next 5-minute mark at least
+// 5 minutes away (time to pay). The call room opens 15 minutes before its start,
+// so both can go in as soon as it is paid.
+export const NOW_CALL = { slots: 1, opensIn: 0, gap: 5 };
+export const AUTO_ENTER_SECONDS = 10;
+// Whether a paid slot's call room is already open (same window as LiveRoom).
+export const roomOpen = (b: { date: string; time: string; timeZone?: string; durationMinutes?: number }, at = Date.now()) => {
+  const start = zonedDate(b.date, b.time, b.timeZone).getTime();
+  return at >= start - LIVE_EARLY_MIN * 60_000 && at < start + (b.durationMinutes ?? 30) * 60_000;
+};
 
 export const liveSlotsError = (i: { slots: number; minutes: number; price: number; opensIn: number; gap: number }): string | null => {
   if (!(Number.isInteger(i.slots) && i.slots >= 1 && i.slots <= 20)) return 'liveSlots.err.slots';

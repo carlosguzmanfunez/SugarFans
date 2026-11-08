@@ -213,7 +213,7 @@ const CreatorReservePanel: React.FC<Props> = ({ availability, bookings, reloadBo
           {list(requests, 'No tienes solicitudes pendientes.', 'vip-request')}
         </div>
       )}
-      {section === 'live' && <CreatorLiveSlots user={user} bookings={bookings} onChanged={changed} />}
+      {section === 'live' && <CreatorLiveSlots user={user} bookings={bookings} onChanged={changed} refreshBookings={reloadBookings} />}
       {section === 'availability' && availabilityEditor}
       {section === 'upcoming' && <div data-testid="reserve-upcoming">{list(upcoming, 'No tienes reservas próximas.', 'vip-request')}</div>}
       {section === 'history' && <div data-testid="reserve-history">{list(history, 'Aún no hay historial.', 'vip-request')}</div>}
