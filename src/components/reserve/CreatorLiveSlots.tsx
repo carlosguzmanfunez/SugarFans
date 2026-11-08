@@ -277,10 +277,14 @@ const CreatorLiveSlots: React.FC<Props> = ({ user, bookings, onChanged, refreshB
             <legend className="text-sm font-semibold text-ink">{t('liveSlots.field.gap')}</legend>
             <p className="mt-0.5 text-xs text-muted">{t('liveSlots.hint.gap')}</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {LIVE_GAPS.map((n) => <button key={n} type="button" aria-pressed={gap === n} onClick={() => setGap(n)} className={chip(gap === n)}>
-                {fill(t('liveSlots.gap.after'), { n })}
-                <span className="ml-1 font-normal opacity-70">({viewerTime(firstCallAt(new Date(now + opensIn * 60_000), n).toISOString(), language)})</span>
-              </button>)}
+              {LIVE_GAPS.map((n) => {
+                // The chip shows the clock time and how far from now it is.
+                const at = firstCallAt(new Date(now + opensIn * 60_000), n);
+                return <button key={n} type="button" aria-pressed={gap === n} onClick={() => setGap(n)} className={chip(gap === n)}>
+                  {viewerTime(at.toISOString(), language)}
+                  <span className="ml-1 font-normal opacity-70">({fill(t('liveSlots.gap.after'), { n: Math.max(1, Math.round((at.getTime() - now) / 60_000)) })})</span>
+                </button>;
+              })}
             </div>
           </fieldset>
           <p className="rounded-xl bg-gray-50 px-4 py-3 text-sm text-ink/80" data-testid="live-slots-summary">
