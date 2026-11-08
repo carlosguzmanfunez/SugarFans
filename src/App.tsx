@@ -41,6 +41,7 @@ const LiveBroadcast = lazyPage(() => import('./pages/LiveBroadcast'));
 const ForgotPassword = lazyPage(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazyPage(() => import('./pages/ResetPassword'));
 const AuthCallback = lazyPage(() => import('./pages/AuthCallback'));
+const LiveSlots = lazyPage(() => import('./pages/LiveSlots'));
 
 const LoadingScreen: React.FC = () => (
   <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-label="Cargando">
@@ -271,6 +272,8 @@ const AppRoutes: React.FC = () => {
       } />
 
       {/* fansreserve.com/@usuario, otherwise 404 */}
+      {/* fansreserve.com/@usuario/ahora: Cupos en vivo (the link said on a TikTok/Instagram live). */}
+      <Route path="/:handle/ahora" element={<AppLayout><LiveSlots /></AppLayout>} />
       <Route path="*" element={<AppLayout><HandleLink /></AppLayout>} />
     </Routes>
     </Suspense>

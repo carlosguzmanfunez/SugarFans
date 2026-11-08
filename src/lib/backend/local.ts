@@ -42,7 +42,8 @@ import {
   validateRegistration,
   validateSignupExtras,
 } from './shared';
-import type { AuthResult, Availability, Backend, BookingInput, BookingStatus, User, VipBooking, VipExperience } from './types';
+import type { AuthResult, Availability, Backend, BookingInput, BookingStatus, LiveDrop, LiveSlotsInput, LiveSlotsStatus, User, VipBooking, VipExperience } from './types';
+import { firstCallAt, liveSlotsError, slotStart, wallClock } from '../liveSlots';
 import { isTimeZone, viewerTimeZone, zoneCity } from '../timeZones';
 import { paymentOverdue, reservationDue, reserveAccessOf, reserveBucket, type ReserveIncident, type ReserveRefundRequest } from '../reserveControl';
 import { VIRTUAL_CURRENCY, currencyWord } from '../../config/currency';
@@ -371,6 +372,83 @@ const createBooking = async (user: User, input: BookingInput): Promise<AuthResul
       },
     },
   ]);
+  return { ok: true, bookingId: id };
+};
+
+// Cupos en vivo in the local store (the database does the same in reserve_live_*).
+const LIVE_DROPS_KEY = 'live_drops_v1';
+interface StoredDrop extends Omit<LiveDrop, 'left' | 'nextStart' | 'closed'> { creatorProfileId: string; creatorName: string; closedAt?: string; createdAt: string }
+const liveDrops = () => readJSON<StoredDrop[]>(LIVE_DROPS_KEY, []);
+const liveHeld = (drop: StoredDrop) =>
+  listBookings().filter((b) => b.details?.liveDropId === drop.id && (b.status === 'confirmed' || b.status === 'completed' || b.status === 'accepted'));
+const liveStatus = async (username: string): Promise<LiveSlotsStatus | null> => {
+  const handle = username.trim().toLowerCase();
+  const account = loadAccounts().find((a) => a.role === 'creator' && handleOf(a) === handle);
+  const creatorId = account?.creatorProfileId ?? demoCreators.find((c) => c.username === handle)?.id;
+  if (!creatorId) return null;
+  const creatorName = account?.name ?? demoCreators.find((c) => c.id === creatorId)?.name ?? '';
+  const now = new Date();
+  const drop = liveDrops().filter((d) => d.creatorProfileId === creatorId && slotStart(d, d.slots - 1) > now).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+  if (!drop) return { creatorId, creatorName, now: now.toISOString() };
+  const held = liveHeld(drop);
+  const free = Array.from({ length: drop.slots }, (_, n) => n).filter((n) => slotStart(drop, n).getTime() > now.getTime() + 60_000 && !held.some((b) => b.details?.liveSlot === n + 1));
+  const meId = readSession();
+  const me = meId ? { id: meId } : null;
+  const mine = me ? held.find((b) => b.fanId === me.id) : undefined;
+  return {
+    creatorId, creatorName, now: now.toISOString(),
+    drop: { id: drop.id, slots: drop.slots, minutes: drop.minutes, price: drop.price, opensAt: drop.opensAt, firstStartAt: drop.firstStartAt, timeZone: drop.timeZone,
+      closed: !!drop.closedAt, left: free.length, ...(free.length ? { nextStart: slotStart(drop, free[0]).toISOString() } : {}) },
+    ...(mine ? { mine: { bookingId: mine.id, status: mine.status, slot: mine.details!.liveSlot!, date: mine.date, time: mine.time, paymentDueAt: mine.paymentDueAt, price: mine.price } } : {}),
+  };
+};
+const liveOpen = (user: User, input: LiveSlotsInput): AuthResult & { dropId?: string } => {
+  if (user.role !== 'creator' || !user.creatorProfileId) return fail('Solo los creadores abren cupos en vivo');
+  if (!user.isVerified) return fail('Verifica tu identidad para cobrar cupos en vivo');
+  if (liveSlotsError(input)) return fail('Revisa los cupos: cantidad, minutos, precio y horario');
+  const now = new Date();
+  now.setSeconds(0, 0);
+  const opensAt = new Date(now.getTime() + input.opensIn * 60_000);
+  const drops = liveDrops().map((d) => (d.creatorProfileId === user.creatorProfileId && !d.closedAt ? { ...d, closedAt: now.toISOString() } : d));
+  const id = newId();
+  drops.push({ id, creatorProfileId: user.creatorProfileId, creatorName: user.name, slots: input.slots, minutes: input.minutes, price: Math.round(input.price * 100) / 100,
+    opensAt: opensAt.toISOString(), firstStartAt: firstCallAt(opensAt, input.gap).toISOString(),
+    timeZone: loadAvailability(user.creatorProfileId).timeZone || 'America/Tegucigalpa', createdAt: new Date().toISOString() });
+  writeJSON(LIVE_DROPS_KEY, drops);
+  notify();
+  return { ok: true, dropId: id };
+};
+const liveClose = (user: User, dropId: string): AuthResult => {
+  const drops = liveDrops();
+  const drop = drops.find((d) => d.id === dropId && d.creatorProfileId === user.creatorProfileId);
+  if (!drop) return fail('Cupos no encontrados');
+  drop.closedAt ??= new Date().toISOString();
+  writeJSON(LIVE_DROPS_KEY, drops);
+  notify();
+  return { ok: true };
+};
+const liveClaim = (user: User, dropId: string): AuthResult & { bookingId?: string } => {
+  const drop = liveDrops().find((d) => d.id === dropId);
+  if (!drop) return fail('Cupos no encontrados');
+  if (user.creatorProfileId === drop.creatorProfileId) return fail('No puedes reservar tu propio cupo');
+  const held = liveHeld(drop);
+  const already = held.find((b) => b.fanId === user.id);
+  if (already) return { ok: true, bookingId: already.id };
+  if (drop.closedAt) return fail('El creador cerró los cupos');
+  if (new Date(drop.opensAt) > new Date()) return fail('Los cupos todavía no se abren');
+  const limit = reserveLimitError(user.id, drop.creatorProfileId, 'reservation');
+  if (limit) return fail(limit);
+  const n = Array.from({ length: drop.slots }, (_, i) => i).find((i) => slotStart(drop, i).getTime() > Date.now() + 60_000 && !held.some((b) => b.details?.liveSlot === i + 1));
+  if (n === undefined) return fail('Ya no quedan cupos. Sigue el en vivo: el creador puede abrir más.');
+  const { date, time } = wallClock(slotStart(drop, n), drop.timeZone);
+  const now = new Date().toISOString();
+  const id = newId();
+  saveBookings([...listBookings(), {
+    id, experienceId: `live-${drop.id}`, creatorProfileId: drop.creatorProfileId, title: `Cupo en vivo · ${drop.minutes} min`, creatorName: drop.creatorName,
+    price: drop.price, durationMinutes: drop.minutes, date, time, timeZone: drop.timeZone, message: '', fanId: user.id, fanName: user.name, fanEmail: user.email,
+    status: 'accepted', createdAt: now, updatedAt: now,
+    details: { kind: 'experience', typeId: 'video-call', modality: 'virtual', participants: 1, liveDropId: drop.id, liveSlot: n + 1 },
+  }]);
   return { ok: true, bookingId: id };
 };
 
@@ -836,6 +914,11 @@ export const localBackend: Backend = {
   },
 
   createBooking: (user, input) => createBooking(user, input),
+
+  liveSlotsStatus: (username) => liveStatus(username),
+  liveSlotsOpen: async (user, input) => liveOpen(user, input),
+  liveSlotsClose: async (user, dropId) => liveClose(user, dropId),
+  liveSlotsClaim: async (user, dropId) => liveClaim(user, dropId),
 
   async bookEventSeat(user, experienceId, message, timeZone) {
     const exp = listExperiences().find((e) => e.id === experienceId && e.active);

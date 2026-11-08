@@ -128,7 +128,9 @@
     "test:prospects-db": "node e2e/prospects-db.mjs && node e2e/prospect-invites-db.mjs && node e2e/prospects-growth-db.mjs",
     "test:prospects-ui": "vite build --mode offline && node e2e/prospects-ui.mjs",
     "test:revenue-share": "node e2e/income-allocation.mjs && node e2e/revenue-share-postgres.mjs",
-    "test:reserve-dispute-dossier-db": "node e2e/reserve-dispute-dossier-postgres.mjs"
+    "test:reserve-dispute-dossier-db": "node e2e/reserve-dispute-dossier-postgres.mjs",
+    "test:live-slots-db": "node e2e/reserve-live-slots-postgres.mjs",
+    "test:live-slots-ui": "vite build --mode offline && node e2e/live-slots-ui.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
@@ -141,6 +143,7 @@
     "livekit-server-sdk": "^2.19.1",
     "lucide-react": "^1.52.0",
     "nodemailer": "^10.3.1",
+    "qrcode-generator": "^2.0.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "7.18.5",

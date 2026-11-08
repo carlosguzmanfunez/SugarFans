@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { backend } from '../../lib/backend';
 import { usePlatformQuery, platformChanged, money } from '../../lib/platform';
@@ -9,6 +10,8 @@ import ReserveExperienceWizard from './ReserveExperienceWizard';
 import ReserveBookingCard from './ReserveBookingCard';
 import { ExperienceFacts } from './ReserveBits';
 import PushOptIn from '../PushOptIn';
+import CreatorLiveSlots from './CreatorLiveSlots';
+import { useLanguage } from '../../context/LanguageContext';
 import { useCreatorSetup } from '../../hooks/useCreatorSetup';
 
 interface Props {
@@ -19,17 +22,20 @@ interface Props {
   availabilityEditor: React.ReactNode;
 }
 
-type Section = 'experiences' | 'requests' | 'availability' | 'upcoming' | 'history';
+type Section = 'experiences' | 'live' | 'requests' | 'availability' | 'upcoming' | 'history';
 
 // The creator's Reserve: what they offer, who asked, when they are available,
 // what is coming up and what already happened.
 const CreatorReservePanel: React.FC<Props> = ({ availability, bookings, reloadBookings, availabilityEditor }) => {
   const setup = useCreatorSetup();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const profileId = user?.creatorProfileId ?? '';
   const { data: all, reload } = usePlatformQuery(() => backend.listExperiences(), [], [] as VipExperience[]);
   const mine = all.filter((e) => e.creatorProfileId === profileId);
-  const [picked, setPicked] = useState<Section | null>(null);
+  // ?tab=vip&reserve=cupos opens Cupos en vivo directly (link for the live).
+  const [searchParams] = useSearchParams();
+  const [picked, setPicked] = useState<Section | null>(() => (searchParams.get('reserve') === 'cupos' ? 'live' : null));
   const [wizard, setWizard] = useState<{ editing?: VipExperience } | null>(null);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -84,6 +90,7 @@ const CreatorReservePanel: React.FC<Props> = ({ availability, bookings, reloadBo
 
   const sections: { id: Section; label: string; count?: number }[] = [
     { id: 'experiences', label: 'Mis experiencias', count: mine.length },
+    { id: 'live', label: t('liveSlots.tab') },
     { id: 'requests', label: 'Solicitudes', count: requests.length },
     { id: 'availability', label: 'Disponibilidad' },
     { id: 'upcoming', label: 'Próximas', count: upcoming.length },
@@ -206,6 +213,7 @@ const CreatorReservePanel: React.FC<Props> = ({ availability, bookings, reloadBo
           {list(requests, 'No tienes solicitudes pendientes.', 'vip-request')}
         </div>
       )}
+      {section === 'live' && <CreatorLiveSlots user={user} bookings={bookings} onChanged={changed} />}
       {section === 'availability' && availabilityEditor}
       {section === 'upcoming' && <div data-testid="reserve-upcoming">{list(upcoming, 'No tienes reservas próximas.', 'vip-request')}</div>}
       {section === 'history' && <div data-testid="reserve-history">{list(history, 'Aún no hay historial.', 'vip-request')}</div>}

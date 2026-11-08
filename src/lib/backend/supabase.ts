@@ -6,7 +6,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { PAID_WITH_PAYPAL, WRONG_CREDENTIALS, ACCOUNT_SUSPENDED, avatarOrEmpty, cleanPatch, mergeSettings, normalizeEmail, validateRegistration, validateSignupExtras } from './shared';
 import { REJECTED_MESSAGE, inReviewNotice, moderateUpload, moderationOf } from './supabaseModeration';
 import { DEFAULT_AVAILABILITY, cleanDetails, customTitle, normalizeAvailability, validateCounter, validateCustomRequest, validateExperience } from '../vip';
-import type { Backend, BookingDetails, BookingStatus, ExperienceType, ReserveDetails, SocialProvider, User, UserRole, VipBooking, VipExperience } from './types';
+import type { Backend, BookingDetails, BookingStatus, ExperienceType, LiveSlotsStatus, ReserveDetails, SocialProvider, User, UserRole, VipBooking, VipExperience } from './types';
 import { isGender } from './types';
 import { isTimeZone, viewerTimeZone } from '../timeZones';
 import { creators as demoCreators } from '../../data/mockData';
@@ -769,6 +769,29 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       return (data ?? []).map((slot: { date: string; time: string; time_zone: string | null; duration_minutes: number | null }) => ({ date: slot.date, time: slot.time, timeZone: slot.time_zone ?? undefined, durationMinutes: slot.duration_minutes ?? undefined }));
     },
 
+    async liveSlotsStatus(username) {
+      const { data, error } = await sb.rpc('reserve_live_status', { p_username: username });
+      if (error) throw Error('No pudimos cargar los cupos. Vuelve a intentarlo.');
+      return (data ?? null) as LiveSlotsStatus | null;
+    },
+
+    async liveSlotsOpen(_user, input) {
+      const { data, error } = await sb.rpc('reserve_live_open', {
+        p_slots: input.slots, p_minutes: input.minutes, p_price: input.price, p_opens_in: input.opensIn, p_gap: input.gap,
+      });
+      return error ? dbError(error, 'No se pudieron abrir los cupos') : { ok: true, dropId: data as string };
+    },
+
+    async liveSlotsClose(_user, dropId) {
+      const { error } = await sb.rpc('reserve_live_close', { p_drop: dropId });
+      return error ? dbError(error, 'No se pudieron cerrar los cupos') : ok;
+    },
+
+    async liveSlotsClaim(_user, dropId) {
+      const { data, error } = await sb.rpc('reserve_live_claim', { p_drop: dropId });
+      return error ? dbError(error, 'No se pudo apartar el cupo') : { ok: true, bookingId: data as string };
+    },
+
     async selectAttendanceLocation(_user, location) {
       const { error } = await sb.rpc('reserve_select_attendance_city', { p_country: location.country, p_region: location.region, p_city: location.city });
       return error ? dbError(error, 'No se pudo guardar la ciudad de asistencia') : ok;
@@ -901,7 +924,8 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
 
     async listExperiences() {
       const { data } = await sb.from('vip_experiences').select('*').order('created_at', { ascending: true });
-      return ((data ?? []) as ExperienceRow[]).map(toExperience);
+      // A Cupos en vivo drop books on a hidden experience of its own: never listed.
+      return ((data ?? []) as ExperienceRow[]).filter((e) => !e.details?.liveDrop).map(toExperience);
     },
 
     async saveExperience(user, input, id) {
