@@ -264,7 +264,7 @@ const translations: Record<Language, Record<string, string>> = {
     'liveSlots.field.minutes': 'Minutos por cupo',
     'liveSlots.field.price': 'Precio por cupo (USD)',
     'liveSlots.field.opens': 'Tus fans pueden comenzar a apartar a partir de…',
-    'liveSlots.field.gap': 'La primera llamada empieza…',
+    'liveSlots.field.gap': 'Tu primera llamada empieza…',
     'liveSlots.opens.now': 'Ahora mismo',
     'liveSlots.opens.in': 'En {n} min',
     'liveSlots.gap.after': '{n} min después',
@@ -336,7 +336,7 @@ const translations: Record<Language, Record<string, string>> = {
     'liveSlots.now.later': 'Ahora no',
     'liveSlots.page.whatOne': '1 cupo de videollamada de {minutes} min, hoy a las {time}.',
     'liveSlots.hint.opens': 'Sirve para que tus fans estén atentos a hacer su reserva cuando se abra la opción.',
-    'liveSlots.hint.gap': 'Así tus fans tienen tiempo de pagar. Después siguen las demás llamadas, una tras otra.',
+    'liveSlots.hint.gap': 'Cuenta desde que tus fans pueden apartar. Ese tiempo es para que aparten y paguen. Ejemplo: si abres a las 8:00 y eliges 10 min, tu primera llamada es a las 8:10. Las demás siguen una detrás de otra, sin pausa.',
   },
   
   en: {
@@ -575,7 +575,7 @@ const translations: Record<Language, Record<string, string>> = {
     'liveSlots.field.minutes': 'Minutes per slot',
     'liveSlots.field.price': 'Price per slot (USD)',
     'liveSlots.field.opens': 'Your fans can start taking slots from…',
-    'liveSlots.field.gap': 'The first call starts…',
+    'liveSlots.field.gap': 'Your first call starts…',
     'liveSlots.opens.now': 'Right now',
     'liveSlots.opens.in': 'In {n} min',
     'liveSlots.gap.after': '{n} min later',
@@ -647,7 +647,7 @@ const translations: Record<Language, Record<string, string>> = {
     'liveSlots.now.later': 'Not now',
     'liveSlots.page.whatOne': '1 video call slot of {minutes} min, today at {time}.',
     'liveSlots.hint.opens': 'It lets your fans be ready to book as soon as the option opens.',
-    'liveSlots.hint.gap': 'This gives your fans time to pay. Then the other calls follow, one after another.',
+    'liveSlots.hint.gap': 'It counts from when your fans can start booking. That time is for them to book and pay. Example: if you open at 8:00 and choose 10 min, your first call is at 8:10. The rest follow one after another, with no break.',
   },
   
   pt: {
@@ -886,7 +886,7 @@ const translations: Record<Language, Record<string, string>> = {
     'liveSlots.field.minutes': 'Minutos por vaga',
     'liveSlots.field.price': 'Preço por vaga (USD)',
     'liveSlots.field.opens': 'Seus fãs podem começar a reservar a partir de…',
-    'liveSlots.field.gap': 'A primeira chamada começa…',
+    'liveSlots.field.gap': 'Sua primeira chamada começa…',
     'liveSlots.opens.now': 'Agora mesmo',
     'liveSlots.opens.in': 'Em {n} min',
     'liveSlots.gap.after': '{n} min depois',
@@ -958,7 +958,7 @@ const translations: Record<Language, Record<string, string>> = {
     'liveSlots.now.later': 'Agora não',
     'liveSlots.page.whatOne': '1 vaga de videochamada de {minutes} min, hoje às {time}.',
     'liveSlots.hint.opens': 'Serve para que seus fãs fiquem atentos para fazer a reserva quando a opção abrir.',
-    'liveSlots.hint.gap': 'Assim seus fãs têm tempo de pagar. Depois seguem as outras chamadas, uma após a outra.',
+    'liveSlots.hint.gap': 'Conta a partir de quando seus fãs podem reservar. Esse tempo é para que reservem e paguem. Exemplo: se você abre às 8:00 e escolhe 10 min, sua primeira chamada é às 8:10. As demais seguem uma atrás da outra, sem pausa.',
   },
   
   fr: {
@@ -1197,7 +1197,7 @@ const translations: Record<Language, Record<string, string>> = {
     'liveSlots.field.minutes': 'Minutes par créneau',
     'liveSlots.field.price': 'Prix par créneau (USD)',
     'liveSlots.field.opens': 'Tes fans peuvent commencer à réserver à partir de…',
-    'liveSlots.field.gap': 'Le premier appel commence…',
+    'liveSlots.field.gap': 'Ton premier appel commence…',
     'liveSlots.opens.now': 'Tout de suite',
     'liveSlots.opens.in': 'Dans {n} min',
     'liveSlots.gap.after': '{n} min après',
@@ -1269,7 +1269,7 @@ const translations: Record<Language, Record<string, string>> = {
     'liveSlots.now.later': 'Pas maintenant',
     'liveSlots.page.whatOne': '1 créneau d’appel vidéo de {minutes} min, aujourd’hui à {time}.',
     'liveSlots.hint.opens': 'Ça permet à tes fans d’être prêts à réserver dès que l’option s’ouvre.',
-    'liveSlots.hint.gap': 'Ça laisse à tes fans le temps de payer. Ensuite, les autres appels suivent, l’un après l’autre.',
+    'liveSlots.hint.gap': 'Ça compte à partir du moment où tes fans peuvent réserver. Ce temps leur sert à réserver et payer. Exemple : si tu ouvres à 8:00 et choisis 10 min, ton premier appel est à 8:10. Les autres suivent l’un après l’autre, sans pause.',
   },
   
   it: {
@@ -1508,7 +1508,7 @@ const translations: Record<Language, Record<string, string>> = {
     'liveSlots.field.minutes': 'Minuti per posto',
     'liveSlots.field.price': 'Prezzo per posto (USD)',
     'liveSlots.field.opens': 'I tuoi fan possono iniziare a prenotare da…',
-    'liveSlots.field.gap': 'La prima chiamata inizia…',
+    'liveSlots.field.gap': 'La tua prima chiamata inizia…',
     'liveSlots.opens.now': 'Subito',
     'liveSlots.opens.in': 'Tra {n} min',
     'liveSlots.gap.after': '{n} min dopo',
@@ -1580,7 +1580,7 @@ const translations: Record<Language, Record<string, string>> = {
     'liveSlots.now.later': 'Non ora',
     'liveSlots.page.whatOne': '1 posto di videochiamata da {minutes} min, oggi alle {time}.',
     'liveSlots.hint.opens': 'Serve perché i tuoi fan stiano attenti a prenotare appena si apre l’opzione.',
-    'liveSlots.hint.gap': 'Così i tuoi fan hanno tempo di pagare. Poi seguono le altre chiamate, una dopo l’altra.',
+    'liveSlots.hint.gap': 'Si conta da quando i tuoi fan possono prenotare. Quel tempo serve per prenotare e pagare. Esempio: se apri alle 8:00 e scegli 10 min, la tua prima chiamata è alle 8:10. Le altre seguono una dopo l’altra, senza pausa.',
   },
 };
 
