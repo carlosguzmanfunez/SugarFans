@@ -71,9 +71,9 @@ try {
     await login(page, 'fan@sugarfans.com');
     await page.waitForURL((url) => url.pathname === path);
 
-    // The fan takes the next slot and pays it.
-    await page.getByTestId('live-slots-take').click();
+    // Back from the login, the next slot is taken and the payment opens by itself.
     await page.getByText('Cupo en vivo #1').waitFor();
+    assert.equal(new URL(page.url()).search, '', 'the ?pagar=1 flag stays in the address');
     if (shots) await page.screenshot({ path: `${shots}/${device}-4-pagar.png` });
     await page.getByRole('button', { name: 'Cerrar' }).click();
     await page.getByTestId('live-slots-held').waitFor();

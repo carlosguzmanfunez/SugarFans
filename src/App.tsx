@@ -17,6 +17,8 @@ import PlatformSync from './components/PlatformSync';
 import SpecialInviteClaimer from './components/SpecialInviteClaimer';
 import ProspectInviteClaimer from './components/ProspectInviteClaimer';
 import { homeForRole } from './config/homes';
+import { safePath } from './lib/safePath';
+import { peekReturn } from './lib/returnTo';
 import { recoveryLinkPending } from './lib/backend';
 import LaunchGate from './components/LaunchGate';
 import MfaGate from './components/MfaGate';
@@ -66,9 +68,12 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; roles?: string[] }> 
 // Login/register are pointless once signed in: back to Inicio.
 const GuestOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, loading, user } = useAuth();
+  const location = useLocation();
   if (loading) return <LoadingScreen />;
-  // A signed-in user starts on their role's page (admin: the Admin panel).
-  if (isAuthenticated) return <Navigate to={homeForRole(user?.role ?? 'fan')} replace />;
+  // Back to the page that asked for the login (the session can arrive before the
+  // login form navigates); otherwise the role's page (admin: the Admin panel).
+  const from = safePath((location.state as { from?: string } | null)?.from) || peekReturn();
+  if (isAuthenticated) return <Navigate to={from || homeForRole(user?.role ?? 'fan')} replace />;
   return <>{children}</>;
 };
 

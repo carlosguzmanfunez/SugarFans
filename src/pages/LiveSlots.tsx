@@ -7,6 +7,7 @@ import { money, platformChanged } from '../lib/platform';
 import { saveRefCode } from '../lib/rewardRules';
 import { AUTO_ENTER_SECONDS, LIVE_HOLD_MINUTES, countdown, fill, roomOpen, viewerTime } from '../lib/liveSlots';
 import { zonedDate } from '../lib/timeZones';
+import { clearReturn, rememberReturn } from '../lib/returnTo';
 import CheckoutDialog from '../components/CheckoutDialog';
 import SocialLoginButtons from '../components/SocialLoginButtons';
 import { usePageMeta } from '../hooks/usePageMeta';
@@ -66,7 +67,14 @@ const LiveSlots: React.FC = () => {
   }, [drop, opensIn > 0, load]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const here = `${location.pathname}`;
-  const signIn = () => navigate('/login', { state: { from: here } });
+  // Signing in from here comes back with ?pagar=1 when the slots are already on
+  // sale, and then the slot is taken and PayPal opens without another tap.
+  const back = drop && !drop.closed && opensIn <= 0 ? `${here}?pagar=1` : here;
+  const signIn = () => {
+    rememberReturn(back);
+    navigate('/login', { state: { from: back } });
+  };
+  const wantsPay = new URLSearchParams(location.search).get('pagar') === '1';
 
   const take = async () => {
     if (!user) return signIn();
@@ -96,6 +104,20 @@ const LiveSlots: React.FC = () => {
     }
     return result;
   };
+
+  // Back from the login: the visit already reached this page, so forget the stored return.
+  useEffect(() => { if (user) clearReturn(); }, [user]);
+  // Back from the login with ?pagar=1: take the slot (or reopen the payment of the
+  // one already held) and open the checkout over the page.
+  const autoPay = React.useRef(false);
+  useEffect(() => {
+    if (!wantsPay || autoPay.current || !user || !status || authLoading) return;
+    const ownPage = !!user.creatorProfileId && user.creatorProfileId === status.creatorId;
+    if (mine?.status === 'accepted') { autoPay.current = true; setPaying(true); }
+    else if (!mine && !ownPage && drop && !drop.closed && opensIn <= 0 && drop.left > 0) { autoPay.current = true; void take(); }
+    else if (mine || ownPage || !drop || drop.closed || drop.left <= 0) autoPay.current = true;
+    if (autoPay.current) navigate(here, { replace: true });
+  }, [wantsPay, user, status, mine, drop, opensIn, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const paidLive = !!mine && mine.status === 'confirmed' && !!drop && roomOpen({ date: mine.date, time: mine.time, timeZone: drop.timeZone, durationMinutes: drop.minutes }, now + skew);
   useEffect(() => {
@@ -205,7 +227,7 @@ const LiveSlots: React.FC = () => {
         ) : (
           <div className="mx-auto mt-5 max-w-sm text-left" data-testid="live-slots-signin">
             <p className="mb-3 text-center text-sm font-semibold text-ink">{opensIn > 0 ? t('liveSlots.page.getReady') : t('liveSlots.page.signIn')}</p>
-            <SocialLoginButtons role="fan" from={here} onError={setError} />
+            <SocialLoginButtons role="fan" from={back} onError={(m) => { setError(m); if (!m) rememberReturn(back); }} />
             <button type="button" onClick={signIn} className="mt-3 h-11 w-full rounded-full border border-line text-sm font-semibold text-ink">{t('liveSlots.page.emailLogin')}</button>
             <p className="mt-3 text-center text-xs text-muted">{t('liveSlots.page.newHere')}</p>
           </div>
