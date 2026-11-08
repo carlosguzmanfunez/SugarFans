@@ -335,7 +335,7 @@ const translations: Record<Language, Record<string, string>> = {
     'liveSlots.now.enter': 'Entrar ahora',
     'liveSlots.now.later': 'Ahora no',
     'liveSlots.page.whatOne': '1 cupo de videollamada de {minutes} min, hoy a las {time}.',
-    'liveSlots.hint.opens': 'Si eliges "Ahora mismo", pueden apartar ya. Si eliges más tarde, ven un reloj y apartan cuando llegue a cero.',
+    'liveSlots.hint.opens': 'Sirve para que tus fans estén atentos a hacer su reserva cuando se abra la opción.',
     'liveSlots.hint.gap': 'Así tus fans tienen tiempo de pagar. Después siguen las demás llamadas, una tras otra.',
   },
   
@@ -646,7 +646,7 @@ const translations: Record<Language, Record<string, string>> = {
     'liveSlots.now.enter': 'Go in now',
     'liveSlots.now.later': 'Not now',
     'liveSlots.page.whatOne': '1 video call slot of {minutes} min, today at {time}.',
-    'liveSlots.hint.opens': 'If you choose "Right now", they can take a slot now. If you choose later, they see a clock and take a slot when it reaches zero.',
+    'liveSlots.hint.opens': 'It lets your fans be ready to book as soon as the option opens.',
     'liveSlots.hint.gap': 'This gives your fans time to pay. Then the other calls follow, one after another.',
   },
   
@@ -957,7 +957,7 @@ const translations: Record<Language, Record<string, string>> = {
     'liveSlots.now.enter': 'Entrar agora',
     'liveSlots.now.later': 'Agora não',
     'liveSlots.page.whatOne': '1 vaga de videochamada de {minutes} min, hoje às {time}.',
-    'liveSlots.hint.opens': 'Se escolher "Agora mesmo", podem reservar já. Se escolher mais tarde, veem um relógio e reservam quando chegar a zero.',
+    'liveSlots.hint.opens': 'Serve para que seus fãs fiquem atentos para fazer a reserva quando a opção abrir.',
     'liveSlots.hint.gap': 'Assim seus fãs têm tempo de pagar. Depois seguem as outras chamadas, uma após a outra.',
   },
   
@@ -1268,7 +1268,7 @@ const translations: Record<Language, Record<string, string>> = {
     'liveSlots.now.enter': 'Entrer maintenant',
     'liveSlots.now.later': 'Pas maintenant',
     'liveSlots.page.whatOne': '1 créneau d’appel vidéo de {minutes} min, aujourd’hui à {time}.',
-    'liveSlots.hint.opens': 'Si tu choisis « Tout de suite », ils peuvent réserver maintenant. Si tu choisis plus tard, ils voient un compte à rebours et réservent quand il arrive à zéro.',
+    'liveSlots.hint.opens': 'Ça permet à tes fans d’être prêts à réserver dès que l’option s’ouvre.',
     'liveSlots.hint.gap': 'Ça laisse à tes fans le temps de payer. Ensuite, les autres appels suivent, l’un après l’autre.',
   },
   
@@ -1579,7 +1579,7 @@ const translations: Record<Language, Record<string, string>> = {
     'liveSlots.now.enter': 'Entra ora',
     'liveSlots.now.later': 'Non ora',
     'liveSlots.page.whatOne': '1 posto di videochiamata da {minutes} min, oggi alle {time}.',
-    'liveSlots.hint.opens': 'Se scegli "Subito", possono prenotare ora. Se scegli più tardi, vedono un orologio e prenotano quando arriva a zero.',
+    'liveSlots.hint.opens': 'Serve perché i tuoi fan stiano attenti a prenotare appena si apre l’opzione.',
     'liveSlots.hint.gap': 'Così i tuoi fan hanno tempo di pagare. Poi seguono le altre chiamate, una dopo l’altra.',
   },
 };
