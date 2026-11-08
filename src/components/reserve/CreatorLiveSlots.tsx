@@ -69,7 +69,8 @@ const CreatorLiveSlots: React.FC<Props> = ({ user, bookings, onChanged, refreshB
     const opens = new Date(now + opensIn * 60_000);
     const first = firstCallAt(opens, gap);
     const last = new Date(first.getTime() + slots * minutes * 60_000);
-    return { from: viewerTime(first.toISOString(), language), to: viewerTime(last.toISOString(), language) };
+    const starts = Array.from({ length: Math.min(slots, 6) }, (_, i) => viewerTime(new Date(first.getTime() + i * minutes * 60_000).toISOString(), language));
+    return { times: starts.join(', ') + (slots > 6 ? '…' : ''), to: viewerTime(last.toISOString(), language) };
   })();
 
   const open = async (now = false) => {
@@ -262,6 +263,7 @@ const CreatorLiveSlots: React.FC<Props> = ({ user, bookings, onChanged, refreshB
           </label>
           <fieldset>
             <legend className="text-sm font-semibold text-ink">{t('liveSlots.field.opens')}</legend>
+            <p className="mt-0.5 text-xs text-muted">{t('liveSlots.hint.opens')}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {LIVE_OPENS_IN.map((n) => (
                 <button key={n} type="button" aria-pressed={opensIn === n} onClick={() => setOpensIn(n)} className={chip(opensIn === n)}>
@@ -272,12 +274,13 @@ const CreatorLiveSlots: React.FC<Props> = ({ user, bookings, onChanged, refreshB
           </fieldset>
           <fieldset>
             <legend className="text-sm font-semibold text-ink">{t('liveSlots.field.gap')}</legend>
+            <p className="mt-0.5 text-xs text-muted">{t('liveSlots.hint.gap')}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {LIVE_GAPS.map((n) => <button key={n} type="button" aria-pressed={gap === n} onClick={() => setGap(n)} className={chip(gap === n)}>{fill(t('liveSlots.gap.after'), { n })}</button>)}
             </div>
           </fieldset>
           <p className="rounded-xl bg-gray-50 px-4 py-3 text-sm text-ink/80" data-testid="live-slots-summary">
-            {fill(t('liveSlots.summary'), { slots, minutes, from: preview.from, to: preview.to })}
+            {fill(t('liveSlots.summary'), { slots, minutes, times: preview.times, to: preview.to })}
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <button type="submit" disabled={busy} className="btn-gold h-12 rounded-full px-7 text-sm font-bold disabled:opacity-60" data-testid="live-slots-open">
