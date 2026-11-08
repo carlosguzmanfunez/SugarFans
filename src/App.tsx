@@ -17,7 +17,7 @@ import PlatformSync from './components/PlatformSync';
 import SpecialInviteClaimer from './components/SpecialInviteClaimer';
 import ProspectInviteClaimer from './components/ProspectInviteClaimer';
 import { homeForRole } from './config/homes';
-import { openedFromRecoveryLink } from './lib/backend';
+import { recoveryLinkPending } from './lib/backend';
 import LaunchGate from './components/LaunchGate';
 import MfaGate from './components/MfaGate';
 import HandleLink from './pages/HandleLink';
@@ -152,7 +152,7 @@ const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce
 const RecoveryRedirect: React.FC = () => {
   const navigate = useNavigate();
   useEffect(() => {
-    if (openedFromRecoveryLink && window.location.pathname !== '/reset-password') navigate('/reset-password', { replace: true });
+    if (recoveryLinkPending() && window.location.pathname !== '/reset-password') navigate('/reset-password', { replace: true });
   }, [navigate]);
   return null;
 };

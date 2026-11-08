@@ -129,6 +129,7 @@
     "test:prospects-ui": "vite build --mode offline && node e2e/prospects-ui.mjs",
     "test:revenue-share": "node e2e/income-allocation.mjs && node e2e/revenue-share-postgres.mjs",
     "test:reserve-dispute-dossier-db": "node e2e/reserve-dispute-dossier-postgres.mjs",
+    "test:password-recovery-return": "vite build --mode offline && node e2e/password-recovery-return.mjs",
     "test:live-slots-db": "node e2e/reserve-live-slots-postgres.mjs",
     "test:live-slots-ui": "vite build --mode offline && node e2e/live-slots-ui.mjs"
   },
