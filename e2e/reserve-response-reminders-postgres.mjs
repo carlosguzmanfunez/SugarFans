@@ -25,7 +25,7 @@ finish(async () => {
   const plan = (hours) => psql(DB, `select string_agg(step||':'||(extract(epoch from due_at-'2026-11-01 00:00+00')/3600)::int||':'||bell||':'||email, ' ' order by due_at) from reserve_response_plan('2026-11-01 00:00+00','2026-11-01 00:00+00'::timestamptz+interval '${hours} hours')`);
 
   await check('Cadencia de 48 h: aviso al llegar, a las 3 h, 24 h, 6 h y 1 h antes del plazo', () => {
-    expect(plan(48) === 'inicio:0:false:true r3h:3:true:false h24:24:true:true h6:42:true:false h1:47:true:true', plan(48));
+    expect(plan(48) === 'inicio:0:false:true r3h:3:true:false h24:24:true:false h6:42:true:false h1:47:true:true', plan(48));
   });
   await check('Plazos cortos: se omiten los pasos que no caben y nunca dos seguidos a menos de 1 h', () => {
     expect(plan(12) === 'inicio:0:false:true r3h:3:true:false h6:6:true:false h1:11:true:true', plan(12));

@@ -4,13 +4,13 @@
 -- Cadencia (plazo normal de 48 h, reserve_response_hours()):
 --   inicio  al llegar la solicitud   correo (la campana y el celular ya los manda reserve_alert)
 --   r3h     3 h después              campana + celular
---   h24     24 h antes del plazo     campana + celular + correo
+--   h24     24 h antes del plazo     campana + celular
 --   h6      6 h antes del plazo      campana + celular
 --   h1      1 h antes del plazo      campana + celular + correo ("última hora")
 -- Con plazos cortos (reservas para hoy) se omiten los pasos que no caben: ninguno
 -- sale en los primeros 30 min ni a menos de 1 h de otro; se prefieren los últimos.
 -- Si el job se atrasa y vencen varios pasos a la vez, sale solo el más reciente y
--- los demás quedan marcados como omitidos. Máximo: 5 avisos, 3 de ellos por correo.
+-- los demás quedan marcados como omitidos. Máximo: 5 avisos, 2 de ellos por correo (al llegar y última hora; Resend gratis = 100/día).
 --
 -- Se detiene sola: solo se recuerdan solicitudes en estado 'pending' y con plazo
 -- vigente. Al aceptar, rechazar o contraofertar (o al vencer) deja de enviar y los
@@ -69,7 +69,7 @@ begin
     select * from (values
       ('h1', p_respond_by - interval '1 hour', true),
       ('h6', p_respond_by - interval '6 hours', false),
-      ('h24', p_respond_by - interval '24 hours', true),
+      ('h24', p_respond_by - interval '24 hours', false),
       ('r3h', p_from + interval '3 hours', false)
     ) v (s, d, m)
   loop
