@@ -49,7 +49,9 @@ finish(async () => {
 
   await check('Una propina pagada con PayPal recuerda su cobro', async () => {
     pay('o-tip', fan, 'tip', { creatorProfileId: cp, amount: 10 }, 10, 'CAP-TIP');
-    psql(DB, "update public.transactions set created_at=now()-interval '40 days' where paypal_ref='CAP-TIP'");
+    // Fixture only: age the sale past the payout cycle. The 70/30 guard forbids moving
+    // created_at in the app, so it is lifted just for this setup step.
+    psql(DB, "alter table public.transactions disable trigger income_allocation_guard; update public.transactions set created_at=now()-interval '40 days' where paypal_ref='CAP-TIP'; alter table public.transactions enable trigger income_allocation_guard;");
     expect(psql(DB, `select paypal_ref from public.transactions where kind = 'tip'`) === 'CAP-TIP', 'sin referencia');
   });
   await check('Disputa: la venta queda congelada; si PayPal da la razón al creador, vuelve', async () => {

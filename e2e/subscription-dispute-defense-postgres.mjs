@@ -85,10 +85,12 @@ finish(async () => {
     expect(!sees(fan2, cp), 'no se pausó');
     dispute('SALEQA2', '7.99', 'RESOLVED_BUYER_FAVOUR');
     expect(!sees(fan2, cp), 'recuperó el acceso al perder la disputa');
-    // El recibo del reembolso termina en money_back(…, 'refund'). Se llama directo porque
-    // en main el reembolso completo de 7.99 choca con transaction_refund_bounds (redondeo
-    // del reparto 70/30), un fallo previo e independiente de este cambio.
-    psql(DB, `select finance_private.income_money_back('SALEQA2', 'refund')`);
+    // Reembolso completo de USD 7.99 (antes fallaba por redondeo, 20261110230000).
+    const r = { id: 'RF-SALEQA2', state: 'completed', sale_id: 'SALEQA2', amount: { total: '7.99', currency: 'USD' } };
+    const saved = rpc('paypal_refund_receive', ['sandbox', 'QA_APP', { id: 'EVENT-RF-SALEQA2', event_type: 'PAYMENT.SALE.REFUNDED', resource: r }]);
+    const applied = rpc('paypal_refund_apply', [saved.id, 'SALEQA2', r, { id: 'SALEQA2', state: 'refunded', amount: { total: '7.99', currency: 'USD' } }]);
+    expect(applied.state === 'applied' && applied.full === true, JSON.stringify(applied));
+    expect(psql(DB, `select status from public.transactions where key = 'paypal-sub:I-SUBQA2:SALEQA2'`) === 'refunded', 'el cobro no quedó reembolsado');
     expect(psql(DB, `select cancel_at <= now() from public.subscriptions where paypal_subscription_id = 'I-SUBQA2'`) === 't', 'sigue activa');
     expect(!sees(fan2, cp), 'recuperó el acceso');
     expect(psql(DB, `select count(*) from public.notifications where user_id = '${fan2}' and title = 'Acceso restaurado'`) === '0', 'avisó restauración');
