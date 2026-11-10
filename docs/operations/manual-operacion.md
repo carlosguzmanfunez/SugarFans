@@ -124,7 +124,7 @@ Cada alerta del panel tiene un código. Las fichas dicen qué significa, dónde 
 
 ### 🟡 `devoluciones` — Devolución por terminar
 - **Qué es:** solicitudes de devolución de Reserve pendientes o aprobadas sin terminar.
-- **Regla vigente:** se devuelve al **método original** menos la comisión de PayPal; con 24 h o más, también menos el cargo por servicio del 10% (ej.: $25 → $20.85). Si el fan elige Créditos, recibe el 100%. Si cancela el creador o es un retiro legal, 100%.
+- **Regla vigente:** se devuelve al **método original** menos la comisión de PayPal; con 24 h o más, también menos el cargo por servicio del 10% (ej.: $25 → $20.85). Si el fan elige Créditos, recibe su tramo completo (100% con 24 h o más, 50% con menos) sin descuentos. Si cancela el creador o es un retiro legal, 100%.
 - **Pregunta a Carlos:** aprobar cada devolución en dinero.
 
 ### 🟡 `pagos_fallidos` — Pago con PayPal falló
