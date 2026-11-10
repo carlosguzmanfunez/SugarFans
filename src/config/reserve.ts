@@ -472,7 +472,7 @@ export const CANCELLATION_RULE = {
     'Las devoluciones se solicitan al medio original. El fan puede elegir Créditos voluntariamente y entonces recibe el importe completo, sin descontar la comisión ni el cargo por servicio; si pagó con Créditos, se restituye ese mismo medio.',
     'Si el fan no se presenta, no hay devolución comercial por esa causa, sin limitar los derechos legales ni una revisión por incumplimiento del creador.',
     'Incumplimiento confirmado del creador: devolución del 100% al fan. El creador pierde la ganancia de esa reserva y cubre el costo real comprobado de PayPal que no haya sido devuelto, mediante un ajuste explicado en sus ingresos.',
-    'Un cambio de fecha gratis por reserva 1:1, pedido con 24 horas o más de anticipación; el creador lo acepta o lo rechaza.',
+    'Las reservas no admiten cambio de fecha: si el fan no puede asistir, se aplica esta misma regla de cancelación.',
     'Antes de pagar, cancelar no tiene costo.',
     'Tres reservas vencidas sin pagar o tres cancelaciones voluntarias en 30 días suspenden nuevos apartados durante 72 horas desde el último incumplimiento. Las devoluciones legales y los fallos del creador o la plataforma quedan excluidos.',
     'Máximo una reserva y una propuesta por creador; hasta tres reservas y tres propuestas simultáneas con creadores diferentes. Una propuesta pendiente no bloquea la agenda. Reserva publicada: 15 minutos para pagar; propuesta aceptada: 2 horas.',

@@ -5,7 +5,7 @@
 //   Fan does not show up ........................ nothing back.
 //   Creator cancels a paid booking .............. 100% back in Créditos, and it
 //                                                 counts against the creator.
-//   One free date change per 1:1 booking, asked 24 h or more before the start.
+//   No date changes: the fan cancels under this rule (Carlos, 2026-11-10).
 //
 // The server decides (supabase/migrations/20261030000001_reserve_cancellation.sql:
 // reserve_cancel_hours(), reserve_late_refund_percent()); this file only
@@ -57,18 +57,4 @@ export const cancellationOutcome = (
     ticketBack: ticket && refundPercent === 100,
     late,
   };
-};
-
-// The fan's one free date change: 1:1 only, confirmed, not used yet, asked in time.
-export const canRequestReschedule = (b: Pick<VipBooking, 'status' | 'date' | 'time' | 'timeZone' | 'details'>, now = new Date()) =>
-  b.status === 'confirmed' &&
-  b.details?.kind !== 'event' &&
-  !b.details?.rescheduled &&
-  !b.details?.reschedule &&
-  hoursUntil(b, now) >= CANCEL_FULL_REFUND_HOURS;
-
-// The earliest new date for a date change (24 h from now), as YYYY-MM-DD.
-export const rescheduleMinDate = (now = new Date()) => {
-  const d = new Date(now.getTime() + CANCEL_FULL_REFUND_HOURS * 3_600_000);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };

@@ -920,16 +920,6 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       return error ? dbError(error, 'No se pudo registrar la decisión') : ok;
     },
 
-    async requestReschedule(_user, bookingId, input) {
-      const { error } = await sb.rpc('reserve_request_reschedule', { p_booking_id: bookingId, p_date: input.date, p_time: input.time, p_note: input.note });
-      return error ? dbError(error, 'No se pudo pedir el cambio de fecha') : ok;
-    },
-
-    async respondReschedule(_user, bookingId, accept) {
-      const { error } = await sb.rpc('reserve_respond_reschedule', { p_booking_id: bookingId, p_accept: accept });
-      return error ? dbError(error, 'No se pudo responder al cambio de fecha') : ok;
-    },
-
     async payBooking(_user, bookingId, methodId) {
       if (methodId === PAID_WITH_PAYPAL) return ok; // the server already charged and confirmed it
       const { error } = await sb.rpc('vip_pay_booking', { p_booking_id: bookingId, p_method_id: methodId });

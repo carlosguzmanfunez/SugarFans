@@ -192,7 +192,7 @@ Cada alerta del panel tiene un código. Las fichas dicen qué significa, dónde 
 **Reserve: cancelaciones** (regla única, `cancelacion-reserve` + PR #159):
 - Fan cancela con 24 h o más: se le devuelve todo **menos la comisión de PayPal y un cargo por servicio del 10%** ($25 → $25 − $1.65 − $2.50 = $20.85). Los $2.50 son 100% de Fans Reserve; el creador no cobra esa venta (decisión de Carlos del 10 nov 2026; antes, PR #159, Fans Reserve no se quedaba nada). Con menos de 24 h: la mitad menos la comisión ($25 → $10.85); creador $10.00 y Fans Reserve $2.50 de lo que no se devuelve. Fan no se presenta: 0.
 - Creador cancela una Reserve pagada: 100% al fan; cuenta en contra del creador y el creador cubre la comisión no recuperada.
-- Un cambio de fecha gratis (pedido con 24 h o más).
+- Sin cambio de fecha (desde el 10 nov 2026): si el fan no puede asistir, cancela con esta regla.
 - La devolución va al método original. Si el fan elige Créditos, recibe su tramo completo (100% o 50%) en Créditos, sin descontar la comisión ($25 → 2,500 o 1,250 Créditos).
 - 3 reservas sin pagar o 3 cancelaciones voluntarias en 30 días → bloqueo de 72 h.
 

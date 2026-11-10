@@ -1,7 +1,7 @@
 # TÉRMINOS Y CONDICIONES DE SERVICIO - FANS RESERVE
 
 **Última actualización:** Noviembre 2026 (borrador)  
-**Versión:** 1.5.0
+**Versión:** 1.6.0
 
 **Jurisdicción aplicable:** Ver sección 13
 
@@ -172,7 +172,7 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
   - Antes de pagar, cancelar no tiene costo
 - Las devoluciones se solicitan al medio de pago original. La comisión de cobro de PayPal de ese pago no es reembolsable y se descuenta de las devoluciones por cancelación voluntaria; el cargo por servicio del 10% se descuenta solo de las cancelaciones voluntarias con 24 horas o más. Ambos se muestran antes de pagar y en Mis reservas. Nunca se cobran si el Creador cancela o incumple, si el fan ejerce un derecho legal de devolución o si el problema es de la Plataforma. El fan puede elegir recibir la devolución en Créditos, y entonces recibe el importe completo sin descuento; si pagó con Créditos, se le devuelven en Créditos
 - Ejemplo: en una reserva de USD 25 con una comisión de USD 1.65, con 24 horas o más se devuelven USD 20.85 (USD 25 menos USD 1.65 de PayPal y USD 2.50 de cargo por servicio) y con menos de 24 horas USD 10.85
-- El fan tiene un cambio de fecha gratis por reserva 1:1, pedido con 24 horas o más de anticipación; el Creador lo acepta o lo rechaza
+- Las reservas no admiten cambio de fecha. Si el fan no puede asistir en la fecha y hora reservadas, se aplica la regla de cancelación
 - Tres reservas vencidas sin pagar o tres cancelaciones voluntarias en 30 días suspenden nuevas reservas durante 72 horas
 - Estas reglas comerciales no limitan los derechos que la ley de protección al consumidor reconozca al fan
 - Si el creador no cumple (no se presenta, llega más de 15 minutos tarde, cambia por su cuenta fecha, hora o lugar, o la experiencia no corresponde a lo publicado; en Live 1:1, si no entra a la sala en los primeros 10 minutos), el fan recibe el reembolso completo, previa verificación
