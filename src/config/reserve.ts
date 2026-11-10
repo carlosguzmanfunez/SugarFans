@@ -459,13 +459,17 @@ export type CancellationPolicyId = 'flexible' | 'moderate' | 'strict';
 // server (reserve_cancel) and previewed by src/lib/reserveCancellation.ts.
 // Experiences saved earlier still carry a cancellationPolicy id; it no longer
 // changes anything. LEGAL: requires legal review before production launch.
+// Non-refundable service fee Fans Reserve keeps when a fan cancels a paid Reserve
+// 24 h or more before start (Carlos, 2026-11-10; reserve_cancel_v2, migration
+// 20261110060000). Never on creator cancellations or legal withdrawals.
+export const RESERVE_SERVICE_FEE_RATE = 0.10;
 export const CANCELLATION_POLICY_IDS: CancellationPolicyId[] = ['flexible', 'moderate', 'strict'];
 export const CANCELLATION_RULE = {
   label: 'Regla única de Fans Reserve',
-  summary: 'La devolución se solicita al medio original, menos la comisión de cobro de PayPal, que no es reembolsable. En Créditos se devuelve el importe completo. Los derechos legales y los incumplimientos se revisan por separado.',
+  summary: 'La devolución se solicita al medio original, menos la comisión de cobro de PayPal, que no es reembolsable, y, con 24 horas o más, menos un cargo por servicio del 10%. En Créditos se devuelve el importe completo. Los derechos legales y los incumplimientos se revisan por separado.',
   bullets: [
-    'Cancelación voluntaria: 100% con 24 horas o más de anticipación y 50% con menos, menos la comisión de cobro de PayPal de ese pago, que no es reembolsable; salvo que corresponda una devolución distinta por ley.',
-    'Las devoluciones se solicitan al medio original. El fan puede elegir Créditos voluntariamente y entonces recibe el importe completo, sin descontar la comisión; si pagó con Créditos, se restituye ese mismo medio.',
+    'Cancelación voluntaria: 100% con 24 horas o más de anticipación, menos un cargo por servicio no reembolsable del 10%, y 50% con menos; en ambos casos menos la comisión de cobro de PayPal de ese pago, que no es reembolsable; salvo que corresponda una devolución distinta por ley.',
+    'Las devoluciones se solicitan al medio original. El fan puede elegir Créditos voluntariamente y entonces recibe el importe completo, sin descontar la comisión ni el cargo por servicio; si pagó con Créditos, se restituye ese mismo medio.',
     'Si el fan no se presenta, no hay devolución comercial por esa causa, sin limitar los derechos legales ni una revisión por incumplimiento del creador.',
     'Incumplimiento confirmado del creador: devolución del 100% al fan. El creador pierde la ganancia de esa reserva y cubre el costo real comprobado de PayPal que no haya sido devuelto, mediante un ajuste explicado en sus ingresos.',
     'Un cambio de fecha gratis por reserva 1:1, pedido con 24 horas o más de anticipación; el creador lo acepta o lo rechaza.',

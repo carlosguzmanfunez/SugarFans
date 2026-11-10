@@ -47,6 +47,7 @@ import { firstCallAt, liveSlotsError, slotStart, wallClock } from '../liveSlots'
 import { isTimeZone, viewerTimeZone, zoneCity } from '../timeZones';
 import { paymentOverdue, reservationDue, reserveAccessOf, reserveBucket, type ReserveIncident, type ReserveRefundRequest } from '../reserveControl';
 import { VIRTUAL_CURRENCY, currencyWord } from '../../config/currency';
+import { RESERVE_SERVICE_FEE_RATE } from '../../config/reserve';
 import { CANCEL_FULL_REFUND_HOURS, bookingStart, canRequestReschedule, cancellationOutcome, hoursUntil } from '../reserveCancellation';
 import type { InfraUsage } from '../infraUsage';
 import { financeLocal } from '../creatorFinance';
@@ -1238,7 +1239,7 @@ export const localBackend: Backend = {
     const now = new Date().toISOString();
     if (reason === 'withdrawal' || reason === 'creator_failure') { outcome.refundPercent = 100; outcome.refundCoins = Math.round(b.price * 100); }
     let refundState: string | undefined;
-    let refundAmount = 0, refundFee = 0;
+    let refundAmount = 0, refundFee = 0, refundServiceFee = 0;
     if (outcome.paid && !outcome.ticket) {
       const tx = platform.ledger.transactions().find((t) => (t as { key?: string }).key === `vip:${b.id}` && t.kind === 'vip');
       if (!tx) return fail('No encontramos el pago de esta reserva. Escríbenos a soporte.');
@@ -1248,10 +1249,12 @@ export const localBackend: Backend = {
       const toOriginal = !((choice === 'credits' && reason === 'voluntary' && by === 'fan') || tx.methodLabel === VIRTUAL_CURRENCY.displayName);
       const gross = round2(b.price * outcome.refundPercent / 100);
       refundFee = toOriginal && by === 'fan' && reason === 'voluntary' ? Math.min(processorFee(tx.amount), gross) : 0;
-      refundAmount = round2(gross - refundFee);
+      // 24 h or more before: also a 10% service fee for Fans Reserve (migration 20261110060000).
+      refundServiceFee = refundFee > 0 && outcome.refundPercent === 100 ? Math.min(round2(tx.amount * RESERVE_SERVICE_FEE_RATE), round2(gross - refundFee)) : 0;
+      refundAmount = round2(gross - refundFee - refundServiceFee);
       if (toOriginal && refundAmount <= 0) return fail('La comisión de cobro de PayPal cubre todo el importe a devolver. Elige recibir Créditos.');
       const earning = tx.amount * (tx.share ?? 0);
-      platform.ledger.setRefundLoss(tx.id, refundFee > 0 && tx.amount > refundFee ? Math.min(earning, (refundAmount * earning) / (tx.amount - processorFee(tx.amount))) : (earning * outcome.refundPercent) / 100);
+      platform.ledger.setRefundLoss(tx.id, refundFee > 0 && tx.amount > refundFee ? Math.min(earning, ((refundAmount + refundServiceFee) * earning) / (tx.amount - processorFee(tx.amount))) : (earning * outcome.refundPercent) / 100);
       if ((choice === 'credits' && reason === 'voluntary' && by === 'fan') || tx.methodLabel === VIRTUAL_CURRENCY.displayName) {
         addReserveCreditMove('grants', { userId: b.fanId, coins: outcome.refundCoins, bookingId: b.id, at: now });
         if (by === 'fan' && reason === 'voluntary') writeJSON(REFUNDS_KEY, [...readJSON<ReserveRefundRequest[]>(REFUNDS_KEY, []), { id: newId(), bookingId: b.id, fanId: b.fanId, title: b.title, fanName: b.fanName, amount: outcome.refundCoins / 100, reason, funding: 'credits', state: 'pending', createdAt: now, note: 'Créditos ya acreditados voluntariamente. Revisar si corresponde contar una cancelación.' }]);
@@ -1270,7 +1273,7 @@ export const localBackend: Backend = {
     b.details = {
       ...rest,
       cancellation: { by, at: now, paid: outcome.paid, refundPercent: outcome.refundPercent, refundCoins: outcome.refundCoins, reason,
-        refundChoice: refundState ? 'original' : 'credits', ...(refundState ? { refundState: 'pending' as const, refundAmount, refundFee } : {}), ...(outcome.ticket ? { ticketBack: outcome.ticketBack } : {}) },
+        refundChoice: refundState ? 'original' : 'credits', ...(refundState ? { refundState: 'pending' as const, refundAmount, refundFee, refundServiceFee } : {}), ...(outcome.ticket ? { ticketBack: outcome.ticketBack } : {}) },
     };
     if (reason !== 'creator_failure' || by === 'creator') b.status = 'cancelled';
     b.updatedAt = now;
@@ -1284,7 +1287,7 @@ export const localBackend: Backend = {
       else
         addLocalNotification(b.fanId, { kind: 'reserve_update', creatorProfileId: b.creatorProfileId, title: `${b.creatorName.split(' ')[0]} canceló tu reserva`, body: `${b.title} · ${when}. ${refundState ? 'Se registró la devolución completa al medio original.' : `Te devolvimos ${outcome.refundCoins} ${currencyWord}.`}`, link: '/profile#mis-reservas' });
     }
-    return { ok: true, refundCoins: outcome.refundCoins, refundPercent: outcome.refundPercent, refundState, ...(refundState ? { refundAmount, refundFee } : {}) };
+    return { ok: true, refundCoins: outcome.refundCoins, refundPercent: outcome.refundPercent, refundState, ...(refundState ? { refundAmount, refundFee, refundServiceFee } : {}) };
   },
   async reserveAccess(user) {
     return reserveAccessOf(user.id, listBookings(), readJSON(INCIDENTS_KEY, []));

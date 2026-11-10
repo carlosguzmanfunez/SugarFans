@@ -903,7 +903,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       const { data, error } = await sb.rpc('reserve_cancel_v2', { p_booking_id: bookingId, p_choice: choice, p_reason: reason });
       if (error) return dbError(error, 'No se pudo cancelar la reserva');
       return { ok: true, refundCoins: Number(data?.refundCoins ?? 0), refundPercent: Number(data?.refundPercent ?? 0), refundState: data?.refundState,
-        ...(data?.refundAmount != null ? { refundAmount: Number(data.refundAmount), refundFee: Number(data.refundFee ?? 0) } : {}) };
+        ...(data?.refundAmount != null ? { refundAmount: Number(data.refundAmount), refundFee: Number(data.refundFee ?? 0), refundServiceFee: Number(data.refundServiceFee ?? 0) } : {}) };
     },
     async reserveAccess() {
       const { data, error } = await sb.rpc('reserve_access');

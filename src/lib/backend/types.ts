@@ -208,6 +208,7 @@ export interface BookingCancellation {
   refundChoice?: 'original' | 'credits';
   refundAmount?: number; // money sent back to the original method
   refundFee?: number; // PayPal collection fee kept on a voluntary cancellation
+  refundServiceFee?: number; // 10% service fee kept on a voluntary cancellation 24 h+ before
   refundState?: 'pending' | 'completed';
   by: 'fan' | 'creator';
   at: string;
@@ -217,7 +218,7 @@ export interface BookingCancellation {
   ticketBack?: boolean;
 }
 
-export type CancelResult = AuthResult & { refundCoins?: number; refundPercent?: number; refundState?: string; refundAmount?: number; refundFee?: number };
+export type CancelResult = AuthResult & { refundCoins?: number; refundPercent?: number; refundState?: string; refundAmount?: number; refundFee?: number; refundServiceFee?: number };
 
 export interface VipBooking {
   incomePolicyVersion?: string;

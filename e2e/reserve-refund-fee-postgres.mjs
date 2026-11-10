@@ -1,5 +1,6 @@
 // Reserve refunds keep PayPal's collection fee on voluntary cancellations
-// (migration 20261105000003). Usage: PGHOST=localhost npm run test:reserve-refund-fee-db
+// (migration 20261105000003) and, 24 h or more before, a 10% service fee
+// for Fans Reserve (migration 20261110060000). Usage: PGHOST=localhost npm run test:reserve-refund-fee-db
 import {createDbTest} from './db-harness.mjs';
 import {spawn} from 'node:child_process';
 const DB='fr_reserve_refund_fee_test',{setup,user,psql,as,raises,check,expect,finish}=createDbTest(DB);
@@ -46,16 +47,18 @@ finish(async()=>{
  setup();
  admin=user('rf-admin@example.invalid','fan');psql(DB,`update profiles set role='admin' where id='${admin}'`);
  for(let i=0;i<8;i++){creators[i]=user('rf-creator-'+i+'@example.invalid','creator');cp[i]=psql(DB,`select creator_profile_id from profiles where id='${creators[i]}'`);}
- console.log('\nDevoluciones de Reserve sin la comisión de PayPal (pago de USD 100, comisión USD 5.70)');
- await check('Cancela 24 h o más antes: devuelve 100% menos la comisión y el creador no cobra',()=>{
+ console.log('\nDevoluciones de Reserve: comisión de PayPal y cargo por servicio del 10% (pago de USD 100, comisión USD 5.70)');
+ await check('Cancela 24 h o más antes: devuelve 100% menos la comisión y el 10% de servicio; el creador no cobra',()=>{
   const f=fan(),p=paid(f,cp[0],0,true),r=cancel(f,p.id);
-  expect(r.refundAmount===94.3&&r.refundFee===5.7,`resultado ${JSON.stringify(r)}`);
-  expect(req(p.id)==='voluntary/94.30',`solicitud ${req(p.id)}`);
+  expect(r.refundAmount===84.3&&r.refundFee===5.7&&r.refundServiceFee===10,`resultado ${JSON.stringify(r)}`);
+  expect(req(p.id)==='voluntary/84.30',`solicitud ${req(p.id)}`);
+  expect(psql(DB,`select service_fee from reserve_refund_requests where booking_id='${p.id}'`)==='10.00','no guardó el cargo por servicio');
+  expect(psql(DB,`select details->'cancellation'->>'refundServiceFee' from vip_bookings where id='${p.id}'`)==='10.00','la reserva no muestra el cargo por servicio');
   expect(keep(p.tx)==='0.00',`el creador conserva ${keep(p.tx)}`);
  });
  await check('Cancela con menos de 24 h: 50% menos la comisión; lo que queda se reparte como una venta',()=>{
   const f=fan(),p=paid(f,cp[1],0,true);soon(p.id);const r=cancel(f,p.id);
-  expect(r.refundPercent===50&&r.refundAmount===44.3,`resultado ${JSON.stringify(r)}`);
+  expect(r.refundPercent===50&&r.refundAmount===44.3&&r.refundServiceFee===0,`resultado ${JSON.stringify(r)}`);
   expect(keep(p.tx)==='35.00',`el creador conserva ${keep(p.tx)} (esperado 70% de 50)`);
  });
  await check('Elegir Créditos devuelve el importe completo, sin descontar la comisión',()=>{
@@ -70,9 +73,9 @@ finish(async()=>{
   const f=fan(),p=paid(f,cp[4],0,true);cancel(f,p.id,'original','withdrawal');
   expect(req(p.id)==='withdrawal/100.00',`solicitud ${req(p.id)}`);
  });
- await check('PayPal devuelve justo lo pedido (94.30): se aplica sin caso de revisión ni bloqueo al creador',()=>{
+ await check('PayPal devuelve justo lo pedido (84.30): sin caso de revisión ni bloqueo; el 10% queda para Fans Reserve',()=>{
   const f=fan(),p=paid(f,cp[5],0,true);cancel(f,p.id);approve(p.id);
-  const r=paypalRefund(p,94.3);
+  const r=paypalRefund(p,84.3);
   expect(r.state==='applied',`resultado ${JSON.stringify(r)}`);
   expect(holds(creators[5])==='0',`bloqueos ${holds(creators[5])}`);
   expect(cases(p.tx)==='0',`casos abiertos ${cases(p.tx)}`);
@@ -88,7 +91,7 @@ finish(async()=>{
  });
  await check('Si PayPal devuelve parte de su comisión, se abre revisión para devolvérsela al fan',()=>{
   const f=fan(),p=paid(f,cp[7],0,true);cancel(f,p.id);approve(p.id);
-  const r=paypalRefund(p,94.3,1.2);
+  const r=paypalRefund(p,84.3,1.2);
   expect(r.state==='applied',`resultado ${JSON.stringify(r)}`);
   expect(cases(p.tx)==='1',`casos abiertos ${cases(p.tx)}`);
  });
