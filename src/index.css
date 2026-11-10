@@ -551,3 +551,25 @@ details[open] summary ~ * {
   user-select: none;
   -webkit-user-drag: none;
 }
+
+/* Cupos en vivo (/@usuario/ahora): dark stage with a red spotlight behind the card. */
+.live-stage {
+  position: relative;
+  overflow: hidden;
+  min-height: calc(100vh - 5rem);
+  background:
+    radial-gradient(34rem 26rem at 50% 30%, rgba(212, 52, 74, 0.55), transparent 65%),
+    radial-gradient(50rem 30rem at 50% 110%, rgba(109, 60, 230, 0.45), transparent 70%),
+    linear-gradient(180deg, #1b0f26 0%, #120a1a 100%);
+}
+.live-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: conic-gradient(from 200deg at 50% -10%, transparent 0 40deg, rgba(255, 255, 255, 0.06) 45deg, transparent 55deg,
+    transparent 300deg, rgba(255, 255, 255, 0.05) 310deg, transparent 320deg);
+}
+.live-stage-card {
+  box-shadow: 0 30px 80px -20px rgba(212, 52, 74, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}

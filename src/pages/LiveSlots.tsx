@@ -340,8 +340,10 @@ const LiveSlots: React.FC = () => {
   const boardBelow = !!mine && !!board && !drop?.closed;
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-8 sm:py-12" data-testid="live-slots-page">
-      <div className="rounded-3xl bg-white p-6 shadow-sm sm:p-8">
+    // Dark "stage" with a red spotlight behind the card: the visitor comes from a live.
+    <div className="live-stage" data-testid="live-slots-page">
+    <div className="relative mx-auto max-w-lg px-4 py-8 sm:py-12">
+      <div className="live-stage-card rounded-3xl bg-white p-6 sm:p-8">
         <div className="mb-5 text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-red-600 px-3 py-1 text-xs font-bold tracking-wider text-white">
             <span aria-hidden="true" className="h-2 w-2 animate-pulse rounded-full bg-white motion-reduce:animate-none"></span>{t('liveSlots.page.live')}
@@ -382,6 +384,7 @@ const LiveSlots: React.FC = () => {
           onClose={() => { setPaying(false); load(); }}
         />
       )}
+    </div>
     </div>
   );
 };
