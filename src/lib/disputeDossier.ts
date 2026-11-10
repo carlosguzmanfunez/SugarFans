@@ -31,8 +31,13 @@ export const PAY_NOTICE_V1_EN = 'Cancellation: at least 24 h before you get 100%
 // 10% service fee on early cancellations (Carlos, 2026-11-10). Set to the merge
 // time of that change (PR #179); same text as reserveCancel.payNotice (es/en).
 export const PAY_NOTICE_V2_SINCE = '2026-11-10T07:14:00Z';
-export const PAY_NOTICE_ES = 'Cancelación: con 24 h o más te devolvemos el 100% menos un cargo por servicio del 10%, y con menos de 24 h el 50%; en ambos casos, menos la comisión de cobro de PayPal. Ni el cargo ni la comisión son reembolsables. Si eliges Créditos, recibes el importe completo. Si el creador cancela, te devolvemos el 100%.';
-export const PAY_NOTICE_EN = 'Cancellation: at least 24 h before you get 100% back minus a 10% service fee, and less than 24 h before 50%; both minus the PayPal collection fee. Neither fee is refundable. If you choose Credits, you get the full amount. If the creator cancels, you get 100% back.';
+export const PAY_NOTICE_V2_ES = 'Cancelación: con 24 h o más te devolvemos el 100% menos un cargo por servicio del 10%, y con menos de 24 h el 50%; en ambos casos, menos la comisión de cobro de PayPal. Ni el cargo ni la comisión son reembolsables. Si eliges Créditos, recibes el importe completo. Si el creador cancela, te devolvemos el 100%.';
+export const PAY_NOTICE_V2_EN = 'Cancellation: at least 24 h before you get 100% back minus a 10% service fee, and less than 24 h before 50%; both minus the PayPal collection fee. Neither fee is refundable. If you choose Credits, you get the full amount. If the creator cancels, you get 100% back.';
+// Same rule, clearer about Credits (2026-11-10 PayPal review): Credits give that
+// 100% or 50% with no deductions, not the full price. Merge time of that change.
+export const PAY_NOTICE_V3_SINCE = '2026-11-10T21:23:00Z';
+export const PAY_NOTICE_ES = 'Cancelación: con 24 h o más te devolvemos el 100% menos un cargo por servicio del 10%, y con menos de 24 h el 50%; en ambos casos, menos la comisión de cobro de PayPal. Ni el cargo ni la comisión son reembolsables. Si eliges Créditos, recibes ese 100% o 50% sin ningún descuento. Si el creador cancela, te devolvemos el 100%.';
+export const PAY_NOTICE_EN = 'Cancellation: at least 24 h before you get 100% back minus a 10% service fee, and less than 24 h before 50%; both minus the PayPal collection fee. Neither fee is refundable. If you choose Credits, you get that 100% or 50% with no deductions. If the creator cancels, you get 100% back.';
 const TIMING_EN = 'The booking keeps its end time if the fan arrives late. Time lost for reasons attributable to the fan is not made up. The creator has a one-minute grace period and must complete the contracted duration. Service failures and statutory rights are reviewed separately.';
 
 const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
@@ -62,7 +67,9 @@ export function dossierHtml(d: DisputeDossier): string {
   const facts = deliveryFacts(d), r = d.attendance;
   const paidAt = pay?.completed_at ?? b.paid_at;
   const noticeShown = !!paidAt && Date.parse(paidAt) >= Date.parse(PAY_NOTICE_SINCE);
-  const noticeV2 = !!paidAt && Date.parse(paidAt) >= Date.parse(PAY_NOTICE_V2_SINCE);
+  const since = (at: string) => !!paidAt && Date.parse(paidAt) >= Date.parse(at);
+  const [noticeEn, noticeEs] = since(PAY_NOTICE_V3_SINCE) ? [PAY_NOTICE_EN, PAY_NOTICE_ES]
+    : since(PAY_NOTICE_V2_SINCE) ? [PAY_NOTICE_V2_EN, PAY_NOTICE_V2_ES] : [PAY_NOTICE_V1_EN, PAY_NOTICE_V1_ES];
   const service = `${b.modality === 'virtual' ? 'Live one-to-one video call' : 'In-person experience'}${b.duration_minutes ? ` of ${b.duration_minutes} minutes` : ''} with the content creator “${b.creator_name}”, booked through fansreserve.com (“${b.title}”)`;
   const events = r ? r.events.filter(e => e.source === 'livekit').sort((a, c) => a.at.localeCompare(c.at)) : [];
   const browser = r ? r.events.filter(e => e.source === 'browser').sort((a, c) => a.at.localeCompare(c.at)) : [];
@@ -138,7 +145,7 @@ ${r && r.reminders.length ? `<table><tr><th>Recipient</th><th>When</th><th>Deliv
 
 <h2>7. Policies the buyer agreed to</h2>
 <p><b>Cancellation notice shown next to the PayPal button before payment</b>${noticeShown ? '' : ' (this notice was added on 2026-11-05; for earlier payments the same rule was in the Terms and the Reserve policy)'}:</p>
-<div class="box"><p>${esc(noticeV2 ? PAY_NOTICE_EN : PAY_NOTICE_V1_EN)}</p><p class="muted">Original text shown to the buyer (Spanish): ${esc(noticeV2 ? PAY_NOTICE_ES : PAY_NOTICE_V1_ES)}</p></div>
+<div class="box"><p>${esc(noticeEn)}</p><p class="muted">Original text shown to the buyer (Spanish): ${esc(noticeEs)}</p></div>
 ${b.session_policy_version !== 'legacy' ? `<p><b>Session rules accepted with the booking (${esc(b.session_policy_version)}):</b> ${esc(TIMING_EN)}</p>` : ''}
 <p class="muted">Full terms: https://fansreserve.com/legal (Terms of Service, Reserve policy, Refund policy).</p>
 
