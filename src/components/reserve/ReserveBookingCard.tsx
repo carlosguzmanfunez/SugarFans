@@ -5,7 +5,7 @@ import { backend } from '../../lib/backend';
 import { money } from '../../lib/platform';
 import { formatLongDate, reserveStatusOf, typeOf, CUSTOM_EXPERIENCE, MIN_SESSION_MINUTES, MAX_SESSION_MINUTES, type VipBooking } from '../../lib/vip';
 import ReserveScheduleTime from './ReserveScheduleTime';
-import { LOCATION_TYPES, PURPOSES, RESERVE_MODALITIES } from '../../config/reserve';
+import { LOCATION_TYPES, PURPOSES, RESERVE_MODALITIES, RESERVE_SERVICE_FEE_RATE } from '../../config/reserve';
 import { MODERATION_RULES } from '../../lib/moderation';
 import type { User } from '../../context/AuthContext';
 import { ReserveStatusBadge } from './ReserveBits';
@@ -376,7 +376,7 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
                 <option value="original">Al medio con el que pagué</option><option value="credits">Prefiero recibir Créditos voluntariamente</option>
               </select>
             </label>}
-            <p>{cancelReason === 'voluntary' ? `La regla comercial ofrece ${outcome?.refundPercent ?? 0}% según la anticipación, salvo que corresponda una devolución legal distinta. Las cancelaciones voluntarias cuentan para el límite de tres en 30 días.${refundChoice === 'original' ? ' ' + fill(t('reserveCancel.feeNote'), { fee: money(processorFee(b.price)) }) : ''}` : 'El equipo revisará tu solicitud. No se contará como cancelación voluntaria ni se sustituirá la devolución por Créditos obligatorios.'}</p>
+            <p>{cancelReason === 'voluntary' ? `La regla comercial ofrece ${outcome?.refundPercent ?? 0}% según la anticipación, salvo que corresponda una devolución legal distinta. Las cancelaciones voluntarias cuentan para el límite de tres en 30 días.${refundChoice === 'original' ? ' ' + fill(t('reserveCancel.feeNote'), { fee: money(processorFee(b.price)) }) + (outcome?.refundPercent === 100 ? ' ' + fill(t('reserveCancel.serviceNote'), { service: money(Math.round(b.price * RESERVE_SERVICE_FEE_RATE * 100) / 100) }) : '') : ''}` : 'El equipo revisará tu solicitud. No se contará como cancelación voluntaria ni se sustituirá la devolución por Créditos obligatorios.'}</p>
           </div>}
           <div className="mt-2 flex justify-end gap-2">
             <button type="button" onClick={() => setPanel(null)} className={`${btn} border border-line bg-white text-ink/70`}>{t('reserveCancel.back')}</button>
@@ -387,7 +387,9 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
         </div>
       )}
 
-      {cancelled?.paid && cancelled.refundChoice === 'original' && (cancelled.refundFee
+      {cancelled?.paid && cancelled.refundChoice === 'original' && (cancelled.refundServiceFee
+        ? <p className="mt-2 text-sm text-ink/70" data-testid="refund-amount">{fill(t('reserveCancel.refundAmountService'), { amount: money(cancelled.refundAmount ?? 0), fee: money(cancelled.refundFee ?? 0), service: money(cancelled.refundServiceFee), state: cancelled.refundState === 'completed' ? 'confirmada' : 'registrada, pendiente de confirmación' })}</p>
+        : cancelled.refundFee
         ? <p className="mt-2 text-sm text-ink/70" data-testid="refund-amount">{fill(t('reserveCancel.refundAmount'), { amount: money(cancelled.refundAmount ?? 0), fee: money(cancelled.refundFee), state: cancelled.refundState === 'completed' ? 'confirmada' : 'registrada, pendiente de confirmación' })}</p>
         : <p className="mt-2 text-sm text-ink/70">Devolución del {cancelled.refundPercent}% al medio original: {cancelled.refundState === 'completed' ? 'confirmada' : 'registrada, pendiente de confirmación'}. No se emitieron Créditos.</p>)}
       {cancelled?.paid && cancelled.refundChoice !== 'original' && (
