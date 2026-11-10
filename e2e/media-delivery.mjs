@@ -123,7 +123,7 @@ try {
     await page.screenshot({ path: join(out, `video-reproduciendo-${device}.png`), animations: 'disabled' });
     assert.ok(videosRequested().every((r) => r.path === '/media/video-19.webm'));
     if (device === 'movil') {
-      const frame = viewer.locator('.touch-pan-y');
+      const frame = viewer.getByTestId('media-viewer-frame');
       await frame.dispatchEvent('pointerdown', { pointerType: 'touch', clientX: 80, clientY: 300 });
       await frame.dispatchEvent('pointermove', { pointerType: 'touch', clientX: 300, clientY: 300 });
       await frame.dispatchEvent('pointerup', { pointerType: 'touch', clientX: 300, clientY: 300 });
