@@ -4,7 +4,7 @@ import { bookingStart } from './reserveCancellation';
 export const RESERVE_HOLD_MINUTES = 15;
 export const PROPOSAL_PAYMENT_MINUTES = 120;
 // Cupos en vivo: less time to pay, so unpaid slots go back on the board sooner.
-export const LIVE_SLOT_PAYMENT_MINUTES = 10;
+export const LIVE_SLOT_PAYMENT_MINUTES = 5;
 export const RESERVE_BLOCK_HOURS = 72;
 export const RESERVE_INCIDENT_DAYS = 30;
 export const RESERVE_INCIDENT_LIMIT = 3;

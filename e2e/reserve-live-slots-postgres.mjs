@@ -10,7 +10,7 @@ finish(async()=>{
   "create or replace function public.push_notification() returns trigger language plpgsql security definer set search_path='' as $$ begin return null; end $$;\n"+sql:sql});
  const creator=user('live-creator@example.invalid','creator');
  const unverified=user('live-new@example.invalid','creator',{verified:false});
- const fans=[1,2,3,4,5,6,7,8].map(i=>user(`live-fan${i}@example.invalid`,'fan'));
+ const fans=[1,2,3,4,5,6,7,8,9,10].map(i=>user(`live-fan${i}@example.invalid`,'fan'));
  const visitorStatus=()=>JSON.parse(psql(DB,`begin; set local role anon; select reserve_live_status('${username}'); commit;`));
  const username=psql(DB,`update profiles set username='livecreadora' where id='${creator}' returning username`);
  const cp=psql(DB,`select creator_profile_id from profiles where id='${creator}'`);
@@ -39,10 +39,10 @@ finish(async()=>{
   expect(new Date(s.drop.firstStartAt).getUTCMinutes()%5===0,'la primera llamada no cae en múltiplo de 5');
  });
 
- await check('Cada fan toma el siguiente cupo, pendiente de pago 10 minutos, y repetir no duplica',()=>{
+ await check('Cada fan toma el siguiente cupo, pendiente de pago 5 minutos, y repetir no duplica',()=>{
   const b1=as(fans[0],`select reserve_live_claim('${drop}')`);
   expect(as(fans[0],`select reserve_live_claim('${drop}')`)===b1,'duplicó el cupo del mismo fan');
-  const row=psql(DB,`select status, details->>'liveSlot', price, duration_minutes, payment_due_at between now()+interval '9 minutes' and now()+interval '10 minutes' from vip_bookings where id='${b1}'`);
+  const row=psql(DB,`select status, details->>'liveSlot', price, duration_minutes, payment_due_at between now()+interval '4 minutes' and now()+interval '5 minutes' from vip_bookings where id='${b1}'`);
   expect(row==='accepted|1|25.00|15|t',`reserva inesperada: ${row}`);
   const b2=as(fans[1],`select reserve_live_claim('${drop}')`);
   expect(psql(DB,`select details->>'liveSlot' from vip_bookings where id='${b2}'`)==='2','no tomó el siguiente cupo');
@@ -132,6 +132,29 @@ finish(async()=>{
   const s=visitorStatus();
   expect(s.drop.board[0].state==='taken'&&s.drop.left===1,`choque de horario: ${JSON.stringify(s.drop.board)}`);
   raises(()=>as(fans[7],`select reserve_live_claim('${board}',1)`),/Recarga la página/,'apartó un cupo que choca');
+ });
+
+ await check('Cerrar el pago sin pagar libera el cupo al instante, sin castigo',()=>{
+  const b=as(fans[7],`select reserve_live_claim('${board}',4)`);
+  expect(visitorStatus().drop.board[3].state==='held','no quedó apartado');
+  expect(as(fans[8],`select reserve_live_release('${b}')`)==='f','otro fan liberó un cupo ajeno');
+  // PayPal is capturing the payment: the slot is not released.
+  psql(DB,`insert into paypal_orders(id,user_id,kind,params,amount) values('LIVE-REL','${fans[7]}','booking','{"bookingId":"${b}"}',15);
+   insert into reserve_capture_attempts(order_id,booking_id,state) values('LIVE-REL','${b}','checking')`);
+  expect(as(fans[7],`select reserve_live_release('${b}')`)==='f','liberó un cupo con el pago en curso');
+  psql(DB,`update reserve_capture_attempts set state='failed' where order_id='LIVE-REL'`);
+  psql(DB,'truncate realtime.sent');
+  expect(as(fans[7],`select reserve_live_release('${b}')`)==='t','no liberó el cupo');
+  expect(psql(DB,`select status||'|'||(details->>'expiryReason') from vip_bookings where id='${b}'`)==='expired|released','estado al liberar');
+  expect(visitorStatus().drop.board[3].state==='free','la casilla sigue apartada');
+  expect(psql(DB,`select count(*) from realtime.sent where topic='cupos:${cp}'`)==='1','liberar no avisó a las páginas');
+  expect(psql(DB,`select count(*) from reserve_policy_incidents where booking_id='${b}'`)==='0','liberar contó como falta');
+  raises(()=>psql(DB,`select reserve_capture_begin('LIVE-REL','${fans[7]}')`),/No se realizó el cobro/,'cobró un cupo liberado');
+  const again=as(fans[9],`select reserve_live_claim('${board}',4)`);
+  expect(psql(DB,`select details->>'liveSlot' from vip_bookings where id='${again}'`)==='4','otro fan no pudo tomarlo');
+  const paid=psql(DB,`select id from vip_bookings where details->>'liveDropId'='${board}' and status='confirmed' limit 1`);
+  expect(as(fans[4],`select reserve_live_release('${paid}')`)==='f','liberó un cupo pagado');
+  expect(psql(DB,`select status from vip_bookings where id='${paid}'`)==='confirmed','el cupo pagado cambió');
  });
 
  await check('Cerrar los cupos también avisa a las páginas abiertas',()=>{

@@ -11,7 +11,7 @@ export const LIVE_OPENS_IN = [0, 5, 10, 15, 30, 60];
 export const LIVE_GAPS = [5, 10, 15, 30, 60];
 export const LIVE_MIN_PRICE = 5;
 export const LIVE_MAX_PRICE = 5000;
-export const LIVE_HOLD_MINUTES = 10; // same as the database (reserve_fan_lifecycle)
+export const LIVE_HOLD_MINUTES = 5; // same as the database (reserve_fan_lifecycle)
 // "Llamada ya": one slot, on sale now, starting on the next 5-minute mark at least
 // 5 minutes away (time to pay). The call room opens 15 minutes before its start,
 // so both can go in as soon as it is paid.

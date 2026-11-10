@@ -92,7 +92,7 @@ try {
       }, n);
       await takenByOther(3);
       await page.locator('[data-testid=live-slot-3][data-state=held]').waitFor({ timeout: 3000 });
-      assert.match(await slot(3).innerText(), /Apartado/);
+      assert.match(await slot(3).innerText(), /Pagando/);
       assert.ok(await slot(3).isDisabled(), 'a held slot can be ticked');
       assert.match(await page.getByTestId('live-slots-left').innerText(), /Quedan 2 de 3 cupos/);
       // The visitor ticks slot 1 and it is taken meanwhile: a notice, and the box unticks.
@@ -116,15 +116,17 @@ try {
     await page.getByText(`Cupo en vivo #${mySlot}`).waitFor();
     assert.equal(new URL(page.url()).search, '', 'the ?pagar=1 flag stays in the address');
     if (shots) await page.screenshot({ path: `${shots}/${device}-4-pagar.png` });
-    await page.getByRole('button', { name: 'Cerrar' }).click();
-    await page.getByTestId('live-slots-held').waitFor();
-    assert.match(await page.getByTestId('live-slots-held').innerText(), new RegExp(`Tu cupo #${mySlot} está apartado`));
     assert.equal(await slot(mySlot).getAttribute('data-state'), 'mine');
     assert.match(await slot(mySlot).innerText(), /Tu cupo/);
-    if (shots) await page.screenshot({ path: `${shots}/${device}-5-apartado.png`, fullPage: true });
+    // Closing the payment without paying gives the slot back at once.
+    await page.getByRole('button', { name: 'Cerrar' }).click();
+    await page.locator(`[data-testid=live-slot-${mySlot}][data-state=free]`).waitFor({ timeout: 3000 });
+    assert.equal(await page.getByTestId('live-slots-held').count(), 0);
+    if (shots) await page.screenshot({ path: `${shots}/${device}-5-liberado.png`, fullPage: true });
     if (now) {
       // Paid: the call room is already open, so after 10 seconds the fan goes in.
-      await page.getByTestId('live-slots-pay').click();
+      await page.getByTestId('live-slots-take').click();
+      await page.getByText('Cupo en vivo #1').waitFor();
       await page.getByRole('button', { name: /Pagar ahora \$20\.00/ }).last().click();
       await page.getByTestId('live-slots-entering').waitFor({ timeout: 15000 });
       if (shots) await page.screenshot({ path: `${shots}/${device}-6-entrando.png` });

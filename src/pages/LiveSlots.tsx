@@ -57,7 +57,8 @@ const SlotBoard: React.FC<{
 
 // fansreserve.com/@usuario/ahora: the link a creator says on a TikTok or Instagram
 // live. Shows every slot they just opened with its time, a countdown until they
-// open, and lets a fan tick one and pay it on the spot (15 minutes to pay).
+// open, and lets a fan tick one and pay it on the spot (5 minutes to pay; closing
+// the payment gives the slot back at once).
 const LiveSlots: React.FC = () => {
   const { handle: raw = '' } = useParams();
   const username = HANDLE.exec(raw)?.[1]?.toLowerCase() ?? '';
@@ -182,6 +183,17 @@ const LiveSlots: React.FC = () => {
       load();
     }
     return result;
+  };
+
+  // Closed the payment without paying: the slot goes back on the board at once, so
+  // nobody keeps a slot they are not paying. The board shows it free again.
+  const closePayment = async () => {
+    setPaying(false);
+    if (user && mine?.status === 'accepted') {
+      setPicked(null);
+      await backend.liveSlotsRelease(user, mine.bookingId);
+    }
+    load();
   };
 
   // Back from the login: the visit already reached this page, so forget the stored return.
@@ -381,7 +393,7 @@ const LiveSlots: React.FC = () => {
           confirmLabel={t('liveSlots.page.pay')}
           paypal={{ kind: 'booking', params: { bookingId: mine.bookingId } }}
           onConfirm={pay}
-          onClose={() => { setPaying(false); load(); }}
+          onClose={closePayment}
         />
       )}
     </div>

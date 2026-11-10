@@ -461,6 +461,14 @@ const liveClaim = (user: User, dropId: string, slot?: number): AuthResult & { bo
   return { ok: true, bookingId: id };
 };
 
+const liveRelease = (user: User, bookingId: string): AuthResult => {
+  const now = new Date().toISOString();
+  saveBookings(listBookings().map((b) => (b.id === bookingId && b.fanId === user.id && b.status === 'accepted' && b.details?.liveDropId
+    ? { ...b, status: 'expired', updatedAt: now, details: { ...b.details, expiryReason: 'released' } } : b)));
+  notify();
+  return { ok: true };
+};
+
 // Deleting an account (by its owner or by an admin) removes everything personal.
 const removeAccount = async (userId: string) => {
   saveAccounts(loadAccounts().filter((a) => a.id !== userId));
@@ -928,6 +936,7 @@ export const localBackend: Backend = {
   liveSlotsOpen: async (user, input) => liveOpen(user, input),
   liveSlotsClose: async (user, dropId) => liveClose(user, dropId),
   liveSlotsClaim: async (user, dropId, slot) => liveClaim(user, dropId, slot),
+  liveSlotsRelease: async (user, bookingId) => liveRelease(user, bookingId),
   // Other tabs of this browser: the store changed (a slot held, paid or freed).
   liveSlotsWatch: (_creatorId, onChange, onLive) => {
     const onStorage = (e: StorageEvent) => { if (e.key === null || /bookings|live_drops/.test(e.key)) onChange(); };

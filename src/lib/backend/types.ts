@@ -455,6 +455,9 @@ export interface Backend {
   liveSlotsClose(user: User, dropId: string): Promise<AuthResult>;
   // slot = the one the fan ticked on the board; without it, the next free one.
   liveSlotsClaim(user: User, dropId: string, slot?: number): Promise<AuthResult & { bookingId?: string }>;
+  // The fan closed the payment without paying: their live slot goes back on the board
+  // at once. Does nothing once a payment is under way or done.
+  liveSlotsRelease(user: User, bookingId: string): Promise<AuthResult>;
   // Calls onChange whenever that creator's board changes (a slot held, paid, freed,
   // slots opened or closed) and onLive with whether the instant channel is working.
   // Returns how to stop listening.

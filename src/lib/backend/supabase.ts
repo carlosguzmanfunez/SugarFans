@@ -792,6 +792,11 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       return error ? dbError(error, 'No se pudo apartar el cupo') : { ok: true, bookingId: data as string };
     },
 
+    async liveSlotsRelease(_user, bookingId) {
+      const { error } = await sb.rpc('reserve_live_release', { p_booking: bookingId });
+      return error ? dbError(error, 'No se pudo liberar el cupo') : { ok: true };
+    },
+
     // Public Realtime broadcast sent by the database on every change (no data in it).
     liveSlotsWatch(creatorId, onChange, onLive) {
       const channel = sb.channel(`cupos:${creatorId}`)
