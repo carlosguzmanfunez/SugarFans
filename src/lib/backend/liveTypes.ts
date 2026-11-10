@@ -19,7 +19,7 @@ export interface LiveBroadcast {
 
 // reserve_request: to the creator (new request, cancellation, payment) ·
 // reserve_update: to the fan (accepted, counter-offer, rejected, expired).
-export type NotificationKind = 'live_started' | 'reserve_request' | 'reserve_update' | 'creator_goal' | 'subscription_payment' | 'subscription_update';
+export type NotificationKind = 'live_started' | 'reserve_request' | 'reserve_update' | 'creator_goal' | 'subscription_payment' | 'subscription_update' | 'admin_monitor';
 
 export interface AppNotification {
   id: string;

@@ -8,6 +8,8 @@ import type { SpecialBackend } from './specialTypes';
 import type { ProspectsBackend } from './prospectTypes';
 import type { SocialLinks } from '../creatorLinks';
 import type { InfraUsage } from '../infraUsage';
+import type { MonitorData, MonitorKey, MonitorNewKey, MonitorSnapshot } from '../adminMonitor';
+import type { ReserveResponseLog } from '../reserveResponseReminders';
 import type { FinanceBackend } from '../creatorFinance';
 import type { ReserveLocation, AttendanceLocation } from '../reserveLocation';
 import type { ApprovalMode, CancellationPolicyId, CreatorCategoryId, LocationType, PurposeId, ReserveModality } from '../../config/reserve';
@@ -190,6 +192,9 @@ export interface BookingDetails {
   // Booked with a Meta de experiencia ticket (no payment), and the wheel's extra.
   ticketId?: string;
   ticketBonus?: string;
+  // Cupos en vivo: the drop this slot belongs to and its place in the call order.
+  liveDropId?: string;
+  liveSlot?: number;
   // Cancellation (see src/lib/reserveCancellation.ts): who cancelled, and what came back.
   cancellation?: BookingCancellation;
   // The fan's one free date change: pending (reschedule) and used (rescheduled).
@@ -203,6 +208,7 @@ export interface BookingCancellation {
   refundChoice?: 'original' | 'credits';
   refundAmount?: number; // money sent back to the original method
   refundFee?: number; // PayPal collection fee kept on a voluntary cancellation
+  refundServiceFee?: number; // 10% service fee kept on a voluntary cancellation 24 h+ before
   refundState?: 'pending' | 'completed';
   by: 'fan' | 'creator';
   at: string;
@@ -212,7 +218,7 @@ export interface BookingCancellation {
   ticketBack?: boolean;
 }
 
-export type CancelResult = AuthResult & { refundCoins?: number; refundPercent?: number; refundState?: string; refundAmount?: number; refundFee?: number };
+export type CancelResult = AuthResult & { refundCoins?: number; refundPercent?: number; refundState?: string; refundAmount?: number; refundFee?: number; refundServiceFee?: number };
 
 export interface VipBooking {
   incomePolicyVersion?: string;
@@ -292,6 +298,8 @@ export type ExperienceType = string;
 // How an experience is offered (vip_experiences.details). Experiences created
 // before Reserve have none: they read as virtual, online, manual approval.
 export interface ReserveDetails {
+  // Hidden experience a Cupos en vivo drop books on (never listed).
+  liveDrop?: boolean;
   country?: string;
   region?: string;
   // This experience's category, independent of its creator's profile category.
@@ -346,6 +354,46 @@ export interface VipExperience extends VipExperienceInput {
 
 export type ProfilePatch = Partial<Pick<User, 'name' | 'email' | 'avatar' | 'bio' | 'subscriptionPrice' | 'settings' | 'ageVerified' | 'country' | 'phone' | 'username' | 'gender'>>;
 
+// Cupos en vivo (fansreserve.com/@usuario/ahora): today's 1:1 slots a creator opens
+// during a live on another network. Times are ISO instants; `now` is the server's.
+export interface LiveDrop {
+  id: string;
+  slots: number;
+  minutes: number;
+  price: number;
+  opensAt: string;
+  firstStartAt: string;
+  timeZone: string;
+  closed: boolean;
+  left: number;
+  nextStart?: string;
+  // Every slot in order. Missing only while the database is on the older version.
+  board?: LiveSlot[];
+}
+// free: can be reserved; held: someone is paying it (15 minutes); taken: paid, or the
+// creator is busy at that time; past: its time arrived with nobody in it.
+export type LiveSlotState = 'free' | 'held' | 'taken' | 'past';
+export interface LiveSlot {
+  n: number; // 1-based
+  start: string; // ISO instant
+  state: LiveSlotState;
+}
+export interface LiveSlotsStatus {
+  creatorId: string;
+  creatorName: string;
+  now: string;
+  drop?: LiveDrop;
+  // The signed-in fan's slot in this drop (to pay, or already paid).
+  mine?: { bookingId: string; status: BookingStatus; slot: number; date: string; time: string; paymentDueAt?: string; price: number };
+}
+export interface LiveSlotsInput {
+  slots: number;
+  minutes: number;
+  price: number;
+  opensIn: number; // minutes until fans can take them (0 = now)
+  gap: number; // minutes from the opening to the first call
+}
+
 export interface Backend {
   mode: 'supabase' | 'local';
   // The signed-in session's token for the app's own server functions (null in the local store).
@@ -374,6 +422,14 @@ export interface Backend {
   // Admins: this month's use of each provider's plan ("Consumo" tab), and the plans
   // in use plus the share of income set aside for providers.
   infraUsage(): Promise<InfraUsage | null>;
+  // Admins: "Mano derecha" (hourly snapshots, daily ledger, 12 AM / 12 PM reports).
+  monitor(): Promise<MonitorData>;
+  // Admins: take a snapshot now ("Actualizar ahora"); at most one per minute.
+  monitorRefresh(): Promise<MonitorSnapshot | null>;
+  // Owner only: private keys for the phone control page (/control).
+  monitorKeys(): Promise<MonitorKey[]>;
+  monitorKeyCreate(label: string): Promise<MonitorNewKey>;
+  monitorKeyRevoke(id: string): Promise<boolean>;
   finance: FinanceBackend;
   setInfraSettings(plans: InfraUsage['plans'], fundPct: number): Promise<AuthResult>;
   changePassword(user: User, current: string, next: string): Promise<AuthResult>;
@@ -395,6 +451,19 @@ export interface Backend {
   getAvailability(creatorProfileId: string): Promise<Availability>;
   setAvailability(creatorProfileId: string, availability: Availability): Promise<AuthResult>;
   takenSlots(creatorProfileId: string): Promise<TakenSlot[]>;
+  // Cupos en vivo. Status is public (null = no such creator); claim returns the booking to pay.
+  liveSlotsStatus(username: string): Promise<LiveSlotsStatus | null>;
+  liveSlotsOpen(user: User, input: LiveSlotsInput): Promise<AuthResult & { dropId?: string }>;
+  liveSlotsClose(user: User, dropId: string): Promise<AuthResult>;
+  // slot = the one the fan ticked on the board; without it, the next free one.
+  liveSlotsClaim(user: User, dropId: string, slot?: number): Promise<AuthResult & { bookingId?: string }>;
+  // The fan closed the payment without paying: their live slot goes back on the board
+  // at once. Does nothing once a payment is under way or done.
+  liveSlotsRelease(user: User, bookingId: string): Promise<AuthResult>;
+  // Calls onChange whenever that creator's board changes (a slot held, paid, freed,
+  // slots opened or closed) and onLive with whether the instant channel is working.
+  // Returns how to stop listening.
+  liveSlotsWatch(creatorId: string, onChange: () => void, onLive?: (live: boolean) => void): () => void;
   createBooking(user: User, input: BookingInput): Promise<AuthResult>;
   selectAttendanceLocation(user: User, location: ReserveLocation): Promise<AuthResult>;
   confirmBookingAttendance(user: User, bookingId: string): Promise<AuthResult>;
@@ -429,6 +498,10 @@ export interface Backend {
   fanBookings(fanId: string): Promise<VipBooking[]>;
   // The creator opened their requests: the waiting ones count as seen.
   markBookingsSeen(user: User): Promise<void>;
+  // The creator opened a reminder about a request still without answer (?reserveNudge=).
+  openReserveNudge(id: string): Promise<void>;
+  // Admins: reminders sent to creators about Reserve requests without answer.
+  reserveResponseLog(days?: number): Promise<ReserveResponseLog>;
   // This device's Web Push subscription (phone alerts), tied to the signed-in person.
   savePushSubscription(sub: { endpoint: string; p256dh: string; auth: string }): Promise<AuthResult>;
   deletePushSubscription(endpoint: string): Promise<AuthResult>;

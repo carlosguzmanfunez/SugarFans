@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#111111">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="FR Control">
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<link rel="icon" href="/favicon.svg">
+<title>Control · Fans Reserve</title>
+<!-- Control del celular (Mano derecha). Página independiente de la app: lee los números
+     en vivo de la base con la llave privada del dueño (monitor_live). Solo lee. -->
+<style>
+:root{--ink:#0b0b0b;--muted:#6b6a66;--line:#ebeae6;--bg:#f4f3ef;--card:#fff;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom)}
+header{position:sticky;top:0;z-index:5;background:#111;color:#fff;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+header b{font-size:15px;letter-spacing:.2px}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#d6d6d3}
+.live i{width:8px;height:8px;border-radius:50%;background:#1baf7a;box-shadow:0 0 0 0 #1baf7a88;animation:pulse 2s infinite}
+.live.off i{background:#9a9a96;animation:none}
+@keyframes pulse{70%{box-shadow:0 0 0 7px #1baf7a00}100%{box-shadow:0 0 0 0 #1baf7a00}}
+@media (prefers-reduced-motion:reduce){.live i{animation:none}}
+main{max-width:640px;margin:0 auto;padding:14px 12px 40px;display:grid;gap:12px}
+#app{display:grid;gap:12px}
+.card{background:var(--card);border-radius:18px;padding:16px;box-shadow:0 1px 2px #0000000d}
+.card h2{font-size:15px;margin:0 0 10px}
+.hint{color:var(--muted);font-size:12.5px;margin:2px 0 0}
+.band{border-radius:18px;padding:16px;color:#fff;display:flex;gap:12px;align-items:center}
+.band.ok{background:linear-gradient(135deg,#059669,#047857)}.band.media{background:linear-gradient(135deg,#f59e0b,#d97706)}.band.alta{background:linear-gradient(135deg,#dc2626,#b91c1c)}
+.band .ico{width:42px;height:42px;border-radius:12px;background:#ffffff26;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;flex-shrink:0}
+.band h1{font-size:18px;margin:0}.band p{margin:2px 0 0;font-size:12.5px;opacity:.9}
+.seg{display:flex;background:#f1f0ec;border-radius:999px;padding:3px;margin-bottom:12px}
+.seg button{flex:1;border:0;background:none;padding:8px 6px;border-radius:999px;font-family:inherit;font-weight:600;font-size:13px;color:#52514e}
+.seg button[aria-pressed=true]{background:#fff;color:#111;box-shadow:0 1px 2px #0000001a}
+.big{font-size:32px;font-weight:750;letter-spacing:-.5px;margin:0}
+.sub{color:var(--muted);font-size:12.5px;margin:0 0 12px}
+.bar{display:flex;height:12px;border-radius:999px;overflow:hidden;background:#f1f0ec;gap:2px}
+.bar span{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin:8px 0 6px;font-size:12px;color:#3d3c39}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.rows{margin:6px 0 0;padding:0;list-style:none}
+.rows li{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+.rows li:first-child{border-top:0}
+.rows b{font-variant-numeric:tabular-nums}
+.rows .strong{font-weight:700}.rows .muted{color:var(--muted)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tile{background:#f7f7f4;border-radius:12px;padding:10px 12px}
+.tile b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+.tile span{font-size:12px;color:var(--muted)}
+.prob{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.prob:first-of-type{border-top:0}
+.dot{width:10px;height:10px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.alta .dot{background:#d03b3b}.media .dot{background:#fab219}.baja .dot{background:#9a9a96}
+.prob p{margin:0;font-size:14px}.prob small{color:var(--muted);font-size:12px}
+.pill{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:6px;vertical-align:1px}
+.alta .pill{background:#fdecec;color:#8f1f1f}.media .pill{background:#fff6e0;color:#7a5200}.baja .pill{background:#f1f1ef;color:#52514e}
+.empty{color:var(--muted);font-size:14px;margin:0}
+.hours{display:flex;align-items:flex-end;gap:2px;height:70px;margin-top:4px}
+.hours span{flex:1;background:var(--c1);border-radius:3px 3px 0 0;min-height:2px}
+.hours span.z{background:#e3e2de}
+.axis{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px}
+.day{display:grid;grid-template-columns:78px 1fr auto;gap:8px;align-items:center;padding:5px 0;font-size:13px}
+.day .t{height:10px;background:#f1f0ec;border-radius:999px;overflow:hidden}
+.day .t span{display:block;height:100%;background:var(--c1);border-radius:999px}
+.day b{font-variant-numeric:tabular-nums;font-size:13px}
+.day small{color:var(--muted);display:block;font-size:11px}
+details{border-top:1px solid var(--line);padding:10px 0}
+details:first-of-type{border-top:0}
+summary{cursor:pointer;font-weight:600;font-size:14px;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary small{display:block;color:var(--muted);font-weight:400;font-size:12px}
+details pre{white-space:pre-wrap;font-family:inherit;font-size:13px;line-height:1.5;background:#f7f7f4;border-radius:12px;padding:12px;margin:10px 0 0}
+.login input{width:100%;border:1px solid #dcdbd6;border-radius:12px;padding:12px;font:14px ui-monospace,SFMono-Regular,Menlo,monospace;margin:10px 0}
+.btn{border:0;border-radius:999px;padding:11px 16px;font-family:inherit;font-weight:600;font-size:14px;background:#111;color:#fff;width:100%}
+.btn.ghost{background:none;color:#52514e;border:1px solid #dcdbd6;width:auto;padding:8px 14px;font-size:13px}
+.err{color:#b42318;font-size:13px;margin:8px 0 0}
+.note{background:#fff6e0;color:#5a3d00;border-radius:12px;padding:10px 12px;font-size:13px}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px;color:var(--muted);font-size:12px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <b>Fans Reserve · Control</b>
+  <span class="live off" id="live"><i></i><span id="liveText">Sin conectar</span></span>
+</header>
+<main>
+  <section class="card login" id="login" hidden>
+    <h2>Entra con tu llave</h2>
+    <p class="hint">Créala en Admin › Mano derecha › <b>Control en el celular</b>. Se guarda solo en este teléfono; nadie más la ve.</p>
+    <form id="loginForm">
+      <label for="keyInput" class="hint">Llave privada</label>
+      <input id="keyInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="frc_…">
+      <button class="btn" type="submit">Entrar</button>
+      <p class="err" id="loginErr" hidden></p>
+    </form>
+  </section>
+
+  <div id="app" hidden>
+    <p class="note" id="offline" hidden></p>
+    <div class="band" id="band"><div class="ico" id="bandIco"></div><div><h1 id="bandTitle"></h1><p id="bandSub"></p></div></div>
+
+    <section class="card">
+      <div class="seg" role="group" aria-label="Periodo">
+        <button type="button" data-p="hoy" aria-pressed="true">Hoy</button>
+        <button type="button" data-p="ultima_hora" aria-pressed="false">Última hora</button>
+        <button type="button" data-p="mes" aria-pressed="false">Mes</button>
+      </div>
+      <p class="big" id="cobrado"></p>
+      <p class="sub" id="cobradoSub"></p>
+      <div class="bar" id="split" aria-hidden="true"></div>
+      <div class="legend"><span><i style="background:var(--c1)"></i>Creadores</span><span><i style="background:var(--c2)"></i>PayPal</span><span><i style="background:var(--c3)"></i>Fans Reserve</span></div>
+      <ul class="rows" id="money"></ul>
+    </section>
+
+    <section class="card">
+      <h2>Necesita atención</h2>
+      <div id="problems"></div>
+    </section>
+
+    <section class="card">
+      <h2>Movimiento</h2>
+      <div class="grid" id="movement"></div>
+    </section>
+
+    <section class="card">
+      <h2>Cobrado cada hora</h2>
+      <p class="hint">Últimas 24 horas</p>
+      <div class="hours" id="hours"></div>
+      <div class="axis"><span id="h0"></span><span>ahora</span></div>
+    </section>
+
+    <section class="card">
+      <h2>Registro diario</h2>
+      <p class="hint">Cobrado por día y lo que le queda a Fans Reserve (con ISV / sin ISV).</p>
+      <div id="days"></div>
+    </section>
+
+    <section class="card">
+      <h2>Reportes de las 12</h2>
+      <div id="reports"></div>
+    </section>
+
+    <div class="foot">
+      <span id="footText">Solo lectura. Nada aquí mueve dinero.</span>
+      <button class="btn ghost" type="button" id="logout">Salir</button>
+    </div>
+  </div>
+</main>
+<script>
+(function () {
+  var SB_URL = '%VITE_SUPABASE_URL%';
+  var SB_KEY = '%VITE_SUPABASE_ANON_KEY%';
+  var K_STORE = 'fr-control-key', D_STORE = 'fr-control-last';
+  var TZ = 'America/Tegucigalpa';
+  var period = 'hoy', data = null, timer = null;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var num = function (n) { return Number(n) || 0; };
+  var usd = function (n) { n = num(n); return (n < 0 ? '-' : '') + '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+  var store = {
+    get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+    del: function (k) { try { localStorage.removeItem(k); } catch (e) {} }
+  };
+  var fmt = function (iso, opts) { return new Intl.DateTimeFormat('es-HN', Object.assign({ timeZone: TZ }, opts)).format(new Date(iso)); };
+  var ago = function (iso) {
+    var m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+    if (m < 1) return 'hace un momento';
+    if (m < 60) return 'hace ' + m + ' min';
+    var h = Math.floor(m / 60);
+    return h < 24 ? 'hace ' + h + ' h' : 'hace ' + Math.floor(h / 24) + ' d';
+  };
+  var plural = function (n, one, many) { return n + ' ' + (n === 1 ? one : many); };
+
+  // The key can arrive in the link (#k=...): keep it on this phone and clean the address bar.
+  function keyFromLink() {
+    var k = new URLSearchParams(location.hash.slice(1)).get('k');
+    if (!k) return false;
+    store.set(K_STORE, k.trim());
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+    return true;
+  }
+  keyFromLink();
+  window.addEventListener('hashchange', function () { if (keyFromLink()) load(true); });
+
+  function setLive(state, text) {
+    $('live').className = 'live' + (state ? '' : ' off');
+    $('liveText').textContent = text;
+  }
+
+  function showLogin(msg) {
+    $('app').hidden = true; $('login').hidden = false;
+    $('loginErr').hidden = !msg; $('loginErr').textContent = msg || '';
+    setLive(false, 'Sin conectar');
+  }
+
+  function fetchLive(key) {
+    if (SB_URL.charAt(0) === '%' || SB_KEY.charAt(0) === '%') return Promise.reject(new Error('config'));
+    return fetch(SB_URL + '/rest/v1/rpc/monitor_live', {
+      method: 'POST', cache: 'no-store',
+      headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_key: key })
+    }).then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); });
+  }
+
+  function load(first) {
+    var key = store.get(K_STORE);
+    if (!key) { showLogin(); return; }
+    fetchLive(key).then(function (d) {
+      if (!d) { store.del(K_STORE); store.del(D_STORE); data = null; showLogin('Esa llave no sirve o fue revocada. Crea una nueva en el panel.'); return; }
+      data = d; d._fetched = new Date().toISOString();
+      store.set(D_STORE, JSON.stringify(d));
+      $('offline').hidden = true;
+      render();
+    }).catch(function (e) {
+      var cached = store.get(D_STORE);
+      if (cached && (first || !data)) { try { data = JSON.parse(cached); render(); } catch (x) {} }
+      if (data) {
+        $('offline').hidden = false;
+        $('offline').textContent = e.message === 'config'
+          ? 'Esta copia no tiene la dirección de la base. Abre fansreserve.com/control.'
+          : 'Sin conexión: mostrando lo último que se cargó (' + ago(data._fetched || data.ahora.at) + ').';
+        setLive(false, 'Sin conexión');
+      } else {
+        showLogin(e.message === 'config' ? 'Esta copia no tiene la dirección de la base. Abre fansreserve.com/control.' : 'No pudimos conectar. Revisa el internet y vuelve a intentar.');
+      }
+    });
+  }
+
+  var STATUS = {
+    ok: { ico: '✓', title: 'Todo en orden' },
+    media: { ico: '!', title: 'Hay cosas por revisar' },
+    alta: { ico: '!', title: 'Necesita tu atención' }
+  };
+
+  function render() {
+    var now = data.ahora, probs = (now.problemas || []).slice();
+    var order = { alta: 0, media: 1, baja: 2 };
+    probs.sort(function (a, b) { return order[a.nivel] - order[b.nivel]; });
+    var urgent = probs.filter(function (p) { return p.nivel === 'alta'; }).length;
+    var review = probs.filter(function (p) { return p.nivel === 'media'; }).length;
+    var tone = urgent ? 'alta' : review ? 'media' : 'ok';
+    $('login').hidden = true; $('app').hidden = false;
+    $('band').className = 'band ' + tone;
+    $('bandIco').textContent = STATUS[tone].ico;
+    $('bandTitle').textContent = urgent ? plural(urgent, 'asunto urgente', 'asuntos urgentes') : review ? plural(review, 'cosa por revisar', 'cosas por revisar') : STATUS.ok.title;
+    $('bandSub').textContent = 'Datos al ' + fmt(now.at, { hour: 'numeric', minute: '2-digit' }) + ' hora Honduras · se actualiza cada minuto';
+    setLive(true, 'En vivo');
+
+    renderMoney();
+
+    $('problems').innerHTML = probs.length ? probs.map(function (p) {
+      var lvl = { alta: 'Urgente', media: 'Revisar', baja: 'Info' }[p.nivel];
+      return '<div class="prob ' + esc(p.nivel) + '"><span class="dot"></span><div><p>' + esc(p.titulo) + '<span class="pill">' + lvl + '</span></p>' +
+        (p.detalle ? '<small>' + esc(p.detalle) + '</small><br>' : '') + (p.donde ? '<small>Panel: ' + esc(p.donde) + '</small>' : '') + '</div></div>';
+    }).join('') : '<p class="empty">Nada pendiente. Todo en orden.</p>';
+
+    var h = now.hoy || {}, pend = now.pendiente || {};
+    var tiles = [
+      [pend.reserve_por_responder, 'Reserve por responder'], [pend.reserve_confirmadas_proximas, 'Reserve próximas'],
+      [pend.retiros_enviandose, 'Retiros enviándose'], [h.reservas_pagadas, 'Reserve pagadas hoy'],
+      [h.personas_nuevas, 'Personas nuevas hoy'], [h.creadores_verificados, 'Creadores verificados hoy']
+    ];
+    $('movement').innerHTML = tiles.map(function (t) { return '<div class="tile"><b>' + num(t[0]) + '</b><span>' + t[1] + '</span></div>'; }).join('');
+
+    var hours = data.horas || [];
+    var max = Math.max.apply(null, hours.map(function (x) { return num(x.cobrado); }).concat([1]));
+    $('hours').innerHTML = hours.length ? hours.map(function (x) {
+      var v = num(x.cobrado);
+      return '<span class="' + (v ? '' : 'z') + '" style="height:' + (v ? Math.max(4, v / max * 100) : 3) + '%" title="' + fmt(x.at, { hour: 'numeric' }) + ': ' + usd(v) + '"></span>';
+    }).join('') : '<p class="empty">Se llena solo cada hora.</p>';
+    $('h0').textContent = hours.length ? fmt(hours[0].at, { hour: 'numeric' }) : '';
+
+    var days = data.dias || [];
+    var dmax = Math.max.apply(null, days.map(function (d) { return num(d.dinero && d.dinero.cobrado); }).concat([1]));
+    $('days').innerHTML = days.length ? days.map(function (d) {
+      var m = d.dinero || {};
+      var label = new Intl.DateTimeFormat('es-HN', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(d.day + 'T00:00:00Z'));
+      return '<div class="day"><span>' + esc(label) + (d.closed ? '' : '<small>en curso</small>') + '</span>' +
+        '<div class="t"><span style="width:' + (num(m.cobrado) / dmax * 100) + '%"></span></div>' +
+        '<span style="text-align:right"><b>' + usd(m.cobrado) + '</b><small>FR ' + usd(m.fr_con_isv) + ' / ' + usd(m.fr_sin_isv) + '</small></span></div>';
+    }).join('') : '<p class="empty">El primer día se cierra a las 12:00 a. m.</p>';
+
+    var reps = data.reportes || [];
+    $('reports').innerHTML = reps.length ? reps.map(function (r) {
+      return '<details><summary>' + (r.kind === 'midday' ? '☀️ ' : '🌙 ') + esc(r.title) + '<small>' + fmt(r.created_at, { weekday: 'short', hour: 'numeric', minute: '2-digit' }) +
+        (r.emailed_at ? ' · llegó al correo' : ' · no llegó al correo') + '</small></summary><pre>' + esc(r.body) + '</pre></details>';
+    }).join('') : '<p class="empty">El primero llega a las 12 (mediodía o medianoche, hora Honduras).</p>';
+
+    $('footText').textContent = 'Solo lectura. Nada aquí mueve dinero.' + (data.ultima_revision ? ' Revisión automática ' + ago(data.ultima_revision) + '.' : '');
+  }
+
+  function renderMoney() {
+    var m = (data.ahora || {})[period] || {};
+    var names = { hoy: 'hoy desde las 12:00 a. m.', ultima_hora: 'en la última hora', mes: 'este mes' };
+    $('cobrado').textContent = usd(m.cobrado);
+    $('cobradoSub').textContent = 'Cobrado ' + names[period] + ' · ' + plural(num(m.pagos), 'pago', 'pagos') + ' · ' + plural(num(m.fans_que_pagaron), 'fan', 'fans');
+    var parts = [[num(m.creadores), 'var(--c1)'], [num(m.comision_paypal), 'var(--c2)'], [num(m.fr_con_isv), 'var(--c3)']];
+    var total = parts.reduce(function (s, p) { return s + Math.max(0, p[0]); }, 0);
+    $('split').innerHTML = total > 0 ? parts.map(function (p) { return p[0] > 0 ? '<span style="width:' + (p[0] / total * 100) + '%;background:' + p[1] + '"></span>' : ''; }).join('') : '';
+    var rows = [
+      ['Creadores (su parte)', usd(m.creadores), ''],
+      ['Comisión PayPal', usd(m.comision_paypal), ''],
+      ['Fans Reserve con ISV', usd(m.fr_con_isv), 'strong'],
+      ['ISV 15% (solo parte de Fans Reserve)', '-' + usd(m.isv), 'muted'],
+      ['Fans Reserve sin ISV', usd(m.fr_sin_isv), 'strong'],
+      ['Devuelto', usd(m.devuelto), 'muted'],
+      ['En disputa', usd(m.en_disputa), 'muted'],
+      ['Retiros pagados a creadores', usd(m.retiros_pagados && m.retiros_pagados.monto), 'muted']
+    ];
+    $('money').innerHTML = rows.map(function (r) { return '<li class="' + r[2] + '"><span>' + r[0] + '</span><b>' + r[1] + '</b></li>'; }).join('');
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('.seg button'), function (b) {
+    b.addEventListener('click', function () {
+      period = b.getAttribute('data-p');
+      Array.prototype.forEach.call(document.querySelectorAll('.seg button'), function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      if (data) renderMoney();
+    });
+  });
+  $('loginForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var k = $('keyInput').value.trim();
+    if (!/^frc_[0-9a-f]{64}$/.test(k)) { showLogin('La llave empieza con frc_ y tiene 68 caracteres. Cópiala completa del panel.'); return; }
+    store.set(K_STORE, k); $('keyInput').value = ''; load(true);
+  });
+  $('logout').addEventListener('click', function () { store.del(K_STORE); store.del(D_STORE); data = null; showLogin(); });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) load(false); });
+  timer = setInterval(function () { if (!document.hidden) load(false); }, 60000);
+  load(true);
+})();
+</script>
+</body>
+</html>

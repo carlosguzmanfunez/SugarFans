@@ -1,15 +1,56 @@
 import React, { useState } from 'react';
 import { useBackendData } from '../lib/useBackendData';
-import { adminAttendanceDetail, adminAttendanceList } from '../lib/adminReserveAttendanceClient';
+import { adminAttendanceDetail, adminAttendanceList, adminDisputeDossier, adminDisputeFee, downloadDisputeDossier } from '../lib/adminReserveAttendanceClient';
 import { ATTENDANCE_PAGE_SIZE, attendanceDate, attendanceDuration, attendanceFilterError, attendanceState, attendanceText, defaultAttendanceFilters, type AttendancePage, type AttendanceRow } from '../lib/adminReserveAttendance';
 import { summarizeSession } from '../lib/reserveSession';
 import { AdminDialog } from './AdminDialog';
+
+function useDossier() {
+ const [busy,setBusy]=useState(false),[message,setMessage]=useState(''),[failed,setFailed]=useState(false);
+ const run=async(reference:string)=>{
+  setBusy(true);setMessage('');setFailed(false);
+  try {const d=await adminDisputeDossier(reference);downloadDisputeDossier(d);setMessage('Expediente descargado. Ábrelo y guárdalo como PDF para subirlo a PayPal.');}
+  catch(e){setFailed(true);setMessage(e instanceof Error?e.message:'No pudimos preparar el expediente.');}
+  finally{setBusy(false);}
+ };
+ return {busy,message,failed,run};
+}
+const dossierNote=(d:{message:string;failed:boolean})=>d.message?<p role={d.failed?'alert':'status'} className={`mt-2 text-sm ${d.failed?'text-red-800':'text-green-800'}`}>{d.message}</p>:null;
+
+// PayPal charges its chargeback fee whether we win or lose. The admin decides
+// who pays it; if the creator, the ledger deducts it from the available
+// balance, then from the open cycle before the payout, else from future earnings.
+function DisputeFee({reference}:{reference:string}) {
+ const [fee,setFee]=useState(''),[payer,setPayer]=useState<'platform'|'creator'>('platform'),[busy,setBusy]=useState(false),[msg,setMsg]=useState({message:'',failed:false});
+ const save=async(e:React.FormEvent)=>{
+  e.preventDefault();setBusy(true);setMsg({message:'',failed:false});
+  try {
+   const r=await adminDisputeFee(reference,Number(fee.replace(',','.')),payer);
+   setMsg({failed:false,message:r.payer==='creator'?`Guardado: se descuentan USD ${Number(r.fee).toFixed(2)} al creador y se le avisó.`:`Guardado: Fans Reserve asume USD ${Number(r.fee).toFixed(2)}.`});
+  } catch(err){setMsg({failed:true,message:err instanceof Error?err.message:'No pudimos guardar la decisión.'});}
+  finally{setBusy(false);}
+ };
+ return <form onSubmit={save} className="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3 sm:p-4" data-testid="dispute-fee-form">
+  <h3 className="text-sm font-semibold text-gray-900">Comisión del contracargo</h3>
+  <p className="mt-1 text-xs text-gray-600">PayPal la cobra aunque ganemos la disputa. Usa la misma referencia de arriba. Si la paga el creador, se descuenta de su saldo disponible; si no alcanza, de sus ganancias del ciclo antes de su pago; si tampoco, la cubrimos y se le descuenta de sus ganancias futuras.</p>
+  <div className="mt-3 flex flex-wrap items-end gap-3">
+   <label className="text-sm font-medium text-gray-800">Importe (USD)<input inputMode="decimal" value={fee} onChange={e=>setFee(e.target.value)} placeholder="10.00" className={`${control} mt-1 block w-28`}/></label>
+   <fieldset className="flex flex-wrap gap-3 text-sm"><legend className="sr-only">Quién paga</legend>
+    <label className="flex min-h-11 items-center gap-2"><input type="radio" name="dispute-payer" checked={payer==='platform'} onChange={()=>setPayer('platform')}/>La paga Fans Reserve</label>
+    <label className="flex min-h-11 items-center gap-2"><input type="radio" name="dispute-payer" checked={payer==='creator'} onChange={()=>setPayer('creator')}/>La paga el creador</label>
+   </fieldset>
+   <button type="submit" disabled={busy||!reference.trim()||!fee.trim()} className="min-h-11 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50">{busy?'Guardando…':'Guardar decisión'}</button>
+  </div>
+  {dossierNote(msg)}
+ </form>;
+}
 
 const empty: AttendancePage = {items:[],has_more:false,as_of:''};
 const control='min-h-11 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-700 disabled:opacity-50';
 const tone=(state:string)=>state==='recorded'?'bg-green-50 text-green-800':state==='review'||state==='unconfirmed'?'bg-amber-50 text-amber-900':state==='ongoing'?'bg-blue-50 text-blue-800':'bg-gray-100 text-gray-700';
 
 function AttendanceDetail({row,onClose}:{row:AttendanceRow;onClose:()=>void}) {
+ const dossier=useDossier();
  const {data,loading,error,reload}=useBackendData(()=>adminAttendanceDetail(row),[row.booking_id],null as AttendanceRow|null);
  const receipt=data?.receipt,summary=receipt?summarizeSession(receipt):null,state=receipt?attendanceState(receipt,data?.checked_at?Date.parse(data.checked_at):Date.now()):null;
  const download=()=>{
@@ -29,7 +70,9 @@ function AttendanceDetail({row,onClose}:{row:AttendanceRow;onClose:()=>void}) {
    </section>
    <section aria-label="Avisos de la reserva"><h3 className="font-semibold">Avisos de la reserva</h3>{receipt.reminders.length?<ul className="mt-2 space-y-2">{receipt.reminders.map((m,i)=><li key={`${m.role}-${m.minutes_before}-${i}`} className="flex flex-wrap justify-between gap-x-4 gap-y-1"><span>{m.role==='creator'?'Creador':'Fan'} · {m.minutes_before} min antes</span><span className="text-gray-600">{m.opened_at?'Abierto':m.push_accepted_at?'Envío aceptado':m.push_attempted_at?'Envío intentado':'Creado'}</span></li>)}</ul>:<p className="mt-2 text-gray-600">Sin avisos registrados para este horario.</p>}<p className="mt-2 text-gray-600">Un envío aceptado no confirma que la persona lo haya recibido o leído.</p></section>
    <details><summary className="min-h-11 cursor-pointer py-3 font-medium">Preparación y referencia de la reserva</summary><p className="break-all text-gray-600">Referencia: {data.booking_id}</p><p className="mt-1 text-gray-600">Se muestra el horario actual de la reserva.</p><ul className="mt-2 space-y-1">{(['creator','fan'] as const).map(role=><li key={role}>{role==='creator'?'Creador':'Fan'}: {receipt.events.some(e=>e.role===role&&e.kind==='policy_accepted'&&e.source==='browser')?'aceptó las indicaciones de preparación':'sin aceptación de preparación registrada'}.</li>)}</ul><p className="mt-2 text-gray-600">La preparación se registra por separado de la conexión.</p></details>
-   <button type="button" onClick={download} className={`${control} font-medium`}>Descargar constancia</button>
+   <div className="flex flex-wrap gap-2"><button type="button" onClick={download} className={`${control} font-medium`}>Descargar constancia</button>
+    <button type="button" onClick={()=>void dossier.run(data.booking_id)} disabled={dossier.busy} className={`${control} font-medium`} data-testid="dossier-from-detail">{dossier.busy?'Preparando…':'Descargar expediente para disputa'}</button></div>
+   {dossierNote(dossier)}
   </div>:null}
  </AdminDialog>;
 }
@@ -37,6 +80,7 @@ function AttendanceDetail({row,onClose}:{row:AttendanceRow;onClose:()=>void}) {
 export default function AdminReserveAttendance({refreshToken=0}:{refreshToken?:number}) {
  const [draft,setDraft]=useState(defaultAttendanceFilters),[filters,setFilters]=useState(defaultAttendanceFilters);
  const [page,setPage]=useState(0),[filterError,setFilterError]=useState(''),[selected,setSelected]=useState<AttendanceRow|null>(null);
+ const dossier=useDossier(),[reference,setReference]=useState('');
  const {data,loading,error,reload}=useBackendData(()=>adminAttendanceList(filters,page*ATTENDANCE_PAGE_SIZE),[filters.from,filters.to,filters.search,page,refreshToken],empty);
  const search=(event:React.FormEvent)=>{
   event.preventDefault();const problem=attendanceFilterError(draft);setFilterError(problem);if(problem)return;
@@ -53,6 +97,14 @@ export default function AdminReserveAttendance({refreshToken=0}:{refreshToken?:n
     <button type="submit" disabled={loading} className="min-h-11 self-end rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-700 disabled:opacity-50">Buscar reservas</button>
    </form>
    {filterError&&<p role="alert" className="mt-3 text-sm text-red-800">{filterError}</p>}
+   <form onSubmit={e=>{e.preventDefault();void dossier.run(reference);}} className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-3 sm:p-4" data-testid="dispute-dossier-form">
+    <h3 className="text-sm font-semibold text-gray-900">Expediente para disputa de PayPal</h3>
+    <p className="mt-1 text-xs text-gray-600">Pega el ID de transacción que aparece en el aviso de PayPal (o la referencia de la reserva). Se descarga en inglés, listo para guardar como PDF y responder en el Centro de resoluciones.</p>
+    <div className="mt-3 flex flex-wrap gap-2"><label className="min-w-0 flex-1 text-sm font-medium text-gray-800"><span className="sr-only">ID de transacción de PayPal o referencia</span><input value={reference} maxLength={64} onChange={e=>setReference(e.target.value)} placeholder="Ej. 8AB12345CD678901E" className={`${control} w-full`} autoComplete="off"/></label>
+     <button type="submit" disabled={dossier.busy||!reference.trim()} className="min-h-11 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50">{dossier.busy?'Preparando…':'Descargar expediente'}</button></div>
+    {dossierNote(dossier)}
+   </form>
+   <DisputeFee reference={reference}/>
    <p className="mt-3 text-xs text-gray-600">Fechas en hora de Fans Reserve (UTC−6). Reservas virtuales con duración; las canceladas aparecen cuando conservan registros.</p>
   </div>
   {loading?<p role="status" className="p-5 text-sm text-gray-600">Estamos consultando la asistencia…</p>:error?<div role="alert" className="p-5 text-sm text-amber-900"><p>No pudimos consultar la asistencia. No podemos confirmar los registros de estas fechas.</p><button type="button" onClick={()=>void reload()} className={`${control} mt-3`}>Volver a consultar</button></div>:<>

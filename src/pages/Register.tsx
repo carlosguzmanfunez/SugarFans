@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import TermsConsent from '../components/TermsConsent';
 import { useAuth, UserRole } from '../context/AuthContext';
 import { isValidEmail } from '../lib/storage';
+import { takeReturn } from '../lib/returnTo';
 import { clearRefCode, readRefCode } from '../lib/rewardRules';
 import { readSpecialCode } from '../lib/specialRules';
 import { useLanguage } from '../context/LanguageContext';
@@ -108,7 +109,7 @@ const Register: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
       return;
     }
     // Fans land on the main page; creators on their panel, which opens with the identity verification step.
-    navigate(role === 'creator' ? '/creator/dashboard?bienvenida=1' : '/', { replace: true });
+    navigate(role === 'creator' ? '/creator/dashboard?bienvenida=1' : takeReturn() || '/', { replace: true });
   };
 
   const card = (

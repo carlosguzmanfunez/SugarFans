@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { backend, openedFromRecoveryLink } from '../lib/backend';
+import { backend, consumeRecoveryLink, recoveryLinkPending } from '../lib/backend';
 
 // Password box with an eye to show or hide what is typed.
 const PasswordField: React.FC<{ name: string; value: string; placeholder: string; onChange: (v: string) => void; autoFocus?: boolean }> = ({ name, value, placeholder, onChange, autoFocus }) => {
@@ -47,7 +47,7 @@ const ResetPassword: React.FC = () => {
   const token = params.get('token') ?? undefined;
   // The form needs the emailed link (or the session it opened); without it the
   // link was already used or expired.
-  const usable = openedFromRecoveryLink || !!token || !!user;
+  const usable = recoveryLinkPending() || !!token || !!user;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,6 +58,7 @@ const ResetPassword: React.FC = () => {
       setSaving(false);
       return setError(result.error || 'No se pudo cambiar la contraseña');
     }
+    consumeRecoveryLink();
     await logout();
     navigate('/login', { replace: true, state: { passwordChanged: true } });
   };

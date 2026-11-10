@@ -181,9 +181,11 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
 
   async publicCreators() {
     // Usernames stay empty until migration 20261010000004_creator_username_socials is applied.
-    const [{ data }, names] = await Promise.all([sb.rpc('public_creators'), sb.rpc('creator_usernames')]);
+    // Covers stay empty (generated art) until migration 20261107074500_creator_covers is applied.
+    const [{ data }, names, covers] = await Promise.all([sb.rpc('public_creators'), sb.rpc('creator_usernames'), sb.rpc('creator_covers')]);
     const handles = new Map(((names.data as Row[] | null) ?? []).map((r) => [r.id as string, r.username as string]));
-    return ((data as Row[] | null) ?? []).map((r) => ({ ...toPublicCreator(r), username: handles.get(r.id) }));
+    const coverOf = new Map(((covers.data as Row[] | null) ?? []).map((r) => [r.id as string, r.cover as string]));
+    return ((data as Row[] | null) ?? []).map((r) => ({ ...toPublicCreator(r), username: handles.get(r.id), cover: coverOf.get(r.id) || '' }));
   },
 
   async creatorLinks(creatorProfileId) {
