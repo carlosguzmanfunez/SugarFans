@@ -340,7 +340,7 @@ const LiveSlots: React.FC = () => {
   const boardBelow = !!mine && !!board && !drop?.closed;
 
   return (
-    // Dark "stage" with a red spotlight behind the card: the visitor comes from a live.
+    // Soft aurora of pink, lilac and gold light behind the card.
     <div className="live-stage" data-testid="live-slots-page">
     <div className="relative mx-auto max-w-lg px-4 py-8 sm:py-12">
       <div className="live-stage-card rounded-3xl bg-white p-6 sm:p-8">
