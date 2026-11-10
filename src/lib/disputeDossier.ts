@@ -29,8 +29,8 @@ export const PAY_NOTICE_SINCE = '2026-11-05T18:15:00Z';
 export const PAY_NOTICE_V1_ES = 'Cancelación: con 24 h o más te devolvemos el 100% y con menos de 24 h el 50%, menos la comisión de cobro de PayPal, que no es reembolsable. Si eliges Créditos, recibes el importe completo. Si el creador cancela, te devolvemos el 100%.';
 export const PAY_NOTICE_V1_EN = 'Cancellation: at least 24 h before you get 100% back and less than 24 h before 50%, minus the PayPal collection fee, which is non-refundable. If you choose Credits, you get the full amount. If the creator cancels, you get 100% back.';
 // 10% service fee on early cancellations (Carlos, 2026-11-10). Set to the merge
-// time of that change; same text as reserveCancel.payNotice (es/en).
-export const PAY_NOTICE_V2_SINCE = '2026-11-10T12:00:00Z';
+// time of that change (PR #179); same text as reserveCancel.payNotice (es/en).
+export const PAY_NOTICE_V2_SINCE = '2026-11-10T07:14:00Z';
 export const PAY_NOTICE_ES = 'Cancelación: con 24 h o más te devolvemos el 100% menos un cargo por servicio del 10%, y con menos de 24 h el 50%; en ambos casos, menos la comisión de cobro de PayPal. Ni el cargo ni la comisión son reembolsables. Si eliges Créditos, recibes el importe completo. Si el creador cancela, te devolvemos el 100%.';
 export const PAY_NOTICE_EN = 'Cancellation: at least 24 h before you get 100% back minus a 10% service fee, and less than 24 h before 50%; both minus the PayPal collection fee. Neither fee is refundable. If you choose Credits, you get the full amount. If the creator cancels, you get 100% back.';
 const TIMING_EN = 'The booking keeps its end time if the fan arrives late. Time lost for reasons attributable to the fan is not made up. The creator has a one-minute grace period and must complete the contracted duration. Service failures and statutory rights are reviewed separately.';
