@@ -3,6 +3,8 @@ import { bookingStart } from './reserveCancellation';
 
 export const RESERVE_HOLD_MINUTES = 15;
 export const PROPOSAL_PAYMENT_MINUTES = 120;
+// Cupos en vivo: less time to pay, so unpaid slots go back on the board sooner.
+export const LIVE_SLOT_PAYMENT_MINUTES = 10;
 export const RESERVE_BLOCK_HOURS = 72;
 export const RESERVE_INCIDENT_DAYS = 30;
 export const RESERVE_INCIDENT_LIMIT = 3;
@@ -36,7 +38,7 @@ export const reserveAccessOf = (fanId: string, bookings: VipBooking[], incidents
   const mine = bookings.filter(b => b.fanId === fanId);
   return { ...counts, ...(blockedUntil > now.getTime() ? { blockedUntil: new Date(blockedUntil).toISOString(), reason } : {}), reservations: mine.filter(b => reserveBucket(b,now) === 'reservation').length, proposals: mine.filter(b => reserveBucket(b,now) === 'proposal').length };
 };
-export const reservationDue = (b: VipBooking, now = new Date()): string => new Date(Math.min(bookingStart(b).getTime(), now.getTime() + (b.details?.kind === 'custom' ? PROPOSAL_PAYMENT_MINUTES : b.details?.approvalRequired ? PROPOSAL_PAYMENT_MINUTES : RESERVE_HOLD_MINUTES) * 60_000)).toISOString();
+export const reservationDue = (b: VipBooking, now = new Date()): string => new Date(Math.min(bookingStart(b).getTime(), now.getTime() + (b.details?.kind === 'custom' ? PROPOSAL_PAYMENT_MINUTES : b.details?.approvalRequired ? PROPOSAL_PAYMENT_MINUTES : b.details?.liveDropId ? LIVE_SLOT_PAYMENT_MINUTES : RESERVE_HOLD_MINUTES) * 60_000)).toISOString();
 export const paymentOverdue = (b: VipBooking, now = new Date()) => b.status === 'accepted' && !!b.paymentDueAt && new Date(b.paymentDueAt) <= now && !b.paymentChecking;
 export type RefundChoice = 'original' | 'credits';
 export type CancellationReason = 'voluntary' | 'withdrawal' | 'creator_failure';

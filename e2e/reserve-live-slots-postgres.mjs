@@ -39,10 +39,10 @@ finish(async()=>{
   expect(new Date(s.drop.firstStartAt).getUTCMinutes()%5===0,'la primera llamada no cae en múltiplo de 5');
  });
 
- await check('Cada fan toma el siguiente cupo, pendiente de pago 15 minutos, y repetir no duplica',()=>{
+ await check('Cada fan toma el siguiente cupo, pendiente de pago 10 minutos, y repetir no duplica',()=>{
   const b1=as(fans[0],`select reserve_live_claim('${drop}')`);
   expect(as(fans[0],`select reserve_live_claim('${drop}')`)===b1,'duplicó el cupo del mismo fan');
-  const row=psql(DB,`select status, details->>'liveSlot', price, duration_minutes, payment_due_at<=now()+interval '15 minutes' from vip_bookings where id='${b1}'`);
+  const row=psql(DB,`select status, details->>'liveSlot', price, duration_minutes, payment_due_at between now()+interval '9 minutes' and now()+interval '10 minutes' from vip_bookings where id='${b1}'`);
   expect(row==='accepted|1|25.00|15|t',`reserva inesperada: ${row}`);
   const b2=as(fans[1],`select reserve_live_claim('${drop}')`);
   expect(psql(DB,`select details->>'liveSlot' from vip_bookings where id='${b2}'`)==='2','no tomó el siguiente cupo');
