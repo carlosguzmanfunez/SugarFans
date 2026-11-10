@@ -1,6 +1,6 @@
 // Reserve cancellation in the real app (offline build, browser storage):
 // cancel panel with the exact refund, Créditos back in the wallet, the 50%
-// warning, the free date change on both sides and paying with Créditos.
+// warning, no date change on either side and paying with Créditos.
 // Run after `vite build --mode offline`.
 import { spawn } from 'node:child_process';
 import { chromium } from 'playwright';
@@ -54,7 +54,7 @@ const wallet = async () => Number((await page.getByTestId('profile-wallet').text
 
 try {
   await login('fan@sugarfans.com');
-  // Paid bookings with Valentina (profile 1): five days ahead, five hours ahead, six days ahead (date change),
+  // Paid bookings with Valentina (profile 1): five days ahead, five hours ahead, six days ahead (no date change),
   // and one accepted but unpaid. Each paid one has its sale in the ledger.
   await page.evaluate(() => {
     const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -100,23 +100,16 @@ try {
     await card('far').getByText('Cancelada').waitFor();
     await page.waitForFunction((n) => Number(document.querySelector('[data-testid=profile-wallet]').textContent.replace(/[^0-9]/g, '')) === n, before + 2000);
   });
-  await check('Con menos de 24 h el aviso dice 50% y no deja cambiar la fecha', async () => {
+  await check('Con menos de 24 h el aviso dice 50%', async () => {
     await card('soon').getByTestId('cancel-open').click();
     await card('soon').getByTestId('cancel-panel').getByText(/te devolvemos 1,000 Créditos \(50%\)/).waitFor();
     await page.screenshot({ path: process.env.SHOTS ? `${process.env.SHOTS}/2-cancelar-menos-24h.png` : '/dev/null' });
-    expect((await card('soon').getByTestId('reschedule-open').count()) === 0, 'deja cambiar la fecha con menos de 24 h');
     await card('soon').getByRole('button', { name: 'Volver' }).click();
   });
-  await check('El fan pide su cambio de fecha gratis', async () => {
-    await card('move').getByTestId('reschedule-open').click();
-    const form = card('move').getByTestId('reschedule-form');
-    const target = await page.evaluate(() => { const d = new Date(Date.now() + 9 * 86_400_000); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; });
-    await form.locator('input[name=rescheduleDate]').fill(target);
-    await form.locator('input[name=rescheduleTime]').fill('13:00');
-    await page.screenshot({ path: process.env.SHOTS ? `${process.env.SHOTS}/3-cambiar-fecha.png` : '/dev/null' });
-    await card('move').getByTestId('reschedule-send').click();
-    await card('move').getByTestId('reschedule-pending').getByText(/Pediste cambiar a .*13:00\. Esperando la respuesta de Valentina/).waitFor();
-    expect((await card('move').getByTestId('reschedule-open').count()) === 0, 'deja pedir dos cambios');
+  await check('El fan no puede cambiar la fecha de una reserva pagada', async () => {
+    await card('move').getByText('Confirmada').waitFor();
+    expect((await card('move').getByTestId('reschedule-open').count()) === 0, 'muestra Cambiar fecha');
+    expect((await card('move').getByRole('button', { name: /Cambiar fecha/ }).count()) === 0, 'muestra Cambiar fecha');
   });
   await check('Los Créditos pagan una Reserve aceptada y la confirman', async () => {
     const before = await wallet();
@@ -127,18 +120,14 @@ try {
     await card('owed').getByText('Confirmada').waitFor();
     await page.waitForFunction((n) => Number(document.querySelector('[data-testid=profile-wallet]').textContent.replace(/[^0-9]/g, '')) === n, before - 1500);
   });
-  await check('La creadora acepta el cambio de fecha y la reserva se mueve', async () => {
+  await check('La creadora no ve pedidos de cambio de fecha', async () => {
     await logout();
     await login('creator@sugarfans.com');
     await page.goto(`${BASE}/creator/dashboard?tab=vip`);
     await openSection('Próximas');
-    const req = page.getByTestId('reschedule-pending').first();
-    await req.getByText(/pide cambiar a .*13:00/).waitFor();
-    await page.screenshot({ path: process.env.SHOTS ? `${process.env.SHOTS}/5-creadora-acepta.png` : '/dev/null' });
-    await page.getByTestId('reschedule-accept').first().click();
-    await page.waitForFunction(() => JSON.parse(localStorage.getItem('fansreserve_vip_bookings')).find((b) => b.id === 'move').details.rescheduled === true);
-    const moved = await page.evaluate(() => JSON.parse(localStorage.getItem('fansreserve_vip_bookings')).find((b) => b.id === 'move').time);
-    expect(moved === '13:00', 'no se movió: ' + moved);
+    await page.getByTestId('vip-request').filter({ hasText: 'QA move' }).waitFor();
+    expect((await page.getByTestId('reschedule-pending').count()) === 0, 'muestra un pedido de cambio');
+    expect((await page.getByTestId('reschedule-accept').count()) === 0, 'deja aceptar un cambio');
   });
   await check('La creadora cancela una pagada y el fan recibe el 100% aunque falten menos de 24 h', async () => {
     const c = page.getByTestId('vip-request').filter({ hasText: 'QA soon' });

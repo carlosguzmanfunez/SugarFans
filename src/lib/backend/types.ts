@@ -197,8 +197,8 @@ export interface BookingDetails {
   liveSlot?: number;
   // Cancellation (see src/lib/reserveCancellation.ts): who cancelled, and what came back.
   cancellation?: BookingCancellation;
-  // The fan's one free date change: pending (reschedule) and used (rescheduled).
-  reschedule?: { date: string; time: string; note?: string; at: string };
+  // The old free date change (withdrawn 2026-11-10): kept only to show the
+  // history of bookings that already moved.
   rescheduled?: boolean;
   rescheduledFrom?: { date: string; time: string };
 }
@@ -488,9 +488,6 @@ export interface Backend {
   reserveAccess(user: User): Promise<import('../reserveControl').ReserveAccess>;
   reserveRefunds(user: User): Promise<import('../reserveControl').ReserveRefundRequest[]>;
   decideReserveRefund(user: User, id: string, decision: 'approve' | 'decline' | 'legal', note: string): Promise<AuthResult>;
-  // The fan's one free date change and the creator's answer.
-  requestReschedule(user: User, bookingId: string, input: { date: string; time: string; note: string }): Promise<AuthResult>;
-  respondReschedule(user: User, bookingId: string, accept: boolean): Promise<AuthResult>;
   // Active experiences of every creator, plus the signed-in creator's inactive ones.
   listExperiences(): Promise<VipExperience[]>;
   saveExperience(user: User, input: VipExperienceInput, id?: string): Promise<AuthResult>;

@@ -48,7 +48,7 @@ import { isTimeZone, viewerTimeZone, zoneCity } from '../timeZones';
 import { paymentOverdue, reservationDue, reserveAccessOf, reserveBucket, type ReserveIncident, type ReserveRefundRequest } from '../reserveControl';
 import { VIRTUAL_CURRENCY, currencyWord } from '../../config/currency';
 import { RESERVE_SERVICE_FEE_RATE } from '../../config/reserve';
-import { CANCEL_FULL_REFUND_HOURS, bookingStart, canRequestReschedule, cancellationOutcome, hoursUntil } from '../reserveCancellation';
+import { CANCEL_FULL_REFUND_HOURS, bookingStart, cancellationOutcome, hoursUntil } from '../reserveCancellation';
 import type { InfraUsage } from '../infraUsage';
 import { financeLocal } from '../creatorFinance';
 import { createLocalPlatform } from './localPlatform';
@@ -1269,9 +1269,8 @@ export const localBackend: Backend = {
         refundState = 'pending'; outcome.refundCoins = 0;
       }
     }
-    const { reschedule: _pending, ...rest } = b.details ?? {};
     b.details = {
-      ...rest,
+      ...b.details,
       cancellation: { by, at: now, paid: outcome.paid, refundPercent: outcome.refundPercent, refundCoins: outcome.refundCoins, reason,
         refundChoice: refundState ? 'original' : 'credits', ...(refundState ? { refundState: 'pending' as const, refundAmount, refundFee, refundServiceFee } : {}), ...(outcome.ticket ? { ticketBack: outcome.ticketBack } : {}) },
     };
@@ -1312,50 +1311,6 @@ export const localBackend: Backend = {
       if (decision === 'approve' && request.reason === 'voluntary') recordReserveIncident(b, 'cancelled', request.createdAt);
       saveBookings(bookings);
     }
-    return ok;
-  },
-
-  async requestReschedule(user, bookingId, input) {
-    const bookings = listBookings();
-    const b = bookings.find((x) => x.id === bookingId);
-    if (!b || b.fanId !== user.id) return fail('Reserva no encontrada');
-    if (b.details?.reschedule) return fail('Ya pediste un cambio de fecha: espera la respuesta del creador');
-    if (b.details?.rescheduled) return fail('Ya usaste tu cambio de fecha gratis en esta reserva');
-    if (!canRequestReschedule(b)) return fail('El cambio de fecha se pide con al menos 24 horas de anticipación');
-    if (!input.date || !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.time)) return fail('Elige la nueva fecha y hora');
-    if (hoursUntil({ date: input.date, time: input.time, timeZone: b.timeZone }) < CANCEL_FULL_REFUND_HOURS) return fail('La nueva fecha debe ser al menos 24 horas después de ahora');
-    if (input.date === b.date && input.time === b.time) return fail('Elige una fecha u hora distinta');
-    b.details = { ...b.details, reschedule: { date: input.date, time: input.time, note: input.note.trim().slice(0, 300), at: new Date().toISOString() } };
-    b.updatedAt = new Date().toISOString();
-    saveBookings(bookings);
-    for (const a of loadAccounts().filter((x) => x.role === 'creator' && x.creatorProfileId === b.creatorProfileId))
-      addLocalNotification(a.id, { kind: 'reserve_request', creatorProfileId: b.creatorProfileId, title: `${b.fanName.split(' ')[0]} pide cambiar la fecha`, body: `${b.title} · ${b.time} → ${input.date} ${input.time}`, link: '/creator/dashboard?tab=vip' });
-    return ok;
-  },
-
-  async respondReschedule(user, bookingId, accept) {
-    const bookings = listBookings();
-    const b = bookings.find((x) => x.id === bookingId);
-    if (!b || !user.creatorProfileId || b.creatorProfileId !== user.creatorProfileId) return fail('Reserva no encontrada');
-    const r = b.details?.reschedule;
-    if (b.status !== 'confirmed' || !r) return fail('Esta reserva no tiene un cambio de fecha pendiente');
-    const { reschedule: _done, ...rest } = b.details ?? {};
-    if (accept) {
-      if (takenFor(b.creatorProfileId).some((t) => t.date === r.date && t.time === r.time))
-        return fail('Ya tienes otra reserva a esa hora: rechaza el cambio o libera ese horario');
-      b.details = { ...rest, rescheduled: true, rescheduledFrom: { date: b.date, time: b.time } };
-      b.date = r.date;
-      b.time = r.time;
-    } else b.details = rest;
-    b.updatedAt = new Date().toISOString();
-    saveBookings(bookings);
-    addLocalNotification(b.fanId, {
-      kind: 'reserve_update',
-      creatorProfileId: b.creatorProfileId,
-      title: `${b.creatorName.split(' ')[0]} ${accept ? 'aceptó el cambio de fecha' : 'no puede en la nueva fecha'}`,
-      body: b.title,
-      link: '/profile#mis-reservas',
-    });
     return ok;
   },
 

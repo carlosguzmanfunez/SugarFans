@@ -1,5 +1,5 @@
 // Reserve cancellation rule on a real local PostgreSQL with every migration:
-// refunds in Créditos, the creator's share, tickets, date changes and paying
+// refunds in Créditos, the creator's share, tickets, no date changes and paying
 // with Créditos. No provider calls, credentials or production data.
 import {createDbTest} from './db-harness.mjs';
 const DB='fr_reserve_cancel_test';
@@ -108,22 +108,14 @@ finish(async()=>{
   psql(DB,`update experience_tickets set booking_id='${b}' where id='${late}'`);psql(DB,`update vip_bookings set status='confirmed' where id='${b}'`);
   cancel(fan,b);expect(psql(DB,`select status from experience_tickets where id='${late}'`)==='used','el ticket volvió con menos de 24 h');
  });
- await check('Cambio de fecha: uno gratis, con 24 h, y el creador acepta o rechaza',()=>{
+ await check('Sin cambio de fecha: ni el fan lo pide ni el creador lo responde',()=>{
   const id=booking(72);pay(id);
   const day=psql(DB,`select to_char(current_date+10,'YYYY-MM-DD')`);
-  raises(()=>as(fan,`select reserve_request_reschedule('${id}',current_date,'00:00','')`),/24 horas/,'fecha demasiado cerca');
-  as(fan,`select reserve_request_reschedule('${id}','${day}','15:00','Me surgió un viaje')`);
-  raises(()=>as(fan,`select reserve_request_reschedule('${id}','${day}','16:00','')`),/espera la respuesta/,'doble pedido');
-  expect(status(id)==='confirmed','la reserva dejó de estar confirmada mientras espera');
-  as(creator,`select reserve_respond_reschedule('${id}',false)`);
-  expect(psql(DB,`select details ? 'reschedule' from vip_bookings where id='${id}'`)==='f','no se limpió el pedido');
-  as(fan,`select reserve_request_reschedule('${id}','${day}','15:00','')`);
-  raises(()=>as(other,`select reserve_respond_reschedule('${id}',true)`),/no encontrada/,'un fan respondió');
-  as(creator,`select reserve_respond_reschedule('${id}',true)`);
-  expect(psql(DB,`select to_char(date,'YYYY-MM-DD')||' '||time from vip_bookings where id='${id}'`)===`${day} 15:00`,'no movió la fecha');
-  raises(()=>as(fan,`select reserve_request_reschedule('${id}','${day}','18:00','')`),/Ya usaste/,'segundo cambio');
-  const late=booking(10);pay(late);
-  raises(()=>as(fan,`select reserve_request_reschedule('${late}','${day}','11:00','')`),/24 horas de anticipación/,'menos de 24 h');
+  raises(()=>as(fan,`select reserve_request_reschedule('${id}','${day}','15:00','Me surgió un viaje')`),/permission denied|ya no está disponible/,'el fan pidió un cambio');
+  raises(()=>as(creator,`select reserve_respond_reschedule('${id}',true)`),/permission denied|ya no está disponible/,'el creador respondió');
+  raises(()=>psql(DB,`select reserve_request_reschedule('${id}','${day}','15:00','')`),/ya no está disponible/,'la función sigue moviendo fechas');
+  expect(psql(DB,`select details ? 'reschedule' from vip_bookings where id='${id}'`)==='f','guardó un pedido');
+  expect(status(id)==='confirmed','la reserva cambió de estado');
  });
  await check('Un creador que cancela reservas pagadas pierde la marca de fiable',()=>{
   expect(psql(DB,`select reward_reliable('${cp}',now())`)==='f','sigue fiable tras cancelar');

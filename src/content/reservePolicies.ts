@@ -67,7 +67,7 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
           'Si el fan cancela con menos de 24 horas, se le devuelve el 50% menos la comisión de cobro de PayPal; la otra mitad se reparte como una venta normal y recibes tu porcentaje de ella.',
           'Si el fan no se presenta, conservas tu ganancia completa.',
           'Si cancelas una reserva pagada o no cumples lo publicado, el fan recibe el 100%, pierdes la ganancia de esa reserva, cubres el costo de PayPal que no se recupere (con comprobante) y cuenta en tu historial de fiabilidad, que influye en tu nivel. Si ya retiraste esa ganancia, el ajuste se descuenta de tus ingresos futuros.',
-          'El fan tiene un cambio de fecha gratis por reserva 1:1, pedido con 24 horas o más de anticipación. Tú lo aceptas o lo rechazas; mientras tanto la reserva sigue confirmada.',
+          'Las reservas no admiten cambio de fecha: si el fan no puede asistir, cancela según esta regla.',
           'Los detalles están en la política de Cancelación y No-show.',
         ],
       },
@@ -100,7 +100,7 @@ export const RESERVE_POLICIES: PolicyDoc[] = [
           'Contraoferta: el creador propone otra fecha, hora, precio o duración; el fan la acepta o la rechaza.',
           'Aceptada, pendiente de pago: el fan puede pagar.',
           'Confirmada: pagada; recibe la confirmación.',
-          'Realizada, Rechazada, Cancelada, Reprogramación solicitada y En revisión (disputa).',
+          'Realizada, Rechazada, Cancelada y En revisión (disputa).',
         ],
       },
       {

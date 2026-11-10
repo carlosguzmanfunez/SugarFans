@@ -13,7 +13,7 @@ Decidido por Carlos el 29 de octubre de 2026. Sustituye las políticas Flexible 
 | Creador cancela una reserva pagada | 100% en Créditos | No cobra y cuenta en su historial (`reward_reliable`) |
 | Pagada con ticket de Meta | El ticket vuelve si la devolución es del 100% | — |
 
-Un cambio de fecha gratis por reserva 1:1, pedido con 24 h o más. La reserva sigue confirmada en su fecha original hasta que el creador acepta.
+Sin cambio de fecha (decisión de Carlos, 10 nov 2026; migración `20261110080000_reserve_no_date_change.sql`). Si el fan no puede asistir, cancela con esta regla. Antes había un cambio gratis por reserva 1:1 (`reserve_request_reschedule` / `reserve_respond_reschedule`); esas funciones ahora siempre rechazan.
 
 La hora de inicio se cuenta en la zona del creador (`vip_bookings.time_zone`; Honduras para reservas antiguas sin zona).
 

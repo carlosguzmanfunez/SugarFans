@@ -13,7 +13,7 @@ import LiveRoomButton from '../LiveRoomButton';
 import ReportDialog from '../ReportDialog';
 import { displayEmail } from '../../config/demoAccounts';
 import { deadlineLabel, timeLeft } from '../../lib/reserveAlerts';
-import { canRequestReschedule, cancellationOutcome, rescheduleMinDate } from '../../lib/reserveCancellation';
+import { cancellationOutcome } from '../../lib/reserveCancellation';
 import { formatCoins } from '../../lib/giftRules';
 import { processorFee } from '../../lib/rewardRules';
 import { platformChanged } from '../../lib/platform';
@@ -44,13 +44,12 @@ const btn = 'inline-flex h-9 items-center justify-center rounded-full px-4 text-
 
 // One Reserve as either side sees it: what was booked or requested, its state,
 // and the next action (accept, reject, counter-offer / accept or decline the
-// counter-offer, pay, cancel, change the date, join, report).
+// counter-offer, pay, cancel, join, report).
 const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, onPay, credits, testId }) => {
   const { t } = useLanguage();
   const [countering, setCountering] = useState(false);
   // The confirmation panel open under the card, if any.
-  const [panel, setPanel] = useState<'cancel' | 'reschedule' | 'credits' | null>(null);
-  const [move, setMove] = useState({ date: '', time: b.time, note: '' });
+  const [panel, setPanel] = useState<'cancel' | 'credits' | null>(null);
   const [reporting, setReporting] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -88,7 +87,6 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
   const outcome = cancellationOutcome(b, as);
   const priceCoins = Math.round(b.price * 100);
   const canPayWithCredits = as === 'fan' && status === 'accepted' && !b.paymentChecking && !d.ticketId && credits !== undefined && credits >= priceCoins;
-  const canMove = as === 'fan' && canRequestReschedule(b);
   const other = (as === 'fan' ? b.creatorName : b.fanName).split(' ')[0];
   const cancelled = b.status === 'cancelled' ? d.cancellation : undefined;
 
@@ -223,11 +221,6 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
               {fill(t('reserveCancel.payCredits'), { coins: formatCoins(priceCoins) })}
             </button>
           )}
-          {canMove && (
-            <button type="button" onClick={() => setPanel(panel === 'reschedule' ? null : 'reschedule')} aria-expanded={panel === 'reschedule'} className={`${btn} border border-line text-ink/70 hover:bg-gray-50`} data-testid="reschedule-open">
-              <i aria-hidden="true" className="fas fa-calendar-days mr-1.5 text-[10px]"></i>{t('reserveCancel.reschedule')}
-            </button>
-          )}
           {outcome && (status === 'confirmed' || (as === 'fan' && (status === 'pending' || status === 'accepted' || status === 'countered'))) && (
             <button type="button" disabled={busy} onClick={() => setPanel(panel === 'cancel' ? null : 'cancel')} aria-expanded={panel === 'cancel'} className={`${btn} text-red-600 hover:bg-red-50`} data-testid="cancel-open">
               {t('reserveCancel.cancel')}
@@ -284,28 +277,6 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
         </div>
       )}
 
-      {d.reschedule && b.status === 'confirmed' && (
-        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" data-testid="reschedule-pending">
-          <p>
-            <i aria-hidden="true" className="fas fa-calendar-days mr-1.5"></i>
-            {fill(t(as === 'fan' ? 'reserveCancel.reschedulePendingFan' : 'reserveCancel.reschedulePendingCreator'), {
-              name: other,
-              when: `${formatLongDate(d.reschedule.date)} · ${d.reschedule.time}`,
-            })}
-          </p>
-          {d.reschedule.note && <p className="mt-1 italic text-amber-900/80">“{d.reschedule.note}”</p>}
-          {as === 'creator' && (
-            <div className="mt-2 flex flex-wrap justify-end gap-2">
-              <button type="button" disabled={busy} onClick={() => run(() => backend.respondReschedule(user, b.id, false))} className={`${btn} border border-line bg-white text-ink/70`}>
-                {t('reserveCancel.decline')}
-              </button>
-              <button type="button" disabled={busy} onClick={() => run(() => backend.respondReschedule(user, b.id, true))} className={`${btn} bg-emerald-600 text-white hover:bg-emerald-700`} data-testid="reschedule-accept">
-                {t('reserveCancel.accept')}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
       {d.rescheduledFrom && b.status === 'confirmed' && (
         <p className="mt-2 text-xs text-ink/60">
           {fill(t('reserveCancel.rescheduledFrom'), { when: `${formatLongDate(d.rescheduledFrom.date)} · ${d.rescheduledFrom.time}` })}
@@ -327,34 +298,6 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
               return backend.payBookingWithCredits(user, b.id);
             })} className={`${btn} btn-gold`} data-testid="pay-credits-confirm">
               {t('reserveCancel.payCreditsConfirm')}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {panel === 'reschedule' && canMove && (
-        <div className="mt-3 space-y-3 rounded-xl border border-line bg-gray-50 p-3" data-testid="reschedule-form">
-          <p className="text-xs text-ink/70">{fill(t('reserveCancel.rescheduleHelp'), { name: other })}</p>
-          <p className="text-sm text-ink/70">La nueva fecha usa la misma zona horaria de esta reserva.</p>
-          <div className="grid grid-cols-2 gap-2">
-            <label className="text-xs">
-              <span className="font-semibold text-ink">{t('reserveCancel.newDate')}</span>
-              <input name="rescheduleDate" type="date" min={rescheduleMinDate()} value={move.date} onChange={(e) => setMove({ ...move, date: e.target.value })} className="mt-1 w-full rounded-lg border border-line px-2 py-2 text-sm" />
-            </label>
-            <label className="text-xs">
-              <span className="font-semibold text-ink">{t('reserveCancel.newTime')}</span>
-              <input name="rescheduleTime" type="time" step={3600} value={move.time} onChange={(e) => setMove({ ...move, time: e.target.value })} className="mt-1 w-full rounded-lg border border-line px-2 py-2 text-sm" />
-            </label>
-          </div>
-          {move.date && move.time && <div className="text-sm text-ink/80"><ReserveScheduleTime date={move.date} time={move.time} zone={b.timeZone} /></div>}
-          <label className="block text-xs">
-            <span className="font-semibold text-ink">{t('reserveCancel.note')}</span>
-            <input name="rescheduleNote" maxLength={300} value={move.note} onChange={(e) => setMove({ ...move, note: e.target.value })} className="mt-1 w-full rounded-lg border border-line px-2 py-2 text-sm" />
-          </label>
-          <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setPanel(null)} className={`${btn} border border-line bg-white text-ink/70`}>{t('reserveCancel.back')}</button>
-            <button type="button" disabled={busy || !move.date || !move.time} onClick={() => run(() => backend.requestReschedule(user, b.id, move))} className={`${btn} bg-ink text-white disabled:opacity-50`} data-testid="reschedule-send">
-              {t('reserveCancel.sendReschedule')}
             </button>
           </div>
         </div>
