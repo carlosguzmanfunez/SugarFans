@@ -42,7 +42,7 @@ import {
   validateRegistration,
   validateSignupExtras,
 } from './shared';
-import type { AuthResult, Availability, Backend, BookingInput, BookingStatus, LiveDrop, LiveSlotsInput, LiveSlotsStatus, User, VipBooking, VipExperience } from './types';
+import type { AuthResult, Availability, Backend, BookingInput, BookingStatus, LiveDrop, LiveSlot, LiveSlotsInput, LiveSlotsStatus, User, VipBooking, VipExperience } from './types';
 import { firstCallAt, liveSlotsError, slotStart, wallClock } from '../liveSlots';
 import { isTimeZone, viewerTimeZone, zoneCity } from '../timeZones';
 import { paymentOverdue, reservationDue, reserveAccessOf, reserveBucket, type ReserveIncident, type ReserveRefundRequest } from '../reserveControl';
@@ -391,14 +391,20 @@ const liveStatus = async (username: string): Promise<LiveSlotsStatus | null> => 
   const drop = liveDrops().filter((d) => d.creatorProfileId === creatorId && slotStart(d, d.slots - 1) > now).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
   if (!drop) return { creatorId, creatorName, now: now.toISOString() };
   const held = liveHeld(drop);
-  const free = Array.from({ length: drop.slots }, (_, n) => n).filter((n) => slotStart(drop, n).getTime() > now.getTime() + 60_000 && !held.some((b) => b.details?.liveSlot === n + 1));
+  const board: LiveSlot[] = Array.from({ length: drop.slots }, (_, n) => {
+    const start = slotStart(drop, n);
+    const holders = held.filter((b) => b.details?.liveSlot === n + 1);
+    const state = holders.some((b) => b.status !== 'accepted') ? 'taken' : holders.length ? 'held' : start.getTime() <= now.getTime() + 60_000 ? 'past' : 'free';
+    return { n: n + 1, start: start.toISOString(), state };
+  });
+  const free = board.filter((s) => s.state === 'free').map((s) => s.n - 1);
   const meId = readSession();
   const me = meId ? { id: meId } : null;
   const mine = me ? held.find((b) => b.fanId === me.id) : undefined;
   return {
     creatorId, creatorName, now: now.toISOString(),
     drop: { id: drop.id, slots: drop.slots, minutes: drop.minutes, price: drop.price, opensAt: drop.opensAt, firstStartAt: drop.firstStartAt, timeZone: drop.timeZone,
-      closed: !!drop.closedAt, left: free.length, ...(free.length ? { nextStart: slotStart(drop, free[0]).toISOString() } : {}) },
+      closed: !!drop.closedAt, left: free.length, ...(free.length ? { nextStart: slotStart(drop, free[0]).toISOString() } : {}), board },
     ...(mine ? { mine: { bookingId: mine.id, status: mine.status, slot: mine.details!.liveSlot!, date: mine.date, time: mine.time, paymentDueAt: mine.paymentDueAt, price: mine.price } } : {}),
   };
 };
@@ -427,7 +433,7 @@ const liveClose = (user: User, dropId: string): AuthResult => {
   notify();
   return { ok: true };
 };
-const liveClaim = (user: User, dropId: string): AuthResult & { bookingId?: string } => {
+const liveClaim = (user: User, dropId: string, slot?: number): AuthResult & { bookingId?: string } => {
   const drop = liveDrops().find((d) => d.id === dropId);
   if (!drop) return fail('Cupos no encontrados');
   if (user.creatorProfileId === drop.creatorProfileId) return fail('No puedes reservar tu propio cupo');
@@ -438,7 +444,10 @@ const liveClaim = (user: User, dropId: string): AuthResult & { bookingId?: strin
   if (new Date(drop.opensAt) > new Date()) return fail('Los cupos todavía no se abren');
   const limit = reserveLimitError(user.id, drop.creatorProfileId, 'reservation');
   if (limit) return fail(limit);
-  const n = Array.from({ length: drop.slots }, (_, i) => i).find((i) => slotStart(drop, i).getTime() > Date.now() + 60_000 && !held.some((b) => b.details?.liveSlot === i + 1));
+  const n = Array.from({ length: drop.slots }, (_, i) => i)
+    .filter((i) => slot === undefined || i === slot - 1)
+    .find((i) => slotStart(drop, i).getTime() > Date.now() + 60_000 && !held.some((b) => b.details?.liveSlot === i + 1));
+  if (n === undefined && slot !== undefined) return fail('Ese cupo ya no está disponible. Recarga la página para ver los cupos disponibles.');
   if (n === undefined) return fail('Ya no quedan cupos. Sigue el en vivo: el creador puede abrir más.');
   const { date, time } = wallClock(slotStart(drop, n), drop.timeZone);
   const now = new Date().toISOString();
@@ -918,7 +927,14 @@ export const localBackend: Backend = {
   liveSlotsStatus: (username) => liveStatus(username),
   liveSlotsOpen: async (user, input) => liveOpen(user, input),
   liveSlotsClose: async (user, dropId) => liveClose(user, dropId),
-  liveSlotsClaim: async (user, dropId) => liveClaim(user, dropId),
+  liveSlotsClaim: async (user, dropId, slot) => liveClaim(user, dropId, slot),
+  // Other tabs of this browser: the store changed (a slot held, paid or freed).
+  liveSlotsWatch: (_creatorId, onChange, onLive) => {
+    const onStorage = (e: StorageEvent) => { if (e.key === null || /bookings|live_drops/.test(e.key)) onChange(); };
+    window.addEventListener('storage', onStorage);
+    onLive?.(true);
+    return () => window.removeEventListener('storage', onStorage);
+  },
 
   async bookEventSeat(user, experienceId, message, timeZone) {
     const exp = listExperiences().find((e) => e.id === experienceId && e.active);

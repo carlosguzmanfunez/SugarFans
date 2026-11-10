@@ -10,11 +10,11 @@ finish(async()=>{
   "create or replace function public.push_notification() returns trigger language plpgsql security definer set search_path='' as $$ begin return null; end $$;\n"+sql:sql});
  const creator=user('live-creator@example.invalid','creator');
  const unverified=user('live-new@example.invalid','creator',{verified:false});
- const fans=[1,2,3,4].map(i=>user(`live-fan${i}@example.invalid`,'fan'));
+ const fans=[1,2,3,4,5,6,7,8].map(i=>user(`live-fan${i}@example.invalid`,'fan'));
  const visitorStatus=()=>JSON.parse(psql(DB,`begin; set local role anon; select reserve_live_status('${username}'); commit;`));
  const username=psql(DB,`update profiles set username='livecreadora' where id='${creator}' returning username`);
  const cp=psql(DB,`select creator_profile_id from profiles where id='${creator}'`);
- let drop;
+ let drop, board;
 
  await check('Solo un creador verificado abre cupos y con valores permitidos',()=>{
   raises(()=>as(fans[0],'select reserve_live_open(3,15,25,0,15)'),/Solo los creadores/,'fan abrió cupos');
@@ -84,6 +84,60 @@ finish(async()=>{
   expect(s.drop.id===later&&new Date(s.drop.opensAt)>new Date(s.now),'no muestra la apertura futura');
   raises(()=>as(fans[1],`select reserve_live_claim('${later}')`),/todavía no se abren/,'vendió antes de abrir');
   expect(psql(DB,`select count(*) from reserve_live_drops where creator_profile_id='${cp}' and closed_at is null`)==='1','quedaron dos ventas abiertas');
+ });
+
+ await check('Tablero: cada cupo con su hora y estado, sin datos de fans',()=>{
+  // Stand-in for Supabase Realtime: records each broadcast.
+  psql(DB,`create schema if not exists realtime; create table realtime.sent(payload jsonb, event text, topic text, private boolean);
+   create function realtime.send(payload jsonb, event text, topic text, private boolean) returns void language sql as $f$ insert into realtime.sent values(payload,event,topic,private) $f$;`);
+  board=as(creator,'select reserve_live_open(4,10,15,0,60)');
+  const s=visitorStatus();
+  expect(s.drop.id===board&&s.drop.board.length===4,`tablero: ${JSON.stringify(s.drop)}`);
+  expect(s.drop.board.every((x,i)=>x.n===i+1&&Object.keys(x).sort().join()==='n,start,state'),'el tablero trae datos de más');
+  expect(new Date(s.drop.board[1].start)-new Date(s.drop.board[0].start)===600000,'las horas no van seguidas');
+  // The first drop's paid call (fan 1) and held slots overlap nothing here: 60 minutes later.
+  expect(s.drop.board.map(x=>x.state).join()==='free,free,free,free'&&s.drop.left===4,`estados: ${JSON.stringify(s.drop.board)}`);
+  expect(psql(DB,`select count(*) from realtime.sent where topic='cupos:${cp}' and event='cambio' and not private and payload='{}'`)!=='0','abrir cupos no avisó a las páginas');
+ });
+
+ await check('El fan elige su cupo por número; apartado y pagado se ven para todos',()=>{
+  psql(DB,'truncate realtime.sent');
+  const b=as(fans[4],`select reserve_live_claim('${board}',3)`);
+  expect(psql(DB,`select details->>'liveSlot' from vip_bookings where id='${b}'`)==='3','no apartó el cupo elegido');
+  expect(psql(DB,`select count(*) from realtime.sent where topic='cupos:${cp}'`)==='1','apartar no avisó una vez');
+  expect(visitorStatus().drop.board.map(x=>x.state).join()==='free,free,held,free','el apartado no se ve');
+  expect(as(fans[4],`select reserve_live_claim('${board}',1)`)===b,'el mismo fan apartó dos cupos');
+  raises(()=>as(fans[5],`select reserve_live_claim('${board}',3)`),/Recarga la página/,'dos fans en el mismo cupo');
+  raises(()=>as(fans[5],`select reserve_live_claim('${board}',9)`),/Recarga la página/,'cupo que no existe');
+  psql(DB,`update vip_bookings set status='confirmed',paid_at=now() where id='${b}'`);
+  const s=visitorStatus();
+  expect(s.drop.board.map(x=>x.state).join()==='free,free,taken,free'&&s.drop.left===3,`pagado: ${JSON.stringify(s.drop.board)}`);
+  expect(psql(DB,`select count(*) from realtime.sent where topic='cupos:${cp}'`)==='2','pagar no avisó a las páginas');
+  const mine=JSON.parse(as(fans[4],`select reserve_live_status('${username}')`));
+  expect(mine.mine?.slot===3&&mine.mine.status==='confirmed','el fan no ve su cupo pagado');
+ });
+
+ await check('Un cupo apartado sin pagar vuelve a quedar libre y se puede elegir',()=>{
+  const b=as(fans[5],`select reserve_live_claim('${board}',2)`);
+  psql(DB,`set session_replication_role=replica; update vip_bookings set payment_due_at=now()-interval '1 minute' where id='${b}'`);
+  expect(visitorStatus().drop.board[1].state==='free','el apartado vencido sigue ocupando la casilla');
+  const again=as(fans[6],`select reserve_live_claim('${board}',2)`);
+  expect(again!==b&&psql(DB,`select details->>'liveSlot' from vip_bookings where id='${again}'`)==='2','no se pudo elegir el cupo liberado');
+ });
+
+ await check('Otra reserva del creador a esa hora marca la casilla como ocupada',()=>{
+  const first=visitorStatus().drop.board[0].start;
+  const exp=psql(DB,`select experience_id from vip_bookings where creator_profile_id='${cp}' and status='confirmed' and details->>'liveDropId'='${drop}' limit 1`);
+  psql(DB,`set session_replication_role=replica; update vip_bookings set date=(timestamptz '${first}' at time zone time_zone)::date, time=to_char(timestamptz '${first}' at time zone time_zone,'HH24:MI') where experience_id='${exp}' and status='confirmed'`);
+  const s=visitorStatus();
+  expect(s.drop.board[0].state==='taken'&&s.drop.left===1,`choque de horario: ${JSON.stringify(s.drop.board)}`);
+  raises(()=>as(fans[7],`select reserve_live_claim('${board}',1)`),/Recarga la página/,'apartó un cupo que choca');
+ });
+
+ await check('Cerrar los cupos también avisa a las páginas abiertas',()=>{
+  psql(DB,'truncate realtime.sent');
+  as(creator,`select reserve_live_close('${board}')`);
+  expect(psql(DB,`select count(*) from realtime.sent where topic='cupos:${cp}'`)==='1','cerrar no avisó');
  });
 
  await check('Tabla interna: un fan no ve los cupos de otro creador ni puede escribirlos',()=>{

@@ -787,9 +787,17 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       return error ? dbError(error, 'No se pudieron cerrar los cupos') : ok;
     },
 
-    async liveSlotsClaim(_user, dropId) {
-      const { data, error } = await sb.rpc('reserve_live_claim', { p_drop: dropId });
+    async liveSlotsClaim(_user, dropId, slot) {
+      const { data, error } = await sb.rpc('reserve_live_claim', slot ? { p_drop: dropId, p_slot: slot } : { p_drop: dropId });
       return error ? dbError(error, 'No se pudo apartar el cupo') : { ok: true, bookingId: data as string };
+    },
+
+    // Public Realtime broadcast sent by the database on every change (no data in it).
+    liveSlotsWatch(creatorId, onChange, onLive) {
+      const channel = sb.channel(`cupos:${creatorId}`)
+        .on('broadcast', { event: 'cambio' }, () => onChange())
+        .subscribe((state) => onLive?.(state === 'SUBSCRIBED'));
+      return () => { void sb.removeChannel(channel); };
     },
 
     async selectAttendanceLocation(_user, location) {

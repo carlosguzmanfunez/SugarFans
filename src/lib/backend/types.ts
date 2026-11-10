@@ -365,6 +365,16 @@ export interface LiveDrop {
   closed: boolean;
   left: number;
   nextStart?: string;
+  // Every slot in order. Missing only while the database is on the older version.
+  board?: LiveSlot[];
+}
+// free: can be reserved; held: someone is paying it (15 minutes); taken: paid, or the
+// creator is busy at that time; past: its time arrived with nobody in it.
+export type LiveSlotState = 'free' | 'held' | 'taken' | 'past';
+export interface LiveSlot {
+  n: number; // 1-based
+  start: string; // ISO instant
+  state: LiveSlotState;
 }
 export interface LiveSlotsStatus {
   creatorId: string;
@@ -443,7 +453,12 @@ export interface Backend {
   liveSlotsStatus(username: string): Promise<LiveSlotsStatus | null>;
   liveSlotsOpen(user: User, input: LiveSlotsInput): Promise<AuthResult & { dropId?: string }>;
   liveSlotsClose(user: User, dropId: string): Promise<AuthResult>;
-  liveSlotsClaim(user: User, dropId: string): Promise<AuthResult & { bookingId?: string }>;
+  // slot = the one the fan ticked on the board; without it, the next free one.
+  liveSlotsClaim(user: User, dropId: string, slot?: number): Promise<AuthResult & { bookingId?: string }>;
+  // Calls onChange whenever that creator's board changes (a slot held, paid, freed,
+  // slots opened or closed) and onLive with whether the instant channel is working.
+  // Returns how to stop listening.
+  liveSlotsWatch(creatorId: string, onChange: () => void, onLive?: (live: boolean) => void): () => void;
   createBooking(user: User, input: BookingInput): Promise<AuthResult>;
   selectAttendanceLocation(user: User, location: ReserveLocation): Promise<AuthResult>;
   confirmBookingAttendance(user: User, bookingId: string): Promise<AuthResult>;

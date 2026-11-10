@@ -53,6 +53,17 @@ const CreatorLiveSlots: React.FC<Props> = ({ user, bookings, onChanged, refreshB
     const tick = window.setInterval(() => setNow(Date.now()), 1000);
     return () => { window.clearInterval(every); window.clearInterval(tick); };
   }, [load]);
+  // A fan held, paid or freed a slot: the database says so at once.
+  const creatorId = user.creatorProfileId;
+  useEffect(() => {
+    if (!creatorId) return;
+    let timer = 0;
+    const stop = backend.liveSlotsWatch(creatorId, () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => { load(); refreshBookings?.(); }, 250);
+    });
+    return () => { window.clearTimeout(timer); stop(); };
+  }, [creatorId, load]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const drop = status?.drop;
   const link = username ? liveSlotsLink(username) : '';
