@@ -17,7 +17,9 @@ import PlatformSync from './components/PlatformSync';
 import SpecialInviteClaimer from './components/SpecialInviteClaimer';
 import ProspectInviteClaimer from './components/ProspectInviteClaimer';
 import { homeForRole } from './config/homes';
-import { openedFromRecoveryLink } from './lib/backend';
+import { safePath } from './lib/safePath';
+import { peekReturn } from './lib/returnTo';
+import { recoveryLinkPending } from './lib/backend';
 import LaunchGate from './components/LaunchGate';
 import MfaGate from './components/MfaGate';
 import HandleLink from './pages/HandleLink';
@@ -41,6 +43,7 @@ const LiveBroadcast = lazyPage(() => import('./pages/LiveBroadcast'));
 const ForgotPassword = lazyPage(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazyPage(() => import('./pages/ResetPassword'));
 const AuthCallback = lazyPage(() => import('./pages/AuthCallback'));
+const LiveSlots = lazyPage(() => import('./pages/LiveSlots'));
 
 const LoadingScreen: React.FC = () => (
   <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-label="Cargando">
@@ -65,9 +68,12 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; roles?: string[] }> 
 // Login/register are pointless once signed in: back to Inicio.
 const GuestOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, loading, user } = useAuth();
+  const location = useLocation();
   if (loading) return <LoadingScreen />;
-  // A signed-in user starts on their role's page (admin: the Admin panel).
-  if (isAuthenticated) return <Navigate to={homeForRole(user?.role ?? 'fan')} replace />;
+  // Back to the page that asked for the login (the session can arrive before the
+  // login form navigates); otherwise the role's page (admin: the Admin panel).
+  const from = safePath((location.state as { from?: string } | null)?.from) || peekReturn();
+  if (isAuthenticated) return <Navigate to={from || homeForRole(user?.role ?? 'fan')} replace />;
   return <>{children}</>;
 };
 
@@ -151,7 +157,7 @@ const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce
 const RecoveryRedirect: React.FC = () => {
   const navigate = useNavigate();
   useEffect(() => {
-    if (openedFromRecoveryLink && window.location.pathname !== '/reset-password') navigate('/reset-password', { replace: true });
+    if (recoveryLinkPending() && window.location.pathname !== '/reset-password') navigate('/reset-password', { replace: true });
   }, [navigate]);
   return null;
 };
@@ -271,6 +277,8 @@ const AppRoutes: React.FC = () => {
       } />
 
       {/* fansreserve.com/@usuario, otherwise 404 */}
+      {/* fansreserve.com/@usuario/ahora: Cupos en vivo (the link said on a TikTok/Instagram live). */}
+      <Route path="/:handle/ahora" element={<AppLayout><LiveSlots /></AppLayout>} />
       <Route path="*" element={<AppLayout><HandleLink /></AppLayout>} />
     </Routes>
     </Suspense>

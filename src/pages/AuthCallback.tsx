@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, type UserRole } from '../context/AuthContext';
 import { readJSON, removeKey } from '../lib/storage';
 import { safePath } from '../lib/safePath';
+import { takeReturn } from '../lib/returnTo';
 import { clearRefCode, readRefCode } from '../lib/rewardRules';
 import BrandLogo from '../components/BrandLogo';
 import { BRAND } from '../config/brand';
@@ -49,7 +50,7 @@ const AuthCallback: React.FC = () => {
   useEffect(() => {
     if (!user || user.signupCompleted === false || completing.current) return;
     removeKey(SOCIAL_INTENT_KEY);
-    navigate(safePath(intent.from) || homeForRole(user.role), { replace: true });
+    navigate(safePath(intent.from) || takeReturn() || homeForRole(user.role), { replace: true });
   }, [user, intent.from, navigate]);
 
   // The session is read from the URL on load; don't spin forever if it never comes.
@@ -86,7 +87,7 @@ const AuthCallback: React.FC = () => {
     clearRefCode();
     // Creators land on their panel, where identity verification starts.
     removeKey(SOCIAL_INTENT_KEY);
-    navigate(role === 'creator' ? '/creator/dashboard?bienvenida=1' : safePath(intent.from) || '/', { replace: true });
+    navigate(role === 'creator' ? '/creator/dashboard?bienvenida=1' : safePath(intent.from) || takeReturn() || '/', { replace: true });
   };
 
   const cancel = async () => {
