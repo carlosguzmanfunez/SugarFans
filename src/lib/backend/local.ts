@@ -1411,6 +1411,12 @@ export const localBackend: Backend = {
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   },
 
+  // Offline there is no reminder job: nothing to record or list.
+  async openReserveNudge() {},
+  async reserveResponseLog() {
+    return { as_of: new Date().toISOString(), items: [] };
+  },
+
   async markBookingsSeen(user) {
     const bookings = listBookings();
     const now = new Date().toISOString();

@@ -9,6 +9,7 @@ import type { ProspectsBackend } from './prospectTypes';
 import type { SocialLinks } from '../creatorLinks';
 import type { InfraUsage } from '../infraUsage';
 import type { MonitorData, MonitorKey, MonitorNewKey, MonitorSnapshot } from '../adminMonitor';
+import type { ReserveResponseLog } from '../reserveResponseReminders';
 import type { FinanceBackend } from '../creatorFinance';
 import type { ReserveLocation, AttendanceLocation } from '../reserveLocation';
 import type { ApprovalMode, CancellationPolicyId, CreatorCategoryId, LocationType, PurposeId, ReserveModality } from '../../config/reserve';
@@ -496,6 +497,10 @@ export interface Backend {
   fanBookings(fanId: string): Promise<VipBooking[]>;
   // The creator opened their requests: the waiting ones count as seen.
   markBookingsSeen(user: User): Promise<void>;
+  // The creator opened a reminder about a request still without answer (?reserveNudge=).
+  openReserveNudge(id: string): Promise<void>;
+  // Admins: reminders sent to creators about Reserve requests without answer.
+  reserveResponseLog(days?: number): Promise<ReserveResponseLog>;
   // This device's Web Push subscription (phone alerts), tied to the signed-in person.
   savePushSubscription(sub: { endpoint: string; p256dh: string; auth: string }): Promise<AuthResult>;
   deletePushSubscription(endpoint: string): Promise<AuthResult>;

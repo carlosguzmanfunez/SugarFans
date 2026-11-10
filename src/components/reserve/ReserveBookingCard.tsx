@@ -424,6 +424,7 @@ const ReserveBookingCard: React.FC<Props> = ({ booking: b, user, as, onChanged, 
 // Where a request stands while someone has to answer: sent / seen (the fan's
 // read receipt), the deadline, and what happens when it passes.
 const WaitingNote: React.FC<{ booking: VipBooking; status: ReturnType<typeof reserveStatusOf>; as: 'fan' | 'creator' }> = ({ booking: b, status, as }) => {
+  const { t } = useLanguage();
   const creator = b.creatorName.split(' ')[0];
   const fan = b.fanName.split(' ')[0];
   const due = b.respondBy ? `${deadlineLabel(b.respondBy)} (${timeLeft(b.respondBy)})` : '';
@@ -440,9 +441,12 @@ const WaitingNote: React.FC<{ booking: VipBooking; status: ReturnType<typeof res
     );
   if (status === 'pending' && as === 'creator' && due)
     return (
-      <p className={`${line} font-medium text-amber-800`} data-testid="request-deadline">
-        <i aria-hidden="true" className="fas fa-clock mt-0.5"></i>Responde antes del {due}.
-      </p>
+      <div className="mt-2 space-y-1">
+        <p className="flex items-start gap-1.5 text-xs font-medium text-amber-800" data-testid="request-deadline">
+          <i aria-hidden="true" className="fas fa-clock mt-0.5"></i>Responde antes del {due}.
+        </p>
+        <p className="text-xs text-ink/60" data-testid="request-nudge-note">{t('reserve.nudge.creatorNote')}</p>
+      </div>
     );
   if (status === 'countered' && due)
     return (

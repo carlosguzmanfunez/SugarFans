@@ -80,6 +80,10 @@ export async function GET(request: Request): Promise<Response> {
   // reports (12 AM / 12 PM Honduras) that were not emailed yet to go out now. It only
   // sends reports already written, only to ALERT_EMAIL, each one once.
   if (params.get('report') === '1') return sendMonitorReports(e.serviceKey, e.alertEmail);
+  // ?outbox=1 (public, returns only a count): the database asks for the app emails it
+  // just queued in email_outbox (e.g. the Reserve reminders to a creator) to go out
+  // now. It only sends rows already written, each one once (Resend idempotency key).
+  if (params.get('outbox') === '1') return json(200, { ok: true, sent: await deliverOutbox(e.serviceKey, 20) });
   const auth = request.headers.get('authorization') ?? '';
   if (!e.cronSecret || auth !== `Bearer ${e.cronSecret}`) {
     return json(e.cronSecret && auth ? 401 : 200, {

@@ -49,6 +49,18 @@ const CreatorDashboard: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'overview';
   const setActiveTab = (id: string) => setSearchParams(id === 'overview' ? {} : { tab: id }, { replace: true });
+  // A reminder about a request without answer (bell, phone or email) carries
+  // ?reserveNudge=<id>: record that the creator opened it, then tidy the address.
+  const nudge = searchParams.get('reserveNudge');
+  useEffect(() => {
+    if (!nudge || !user) return;
+    backend.openReserveNudge(nudge).catch(() => undefined);
+    setSearchParams((p) => {
+      const next = new URLSearchParams(p);
+      next.delete('reserveNudge');
+      return next;
+    }, { replace: true });
+  }, [nudge, user, setSearchParams]);
   // "Contenido" in the phone tab bar links to #panel-tabs: jump past the Live box to the tabs.
   const { hash, state } = useLocation();
   useEffect(() => {
