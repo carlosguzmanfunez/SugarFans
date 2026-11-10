@@ -218,6 +218,9 @@ export const createLocalSocial = (deps: Deps): SocialBackend => {
       return { ...DEMO_CREATOR_COUNTRIES, ...Object.fromEntries(owned) };
     },
 
+    // Local mode keeps no dispute evidence.
+    async logSubscriberAccess() {},
+
     async followState(creatorProfileId, viewer) {
       const ids = load().follows?.[creatorProfileId] ?? [];
       return { following: !!viewer && ids.includes(viewer.id), count: ids.length };

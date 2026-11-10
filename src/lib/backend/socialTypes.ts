@@ -128,5 +128,8 @@ export interface SocialBackend {
   // have a test country). Public: nothing else about the account is exposed.
   creatorCountries(): Promise<Record<string, string>>;
   followState(creatorProfileId: string, viewer: User | null): Promise<FollowState>;
+  // A subscriber opened the creator's profile (no post) or one of their exclusive
+  // posts. Evidence for PayPal disputes; no IP or device data. Never throws.
+  logSubscriberAccess(creatorProfileId: string, postId?: string): Promise<void>;
   setFollow(user: User, creatorProfileId: string, follow: boolean): Promise<AuthResult>;
 }

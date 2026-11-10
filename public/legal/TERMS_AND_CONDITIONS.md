@@ -1,7 +1,7 @@
 # TÉRMINOS Y CONDICIONES DE SERVICIO - FANS RESERVE
 
 **Última actualización:** Noviembre 2026 (borrador)  
-**Versión:** 1.6.0
+**Versión:** 1.7.0
 
 **Jurisdicción aplicable:** Ver sección 13
 
@@ -205,6 +205,9 @@ ESTÁ ESTRICTAMENTE PROHIBIDO publicar, compartir o distribuir:
 - Puede cancelar en cualquier momento, sin permanencia
 - Al cancelar mantiene el acceso hasta el final del mes pagado y no se le vuelve a cobrar
 - No hay reembolsos por períodos parciales
+- Le avisamos por la campana de notificaciones y por email unos 3 días antes de cada renovación automática, con la fecha y el importe. Puede cancelar la renovación desde Mi cuenta
+- Si abre una disputa o un contracargo con PayPal por un cobro de su suscripción, el acceso al contenido exclusivo de ese Creador queda en pausa mientras se resuelve. Si se resuelve a favor del Creador, el acceso vuelve automáticamente; si se le reembolsa, la suscripción termina
+- Para atender reclamos de pago registramos cuándo un suscriptor abre el perfil del Creador y qué publicaciones exclusivas abre (sin dirección IP ni datos del dispositivo), y podemos presentar ese registro a PayPal como prueba
 
 6.3. **Créditos y Regalos**:
 - Los Créditos se compran en paquetes o se reciben como devolución de una Reserve cuando el fan lo elige o pagó con Créditos, y sirven para enviar regalos y pagar experiencias de Reserve dentro de la Plataforma

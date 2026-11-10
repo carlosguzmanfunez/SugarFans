@@ -1,7 +1,7 @@
 # POLÍTICA DE PRIVACIDAD - FANS RESERVE
 
 **Última actualización:** Noviembre 2026 (borrador)  
-**Versión:** 1.2.0  
+**Versión:** 1.3.0  
 **Marco de referencia:** GDPR, CCPA y LGPD (el cumplimiento debe validarse en la revisión legal)
 
 > **Borrador.** Requires legal review before production launch. Requiere revisión legal antes del lanzamiento a producción.
@@ -62,6 +62,7 @@ Recopilamos automáticamente información sobre su uso de la Plataforma:
 - Contenido visualizado o descargado
 - Interacciones con otros Usuarios
 - Registros de actividad (logs)
+- Si está suscrito a un Creador: cuándo abre su perfil y qué publicaciones exclusivas abre. Este registro no guarda su dirección IP ni datos del dispositivo y solo se usa para responder reclamos y disputas de pago ante PayPal
 
 ### 1.3. Información de Comunicaciones
 

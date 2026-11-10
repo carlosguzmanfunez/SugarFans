@@ -185,6 +185,14 @@ const CreatorProfile: React.FC = () => {
     { own: [] as DisplayPost[], engagement: {} as Awaited<ReturnType<typeof socialApi.engagement>> }
   );
 
+  // Evidence for PayPal disputes: a subscriber opened this profile (the server
+  // checks the subscription and keeps one record every 30 minutes; no IP or device).
+  const viewerSub = id ? subscriptionOf(id) : undefined;
+  const logsProfile = !!user && !!viewerSub && !viewerSub.pausedAt && user.creatorProfileId !== id;
+  useEffect(() => {
+    if (logsProfile && id) void socialApi.logSubscriberAccess(id);
+  }, [logsProfile, id]);
+
   // Photo and video links expire in minutes: fetch fresh ones while the page stays open.
   useEffect(() => {
     const timer = window.setInterval(() => { if (document.visibilityState === 'visible') void reloadFeed(); }, MEDIA_REFRESH_MS);
@@ -251,7 +259,14 @@ const CreatorProfile: React.FC = () => {
   const editsImages = isOwner && !managesProfile && !demoCreators.some((c) => c.id === creator.id);
   const isSubscribed = hasSubscription(creator.id) && !iBlocked && !blockedMe;
   const mySub = subscriptionOf(creator.id);
-  const canView = (p: DisplayPost) => !p.isLocked || isSubscribed || isOwner;
+  // A PayPal dispute on one of its charges pauses access (the server hides the content).
+  const accessPaused = isSubscribed && !!mySub?.pausedAt;
+  const canView = (p: DisplayPost) => !p.isLocked || (isSubscribed && !accessPaused) || isOwner;
+  // Evidence for PayPal disputes: when a subscriber opens exclusive posts (no IP or device data).
+  const openPost = (post: DisplayPost) => {
+    if (post.isLocked && isSubscribed && !accessPaused && !isOwner) void socialApi.logSubscriberAccess(creator.id, post.id);
+    setViewing(post.id);
+  };
   // A creator who hasn't verified yet can't be paid (the server refuses it), so no payment buttons.
   const acceptsPayments = !(!catalogCreator && signedUp && !signedUp.isVerified);
   // Subscribing is for fans (visitors are sent to log in); creators and admins don't subscribe.
@@ -632,6 +647,12 @@ const CreatorProfile: React.FC = () => {
           </>
         )}
 
+        {accessPaused && (
+          <p role="status" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" data-testid="subscription-paused-banner">
+            {t('subscriptionDispute.profileBanner')}
+          </p>
+        )}
+
         {/* Tabs */}
         <div id="publicaciones" className="flex scroll-mt-28 space-x-1 bg-white rounded-xl p-1 shadow-sm mb-6">
           <button
@@ -684,13 +705,13 @@ const CreatorProfile: React.FC = () => {
                 canView={canView(post)}
                 isOwner={isOwner}
                 subscribeLabel={`Suscribirse $${creator.subscriptionPrice}/mes`}
-                onSubscribe={canSubscribe ? handleSubscribe : undefined}
+                onSubscribe={canSubscribe && !accessPaused ? handleSubscribe : undefined}
                 onNeedLogin={goLogin}
                 onTip={() => openTip(post.id)}
                 onGift={() => openGift(post.id)}
                 onDelete={feed.own.some((p) => p.id === post.id) && isOwner ? () => removePost(post.id) : undefined}
                 onReport={() => handleReport('post', post.id, `Publicación de ${creator.name}: "${post.content.slice(0, 40)}"`)}
-                onOpen={() => setViewing(post.id)}
+                onOpen={() => openPost(post)}
               />
             )) : (
               <div className="text-center py-12 bg-white rounded-2xl">

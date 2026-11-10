@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Icon from '../components/Icon';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Link } from 'react-router-dom';
 import { useCreatorCatalog } from '../lib/catalog';
 import { formatLongDate, type VipBooking } from '../lib/vip';
@@ -21,6 +22,7 @@ import { rewardsApi, type ExperienceTicket } from '../lib/rewards';
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 
 const Profile: React.FC = () => {
+  const { t } = useLanguage();
   const { user, cancelSubscription } = useAuth();
   const { creators } = useCreatorCatalog();
   const { data: myBookings, reload } = useBackendData(() => (user ? backend.fanBookings(user.id) : Promise.resolve([])), [user?.id], []);
@@ -172,6 +174,7 @@ const Profile: React.FC = () => {
                           Desde {formatDate(sub.since)} · ${sub.price}/mes ·{' '}
                           {sub.cancelAt ? `Cancelada: acceso hasta ${formatDate(sub.cancelAt)}` : `Renueva ${formatDate(nextRenewal(sub.since).toISOString())}`}
                         </p>
+                        {sub.pausedAt && <p className="text-xs font-medium text-amber-800" data-testid="subscription-paused">{t('subscriptionDispute.paused')}</p>}
                       </div>
                     </Link>
                     {!sub.cancelAt && (

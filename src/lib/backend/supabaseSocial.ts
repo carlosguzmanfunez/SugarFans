@@ -161,6 +161,11 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
       : null;
   },
 
+  async logSubscriberAccess(creatorProfileId, postId) {
+    // The server only records it for an active, unpaused subscription.
+    await sb.rpc('subscription_log_access', { p_creator_profile_id: creatorProfileId, ...(postId ? { p_post_id: postId } : {}) }).then(() => undefined, () => undefined);
+  },
+
   async followState(creatorProfileId, viewer) {
     const [count, mine] = await Promise.all([
       sb.rpc('follower_count', { p_creator_profile_id: creatorProfileId }),

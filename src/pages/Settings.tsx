@@ -636,6 +636,7 @@ const Settings: React.FC = () => {
                             <p className="text-xs text-gray-500">
                               {sub.cancelAt ? `Cancelada: tienes acceso hasta el ${fmtDate(new Date(sub.cancelAt))}` : `Próxima renovación: ${fmtDate(nextRenewal(sub.since))}`}
                             </p>
+                            {sub.pausedAt && <p className="text-xs font-medium text-amber-800">{t('subscriptionDispute.paused')}</p>}
                           </div>
                           {!sub.cancelAt && (
                             <button

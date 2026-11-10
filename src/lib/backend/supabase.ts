@@ -338,7 +338,8 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       const authProvider = (sessionData.session?.user.app_metadata?.provider as string | undefined) ?? 'email';
       const [profile, subs, posts, owner] = await Promise.all([
         sb.from('profiles').select('*').eq('id', uid).maybeSingle(),
-        sb.from('subscriptions').select('creator_id, price, since, cancel_at').eq('fan_id', uid),
+        // '*' so the list keeps working before migration 20261110210000 adds dispute_paused_at.
+        sb.from('subscriptions').select('*').eq('fan_id', uid),
         sb.from('creator_posts').select('id, content, is_locked, created_at, media_path, media_type, is_draft').eq('creator_id', uid).order('created_at', { ascending: false }),
         sb.rpc('owner_access'),
       ]);
@@ -351,7 +352,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
         // A cancelled subscription counts until its end date.
         subscriptions: (subs.data ?? [])
           .filter((s) => !s.cancel_at || new Date(s.cancel_at) > new Date())
-          .map((s) => ({ creatorId: s.creator_id, price: Number(s.price), since: s.since, ...(s.cancel_at ? { cancelAt: s.cancel_at } : {}) })),
+          .map((s) => ({ creatorId: s.creator_id, price: Number(s.price), since: s.since, ...(s.cancel_at ? { cancelAt: s.cancel_at } : {}), ...(s.dispute_paused_at ? { pausedAt: s.dispute_paused_at } : {}) })),
         createdPosts: (posts.data ?? []).map((p) => ({
           id: p.id,
           content: p.content,
