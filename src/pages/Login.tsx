@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { homeForRole } from '../config/homes';
 import { backend } from '../lib/backend';
 import { safePath } from '../lib/safePath';
+import { peekReturn, takeReturn } from '../lib/returnTo';
 import { useLanguage } from '../context/LanguageContext';
 import LanguageSelector from '../components/LanguageSelector';
 import BrandLogo from '../components/BrandLogo';
@@ -16,7 +17,7 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const state = location.state as { from?: string; passwordChanged?: boolean } | null;
-  const from = safePath(state?.from);
+  const from = safePath(state?.from) || peekReturn();
   // Arriving right after choosing a new password (ResetPassword signs out first).
   const passwordChanged = !!state?.passwordChanged;
   const [remember, setRemember] = useState(true);
@@ -35,8 +36,9 @@ const Login: React.FC = () => {
       // Back to the page that asked for a login, or the start page of the role
       // (or owner view) it signed in with. Navigate right away, before the
       // guest-only route sends a signed-in user to "/".
-      const signed = from ? null : await backend.getCurrentUser();
-      navigate(from || homeForRole(signed?.role ?? 'fan'), { replace: true });
+      const back = from || takeReturn();
+      const signed = back ? null : await backend.getCurrentUser();
+      navigate(back || homeForRole(signed?.role ?? 'fan'), { replace: true });
     } else {
       setError(result.error || 'Credenciales incorrectas');
     }

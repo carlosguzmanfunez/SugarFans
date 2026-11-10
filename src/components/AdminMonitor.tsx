@@ -1,11 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { backend } from '../lib/backend';
 import { usePlatformQuery } from '../lib/platform';
 import AdminDataState from './AdminDataState';
 import { adminDate } from '../lib/adminWorkspace';
 import {
-  PROBLEM_SECTION, ago, nextReport, sortProblems, usd,
-  type MonitorData, type MonitorDay, type MonitorHour, type MonitorMoney, type MonitorProblem, type MonitorReport,
+  PROBLEM_SECTION, ago, controlLink, nextReport, sortProblems, usd,
+  type MonitorData, type MonitorKey, type MonitorNewKey, type MonitorDay, type MonitorHour, type MonitorMoney, type MonitorProblem, type MonitorReport,
 } from '../lib/adminMonitor';
 import { SPLIT_COLORS, monitorReportEmail, moneySplit, overallStatus } from '../lib/monitorReportEmail';
 
@@ -348,6 +348,96 @@ const Ledger = ({ days }: { days: MonitorDay[] }) => {
   );
 };
 
+// "Control en el celular": the owner creates a private key and opens /control on the
+// phone to see these same numbers live without signing in. The key is shown once.
+const PhoneControl = () => {
+  const [keys, setKeys] = useState<MonitorKey[] | null>(null);
+  const [fresh, setFresh] = useState<MonitorNewKey | null>(null);
+  const [label, setLabel] = useState('Mi celular');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [copied, setCopied] = useState('');
+  const [confirm, setConfirm] = useState('');
+
+  const load = useCallback(async () => {
+    try { setKeys(await backend.monitorKeys()); } catch (e) { setKeys([]); setMsg((e as Error).message); }
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  const create = async () => {
+    setBusy(true); setMsg(''); setCopied('');
+    try { setFresh(await backend.monitorKeyCreate(label)); await load(); } catch (e) { setMsg((e as Error).message); } finally { setBusy(false); }
+  };
+  const revoke = async (id: string) => {
+    setBusy(true); setMsg('');
+    try { await backend.monitorKeyRevoke(id); if (fresh?.id === id) setFresh(null); setConfirm(''); await load(); }
+    catch (e) { setMsg((e as Error).message); } finally { setBusy(false); }
+  };
+  const copy = async (what: 'link' | 'key', text: string) => {
+    try { await navigator.clipboard.writeText(text); setCopied(what); } catch { setCopied(''); }
+  };
+
+  const link = fresh ? controlLink(fresh.key) : '';
+  return (
+    <div className="space-y-4" data-testid="monitor-phone">
+      <p className="text-sm text-gray-600">
+        Abre <b>fansreserve.com/control</b> en tu celular y mira estos mismos números en vivo, sin iniciar sesión en la web.
+        Entra con una llave privada que solo tú tienes. Solo sirve para mirar: no mueve dinero ni cambia nada.
+      </p>
+
+      {fresh && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 space-y-3" data-testid="monitor-phone-new">
+          <p className="text-sm font-semibold text-emerald-900"><i aria-hidden="true" className="fas fa-key mr-1.5"></i>Llave creada: «{fresh.label}»</p>
+          <p className="text-xs text-emerald-900">Cópiala ahora: por seguridad no se vuelve a mostrar. Ábrela en tu celular y la página la guarda sola.</p>
+          <code className="block break-all text-xs bg-white rounded-lg p-2 border border-emerald-100" data-testid="monitor-phone-key">{fresh.key}</code>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => copy('link', link)} className="px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-700 text-white hover:bg-emerald-800">
+              <i aria-hidden="true" className="fas fa-link mr-1"></i>{copied === 'link' ? 'Link copiado' : 'Copiar link para el celular'}
+            </button>
+            <button type="button" onClick={() => copy('key', fresh.key)} className="px-3 py-1.5 rounded-full text-xs font-semibold border border-emerald-300 text-emerald-900 hover:bg-white">
+              {copied === 'key' ? 'Llave copiada' : 'Copiar solo la llave'}
+            </button>
+            <a href={link} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-full text-xs font-semibold border border-emerald-300 text-emerald-900 hover:bg-white">Abrir aquí</a>
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-col sm:flex-row gap-2">
+        <label className="sr-only" htmlFor="monitor-phone-label">Nombre de la llave</label>
+        <input id="monitor-phone-label" value={label} maxLength={40} onChange={(e) => setLabel(e.target.value)}
+          className="flex-1 min-w-0 rounded-full border border-gray-200 px-4 py-2 text-sm" placeholder="Ej.: Mi celular" />
+        <button type="button" onClick={create} disabled={busy} className="px-4 py-2 rounded-full text-sm font-semibold bg-gray-900 text-white hover:bg-black disabled:opacity-60" data-testid="monitor-phone-create">
+          <i aria-hidden="true" className="fas fa-mobile-screen mr-1.5"></i>Crear llave para el celular
+        </button>
+      </div>
+      {msg && <p role="alert" className="text-sm text-red-600">{msg}</p>}
+
+      {keys && keys.length > 0 && (
+        <ul className="divide-y divide-gray-100 rounded-xl border border-gray-100" data-testid="monitor-phone-keys">
+          {keys.map((k) => (
+            <li key={k.id} className="p-3 flex items-center gap-3">
+              <span className="w-9 h-9 shrink-0 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center"><i aria-hidden="true" className="fas fa-mobile-screen"></i></span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900 truncate">{k.label}</p>
+                <p className="text-xs text-gray-500">Creada {adminDate(k.createdAt)} · {k.lastUsedAt ? `último uso ${ago(k.lastUsedAt)}` : 'sin usar todavía'}</p>
+              </div>
+              {confirm === k.id ? (
+                <span className="flex gap-1.5">
+                  <button type="button" onClick={() => revoke(k.id)} disabled={busy} className="text-xs font-semibold px-3 py-1.5 rounded-full bg-red-600 text-white">Sí, revocar</button>
+                  <button type="button" onClick={() => setConfirm('')} className="text-xs font-semibold px-3 py-1.5 rounded-full border border-gray-200 text-gray-700">No</button>
+                </span>
+              ) : (
+                <button type="button" onClick={() => setConfirm(k.id)} className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full border border-gray-200 text-gray-700 hover:bg-gray-50">Revocar</button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="text-xs text-gray-500">Si pierdes el celular, revoca su llave aquí y deja de servir al instante. Máximo 3 llaves activas.</p>
+    </div>
+  );
+};
+
 // Admin tab "Mano derecha": what the database watches every hour (money and
 // problems), the daily ledger and the 12 AM / 12 PM Honduras reports. It only
 // reads; nothing here moves money. Reloads by itself every minute while open.
@@ -418,6 +508,10 @@ const AdminMonitor: React.FC<{ onOpen?: (section: string) => void }> = ({ onOpen
 
           <Card title="Registro financiero diario" hint='Se actualiza cada hora; a medianoche el día queda cerrado. "Con ISV" incluye el 15% sobre la parte de Fans Reserve.' testId="monitor-ledger">
             <Ledger days={data.days} />
+          </Card>
+
+          <Card title="Control en el celular" hint="Tus números en vivo en el teléfono, sin entrar a la web." testId="monitor-phone-card">
+            <PhoneControl />
           </Card>
         </div>
       </AdminDataState>

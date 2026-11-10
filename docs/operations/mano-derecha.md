@@ -13,6 +13,16 @@ Revisa la web sola y avisa. **Solo lee**: no mueve dinero, no cambia cuentas.
 
 Panel: **Admin → Inicio → Mano derecha** (`/admin?section=monitor`). Se recarga solo cada minuto y tiene "Actualizar ahora".
 
+## Control en el celular
+
+`https://fansreserve.com/control` (archivo `control.html`, aparte de la app): los mismos números en vivo en el teléfono **sin iniciar sesión**.
+
+- El dueño crea una **llave privada** en el panel (Mano derecha › Control en el celular). Se muestra una sola vez; la base solo guarda su huella sha256 (`monitor_access_keys`). Máximo 3 activas.
+- El link `…/control#k=<llave>` la deja guardada en ese teléfono (lo que va después de `#` no llega a ningún servidor) y la página la quita de la barra.
+- La página llama `monitor_live(llave)`: calcula al momento con `monitor_build()` y suma últimas 24 h, 14 días y 4 reportes. Llave mala o revocada → `null`. Solo lee.
+- Se recarga cada minuto. Sin internet muestra lo último que cargó.
+- Si se pierde el celular: **Revocar** en el panel y deja de servir al instante.
+
 ## Dinero
 
 Mismas reglas que "Todos los movimientos": cobrado (PayPal + Créditos, menos devuelto), comisión PayPal (real o 5.4% + $0.30), parte de creadores (70/30 actual, ventas anteriores 80%, regalos 60%).
@@ -30,4 +40,6 @@ select cron.unschedule(jobid) from cron.job where jobname in ('monitor-hourly','
 -- Reactivar: volver a ejecutar el bloque 10 (las 3 líneas cron.schedule) de supabase/migrations/20261107210000_monitor_mano_derecha.sql
 ```
 
-Código: `supabase/migrations/20261107210000_monitor_mano_derecha.sql`, `src/components/AdminMonitor.tsx`, `src/lib/monitorReportEmail.ts`, `api/usage.ts`. Prueba visual: `npm run build && node e2e/admin-monitor-ui.mjs`.
+Qué hacer con cada alerta y el resto de procesos: `docs/operations/manual-operacion.md`.
+
+Código: `supabase/migrations/20261107210000_monitor_mano_derecha.sql`, `supabase/migrations/20261107220000_monitor_control_celular.sql`, `control.html`, `src/components/AdminMonitor.tsx`, `src/lib/monitorReportEmail.ts`, `api/usage.ts`. Pruebas: `npm run build && node e2e/admin-monitor-ui.mjs && node e2e/control-page-ui.mjs`; base: `npm run test:monitor-live-db`.

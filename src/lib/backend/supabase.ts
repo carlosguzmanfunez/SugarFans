@@ -6,7 +6,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { PAID_WITH_PAYPAL, WRONG_CREDENTIALS, ACCOUNT_SUSPENDED, avatarOrEmpty, cleanPatch, mergeSettings, normalizeEmail, validateRegistration, validateSignupExtras } from './shared';
 import { REJECTED_MESSAGE, inReviewNotice, moderateUpload, moderationOf } from './supabaseModeration';
 import { DEFAULT_AVAILABILITY, cleanDetails, customTitle, normalizeAvailability, validateCounter, validateCustomRequest, validateExperience } from '../vip';
-import type { Backend, BookingDetails, BookingStatus, ExperienceType, ReserveDetails, SocialProvider, User, UserRole, VipBooking, VipExperience } from './types';
+import type { Backend, BookingDetails, BookingStatus, ExperienceType, LiveSlotsStatus, ReserveDetails, SocialProvider, User, UserRole, VipBooking, VipExperience } from './types';
 import { isGender } from './types';
 import { isTimeZone, viewerTimeZone } from '../timeZones';
 import { creators as demoCreators } from '../../data/mockData';
@@ -19,7 +19,7 @@ import { createSupabaseSpecial } from './supabaseSpecial';
 import { createSupabaseProspects } from './supabaseProspects';
 import { BRAND } from '../../config/brand';
 import { fromRpc } from '../infraUsage';
-import type { MonitorSnapshot } from '../adminMonitor';
+import type { MonitorKey, MonitorNewKey, MonitorSnapshot } from '../adminMonitor';
 import type { ReserveResponseLog } from '../reserveResponseReminders';
 import { createSupabaseFinance } from './supabaseFinance';
 import { isDemoEmail } from '../../config/demoAccounts';
@@ -594,6 +594,25 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       return (data as MonitorSnapshot | null) ?? null;
     },
 
+    async monitorKeys() {
+      const { data, error } = await sb.rpc('monitor_key_list');
+      if (error) throw Error('No pudimos consultar las llaves del celular.');
+      return ((data ?? []) as { id: string; label: string; created_at: string; last_used_at: string | null; uses: number }[])
+        .map((k): MonitorKey => ({ id: k.id, label: k.label, createdAt: k.created_at, lastUsedAt: k.last_used_at, uses: k.uses }));
+    },
+
+    async monitorKeyCreate(label: string) {
+      const { data, error } = await sb.rpc('monitor_key_create', { p_label: label });
+      if (error) throw Error(/3 llaves/.test(error.message) ? 'Ya hay 3 llaves activas: revoca una antes de crear otra.' : 'No pudimos crear la llave.');
+      return data as MonitorNewKey;
+    },
+
+    async monitorKeyRevoke(id: string) {
+      const { data, error } = await sb.rpc('monitor_key_revoke', { p_id: id });
+      if (error) throw Error('No pudimos revocar la llave.');
+      return Boolean(data);
+    },
+
     async infraUsage() {
       const { data, error } = await sb.rpc('infra_usage');
       if (error) throw Error('No pudimos consultar los costos y límites.');
@@ -751,6 +770,42 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       return (data ?? []).map((slot: { date: string; time: string; time_zone: string | null; duration_minutes: number | null }) => ({ date: slot.date, time: slot.time, timeZone: slot.time_zone ?? undefined, durationMinutes: slot.duration_minutes ?? undefined }));
     },
 
+    async liveSlotsStatus(username) {
+      const { data, error } = await sb.rpc('reserve_live_status', { p_username: username });
+      if (error) throw Error('No pudimos cargar los cupos. Vuelve a intentarlo.');
+      return (data ?? null) as LiveSlotsStatus | null;
+    },
+
+    async liveSlotsOpen(_user, input) {
+      const { data, error } = await sb.rpc('reserve_live_open', {
+        p_slots: input.slots, p_minutes: input.minutes, p_price: input.price, p_opens_in: input.opensIn, p_gap: input.gap,
+      });
+      return error ? dbError(error, 'No se pudieron abrir los cupos') : { ok: true, dropId: data as string };
+    },
+
+    async liveSlotsClose(_user, dropId) {
+      const { error } = await sb.rpc('reserve_live_close', { p_drop: dropId });
+      return error ? dbError(error, 'No se pudieron cerrar los cupos') : ok;
+    },
+
+    async liveSlotsClaim(_user, dropId, slot) {
+      const { data, error } = await sb.rpc('reserve_live_claim', slot ? { p_drop: dropId, p_slot: slot } : { p_drop: dropId });
+      return error ? dbError(error, 'No se pudo apartar el cupo') : { ok: true, bookingId: data as string };
+    },
+
+    async liveSlotsRelease(_user, bookingId) {
+      const { error } = await sb.rpc('reserve_live_release', { p_booking: bookingId });
+      return error ? dbError(error, 'No se pudo liberar el cupo') : { ok: true };
+    },
+
+    // Public Realtime broadcast sent by the database on every change (no data in it).
+    liveSlotsWatch(creatorId, onChange, onLive) {
+      const channel = sb.channel(`cupos:${creatorId}`)
+        .on('broadcast', { event: 'cambio' }, () => onChange())
+        .subscribe((state) => onLive?.(state === 'SUBSCRIBED'));
+      return () => { void sb.removeChannel(channel); };
+    },
+
     async selectAttendanceLocation(_user, location) {
       const { error } = await sb.rpc('reserve_select_attendance_city', { p_country: location.country, p_region: location.region, p_city: location.city });
       return error ? dbError(error, 'No se pudo guardar la ciudad de asistencia') : ok;
@@ -883,7 +938,8 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
 
     async listExperiences() {
       const { data } = await sb.from('vip_experiences').select('*').order('created_at', { ascending: true });
-      return ((data ?? []) as ExperienceRow[]).map(toExperience);
+      // A Cupos en vivo drop books on a hidden experience of its own: never listed.
+      return ((data ?? []) as ExperienceRow[]).filter((e) => !e.details?.liveDrop).map(toExperience);
     },
 
     async saveExperience(user, input, id) {

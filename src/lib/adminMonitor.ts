@@ -31,6 +31,14 @@ export interface MonitorReport {
   data: { dinero: MonitorMoney; mes?: MonitorMoney; problemas: MonitorProblem[] };
 }
 
+// Private keys for the phone control page (/control). The key itself is shown once.
+export interface MonitorKey { id: string; label: string; createdAt: string; lastUsedAt: string | null; uses: number }
+export interface MonitorNewKey { id: string; label: string; key: string }
+
+// Link that opens the phone page with the key already in place. The key travels after
+// "#", so it never reaches any server, and the page removes it from the address bar.
+export const controlLink = (key: string, origin = location.origin) => `${origin}/control#k=${encodeURIComponent(key)}`;
+
 export interface MonitorData {
   hours: MonitorHour[];
   days: MonitorDay[];

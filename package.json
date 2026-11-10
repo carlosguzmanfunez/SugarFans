@@ -15,6 +15,9 @@
     "typecheck": "tsc --noEmit",
     "test:seo": "node e2e/seo.mjs",
     "test:admin-monitor-ui": "node e2e/admin-monitor-ui.mjs",
+    "test:monitor-live-db": "node e2e/monitor-live-db.mjs",
+    "test:control-page-ui": "node e2e/control-page-ui.mjs",
+    "test:lazy-page-reload": "node e2e/lazy-page-reload.mjs",
     "test:locked-post-subscribe": "node e2e/locked-post-subscribe.mjs",
     "test:navigation-security": "node e2e/navigation-security.mjs",
     "test:notification-dismiss": "node e2e/notification-dismiss.mjs",
@@ -126,7 +129,10 @@
     "test:prospects-db": "node e2e/prospects-db.mjs && node e2e/prospect-invites-db.mjs && node e2e/prospects-growth-db.mjs",
     "test:prospects-ui": "vite build --mode offline && node e2e/prospects-ui.mjs",
     "test:revenue-share": "node e2e/income-allocation.mjs && node e2e/revenue-share-postgres.mjs",
-    "test:reserve-dispute-dossier-db": "node e2e/reserve-dispute-dossier-postgres.mjs"
+    "test:reserve-dispute-dossier-db": "node e2e/reserve-dispute-dossier-postgres.mjs",
+    "test:password-recovery-return": "vite build --mode offline && node e2e/password-recovery-return.mjs",
+    "test:live-slots-db": "node e2e/reserve-live-slots-postgres.mjs",
+    "test:live-slots-ui": "vite build --mode offline && node e2e/live-slots-ui.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
@@ -139,6 +145,7 @@
     "livekit-server-sdk": "^2.19.1",
     "lucide-react": "^1.52.0",
     "nodemailer": "^10.3.1",
+    "qrcode-generator": "^2.0.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "7.18.5",
