@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from '../Icon';
 import { useAuth } from '../../context/AuthContext';
@@ -7,6 +7,7 @@ import { usePlatformQuery, platformApi } from '../../lib/platform';
 import { backend } from '../../lib/backend';
 import { fill } from '../../lib/liveSlots';
 import type { AdminSection } from '../../lib/adminWorkspace';
+import './admin-home.css';
 
 // An admin's home: instead of the fans' pitch (hero, how it works, Reserve
 // showcase), Inicio shows what is waiting for a decision, a quick look at the
@@ -29,7 +30,9 @@ const TEXT = {
     shortcuts: 'Accesos rápidos',
     users: 'Buscar personas', finance: 'Pagos a creadores', ledger: 'Todos los movimientos', attendance: 'Asistencia de Reserve',
     prospects: 'Captar creadores', monitor: 'Mano derecha', errors: 'Problemas de la página', infra: 'Costos y límites',
-    fullPanel: 'Ir al panel de administración completo', switchView: 'Cambiar de vista (fan, creador o admin)',
+    owner: 'Propietario', admin: 'Administración', review: 'Revisar', upToDate: 'Al día',
+    attentionSub: 'Toca una tarjeta para ir directo a resolverlo.', statsSub: 'Así va creciendo Fans Reserve.',
+    fullPanel: 'Panel completo', switchView: 'Cambiar de vista',
   },
   en: {
     hello: 'Hi,', fallbackName: 'team',
@@ -43,10 +46,32 @@ const TEXT = {
     shortcuts: 'Shortcuts',
     users: 'Find people', finance: 'Creator payments', ledger: 'All transactions', attendance: 'Reserve attendance',
     prospects: 'Recruit creators', monitor: 'Right hand', errors: 'Site problems', infra: 'Costs and limits',
-    fullPanel: 'Open the full admin panel', switchView: 'Switch view (fan, creator or admin)',
+    owner: 'Owner', admin: 'Admin', review: 'Review', upToDate: 'Up to date',
+    attentionSub: 'Tap a card to go straight to it.', statsSub: 'How Fans Reserve is growing.',
+    fullPanel: 'Full panel', switchView: 'Switch view',
   },
 } as const;
 const section = (id: AdminSection) => `/admin?section=${id}`;
+const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+// Counts up from 0 the first time the number arrives.
+const CountUp: React.FC<{ value: number | undefined }> = ({ value }) => {
+  const [shown, setShown] = useState(0);
+  useEffect(() => {
+    if (value === undefined) return;
+    if (reducedMotion() || value === 0) { setShown(value); return; }
+    let frame = 0;
+    const start = performance.now();
+    const step = (now: number) => {
+      const p = Math.min(1, (now - start) / 900);
+      setShown(Math.round(value * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [value]);
+  return <>{value === undefined ? '—' : shown}</>;
+};
 
 const AdminHome: React.FC = () => {
   const { user, listAccounts } = useAuth();
@@ -79,10 +104,10 @@ const AdminHome: React.FC = () => {
 
   const first = (user?.name ?? '').split(' ')[0] || tx.fallbackName;
   const tasks = [
-    { id: 'verifications', icon: 'fa-shield-halved', label: tx.verifications, count: data?.verifications },
-    { id: 'reports', icon: 'fa-flag', label: tx.reports, count: data?.reports },
-    { id: 'moderation', icon: 'fa-images', label: tx.moderation, count: data?.moderation },
-    { id: 'payouts', icon: 'fa-hand-holding-dollar', label: tx.disputes, count: data?.disputes },
+    { id: 'verifications', tone: 'ah-c-iris', icon: 'fa-shield-halved', label: tx.verifications, count: data?.verifications },
+    { id: 'reports', tone: 'ah-c-rose', icon: 'fa-flag', label: tx.reports, count: data?.reports },
+    { id: 'moderation', tone: 'ah-c-amber', icon: 'fa-images', label: tx.moderation, count: data?.moderation },
+    { id: 'payouts', tone: 'ah-c-red', icon: 'fa-hand-holding-dollar', label: tx.disputes, count: data?.disputes },
   ] as const;
   const pending = data ? tasks.reduce((sum, task) => sum + (task.count ?? 0), 0) : null;
   const lead = pending === null
@@ -110,86 +135,94 @@ const AdminHome: React.FC = () => {
     { id: 'infra', icon: 'fa-chart-line', label: tx.infra },
   ];
 
-  return (
-    <header className="hero" aria-labelledby="admin-home-title" data-testid="admin-home">
-      <div className="wrap">
-        <h1 id="admin-home-title" className="text-[clamp(36px,5vw,56px)]! leading-[1.05]!">
-          {tx.hello}{' '}
-          <span className="bg-[linear-gradient(90deg,var(--brand),var(--iris)_60%,var(--gold))] bg-clip-text text-transparent">{first}</span>.
-        </h1>
-        <p className="lead" data-testid="admin-home-lead">{lead}</p>
-        {error && !data && (
-          <button type="button" onClick={() => void reload()} className="v-btn v-ghost mt-4">{tx.retry}</button>
-        )}
+  const today = new Intl.DateTimeFormat(language === 'en' ? 'en-US' : 'es-HN', {
+    timeZone: 'America/Tegucigalpa', weekday: 'long', day: 'numeric', month: 'long',
+  }).format(new Date()).replace(/^./, (c) => c.toUpperCase());
 
-        <section className="mt-7" aria-labelledby="admin-home-attention">
-          <h2 id="admin-home-attention" className="text-lg font-semibold text-ink">{tx.attention}</h2>
-          <ul className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {tasks.map((task) => {
+  return (
+    <section className="ah" aria-labelledby="admin-home-title" data-testid="admin-home">
+      <div className="wrap">
+        <div className="ah-card ah-rise">
+          <span className="ah-orb ah-orb-1" aria-hidden="true" />
+          <span className="ah-orb ah-orb-2" aria-hidden="true" />
+          <span className="ah-orb ah-orb-3" aria-hidden="true" />
+          <span className="ah-badge">
+            <span className="ah-badge-icon" aria-hidden="true"><Icon name={user?.isOwner ? 'fa-crown' : 'fa-shield-halved'} /></span>
+            {user?.isOwner ? tx.owner : tx.admin} · Fans Reserve
+          </span>
+          <h1 id="admin-home-title" className="ah-title">
+            {tx.hello} <span className="ah-name">{first}</span>.
+          </h1>
+          <p className="ah-date">{today}</p>
+          <p className="ah-status" data-testid="admin-home-lead">
+            <span className="ah-dot" data-pending={!!pending} aria-hidden="true" />
+            {lead}
+          </p>
+          {error && !data && (
+            <div className="mt-3"><button type="button" onClick={() => void reload()} className="ah-btn ah-btn-ghost">{tx.retry}</button></div>
+          )}
+          <div className="ah-actions">
+            <Link to="/admin" className="ah-btn ah-btn-gold" data-testid="admin-home-panel">
+              <Icon name="fa-chart-line" /> {tx.fullPanel}
+            </Link>
+            {user?.isOwner && (
+              <Link to="/owner" className="ah-btn ah-btn-ghost" data-testid="admin-home-owner">
+                <Icon name="fa-users" /> {tx.switchView}
+              </Link>
+            )}
+          </div>
+        </div>
+
+        <div className="ah-section">
+          <h2 className="ah-h2">{tx.attention}</h2>
+          <p className="ah-sub">{tx.attentionSub}</p>
+          <ul className="ah-tasks">
+            {tasks.map((task, i) => {
               const waiting = (task.count ?? 0) > 0;
               return (
-                <li key={task.id} className="flex">
-                  <Link
-                    to={section(task.id)}
-                    data-testid={`admin-home-task-${task.id}`}
-                    className={`flex flex-1 flex-col gap-2 rounded-2xl border p-4 transition-colors ${
-                      waiting ? 'border-brand-200 bg-gradient-to-br from-brand-50 to-white hover:border-brand-400' : 'border-line bg-white hover:border-ink/30'
-                    }`}
-                  >
-                    <span aria-hidden="true" className={`grid h-10 w-10 place-items-center rounded-xl text-base ${waiting ? 'bg-brand-500 text-white' : 'bg-ink/5 text-ink/60'}`}>
-                      <Icon name={task.icon} />
-                    </span>
-                    <strong className="text-2xl font-bold tabular-nums text-ink">{loading && !data ? '—' : task.count ?? '—'}</strong>
-                    <span className="text-sm leading-snug text-ink/70">{task.label}</span>
+                <li key={task.id} className="ah-rise" style={{ '--i': i + 1 } as React.CSSProperties}>
+                  <Link to={section(task.id)} data-testid={`admin-home-task-${task.id}`} data-pending={waiting} className={`ah-task ${task.tone}`}>
+                    {waiting && <span className="ah-flag" aria-hidden="true" />}
+                    <span className="ah-task-icon" aria-hidden="true"><Icon name={task.icon} /></span>
+                    <strong className="ah-task-count">{loading && !data ? '—' : <CountUp value={task.count} />}</strong>
+                    <span className="ah-task-label">{task.label}</span>
+                    <span className="ah-task-go">{waiting ? tx.review : tx.upToDate} <Icon name="fa-arrow-right" /></span>
                   </Link>
                 </li>
               );
             })}
           </ul>
-        </section>
+        </div>
 
-        <section className="mt-7" aria-labelledby="admin-home-stats">
-          <h2 id="admin-home-stats" className="text-lg font-semibold text-ink">{tx.stats}</h2>
-          <dl className="mt-3 grid grid-cols-2 gap-3 rounded-2xl border border-line bg-white p-4 sm:grid-cols-4">
-            {stats.map((stat) => (
-              <div key={stat.label}>
-                <dt className="text-xs text-ink/60">{stat.label}</dt>
-                <dd className="mt-0.5 text-xl font-bold tabular-nums text-ink">{stat.value ?? '—'}</dd>
+        <div className="ah-section">
+          <h2 className="ah-h2">{tx.stats}</h2>
+          <p className="ah-sub">{tx.statsSub}</p>
+          <dl className="ah-stats">
+            {stats.map((stat, i) => (
+              <div key={stat.label} className={`ah-stat ah-s${i + 1} ah-rise`} style={{ '--i': i + 5 } as React.CSSProperties}>
+                <dt>{stat.label}</dt>
+                <dd><CountUp value={stat.value} /></dd>
               </div>
             ))}
           </dl>
-        </section>
+        </div>
 
-        <section className="mt-7" aria-labelledby="admin-home-shortcuts">
-          <h2 id="admin-home-shortcuts" className="text-lg font-semibold text-ink">{tx.shortcuts}</h2>
-          <ul className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {shortcuts.map((item) => (
-              <li key={item.id} className="flex">
-                <Link
-                  to={section(item.id)}
-                  data-testid={`admin-home-go-${item.id}`}
-                  className="flex min-h-12 flex-1 items-center gap-2.5 rounded-xl border border-line bg-white px-3 py-2.5 text-sm font-medium text-ink hover:border-ink/30"
-                >
-                  <Icon name={item.icon} className="text-brand-700" />
+        <div className="ah-section">
+          <h2 className="ah-h2">{tx.shortcuts}</h2>
+          <ul className="ah-shorts">
+            {shortcuts.map((item, i) => (
+              <li key={item.id} className="ah-rise" style={{ '--i': i + 9 } as React.CSSProperties}>
+                <Link to={section(item.id)} data-testid={`admin-home-go-${item.id}`} className="ah-short">
+                  <span className="ah-short-icon" aria-hidden="true"><Icon name={item.icon} /></span>
                   <span>{item.label}</span>
+                  <Icon name="fa-arrow-right" />
                 </Link>
               </li>
             ))}
           </ul>
-        </section>
-
-        <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold">
-          <Link to="/admin" className="inline-flex items-center gap-1.5 text-brand-700 hover:underline" data-testid="admin-home-panel">
-            {tx.fullPanel} <Icon name="fa-arrow-right" />
-          </Link>
-          {user?.isOwner && (
-            <Link to="/owner" className="inline-flex items-center gap-1.5 text-brand-700 hover:underline" data-testid="admin-home-owner">
-              {tx.switchView} <Icon name="fa-arrow-right" />
-            </Link>
-          )}
         </div>
       </div>
-    </header>
+    </section>
   );
 };
 

@@ -37,6 +37,7 @@ try {
     if (shots) {
       await page.goto(`${BASE}/`);
       await page.getByTestId('admin-home-lead').filter({ hasNotText: 'Consultando' }).waitFor();
+      await page.waitForTimeout(1600);
       await page.screenshot({ path: `${shots}/inicio-admin-${label}.png`, fullPage: true });
     }
     assert.deepEqual(errors, []);
