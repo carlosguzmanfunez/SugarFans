@@ -1,0 +1,29 @@
+name: Dependency audit
+
+# Fails when a library the live site ships has a known high or critical security
+# problem. Runs on PRs that change dependencies and every Monday, so a problem
+# found after merge also shows up (red run + email to the repo owner).
+on:
+  pull_request:
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/dependency-audit.yml'
+  schedule:
+    - cron: '0 14 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - name: npm audit (production libraries)
+        run: npm audit --omit=dev --audit-level=high

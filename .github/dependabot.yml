@@ -1,0 +1,25 @@
+# Dependabot: keeps the libraries the site uses up to date and opens a PR when one
+# has a known security problem. Minor/patch updates come together in one PR a
+# week so they don't flood the repository; major versions come one by one because
+# they can break things and need a closer look. Nothing merges on its own.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: America/Tegucigalpa
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "deps"
+    groups:
+      menores:
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "ci"
