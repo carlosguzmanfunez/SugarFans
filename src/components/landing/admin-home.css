@@ -1,0 +1,95 @@
+/* Admin Inicio: the owners' page. Night card with moving aurora and gold
+   accents, colored tiles that rise in one after another, numbers that count up.
+   Everything moving stops with prefers-reduced-motion. */
+.lv2 .ah{padding-block:28px 56px}
+.lv2 .ah-card{position:relative;isolation:isolate;overflow:hidden;border-radius:28px;padding:32px 24px 28px;color:#fff;
+  background:linear-gradient(135deg,var(--night-9) 0%,#24103a 45%,#3a1240 100%);box-shadow:0 30px 60px -30px rgb(40 10 60 / .55)}
+@media (min-width:768px){.lv2 .ah-card{padding:44px 44px 36px}}
+.lv2 .ah-card::after{content:"";position:absolute;inset:0;z-index:-1;opacity:.18;pointer-events:none;
+  background-image:linear-gradient(rgb(255 255 255 / .08) 1px,transparent 1px),linear-gradient(90deg,rgb(255 255 255 / .08) 1px,transparent 1px);
+  background-size:36px 36px;mask-image:radial-gradient(ellipse at 70% 0%,#000 10%,transparent 70%)}
+.lv2 .ah-orb{position:absolute;z-index:-1;border-radius:50%;filter:blur(60px);opacity:.55;pointer-events:none}
+.lv2 .ah-orb-1{width:340px;height:340px;right:-80px;top:-120px;background:#f7639b;animation:ah-drift1 14s var(--ease) infinite alternate}
+.lv2 .ah-orb-2{width:300px;height:300px;left:-100px;bottom:-140px;background:#6d3ce6;animation:ah-drift2 17s var(--ease) infinite alternate}
+.lv2 .ah-orb-3{width:200px;height:200px;right:30%;bottom:-120px;background:var(--gold);opacity:.35;animation:ah-drift3 12s var(--ease) infinite alternate}
+@keyframes ah-drift1{to{transform:translate(-120px,80px) scale(1.15)}}
+@keyframes ah-drift2{to{transform:translate(140px,-60px) scale(1.1)}}
+@keyframes ah-drift3{to{transform:translate(-90px,-50px) scale(1.3)}}
+
+.lv2 .ah-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 14px 6px 8px;border-radius:999px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--gold-2);background:rgb(227 169 58 / .12);border:1px solid rgb(227 169 58 / .35)}
+.lv2 .ah-badge-icon{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--gold-2),var(--gold));color:var(--night)}
+.lv2 .ah-title{margin-top:18px;font-family:var(--display);font-size:clamp(36px,5.4vw,60px);line-height:1.04;font-weight:700;letter-spacing:-.03em}
+.lv2 .ah-name{background:linear-gradient(90deg,#ffd7e6,var(--gold-2) 45%,var(--gold) 70%,#ffd7e6);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:ah-shine 6s linear infinite}
+@keyframes ah-shine{to{background-position:200% center}}
+.lv2 .ah-date{margin-top:6px;font-size:14px;color:rgb(255 255 255 / .55)}
+.lv2 .ah-status{margin-top:18px;display:inline-flex;align-items:center;gap:10px;padding:10px 16px;border-radius:14px;font-size:15px;font-weight:500;background:rgb(255 255 255 / .07);border:1px solid rgb(255 255 255 / .12);backdrop-filter:blur(6px)}
+.lv2 .ah-dot{position:relative;width:10px;height:10px;border-radius:50%;flex:none;background:#34d399}
+.lv2 .ah-dot::after{content:"";position:absolute;inset:0;border-radius:50%;background:inherit;animation:ah-ping 1.8s cubic-bezier(0,0,.2,1) infinite}
+.lv2 .ah-dot[data-pending="true"]{background:#fbbf24}
+@keyframes ah-ping{75%,100%{transform:scale(2.6);opacity:0}}
+.lv2 .ah-actions{margin-top:24px;display:flex;flex-wrap:wrap;gap:10px}
+.lv2 .ah-btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 18px;border-radius:14px;font-size:14px;font-weight:600;text-decoration:none;transition:transform .25s var(--ease),box-shadow .25s var(--ease),background-color .25s}
+.lv2 .ah-btn-gold{color:var(--night);background:linear-gradient(135deg,var(--gold-2),var(--gold));box-shadow:0 10px 24px -10px rgb(227 169 58 / .8)}
+.lv2 .ah-btn-ghost{color:#fff;background:rgb(255 255 255 / .08);border:1px solid rgb(255 255 255 / .18)}
+.lv2 .ah-btn:hover{transform:translateY(-2px)}
+.lv2 .ah-btn-ghost:hover{background:rgb(255 255 255 / .14)}
+
+.lv2 .ah-section{margin-top:36px}
+.lv2 .ah-h2{font-family:var(--display);font-size:20px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
+.lv2 .ah-sub{margin-top:2px;font-size:14px;color:var(--muted)}
+
+/* Pending tiles */
+.lv2 .ah-tasks{margin-top:14px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (min-width:1024px){.lv2 .ah-tasks{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}}
+.lv2 .ah-task{--c1:#8b5cf6;--c2:#6d3ce6;position:relative;display:flex;flex-direction:column;gap:10px;height:100%;padding:18px;border-radius:22px;background:var(--surface);border:1px solid var(--line);color:var(--ink);text-decoration:none;overflow:hidden;
+  transition:transform .3s var(--ease),box-shadow .3s var(--ease),border-color .3s}
+.lv2 .ah-task::before{content:"";position:absolute;inset:0 0 auto 0;height:4px;background:linear-gradient(90deg,var(--c1),var(--c2));opacity:.35;transition:opacity .3s}
+.lv2 .ah-task:hover{transform:translateY(-4px);box-shadow:0 18px 36px -18px color-mix(in srgb,var(--c2) 55%,transparent)}
+.lv2 .ah-task[data-pending="true"]{border-color:color-mix(in srgb,var(--c1) 45%,var(--line));background:linear-gradient(160deg,color-mix(in srgb,var(--c1) 9%,#fff),#fff 60%)}
+.lv2 .ah-task[data-pending="true"]::before{opacity:1}
+.lv2 .ah-task-icon{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;color:#fff;font-size:18px;background:linear-gradient(135deg,var(--c1),var(--c2));box-shadow:0 8px 18px -8px var(--c2)}
+.lv2 .ah-task-count{font-family:var(--display);font-size:34px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.lv2 .ah-task-label{font-size:14px;line-height:1.35;color:var(--muted)}
+.lv2 .ah-task-go{margin-top:auto;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--c2)}
+.lv2 .ah-task-go svg,.lv2 .ah-short svg:last-child{transition:transform .3s var(--ease)}
+.lv2 .ah-task:hover .ah-task-go svg,.lv2 .ah-short:hover svg:last-child{transform:translateX(4px)}
+.lv2 .ah-flag{position:absolute;top:16px;right:16px;width:10px;height:10px;border-radius:50%;background:var(--c1)}
+.lv2 .ah-flag::after{content:"";position:absolute;inset:0;border-radius:50%;background:inherit;animation:ah-ping 1.8s cubic-bezier(0,0,.2,1) infinite}
+.lv2 .ah-c-iris{--c1:#a78bfa;--c2:#6d3ce6}
+.lv2 .ah-c-rose{--c1:#fb7185;--c2:#e11d74}
+.lv2 .ah-c-amber{--c1:#fbbf24;--c2:#d97706}
+.lv2 .ah-c-red{--c1:#f87171;--c2:#dc2626}
+
+/* Community */
+.lv2 .ah-stats{margin-top:14px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (min-width:768px){.lv2 .ah-stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}}
+.lv2 .ah-stat{position:relative;overflow:hidden;padding:18px;border-radius:22px;color:#fff}
+.lv2 .ah-stat::after{content:"";position:absolute;right:-30px;top:-30px;width:110px;height:110px;border-radius:50%;background:rgb(255 255 255 / .14)}
+.lv2 .ah-stat dt{font-size:13px;font-weight:500;color:rgb(255 255 255 / .85)}
+.lv2 .ah-stat dd{margin-top:6px;font-family:var(--display);font-size:32px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.lv2 .ah-s1{background:linear-gradient(135deg,#f7639b,#c2185b)}
+.lv2 .ah-s2{background:linear-gradient(135deg,#8b5cf6,#5b21b6)}
+.lv2 .ah-s3{background:linear-gradient(135deg,#38bdf8,#1d4ed8)}
+.lv2 .ah-s4{background:linear-gradient(135deg,#f2c25c,#c27a12)}
+
+/* Shortcuts */
+.lv2 .ah-shorts{margin-top:14px;display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+@media (min-width:520px){.lv2 .ah-shorts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:768px){.lv2 .ah-shorts{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}}
+.lv2 .ah-short{display:flex;align-items:center;gap:12px;height:100%;min-height:60px;padding:12px 14px;border-radius:18px;background:var(--surface);border:1px solid var(--line);color:var(--ink);font-size:14px;font-weight:600;line-height:1.25;text-decoration:none;
+  transition:transform .3s var(--ease),box-shadow .3s var(--ease),border-color .3s}
+.lv2 .ah-short:hover{transform:translateY(-3px);border-color:#e4d6f5;box-shadow:0 14px 28px -18px rgb(80 30 120 / .45)}
+.lv2 .ah-short-icon{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:12px;color:#6d3ce6;background:linear-gradient(135deg,#f3ecff,#fde7f0)}
+.lv2 .ah-short span:nth-child(2){flex:1;min-width:0}
+.lv2 .ah-short svg:last-child{color:var(--muted)}
+
+/* Rise in, one after another */
+.lv2 .ah-rise{opacity:0;animation:ah-rise .7s var(--ease) forwards;animation-delay:calc(var(--i,0) * 70ms)}
+@keyframes ah-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+@media (prefers-reduced-motion:reduce){
+  .lv2 .ah-orb,.lv2 .ah-name,.lv2 .ah-dot::after,.lv2 .ah-flag::after{animation:none}
+  .lv2 .ah-rise{opacity:1;animation:none}
+  .lv2 .ah-task,.lv2 .ah-short,.lv2 .ah-btn{transition:none}
+}

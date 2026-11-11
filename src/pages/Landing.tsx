@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { useCreatorCatalog } from '../lib/catalog';
 import Hero from '../components/landing/Hero';
 import CreatorHome from '../components/landing/CreatorHome';
+import AdminHome from '../components/landing/AdminHome';
 import { useAuth } from '../context/AuthContext';
 import CreatorMonetization from '../components/landing/CreatorMonetization';
 import HappeningNow from '../components/landing/HappeningNow';
@@ -18,6 +19,10 @@ const Landing: React.FC = () => {
   const isCreator = user?.role === 'creator';
   const root = useRef<HTMLDivElement>(null);
   useLandingMotion(root);
+
+  // Admins (and the owner in admin view) get their own Inicio: what waits for a
+  // decision and shortcuts to the panel, not the fans' pitch.
+  if (user?.role === 'admin') return <div ref={root} className="lv2 min-h-screen"><AdminHome /></div>;
 
   return (
     <div ref={root} className="lv2 min-h-screen">

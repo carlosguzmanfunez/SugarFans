@@ -93,7 +93,8 @@ try {
             '/explore': () => page.getByRole('heading', { name: 'Explora creadores', exact: true }),
             '/reserve': () => page.getByRole('heading', { name: 'Reserve', exact: true }),
             '/help': () => page.getByRole('heading', { name: 'Centro de ayuda', exact: true }),
-            '/': () => page.locator('#journey'),
+            // Admins get their own Inicio instead of the fans' page.
+            '/': () => page.locator('#journey, [data-testid="admin-home"]').first(),
           }[destination.pathname];
           assert.ok(ready, `Missing destination readiness check for ${link.href}`);
           await ready().waitFor({ state: 'visible' });
