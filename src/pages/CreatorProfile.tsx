@@ -55,9 +55,11 @@ import {
 const formatDay = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' });
 const formatShortDay = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' }).replace('.', '');
 
-const CreatorProfile: React.FC = () => {
+// profileId: the profile opened at fansreserve.com/@usuario (HandleLink); otherwise /creator/:id.
+const CreatorProfile: React.FC<{ profileId?: string }> = ({ profileId }) => {
   const setup = useCreatorSetup();
-  const { id } = useParams();
+  const params = useParams();
+  const id = profileId ?? params.id;
   const { isAuthenticated, user, isSubscribed: hasSubscription, cancelSubscription, subscriptionOf, refreshUser, deletePost } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -121,14 +123,33 @@ const CreatorProfile: React.FC = () => {
     { socials: {} } as Awaited<ReturnType<typeof socialApi.creatorLinks>>
   );
   const socials = socialLinkList(links.socials);
-  // Google and AI search: "<name> (@usuario) | Fans Reserve" with its own description.
+  // Google and AI search: "<name> (@usuario): videollamada 1:1 | Fans Reserve", its own
+  // description, and fansreserve.com/@usuario as the address (the name in the URL) once
+  // the creator has chosen their @usuario.
   const { t } = useLanguage();
   const handle = links.username || creator?.username;
+  const seoPath = links.username ? `/@${links.username}` : `/creator/${id}`;
+  const seoDescription = t('seo.creator.description').replace(/\{name\}/g, creator?.name ?? '');
   usePageMeta(
     {
-      title: creator ? (handle ? `${creator.name} (@${handle})` : creator.name) : '',
-      description: t('seo.creator.description').replace(/\{name\}/g, creator?.name ?? ''),
-      path: `/creator/${id}`,
+      title: creator ? t('seo.creator.title').replace(/\{name\}/g, handle ? `${creator.name} (@${handle})` : creator.name) : '',
+      description: seoDescription,
+      path: seoPath,
+      jsonLd: creator
+        ? {
+            '@context': 'https://schema.org',
+            '@type': 'ProfilePage',
+            url: `${BRAND.url}${seoPath}`,
+            mainEntity: {
+              '@type': 'Person',
+              name: creator.name,
+              ...(links.username ? { alternateName: `@${links.username}` } : {}),
+              description: seoDescription,
+              ...(/^https?:\/\//.test(creator.avatar) ? { image: creator.avatar } : {}),
+              ...(socials.length ? { sameAs: socials.map((s) => s.href) } : {}),
+            },
+          }
+        : undefined,
     },
     !!creator,
   );

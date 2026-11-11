@@ -52,6 +52,7 @@ const translations: Record<Language, Record<string, string>> = {
     'seo.help.description': 'Respuestas sobre cuentas, pagos, suscripciones, Reserve y cancelaciones en {brand}.',
     'seo.legal.title': 'Términos y políticas',
     'seo.legal.description': 'Términos de servicio, privacidad, reembolsos y reglas de cancelación de {brand}.',
+    'seo.creator.title': '{name}: videollamada 1:1 y eventos en vivo',
     'seo.creator.description': 'Sigue a {name}, suscríbete a su contenido exclusivo y reserva una videollamada 1:1 o un evento en vivo en {brand}.',
     
     // Age verification
@@ -404,6 +405,7 @@ const translations: Record<Language, Record<string, string>> = {
     'seo.help.description': 'Answers about accounts, payments, subscriptions, Reserve and cancellations on {brand}.',
     'seo.legal.title': 'Terms and policies',
     'seo.legal.description': 'Terms of service, privacy, refunds and cancellation rules of {brand}.',
+    'seo.creator.title': '{name}: 1:1 video calls and live events',
     'seo.creator.description': 'Follow {name}, subscribe to their exclusive content and book a 1:1 video call or a live event on {brand}.',
     
     // Age verification
@@ -756,6 +758,7 @@ const translations: Record<Language, Record<string, string>> = {
     'seo.help.description': 'Respostas sobre contas, pagamentos, assinaturas, Reserve e cancelamentos no {brand}.',
     'seo.legal.title': 'Termos e políticas',
     'seo.legal.description': 'Termos de serviço, privacidade, reembolsos e regras de cancelamento do {brand}.',
+    'seo.creator.title': '{name}: videochamadas 1:1 e eventos ao vivo',
     'seo.creator.description': 'Siga {name}, assine o conteúdo exclusivo e reserve uma videochamada 1:1 ou um evento ao vivo no {brand}.',
     
     // Age verification
@@ -1108,6 +1111,7 @@ const translations: Record<Language, Record<string, string>> = {
     'seo.help.description': 'Réponses sur les comptes, paiements, abonnements, Reserve et annulations sur {brand}.',
     'seo.legal.title': 'Conditions et politiques',
     'seo.legal.description': 'Conditions d\'utilisation, confidentialité, remboursements et règles d\'annulation de {brand}.',
+    'seo.creator.title': '{name} : appels vidéo 1:1 et événements en direct',
     'seo.creator.description': 'Suivez {name}, abonnez-vous à son contenu exclusif et réservez un appel vidéo 1:1 ou un événement en direct sur {brand}.',
     
     // Age verification
@@ -1460,6 +1464,7 @@ const translations: Record<Language, Record<string, string>> = {
     'seo.help.description': 'Risposte su account, pagamenti, abbonamenti, Reserve e cancellazioni su {brand}.',
     'seo.legal.title': 'Termini e politiche',
     'seo.legal.description': 'Termini di servizio, privacy, rimborsi e regole di cancellazione di {brand}.',
+    'seo.creator.title': '{name}: videochiamate 1:1 ed eventi dal vivo',
     'seo.creator.description': 'Segui {name}, abbonati ai suoi contenuti esclusivi e prenota una videochiamata 1:1 o un evento dal vivo su {brand}.',
     
     // Age verification
