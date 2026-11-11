@@ -51,6 +51,9 @@ export interface Subscription {
   since: string;
   // Set when the fan cancelled: access lasts until this date, then it ends.
   cancelAt?: string;
+  // Set while a PayPal dispute on one of its charges is open: exclusive content
+  // stays locked until it is resolved (the server enforces it).
+  pausedAt?: string;
 }
 
 export interface CreatorPost {
