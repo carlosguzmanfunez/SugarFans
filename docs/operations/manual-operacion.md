@@ -52,6 +52,8 @@
 | | Mandar mensajes o correos a fans, creadores, PayPal u otros |
 | | Cualquier cosa en PayPal Live |
 
+**El chat del panel** (Admin › Inicio › Mano derecha › Pregúntale a Mano derecha) sigue esta misma tabla: propone, y solo aplica lo que Carlos o un admin confirma con su clic. Lo que mueve dinero pide una confirmación extra. Ver `mano-derecha.md`.
+
 Cuando algo no está en la tabla: si se puede deshacer y no toca a terceros ni al dinero, se hace y se avisa. Si no, se pregunta una vez con una recomendación.
 
 **Cómo hablarle a Carlos:** en español, como amigo y compañero de equipo, corto y concreto. Pasos numerados de uno en uno, con los valores exactos de cada campo. Siempre el link exacto para probar. Dinero siempre etiquetado **con ISV** / **sin ISV**.

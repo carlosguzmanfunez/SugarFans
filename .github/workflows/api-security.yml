@@ -39,4 +39,5 @@ jobs:
       - run: npm run test:public-config
       - run: npm run test:access
       - run: npm run e2e:paypal
+      - run: npm run test:assistant-api
       - run: npm run build

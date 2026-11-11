@@ -7,6 +7,8 @@ import AdminDataState from '../components/AdminDataState';
 import { AdminConfirmation, AdminDialog, type AdminDecision } from '../components/AdminDialog';
 import { adminSection, type AdminSection } from '../lib/adminWorkspace';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import AdminAssistantChat from '../components/AdminAssistantChat';
 import ManagedProfilesAdmin from '../components/ManagedProfilesAdmin';
 import SpecialAccountsAdmin from '../components/SpecialAccountsAdmin';
 import {
@@ -54,6 +56,7 @@ const AdminDashboard: React.FC = () => {
   const [attendanceRefresh,setAttendanceRefresh]=useState(0);
   const [caseReference,setCaseReference]=useState<string>();
   const { user, listAccounts } = useAuth();
+  const { language } = useLanguage();
   const { data: accounts, reload: reloadAccounts, loading: accountsLoading, error: accountsError } = usePlatformQuery(listAccounts, [], []);
   const { data: platform, loading: platformLoading, error: platformError, reload: reloadPlatform } = usePlatformQuery(
     async () => {
@@ -233,7 +236,7 @@ const AdminDashboard: React.FC = () => {
         {activeTab === 'moderation' && <AdminModeration />}
 
         {activeTab === 'errors' && <AdminErrors />}
-        {activeTab === 'monitor' && <AdminMonitor onOpen={section => { setCaseReference(undefined); setActiveTab(adminSection(section)); }} />}
+        {activeTab === 'monitor' && <div className="space-y-4 sm:space-y-6"><AdminAssistantChat user={user} lang={language} onOpen={section => { setCaseReference(undefined); setActiveTab(adminSection(section)); }} /><AdminMonitor onOpen={section => { setCaseReference(undefined); setActiveTab(adminSection(section)); }} /></div>}
         {activeTab === 'finance' && <AdminFinance caseReference={caseReference}/>}
 
         {activeTab === 'prospects' && <AdminProspects />}

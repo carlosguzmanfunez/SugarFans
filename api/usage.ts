@@ -6,6 +6,7 @@
 //   ALERT_EMAIL (carlos@fansreserve.com by default) once per level and month.
 // - GET /api/usage without that header only says whether it is set up.
 // Limits and plans: src/lib/infraUsage.ts. Tables: 20261018000001_infra_usage.sql.
+// - POST /api/usage {action: 'assistant'} is the "Mano derecha" chat for admins (api/_assistant.ts).
 // - GET /api/usage?report=1 emails the pending "Mano derecha" reports (20261107210000_monitor_mano_derecha.sql).
 //
 // Needs in the Vercel project settings: CRON_SECRET (any long random text),
@@ -14,6 +15,7 @@ import { deliverOutbox, logServerError, resendKey, sendEmail, sendHtmlEmail } fr
 import { monitorReportEmail, type MonitorReportRow } from '../src/lib/monitorReportEmail.js';
 import { alertEmail, fromRpc, pendingAlerts } from '../src/lib/infraUsage.js';
 import { sitemapResponse } from './_sitemap.js';
+import { anthropicKey, assistantResponse } from './_assistant.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://odugxvqwuvewsvifwmwb.supabase.co';
 
@@ -92,6 +94,7 @@ export async function GET(request: Request): Promise<Response> {
         cronSecret: e.cronSecret ? 'OK' : 'FALTA',
         serviceRoleKey: e.serviceKey ? 'OK' : 'FALTA',
         resend: resendKey() ? 'OK' : 'FALTA',
+        claude: anthropicKey() ? 'OK' : 'FALTA',
       },
     });
   }
@@ -125,4 +128,16 @@ export async function GET(request: Request): Promise<Response> {
     await logServerError(e.serviceKey, 'api', 'Falló la revisión diaria de consumo', String(err), '/api/usage');
     return json(500, { error: 'No se pudo revisar el consumo' });
   }
+}
+
+// The "Mano derecha" chat (admins only). Lives here because the plan allows 12
+// functions and all are in use.
+export async function POST(request: Request): Promise<Response> {
+  if (!request.headers.get('content-type')?.includes('application/json')) return json(415, { error: 'Solicitud no válida.' });
+  const text = await request.text();
+  if (Buffer.byteLength(text) > 200_000) return json(413, { error: 'La consulta es demasiado larga.' });
+  let body: Record<string, unknown>;
+  try { body = JSON.parse(text); } catch { return json(400, { error: 'Solicitud no válida.' }); }
+  if (!body || typeof body !== 'object' || body.action !== 'assistant') return json(400, { error: 'Solicitud no válida.' });
+  return assistantResponse(request, body);
 }
