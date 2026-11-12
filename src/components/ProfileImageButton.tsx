@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../lib/backend';
 import { platformChanged } from '../lib/platform';
-import { checkProfileImage, loadImage, type ProfileImageKind } from '../lib/profileImage';
+import { checkProfileImage, loadImage, PHOTO_ACCEPT, type ProfileImageKind } from '../lib/profileImage';
 import AvatarCropper from './AvatarCropper';
 import { useCreatorSetup } from '../hooks/useCreatorSetup';
 import { useLanguage } from '../context/LanguageContext';
@@ -75,7 +75,7 @@ const ProfileImageButton: React.FC<Props> = ({ kind, onDone, className = '', wit
 
   return (
     <>
-      <input ref={input} type="file" accept="image/*" onChange={pick} className="hidden" data-testid={`${kind}-input`} />
+      <input ref={input} type="file" accept={PHOTO_ACCEPT} onChange={pick} className="hidden" data-testid={`${kind}-input`} />
       <button
         type="button"
         onClick={() => input.current?.click()}

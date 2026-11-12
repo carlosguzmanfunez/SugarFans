@@ -18,6 +18,17 @@ export const looksLikePhoto = (file: File) =>
   IMAGE_NAME.test(file.name) ||
   ((file.type === '' || file.type === 'application/octet-stream') && !/\.[a-z0-9]{2,5}$/i.test(file.name));
 
+// What the photo pickers accept. On Android, Chrome opens the system Photo Picker
+// when only images are allowed, and that picker hands over photos edited in the
+// gallery (Samsung "Remasterizar") with stale file details: Chrome then refuses to
+// read them ("Tu teléfono no nos dejó abrir esa foto"). Adding one non-image type
+// makes Chrome open the regular chooser (Galería, Archivos...), which hands over the
+// real file. The bytes still decide what it is (sniffImage), so other files are refused.
+export const PHOTO_ACCEPT =
+  typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
+    ? 'image/*,application/octet-stream'
+    : 'image/*';
+
 export const checkProfileImage = (file: File): string | null => {
   if (!looksLikePhoto(file)) return 'Elige una foto (JPG, PNG o WebP)';
   if (file.size > MAX_INPUT_MB * 1024 * 1024) return `La foto es demasiado grande (máximo ${MAX_INPUT_MB} MB)`;

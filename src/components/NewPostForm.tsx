@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { socialApi, type MediaType } from '../lib/social';
 import { platformChanged } from '../lib/platform';
 import { VIDEO_TYPES, MAX_IMAGE_MB, MAX_VIDEO_MB, validateMedia } from '../lib/media';
-import { checkProfileImage, looksLikePhoto } from '../lib/profileImage';
+import { checkProfileImage, looksLikePhoto, PHOTO_ACCEPT } from '../lib/profileImage';
 import { shrinkPostImage } from '../lib/postImage';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -129,7 +129,7 @@ const NewPostForm: React.FC<Props> = ({ verified, asProfileId, onPublished, onCa
         </div>
       )}
 
-      <input ref={imageInput} type="file" accept="image/*" onChange={pick} className="hidden" data-testid="image-input" />
+      <input ref={imageInput} type="file" accept={PHOTO_ACCEPT} onChange={pick} className="hidden" data-testid="image-input" />
       <input ref={videoInput} type="file" accept={VIDEO_TYPES.join(',')} onChange={pick} className="hidden" data-testid="video-input" />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4">
