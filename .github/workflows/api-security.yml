@@ -39,4 +39,6 @@ jobs:
       - run: npm run test:public-config
       - run: npm run test:access
       - run: npm run e2e:paypal
+      - run: npm run test:moderation
+      - run: npm run test:bunny-video
       - run: npm run build

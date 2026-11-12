@@ -764,7 +764,7 @@ const CreatorProfile: React.FC<{ profileId?: string }> = ({ profileId }) => {
                 onContextMenu={isOwner ? undefined : (e) => e.preventDefault()}
                 className={`relative aspect-square rounded-xl overflow-hidden group cursor-pointer ${isOwner ? '' : 'protected-media'}`}>
                 {post.mediaType === 'video' && post.mediaUrl && canView(post) ? (
-                  <VideoPreview seed={`post-${post.id}`} className="w-full h-full" />
+                  <VideoPreview seed={`post-${post.id}`} src={post.mediaUrl} className="w-full h-full" />
                 ) : (
                   <CoverImage
                     src={canView(post) && !isPlaceholderImage(post.mediaUrl) ? post.mediaUrl : null}

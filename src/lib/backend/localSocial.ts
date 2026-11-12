@@ -5,6 +5,7 @@ import { cleanSocials } from '../creatorLinks';
 import { avatarOrEmpty } from './shared';
 import { readJSON, writeJSONChecked, newId } from '../storage';
 import { extensionOf, validateMedia } from '../media';
+import { shrinkPostImage } from '../postImage';
 import type { AuthResult, User } from './types';
 import type { FeedPost, PostComment, PublicCreator, SocialBackend } from './socialTypes';
 import { BRAND } from '../../config/brand';
@@ -172,9 +173,11 @@ export const createLocalSocial = (deps: Deps): SocialBackend => {
       return commit((s) => ({ ...s, comments: s.comments.filter((x) => x.id !== commentId) }));
     },
 
-    async uploadMedia(user, file) {
-      const check = validateMedia(file);
+    async uploadMedia(user, original) {
+      const check = validateMedia(original);
       if (!check.type) return fail(check.error!);
+      // Photos go up already shrunk (see postImage.ts); videos as they are.
+      const file = check.type === 'image' ? await shrinkPostImage(original) : original;
       if (user.role !== 'creator' && user.role !== 'admin') return fail('Solo los creadores pueden subir contenido');
       const path = `${user.id}/${newId()}.${extensionOf(file)}`;
       try {
