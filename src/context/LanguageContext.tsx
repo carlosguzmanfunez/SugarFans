@@ -31,6 +31,9 @@ const translations: Record<Language, Record<string, string>> = {
   es: {
     // Navbar
     'nav.home': 'Inicio',
+    'firstSteps.finished.title': "¡Terminaste tus primeros pasos!",
+    'firstSteps.finished.body': "Tu perfil está listo para recibir fans. Te llevamos a tu inicio…",
+    'firstSteps.finished.button': "Ir a mi inicio",
     'dual.note.title': "Cuenta especial: fan y creador",
     'dual.note.body': "El propietario de Fans Reserve habilitó tu cuenta con los dos apartados. Elige con cuál empiezas; puedes cambiar entre fan y creador cuando quieras desde tu menú de cuenta (tu foto, arriba a la derecha).",
     'dual.claimed': "Listo: tu cuenta tiene los dos apartados, fan y creador. Cambia entre ellos desde tu menú de cuenta.",
@@ -414,6 +417,9 @@ const translations: Record<Language, Record<string, string>> = {
   en: {
     // Navbar
     'nav.home': 'Home',
+    'firstSteps.finished.title': "You finished your first steps!",
+    'firstSteps.finished.body': "Your profile is ready for fans. Taking you to your home…",
+    'firstSteps.finished.button': "Go to my home",
     'dual.note.title': "Special account: fan and creator",
     'dual.note.body': "The owner of Fans Reserve enabled your account with both sides. Choose which one to start with; you can switch between fan and creator anytime from your account menu (your photo, top right).",
     'dual.claimed': "Done: your account has both sides, fan and creator. Switch between them from your account menu.",
@@ -797,6 +803,9 @@ const translations: Record<Language, Record<string, string>> = {
   pt: {
     // Navbar
     'nav.home': 'Início',
+    'firstSteps.finished.title': "Você concluiu seus primeiros passos!",
+    'firstSteps.finished.body': "Seu perfil está pronto para receber fãs. Levando você ao seu início…",
+    'firstSteps.finished.button': "Ir para o meu início",
     'dual.note.title': "Conta especial: fã e criador",
     'dual.note.body': "O proprietário do Fans Reserve habilitou sua conta com as duas partes. Escolha com qual começar; você pode alternar entre fã e criador quando quiser no menu da sua conta (sua foto, no canto superior direito).",
     'dual.claimed': "Pronto: sua conta tem as duas partes, fã e criador. Alterne entre elas no menu da sua conta.",
@@ -1180,6 +1189,9 @@ const translations: Record<Language, Record<string, string>> = {
   fr: {
     // Navbar
     'nav.home': 'Accueil',
+    'firstSteps.finished.title': "Vous avez terminé vos premiers pas !",
+    'firstSteps.finished.body': "Votre profil est prêt à accueillir des fans. Direction votre accueil…",
+    'firstSteps.finished.button': "Aller à mon accueil",
     'dual.note.title': "Compte spécial : fan et créateur",
     'dual.note.body': "Le propriétaire de Fans Reserve a activé votre compte avec les deux espaces. Choisissez par lequel commencer ; vous pouvez passer de fan à créateur quand vous voulez depuis le menu de votre compte (votre photo, en haut à droite).",
     'dual.claimed': "C’est fait : votre compte a les deux espaces, fan et créateur. Passez de l’un à l’autre depuis le menu de votre compte.",
@@ -1563,6 +1575,9 @@ const translations: Record<Language, Record<string, string>> = {
   it: {
     // Navbar
     'nav.home': 'Home',
+    'firstSteps.finished.title': "Hai completato i primi passi!",
+    'firstSteps.finished.body': "Il tuo profilo è pronto per i fan. Ti portiamo alla tua home…",
+    'firstSteps.finished.button': "Vai alla mia home",
     'dual.note.title': "Account speciale: fan e creator",
     'dual.note.body': "Il proprietario di Fans Reserve ha abilitato il tuo account con entrambe le sezioni. Scegli da quale iniziare; puoi passare da fan a creator quando vuoi dal menu del tuo account (la tua foto, in alto a destra).",
     'dual.claimed': "Fatto: il tuo account ha entrambe le sezioni, fan e creator. Passa dall’una all’altra dal menu del tuo account.",

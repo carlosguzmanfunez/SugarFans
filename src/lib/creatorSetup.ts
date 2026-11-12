@@ -1,3 +1,5 @@
+import { readJSON, writeJSON } from './storage';
+
 export const FIRST_STEPS_PATH = '/creator/dashboard#primeros-pasos';
 export type CreatorSetupStep = 'photo' | 'bio' | 'socials' | 'verify' | 'post' | 'reserve' | 'payout';
 
@@ -24,3 +26,10 @@ export const setupPath = (path: string, step: CreatorSetupStep) => {
   params.set('setup', step);
   return `${pathname}?${params}${hash ? `#${hash}` : ''}`;
 };
+
+// Once a creator finishes their first steps they start on Inicio; until then, on
+// their panel (Primeros pasos). Remembered on this device; on a new device the
+// panel checks the steps again and sends them on if they are already done.
+const stepsDoneKey = (userId: string) => `first_steps_done_${userId}`;
+export const firstStepsDone = (userId: string) => readJSON<boolean>(stepsDoneKey(userId), false);
+export const markFirstStepsDone = (userId: string) => writeJSON(stepsDoneKey(userId), true);
