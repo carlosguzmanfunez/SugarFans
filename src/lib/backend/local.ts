@@ -683,8 +683,8 @@ export const localBackend: Backend = {
   },
 
   // Offline there is no file server: the (already small) photo is kept as a data URL.
-  async setProfileImage(user, kind, image) {
-    const url = await blobToDataUrl(image);
+  async setProfileImage(user, kind, image, tag) {
+    const url = (await blobToDataUrl(image)) + (tag ? `#${tag}` : '');
     return mutate(user.id, (a) => ({ ...a, [kind]: url })) ? ok : fail('Cuenta no encontrada');
   },
 

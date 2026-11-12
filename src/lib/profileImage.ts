@@ -199,24 +199,47 @@ export const cropAvatar = (img: HTMLImageElement, sx: number, sy: number, side: 
 // COVER_DESKTOP_RATIO (like Facebook, one photo fits both).
 export const COVER_RATIO = 2;
 export const COVER_DESKTOP_RATIO = 2.7;
-const COVER_PX = 1600;
 
-// Cover chosen by hand in the adjust screen: the frame (in the photo's own pixels),
-// saved at up to 1600 × 800.
-export const cropCover = (img: HTMLImageElement, sx: number, sy: number, sw: number, sh: number): Promise<Blob> => {
-  const outW = Math.max(1, Math.round(Math.min(COVER_PX, sw)));
-  const outH = Math.max(1, Math.round(outW / COVER_RATIO));
+// Cover like Facebook's: the WHOLE photo is saved, plus the band the person chose.
+// The profile and the cards show only that band; opening the cover shows the whole
+// photo. The band travels in the file name ("cover-<time>-f<x>-<y>-<w>-<h>-<W>-<H>.jpg",
+// pixels of the saved photo), so it needs no database column and survives moderation.
+export interface CoverFrame { x: number; y: number; w: number; h: number; W: number; H: number }
+const COVER_FULL_PX = 1920;
+const FRAME_RE = /[-#]f(\d+)-(\d+)-(\d+)-(\d+)-(\d+)-(\d+)(?:\.jpe?g)?(?:[?#].*)?$/i;
+
+export const coverFrameTag = (f: CoverFrame) => `f${f.x}-${f.y}-${f.w}-${f.h}-${f.W}-${f.H}`;
+
+export const parseCoverFrame = (src?: string | null): CoverFrame | null => {
+  const m = src ? FRAME_RE.exec(src.length > 300 ? src.slice(-120) : src) : null;
+  if (!m) return null;
+  const [x, y, w, h, W, H] = m.slice(1).map(Number);
+  if (!w || !h || !W || !H || x + w > W + 1 || y + h > H + 1) return null;
+  return { x, y, w, h, W, H };
+};
+
+export const prepareCover = async (
+  img: HTMLImageElement, sx: number, sy: number, sw: number, sh: number
+): Promise<{ blob: Blob; frame: CoverFrame }> => {
+  const scale = Math.min(1, COVER_FULL_PX / Math.max(img.naturalWidth, img.naturalHeight));
+  const W = Math.max(1, Math.round(img.naturalWidth * scale));
+  const H = Math.max(1, Math.round(img.naturalHeight * scale));
   const canvas = document.createElement('canvas');
-  canvas.width = outW;
-  canvas.height = outH;
+  canvas.width = W;
+  canvas.height = H;
   const ctx = canvas.getContext('2d');
-  if (!ctx) return Promise.reject(new Error('No pudimos preparar la foto'));
+  if (!ctx) throw new Error('No pudimos preparar la foto');
   ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, outW, outH);
-  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
-  return new Promise<Blob>((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('No pudimos preparar la foto'))), 'image/jpeg', 0.86)
-  );
+  ctx.fillRect(0, 0, W, H);
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, 0, 0, W, H);
+  const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.85));
+  if (!blob) throw new Error('No pudimos preparar la foto');
+  const x = Math.max(0, Math.min(W - 1, Math.round(sx * scale)));
+  const y = Math.max(0, Math.min(H - 1, Math.round(sy * scale)));
+  const w = Math.max(1, Math.min(W - x, Math.round(sw * scale)));
+  const h = Math.max(1, Math.min(H - y, Math.round(sh * scale)));
+  return { blob, frame: { x, y, w, h, W, H } };
 };
 
 export const blobToDataUrl = (blob: Blob) =>

@@ -28,7 +28,7 @@ await page.setContent('<html><body></body></html>');
 await page.addScriptTag({ content: bundle.outputFiles[0].text });
 
 const results = await page.evaluate(async (extras) => {
-  const { loadImage, shrinkPostImage, sniffImage, cleanJpeg, checkProfileImage } = window.photo;
+  const { loadImage, shrinkPostImage, sniffImage, cleanJpeg, checkProfileImage, prepareCover, coverFrameTag, parseCoverFrame } = window.photo;
   const out = [];
   const check = (name, ok, detail = '') => out.push({ name, ok: !!ok, detail });
 
@@ -79,6 +79,17 @@ const results = await page.evaluate(async (extras) => {
     const post = await shrinkPostImage(f).catch((e) => ({ type: 'ERROR ' + e.message }));
     check(`post becomes jpeg: ${label}`, post.type === 'image/jpeg', `${post.type} ${post.size ?? ''}`);
   }
+
+  // Cover: the whole photo is saved; the chosen band travels in the file name.
+  const coverImg = await loadImage(file(edited, 'c.jpg', 'image/jpeg'));
+  const { blob: coverBlob, frame } = await prepareCover(coverImg, 0, 1000, 3000, 1000);
+  const back = await loadImage(new File([coverBlob], 'x.jpg', { type: 'image/jpeg' }));
+  check('cover keeps the whole photo', back.naturalWidth === 1920 && back.naturalHeight === 1280, `${back.naturalWidth}x${back.naturalHeight}`);
+  const url = `https://x.supabase.co/storage/v1/object/public/profile-images/u/cover-1700000000000-${coverFrameTag(frame)}.jpg`;
+  const parsed = parseCoverFrame(url);
+  check('cover band read back from the link', JSON.stringify(parsed) === JSON.stringify({ x: 0, y: 640, w: 1920, h: 640, W: 1920, H: 1280 }), JSON.stringify(parsed));
+  check('old covers have no band', parseCoverFrame('https://x/profile-images/u/cover-1700000000000.jpg') === null);
+  check('offline data link keeps the band', !!parseCoverFrame('data:image/jpeg;base64,AAAA#' + coverFrameTag(frame)));
 
   let err = '';
   try {

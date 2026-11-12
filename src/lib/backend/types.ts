@@ -415,8 +415,9 @@ export interface Backend {
   becomeCreator(user: User): Promise<AuthResult>;
   logout(): Promise<void>;
   updateProfile(user: User, patch: ProfilePatch): Promise<AuthResult>;
-  // Profile photo or cover photo, already shrunk to a JPEG by the browser.
-  setProfileImage(user: User, kind: 'avatar' | 'cover', image: Blob): Promise<AuthResult>;
+  // Profile photo or cover photo, already shrunk to a JPEG by the browser. tag: the
+  // cover's chosen band (profileImage.ts prepareCover), kept in the file name.
+  setProfileImage(user: User, kind: 'avatar' | 'cover', image: Blob, tag?: string): Promise<AuthResult>;
   // Admins: uploads waiting for (or blocked by) moderation, and their decision.
   moderationQueue(): Promise<ModerationItem[]>;
   reviewMedia(bucket: ModerationItem['bucket'], path: string, approve: boolean, reason?: string): Promise<AuthResult>;

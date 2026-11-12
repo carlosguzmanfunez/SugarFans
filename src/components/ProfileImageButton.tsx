@@ -29,11 +29,11 @@ const ProfileImageButton: React.FC<Props> = ({ kind, onDone, className = '', wit
   // The adjust screen opens first: a circle for the photo, a wide frame for the cover.
   const [framing, setFraming] = useState<HTMLImageElement | null>(null);
 
-  const upload = async (image: Blob) => {
+  const upload = async (image: Blob, tag?: string) => {
     if (!user) return;
     setBusy(true);
     try {
-      const result = await backend.setProfileImage(user, kind, image);
+      const result = await backend.setProfileImage(user, kind, image, tag);
       if (!result.ok) return onDone(result.error || 'No se pudo guardar la foto', false);
       // Held for moderation: the current photo stays until it's approved.
       if (result.notice) {
@@ -101,9 +101,9 @@ const ProfileImageButton: React.FC<Props> = ({ kind, onDone, className = '', wit
           image={framing}
           kind={kind}
           onCancel={closeFraming}
-          onSave={(blob) => {
+          onSave={(blob, tag) => {
             closeFraming();
-            upload(blob);
+            upload(blob, tag);
           }}
         />
       )}
