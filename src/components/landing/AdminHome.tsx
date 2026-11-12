@@ -168,6 +168,9 @@ const AdminHome: React.FC = () => {
               <Link to="/admin" className="ah-btn ah-btn-gold" data-testid="admin-home-panel">
                 <Icon name="fa-chart-line" /> {tx.fullPanel}
               </Link>
+              <Link to={section('monitor')} className="ah-btn ah-btn-ghost" data-testid="admin-home-monitor">
+                <Icon name="fa-bell" /> {tx.monitor}
+              </Link>
               {user?.isOwner && (
                 <Link to="/owner" className="ah-btn ah-btn-ghost" data-testid="admin-home-owner">
                   <Icon name="fa-users" /> {tx.switchView}
