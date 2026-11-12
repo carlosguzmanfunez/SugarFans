@@ -119,7 +119,7 @@ const run = async () => {
   const lkBin = process.env.LIVEKIT_SERVER;
   if (!lkBin) throw new Error('Falta LIVEKIT_SERVER (ruta a livekit-server)');
 
-  const built = spawnSync('npx', ['vite', 'build', '--mode', 'offline'], { stdio: 'inherit', env: { ...process.env, VITE_LIVE_LOCAL_API: '1' } });
+  const built = spawnSync('npx', ['vite', 'build', '--mode', 'offline'], { stdio: 'inherit', env: { ...process.env, VITE_LIVE_LOCAL_API: '1', VITE_ENABLE_CAMERA_LOOKS: 'true' } });
   if (built.status !== 0) throw new Error('vite build falló');
 
   Object.assign(process.env, {

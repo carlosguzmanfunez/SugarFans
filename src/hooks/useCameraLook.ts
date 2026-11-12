@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { LocalVideoTrack, VideoCaptureOptions } from 'livekit-client';
 import { LookProcessor, type LookFailure } from '../lib/lookProcessor';
+import { ENABLE_CAMERA_LOOKS } from '../config/features';
 import { looksSupported, needsProcessing, saveLook, savedLook, type LookId } from '../lib/videoLooks';
 
 const FAIL_NOTICE: Record<LookFailure, string> = {
@@ -13,12 +14,13 @@ const FAIL_NOTICE: Record<LookFailure, string> = {
 // (the lobby preview or the published camera). Any failure falls back to Natural
 // without stopping the camera.
 export function useCameraLook() {
-  const [{ look, enhance }, setChoice] = useState(savedLook);
+  // While looks are off, everyone goes out as Natural (no processing), whatever was saved.
+  const [{ look, enhance }, setChoice] = useState(() => (ENABLE_CAMERA_LOOKS ? savedLook() : { look: 'natural' as LookId, enhance: false }));
   const [notice, setNotice] = useState('');
   const choice = useRef({ look, enhance });
   const track = useRef<LocalVideoTrack | null>(null);
   const queue = useRef<Promise<void>>(Promise.resolve());
-  const supported = looksSupported();
+  const supported = ENABLE_CAMERA_LOOKS && looksSupported();
 
   const onFail = useCallback((why: LookFailure) => {
     setNotice(FAIL_NOTICE[why]);

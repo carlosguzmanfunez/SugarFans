@@ -6,6 +6,7 @@ import {sessionClockReady,sessionEvent,sessionNow,sessionRequest} from '../../li
 import {createLocalTracks,Track,type LocalTrack,type LocalVideoTrack} from 'livekit-client';
 import type {CameraLook} from '../../hooks/useCameraLook';
 import LookPicker from '../LookPicker';
+import {ENABLE_CAMERA_LOOKS} from '../../config/features';
 
 // A deliberate preparation action precedes the browser's own permission prompt.
 // Preview stays local; automatic entry is cancellable and only while visible.
@@ -76,7 +77,7 @@ export default function SessionPreparation({booking,isCreator,onReady,busy=false
   {state==='idle'&&<p className="mt-1 text-sm text-ink/70">Al preparar aceptas estas indicaciones. Puedes cancelar la preparación.</p>}
   {state==='ready'&&<div className="mt-4">
    {needsMedia&&<video ref={video} autoPlay playsInline muted className="aspect-video w-full rounded-xl bg-black object-cover -scale-x-100" aria-label="Vista previa privada"/>}
-   {needsMedia&&cam&&<div className="mt-3 rounded-xl bg-gray-900 p-3"><LookPicker cam={cam}/></div>}
+   {ENABLE_CAMERA_LOOKS&&needsMedia&&cam&&<div className="mt-3 rounded-xl bg-gray-900 p-3"><LookPicker cam={cam}/></div>}
    <p role="status" className="mt-2 text-sm font-semibold text-emerald-800">{needsMedia?'Cámara y micrófono preparados.':'Preparado para entrar al evento.'} {remaining>0?`Entrada en ${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')}.`:'La sala está disponible.'}</p>
    <label className="mt-3 flex items-start gap-2 text-sm text-ink"><input type="checkbox" checked={automatic} onChange={e=>setAutomatic(e.target.checked)} className="mt-1 accent-brand-600"/>Entrar automáticamente un minuto antes, mientras esta pantalla esté visible.</label>
    {!visible&&<p role="status" className="mt-2 text-sm text-amber-900">Vuelve a esta pantalla y desbloquea el dispositivo para continuar.</p>}

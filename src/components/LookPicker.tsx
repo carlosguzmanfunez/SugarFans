@@ -1,9 +1,11 @@
+import { ENABLE_CAMERA_LOOKS } from '../config/features';
 import React from 'react';
 import { LOOKS } from '../lib/videoLooks';
 import type { CameraLook } from '../hooks/useCameraLook';
 
 // Camera look chooser for the dark call screens: five looks plus "Mejorar apariencia".
 const LookPicker: React.FC<{ cam: CameraLook; className?: string }> = ({ cam, className = '' }) => {
+  if (!ENABLE_CAMERA_LOOKS) return null;
   if (!cam.supported) {
     return (
       <p className={`text-xs text-gray-400 ${className}`} data-testid="looks-unsupported">

@@ -61,3 +61,8 @@ export const FEATURES = {
   happeningNow: ENABLE_HAPPENING_NOW,
   payPerPost: ENABLE_PAY_PER_POST,
 } as const;
+
+// Camera looks in calls and Lives (filters, "Mejorar apariencia", Background Blur).
+// Off (Carlos 2026-11-12): they need more polish before launch. The code stays;
+// to turn them back on: VITE_ENABLE_CAMERA_LOOKS=true in Vercel, then redeploy.
+export const ENABLE_CAMERA_LOOKS: boolean = import.meta.env.VITE_ENABLE_CAMERA_LOOKS === 'true';
