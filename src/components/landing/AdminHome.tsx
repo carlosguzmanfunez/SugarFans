@@ -146,36 +146,39 @@ const AdminHome: React.FC = () => {
           <span className="ah-orb ah-orb-1" aria-hidden="true" />
           <span className="ah-orb ah-orb-2" aria-hidden="true" />
           <span className="ah-orb ah-orb-3" aria-hidden="true" />
-          <span className="ah-badge">
-            <span className="ah-badge-icon" aria-hidden="true"><Icon name={user?.isOwner ? 'fa-crown' : 'fa-shield-halved'} /></span>
-            {user?.isOwner ? tx.owner : tx.admin} · Fans Reserve
-          </span>
-          <h1 id="admin-home-title" className="ah-title">
-            {tx.hello} <span className="ah-name">{first}</span>.
-          </h1>
-          <p className="ah-date">{today}</p>
-          <p className="ah-status" data-testid="admin-home-lead">
-            <span className="ah-dot" data-pending={!!pending} aria-hidden="true" />
-            {lead}
-          </p>
-          {error && !data && (
-            <div className="mt-3"><button type="button" onClick={() => void reload()} className="ah-btn ah-btn-ghost">{tx.retry}</button></div>
-          )}
-          <div className="ah-actions">
-            <Link to="/admin" className="ah-btn ah-btn-gold" data-testid="admin-home-panel">
-              <Icon name="fa-chart-line" /> {tx.fullPanel}
-            </Link>
-            {user?.isOwner && (
-              <Link to="/owner" className="ah-btn ah-btn-ghost" data-testid="admin-home-owner">
-                <Icon name="fa-users" /> {tx.switchView}
+          <div className="ah-head">
+            <span className="ah-badge">
+              <span className="ah-badge-icon" aria-hidden="true"><Icon name={user?.isOwner ? 'fa-crown' : 'fa-shield-halved'} /></span>
+              {user?.isOwner ? tx.owner : tx.admin} · Fans Reserve
+            </span>
+            <h1 id="admin-home-title" className="ah-title">
+              {tx.hello} <span className="ah-name">{first}</span>.
+            </h1>
+            <p className="ah-date">{today}</p>
+          </div>
+          <div className="ah-side">
+            <p className="ah-status" data-testid="admin-home-lead">
+              <span className="ah-dot" data-pending={!!pending} aria-hidden="true" />
+              {lead}
+            </p>
+            <div className="ah-actions">
+              {error && !data && (
+                <button type="button" onClick={() => void reload()} className="ah-btn ah-btn-ghost">{tx.retry}</button>
+              )}
+              <Link to="/admin" className="ah-btn ah-btn-gold" data-testid="admin-home-panel">
+                <Icon name="fa-chart-line" /> {tx.fullPanel}
               </Link>
-            )}
+              {user?.isOwner && (
+                <Link to="/owner" className="ah-btn ah-btn-ghost" data-testid="admin-home-owner">
+                  <Icon name="fa-users" /> {tx.switchView}
+                </Link>
+              )}
+            </div>
           </div>
         </div>
 
         <div className="ah-section">
-          <h2 className="ah-h2">{tx.attention}</h2>
-          <p className="ah-sub">{tx.attentionSub}</p>
+          <div className="ah-sechead"><h2 className="ah-h2">{tx.attention}</h2><p className="ah-sub">{tx.attentionSub}</p></div>
           <ul className="ah-tasks">
             {tasks.map((task, i) => {
               const waiting = (task.count ?? 0) > 0;
@@ -195,8 +198,7 @@ const AdminHome: React.FC = () => {
         </div>
 
         <div className="ah-section">
-          <h2 className="ah-h2">{tx.stats}</h2>
-          <p className="ah-sub">{tx.statsSub}</p>
+          <div className="ah-sechead"><h2 className="ah-h2">{tx.stats}</h2><p className="ah-sub">{tx.statsSub}</p></div>
           <dl className="ah-stats">
             {stats.map((stat, i) => (
               <div key={stat.label} className={`ah-stat ah-s${i + 1} ah-rise`} style={{ '--i': i + 5 } as React.CSSProperties}>
