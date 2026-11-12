@@ -4,12 +4,13 @@ on:
   pull_request:
     paths:
       - 'api/**'
-      - 'src/lib/liveAccess.ts'
-      - 'src/lib/paypal.ts'
-      - 'src/config/features.ts'
+      # Anything an api/ function imports (api-esm-load checks they load like on Vercel).
+      - 'src/lib/**'
+      - 'src/config/**'
       - 'e2e/live-access.mjs'
       - 'e2e/paypal-api.mjs'
       - 'e2e/public-provider-config.mjs'
+      - 'e2e/api-esm-load.mjs'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/api-security.yml'
@@ -40,5 +41,5 @@ jobs:
       - run: npm run test:access
       - run: npm run e2e:paypal
       - run: npm run test:moderation
-      - run: npm run test:bunny-video && npm run test:bunny-usage
+      - run: npm run test:bunny-video && npm run test:bunny-usage && npm run test:api-esm
       - run: npm run build

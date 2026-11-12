@@ -1,4 +1,4 @@
-import { PROVIDER_RESERVE_PERCENT } from './revenuePolicy';
+import { PROVIDER_RESERVE_PERCENT } from './revenuePolicy.js';
 // What Fans Reserve uses of each provider's plan, how close it is to the limit,
 // and which plan comes next. Shared by the admin's "Consumo" tab and the daily
 // check (api/usage.ts) that emails at 70% and 90%, so both always agree.
