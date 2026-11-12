@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLanguage } from '../context/LanguageContext';
 import type { User } from '../lib/backend/types';
 import { backend } from '../lib/backend';
 import { usePlatformQuery, platformApi } from '../lib/platform';
@@ -8,7 +9,7 @@ import { readJSON, writeJSON } from '../lib/storage';
 import { profileLink } from '../lib/creatorLinks';
 import { isPlaceholderImage } from './CoverArt';
 import { hasOwnAvatar } from '../lib/backend/shared';
-import { setupPath } from '../lib/creatorSetup';
+import { firstStepsDone, markFirstStepsDone, setupPath } from '../lib/creatorSetup';
 
 interface Props {
   user: User;
@@ -23,6 +24,10 @@ const sharedKey = (userId: string) => `first_steps_shared_${userId}`;
 // itself as they go; collapses to a text disclosure until everything is done.
 const CreatorFirstSteps: React.FC<Props> = ({ user }) => {
   const { hash } = useLocation();
+  const navigate = useNavigate();
+  const { t } = useLanguage();
+  // Just finished: a moment to celebrate, then on to Inicio (from now on they start there).
+  const [finished, setFinished] = useState(false);
   const profileId = user.creatorProfileId ?? user.id;
   const [hidden, setHidden] = useState(() => readJSON<boolean>(hiddenKey(user.id), false));
   const [shared, setShared] = useState(() => readJSON<boolean>(sharedKey(user.id), false));
@@ -47,6 +52,28 @@ const CreatorFirstSteps: React.FC<Props> = ({ user }) => {
     if (hash === '#primeros-pasos' && data && !hidden) document.getElementById('primeros-pasos')?.scrollIntoView({ block: 'start' });
   }, [hash, data, hidden]);
 
+  // Every step but sharing the link (that one is only remembered on this device).
+  const ready = !!data && !!user.isVerified && hasOwnAvatar(user.avatar) && !isPlaceholderImage(user.avatar) && !isPlaceholderImage(user.cover)
+    && !!user.bio?.trim() && !!user.settings.category && Object.keys(user.settings.socials ?? {}).length > 0
+    && data.posts > 0 && data.experiences > 0 && data.payout;
+  const alreadyDone = firstStepsDone(user.id);
+  useEffect(() => {
+    if (!ready || alreadyDone || user.isOwner) return;
+    markFirstStepsDone(user.id);
+    setFinished(true);
+    const timer = setTimeout(() => navigate('/'), 3500);
+    return () => clearTimeout(timer);
+  }, [ready, alreadyDone, user.id, user.isOwner, navigate]);
+
+  if (finished)
+    return (
+      <div role="status" data-testid="first-steps-finished" className="mb-8 rounded-2xl border border-green-200 bg-green-50 p-5 text-center">
+        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-500 text-xl text-white"><i aria-hidden="true" className="fas fa-check"></i></span>
+        <p className="mt-3 font-display text-lg font-bold text-ink">{t('firstSteps.finished.title')}</p>
+        <p className="mt-1 text-sm text-ink/70">{t('firstSteps.finished.body')}</p>
+        <Link to="/" className="btn btn-sm btn-primary mt-3">{t('firstSteps.finished.button')}</Link>
+      </div>
+    );
   if (!data) return null;
 
   const share = () => {
