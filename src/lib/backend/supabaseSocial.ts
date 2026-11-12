@@ -7,6 +7,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { newId } from '../storage';
 import { signPostMedia } from './signedMedia';
 import { extensionOf, validateMedia } from '../media';
+import { shrinkPostImage } from '../postImage';
 import type { AuthResult } from './types';
 import { REJECTED_MESSAGE, moderateUpload, moderationOf } from './supabaseModeration';
 import type { FeedPost, PostComment, PublicCreator, SocialBackend } from './socialTypes';
@@ -125,9 +126,11 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
     return ok;
   },
 
-  async uploadMedia(user, file, kind = 'post') {
-    const check = validateMedia(file);
+  async uploadMedia(user, original, kind = 'post') {
+    const check = validateMedia(original);
     if (!check.type) return fail(check.error!);
+    // Photos go up already shrunk (see postImage.ts); videos as they are.
+    const file = check.type === 'image' ? await shrinkPostImage(original) : original;
     const path = `${user.id}/${newId()}.${extensionOf(file)}`;
     const { error } = await sb.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
     if (error) {
