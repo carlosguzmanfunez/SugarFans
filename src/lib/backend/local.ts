@@ -64,6 +64,13 @@ import { creators as demoCreators } from '../../data/mockData';
 import { moderate } from '../moderation';
 import { demoAccount, isDemoEmail, offlineDemoEnabled } from '../../config/demoAccounts';
 import { BRAND } from '../../config/brand';
+import { TESTER_CODE_SHA256 } from '../../config/launch';
+
+// Cuentas dobles in the local store: user id → side shown now.
+const DUAL_KEY = 'dualAccounts';
+const readDual = () => readJSON<Record<string, 'fan' | 'creator'>>(DUAL_KEY, {});
+const sha256Hex = async (text: string) =>
+  [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)))].map((b) => b.toString(16).padStart(2, '0')).join('');
 import { usernameFrom } from '../creatorLinks';
 
 interface StoredAccount extends User {
@@ -617,7 +624,35 @@ export const localBackend: Backend = {
     const id = readSession();
     if (!id) return null;
     const account = loadAccounts().find((a) => a.id === id);
-    return account ? toPublic(account) : null;
+    if (!account) return null;
+    const view = account.role === 'creator' ? readDual()[account.id] : undefined;
+    return view ? { ...toPublic(account), role: view, accountRole: 'creator', isDual: true } : toPublic(account);
+  },
+
+  async dualClaim(code, view) {
+    const id = readSession();
+    const account = loadAccounts().find((a) => a.id === id);
+    if (!account) return fail('Inicia sesión para activar tu cuenta');
+    const dual = readDual();
+    if (dual[account.id]) return ok;
+    const hash = await sha256Hex(code.trim());
+    const used = Object.values(readJSON<Record<string, string>>('dualCodesUsed', {}));
+    if ((!Object.values(TESTER_CODE_SHA256).includes(hash) && code.trim() !== 'prueba-e2e') || used.includes(hash)) return fail('Este link ya no es válido');
+    if (account.role === 'fan') {
+      const r = await this.becomeCreator(toPublic(account));
+      if (!r.ok) return r;
+    } else if (account.role !== 'creator') return fail('Esta cuenta no puede ser doble');
+    if (code.trim() !== 'prueba-e2e') writeJSON('dualCodesUsed', { ...readJSON<Record<string, string>>('dualCodesUsed', {}), [account.id]: hash });
+    writeJSON(DUAL_KEY, { ...dual, [account.id]: view === 'fan' ? 'fan' : 'creator' });
+    return ok;
+  },
+
+  async dualSwitchView(view) {
+    const id = readSession();
+    const dual = readDual();
+    if (!id || !dual[id]) return fail('Tu cuenta no tiene los dos apartados');
+    writeJSON(DUAL_KEY, { ...dual, [id]: view === 'fan' ? 'fan' : 'creator' });
+    return ok;
   },
 
   onChange(cb) {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { homeForRole } from '../config/homes';
+import { homeForUser } from '../config/homes';
 import { backend } from '../lib/backend';
 import { safePath } from '../lib/safePath';
 import { peekReturn, takeReturn } from '../lib/returnTo';
@@ -38,7 +38,7 @@ const Login: React.FC = () => {
       // guest-only route sends a signed-in user to "/".
       const back = from || takeReturn();
       const signed = back ? null : await backend.getCurrentUser();
-      navigate(back || homeForRole(signed?.role ?? 'fan'), { replace: true });
+      navigate(back || homeForUser(signed), { replace: true });
     } else {
       setError(result.error || 'Credenciales incorrectas');
     }

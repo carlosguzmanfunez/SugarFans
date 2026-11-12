@@ -152,12 +152,13 @@ const toExperience = (e: ExperienceRow): VipExperience => ({
   ...(e.time_zone ? { timeZone: e.time_zone } : {}),
 });
 
-const toUser = (p: ProfileRow, extra?: Pick<User, 'subscriptions' | 'createdPosts' | 'authProvider' | 'isOwner' | 'role'>): User => ({
+const toUser = (p: ProfileRow, extra?: Pick<User, 'subscriptions' | 'createdPosts' | 'authProvider' | 'isOwner' | 'role' | 'isDual'>): User => ({
   id: p.id,
   name: p.name,
   email: p.email,
-  role: extra?.isOwner ? extra.role ?? p.role : p.role,
+  role: extra?.isOwner || extra?.isDual ? extra.role ?? p.role : p.role,
   isOwner: extra?.isOwner === true,
+  ...(extra?.isDual ? { isDual: true } : {}),
   accountRole: p.role,
   avatar: avatarOrEmpty(p.avatar),
   cover: p.cover || undefined,
@@ -337,18 +338,24 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       if (!uid) return null;
       if (isDemoEmail(sessionData.session?.user.email)) return null;
       const authProvider = (sessionData.session?.user.app_metadata?.provider as string | undefined) ?? 'email';
-      const [profile, subs, posts, owner] = await Promise.all([
+      const [profile, subs, posts, owner, dual] = await Promise.all([
         sb.from('profiles').select('*').eq('id', uid).maybeSingle(),
         // '*' so the list keeps working before migration 20261110210000 adds dispute_paused_at.
         sb.from('subscriptions').select('*').eq('fan_id', uid),
         sb.from('creator_posts').select('id, content, is_locked, created_at, media_path, media_type, is_draft').eq('creator_id', uid).order('created_at', { ascending: false }),
         sb.rpc('owner_access'),
+        // Errors (before migration 20261112220000) just mean "not a dual account".
+        sb.from('dual_accounts').select('active_view').eq('user_id', uid).maybeSingle(),
       ]);
       if (!profile.data) return null;
       const moderation = await moderationOf(sb, 'post-media', (posts.data ?? []).map((p) => p.media_path).filter(Boolean) as string[]);
+      const isOwner = !owner.error && owner.data?.owner === true && ['fan','creator','admin'].includes(owner.data?.view);
+      const dualView = !dual.error && (profile.data as ProfileRow).role === 'creator' ? (dual.data?.active_view as UserRole | undefined) : undefined;
+      const isDual = !isOwner && (dualView === 'fan' || dualView === 'creator');
       return toUser(profile.data as ProfileRow, {
-        isOwner: !owner.error && owner.data?.owner === true && ['fan','creator','admin'].includes(owner.data?.view),
-        role: owner.data?.view,
+        isOwner,
+        isDual,
+        role: isOwner ? owner.data?.view : isDual ? dualView : undefined,
         authProvider,
         // A cancelled subscription counts until its end date.
         subscriptions: (subs.data ?? [])
@@ -385,6 +392,16 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       }
       const { error } = await sb.auth.signInWithPassword({ email: normalizeEmail(email), password });
       return error ? fail(translateAuthError(error.message)) : ok;
+    },
+
+    async dualClaim(code, view) {
+      const { error } = await sb.rpc('claim_dual_access', { p_code: code, p_view: view });
+      return error ? dbError(error, 'No se pudo activar tu cuenta doble') : ok;
+    },
+
+    async dualSwitchView(view) {
+      const { error } = await sb.rpc('set_dual_view', { p_view: view });
+      return error ? dbError(error, 'No se pudo cambiar de tipo de cuenta') : ok;
     },
 
     async ownerSwitchView(view) {
