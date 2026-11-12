@@ -1,7 +1,7 @@
 # POLÍTICA DE PRIVACIDAD - FANS RESERVE
 
 **Última actualización:** Noviembre 2026 (borrador)  
-**Versión:** 1.3.0  
+**Versión:** 1.4.0  
 **Marco de referencia:** GDPR, CCPA y LGPD (el cumplimiento debe validarse en la revisión legal)
 
 > **Borrador.** Requires legal review before production launch. Requiere revisión legal antes del lanzamiento a producción.
@@ -86,6 +86,10 @@ Guardamos su sesión y sus preferencias en el almacenamiento local de su navegad
 
 ---
 
+### 1.7. Inteligencia artificial
+
+No usamos sus datos, sus fotos, sus videos ni sus videollamadas para entrenar modelos de inteligencia artificial, ni los cedemos a terceros con ese fin. El análisis automático de fotos y videos (sección 1.5) solo sirve para moderar el contenido antes de publicarlo.
+
 ## 2. CÓMO USAMOS SU INFORMACIÓN
 
 ### 2.1. Propósitos Principales
@@ -144,6 +148,7 @@ Compartimos información con terceros que nos ayudan a operar:
 - LiveKit: transmisión de video en vivo (no se graba)
 - Didit: verificación de identidad de los Creadores
 - Sightengine: análisis automático de fotos y videos antes de publicarse
+- Bunny (bunny.net): almacenamiento y reproducción de los videos de las publicaciones
 - Resend y Zoho Mail: envío y recepción de emails
 - Google: inicio de sesión, solo si usted elige "Continuar con Google"
 - TikTok e Instagram: datos públicos de perfiles de creadores, solo cuando el Creador conecta su cuenta o cuando nuestro equipo prepara una invitación
@@ -310,7 +315,7 @@ Respondemos dentro de:
 ### 7.2. Medidas Organizacionales
 
 - Políticas de confidencialidad
-- Plan de respuesta a incidentes [pendiente de documentar antes del lanzamiento]
+- Plan de respuesta a incidentes: el equipo contiene el problema, evalúa qué datos se vieron afectados, avisa a quien corresponda y documenta lo ocurrido (ver 7.3)
 
 ### 7.3. Incidentes de Seguridad
 

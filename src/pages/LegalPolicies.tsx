@@ -169,7 +169,7 @@ const LegalPolicies: React.FC = () => {
                     </ul>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">3. Con quién la compartimos</h3>
-                    <p>Solo con los proveedores que hacen funcionar el servicio: PayPal (pagos y retiros), Supabase (base de datos, cuentas y archivos), Vercel (alojamiento web), LiveKit (video en vivo, que no se graba), Didit (verificación de identidad de los Creadores), Sightengine (análisis automático de fotos y videos antes de publicarse), Resend y Zoho Mail (envío de emails), Google si inicia sesión con su cuenta de Google y TikTok si conecta su cuenta de TikTok. No vendemos datos personales.</p>
+                    <p>Solo con los proveedores que hacen funcionar el servicio: PayPal (pagos y retiros), Supabase (base de datos, cuentas y archivos), Vercel (alojamiento web), LiveKit (video en vivo, que no se graba), Didit (verificación de identidad de los Creadores), Sightengine (análisis automático de fotos y videos antes de publicarse), Bunny (almacenamiento y reproducción de los videos de las publicaciones), Resend y Zoho Mail (envío de emails), Google si inicia sesión con su cuenta de Google y TikTok si conecta su cuenta de TikTok. No vendemos datos personales ni los usamos para entrenar inteligencia artificial.</p>
 
                     <h3 className="text-xl font-bold text-gray-900 mt-6">4. Sus Derechos</h3>
                     <p>Tiene derecho a acceder, rectificar, eliminar y portar sus datos. Desde Configuración &gt; Privacidad puede descargar sus datos o eliminar su cuenta.</p>
