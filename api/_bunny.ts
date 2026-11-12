@@ -23,6 +23,8 @@ import { createHash } from 'node:crypto';
 
 const BUNNY_API = process.env.BUNNY_STREAM_API_BASE || 'https://video.bunnycdn.com';
 const PLAYER = 'https://player.mediadelivery.net/embed';
+// The library's CDN host (Stream > library > API > "CDN hostname"); thumbnails come from here.
+const cdnHost = () => clean(process.env.BUNNY_STREAM_CDN_HOST) || 'vz-e42e9f31-307.b-cdn.net';
 export const BUNNY_LINK_TTL = 60 * 60;
 // A copy that started but never finished (function stopped mid-way) is retried after this.
 const STUCK_MS = 10 * 60 * 1000;
@@ -49,11 +51,21 @@ export const bunnyChecks = () => {
 };
 
 /** Bunny "embed view token": SHA256_HEX(token key + video id + expiration in seconds). */
-export const bunnyEmbedUrl = (library: string, tokenKey: string, videoId: string, nowMs: number, ratio?: string) => {
+export const bunnyEmbedUrl = (library: string, tokenKey: string, videoId: string, nowMs: number) => {
   const expires = Math.floor(nowMs / 1000) + BUNNY_LINK_TTL;
   const token = createHash('sha256').update(tokenKey + videoId + expires).digest('hex');
-  // The fragment never reaches Bunny: it tells our player the video's shape.
-  return `${PLAYER}/${encodeURIComponent(library)}/${encodeURIComponent(videoId)}?token=${token}&expires=${expires}${ratio ? `#r=${ratio}` : ''}`;
+  return `${PLAYER}/${encodeURIComponent(library)}/${encodeURIComponent(videoId)}?token=${token}&expires=${expires}`;
+};
+
+/**
+ * Signed link to the video's cover image (Bunny makes it while converting). With "CDN token
+ * authentication" on, Bunny wants: base64url(SHA256(token key + path + expiration)).
+ */
+export const bunnyThumbnailUrl = (tokenKey: string, videoId: string, nowMs: number, host = cdnHost()) => {
+  const expires = Math.floor(nowMs / 1000) + BUNNY_LINK_TTL;
+  const path = `/${encodeURIComponent(videoId)}/thumbnail.jpg`;
+  const token = createHash('sha256').update(tokenKey + path + expires).digest('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return `https://${host}${path}?token=${token}&expires=${expires}`;
 };
 
 type Call = (url: string, init?: RequestInit) => Promise<{ ok: boolean; status: number; data: any }>;
@@ -146,8 +158,9 @@ export async function videoAccess(ctx: Ctx, body: { paths?: unknown }): Promise<
     let row = rows.get(path);
     if (row) row = await refresh(ctx, e, row);
     if (row?.status === 'ready' && row.video_id) {
-      const ratio = row.width && row.height ? `${row.width}x${row.height}` : undefined;
-      urls[path] = bunnyEmbedUrl(e.library, e.tokenKey, row.video_id, now, ratio);
+      // Fragment (never sent to Bunny): r = shape, p = cover image for before "Reproducir".
+      const shape = row.width && row.height ? `r=${row.width}x${row.height}&` : '';
+      urls[path] = `${bunnyEmbedUrl(e.library, e.tokenKey, row.video_id, now)}#${shape}p=${encodeURIComponent(bunnyThumbnailUrl(e.tokenKey, row.video_id, now))}`;
     } else if (!row || (row.status === 'uploading' && now - Date.parse(row.updated_at) > STUCK_MS) || (row.status === 'failed' && row.attempts < 3)) {
       pending.push(path);
     }

@@ -71,3 +71,4 @@ Fuentes consultadas el 29 de octubre de 2026:
   - Tabla `media_cdn` (`20261112030000_media_cdn_bunny.sql`): solo el servidor la usa.
   - Pruebas: `npm run test:bunny-video` y `npm run test:bunny-player-ui`.
   - Panel de Bunny (biblioteca `fans-reserve-videos`, ID 806946): "Enable direct play" apagado; "Block direct url file access", "Embed view token authentication" y "CDN token authentication" encendidos; dominios permitidos `fansreserve.com`, `*.fansreserve.com` y `*.vercel.app` (Preview). Las llaves están en la biblioteca → API (API Key, no la Read-only) y Security → General (Token authentication key); nunca se copian al repositorio.
+  - Miniatura: antes de Reproducir se muestra `thumbnail.jpg` de Bunny con enlace firmado (token CDN: base64url de SHA256(token key + ruta + vencimiento)). El host sale de `BUNNY_STREAM_CDN_HOST` (por defecto el de la biblioteca 806946). En el visor a pantalla completa el reproductor ocupa todo el alto.

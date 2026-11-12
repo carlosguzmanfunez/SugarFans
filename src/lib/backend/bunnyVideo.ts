@@ -15,6 +15,13 @@ let offUntil = 0;
 
 export const isBunnyEmbed = (url: string | undefined) => !!url && url.startsWith('https://player.mediadelivery.net/embed/');
 
+/** Cover image of a Bunny video (signed link in the "#p=" fragment), shown before "Reproducir". */
+export const videoPoster = (url: string | undefined): string | undefined => {
+  if (!isBunnyEmbed(url)) return undefined;
+  const p = new URLSearchParams(url!.split('#')[1] ?? '').get('p') ?? '';
+  return p.startsWith('https://') ? p : undefined;
+};
+
 export async function bunnyVideoLinks(sb: SupabaseClient, paths: string[], now = Date.now()): Promise<Map<string, string>> {
   const out = new Map<string, string>();
   const unique = [...new Set(paths)];

@@ -6,11 +6,14 @@ import { build } from 'esbuild';
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 
+const poster = 'https://vz-test.b-cdn.net/g1/thumbnail.jpg?token=t&expires=9';
 const entry = `
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import OnDemandVideo from './src/components/OnDemandVideo';
-const vertical = 'https://player.mediadelivery.net/embed/777/g1?token=abc&expires=9#r=1080x1920';
+const poster = ${JSON.stringify(poster)};
+const vertical = 'https://player.mediadelivery.net/embed/777/g1?token=abc&expires=9#r=1080x1920&p=' + encodeURIComponent(poster);
+const filled = 'https://player.mediadelivery.net/embed/777/g3?token=abc&expires=9#r=1080x1920';
 const horizontal = 'https://player.mediadelivery.net/embed/777/g2?token=abc&expires=9#r=1920x1080';
 const supabase = 'https://db.example.invalid/storage/v1/object/sign/post-media/x.mp4?token=t';
 createRoot(document.getElementById('root')).render(
@@ -18,6 +21,7 @@ createRoot(document.getElementById('root')).render(
     <div id="a"><OnDemandVideo src={vertical} seed="a" testId="va" /></div>
     <div id="b"><OnDemandVideo src={horizontal} seed="b" testId="vb" /></div>
     <div id="c"><OnDemandVideo src={supabase} seed="c" testId="vc" /></div>
+    <div id="d" style={{ height: 700, display: 'flex' }}><OnDemandVideo src={filled} seed="d" testId="vd" fill /></div>
   </div>
 );`;
 const out = await build({
@@ -38,6 +42,8 @@ await page.route('https://player.mediadelivery.net/**', (r) => {
   bunnyHits.push(r.request().url());
   return r.fulfill({ contentType: 'text/html', body: '<body style="margin:0;background:#222">player</body>' });
 });
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+await page.route('https://vz-test.b-cdn.net/**', (r) => r.fulfill({ contentType: 'image/png', body: PNG }));
 await page.route('https://db.example.invalid/**', (r) => r.fulfill({ status: 404, body: '' }));
 await page.setContent('<div id="root"></div>');
 await page.addScriptTag({ content: out.outputFiles[0].text });
@@ -52,6 +58,14 @@ const ok = (name) => {
 assert.equal(await page.locator('iframe').count(), 0);
 assert.equal(bunnyHits.length, 0);
 ok('No se carga nada de Bunny antes de tocar Reproducir');
+
+const img = page.locator('#a [data-testid=video-poster]');
+await img.waitFor();
+assert.equal(await img.getAttribute('src'), poster);
+await page.waitForFunction(() => document.querySelector('#a [data-testid=video-poster]')?.complete);
+assert.ok(await img.evaluate((i) => i.naturalWidth > 0), 'la miniatura cargó');
+assert.equal(await page.locator('#c [data-testid=video-poster]').count(), 0);
+ok('Antes de Reproducir se ve la miniatura de Bunny (los videos aún en Supabase muestran la portada de siempre)');
 
 await page.click('#a [data-testid=play-video]');
 await page.click('#b [data-testid=play-video]');
@@ -75,6 +89,13 @@ await page.locator('[data-testid=vc]').waitFor();
 assert.equal(await page.locator('#c video').count(), 1);
 assert.equal(await page.locator('#c iframe').count(), 0);
 ok('Un video que aún no está en Bunny se reproduce desde Supabase como antes');
+
+await page.click('#d [data-testid=play-video]');
+const vd = page.locator('[data-testid=vd] iframe');
+await vd.waitFor();
+const d = await vd.boundingBox();
+assert.ok(Math.abs(d.height - 700) < 2, `pantalla completa ${d.width}x${d.height}`);
+ok(`En el visor a pantalla completa el video ocupa todo el alto (${Math.round(d.width)}×${Math.round(d.height)})`);
 
 await browser.close();
 console.log(`\n${passed} comprobaciones del reproductor`);

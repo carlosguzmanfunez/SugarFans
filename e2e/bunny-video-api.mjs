@@ -188,9 +188,15 @@ assert.equal(u.origin + u.pathname, `https://player.mediadelivery.net/embed/777/
 const expires = Number(u.searchParams.get('expires'));
 assert.ok(expires > Date.now() / 1000 + 3000 && expires <= Date.now() / 1000 + 3600 + 5);
 assert.equal(u.searchParams.get('token'), createHash('sha256').update(`token-key${row.video_id}${expires}`).digest('hex'));
-assert.ok(link.endsWith('#r=1080x1920'));
+const frag = new URLSearchParams(link.split('#')[1]);
+assert.equal(frag.get('r'), '1080x1920');
+const thumb = new URL(frag.get('p'));
+assert.equal(thumb.origin + thumb.pathname, `https://vz-e42e9f31-307.b-cdn.net/${row.video_id}/thumbnail.jpg`);
+const tExp = thumb.searchParams.get('expires');
+const tTok = createHash('sha256').update(`token-key/${row.video_id}/thumbnail.jpg${tExp}`).digest('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+assert.equal(thumb.searchParams.get('token'), tTok);
 assert.equal(cdn.get(MINE).status, 'ready');
-ok('Al terminar de convertirse da un enlace firmado que vence en 1 hora');
+ok('Al terminar de convertirse da un enlace firmado que vence en 1 hora, con su miniatura firmada');
 
 // 7. Visitors without a session get links for free videos (Storage decides, as anon).
 out = await access([MINE], undefined);

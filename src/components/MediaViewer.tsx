@@ -164,7 +164,8 @@ const MediaViewer: React.FC<Props> = ({ posts, startId, onClose, viewer }) => {
                     seed={`post-${p.id}`}
                     videoClassName="max-w-full max-h-full"
                     testId="media-viewer-video"
-                  /> : <VideoPreview seed={`post-${p.id}`} />
+                    fill
+                  /> : <VideoPreview seed={`post-${p.id}`} src={p.mediaUrl} />
                 ) : p.mediaUrl && !isPlaceholderImage(p.mediaUrl) ? (
                   i === index ? <ZoomablePostImage key={`${p.id}-${index}`} src={p.mediaUrl} alt={p.content || 'Foto'} onGestureStart={cancelSwipe} /> : <img src={p.mediaUrl} alt="" draggable={false} className="max-w-full max-h-full object-contain" />
                 ) : (
