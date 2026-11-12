@@ -52,6 +52,7 @@ const translations: Record<Language, Record<string, string>> = {
     'seo.help.description': 'Respuestas sobre cuentas, pagos, suscripciones, Reserve y cancelaciones en {brand}.',
     'seo.legal.title': 'Términos y políticas',
     'seo.legal.description': 'Términos de servicio, privacidad, reembolsos y reglas de cancelación de {brand}.',
+    'seo.creator.title': '{name}: videollamada 1:1 y eventos en vivo',
     'seo.creator.description': 'Sigue a {name}, suscríbete a su contenido exclusivo y reserva una videollamada 1:1 o un evento en vivo en {brand}.',
     
     // Age verification
@@ -167,6 +168,8 @@ const translations: Record<Language, Record<string, string>> = {
     'becomeCreator.working': 'Creando tu perfil…',
     'reserveCancel.policy': 'Cancelación voluntaria: con 24 h o más, 100% menos un cargo por servicio del 10%; con menos, 50%. En ambos casos se descuenta la comisión de cobro de PayPal. Ni el cargo ni la comisión son reembolsables (en Créditos recibes ese 100% o 50% sin descuentos). Salvo derechos legales. Si el creador cancela o incumple: 100%.',
     'reserveCancel.payNotice': 'Cancelación: con 24 h o más te devolvemos el 100% menos un cargo por servicio del 10%, y con menos de 24 h el 50%; en ambos casos, menos la comisión de cobro de PayPal. Ni el cargo ni la comisión son reembolsables. Si eliges Créditos, recibes ese 100% o 50% sin ningún descuento. Si el creador cancela, te devolvemos el 100%.',
+    'subscriptionDispute.paused': 'Acceso en pausa mientras se resuelve una disputa de PayPal por un cobro de esta suscripción.',
+    'subscriptionDispute.profileBanner': 'Tu acceso al contenido exclusivo está en pausa mientras se resuelve la disputa que abriste en PayPal. Si se resuelve a favor del creador, vuelve automáticamente.',
     'reserveCancel.feeNote': 'Al medio original se descuenta la comisión de cobro de PayPal de este pago (aprox. {fee}), que no es reembolsable. En Créditos recibes ese porcentaje sin descuentos.',
     'reserveCancel.serviceNote': 'Con 24 h o más también se descuenta el cargo por servicio del 10% (aprox. {service}), que no es reembolsable.',
     'reserveCancel.refundAmount': 'Devolución de {amount} al medio original (sin la comisión de PayPal de {fee}): {state}. No se emitieron Créditos.',
@@ -402,6 +405,7 @@ const translations: Record<Language, Record<string, string>> = {
     'seo.help.description': 'Answers about accounts, payments, subscriptions, Reserve and cancellations on {brand}.',
     'seo.legal.title': 'Terms and policies',
     'seo.legal.description': 'Terms of service, privacy, refunds and cancellation rules of {brand}.',
+    'seo.creator.title': '{name}: 1:1 video calls and live events',
     'seo.creator.description': 'Follow {name}, subscribe to their exclusive content and book a 1:1 video call or a live event on {brand}.',
     
     // Age verification
@@ -517,6 +521,8 @@ const translations: Record<Language, Record<string, string>> = {
     'becomeCreator.working': 'Creating your profile…',
     'reserveCancel.policy': 'Voluntary cancellation: at least 24 h before, 100% minus a 10% service fee; later, 50%. Both deduct the PayPal collection fee. Neither fee is refundable (in Credits you get that 100% or 50% with no deductions). Subject to legal rights. If the creator cancels or fails: 100%.',
     'reserveCancel.payNotice': 'Cancellation: at least 24 h before you get 100% back minus a 10% service fee, and less than 24 h before 50%; both minus the PayPal collection fee. Neither fee is refundable. If you choose Credits, you get that 100% or 50% with no deductions. If the creator cancels, you get 100% back.',
+    'subscriptionDispute.paused': 'Access paused while a PayPal dispute about a charge of this subscription is resolved.',
+    'subscriptionDispute.profileBanner': 'Your access to exclusive content is paused while the dispute you opened with PayPal is resolved. If it is resolved in the creator\'s favour, access comes back automatically.',
     'reserveCancel.feeNote': 'A refund to the original method deducts the PayPal collection fee for this payment (about {fee}), which is non-refundable. In Credits you get that percentage with no deductions.',
     'reserveCancel.serviceNote': 'At least 24 h before, the 10% service fee (about {service}) is also deducted and is non-refundable.',
     'reserveCancel.refundAmount': 'Refund of {amount} to the original method (without the {fee} PayPal fee): {state}. No Credits were issued.',
@@ -752,6 +758,7 @@ const translations: Record<Language, Record<string, string>> = {
     'seo.help.description': 'Respostas sobre contas, pagamentos, assinaturas, Reserve e cancelamentos no {brand}.',
     'seo.legal.title': 'Termos e políticas',
     'seo.legal.description': 'Termos de serviço, privacidade, reembolsos e regras de cancelamento do {brand}.',
+    'seo.creator.title': '{name}: videochamadas 1:1 e eventos ao vivo',
     'seo.creator.description': 'Siga {name}, assine o conteúdo exclusivo e reserve uma videochamada 1:1 ou um evento ao vivo no {brand}.',
     
     // Age verification
@@ -867,6 +874,8 @@ const translations: Record<Language, Record<string, string>> = {
     'becomeCreator.working': 'Criando seu perfil…',
     'reserveCancel.policy': 'Cancelamento voluntário: com pelo menos 24 h, 100% menos uma taxa de serviço de 10%; depois, 50%. Em ambos os casos é descontada a taxa de cobrança do PayPal. Nenhuma das taxas é reembolsável (em Créditos você recebe esses 100% ou 50% sem descontos). Respeitando os direitos legais. Se o criador cancelar ou falhar: 100%.',
     'reserveCancel.payNotice': 'Cancelamento: com pelo menos 24 h devolvemos 100% menos uma taxa de serviço de 10%, e com menos de 24 h 50%; em ambos os casos, menos a taxa de cobrança do PayPal. Nenhuma das taxas é reembolsável. Se escolher Créditos, recebe esses 100% ou 50% sem nenhum desconto. Se o criador cancelar, devolvemos 100%.',
+    'subscriptionDispute.paused': 'Acesso em pausa enquanto se resolve uma disputa do PayPal sobre uma cobrança desta assinatura.',
+    'subscriptionDispute.profileBanner': 'Seu acesso ao conteúdo exclusivo está em pausa enquanto se resolve a disputa que você abriu no PayPal. Se for resolvida a favor do criador, o acesso volta automaticamente.',
     'reserveCancel.feeNote': 'Na devolução ao meio original é descontada a taxa de cobrança do PayPal deste pagamento (aprox. {fee}), que não é reembolsável. Em Créditos você recebe essa porcentagem sem descontos.',
     'reserveCancel.serviceNote': 'Com pelo menos 24 h também é descontada a taxa de serviço de 10% (aprox. {service}), que não é reembolsável.',
     'reserveCancel.refundAmount': 'Devolução de {amount} ao meio original (sem a taxa do PayPal de {fee}): {state}. Nenhum Crédito foi emitido.',
@@ -1102,6 +1111,7 @@ const translations: Record<Language, Record<string, string>> = {
     'seo.help.description': 'Réponses sur les comptes, paiements, abonnements, Reserve et annulations sur {brand}.',
     'seo.legal.title': 'Conditions et politiques',
     'seo.legal.description': 'Conditions d\'utilisation, confidentialité, remboursements et règles d\'annulation de {brand}.',
+    'seo.creator.title': '{name} : appels vidéo 1:1 et événements en direct',
     'seo.creator.description': 'Suivez {name}, abonnez-vous à son contenu exclusif et réservez un appel vidéo 1:1 ou un événement en direct sur {brand}.',
     
     // Age verification
@@ -1217,6 +1227,8 @@ const translations: Record<Language, Record<string, string>> = {
     'becomeCreator.working': 'Création de votre profil…',
     'reserveCancel.policy': 'Annulation volontaire : au moins 24 h avant, 100 % moins des frais de service de 10 % ; ensuite, 50 %. Dans les deux cas, les frais d’encaissement PayPal sont déduits. Aucun de ces frais n’est remboursable (en Crédits, vous recevez ces 100 % ou 50 % sans aucune déduction). Sous réserve des droits légaux. Si le créateur annule ou fait défaut : 100 %.',
     'reserveCancel.payNotice': 'Annulation : au moins 24 h avant, nous remboursons 100 % moins des frais de service de 10 %, moins de 24 h avant 50 % ; dans les deux cas, moins les frais d’encaissement PayPal. Aucun de ces frais n’est remboursable. En Crédits, vous recevez ces 100 % ou 50 % sans aucune déduction. Si le créateur annule, nous remboursons 100 %.',
+    'subscriptionDispute.paused': 'Accès en pause pendant le traitement d\'un litige PayPal sur un paiement de cet abonnement.',
+    'subscriptionDispute.profileBanner': 'Votre accès au contenu exclusif est en pause pendant le traitement du litige que vous avez ouvert sur PayPal. S\'il est résolu en faveur du créateur, l\'accès revient automatiquement.',
     'reserveCancel.feeNote': 'Un remboursement au moyen initial déduit les frais d’encaissement PayPal de ce paiement (env. {fee}), non remboursables. En Crédits, vous recevez ce pourcentage sans déduction.',
     'reserveCancel.serviceNote': 'Au moins 24 h avant, les frais de service de 10 % (env. {service}) sont aussi déduits et ne sont pas remboursables.',
     'reserveCancel.refundAmount': 'Remboursement de {amount} au moyen initial (sans les frais PayPal de {fee}) : {state}. Aucun Crédit émis.',
@@ -1452,6 +1464,7 @@ const translations: Record<Language, Record<string, string>> = {
     'seo.help.description': 'Risposte su account, pagamenti, abbonamenti, Reserve e cancellazioni su {brand}.',
     'seo.legal.title': 'Termini e politiche',
     'seo.legal.description': 'Termini di servizio, privacy, rimborsi e regole di cancellazione di {brand}.',
+    'seo.creator.title': '{name}: videochiamate 1:1 ed eventi dal vivo',
     'seo.creator.description': 'Segui {name}, abbonati ai suoi contenuti esclusivi e prenota una videochiamata 1:1 o un evento dal vivo su {brand}.',
     
     // Age verification
@@ -1567,6 +1580,8 @@ const translations: Record<Language, Record<string, string>> = {
     'becomeCreator.working': 'Creazione del profilo…',
     'reserveCancel.policy': 'Cancellazione volontaria: almeno 24 h prima, 100% meno una commissione di servizio del 10%; dopo, 50%. In entrambi i casi si trattiene la commissione di incasso PayPal. Nessuna delle due è rimborsabile (in Crediti ricevi quel 100% o 50% senza trattenute). Nel rispetto dei diritti legali. Se il creatore annulla o è inadempiente: 100%.',
     'reserveCancel.payNotice': 'Cancellazione: almeno 24 h prima rimborsiamo il 100% meno una commissione di servizio del 10%, e con meno di 24 h il 50%; in entrambi i casi, meno la commissione di incasso PayPal. Nessuna delle due è rimborsabile. Se scegli i Crediti, ricevi quel 100% o 50% senza alcuna trattenuta. Se il creatore annulla, rimborsiamo il 100%.',
+    'subscriptionDispute.paused': 'Accesso in pausa mentre si risolve una contestazione PayPal su un addebito di questo abbonamento.',
+    'subscriptionDispute.profileBanner': 'Il tuo accesso ai contenuti esclusivi è in pausa mentre si risolve la contestazione che hai aperto su PayPal. Se viene risolta a favore del creator, l\'accesso torna automaticamente.',
     'reserveCancel.feeNote': 'Il rimborso sul mezzo originale trattiene la commissione di incasso PayPal di questo pagamento (circa {fee}), non rimborsabile. In Crediti ricevi quella percentuale senza trattenute.',
     'reserveCancel.serviceNote': 'Almeno 24 h prima si trattiene anche la commissione di servizio del 10% (circa {service}), non rimborsabile.',
     'reserveCancel.refundAmount': 'Rimborso di {amount} sul mezzo originale (senza la commissione PayPal di {fee}): {state}. Nessun Credito emesso.',

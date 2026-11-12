@@ -3,6 +3,7 @@ import { readJSON } from './storage';
 import { sessionRequest } from './reserveSessionClient';
 import { attendanceDay, attendanceFilterError, ATTENDANCE_PAGE_SIZE, type AttendanceFilters, type AttendancePage, type AttendanceRow } from './adminReserveAttendance';
 import { DOSSIER_REFERENCE, dossierFileName, dossierHtml, type DisputeDossier } from './disputeDossier';
+import { SUBSCRIPTION_DOSSIER_REFERENCE, subscriptionDossierFileName, subscriptionDossierHtml, type SubscriptionDossier } from './subscriptionDisputeDossier';
 
 export async function adminAttendanceList(filters: AttendanceFilters, offset: number): Promise<AttendancePage> {
  const error=attendanceFilterError(filters);if(error)throw new Error(error);
@@ -81,4 +82,22 @@ export async function adminDisputeFee(reference: string, fee: number, payer: 'pl
  const body=await r.json().catch(()=>({}));
  if(!r.ok||!body.data?.payer)throw new Error(body.error||'No pudimos guardar la decisión. Vuelve a intentarlo.');
  return body.data;
+}
+
+// PayPal dispute on a subscription: look up by subscription (I-…), transaction or dispute (PP-D-…) id.
+export async function adminSubscriptionDossier(reference: string): Promise<SubscriptionDossier> {
+ const ref=reference.trim();
+ if(!SUBSCRIPTION_DOSSIER_REFERENCE.test(ref))throw new Error('Escribe el ID de la suscripción, de la transacción o de la disputa de PayPal.');
+ if(backend.mode==='local')throw new Error('Disponible con la base real.');
+ const token=await backend.accessToken();if(!token)throw new Error('Inicia sesión de nuevo.');
+ const r=await fetch('/api/reserve-session',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${token}`},
+  body:JSON.stringify({action:'admin-subscription-dossier',reference:ref}),signal:AbortSignal.timeout(15000)});
+ const body=await r.json().catch(()=>({}));
+ if(r.status===404||r.status===400)throw new Error(body.error||'No encontramos una suscripción con esa referencia de PayPal.');
+ if(!r.ok||!body.data?.subscription?.paypal_subscription_id)throw new Error('No pudimos preparar el expediente. Vuelve a intentarlo.');
+ return body.data;
+}
+export function downloadSubscriptionDossier(d: SubscriptionDossier) {
+ const url=URL.createObjectURL(new Blob([subscriptionDossierHtml(d)],{type:'text/html;charset=utf-8'}));
+ const a=document.createElement('a');a.href=url;a.download=subscriptionDossierFileName(d);a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }

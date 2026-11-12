@@ -1,7 +1,7 @@
 // The 12 AM / 12 PM "Mano derecha" report as an email (api/usage.ts?report=1).
 // Plain inline-styled tables so it reads well in Gmail, Zoho and phone apps.
-import type { MonitorMoney, MonitorProblem } from './adminMonitor';
-import { sortProblems, usd } from './adminMonitor';
+import type { MonitorMoney, MonitorProblem } from './adminMonitor.js';
+import { sortProblems, usd } from './adminMonitor.js';
 
 export interface MonitorReportRow {
   id: string;

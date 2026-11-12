@@ -2,6 +2,7 @@
 // Security. Rules that span users (booking lifecycle, account deletion) run in
 // SECURITY DEFINER functions, see supabase/migrations.
 import { TERMS_VERSION } from '../../config/legal';
+import { forgetBunnyVideo } from './bunnyVideo';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { PAID_WITH_PAYPAL, WRONG_CREDENTIALS, ACCOUNT_SUSPENDED, avatarOrEmpty, cleanPatch, mergeSettings, normalizeEmail, validateRegistration, validateSignupExtras } from './shared';
 import { REJECTED_MESSAGE, inReviewNotice, moderateUpload, moderationOf } from './supabaseModeration';
@@ -18,7 +19,7 @@ import { createSupabaseRewards } from './supabaseRewards';
 import { createSupabaseSpecial } from './supabaseSpecial';
 import { createSupabaseProspects } from './supabaseProspects';
 import { BRAND } from '../../config/brand';
-import { fromRpc } from '../infraUsage';
+import { fromRpc, type BunnyUsage } from '../infraUsage';
 import type { MonitorKey, MonitorNewKey, MonitorSnapshot } from '../adminMonitor';
 import type { ReserveResponseLog } from '../reserveResponseReminders';
 import { createSupabaseFinance } from './supabaseFinance';
@@ -338,7 +339,8 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       const authProvider = (sessionData.session?.user.app_metadata?.provider as string | undefined) ?? 'email';
       const [profile, subs, posts, owner] = await Promise.all([
         sb.from('profiles').select('*').eq('id', uid).maybeSingle(),
-        sb.from('subscriptions').select('creator_id, price, since, cancel_at').eq('fan_id', uid),
+        // '*' so the list keeps working before migration 20261110210000 adds dispute_paused_at.
+        sb.from('subscriptions').select('*').eq('fan_id', uid),
         sb.from('creator_posts').select('id, content, is_locked, created_at, media_path, media_type, is_draft').eq('creator_id', uid).order('created_at', { ascending: false }),
         sb.rpc('owner_access'),
       ]);
@@ -351,7 +353,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
         // A cancelled subscription counts until its end date.
         subscriptions: (subs.data ?? [])
           .filter((s) => !s.cancel_at || new Date(s.cancel_at) > new Date())
-          .map((s) => ({ creatorId: s.creator_id, price: Number(s.price), since: s.since, ...(s.cancel_at ? { cancelAt: s.cancel_at } : {}) })),
+          .map((s) => ({ creatorId: s.creator_id, price: Number(s.price), since: s.since, ...(s.cancel_at ? { cancelAt: s.cancel_at } : {}), ...(s.dispute_paused_at ? { pausedAt: s.dispute_paused_at } : {}) })),
         createdPosts: (posts.data ?? []).map((p) => ({
           id: p.id,
           content: p.content,
@@ -619,6 +621,18 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       return !data ? null : fromRpc(data as Record<string, unknown>);
     },
 
+    async bunnyUsage() {
+      const token = (await sb.auth.getSession()).data.session?.access_token;
+      if (!token) throw Error('Inicia sesión de nuevo.');
+      const r = await fetch('/api/usage', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'bunny-usage' }),
+      }).catch(() => null);
+      if (!r?.ok) throw Error('No pudimos consultar Bunny.');
+      return (await r.json()) as BunnyUsage;
+    },
+
     async setInfraSettings(plans, fundPct) {
       const { error } = await sb.rpc('set_infra_settings', { p_plans: plans, p_fund_pct: fundPct });
       return error ? dbError(error, 'No se pudo guardar') : ok;
@@ -732,7 +746,11 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       // RLS: the author, or any admin for a managed profile's post. The file goes
       // first because the admin storage rule looks the post up.
       const { data: post } = await sb.from('creator_posts').select('media_path').eq('id', postId).maybeSingle();
-      if (post?.media_path) await sb.storage.from('post-media').remove([post.media_path]);
+      if (post?.media_path) {
+        await sb.storage.from('post-media').remove([post.media_path]);
+        // Its copy in Bunny Stream, if the video had one, goes too.
+        if (/\.(mp4|webm|mov)$/i.test(post.media_path)) await forgetBunnyVideo(sb, post.media_path);
+      }
       const { data, error } = await sb.from('creator_posts').delete().eq('id', postId).select('id');
       if (error || !data?.length) return dbError(error, 'No se pudo eliminar la publicación');
       return ok;

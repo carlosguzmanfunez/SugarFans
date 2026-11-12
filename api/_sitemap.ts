@@ -3,7 +3,8 @@
 // deployment and they are all in use, so this shares a bundle like reserve-session
 // shares live-token.
 // The public pages plus the profile of every verified creator, so Google and AI
-// search can find each creator's page (/creator/<id>). Reads the same public list
+// search can find each creator's page: fansreserve.com/@usuario (their name in the
+// address) once they chose one, /creator/<id> until then. Reads the same public list
 // Explorar shows (public.public_creators, open to anyone); unverified creators,
 // suspended accounts and the demo profiles stay out. If Supabase doesn't answer,
 // the sitemap still lists the public pages.
@@ -24,7 +25,9 @@ type CreatorRow = { id?: unknown; is_verified?: unknown; created_at?: unknown };
 
 const escapeXml = (s: string) => s.replace(/[<>&'"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' })[c] as string);
 
-export const sitemapXml = (creators: CreatorRow[]) => {
+const USERNAME = /^[a-z0-9_]{3,30}$/;
+
+export const sitemapXml = (creators: CreatorRow[], usernames: Record<string, string> = {}) => {
   const urls = STATIC_PAGES.map(
     (p) => `  <url>\n    <loc>${SITE}${p.path}</loc>\n    <changefreq>${p.changefreq}</changefreq>\n    <priority>${p.priority}</priority>\n  </url>`,
   );
@@ -34,16 +37,18 @@ export const sitemapXml = (creators: CreatorRow[]) => {
     if (!id || c.is_verified !== true || seen.has(id)) continue;
     seen.add(id);
     const updated = typeof c.created_at === 'string' && !Number.isNaN(Date.parse(c.created_at)) ? new Date(c.created_at).toISOString().slice(0, 10) : '';
+    const handle = usernames[id];
+    const path = handle && USERNAME.test(handle) ? `/@${handle}` : `/creator/${escapeXml(encodeURIComponent(id))}`;
     urls.push(
-      `  <url>\n    <loc>${SITE}/creator/${escapeXml(encodeURIComponent(id))}</loc>\n${updated ? `    <lastmod>${updated}</lastmod>\n` : ''}    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>`,
+      `  <url>\n    <loc>${SITE}${path}</loc>\n${updated ? `    <lastmod>${updated}</lastmod>\n` : ''}    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>`,
     );
   }
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`;
 };
 
-const publicCreators = async (): Promise<CreatorRow[]> => {
+const rpc = async (name: string): Promise<unknown[]> => {
   try {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/public_creators`, {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
       method: 'POST',
       headers: { apikey: SUPABASE_ANON_KEY, 'content-type': 'application/json' },
       body: '{}',
@@ -57,8 +62,18 @@ const publicCreators = async (): Promise<CreatorRow[]> => {
   }
 };
 
+// creator profile id → @usuario (public.creator_usernames, open to anyone).
+const creatorUsernames = async (): Promise<Record<string, string>> => {
+  const map: Record<string, string> = {};
+  for (const row of (await rpc('creator_usernames')) as { id?: unknown; username?: unknown }[]) {
+    if (typeof row?.id === 'string' && typeof row.username === 'string') map[row.id.trim()] = row.username.trim().toLowerCase();
+  }
+  return map;
+};
+
 export async function sitemapResponse(): Promise<Response> {
-  return new Response(sitemapXml(await publicCreators()), {
+  const [creators, usernames] = await Promise.all([rpc('public_creators') as Promise<CreatorRow[]>, creatorUsernames()]);
+  return new Response(sitemapXml(creators, usernames), {
     status: 200,
     headers: {
       'content-type': 'application/xml; charset=utf-8',

@@ -10,3 +10,6 @@ build/
 supabase/.temp/
 .vercel
 .env*
+
+# Resultados de la prueba de carga (k6)
+loadtest/resultado*

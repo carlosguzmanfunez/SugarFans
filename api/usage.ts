@@ -16,8 +16,10 @@ import { monitorReportEmail, type MonitorReportRow } from '../src/lib/monitorRep
 import { alertEmail, fromRpc, pendingAlerts } from '../src/lib/infraUsage.js';
 import { sitemapResponse } from './_sitemap.js';
 import { anthropicKey, assistantResponse } from './_assistant.js';
+import { bunnyUsage } from './_bunny.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://odugxvqwuvewsvifwmwb.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_vuRosXd_owmQ4KeeExEAPQ_d32g6WEL';
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
@@ -94,6 +96,7 @@ export async function GET(request: Request): Promise<Response> {
         cronSecret: e.cronSecret ? 'OK' : 'FALTA',
         serviceRoleKey: e.serviceKey ? 'OK' : 'FALTA',
         resend: resendKey() ? 'OK' : 'FALTA',
+        bunnyAccount: clean(process.env.BUNNY_ACCOUNT_API_KEY) ? 'OK' : 'FALTA',
         claude: anthropicKey() ? 'OK' : 'FALTA',
       },
     });
@@ -130,14 +133,46 @@ export async function GET(request: Request): Promise<Response> {
   }
 }
 
-// The "Mano derecha" chat (admins only). Lives here because the plan allows 12
-// functions and all are in use.
+// POST {action:'bunny-usage'} (admins only, with their session): Bunny Stream numbers for
+// the admin "Consumo" tab. Read-only; the keys never leave the server.
+const isAdmin = async (authorization: string) => {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/is_admin`, {
+    method: 'POST',
+    headers: { apikey: SUPABASE_ANON_KEY, authorization, 'content-type': 'application/json' },
+    body: '{}',
+    signal: AbortSignal.timeout(8000),
+  });
+  if (r.status === 401 || r.status === 403) return false;
+  return r.ok && (await r.json()) === true;
+};
+
+const getJson = async (url: string, init?: RequestInit) => {
+  try {
+    const r = await fetch(url, { ...init, signal: AbortSignal.timeout(10000) });
+    const text = await r.text();
+    let data: unknown = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = null;
+    }
+    return { ok: r.ok, status: r.status, data };
+  } catch {
+    return { ok: false, status: 0, data: null };
+  }
+};
+
+// POST {action:'assistant'}: the "Mano derecha" chat (admins only, api/_assistant.ts).
+// Both live here because the plan allows 12 functions and all are in use.
 export async function POST(request: Request): Promise<Response> {
-  if (!request.headers.get('content-type')?.includes('application/json')) return json(415, { error: 'Solicitud no válida.' });
-  const text = await request.text();
+  const text = await request.text().catch(() => '');
   if (Buffer.byteLength(text) > 200_000) return json(413, { error: 'La consulta es demasiado larga.' });
-  let body: Record<string, unknown>;
-  try { body = JSON.parse(text); } catch { return json(400, { error: 'Solicitud no válida.' }); }
-  if (!body || typeof body !== 'object' || body.action !== 'assistant') return json(400, { error: 'Solicitud no válida.' });
-  return assistantResponse(request, body);
+  let body: Record<string, unknown> = {};
+  try { body = text ? JSON.parse(text) : {}; } catch { body = {}; }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) body = {};
+  if (body.action === 'assistant') return assistantResponse(request, body);
+  if (body.action !== 'bunny-usage') return json(400, { error: 'Acción desconocida' });
+  const auth = request.headers.get('authorization') ?? '';
+  if (!auth.startsWith('Bearer ') || !(await isAdmin(auth).catch(() => false))) return json(403, { error: 'Solo para administradores' });
+  return json(200, await bunnyUsage(getJson));
 }

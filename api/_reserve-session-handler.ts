@@ -22,6 +22,12 @@ export async function POST(request:Request):Promise<Response> {
       return reply(400,{error:'Escribe la referencia de la reserva o el ID de transacción de PayPal.'});
     name='reserve_admin_dispute_dossier';args={p_reference:b.reference.trim()};
   }
+  // PayPal dispute on a subscription (read-only admin evidence, see 20261110210000).
+  else if(b.action==='admin-subscription-dossier') {
+    if(typeof b.reference!=='string'||!/^[A-Za-z0-9-]{6,64}$/.test(b.reference.trim()))
+      return reply(400,{error:'Escribe el ID de la suscripción, de la transacción o de la disputa de PayPal.'});
+    name='subscription_admin_dispute_dossier';args={p_reference:b.reference.trim()};
+  }
   else if(b.action==='admin-dispute-fee') {
     if(typeof b.reference!=='string'||!/^[A-Za-z0-9-]{6,64}$/.test(b.reference.trim())||!['platform','creator'].includes(b.payer)||
       typeof b.fee!=='number'||!(b.fee>0&&b.fee<=100)||!uuid.test(b.key||'')||(b.note!==undefined&&(typeof b.note!=='string'||b.note.length>300)))
@@ -37,6 +43,8 @@ export async function POST(request:Request):Promise<Response> {
     const r=await sessionRpc(name,args,token);
     if(!r.ok&&name==='reserve_dispute_fee_assign'&&/Ya se decidió/.test(JSON.stringify(r.data||'')))
       return reply(409,{error:'Ya se decidió quién paga este contracargo. Para cambiarlo, revierte el ajuste en Finanzas.'});
+    if(!r.ok&&name==='subscription_admin_dispute_dossier'&&/No encontramos/.test(JSON.stringify(r.data||'')))
+      return reply(404,{error:'No encontramos una suscripción con esa referencia de PayPal.'});
     if(!r.ok&&/reserve_admin_dispute_dossier|reserve_dispute_fee_assign/.test(name)&&/No encontramos/.test(JSON.stringify(r.data||'')))
       return reply(404,{error:'No encontramos una reserva con esa referencia o transacción de PayPal.'});
     if(!r.ok) return reply(r.status===401?401:409,{error:'No se pudo comprobar esta reserva. Actualiza la página o solicita ayuda.'});

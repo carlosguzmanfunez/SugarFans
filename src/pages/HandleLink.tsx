@@ -1,30 +1,47 @@
-import React from 'react';
-import { Link, Navigate, useLocation } from 'react-router-dom';
+import React, { Suspense, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { useCreatorCatalog } from '../lib/catalog';
 import { saveRefCode } from '../lib/rewards';
+import { lazyPage } from '../lib/lazyPage';
+
+const CreatorProfile = lazyPage(() => import('./CreatorProfile'));
 
 const HANDLE_PATH = /^\/@([A-Za-z0-9_]{3,30})\/?$/;
 
-// fansreserve.com/@usuario: the creator's own link (for their TikTok or Instagram bio).
-// Like /r/<id>, the visitor counts as brought by that creator, then sees the profile.
-// Any other unknown address is the 404 page.
+// Visitors who arrive from a search engine were brought by Google, not by the
+// creator's own link, so they don't earn the creator the link-fan rate.
+const SEARCH_REFERRER = /^https?:\/\/([a-z0-9-]+\.)*(google|bing|duckduckgo|yahoo|yandex|ecosia|baidu|brave|startpage)\.[a-z.]+(\/|$)/i;
+export const fromSearchEngine = (referrer: string) => SEARCH_REFERRER.test(referrer);
+
+const Spinner = () => (
+  <div className="min-h-screen flex items-center justify-center" role="status" aria-label="Cargando perfil">
+    <i aria-hidden="true" className="fas fa-spinner fa-spin text-2xl text-gray-400"></i>
+  </div>
+);
+
+// fansreserve.com/@usuario: the creator's own link (for their TikTok or Instagram bio)
+// and the address Google shows for the profile. The profile opens right here, so the
+// @usuario stays in the address bar. Like /r/<id>, a visitor from the creator's link
+// counts as brought by that creator. Any other unknown address is the 404 page.
 const HandleLink: React.FC = () => {
   const { pathname } = useLocation();
   const handle = HANDLE_PATH.exec(pathname)?.[1]?.toLowerCase();
   const { creators, loading } = useCreatorCatalog();
   const creator = handle ? creators.find((c) => c.username === handle) : undefined;
+  const creatorId = creator?.id;
+
+  useEffect(() => {
+    if (creatorId && !fromSearchEngine(document.referrer)) saveRefCode(creatorId);
+  }, [creatorId]);
 
   if (creator) {
-    saveRefCode(creator.id);
-    return <Navigate to={`/creator/${creator.id}`} replace />;
-  }
-  if (handle && loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" role="status" aria-label="Cargando perfil">
-        <i aria-hidden="true" className="fas fa-spinner fa-spin text-2xl text-gray-400"></i>
-      </div>
+      <Suspense fallback={<Spinner />}>
+        <CreatorProfile profileId={creator.id} />
+      </Suspense>
     );
   }
+  if (handle && loading) return <Spinner />;
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center px-4">

@@ -7,7 +7,7 @@ import type { LiveBackend } from './liveTypes';
 import type { SpecialBackend } from './specialTypes';
 import type { ProspectsBackend } from './prospectTypes';
 import type { SocialLinks } from '../creatorLinks';
-import type { InfraUsage } from '../infraUsage';
+import type { BunnyUsage, InfraUsage } from '../infraUsage';
 import type { MonitorData, MonitorKey, MonitorNewKey, MonitorSnapshot } from '../adminMonitor';
 import type { ReserveResponseLog } from '../reserveResponseReminders';
 import type { FinanceBackend } from '../creatorFinance';
@@ -51,6 +51,9 @@ export interface Subscription {
   since: string;
   // Set when the fan cancelled: access lasts until this date, then it ends.
   cancelAt?: string;
+  // Set while a PayPal dispute on one of its charges is open: exclusive content
+  // stays locked until it is resolved (the server enforces it).
+  pausedAt?: string;
 }
 
 export interface CreatorPost {
@@ -422,6 +425,8 @@ export interface Backend {
   // Admins: this month's use of each provider's plan ("Consumo" tab), and the plans
   // in use plus the share of income set aside for providers.
   infraUsage(): Promise<InfraUsage | null>;
+  // Admins: Bunny Stream videos, storage, views and (with the account key) GB served and balance.
+  bunnyUsage(): Promise<BunnyUsage | null>;
   // Admins: "Mano derecha" (hourly snapshots, daily ledger, 12 AM / 12 PM reports).
   monitor(): Promise<MonitorData>;
   // Admins: take a snapshot now ("Actualizar ahora"); at most one per minute.

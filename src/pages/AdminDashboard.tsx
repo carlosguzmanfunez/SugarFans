@@ -36,6 +36,7 @@ import AdminInfra from '../components/AdminInfra';
 import AdminProspects from '../components/AdminProspects';
 import AdminReserveNudges from '../components/AdminReserveNudges';
 import AdminReserveAttendance from '../components/AdminReserveAttendance';
+import AdminSubscriptionDossier from '../components/AdminSubscriptionDossier';
 import { backend } from '../lib/backend';
 import AdminUserSheet, { isSuspendedNow } from '../components/AdminUserSheet';
 import { countryName } from '../config/countries';
@@ -240,7 +241,7 @@ const AdminDashboard: React.FC = () => {
         {activeTab === 'finance' && <AdminFinance caseReference={caseReference}/>}
 
         {activeTab === 'prospects' && <AdminProspects />}
-        {activeTab === 'attendance' && <div className="space-y-6"><AdminReserveNudges refreshToken={attendanceRefresh} /><AdminReserveAttendance refreshToken={attendanceRefresh} /></div>}
+        {activeTab === 'attendance' && <div className="space-y-6"><AdminReserveNudges refreshToken={attendanceRefresh} /><AdminReserveAttendance refreshToken={attendanceRefresh} /><AdminSubscriptionDossier /></div>}
 
         {activeTab === 'infra' && <AdminInfra transactions={platform.transactions} coins={platform.coins} />}
 

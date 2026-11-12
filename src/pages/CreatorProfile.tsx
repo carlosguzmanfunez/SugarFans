@@ -55,9 +55,11 @@ import {
 const formatDay = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' });
 const formatShortDay = (iso: string) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' }).replace('.', '');
 
-const CreatorProfile: React.FC = () => {
+// profileId: the profile opened at fansreserve.com/@usuario (HandleLink); otherwise /creator/:id.
+const CreatorProfile: React.FC<{ profileId?: string }> = ({ profileId }) => {
   const setup = useCreatorSetup();
-  const { id } = useParams();
+  const params = useParams();
+  const id = profileId ?? params.id;
   const { isAuthenticated, user, isSubscribed: hasSubscription, cancelSubscription, subscriptionOf, refreshUser, deletePost } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -121,14 +123,33 @@ const CreatorProfile: React.FC = () => {
     { socials: {} } as Awaited<ReturnType<typeof socialApi.creatorLinks>>
   );
   const socials = socialLinkList(links.socials);
-  // Google and AI search: "<name> (@usuario) | Fans Reserve" with its own description.
+  // Google and AI search: "<name> (@usuario): videollamada 1:1 | Fans Reserve", its own
+  // description, and fansreserve.com/@usuario as the address (the name in the URL) once
+  // the creator has chosen their @usuario.
   const { t } = useLanguage();
   const handle = links.username || creator?.username;
+  const seoPath = links.username ? `/@${links.username}` : `/creator/${id}`;
+  const seoDescription = t('seo.creator.description').replace(/\{name\}/g, creator?.name ?? '');
   usePageMeta(
     {
-      title: creator ? (handle ? `${creator.name} (@${handle})` : creator.name) : '',
-      description: t('seo.creator.description').replace(/\{name\}/g, creator?.name ?? ''),
-      path: `/creator/${id}`,
+      title: creator ? t('seo.creator.title').replace(/\{name\}/g, handle ? `${creator.name} (@${handle})` : creator.name) : '',
+      description: seoDescription,
+      path: seoPath,
+      jsonLd: creator
+        ? {
+            '@context': 'https://schema.org',
+            '@type': 'ProfilePage',
+            url: `${BRAND.url}${seoPath}`,
+            mainEntity: {
+              '@type': 'Person',
+              name: creator.name,
+              ...(links.username ? { alternateName: `@${links.username}` } : {}),
+              description: seoDescription,
+              ...(/^https?:\/\//.test(creator.avatar) ? { image: creator.avatar } : {}),
+              ...(socials.length ? { sameAs: socials.map((s) => s.href) } : {}),
+            },
+          }
+        : undefined,
     },
     !!creator,
   );
@@ -184,6 +205,14 @@ const CreatorProfile: React.FC = () => {
     [id, user?.id],
     { own: [] as DisplayPost[], engagement: {} as Awaited<ReturnType<typeof socialApi.engagement>> }
   );
+
+  // Evidence for PayPal disputes: a subscriber opened this profile (the server
+  // checks the subscription and keeps one record every 30 minutes; no IP or device).
+  const viewerSub = id ? subscriptionOf(id) : undefined;
+  const logsProfile = !!user && !!viewerSub && !viewerSub.pausedAt && user.creatorProfileId !== id;
+  useEffect(() => {
+    if (logsProfile && id) void socialApi.logSubscriberAccess(id);
+  }, [logsProfile, id]);
 
   // Photo and video links expire in minutes: fetch fresh ones while the page stays open.
   useEffect(() => {
@@ -251,7 +280,14 @@ const CreatorProfile: React.FC = () => {
   const editsImages = isOwner && !managesProfile && !demoCreators.some((c) => c.id === creator.id);
   const isSubscribed = hasSubscription(creator.id) && !iBlocked && !blockedMe;
   const mySub = subscriptionOf(creator.id);
-  const canView = (p: DisplayPost) => !p.isLocked || isSubscribed || isOwner;
+  // A PayPal dispute on one of its charges pauses access (the server hides the content).
+  const accessPaused = isSubscribed && !!mySub?.pausedAt;
+  const canView = (p: DisplayPost) => !p.isLocked || (isSubscribed && !accessPaused) || isOwner;
+  // Evidence for PayPal disputes: when a subscriber opens exclusive posts (no IP or device data).
+  const openPost = (post: DisplayPost) => {
+    if (post.isLocked && isSubscribed && !accessPaused && !isOwner) void socialApi.logSubscriberAccess(creator.id, post.id);
+    setViewing(post.id);
+  };
   // A creator who hasn't verified yet can't be paid (the server refuses it), so no payment buttons.
   const acceptsPayments = !(!catalogCreator && signedUp && !signedUp.isVerified);
   // Subscribing is for fans (visitors are sent to log in); creators and admins don't subscribe.
@@ -632,6 +668,12 @@ const CreatorProfile: React.FC = () => {
           </>
         )}
 
+        {accessPaused && (
+          <p role="status" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" data-testid="subscription-paused-banner">
+            {t('subscriptionDispute.profileBanner')}
+          </p>
+        )}
+
         {/* Tabs */}
         <div id="publicaciones" className="flex scroll-mt-28 space-x-1 bg-white rounded-xl p-1 shadow-sm mb-6">
           <button
@@ -684,13 +726,13 @@ const CreatorProfile: React.FC = () => {
                 canView={canView(post)}
                 isOwner={isOwner}
                 subscribeLabel={`Suscribirse $${creator.subscriptionPrice}/mes`}
-                onSubscribe={canSubscribe ? handleSubscribe : undefined}
+                onSubscribe={canSubscribe && !accessPaused ? handleSubscribe : undefined}
                 onNeedLogin={goLogin}
                 onTip={() => openTip(post.id)}
                 onGift={() => openGift(post.id)}
                 onDelete={feed.own.some((p) => p.id === post.id) && isOwner ? () => removePost(post.id) : undefined}
                 onReport={() => handleReport('post', post.id, `Publicación de ${creator.name}: "${post.content.slice(0, 40)}"`)}
-                onOpen={() => setViewing(post.id)}
+                onOpen={() => openPost(post)}
               />
             )) : (
               <div className="text-center py-12 bg-white rounded-2xl">
@@ -722,7 +764,7 @@ const CreatorProfile: React.FC = () => {
                 onContextMenu={isOwner ? undefined : (e) => e.preventDefault()}
                 className={`relative aspect-square rounded-xl overflow-hidden group cursor-pointer ${isOwner ? '' : 'protected-media'}`}>
                 {post.mediaType === 'video' && post.mediaUrl && canView(post) ? (
-                  <VideoPreview seed={`post-${post.id}`} className="w-full h-full" />
+                  <VideoPreview seed={`post-${post.id}`} src={post.mediaUrl} className="w-full h-full" />
                 ) : (
                   <CoverImage
                     src={canView(post) && !isPlaceholderImage(post.mediaUrl) ? post.mediaUrl : null}

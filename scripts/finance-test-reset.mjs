@@ -2,7 +2,7 @@
 // Used by the supervised one-time operation and its disposable database tests.
 export const RESET_TABLES=[
  'public.transactions','public.coin_purchases','public.subscriptions','public.paypal_orders','public.paypal_subscriptions',
- 'public.finance_journal','public.finance_sources','public.finance_source_revisions','public.finance_adjustments',
+ 'public.finance_journal','public.finance_sources','public.finance_source_revisions','public.finance_adjustments','public.reserve_dispute_fees',
  'public.perk_requests','public.finance_allocations','public.finance_fee_resolutions','public.finance_fee_reversals',
  'finance_private.collection_cost_resolutions','finance_private.collection_credit_updates','finance_private.collection_refund_reviews',
  'public.credit_grants','public.credit_spends'

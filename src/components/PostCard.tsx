@@ -85,7 +85,7 @@ const PostCard: React.FC<Props> = ({ post, engagement, viewer, canView, isOwner,
   const opens = !!onOpen && canView && !!post.mediaUrl;
   const shown = post.mediaUrl && canView
     ? opens && post.mediaType === 'video'
-      ? <VideoPreview seed={`post-${post.id}`} testId="post-video" />
+      ? <VideoPreview seed={`post-${post.id}`} src={post.mediaUrl} testId="post-video" />
       : post.mediaType === 'video'
       ? <OnDemandVideo src={post.mediaUrl} seed={`post-${post.id}`} videoClassName="w-full max-h-[32rem] bg-black" testId="post-video" />
       : isPlaceholderImage(post.mediaUrl)
