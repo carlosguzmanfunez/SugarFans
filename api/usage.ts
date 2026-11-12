@@ -6,6 +6,7 @@
 //   ALERT_EMAIL (carlos@fansreserve.com by default) once per level and month.
 // - GET /api/usage without that header only says whether it is set up.
 // Limits and plans: src/lib/infraUsage.ts. Tables: 20261018000001_infra_usage.sql.
+// - POST /api/usage {action: 'assistant'} is the "Mano derecha" chat for admins (api/_assistant.ts).
 // - GET /api/usage?report=1 emails the pending "Mano derecha" reports (20261107210000_monitor_mano_derecha.sql).
 //
 // Needs in the Vercel project settings: CRON_SECRET (any long random text),
@@ -14,6 +15,7 @@ import { deliverOutbox, logServerError, resendKey, sendEmail, sendHtmlEmail } fr
 import { monitorReportEmail, type MonitorReportRow } from '../src/lib/monitorReportEmail.js';
 import { alertEmail, fromRpc, pendingAlerts } from '../src/lib/infraUsage.js';
 import { sitemapResponse } from './_sitemap.js';
+import { anthropicKey, assistantResponse } from './_assistant.js';
 import { bunnyUsage } from './_bunny.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://odugxvqwuvewsvifwmwb.supabase.co';
@@ -95,6 +97,7 @@ export async function GET(request: Request): Promise<Response> {
         serviceRoleKey: e.serviceKey ? 'OK' : 'FALTA',
         resend: resendKey() ? 'OK' : 'FALTA',
         bunnyAccount: clean(process.env.BUNNY_ACCOUNT_API_KEY) ? 'OK' : 'FALTA',
+        claude: anthropicKey() ? 'OK' : 'FALTA',
       },
     });
   }
@@ -159,8 +162,15 @@ const getJson = async (url: string, init?: RequestInit) => {
   }
 };
 
+// POST {action:'assistant'}: the "Mano derecha" chat (admins only, api/_assistant.ts).
+// Both live here because the plan allows 12 functions and all are in use.
 export async function POST(request: Request): Promise<Response> {
-  const body = (await request.json().catch(() => ({}))) as { action?: unknown };
+  const text = await request.text().catch(() => '');
+  if (Buffer.byteLength(text) > 200_000) return json(413, { error: 'La consulta es demasiado larga.' });
+  let body: Record<string, unknown> = {};
+  try { body = text ? JSON.parse(text) : {}; } catch { body = {}; }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) body = {};
+  if (body.action === 'assistant') return assistantResponse(request, body);
   if (body.action !== 'bunny-usage') return json(400, { error: 'Acción desconocida' });
   const auth = request.headers.get('authorization') ?? '';
   if (!auth.startsWith('Bearer ') || !(await isAdmin(auth).catch(() => false))) return json(403, { error: 'Solo para administradores' });

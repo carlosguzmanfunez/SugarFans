@@ -44,5 +44,6 @@ jobs:
       - run: npm run e2e:paypal
       - run: npm run test:moderation
       - run: npm run test:bunny-video && npm run test:bunny-usage && npm run test:api-esm
+      - run: npm run test:assistant-api
       - run: npm run test:admin-projection
       - run: npm run build

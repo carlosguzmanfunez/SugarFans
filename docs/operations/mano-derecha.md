@@ -13,6 +13,24 @@ Revisa la web sola y avisa. **Solo lee**: no mueve dinero, no cambia cuentas.
 
 Panel: **Admin → Inicio → Mano derecha** (`/admin?section=monitor`). Se recarga solo cada minuto y tiene "Actualizar ahora".
 
+## Chat: "Pregúntale a Mano derecha"
+
+Arriba del panel Mano derecha. Se le escribe como a un compañero ("resuelve los casos abiertos", "ayúdame con las disputas de PayPal", "¿cuánto llevamos hoy?") y contesta en 3 pasos:
+
+1. **Problemas:** lista sencilla, lo urgente primero, cada caso con su código (D1 disputa, P1 retiro, F1 devolución, R1 denuncia, V1 identidad, M1 foto o video, E1 error, A1 alerta).
+2. **Solución según nuestras reglas:** qué hacer en cada caso y qué regla de `manual-operacion.md` aplica.
+3. **Aplicar:** un botón por caso. **Nada corre sin el clic y la confirmación.** Lo que mueve dinero sale en rojo con el monto y pide confirmar otra vez.
+
+**Gratis o con Claude.** "Resuelve los casos abiertos", "¿qué es lo más urgente?" y "¿cuánto llevamos hoy?" se contestan **gratis, sin IA**: cada tipo de caso trae la solución fija del manual (`src/lib/assistantRules.ts`) y el dinero sale de la última revisión, con y sin ISV. Las preguntas libres, o el botón "Pedir análisis a Claude", van a Claude. Si Claude no está conectado o se quedó sin saldo, contesta igual con las reglas gratis y lo avisa. En modo gratis el único Aplicar es el de devoluciones de Reserve (la regla decide el tramo); denuncias, identidades y fotos las decide una persona con **Abrir**.
+
+Qué puede aplicar (lo mismo que el botón de su pantalla): denuncias (resolver, quitar contenido, descartar), identidades (aprobar o rechazar), fotos y videos (aprobar o rechazar), devoluciones de Reserve (aprobar, aprobar legal 100%, no aprobar; el envío del dinero sigue en Retiros y devoluciones). Disputas de PayPal, retiros, errores y alertas solo tienen **Abrir**: eso lo hace una persona en su pantalla o en PayPal.
+
+Cómo funciona: el panel lee los casos con la sesión del admin y los manda a `POST /api/usage {action:'assistant'}` (`api/_assistant.ts`). El servidor comprueba que sea admin, manda los casos y el manual a Claude (`claude-opus-5-5`, manual en caché) y limpia la respuesta: casos inventados fuera y cada acción solo para su tipo de caso (`src/lib/assistantPlan.ts`). No viajan correos ni ids internos. El texto que escriben fans y creadores va marcado como dato, nunca como instrucción. El chat no lee ni cambia la base por su cuenta.
+
+Necesita `ANTHROPIC_API_KEY` en Vercel (console.anthropic.com, con límite de gasto). Sin ella el chat dice que no está conectado y el resto del panel funciona igual; `https://fansreserve.com/api/usage` muestra `claude: OK/FALTA`. Costo aproximado: unos centavos por pregunta.
+
+Pruebas sin costo: `node e2e/assistant-api.mjs` y `npm run build && node e2e/assistant-chat-ui.mjs`.
+
 ## Control en el celular
 
 `https://fansreserve.com/control` (archivo `control.html`, aparte de la app): los mismos números en vivo en el teléfono **sin iniciar sesión**.
@@ -41,5 +59,7 @@ select cron.unschedule(jobid) from cron.job where jobname in ('monitor-hourly','
 ```
 
 Qué hacer con cada alerta y el resto de procesos: `docs/operations/manual-operacion.md`.
+
+Código del chat: `api/_assistant.ts`, `src/lib/assistantPlan.ts`, `src/lib/assistantRules.ts`, `src/lib/assistantData.ts`, `src/components/AdminAssistantChat.tsx`.
 
 Código: `supabase/migrations/20261107210000_monitor_mano_derecha.sql`, `supabase/migrations/20261107220000_monitor_control_celular.sql`, `control.html`, `src/components/AdminMonitor.tsx`, `src/lib/monitorReportEmail.ts`, `api/usage.ts`. Pruebas: `npm run build && node e2e/admin-monitor-ui.mjs && node e2e/control-page-ui.mjs`; base: `npm run test:monitor-live-db`.
