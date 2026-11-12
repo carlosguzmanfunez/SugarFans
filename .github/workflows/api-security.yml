@@ -40,5 +40,5 @@ jobs:
       - run: npm run test:access
       - run: npm run e2e:paypal
       - run: npm run test:moderation
-      - run: npm run test:bunny-video
+      - run: npm run test:bunny-video && npm run test:bunny-usage
       - run: npm run build

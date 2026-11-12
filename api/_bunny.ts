@@ -272,3 +272,74 @@ export async function videoForget(ctx: Ctx, body: { path?: unknown }): Promise<R
   await ctx.call(`${ctx.supabaseUrl}/rest/v1/media_cdn?path=eq.${encodeURIComponent(path)}`, { method: 'DELETE', headers: ctx.server });
   return json(200, { status: 'deleted' });
 }
+
+// ---- Admin "Consumo": what Bunny Stream holds and serves this month ----
+// Library key (always): videos, GB stored, views and minutes watched.
+// Account key BUNNY_ACCOUNT_API_KEY (optional, Account > API): GB served, this month's
+// charges and the balance, which only the account API knows.
+const BUNNY_ACCOUNT_API = process.env.BUNNY_ACCOUNT_API_BASE || 'https://api.bunny.net';
+const num = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+const sumValues = (o: unknown) => (o && typeof o === 'object' ? Object.values(o as Record<string, unknown>).reduce<number>((s, v) => s + num(v), 0) : 0);
+
+export interface BunnyUsage {
+  enabled: boolean;
+  account: boolean;
+  videos: number;
+  storageBytes: number;
+  viewsMonth: number;
+  watchMinutesMonth: number;
+  bandwidthBytesMonth: number | null;
+  chargesMonth: number | null;
+  balance: number | null;
+  measuredAt: string;
+}
+
+export async function bunnyUsage(call: Call, nowMs = Date.now()): Promise<BunnyUsage> {
+  const e = bunnyEnv();
+  const accountKey = clean(process.env.BUNNY_ACCOUNT_API_KEY);
+  const out: BunnyUsage = {
+    enabled: !!(e.library && e.apiKey),
+    account: !!accountKey,
+    videos: 0,
+    storageBytes: 0,
+    viewsMonth: 0,
+    watchMinutesMonth: 0,
+    bandwidthBytesMonth: null,
+    chargesMonth: null,
+    balance: null,
+    measuredAt: new Date(nowMs).toISOString(),
+  };
+  if (!out.enabled) return out;
+  const now = new Date(nowMs);
+  const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+  const to = now.toISOString();
+  const lib = (path: string) =>
+    call(`${BUNNY_API}/library/${encodeURIComponent(e.library!)}${path}`, { headers: { AccessKey: e.apiKey!, accept: 'application/json' } });
+  // Videos: up to 10 pages of 100 (well past what Fans Reserve will hold for a long time).
+  for (let page = 1; page <= 10; page++) {
+    const r = await lib(`/videos?page=${page}&itemsPerPage=100&orderBy=date`);
+    if (!r.ok) break;
+    const items: any[] = Array.isArray(r.data?.items) ? r.data.items : [];
+    for (const v of items) out.storageBytes += num(v?.storageSize);
+    out.videos = num(r.data?.totalItems) || out.videos + items.length;
+    if (items.length < 100) break;
+  }
+  const stats = await lib(`/statistics?dateFrom=${encodeURIComponent(from)}&dateTo=${encodeURIComponent(to)}`);
+  if (stats.ok) {
+    out.viewsMonth = Math.round(sumValues(stats.data?.viewsChart));
+    out.watchMinutesMonth = Math.round(sumValues(stats.data?.watchTimeChart) / 60);
+  }
+  if (accountKey) {
+    const acc = (path: string) => call(`${BUNNY_ACCOUNT_API}${path}`, { headers: { AccessKey: accountKey, accept: 'application/json' } });
+    const [billing, traffic] = await Promise.all([
+      acc('/billing'),
+      acc(`/statistics?dateFrom=${encodeURIComponent(from)}&dateTo=${encodeURIComponent(to)}`),
+    ]);
+    if (billing.ok) {
+      out.balance = num(billing.data?.Balance);
+      out.chargesMonth = num(billing.data?.ThisMonthCharges);
+    }
+    if (traffic.ok) out.bandwidthBytesMonth = num(traffic.data?.TotalBandwidthUsed);
+  }
+  return out;
+}

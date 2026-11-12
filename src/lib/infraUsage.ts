@@ -38,10 +38,10 @@ const GB = 1024 ** 3;
 export const PROVIDERS: Record<ProviderId, { name: string; what: string; plans: Plan[]; extra?: string }> = {
   supabase: {
     name: 'Supabase',
-    what: 'Base de datos, cuentas y fotos/videos',
+    what: 'Base de datos, cuentas, fotos y los videos originales',
     plans: [
-      { id: 'free', name: 'Free', price: 0, limits: { supabase_db: 0.5 * GB, supabase_storage: 1 * GB, supabase_mau: 50_000 }, note: 'Se pausa tras 7 días sin visitas y no tiene copias diarias' },
-      { id: 'pro', name: 'Pro', price: 25, limits: { supabase_db: 8 * GB, supabase_storage: 100 * GB, supabase_mau: 100_000 } },
+      { id: 'free', name: 'Free', price: 0, limits: { supabase_db: 0.5 * GB, supabase_storage: 1 * GB, supabase_mau: 50_000 }, note: 'Se pausa tras 7 días sin visitas y no tiene copias diarias. Descarga incluida: 5 GB al mes' },
+      { id: 'pro', name: 'Pro', price: 25, limits: { supabase_db: 8 * GB, supabase_storage: 100 * GB, supabase_mau: 100_000 }, note: 'Descarga incluida: 250 GB al mes (luego $0.09/GB)' },
     ],
     extra: 'En Pro, lo que pase del límite se cobra aparte (no se corta) si el "Spend cap" está apagado.',
   },
@@ -217,3 +217,24 @@ export const fromRpc = (r: Record<string, unknown>): InfraUsage => ({
   plans: (r.plans ?? {}) as InfraUsage['plans'],
   fundPct: Number(r.fund_pct ?? PROVIDER_RESERVE_PERCENT),
 });
+
+// Bunny Stream (admin "Consumo"): pay per use, no plan limit. Numbers come from Bunny's
+// own API through POST /api/usage {action:'bunny-usage'}; null = needs the account key.
+export interface BunnyUsage {
+  enabled: boolean;
+  account: boolean;
+  videos: number;
+  storageBytes: number;
+  viewsMonth: number;
+  watchMinutesMonth: number;
+  bandwidthBytesMonth: number | null;
+  chargesMonth: number | null;
+  balance: number | null;
+  measuredAt: string;
+}
+// Bunny's prices (November 2026): delivery $0.005/GB (Volume network), storage $0.03/GB a month.
+export const BUNNY_PRICE = { deliveryPerGb: 0.005, storagePerGb: 0.03 };
+export const bunnyEstimate = (u: BunnyUsage) =>
+  (u.storageBytes / GB) * BUNNY_PRICE.storagePerGb + ((u.bandwidthBytesMonth ?? 0) / GB) * BUNNY_PRICE.deliveryPerGb;
+// Below this balance the panel warns (auto-recharge should have topped it up).
+export const BUNNY_LOW_BALANCE = 3;
