@@ -2,7 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { socialApi, type MediaType } from '../lib/social';
 import { platformChanged } from '../lib/platform';
-import { IMAGE_TYPES, VIDEO_TYPES, MAX_IMAGE_MB, MAX_VIDEO_MB, validateMedia } from '../lib/media';
+import { VIDEO_TYPES, MAX_IMAGE_MB, MAX_VIDEO_MB, validateMedia } from '../lib/media';
+import { checkProfileImage, looksLikePhoto } from '../lib/profileImage';
+import { shrinkPostImage } from '../lib/postImage';
+import { useLanguage } from '../context/LanguageContext';
 
 interface Props {
   verified: boolean;
@@ -16,6 +19,7 @@ interface Props {
 // uploaded first (Supabase Storage, or IndexedDB offline), then the post is saved.
 const NewPostForm: React.FC<Props> = ({ verified, asProfileId, onPublished, onCancel }) => {
   const { user, addPost } = useAuth();
+  const { t } = useLanguage();
   const [text, setText] = useState('');
   const [locked, setLocked] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -28,10 +32,27 @@ const NewPostForm: React.FC<Props> = ({ verified, asProfileId, onPublished, onCa
 
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
-  const pick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
+  const [preparing, setPreparing] = useState(false);
+
+  const pick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = e.target.files?.[0];
     e.target.value = '';
-    if (!f) return;
+    if (!picked) return;
+    let f = picked;
+    // Photos are opened here already: edited phone photos, HEIC or photos the phone
+    // sends without a type become a normal JPEG (and smaller) before the checks.
+    if (!VIDEO_TYPES.includes(picked.type) && looksLikePhoto(picked)) {
+      const problem = checkProfileImage(picked);
+      if (problem) return setError(problem);
+      setPreparing(true);
+      try {
+        f = await shrinkPostImage(picked);
+      } catch (err) {
+        return setError(t(err instanceof Error ? err.message : 'photo.unreadable'));
+      } finally {
+        setPreparing(false);
+      }
+    }
     const check = validateMedia(f);
     if (!check.type) return setError(check.error!);
     setError('');
@@ -108,7 +129,7 @@ const NewPostForm: React.FC<Props> = ({ verified, asProfileId, onPublished, onCa
         </div>
       )}
 
-      <input ref={imageInput} type="file" accept={IMAGE_TYPES.join(',')} onChange={pick} className="hidden" data-testid="image-input" />
+      <input ref={imageInput} type="file" accept="image/*" onChange={pick} className="hidden" data-testid="image-input" />
       <input ref={videoInput} type="file" accept={VIDEO_TYPES.join(',')} onChange={pick} className="hidden" data-testid="video-input" />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4">
@@ -137,10 +158,10 @@ const NewPostForm: React.FC<Props> = ({ verified, asProfileId, onPublished, onCa
           <button
             type="button"
             onClick={publish}
-            disabled={!!busy}
+            disabled={!!busy || preparing}
             className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-2 rounded-xl font-medium hover:opacity-90 disabled:opacity-50"
           >
-            {busy === 'upload' ? 'Subiendo archivo…' : busy === 'save' ? (verified ? 'Publicando…' : 'Guardando…') : verified ? 'Publicar' : 'Guardar borrador'}
+            {preparing ? t('photo.preparing') : busy === 'upload' ? 'Subiendo archivo…' : busy === 'save' ? (verified ? 'Publicando…' : 'Guardando…') : verified ? 'Publicar' : 'Guardar borrador'}
           </button>
         </div>
       </div>

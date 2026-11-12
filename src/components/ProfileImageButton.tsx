@@ -5,6 +5,7 @@ import { platformChanged } from '../lib/platform';
 import { checkProfileImage, loadImage, type ProfileImageKind } from '../lib/profileImage';
 import AvatarCropper from './AvatarCropper';
 import { useCreatorSetup } from '../hooks/useCreatorSetup';
+import { useLanguage } from '../context/LanguageContext';
 import { hasOwnAvatar } from '../lib/backend/shared';
 import { isPlaceholderImage } from './CoverArt';
 
@@ -20,6 +21,7 @@ interface Props {
 const ProfileImageButton: React.FC<Props> = ({ kind, onDone, className = '', withLabel = false }) => {
   const setup = useCreatorSetup();
   const { user, refreshUser } = useAuth();
+  const { t } = useLanguage();
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const label = kind === 'avatar' ? 'Cambiar foto de perfil' : 'Cambiar foto de portada';
@@ -62,7 +64,7 @@ const ProfileImageButton: React.FC<Props> = ({ kind, onDone, className = '', wit
     try {
       setFraming(await loadImage(file, true));
     } catch (err) {
-      onDone(err instanceof Error ? err.message : 'No se pudo guardar la foto', false);
+      onDone(t(err instanceof Error ? err.message : 'photo.unreadable'), false);
     }
   };
 
