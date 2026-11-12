@@ -1,6 +1,7 @@
 import React, { useId, useState } from 'react';
 import { COVER_PALETTES, COVER_STYLES, hashSeed, type CoverStyle } from '../config/theme';
 import DeferredImage from './DeferredImage';
+import { parseCoverFrame } from '../lib/profileImage';
 
 // Generated, on-brand artwork for creator covers, VIP experiences and demo media.
 // Each seed always renders the same style and palette, so profiles look different
@@ -133,10 +134,37 @@ export const CoverImage: React.FC<{
 }> = ({ src, seed, alt = '', className = '', imgClassName = '', children }) => {
   const [failed, setFailed] = useState(false);
   const usePhoto = !isPlaceholderImage(src) && !failed;
+  // Covers saved whole (profileImage.ts prepareCover) show only the band the creator
+  // chose, filling the slot like object-cover would; opening the cover shows it all.
+  const frame = usePhoto ? parseCoverFrame(src) : null;
   return (
-    <div className={`relative overflow-hidden ${className}`}>
+    <div className={`relative overflow-hidden ${className}`} style={frame ? { containerType: 'size' } : undefined}>
       <CoverArt seed={seed} />
-      {usePhoto && (
+      {usePhoto && frame && (
+        <div
+          className="absolute left-1/2 top-1/2 overflow-hidden"
+          style={{
+            width: `max(100cqw, calc(100cqh * ${frame.w / frame.h}))`,
+            aspectRatio: `${frame.w} / ${frame.h}`,
+            transform: 'translate(-50%, -50%)',
+          }}
+          data-testid="cover-frame"
+        >
+          <DeferredImage
+            src={src!}
+            alt={alt}
+            onError={() => setFailed(true)}
+            className={`absolute max-w-none ${imgClassName}`}
+            style={{
+              width: `${(frame.W / frame.w) * 100}%`,
+              height: `${(frame.H / frame.h) * 100}%`,
+              left: `${(-frame.x / frame.w) * 100}%`,
+              top: `${(-frame.y / frame.h) * 100}%`,
+            }}
+          />
+        </div>
+      )}
+      {usePhoto && !frame && (
         <DeferredImage
           src={src!}
           alt={alt}

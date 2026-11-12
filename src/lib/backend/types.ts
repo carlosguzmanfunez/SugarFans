@@ -79,6 +79,8 @@ export interface User {
   // Server-confirmed singleton owner. role is its selected inspection view.
   isOwner?: boolean;
   accountRole?: UserRole;
+  // Cuenta doble (fan + creador), enabled by the owner: role is the side shown now.
+  isDual?: boolean;
   avatar: string;
   cover?: string;
   bio?: string;
@@ -403,6 +405,9 @@ export interface Backend {
   accessToken(): Promise<string | null>;
   getCurrentUser(): Promise<User | null>;
   ownerSwitchView?(view: UserRole): Promise<AuthResult>;
+  // Cuentas dobles: the personal code makes the account fan + creator; then switch sides.
+  dualClaim?(code: string, view: UserRole): Promise<AuthResult>;
+  dualSwitchView?(view: UserRole): Promise<AuthResult>;
   // Fires when the session or the signed-in user's data may have changed elsewhere.
   onChange(cb: () => void): () => void;
   login(email: string, password: string, remember: boolean): Promise<AuthResult>;
@@ -415,8 +420,9 @@ export interface Backend {
   becomeCreator(user: User): Promise<AuthResult>;
   logout(): Promise<void>;
   updateProfile(user: User, patch: ProfilePatch): Promise<AuthResult>;
-  // Profile photo or cover photo, already shrunk to a JPEG by the browser.
-  setProfileImage(user: User, kind: 'avatar' | 'cover', image: Blob): Promise<AuthResult>;
+  // Profile photo or cover photo, already shrunk to a JPEG by the browser. tag: the
+  // cover's chosen band (profileImage.ts prepareCover), kept in the file name.
+  setProfileImage(user: User, kind: 'avatar' | 'cover', image: Blob, tag?: string): Promise<AuthResult>;
   // Admins: uploads waiting for (or blocked by) moderation, and their decision.
   moderationQueue(): Promise<ModerationItem[]>;
   reviewMedia(bucket: ModerationItem['bucket'], path: string, approve: boolean, reason?: string): Promise<AuthResult>;

@@ -3,7 +3,8 @@
 // full size and zoomed, 1920 px looks the same and weighs ~10 times less. Every fan
 // who opens the post downloads it, so this is what keeps the storage traffic bill low.
 // It also drops the photo's hidden data (EXIF), including the GPS location.
-import { loadImage } from './profileImage';
+import { loadImage, PHOTO_UNREADABLE } from './profileImage';
+import { IMAGE_TYPES } from './media';
 
 export const POST_IMAGE_PX = 1920;
 export const POST_IMAGE_QUALITY = 0.82;
@@ -15,21 +16,28 @@ const encode = (canvas: HTMLCanvasElement) =>
 
 const jpegName = (name: string) => `${name.replace(/\.[^.]*$/, '') || 'foto'}.jpg`;
 
-/** Returns the photo to upload: smaller when it helps, the original otherwise. */
+/**
+ * Returns the photo to upload: smaller when it helps, the original otherwise.
+ * Photos in a format the site doesn't keep (HEIC, AVIF, BMP, or a photo the phone
+ * sent with no type) always come back as JPEG; if they can't be opened it throws
+ * (the message is a translation key, see profileImage.ts).
+ */
 export const shrinkPostImage = async (file: File): Promise<File> => {
   // GIFs can be animated; a canvas would keep only the first frame.
   if (file.type === 'image/gif') return file;
+  const keepable = IMAGE_TYPES.includes(file.type);
   let img: HTMLImageElement;
   try {
     img = await loadImage(file);
-  } catch {
-    return file;
+  } catch (err) {
+    if (keepable) return file;
+    throw err;
   }
   const w = img.naturalWidth;
   const h = img.naturalHeight;
   if (!w || !h) return file;
   const longSide = Math.max(w, h);
-  if (longSide <= POST_IMAGE_PX && file.size <= KEEP_BYTES) return file;
+  if (keepable && longSide <= POST_IMAGE_PX && file.size <= KEEP_BYTES) return file;
 
   const scale = Math.min(1, POST_IMAGE_PX / longSide);
   const canvas = document.createElement('canvas');
@@ -43,6 +51,10 @@ export const shrinkPostImage = async (file: File): Promise<File> => {
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
   const blob = await encode(canvas);
-  if (!blob || blob.size >= file.size) return file;
+  if (!blob) {
+    if (keepable) return file;
+    throw new Error(PHOTO_UNREADABLE);
+  }
+  if (keepable && blob.size >= file.size) return file;
   return new File([blob], jpegName(file.name), { type: 'image/jpeg', lastModified: Date.now() });
 };

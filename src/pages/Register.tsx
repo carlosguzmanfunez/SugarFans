@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import DualAccountNote from '../components/DualAccountNote';
 import TermsConsent from '../components/TermsConsent';
 import { useAuth, UserRole } from '../context/AuthContext';
 import { isValidEmail } from '../lib/storage';
@@ -255,6 +256,8 @@ const Register: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
               <p className="text-xs text-gray-500 mt-1">{t('register.creatorDesc')}</p>
             </button>
           </div>
+
+          <DualAccountNote />
 
           {role === 'creator' && (
             <div className="rounded-xl bg-purple-50 border border-purple-100 p-4" data-testid="creator-benefits">

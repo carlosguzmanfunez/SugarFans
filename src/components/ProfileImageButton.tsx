@@ -2,9 +2,10 @@ import React, { useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../lib/backend';
 import { platformChanged } from '../lib/platform';
-import { checkProfileImage, loadImage, type ProfileImageKind } from '../lib/profileImage';
+import { checkProfileImage, loadImage, PHOTO_ACCEPT, type ProfileImageKind } from '../lib/profileImage';
 import AvatarCropper from './AvatarCropper';
 import { useCreatorSetup } from '../hooks/useCreatorSetup';
+import { useLanguage } from '../context/LanguageContext';
 import { hasOwnAvatar } from '../lib/backend/shared';
 import { isPlaceholderImage } from './CoverArt';
 
@@ -20,6 +21,7 @@ interface Props {
 const ProfileImageButton: React.FC<Props> = ({ kind, onDone, className = '', withLabel = false }) => {
   const setup = useCreatorSetup();
   const { user, refreshUser } = useAuth();
+  const { t } = useLanguage();
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const label = kind === 'avatar' ? 'Cambiar foto de perfil' : 'Cambiar foto de portada';
@@ -27,11 +29,11 @@ const ProfileImageButton: React.FC<Props> = ({ kind, onDone, className = '', wit
   // The adjust screen opens first: a circle for the photo, a wide frame for the cover.
   const [framing, setFraming] = useState<HTMLImageElement | null>(null);
 
-  const upload = async (image: Blob) => {
+  const upload = async (image: Blob, tag?: string) => {
     if (!user) return;
     setBusy(true);
     try {
-      const result = await backend.setProfileImage(user, kind, image);
+      const result = await backend.setProfileImage(user, kind, image, tag);
       if (!result.ok) return onDone(result.error || 'No se pudo guardar la foto', false);
       // Held for moderation: the current photo stays until it's approved.
       if (result.notice) {
@@ -62,7 +64,7 @@ const ProfileImageButton: React.FC<Props> = ({ kind, onDone, className = '', wit
     try {
       setFraming(await loadImage(file, true));
     } catch (err) {
-      onDone(err instanceof Error ? err.message : 'No se pudo guardar la foto', false);
+      onDone(t(err instanceof Error ? err.message : 'photo.unreadable'), false);
     }
   };
 
@@ -73,7 +75,7 @@ const ProfileImageButton: React.FC<Props> = ({ kind, onDone, className = '', wit
 
   return (
     <>
-      <input ref={input} type="file" accept="image/*" onChange={pick} className="hidden" data-testid={`${kind}-input`} />
+      <input ref={input} type="file" accept={PHOTO_ACCEPT} onChange={pick} className="hidden" data-testid={`${kind}-input`} />
       <button
         type="button"
         onClick={() => input.current?.click()}
@@ -99,9 +101,9 @@ const ProfileImageButton: React.FC<Props> = ({ kind, onDone, className = '', wit
           image={framing}
           kind={kind}
           onCancel={closeFraming}
-          onSave={(blob) => {
+          onSave={(blob, tag) => {
             closeFraming();
-            upload(blob);
+            upload(blob, tag);
           }}
         />
       )}

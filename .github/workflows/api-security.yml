@@ -11,6 +11,8 @@ on:
       - 'e2e/paypal-api.mjs'
       - 'e2e/public-provider-config.mjs'
       - 'e2e/api-esm-load.mjs'
+      - 'src/components/AdminProjection.tsx'
+      - 'e2e/admin-projection-ui.mjs'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/api-security.yml'
@@ -30,7 +32,7 @@ jobs:
     env:
       PAYPAL_ENV: sandbox
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
@@ -43,4 +45,5 @@ jobs:
       - run: npm run test:moderation
       - run: npm run test:bunny-video && npm run test:bunny-usage && npm run test:api-esm
       - run: npm run test:assistant-api
+      - run: npm run test:admin-projection
       - run: npm run build

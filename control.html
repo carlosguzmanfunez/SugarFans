@@ -81,6 +81,15 @@ details pre{white-space:pre-wrap;font-family:inherit;font-size:13px;line-height:
 .btn.ghost{background:none;color:#52514e;border:1px solid #dcdbd6;width:auto;padding:8px 14px;font-size:13px}
 .err{color:#b42318;font-size:13px;margin:8px 0 0}
 .note{background:#fff6e0;color:#5a3d00;border-radius:12px;padding:10px 12px;font-size:13px}
+.goal .big{color:#047857}.goal .big.neg{color:#b42318}
+.prog{height:12px;border-radius:999px;background:#f1f0ec;overflow:hidden;margin:8px 0 4px}
+.prog span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#1baf7a,#059669)}
+.mt{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;margin-top:10px}
+.mt th{color:var(--muted);font-weight:600;font-size:11.5px;text-align:right;padding:6px 4px;border-bottom:1px solid var(--line)}
+.mt th:first-child,.mt td:first-child{text-align:left}
+.mt td{text-align:right;padding:7px 4px;border-bottom:1px solid var(--line)}
+.mt tr.done td{color:#047857;font-weight:600}
+.mt tr.next td{background:#fff6e0}
 .foot{display:flex;justify-content:space-between;align-items:center;gap:10px;color:var(--muted);font-size:12px}
 [hidden]{display:none!important}
 </style>
@@ -117,6 +126,21 @@ details pre{white-space:pre-wrap;font-family:inherit;font-size:13px;line-height:
       <div class="bar" id="split" aria-hidden="true"></div>
       <div class="legend"><span><i style="background:var(--c1)"></i>Creadores</span><span><i style="background:var(--c2)"></i>PayPal</span><span><i style="background:var(--c3)"></i>Fans Reserve</span></div>
       <ul class="rows" id="money"></ul>
+    </section>
+
+    <section class="card goal" id="goalCard">
+      <h2>Camino a los primeros $1,000 limpios</h2>
+      <p class="hint" id="goalHint"></p>
+      <p class="big" id="goalNow"></p>
+      <p class="sub" id="goalSub"></p>
+      <div class="prog" aria-hidden="true"><span id="goalBar"></span></div>
+      <p class="hint" id="goalNext"></p>
+      <table class="mt" id="goalTable">
+        <thead><tr><th>Meta limpia al mes</th><th>Creadores</th><th>Reserve</th><th>Estado</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <ul class="rows" id="goalRows" style="margin-top:10px"></ul>
+      <p class="hint" style="margin-top:8px">Supuestos: cada creador hace 3 Reserve de $25 al mes y nos deja $17.85 sin ISV. Proveedores con el primer plan de pago: $151.25 al mes. Se aparta el 25% de la renta para los pagos a cuenta del ISR. El fondo del 15% es parte de nuestra plata, no un gasto extra.</p>
     </section>
 
     <section class="card">
@@ -256,6 +280,7 @@ details pre{white-space:pre-wrap;font-family:inherit;font-size:13px;line-height:
     setLive(true, 'En vivo');
 
     renderMoney();
+    renderGoal();
 
     $('problems').innerHTML = probs.length ? probs.map(function (p) {
       var lvl = { alta: 'Urgente', media: 'Revisar', baja: 'Info' }[p.nivel];
@@ -317,6 +342,49 @@ details pre{white-space:pre-wrap;font-family:inherit;font-size:13px;line-height:
       ['Retiros pagados a creadores', usd(m.retiros_pagados && m.retiros_pagados.monto), 'muted']
     ];
     $('money').innerHTML = rows.map(function (r) { return '<li class="' + r[2] + '"><span>' + r[0] + '</span><b>' + r[1] + '</b></li>'; }).join('');
+  }
+
+  // Camino a los $1.000 (tabla del punto de equilibrio, 12 nov 2026). Solo cuentas: no lee nada nuevo.
+  var GOAL = { proveedores: 151.25, isr: 0.25, fondo: 0.15, porCreador: 17.85, reservePorCreador: 3 };
+  var limpio = function (frSinIsv) { var renta = frSinIsv - GOAL.proveedores; return renta > 0 ? renta * (1 - GOAL.isr) : renta; };
+  var creadoresPara = function (meta) {
+    var n = Math.ceil(GOAL.proveedores / GOAL.porCreador - 1e-9);
+    while (limpio(n * GOAL.porCreador) < meta - 1e-9) n++;
+    return n;
+  };
+  var METAS = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
+
+  function renderGoal() {
+    var m = (data.ahora || {}).mes || {};
+    var fr = num(m.fr_sin_isv), frIsv = num(m.fr_con_isv);
+    var renta = fr - GOAL.proveedores, gan = limpio(fr), isr = renta > 0 ? renta * GOAL.isr : 0;
+    var equiv = fr / GOAL.porCreador;
+    $('goalHint').textContent = 'Este mes, después de creadores, PayPal, ISV, proveedores y la reserva del ISR.';
+    $('goalNow').textContent = usd(gan);
+    $('goalNow').className = 'big' + (gan < 0 ? ' neg' : '');
+    $('goalSub').textContent = gan < 0
+      ? 'Aún no cubrimos proveedores: faltan ' + usd(-renta) + ' sin ISV.'
+      : 'Equivale a unos ' + Math.floor(equiv) + ' creadores con 3 Reserve cada uno.';
+    var next = null;
+    for (var i = 0; i < METAS.length; i++) { if (gan < METAS[i]) { next = METAS[i]; break; } }
+    var prev = 0;
+    METAS.forEach(function (g) { if (gan >= g) prev = g; });
+    var pct = gan <= 0 ? Math.max(0, Math.min(100, fr / GOAL.proveedores * 100)) : next === null ? 100 : Math.max(0, Math.min(100, (gan - prev) / (next - prev) * 100));
+    $('goalBar').style.width = pct + '%';
+    $('goalNext').textContent = next === null ? '¡Meta de $1,000 alcanzada este mes!'
+      : next === 0 ? 'Próximo paso: cubrir los $151.25 de proveedores (equilibrio).'
+      : 'Próxima meta: ' + usd(next) + ' limpios. Faltan ' + usd(next - gan) + '.';
+    $('goalTable').querySelector('tbody').innerHTML = METAS.map(function (g) {
+      var n = creadoresPara(g), done = gan >= g, cls = done ? 'done' : g === next ? 'next' : '';
+      return '<tr class="' + cls + '"><td>' + (g === 0 ? 'Equilibrio' : usd(g).replace('.00', '')) + '</td><td>' + n + '</td><td>' + n * GOAL.reservePorCreador + '</td><td>' + (done ? '✓' : g === next ? 'Siguiente' : '') + '</td></tr>';
+    }).join('');
+    var fondo = frIsv * GOAL.fondo;
+    $('goalRows').innerHTML = [
+      ['Fans Reserve sin ISV (mes)', usd(fr), 'strong'],
+      ['Proveedores', '-' + usd(GOAL.proveedores), 'muted'],
+      ['Reserva ISR 25% (pagos a cuenta)', '-' + usd(isr), 'muted'],
+      ['¿El fondo 15% cubre proveedores? (chequeo, no se resta)', (fondo >= GOAL.proveedores ? 'Sí ✓ ' : 'Aún no: ') + usd(fondo) + ' de ' + usd(GOAL.proveedores), 'muted']
+    ].map(function (r) { return '<li class="' + r[2] + '"><span>' + r[0] + '</span><b>' + r[1] + '</b></li>'; }).join('');
   }
 
   Array.prototype.forEach.call(document.querySelectorAll('.seg button'), function (b) {
