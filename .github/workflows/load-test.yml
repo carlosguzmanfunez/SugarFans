@@ -49,15 +49,15 @@ jobs:
         with:
           k6-version: '1.3.0'
       - name: Revisar scripts (sin tráfico)
-        env:
-          BASE_URL: https://ejemplo.vercel.app
-          SUPABASE_URL: https://ejemplo.supabase.co
-          SUPABASE_ANON_KEY: ejemplo
         run: |
-          for nivel in humo 200 500 1000 2000; do NIVEL=$nivel k6 inspect loadtest/visitantes.js > /dev/null; done
-          k6 inspect loadtest/realtime.js > /dev/null
+          # k6 inspect no lee las variables del sistema: se pasan con -e.
+          SB="-e SUPABASE_URL=https://ejemplo.supabase.co -e SUPABASE_ANON_KEY=ejemplo"
+          for nivel in humo 200 500 1000 2000; do
+            k6 inspect $SB -e BASE_URL=https://ejemplo.vercel.app -e NIVEL=$nivel loadtest/visitantes.js > /dev/null
+          done
+          k6 inspect $SB loadtest/realtime.js > /dev/null
           # El seguro contra Producción tiene que saltar.
-          if BASE_URL=https://fansreserve.com k6 inspect loadtest/visitantes.js > /dev/null 2>&1; then
+          if k6 inspect $SB -e BASE_URL=https://fansreserve.com loadtest/visitantes.js > /dev/null 2>&1; then
             echo "El script aceptó fansreserve.com y no debería"; exit 1
           fi
           echo "Scripts OK"
