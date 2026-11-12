@@ -15,7 +15,7 @@
     "typecheck": "tsc --noEmit",
     "test:seo": "node e2e/seo.mjs",
     "test:admin-monitor-ui": "node e2e/admin-monitor-ui.mjs",
-    "test:assistant-api": "node e2e/assistant-api.mjs",
+    "test:assistant-api": "node e2e/assistant-api.mjs && node e2e/assistant-rules.mjs",
     "test:assistant-chat-ui": "node e2e/assistant-chat-ui.mjs",
     "test:monitor-live-db": "node e2e/monitor-live-db.mjs",
     "test:control-page-ui": "node e2e/control-page-ui.mjs",

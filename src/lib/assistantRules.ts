@@ -71,6 +71,12 @@ const ruleFor = (c: AssistantCase, ref: RuleRef | undefined, lang: Lang): { leve
       return open('media', L(lang, 'Manual 7 · moderación', 'Manual 7 · moderation'),
         L(lang, 'Quedó en revisión manual (puntaje entre 0.5 y 0.85). Míralo y aprueba o rechaza.', 'It is in manual review (score between 0.5 and 0.85). Look at it and approve or reject.'));
     case 'error': {
+      // A visitor had the previous version open after a deploy. Since PR #177 the
+      // page reloads itself once and gets the new version: nothing to do.
+      if (/dynamically imported module|Importing a module script failed|Unable to preload CSS/i.test(c.title))
+        return open('baja', L(lang, 'Versión vieja abierta tras publicar', 'Old version open after a deploy'),
+          L(lang, 'No hay que hacer nada: alguien tenía abierta la versión anterior justo cuando publicamos. La página ya se recarga sola y trae la nueva. El aviso se borra solo a los 30 días.',
+            'Nothing to do: someone had the previous version open right when we deployed. The page now reloads itself and gets the new one. The notice is deleted after 30 days.'), 'none');
       const many = Number(meta.count) >= 10;
       return open(many ? 'media' : 'baja', L(lang, 'Manual 4 · errores', 'Manual 4 · errors'),
         many ? L(lang, 'Se repite mucho: abrir un PR con el arreglo.', 'It repeats a lot: open a PR with the fix.') : L(lang, 'Informativo. Vigila si se repite.', 'For information. Watch whether it repeats.'));
