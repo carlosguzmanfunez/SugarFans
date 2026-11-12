@@ -70,3 +70,4 @@ Fuentes consultadas el 29 de octubre de 2026:
   - Sin `BUNNY_STREAM_LIBRARY_ID`, `BUNNY_STREAM_API_KEY` y `BUNNY_STREAM_TOKEN_KEY` en Vercel todo sigue saliendo de Supabase. Diagnóstico: `GET /api/moderate` → `video`.
   - Tabla `media_cdn` (`20261112030000_media_cdn_bunny.sql`): solo el servidor la usa.
   - Pruebas: `npm run test:bunny-video` y `npm run test:bunny-player-ui`.
+  - Panel de Bunny (biblioteca `fans-reserve-videos`, ID 806946): "Enable direct play" apagado; "Block direct url file access", "Embed view token authentication" y "CDN token authentication" encendidos; dominios permitidos `fansreserve.com`, `*.fansreserve.com` y `*.vercel.app` (Preview). Las llaves están en la biblioteca → API (API Key, no la Read-only) y Security → General (Token authentication key); nunca se copian al repositorio.
