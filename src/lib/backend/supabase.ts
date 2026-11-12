@@ -509,9 +509,10 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       await sb.auth.signOut();
     },
 
-    async setProfileImage(user, kind, image) {
+    async setProfileImage(user, kind, image, tag) {
       const bucket = sb.storage.from('profile-images');
-      const path = `${user.id}/${kind}-${Date.now()}.jpg`;
+      const safeTag = tag && /^f[\d-]{11,60}$/.test(tag) ? `-${tag}` : '';
+      const path = `${user.id}/${kind}-${Date.now()}${safeTag}.jpg`;
       const { error } = await bucket.upload(path, image, { contentType: 'image/jpeg', upsert: false });
       if (error) return fail(/size|large|payload/i.test(error.message) ? 'La foto es demasiado grande' : 'No se pudo subir la foto. Inténtalo de nuevo.');
       const url = bucket.getPublicUrl(path).data.publicUrl;

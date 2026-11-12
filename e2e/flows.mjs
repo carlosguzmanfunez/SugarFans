@@ -981,6 +981,8 @@ const run = async () => {
       await page.getByTestId('cover-desktop-band').waitFor();
       await page.getByTestId('avatar-cropper-save').click();
       await page.getByText('Portada actualizada').waitFor();
+      // The whole photo is saved; the profile shows only the chosen band.
+      await page.getByTestId('cover-frame').first().waitFor();
       // Cancelling the adjust screen leaves the photo as it was.
       await pickWith('avatar-button', 'yo.png');
       await page.getByTestId('avatar-cropper').getByRole('button', { name: 'Cancelar' }).click();

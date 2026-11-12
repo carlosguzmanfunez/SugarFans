@@ -1,10 +1,11 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { cropAvatar, cropCover, COVER_RATIO, COVER_DESKTOP_RATIO } from '../lib/profileImage';
+import { cropAvatar, prepareCover, coverFrameTag, COVER_RATIO, COVER_DESKTOP_RATIO } from '../lib/profileImage';
 
 interface Props {
   image: HTMLImageElement;
   onCancel: () => void;
-  onSave: (blob: Blob) => void;
+  // tag: the cover's chosen band, kept in the file name (see prepareCover).
+  onSave: (blob: Blob, tag?: string) => void;
   // 'cover': a wide frame like Facebook's cover, instead of the profile circle.
   kind?: 'avatar' | 'cover';
 }
@@ -115,7 +116,12 @@ const AvatarCropper: React.FC<Props> = ({ image, onCancel, onSave, kind = 'avata
     const sx = Math.max(0, (dispW / 2 - offset.x - size / 2) / scale);
     const sy = Math.max(0, (dispH / 2 - offset.y - frameH / 2) / scale);
     try {
-      onSave(cover ? await cropCover(image, sx, sy, sw, sh) : await cropAvatar(image, sx, sy, Math.min(sw, sh)));
+      if (cover) {
+        const { blob, frame } = await prepareCover(image, sx, sy, sw, sh);
+        onSave(blob, coverFrameTag(frame));
+      } else {
+        onSave(await cropAvatar(image, sx, sy, Math.min(sw, sh)));
+      }
     } finally {
       setSaving(false);
     }

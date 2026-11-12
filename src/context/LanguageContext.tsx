@@ -29,6 +29,11 @@ const detectLanguage = (): Language => {
 // Translations
 const translations: Record<Language, Record<string, string>> = {
   es: {
+    // Photos chosen from the phone (profile, cover, posts)
+    'photo.unreadable': 'No pudimos abrir esa foto. Prueba con otra, o abre esta en tu Galería, guárdala como copia y súbela otra vez.',
+    'photo.cantOpen': 'Tu teléfono no nos dejó abrir esa foto. Elígela otra vez desde Galería o Archivos; si sigue igual, guárdala como copia en tu Galería y súbela.',
+    'photo.preparing': 'Preparando foto…',
+
     // Navbar
     'nav.home': 'Inicio',
     'firstSteps.finished.title': "¡Terminaste tus primeros pasos!",
@@ -415,6 +420,11 @@ const translations: Record<Language, Record<string, string>> = {
   },
   
   en: {
+    // Photos chosen from the phone (profile, cover, posts)
+    'photo.unreadable': 'We couldn\'t open that photo. Try another one, or open it in your Gallery, save it as a copy and upload it again.',
+    'photo.cantOpen': 'Your phone didn\'t let us open that photo. Choose it again from Gallery or Files; if it still fails, save it as a copy in your Gallery and upload it.',
+    'photo.preparing': 'Preparing photo…',
+
     // Navbar
     'nav.home': 'Home',
     'firstSteps.finished.title': "You finished your first steps!",
@@ -801,6 +811,11 @@ const translations: Record<Language, Record<string, string>> = {
   },
   
   pt: {
+    // Photos chosen from the phone (profile, cover, posts)
+    'photo.unreadable': 'Não conseguimos abrir essa foto. Tente outra, ou abra esta na sua Galeria, salve como cópia e envie de novo.',
+    'photo.cantOpen': 'Seu celular não nos deixou abrir essa foto. Escolha de novo pela Galeria ou Arquivos; se continuar, salve como cópia na Galeria e envie.',
+    'photo.preparing': 'Preparando foto…',
+
     // Navbar
     'nav.home': 'Início',
     'firstSteps.finished.title': "Você concluiu seus primeiros passos!",
@@ -1187,6 +1202,11 @@ const translations: Record<Language, Record<string, string>> = {
   },
   
   fr: {
+    // Photos chosen from the phone (profile, cover, posts)
+    'photo.unreadable': 'Nous n\'avons pas pu ouvrir cette photo. Essayez-en une autre, ou ouvrez-la dans votre Galerie, enregistrez-la comme copie et envoyez-la à nouveau.',
+    'photo.cantOpen': 'Votre téléphone ne nous a pas laissé ouvrir cette photo. Choisissez-la à nouveau depuis Galerie ou Fichiers ; si ça continue, enregistrez-la comme copie dans votre Galerie et envoyez-la.',
+    'photo.preparing': 'Préparation de la photo…',
+
     // Navbar
     'nav.home': 'Accueil',
     'firstSteps.finished.title': "Vous avez terminé vos premiers pas !",
@@ -1573,6 +1593,11 @@ const translations: Record<Language, Record<string, string>> = {
   },
   
   it: {
+    // Photos chosen from the phone (profile, cover, posts)
+    'photo.unreadable': 'Non siamo riusciti ad aprire questa foto. Provane un\'altra, oppure aprila nella Galleria, salvala come copia e caricala di nuovo.',
+    'photo.cantOpen': 'Il tuo telefono non ci ha permesso di aprire questa foto. Sceglila di nuovo da Galleria o File; se continua, salvala come copia nella Galleria e caricala.',
+    'photo.preparing': 'Preparazione della foto…',
+
     // Navbar
     'nav.home': 'Home',
     'firstSteps.finished.title': "Hai completato i primi passi!",
