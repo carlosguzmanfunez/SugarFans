@@ -3,7 +3,7 @@ export const adminAreas = [
   { id: 'people', label: 'Personas', tabs: ['users', 'verifications', 'managed', 'special'] },
   { id: 'content', label: 'Contenido', tabs: ['reports', 'moderation'] },
   { id: 'reserve', label: 'Asistencia de Reserve', tabs: ['attendance'] },
-  { id: 'money', label: 'Dinero', tabs: ['finance', 'payouts', 'ledger'] },
+  { id: 'money', label: 'Dinero', tabs: ['finance', 'payouts', 'ledger', 'projection'] },
   { id: 'growth', label: 'Crecimiento', tabs: ['prospects'] },
   { id: 'service', label: 'Estado del servicio', tabs: ['errors', 'infra'] },
 ] as const;
@@ -13,7 +13,7 @@ export const adminSections = {
   managed: 'Perfiles de la plataforma', special: 'Cuentas especiales',
   reports: 'Denuncias y solicitudes', moderation: 'Revisar fotos y videos',
   attendance: 'Asistencia de Reserve',
-  finance: 'Pagos a creadores', payouts: 'Retiros y devoluciones', ledger: 'Todos los movimientos',
+  finance: 'Pagos a creadores', payouts: 'Retiros y devoluciones', ledger: 'Todos los movimientos', projection: 'Proyección de ganancias',
   prospects: 'Captar creadores',
   errors: 'Problemas de la página', infra: 'Costos y límites de servicios',
 } as const;
