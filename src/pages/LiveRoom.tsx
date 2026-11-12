@@ -10,6 +10,7 @@ import SessionTiming from '../components/reserve/SessionTiming';
 import ReserveScheduleTime from '../components/reserve/ReserveScheduleTime';
 import '../components/reserve/reserveVideo.css';
 import {sessionEvent,sessionNow,sessionRequest} from '../lib/reserveSessionClient';
+import { ENABLE_CAMERA_LOOKS } from '../config/features';
 import LookPicker from '../components/LookPicker';
 import { useCameraLook } from '../hooks/useCameraLook';
 import ViewerWatermark, { noCaptureVideoProps } from '../components/ViewerWatermark';
@@ -445,9 +446,9 @@ const LiveRoom: React.FC = () => {
               <button onClick={() => toggleTrack('video')} disabled={!hasMedia} aria-label={camOn ? 'Apagar cámara' : 'Encender cámara'} className={`w-12 h-12 rounded-full ${camOn ? 'bg-white/10 hover:bg-white/20' : 'bg-red-500'} disabled:opacity-40`}>
                 <i aria-hidden="true" className={`fas ${camOn ? 'fa-video' : 'fa-video-slash'}`}></i>
               </button>
-              <button onClick={() => setShowLooks((v) => !v)} disabled={!hasMedia || !camOn} aria-label="Filtros de cámara" aria-expanded={showLooks} data-testid="looks-button" className={`w-12 h-12 rounded-full ${showLooks || cam.enhance || cam.look !== 'natural' ? 'bg-pink-600 hover:bg-pink-500' : 'bg-white/10 hover:bg-white/20'} disabled:opacity-40`}>
+              {ENABLE_CAMERA_LOOKS && <button onClick={() => setShowLooks((v) => !v)} disabled={!hasMedia || !camOn} aria-label="Filtros de cámara" aria-expanded={showLooks} data-testid="looks-button" className={`w-12 h-12 rounded-full ${showLooks || cam.enhance || cam.look !== 'natural' ? 'bg-pink-600 hover:bg-pink-500' : 'bg-white/10 hover:bg-white/20'} disabled:opacity-40`}>
                 <i aria-hidden="true" className="fas fa-wand-magic-sparkles"></i>
-              </button>
+              </button>}
               <button type="button" onClick={() => { setChatOpen((value) => !value); setShowLooks(false); }} aria-label={chatOpen ? 'Ocultar chat' : 'Abrir chat'} aria-expanded={chatOpen} aria-controls="call-chat" className={`${expanded ? '' : 'lg:hidden'} w-12 h-12 rounded-full ${chatOpen ? 'bg-pink-600' : 'bg-white/10 hover:bg-white/20'}`}>
                 <i aria-hidden="true" className="fas fa-comments"></i>
               </button>

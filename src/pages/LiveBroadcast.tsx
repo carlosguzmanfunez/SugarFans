@@ -12,7 +12,7 @@ import { useLeaveGuard } from '../hooks/useLeaveGuard';
 import { liveApi, endLive, useCurrentLive, LIVE_HEARTBEAT_SECONDS, LIVE_STALE_MINUTES } from '../lib/live';
 import { backend } from '../lib/backend';
 import {sessionNow,sessionRequest} from '../lib/reserveSessionClient';
-import { ENABLE_OPEN_LIVE } from '../config/features';
+import { ENABLE_OPEN_LIVE, ENABLE_CAMERA_LOOKS } from '../config/features';
 import { LIVE_MODES } from '../lib/liveAccess';
 import { formatLongDate, liveState, liveWindow, sessionMinutes, type VipBooking } from '../lib/vip';
 
@@ -458,7 +458,7 @@ const LiveBroadcast: React.FC<{ event?: boolean }> = ({ event: isEvent = false }
             {isEvent&&seat&&(phase==='idle'||phase==='error')&&<div className="mt-4 rounded-2xl bg-white p-4 text-ink"><SessionPreparation booking={seat} isCreator={owner} needsMedia={owner} onReady={join} cam={cam}/></div>}
             {!isEvent && owner && (phase === 'idle' || phase === 'error') && (
               <div className="mt-4 max-w-xl mx-auto">
-                <p className="text-sm text-gray-300 mb-2">Elige tu filtro antes de empezar. Tus fans verán el video ya con el filtro.</p>
+                {ENABLE_CAMERA_LOOKS && <p className="text-sm text-gray-300 mb-2">Elige tu filtro antes de empezar. Tus fans verán el video ya con el filtro.</p>}
                 <CameraPreview cam={cam} />
               </div>
             )}
@@ -472,9 +472,9 @@ const LiveBroadcast: React.FC<{ event?: boolean }> = ({ event: isEvent = false }
                   <button onClick={() => toggle('cam')} aria-label={camOn ? 'Apagar cámara' : 'Encender cámara'} className={`w-12 h-12 rounded-full ${camOn ? 'bg-white/10 hover:bg-white/20' : 'bg-red-500'}`}>
                     <i aria-hidden="true" className={`fas ${camOn ? 'fa-video' : 'fa-video-slash'}`}></i>
                   </button>
-                  <button onClick={() => setShowLooks((v) => !v)} disabled={!camOn || !hasVideo} aria-label="Filtros de cámara" aria-expanded={showLooks} data-testid="looks-button" className={`w-12 h-12 rounded-full ${showLooks || cam.enhance || cam.look !== 'natural' ? 'bg-pink-600 hover:bg-pink-500' : 'bg-white/10 hover:bg-white/20'} disabled:opacity-40`}>
+                  {ENABLE_CAMERA_LOOKS && <button onClick={() => setShowLooks((v) => !v)} disabled={!camOn || !hasVideo} aria-label="Filtros de cámara" aria-expanded={showLooks} data-testid="looks-button" className={`w-12 h-12 rounded-full ${showLooks || cam.enhance || cam.look !== 'natural' ? 'bg-pink-600 hover:bg-pink-500' : 'bg-white/10 hover:bg-white/20'} disabled:opacity-40`}>
                     <i aria-hidden="true" className="fas fa-wand-magic-sparkles"></i>
-                  </button>
+                  </button>}
                 </>
               )}
               <button onClick={finish} className="px-6 h-12 rounded-full bg-red-600 hover:bg-red-700 font-medium">
