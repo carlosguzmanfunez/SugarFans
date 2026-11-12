@@ -23,6 +23,9 @@ interface AuthContextType {
   // "Hazte creador": the signed-in fan's account becomes a creator account.
   becomeCreator: () => Promise<AuthResult>;
   switchOwnerView: (view: UserRole) => Promise<AuthResult>;
+  // Cuentas dobles (fan + creador).
+  claimDual: (code: string, view: UserRole) => Promise<AuthResult>;
+  switchDualView: (view: UserRole) => Promise<AuthResult>;
   logout: () => Promise<void>;
   verifyAge: () => void;
   updateUser: (data: ProfilePatch) => Promise<AuthResult>;
@@ -116,6 +119,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     ? run(() => backend.ownerSwitchView!(view))
     : Promise.resolve({ ok: false, error: 'Esta opción solo está disponible para el propietario' });
 
+  const claimDual = (code: string, view: UserRole) => user && backend.dualClaim
+    ? run(() => backend.dualClaim!(code, view))
+    : Promise.resolve(notSignedIn);
+  const switchDualView = (view: UserRole) => user?.isDual && backend.dualSwitchView
+    ? run(() => backend.dualSwitchView!(view))
+    : Promise.resolve({ ok: false, error: 'Tu cuenta no tiene los dos apartados' });
+
   const logout = async () => {
     await backend.logout();
     setUser(null);
@@ -174,6 +184,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         completeSocialSignup,
         becomeCreator,
         switchOwnerView,
+        claimDual,
+        switchDualView,
         logout,
         verifyAge,
         updateUser,

@@ -79,6 +79,8 @@ export interface User {
   // Server-confirmed singleton owner. role is its selected inspection view.
   isOwner?: boolean;
   accountRole?: UserRole;
+  // Cuenta doble (fan + creador), enabled by the owner: role is the side shown now.
+  isDual?: boolean;
   avatar: string;
   cover?: string;
   bio?: string;
@@ -403,6 +405,9 @@ export interface Backend {
   accessToken(): Promise<string | null>;
   getCurrentUser(): Promise<User | null>;
   ownerSwitchView?(view: UserRole): Promise<AuthResult>;
+  // Cuentas dobles: the personal code makes the account fan + creator; then switch sides.
+  dualClaim?(code: string, view: UserRole): Promise<AuthResult>;
+  dualSwitchView?(view: UserRole): Promise<AuthResult>;
   // Fires when the session or the signed-in user's data may have changed elsewhere.
   onChange(cb: () => void): () => void;
   login(email: string, password: string, remember: boolean): Promise<AuthResult>;

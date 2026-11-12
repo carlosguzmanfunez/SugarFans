@@ -655,6 +655,9 @@ export async function POST(request: Request): Promise<Response> {
             amount: { currency_code: 'USD', value: amount.toFixed(2) },
             description: String(quote.data?.description ?? 'Fans Reserve').slice(0, 127),
             custom_id: `${kind}:${userId}`.slice(0, 127),
+            // Name on the fan's card statement ("PAYPAL *FANSRESERVE"): a charge the
+            // fan recognizes is not disputed as unknown.
+            soft_descriptor: 'FANSRESERVE',
           },
         ],
         // Not payment_source: that would hide the card button of the JS SDK.

@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import BrandLogo from './BrandLogo';
 import { readJSON, writeJSON } from '../lib/storage';
-import { ACCESS_CODE_SHA256, GATED_HOSTS, LAUNCHED, PUBLIC_PATHS } from '../config/launch';
+import { saveDualCode } from '../lib/dualAccess';
+import { ACCESS_HASHES, TESTER_CODE_SHA256, GATED_HOSTS, LAUNCHED, PUBLIC_PATHS } from '../config/launch';
 
 const ACCESS_KEY = 'previewAccess';
 // Lets the e2e suite exercise the gate away from fansreserve.com, with a test code
@@ -15,27 +16,36 @@ const sha256 = async (text: string) => {
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
 };
 
+// The installed app (home-screen icon). On iPhone it has its own storage, separate
+// from Safari's, so it can't see that this device opened the private link; it can
+// only have been installed from a device that had access (see below).
+const installedApp = () =>
+  window.matchMedia?.('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true;
+
 const gatedHere = () => !LAUNCHED && (GATED_HOSTS.includes(window.location.hostname) || readJSON(FORCE_KEY, false));
 // Whether this device can use the whole site (sign up, sign in) right now.
-export const siteOpenHere = () => !gatedHere() || readJSON(ACCESS_KEY, false);
+export const siteOpenHere = () => !gatedHere() || readJSON(ACCESS_KEY, false) || installedApp();
 
 // Until launch, the public sees "Muy pronto"; a device that opened the private link sees the site.
 const LaunchGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [gated] = useState(gatedHere);
-  const [allowed, setAllowed] = useState(() => !gated || readJSON(ACCESS_KEY, false));
+  const [allowed, setAllowed] = useState(() => !gated || readJSON(ACCESS_KEY, false) || installedApp());
   const code = new URLSearchParams(location.search).get('acceso');
   const [checking, setChecking] = useState(gated && !allowed && !!code);
 
   useEffect(() => {
-    if (!gated || !code) return;
+    if (!code) return;
     let alive = true;
     sha256(code.trim())
       .then((hash) => {
         if (!alive) return;
         const testCode = !GATED_HOSTS.includes(window.location.hostname) && code.trim() === TEST_CODE;
-        if (hash === ACCESS_CODE_SHA256 || testCode) {
+        // A tester's personal code also makes their account fan + creator (see DualAccessClaimer).
+        if (Object.values(TESTER_CODE_SHA256).includes(hash) || testCode) saveDualCode(code.trim());
+        if (!gated) return;
+        if (ACCESS_HASHES.includes(hash) || testCode) {
           writeJSON(ACCESS_KEY, true);
           setAllowed(true);
         }
@@ -64,6 +74,22 @@ const LaunchGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     meta?.setAttribute('content', 'noindex, nofollow');
     return () => {
       if (previous) meta?.setAttribute('content', previous);
+    };
+  }, [gated, allowed]);
+
+  // While the public sees "Muy pronto", the page can't be installed as an app: on
+  // iPhone the installed app keeps its own storage, so it never learns this device
+  // opened the private link. Without the manifest an icon added from here opens in
+  // the browser, and an installed app (standalone) always comes from a device
+  // that already had access.
+  useEffect(() => {
+    if (!gated || allowed) return;
+    const link = document.querySelector('link[rel="manifest"]');
+    const parent = link?.parentNode;
+    const next = link?.nextSibling ?? null;
+    link?.remove();
+    return () => {
+      if (link && parent) parent.insertBefore(link, next);
     };
   }, [gated, allowed]);
 

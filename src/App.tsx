@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import Navbar from './components/Navbar';
 import ReserveInvitations from './components/reserve/ReserveInvitations';
+import InstallAppSheet from './components/InstallAppSheet';
 import Footer from './components/Footer';
 import MobileTabBar from './components/MobileTabBar';
 import Landing from './pages/Landing';
@@ -14,9 +15,10 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Explore from './pages/Explore';
 import PlatformSync from './components/PlatformSync';
+import DualAccessClaimer from './components/DualAccessClaimer';
 import SpecialInviteClaimer from './components/SpecialInviteClaimer';
 import ProspectInviteClaimer from './components/ProspectInviteClaimer';
-import { homeForRole } from './config/homes';
+import { homeForUser } from './config/homes';
 import { safePath } from './lib/safePath';
 import { peekReturn } from './lib/returnTo';
 import { recoveryLinkPending } from './lib/backend';
@@ -73,7 +75,7 @@ const GuestOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   // Back to the page that asked for the login (the session can arrive before the
   // login form navigates); otherwise the role's page (admin: the Admin panel).
   const from = safePath((location.state as { from?: string } | null)?.from) || peekReturn();
-  if (isAuthenticated) return <Navigate to={from || homeForRole(user?.role ?? 'fan')} replace />;
+  if (isAuthenticated) return <Navigate to={from || homeForUser(user)} replace />;
   return <>{children}</>;
 };
 
@@ -96,6 +98,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; hideNav?: boolean }> = ({
       {!hideNav && <Navbar />}
       <main className="flex-1">{children}</main>
       <ReserveInvitations />
+      <InstallAppSheet />
       {!hideNav && !FULL_SCREEN.test(pathname) && <Footer />}
       {tabs && <MobileTabBar />}
     </div>
@@ -180,6 +183,7 @@ const AppRoutes: React.FC = () => {
     <RecoveryRedirect />
     <PendingSignupRedirect />
     <SpecialInviteClaimer />
+    <DualAccessClaimer />
     <ProspectInviteClaimer />
     <Routes>
       {/* Age verification */}
