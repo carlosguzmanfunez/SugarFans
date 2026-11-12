@@ -12,6 +12,7 @@
 // Needs in the Vercel project settings: SIGHTENGINE_API_USER,
 // SIGHTENGINE_API_SECRET and SUPABASE_SERVICE_ROLE_KEY.
 import { judgeFrames, judgeNudity, type MediaJudgement } from '../src/lib/mediaModerationRules.js';
+import { bunnyChecks, videoAccess, videoForget, videoIngest } from './_bunny.js';
 
 // Public values (same as .env.production); the anon key is meant to be public.
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://odugxvqwuvewsvifwmwb.supabase.co';
@@ -116,6 +117,8 @@ export async function GET(): Promise<Response> {
       apiSecret: e.apiSecret ? 'OK' : 'FALTA',
       serviceRoleKey: e.serviceKey ? 'OK' : 'FALTA',
     },
+    // Post videos played from Bunny Stream (api/_bunny.ts).
+    video: { provider: 'bunny', ...bunnyChecks() },
   });
 }
 
@@ -123,8 +126,27 @@ export async function GET(): Promise<Response> {
 export async function POST(request: Request): Promise<Response> {
   const e = env();
   const token = (request.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '');
+  const body = (await request.json().catch(() => ({}))) as { bucket?: unknown; path?: unknown; paths?: unknown; action?: unknown };
+  // Post videos through Bunny Stream (api/_bunny.ts). Kept in this function because
+  // the Hobby plan allows 12 functions and all are in use.
+  if (body.action === 'video-access' || body.action === 'video-ingest' || body.action === 'video-forget') {
+    if (!e.serviceKey) return json(200, { enabled: false, urls: {}, pending: [], status: 'off' });
+    let viewerId = '';
+    if (token) {
+      const viewer = await call(`${SUPABASE_URL}/auth/v1/user`, { headers: asUser(token) });
+      viewerId = viewer.ok ? String(viewer.data?.id ?? '') : '';
+      if (!viewerId) return json(401, { error: 'Tu sesión caducó. Vuelve a iniciar sesión.' });
+    } else if (body.action !== 'video-access') {
+      return json(401, { error: 'Inicia sesión.' });
+    }
+    // Visitors without a session see what Storage lets anyone see (free posts).
+    const viewerHeaders = (t: string) => (t ? asUser(t) : { apikey: SUPABASE_ANON_KEY });
+    const ctx = { call, supabaseUrl: SUPABASE_URL, asUser: viewerHeaders, server: asServer(e.serviceKey), userId: viewerId, token };
+    if (body.action === 'video-access') return videoAccess(ctx, body);
+    if (body.action === 'video-ingest') return videoIngest(ctx, body);
+    return videoForget(ctx, body);
+  }
   if (!token) return json(401, { error: 'Inicia sesión para subir archivos.' });
-  const body = (await request.json().catch(() => ({}))) as { bucket?: unknown; path?: unknown };
   const bucket = body.bucket === 'post-media' || body.bucket === 'profile-images' ? body.bucket : null;
   const path = typeof body.path === 'string' && body.path.length <= 300 ? body.path : null;
   if (!bucket || !path) return json(400, { error: 'Archivo no válido.' });

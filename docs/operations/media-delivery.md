@@ -59,3 +59,14 @@ Fuentes consultadas el 29 de octubre de 2026:
 - [Supabase Smart CDN](https://supabase.com/docs/guides/storage/cdn/smart-cdn)
 - [Supabase: métricas de copias](https://supabase.com/docs/guides/storage/cdn/metrics)
 - [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API)
+
+## Fotos achicadas y videos por Bunny Stream (12 nov 2026)
+
+- **Fotos de publicaciones:** antes de subirlas se reducen a 1920 px de lado mayor (JPEG 0.82, `src/lib/postImage.ts`). Una foto de celular de ~3.7 MB pasa a ~220 KB y se borran sus datos ocultos (incluido el GPS). GIF y fotos ya livianas se suben tal cual. Prueba: `npm run test:post-image`.
+- **Videos de publicaciones:** Supabase sigue siendo el original (subida, moderación y permisos). Una copia se guarda en Bunny Stream y se reproduce desde ahí (≈$0.005/GB en vez de $0.09/GB, calidades 360p/720p/1080p). Detalle en `api/_bunny.ts`:
+  - El servidor solo firma un enlace de Bunny (1 hora) para videos que Storage firma con la sesión de quien mira. Un video exclusivo sigue exigiendo suscripción.
+  - Un video sin copia sigue saliendo de Supabase y el navegador pide la copia una vez. Solo se copian videos aprobados.
+  - Al borrar la publicación se borra la copia (solo su dueño). Un administrador que borra la publicación de otra persona deja la copia en Bunny: revisarlas de vez en cuando en el panel de Bunny.
+  - Sin `BUNNY_STREAM_LIBRARY_ID`, `BUNNY_STREAM_API_KEY` y `BUNNY_STREAM_TOKEN_KEY` en Vercel todo sigue saliendo de Supabase. Diagnóstico: `GET /api/moderate` → `video`.
+  - Tabla `media_cdn` (`20261112030000_media_cdn_bunny.sql`): solo el servidor la usa.
+  - Pruebas: `npm run test:bunny-video` y `npm run test:bunny-player-ui`.

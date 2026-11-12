@@ -6,6 +6,7 @@ import { avatarOrEmpty } from './shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { newId } from '../storage';
 import { signPostMedia } from './signedMedia';
+import { bunnyVideoLinks, forgetBunnyVideo } from './bunnyVideo';
 import { extensionOf, validateMedia } from '../media';
 import { shrinkPostImage } from '../postImage';
 import type { AuthResult } from './types';
@@ -61,6 +62,9 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
     // Storage only signs files this viewer may see (locked posts need a subscription),
     // with links that expire in minutes (signedMedia.ts).
     const signed = await signPostMedia(sb, BUCKET, rows.filter((r) => r.media_path).map((r) => ({ path: r.media_path as string, video: r.media_type === 'video' })));
+    // Videos with a copy in Bunny Stream play from there (cheaper, adaptive quality);
+    // the rest keep their Supabase link. Only files Storage just signed are asked for.
+    const bunny = await bunnyVideoLinks(sb, rows.filter((r) => r.media_type === 'video' && r.media_path && signed.has(r.media_path)).map((r) => r.media_path as string));
     // Only the author and admins get rows here: their files still waiting for moderation.
     const moderation = await moderationOf(sb, BUCKET, paths);
     return rows.map(
@@ -73,7 +77,7 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
         createdAt: r.created_at,
         mediaType: r.media_type ?? undefined,
         mediaPath: r.media_path ?? undefined,
-        mediaUrl: r.media_path ? signed.get(r.media_path) : undefined,
+        mediaUrl: r.media_path ? bunny.get(r.media_path) ?? signed.get(r.media_path) : undefined,
         isDraft: !!r.is_draft,
         ...(r.media_path && moderation.get(r.media_path) && moderation.get(r.media_path) !== 'approved'
           ? { moderation: moderation.get(r.media_path) }
@@ -145,6 +149,7 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
 
   async removeMedia(_user, path) {
     await sb.storage.from(BUCKET).remove([path]);
+    if (/\.(mp4|webm|mov)$/i.test(path)) await forgetBunnyVideo(sb, path);
   },
 
   async publicCreator(creatorProfileId) {

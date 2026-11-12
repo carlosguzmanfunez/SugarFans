@@ -2,6 +2,7 @@
 // Security. Rules that span users (booking lifecycle, account deletion) run in
 // SECURITY DEFINER functions, see supabase/migrations.
 import { TERMS_VERSION } from '../../config/legal';
+import { forgetBunnyVideo } from './bunnyVideo';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { PAID_WITH_PAYPAL, WRONG_CREDENTIALS, ACCOUNT_SUSPENDED, avatarOrEmpty, cleanPatch, mergeSettings, normalizeEmail, validateRegistration, validateSignupExtras } from './shared';
 import { REJECTED_MESSAGE, inReviewNotice, moderateUpload, moderationOf } from './supabaseModeration';
@@ -733,7 +734,11 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       // RLS: the author, or any admin for a managed profile's post. The file goes
       // first because the admin storage rule looks the post up.
       const { data: post } = await sb.from('creator_posts').select('media_path').eq('id', postId).maybeSingle();
-      if (post?.media_path) await sb.storage.from('post-media').remove([post.media_path]);
+      if (post?.media_path) {
+        await sb.storage.from('post-media').remove([post.media_path]);
+        // Its copy in Bunny Stream, if the video had one, goes too.
+        if (/\.(mp4|webm|mov)$/i.test(post.media_path)) await forgetBunnyVideo(sb, post.media_path);
+      }
       const { data, error } = await sb.from('creator_posts').delete().eq('id', postId).select('id');
       if (error || !data?.length) return dbError(error, 'No se pudo eliminar la publicación');
       return ok;
