@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import BrandLogo from './BrandLogo';
 import { readJSON, writeJSON } from '../lib/storage';
-import { ACCESS_HASHES, GATED_HOSTS, LAUNCHED, PUBLIC_PATHS } from '../config/launch';
+import { saveDualCode } from '../lib/dualAccess';
+import { ACCESS_HASHES, TESTER_CODE_SHA256, GATED_HOSTS, LAUNCHED, PUBLIC_PATHS } from '../config/launch';
 
 const ACCESS_KEY = 'previewAccess';
 // Lets the e2e suite exercise the gate away from fansreserve.com, with a test code
@@ -35,12 +36,15 @@ const LaunchGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [checking, setChecking] = useState(gated && !allowed && !!code);
 
   useEffect(() => {
-    if (!gated || !code) return;
+    if (!code) return;
     let alive = true;
     sha256(code.trim())
       .then((hash) => {
         if (!alive) return;
         const testCode = !GATED_HOSTS.includes(window.location.hostname) && code.trim() === TEST_CODE;
+        // A tester's personal code also makes their account fan + creator (see DualAccessClaimer).
+        if (Object.values(TESTER_CODE_SHA256).includes(hash) || testCode) saveDualCode(code.trim());
+        if (!gated) return;
         if (ACCESS_HASHES.includes(hash) || testCode) {
           writeJSON(ACCESS_KEY, true);
           setAllowed(true);

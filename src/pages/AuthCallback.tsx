@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { homeForRole } from '../config/homes';
+import { homeForUser } from '../config/homes';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, type UserRole } from '../context/AuthContext';
 import { readJSON, removeKey } from '../lib/storage';
@@ -9,6 +9,7 @@ import { clearRefCode, readRefCode } from '../lib/rewardRules';
 import BrandLogo from '../components/BrandLogo';
 import { BRAND } from '../config/brand';
 import { SOCIAL_INTENT_KEY, type SocialIntent } from '../components/SocialLoginButtons';
+import DualAccountNote from '../components/DualAccountNote';
 import TermsConsent from '../components/TermsConsent';
 import CountryPhoneFields, { phoneFromForm } from '../components/CountryPhoneFields';
 import { detectCountry } from '../config/countries';
@@ -50,7 +51,7 @@ const AuthCallback: React.FC = () => {
   useEffect(() => {
     if (!user || user.signupCompleted === false || completing.current) return;
     removeKey(SOCIAL_INTENT_KEY);
-    navigate(safePath(intent.from) || takeReturn() || homeForRole(user.role), { replace: true });
+    navigate(safePath(intent.from) || takeReturn() || homeForUser(user), { replace: true });
   }, [user, intent.from, navigate]);
 
   // The session is read from the URL on load; don't spin forever if it never comes.
@@ -157,6 +158,7 @@ const AuthCallback: React.FC = () => {
                 <GenderField value={gender} onChange={setGender} />
               </div>
 
+              <div className="mb-4"><DualAccountNote /></div>
               <TermsConsent checked={agreeTerms} onChange={setAgreeTerms} className="mb-6" />
 
               <div className="flex space-x-3">

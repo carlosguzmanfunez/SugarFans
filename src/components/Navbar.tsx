@@ -3,6 +3,7 @@ import Icon from './Icon';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import DualViewSwitch from './DualViewSwitch';
 import HowItWorksButton from './HowItWorksButton';
 import LanguageSelector from './LanguageSelector';
 import BrandLogo from './BrandLogo';
@@ -205,6 +206,7 @@ const Navbar: React.FC = () => {
                       <p className="truncate text-sm font-semibold text-ink">{user?.name ?? t('nav.profile')}</p>
                       {user && <p className="truncate text-xs text-muted">{displayEmail(user.email)}</p>}
                     </div>
+                    <DualViewSwitch onDone={() => setShowMenu(false)} />
                     {accountLinks.map(item => (
                       <Link key={item.to} to={item.to} onClick={() => setShowMenu(false)} className={accountLinkCls}>
                         <Icon name={item.icon} className="w-4 text-ink/50" /> {item.label}
