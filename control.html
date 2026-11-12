@@ -383,7 +383,7 @@ details pre{white-space:pre-wrap;font-family:inherit;font-size:13px;line-height:
       ['Fans Reserve sin ISV (mes)', usd(fr), 'strong'],
       ['Proveedores', '-' + usd(GOAL.proveedores), 'muted'],
       ['Reserva ISR 25% (pagos a cuenta)', '-' + usd(isr), 'muted'],
-      ['Fondo 15% para proveedores', usd(fondo) + (fondo >= GOAL.proveedores ? ' ✓ cubre' : ' de ' + usd(GOAL.proveedores)), 'muted']
+      ['¿El fondo 15% cubre proveedores? (chequeo, no se resta)', (fondo >= GOAL.proveedores ? 'Sí ✓ ' : 'Aún no: ') + usd(fondo) + ' de ' + usd(GOAL.proveedores), 'muted']
     ].map(function (r) { return '<li class="' + r[2] + '"><span>' + r[0] + '</span><b>' + r[1] + '</b></li>'; }).join('');
   }
 
