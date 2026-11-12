@@ -3,6 +3,7 @@ import type { User } from '../lib/backend/types';
 import { ACTIONS, movesMoney, planAsText, sanitizePlan, type ActionType, type AssistantPlan, type ChatTurn, type Level } from '../lib/assistantPlan';
 import { applyAction, askAssistant, loadCases, type CaseBundle } from '../lib/assistantData';
 import { usd } from '../lib/adminMonitor';
+import { isCasesQuestion, isMoneyQuestion, moneyPlan, rulesPlan } from '../lib/assistantRules';
 
 // "Mano derecha" chat at the top of Admin > Inicio > Mano derecha. The admin asks;
 // the answer comes in three steps: 1) the problems, 2) the solution per case under
@@ -20,6 +21,8 @@ const TEXT = {
     noCases: 'No hay casos abiertos ahora mismo.', failed: 'No pude leer: {list}. Lo demás sí.',
     safe: 'Nada se aplica sin tu clic. Lo que mueve dinero pide una confirmación extra.', clear: 'Nueva conversación',
     setup: 'El chat aún no está conectado: falta la llave de Claude en Vercel (ANTHROPIC_API_KEY). Lo demás del panel funciona igual.',
+    free: 'Reglas · gratis', claudeTag: 'Claude', askClaude: 'Pedir análisis a Claude',
+    noClaude: 'Para preguntas libres falta conectar Claude (ANTHROPIC_API_KEY en Vercel). Mientras, te dejo los casos con las reglas del manual, gratis.',
     levels: { alta: 'Urgente', media: 'Revisar', baja: 'Info' },
     actions: {
       none: 'Sin acción', open: 'Abrir su pantalla', report_resolve: 'Marcar denuncia resuelta', report_remove: 'Quitar el contenido denunciado',
@@ -38,6 +41,8 @@ const TEXT = {
     noCases: 'There are no open cases right now.', failed: 'I could not read: {list}. The rest is fine.',
     safe: 'Nothing is applied without your click. Anything that moves money asks for an extra confirmation.', clear: 'New conversation',
     setup: 'The chat is not connected yet: the Claude key is missing in Vercel (ANTHROPIC_API_KEY). The rest of the panel works as usual.',
+    free: 'Rules · free', claudeTag: 'Claude', askClaude: 'Ask Claude for an analysis',
+    noClaude: 'Free-form questions need Claude connected (ANTHROPIC_API_KEY in Vercel). Meanwhile, here are the cases with the manual’s rules, for free.',
     levels: { alta: 'Urgent', media: 'Review', baja: 'Info' },
     actions: {
       none: 'No action', open: 'Open its screen', report_resolve: 'Mark report resolved', report_remove: 'Remove the reported content',
@@ -53,7 +58,8 @@ const LEVEL_PILL: Record<Level, string> = {
 };
 
 type Applied = Record<string, 'done' | string>; // case id -> 'done' or the error
-interface Message { id: number; role: 'user' | 'assistant'; text: string; plan?: AssistantPlan; bundle?: CaseBundle; applied?: Applied; error?: string; code?: string }
+// source: 'rules' = answered for free with the manual's fixed rules; 'claude' = by Claude.
+interface Message { id: number; role: 'user' | 'assistant'; text: string; question?: string; source?: 'rules' | 'claude'; note?: string; plan?: AssistantPlan; bundle?: CaseBundle; applied?: Applied; error?: string; code?: string }
 
 const STORE = 'fr-mano-derecha-chat';
 const restore = (): Message[] => {
@@ -78,19 +84,34 @@ const AdminAssistantChat: React.FC<{ user: User | null; lang?: string; onOpen?: 
 
   if (!user || user.role !== 'admin') return null;
 
-  const send = async (question: string) => {
+  // Cases and money questions are answered for free with the manual's rules. Anything
+  // else (or "Pedir análisis a Claude") goes to Claude; if Claude is not connected or
+  // has no credit, the free answer is shown instead.
+  const send = async (question: string, forceClaude = false) => {
     const q = question.trim();
     if (!q || busy) return;
     const history: ChatTurn[] = messages.filter((m) => !m.error).map((m) => ({ role: m.role, content: m.plan ? planAsText(m.plan) : m.text }));
-    const userMsg: Message = { id: Date.now(), role: 'user', text: q };
-    setMessages((m) => [...m, userMsg]);
+    if (!forceClaude) setMessages((m) => [...m, { id: Date.now(), role: 'user', text: q }]);
     setInput('');
     setBusy(true);
     try {
       const bundle = await loadCases(user);
-      const res = await askAssistant(q, history, bundle, l);
-      const plan = res.plan ? sanitizePlan(res.plan, bundle.cases) : undefined;
-      setMessages((m) => [...m, { id: Date.now() + 1, role: 'assistant', text: plan?.reply ?? '', plan, bundle, applied: {}, error: res.error, code: res.code }]);
+      const free = (note?: string): Message => {
+        const plan = isMoneyQuestion(q) && !isCasesQuestion(q) ? moneyPlan(bundle.status, l) : rulesPlan(bundle.cases, bundle.refs, l);
+        return { id: Date.now() + 1, role: 'assistant', text: plan.reply, question: q, source: 'rules', note, plan, bundle, applied: {} };
+      };
+      let reply: Message;
+      if (!forceClaude && (isCasesQuestion(q) || isMoneyQuestion(q))) reply = free();
+      else {
+        const res = await askAssistant(q, history, bundle, l);
+        const plan = res.plan ? sanitizePlan(res.plan, bundle.cases) : undefined;
+        reply = plan
+          ? { id: Date.now() + 1, role: 'assistant', text: plan.reply, question: q, source: 'claude', plan, bundle, applied: {} }
+          : res.code === 'setup' || res.code === 'credits'
+            ? free(res.code === 'setup' ? tx.noClaude : res.error)
+            : { id: Date.now() + 1, role: 'assistant', text: '', question: q, source: 'claude', bundle, error: res.error, code: res.code };
+      }
+      setMessages((m) => [...m, reply]);
     } finally {
       setBusy(false);
     }
@@ -129,6 +150,17 @@ const AdminAssistantChat: React.FC<{ user: User | null; lang?: string; onOpen?: 
               <p role="alert" className={m.code === 'setup' ? 'text-amber-900' : 'text-red-700'}>{m.code === 'setup' ? tx.setup : m.error}</p>
             ) : (
               <>
+                <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${m.source === 'claude' ? 'bg-violet-100 text-violet-800' : 'bg-emerald-50 text-emerald-800'}`} data-testid="assistant-source">
+                    {m.source === 'claude' ? tx.claudeTag : tx.free}
+                  </span>
+                  {m.source === 'rules' && m.question && !m.note && (
+                    <button type="button" onClick={() => void send(m.question!, true)} disabled={busy} className="text-[11px] font-semibold text-violet-700 hover:text-violet-900 disabled:opacity-60" data-testid="assistant-ask-claude">
+                      <i aria-hidden="true" className="fas fa-wand-magic-sparkles mr-1"></i>{tx.askClaude}
+                    </button>
+                  )}
+                </div>
+                {m.note && <p className="mb-2 text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5" data-testid="assistant-note">{m.note}</p>}
                 {m.text && <p className="whitespace-pre-wrap break-words">{m.text}</p>}
                 {!!m.bundle?.failed.length && <p className="mt-2 text-xs text-amber-800">{tx.failed.replace('{list}', m.bundle.failed.join(', '))}</p>}
                 {m.plan && m.plan.problems.length > 0 && (

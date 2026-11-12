@@ -9,7 +9,8 @@ import type { User } from './backend/types';
 import type { ActionType, AssistantCase, AssistantPlan, CaseKind, ChatTurn } from './assistantPlan';
 
 // What the panel keeps about a case to act on it (never sent to the server).
-export interface CaseRef { kind: CaseKind; ref: string; section: string; extra?: string }
+// meta: plain facts the free rules mode needs (reason, state, alert code…).
+export interface CaseRef { kind: CaseKind; ref: string; section: string; extra?: string; meta?: Record<string, string> }
 export interface CaseBundle { cases: AssistantCase[]; refs: Record<string, CaseRef>; status: unknown; failed: string[] }
 
 const SECTION: Record<CaseKind, string> = {
@@ -40,10 +41,10 @@ export async function loadCases(user: User): Promise<CaseBundle> {
   const cases: AssistantCase[] = [];
   const refs: Record<string, CaseRef> = {};
   const counters: Record<string, number> = {};
-  const add = (prefix: string, c: Omit<AssistantCase, 'id'>, ref: string, extra?: string, section?: string) => {
+  const add = (prefix: string, c: Omit<AssistantCase, 'id'>, ref: string, extra?: string, section?: string, meta?: Record<string, string>) => {
     const id = `${prefix}${(counters[prefix] = (counters[prefix] ?? 0) + 1)}`;
     cases.push({ id, ...c });
-    refs[id] = { kind: c.kind, ref, section: section ?? SECTION[c.kind], extra };
+    refs[id] = { kind: c.kind, ref, section: section ?? SECTION[c.kind], extra, ...(meta ? { meta } : {}) };
   };
   const now = Date.now();
 
@@ -52,13 +53,15 @@ export async function loadCases(user: User): Promise<CaseBundle> {
       detail: t.platformCovers ? 'Fans Reserve cubre la parte del creador.' : undefined }, t.id);
   for (const p of payouts.filter((x) => x.status === 'failed' || (x.status === 'sending' && now - Date.parse(x.requestedAt) > HOURS_2)))
     add('P', { kind: 'payout', title: `Retiro de ${p.creatorName} ${p.status === 'failed' ? 'falló' : 'lleva más de 2 h enviándose'}`, status: p.paypalState ? `${p.status} (${p.paypalState})` : p.status,
-      amount: p.amount, createdAt: p.requestedAt, detail: `Cuenta: ${p.accountLabel}` }, p.id);
+      amount: p.amount, createdAt: p.requestedAt, detail: `Cuenta: ${p.accountLabel}` }, p.id, undefined, undefined,
+      { status: p.status, hours: String(Math.floor((now - Date.parse(p.requestedAt)) / 3_600_000)), creator: p.creatorName });
   for (const r of refunds.filter((x) => x.state === 'pending' || x.state === 'approved'))
     add('F', { kind: 'refund', title: `Devolución Reserve: ${r.title} · ${r.fanName}`, status: r.state, amount: r.amount, createdAt: r.createdAt,
-      detail: [`Motivo: ${r.reason}`, r.funding ? `Medio: ${r.funding}` : '', r.note ? `Nota: ${r.note}` : ''].filter(Boolean).join(' · ') }, r.id);
+      detail: [`Motivo: ${r.reason}`, r.funding ? `Medio: ${r.funding}` : '', r.note ? `Nota: ${r.note}` : ''].filter(Boolean).join(' · ') }, r.id, undefined, undefined,
+      { reason: r.reason, state: r.state, funding: r.funding ?? 'original' });
   for (const r of reports.filter((x) => x.status === 'pending'))
     add('R', { kind: 'report', title: `Denuncia (${r.kind}) sobre ${r.targetLabel}: ${r.reason}`, status: r.status, createdAt: r.createdAt,
-      detail: `De ${r.reporterName}: ${r.description}` }, r.id);
+      detail: `De ${r.reporterName}: ${r.description}` }, r.id, undefined, undefined, { text: `${r.reason} ${r.description}`.slice(0, 2000) });
   for (const v of verifications.filter((x) => x.status === 'pending'))
     add('V', { kind: 'verification', title: `Verificar identidad de ${v.userName} (${v.role})`, status: v.status, createdAt: v.submittedAt,
       detail: [v.provider ? `Proveedor: ${v.provider}` : '', v.rejectionReason ? `Nota: ${v.rejectionReason}` : ''].filter(Boolean).join(' · ') || undefined }, v.id);
@@ -66,10 +69,10 @@ export async function loadCases(user: User): Promise<CaseBundle> {
     add('M', { kind: 'media', title: `${m.mediaType} de ${m.ownerName} (${m.kind}) por revisar`, status: m.status, createdAt: m.createdAt,
       detail: m.reason ? `Moderación: ${m.reason} (${m.provider})` : undefined }, m.path, m.bucket);
   for (const e of errors.filter((x) => now - Date.parse(x.lastSeen) < WEEK).sort((a, b) => b.count - a.count).slice(0, 8))
-    add('E', { kind: 'error', title: `Error ${e.source}: ${e.message}`, status: `${e.count} veces`, createdAt: e.lastSeen, detail: `${e.url} · ${e.detail}`.slice(0, 300) }, e.id);
+    add('E', { kind: 'error', title: `Error ${e.source}: ${e.message}`, status: `${e.count} veces`, createdAt: e.lastSeen, detail: `${e.url} · ${e.detail}`.slice(0, 300) }, e.id, undefined, undefined, { count: String(e.count) });
   const snap = monitor.hours[0]?.data;
   for (const p of (snap?.problemas ?? []).filter((x) => ALERT_ONLY.has(x.code)))
-    add('A', { kind: 'alert', title: p.titulo, status: p.nivel, detail: [p.code, p.donde, p.detalle].filter(Boolean).join(' · ') }, p.code, undefined, PROBLEM_SECTION[p.code] ?? 'overview');
+    add('A', { kind: 'alert', title: p.titulo, status: p.nivel, detail: [p.code, p.donde, p.detalle].filter(Boolean).join(' · ') }, p.code, undefined, PROBLEM_SECTION[p.code] ?? 'overview', { code: p.code, level: p.nivel });
 
   const status = snap ? { revisado: snap.at, hoy: snap.hoy, mes: { cobrado: snap.mes?.cobrado, fr_con_isv: snap.mes?.fr_con_isv, fr_sin_isv: snap.mes?.fr_sin_isv, creadores: snap.mes?.creadores }, pendiente: snap.pendiente, problemas: snap.problemas } : null;
   return { cases, refs, status, failed };

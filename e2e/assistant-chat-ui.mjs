@@ -1,6 +1,7 @@
 // "Mano derecha" chat with fictional data and a fictional answer (no Claude, no
-// network, no cost): the 3 steps, Aplicar with confirmation, money warning, safe
-// fallbacks for invented cases or actions, and the "not connected yet" message.
+// network, no cost): the free rules mode, Claude on demand, the 3 steps, Aplicar with
+// confirmation, money warning, safe fallbacks for invented cases or actions, and the
+// free answer when Claude is not connected.
 // Needs `npm run build` first (uses the built CSS). Screenshots go to CHAT_SHOTS if set.
 import { build } from 'esbuild';
 import { createServer } from 'node:http';
@@ -71,15 +72,50 @@ try {
     const errors = [];
     page.on('pageerror', (e) => errors.push(String(e)));
     let sent;
+    let posts = 0;
     await page.route('**/api/usage', async (route) => {
+      posts += 1;
       sent = JSON.parse(route.request().postData());
       assert.equal(route.request().headers().authorization, 'Bearer token-de-prueba');
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ plan }) });
     });
     await page.goto(base);
     if (shots) await page.screenshot({ path: join(shots, `${name}-1-vacio.png`) });
+
+    // Free mode: the cases come with the manual's rules, without calling Claude.
     await page.getByRole('button', { name: 'Resuelve los casos abiertos' }).click();
     await page.getByTestId('assistant-problems').waitFor();
+    assert.equal(posts, 0, 'el modo gratis no llama a Claude');
+    assert.equal(await page.getByTestId('assistant-source').first().innerText(), 'Reglas · gratis');
+    const free = page.getByTestId('assistant-answer').first();
+    const ids = await free.getByTestId('assistant-problems').locator('li').allInnerTexts();
+    assert.deepEqual(ids.slice(0, 3).map((t) => t.match(/[A-Z]\d/)[0]), ['D1', 'P1', 'A1'], 'lo urgente primero');
+    assert.match(await free.innerText(), /No reenviar/);
+    const freeSols = free.getByTestId('assistant-solution');
+    assert.equal(await freeSols.filter({ hasText: 'R1' }).getByRole('button', { name: /Aplicar/ }).count(), 0, 'una denuncia la decide una persona');
+    const ff1 = freeSols.filter({ hasText: 'F1' });
+    assert.match(await ff1.innerText(), /\$20\.85/);
+    await ff1.getByRole('button', { name: /Aplicar: Aprobar devolución/ }).click();
+    assert.match(await ff1.getByTestId('assistant-confirm').innerText(), /Esto mueve dinero: \$25\.00/);
+    await ff1.getByRole('button', { name: 'Sí, aplicar' }).click();
+    await ff1.getByTestId('assistant-applied').waitFor();
+    assert.ok((await page.evaluate(() => window.calls)).includes('refund:ref-1:approve:Cancelación voluntaria según la regla de Reserve'));
+    if (shots) await page.screenshot({ path: join(shots, `${name}-2-gratis.png`), fullPage: true });
+    checks.push(`${name}: modo gratis con reglas, sin Claude, aplicar con confirmación`);
+
+    // Money question, also free.
+    await page.getByTestId('assistant-input').fill('¿Cuánto llevamos hoy?');
+    await page.getByTestId('assistant-send').click();
+    await page.getByText(/Fans Reserve \$14\.40 con ISV, \$12\.24 sin ISV/).waitFor();
+    assert.equal(posts, 0);
+    checks.push(`${name}: dinero de hoy gratis, con y sin ISV`);
+
+    // Claude on demand: same 3 steps, with the answer cleaned.
+    await free.getByTestId('assistant-ask-claude').click();
+    const ai = page.getByTestId('assistant-answer').nth(2);
+    await ai.getByTestId('assistant-problems').waitFor();
+    assert.equal(posts, 1);
+    assert.equal(await ai.getByTestId('assistant-source').innerText(), 'Claude');
 
     // What travels to the server: short ids, no emails, no internal ids.
     assert.equal(sent.action, 'assistant');
@@ -88,17 +124,17 @@ try {
     for (const secret of ['x@y.z', 'ver-1', 'rep-1', 'ref-1', 'u1/foto.jpg']) assert.ok(!wire.includes(secret), `no debe viajar ${secret}`);
 
     // Step 1: list; the invented case is not shown.
-    const problems = await page.getByTestId('assistant-problems').innerText();
+    const problems = await ai.getByTestId('assistant-problems').innerText();
     assert.match(problems, /1\. Problemas[\s\S]*Urgente[\s\S]*Disputa PayPal/);
     assert.ok(!problems.includes('Z9'));
     // Step 2 + 3: solutions; V1 had a refund action that does not fit → "Abrir".
-    const sols = page.getByTestId('assistant-solution');
+    const sols = ai.getByTestId('assistant-solution');
     assert.equal(await sols.count(), 6);
     const v1 = sols.filter({ hasText: 'V1' });
     assert.equal(await v1.getByRole('button', { name: /Aplicar/ }).count(), 0);
     await sols.filter({ hasText: 'D1' }).getByRole('button', { name: 'Abrir' }).click();
     assert.deepEqual(await page.evaluate(() => window.opened), ['finance']);
-    if (shots) await page.screenshot({ path: join(shots, `${name}-2-respuesta.png`), fullPage: true });
+    if (shots) await ai.screenshot({ path: join(shots, `${name}-3-claude.png`) });
 
     // Normal action: confirm, then it runs the same call as its screen.
     const r1 = sols.filter({ hasText: 'R1' });
@@ -109,34 +145,28 @@ try {
     await r1.getByRole('button', { name: 'Sí, aplicar' }).click();
     await r1.getByTestId('assistant-applied').waitFor();
     assert.ok((await page.evaluate(() => window.calls)).includes('report:rep-1:dismiss'));
+    checks.push(`${name}: Claude a pedido, casos inventados descartados, aplicar con confirmación`);
 
-    // Money: red warning with the amount, then the decision is recorded.
-    const f1 = sols.filter({ hasText: 'F1' });
-    assert.match(await f1.innerText(), /Esto mueve dinero/);
-    await f1.getByRole('button', { name: /Aplicar: Aprobar devolución/ }).click();
-    assert.match(await f1.getByTestId('assistant-confirm').innerText(), /Esto mueve dinero: \$25\.00/);
-    if (shots) await f1.screenshot({ path: join(shots, `${name}-3-confirmar-dinero.png`) });
-    await f1.getByRole('button', { name: 'Sí, aplicar' }).click();
-    await f1.getByTestId('assistant-applied').waitFor();
-    assert.ok((await page.evaluate(() => window.calls)).includes('refund:ref-1:approve:Cancelación con más de 24 h'));
-    checks.push(`${name}: 3 pasos, aplicar con confirmación, dinero con aviso, casos inventados descartados`);
-
-    // Follow-up question keeps the conversation.
-    await page.getByTestId('assistant-input').fill('¿Y la disputa?');
+    // A free-form question goes to Claude with the conversation.
+    await page.getByTestId('assistant-input').fill('Explícame la disputa');
     await page.getByTestId('assistant-send').click();
-    await page.getByTestId('assistant-answer').nth(1).waitFor();
-    assert.equal(sent.history.length, 2);
+    await page.getByTestId('assistant-answer').nth(3).waitFor();
+    assert.equal(posts, 2);
+    assert.ok(sent.history.length >= 4);
     assert.equal(sent.history[0].role, 'user');
-    checks.push(`${name}: segunda pregunta con el historial`);
+    checks.push(`${name}: pregunta libre a Claude con el historial`);
 
-    // Not connected yet.
+    // Claude not connected: the free answer, with a note.
     await page.unroute('**/api/usage');
     await page.route('**/api/usage', (route) => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Falta', code: 'setup' }) }));
     await page.getByTestId('assistant-clear').click();
-    await page.getByRole('button', { name: '¿Qué es lo más urgente hoy?' }).click();
-    await page.getByText(/falta la llave de Claude/).waitFor();
+    await page.getByTestId('assistant-input').fill('Explícame la disputa');
+    await page.getByTestId('assistant-send').click();
+    await page.getByTestId('assistant-note').waitFor();
+    assert.match(await page.getByTestId('assistant-note').innerText(), /falta conectar Claude/);
+    await page.getByTestId('assistant-problems').waitFor();
     if (shots) await page.screenshot({ path: join(shots, `${name}-4-sin-llave.png`) });
-    checks.push(`${name}: aviso cuando falta la llave`);
+    checks.push(`${name}: sin llave responde gratis con las reglas`);
 
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
     assert.equal(overflow, false, `${name}: la página no debe desbordarse a lo ancho`);

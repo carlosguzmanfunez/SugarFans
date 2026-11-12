@@ -11,7 +11,7 @@ export const backend = {
   moderationQueue: async () => [{ bucket: 'post-media', path: 'u1/foto.jpg', ownerId: 'u1', ownerName: 'Lucía', kind: 'post', mediaType: 'image', status: 'review', reason: 'suggestive 0.6', provider: 'sightengine', createdAt: now }],
   reserveRefunds: async () => [{ id: 'ref-1', bookingId: 'b1', fanId: 'f1', title: 'Videollamada 1:1', fanName: 'Mario', amount: 25, reason: 'voluntary', state: 'pending', createdAt: now, funding: 'original' }],
   appErrors: async () => [],
-  monitor: async () => ({ hours: [{ takenAt: now, kind: 'hourly', data: { at: now, dia: now.slice(0, 10), hoy: { cobrado: 50 }, mes: { cobrado: 50 }, pendiente: {}, problemas: [{ code: 'tareas_fallidas', nivel: 'alta', n: 1, titulo: '1 tarea automática con fallos' }] } }], days: [], reports: [] }),
+  monitor: async () => ({ hours: [{ takenAt: now, kind: 'hourly', data: { at: now, dia: now.slice(0, 10), hoy: { cobrado: 50, pagos: 2, creadores: 33.6, fr_con_isv: 14.4, fr_sin_isv: 12.24 }, mes: { cobrado: 50, fr_con_isv: 14.4, fr_sin_isv: 12.24 }, pendiente: {}, problemas: [{ code: 'tareas_fallidas', nivel: 'alta', n: 1, titulo: '1 tarea automática con fallos' }] } }], days: [], reports: [] }),
   reviewMedia: async (_b: string, path: string, approve: boolean) => { calls.push(`media:${path}:${approve}`); return ok; },
   decideReserveRefund: async (_u: unknown, id: string, decision: string, note: string) => { calls.push(`refund:${id}:${decision}:${note}`); return ok; },
 };
