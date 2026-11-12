@@ -79,6 +79,13 @@ try {
   assert.match(rows, /Fans Reserve con ISV[\s\S]*Fans Reserve sin ISV/);
   assert.match(await page.locator('#problems .prob').first().innerText(), /disputa/, 'lo urgente va primero');
   assert.equal(await page.evaluate(() => window.pwned), undefined, 'los textos de la base no ejecutan código');
+  // Mes ficticio: $2,481.40 cobrados → FR sin ISV unos $589 → $328 limpios tras proveedores e ISR.
+  const goal = await page.locator('#goalCard').innerText();
+  assert.match(goal, /Camino a los primeros \$1,000 limpios/);
+  assert.match(await page.locator('#goalTable tbody tr').first().innerText(), /Equilibrio\s+9\s+27/, 'equilibrio con 9 creadores');
+  assert.match(await page.locator('#goalTable tbody tr').last().innerText(), /\$1,000\s+84\s+252/, '$1.000 limpios con 84 creadores');
+  assert.equal(await page.locator('#goalTable tr.done').count(), 4, 'equilibrio, $100, $200 y $300 alcanzados');
+  assert.match(await page.locator('#goalNext').innerText(), /Próxima meta: \$400\.00/);
   await page.getByRole('button', { name: 'Mes' }).click();
   assert.equal(await page.locator('#cobrado').innerText(), '$2,481.40');
   await page.getByRole('button', { name: 'Hoy' }).click();
