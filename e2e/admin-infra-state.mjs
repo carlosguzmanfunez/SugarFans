@@ -14,7 +14,8 @@ await build({
   banner:{js:"import {createRequire} from 'node:module';const require=createRequire(import.meta.url);"},
   plugins:[{name:'fake-query',setup(b){
     b.onResolve({filter:/^\.\.\/lib\/(backend|platform)$/},args=>({path:args.path.endsWith('/backend')?'backend':'platform',namespace:'fake-query'}));
-    b.onLoad({filter:/.*/,namespace:'fake-query'},args=>({contents:args.path==='backend'?'export const backend={};':`export const usePlatformQuery=()=>globalThis.__infraQuery;export const money=value=>'$'+value.toFixed(2);`}));
+    b.onResolve({filter:/^\.\.\/context\/LanguageContext$/},()=>({path:'language',namespace:'fake-query'}));
+    b.onLoad({filter:/.*/,namespace:'fake-query'},args=>({contents:args.path==='backend'?'export const backend={};':args.path==='language'?"export const useLanguage=()=>({language:'es'});":`export const usePlatformQuery=()=>globalThis.__infraQuery;export const money=value=>'$'+value.toFixed(2);`}));
   }}],
 });
 globalThis.fetch=()=>{throw Error('Network forbidden');};

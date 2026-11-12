@@ -6,6 +6,7 @@ import type { CoinPurchase } from '../lib/gifts';
 import { summarize } from '../lib/adminLedger';
 import { PROVIDERS, currentPlan, monthlyBill, usageRows, type InfraUsage, type ProviderId } from '../lib/infraUsage';
 import AdminDataState from './AdminDataState';
+import AdminBunnyUsage from './AdminBunnyUsage';
 import { AdminConfirmation, type AdminDecision } from './AdminDialog';
 
 interface Props {
@@ -133,10 +134,13 @@ const AdminInfra: React.FC<Props> = ({ transactions, coins }) => {
           ))}
         </ul>
         <p className="px-5 sm:px-6 pb-5 text-xs text-gray-500">
-          No se ven desde aquí: el tráfico de Vercel y de Supabase (se avisan solos por correo en sus planes de pago) y los correos de inicio de sesión que Supabase manda por Resend.
+          No se ven desde aquí: el tráfico de Vercel, los correos de inicio de sesión que Supabase manda por Resend y la descarga de Supabase
+          (5 GB al mes en Free, 250 GB en Pro), que se revisa en <a href="https://supabase.com/dashboard/project/odugxvqwuvewsvifwmwb/usage" target="_blank" rel="noreferrer" className="underline text-gray-700" data-testid="supabase-usage-link">el panel de uso de Supabase</a>. Los videos de publicaciones ya salen por Bunny y no gastan esa descarga.
           La factura del proveedor confirma el costo real, incluidos impuestos y consumos adicionales. Medido: {new Date(usage.measuredAt).toLocaleString('es-HN', {timeZone:'America/Tegucigalpa'})}, hora de Fans Reserve (UTC−6).
         </p>
       </div>
+
+      <AdminBunnyUsage />
 
       <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6" data-testid="infra-plans">
         <h2 className="text-xl font-bold mb-1">Planes que tenemos registrados</h2>

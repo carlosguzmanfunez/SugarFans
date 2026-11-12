@@ -2,7 +2,7 @@
 // goals of the pilot, the funnel math, how a list exported from Heepsy, Modash or a
 // spreadsheet is read, the score, and the invitation messages.
 // Data: public.creator_prospects in supabase/migrations/20261101000001_creator_prospects.sql.
-import { COUNTRIES, countryName } from '../config/countries';
+import { COUNTRIES, countryName } from '../config/countries.js';
 
 export type ProspectNetwork = 'instagram' | 'tiktok' | 'facebook' | 'youtube';
 export type ProspectStatus = 'nuevo' | 'contactado' | 'respondio' | 'registrado' | 'verificado' | 'activo' | 'descartado' | 'no_contactar';

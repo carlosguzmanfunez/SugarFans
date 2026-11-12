@@ -19,7 +19,7 @@ import { createSupabaseRewards } from './supabaseRewards';
 import { createSupabaseSpecial } from './supabaseSpecial';
 import { createSupabaseProspects } from './supabaseProspects';
 import { BRAND } from '../../config/brand';
-import { fromRpc } from '../infraUsage';
+import { fromRpc, type BunnyUsage } from '../infraUsage';
 import type { MonitorKey, MonitorNewKey, MonitorSnapshot } from '../adminMonitor';
 import type { ReserveResponseLog } from '../reserveResponseReminders';
 import { createSupabaseFinance } from './supabaseFinance';
@@ -619,6 +619,18 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       const { data, error } = await sb.rpc('infra_usage');
       if (error) throw Error('No pudimos consultar los costos y límites.');
       return !data ? null : fromRpc(data as Record<string, unknown>);
+    },
+
+    async bunnyUsage() {
+      const token = (await sb.auth.getSession()).data.session?.access_token;
+      if (!token) throw Error('Inicia sesión de nuevo.');
+      const r = await fetch('/api/usage', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'bunny-usage' }),
+      }).catch(() => null);
+      if (!r?.ok) throw Error('No pudimos consultar Bunny.');
+      return (await r.json()) as BunnyUsage;
     },
 
     async setInfraSettings(plans, fundPct) {
