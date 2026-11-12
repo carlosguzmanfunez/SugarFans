@@ -49,6 +49,7 @@
     "test:db": "node e2e/db-access.mjs",
     "test:terms-acceptance-db": "node e2e/terms-acceptance-db.mjs",
     "test:admin-home-ui": "vite build --mode offline && node e2e/admin-home-ui.mjs",
+    "test:how-it-works": "vite build --mode offline && node e2e/how-it-works-install.mjs",
     "test:role-buttons": "vite build --mode offline && node e2e/role-buttons.mjs",
     "test:supabase-permissions": "node e2e/supabase-permissions.mjs",
     "test:report-gateway": "node e2e/report-gateway-postgres.mjs && node e2e/report-gateway-api.mjs",

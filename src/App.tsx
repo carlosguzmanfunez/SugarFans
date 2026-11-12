@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import Navbar from './components/Navbar';
 import ReserveInvitations from './components/reserve/ReserveInvitations';
+import InstallAppSheet from './components/InstallAppSheet';
 import Footer from './components/Footer';
 import MobileTabBar from './components/MobileTabBar';
 import Landing from './pages/Landing';
@@ -96,6 +97,7 @@ const AppLayout: React.FC<{ children: React.ReactNode; hideNav?: boolean }> = ({
       {!hideNav && <Navbar />}
       <main className="flex-1">{children}</main>
       <ReserveInvitations />
+      <InstallAppSheet />
       {!hideNav && !FULL_SCREEN.test(pathname) && <Footer />}
       {tabs && <MobileTabBar />}
     </div>
