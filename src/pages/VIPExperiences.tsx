@@ -70,23 +70,9 @@ const ReservePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-canvas">
-      <div className="relative overflow-hidden bg-night-950 text-white">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-32 -top-40 h-[480px] w-[480px] rounded-full bg-[radial-gradient(closest-side,rgb(var(--brand-rgb)/0.35),transparent)]" />
-          <div className="absolute -bottom-48 -right-32 h-[480px] w-[480px] rounded-full bg-[radial-gradient(closest-side,rgba(109,60,230,0.3),transparent)]" />
-        </div>
-        <div className="relative z-10 mx-auto max-w-7xl px-4 py-10 text-center sm:px-6 sm:py-14 md:py-20 lg:px-8">
-          <span className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-gold-200 to-gold-400 text-lg sm:mb-5 sm:h-14 sm:w-14 sm:text-xl text-night-900">
-            <i className="fas fa-ticket" aria-hidden="true"></i>
-          </span>
-          <h1 className="text-display-lg mb-3 sm:mb-4">Reserve</h1>
-          <p className="mx-auto max-w-2xl text-base text-white/75 sm:text-lg md:text-xl">
-            Reserve Events en grupo, videollamadas 1:1 y experiencias definidas por tus creadores. Cada una con su fecha, duración, precio, alcance y reglas.
-          </p>
-          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] sm:mt-4 sm:text-sm text-gold-200">{RESERVE_COPY.principle}</p>
-        </div>
-      </div>
-
+      {/* The explanation that headed this page now lives in the Reserve card of the
+          fan's Inicio (Carlos 2026-11-13); the page opens straight on the list. */}
+      <h1 className="sr-only">Reserve</h1>
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
         <div className="relative mx-auto mb-4 max-w-2xl sm:mb-6">
           <i className="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-ink/35" aria-hidden="true"></i>

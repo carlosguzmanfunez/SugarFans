@@ -550,3 +550,16 @@
 .lv2 .next-rsv-btn{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 16px;border-radius:999px;font-size:14px;font-weight:600;color:#fff;background:var(--ink)}
 .lv2 .next-rsv-act .next-rsv-btn,.lv2 .next-rsv-live .next-rsv-btn{background:var(--rsv-accent)}
 .lv2 .next-rsv-btn svg{width:14px;height:14px}
+
+/* Signed-in Inicio: the Reserve card carries the explanation that used to head the
+   Reserve page, same look and sizes (Carlos 2026-11-13). */
+.lv2 .journey-reserve-full{position:relative;isolation:isolate;background:#0e0814;text-align:center}
+.lv2 .journey-reserve-full::before,.lv2 .journey-reserve-full::after{content:"";position:absolute;z-index:-1;width:480px;height:480px;border-radius:50%;pointer-events:none}
+.lv2 .journey-reserve-full::before{left:-128px;top:-160px;background:radial-gradient(closest-side,rgb(var(--brand-rgb) / .35),transparent)}
+.lv2 .journey-reserve-full::after{right:-128px;bottom:-192px;background:radial-gradient(closest-side,rgba(109,60,230,.3),transparent)}
+.lv2 .journey-reserve-full .journey-copy{padding:40px 16px}
+.lv2 .journey-reserve-icon{display:flex;align-items:center;justify-content:center;width:48px;height:48px;margin:0 auto 16px;border-radius:16px;font-size:18px;color:#1d1029;background:linear-gradient(to bottom right,var(--gold-2),var(--gold))}
+.lv2 .journey-reserve-full .journey-copy h3{display:inline-block;margin-bottom:12px;font-size:clamp(2rem,1.45rem + 2.2vw,3.25rem);line-height:1.05;color:#fff}
+.lv2 .journey-reserve-full .journey-copy>p{max-width:42rem;margin-inline:auto;font-size:16px;line-height:1.55;color:rgb(255 255 255 / .75)}
+.lv2 .journey-reserve-full .journey-copy>p.journey-reserve-principle{margin-top:12px;font-size:12px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-2)}
+@media(min-width:640px){.lv2 .journey-reserve-full .journey-copy{padding:56px 24px}.lv2 .journey-reserve-full .journey-copy>p{font-size:18px}.lv2 .journey-reserve-full .journey-copy>p.journey-reserve-principle{font-size:14px}.lv2 .journey-reserve-icon{width:56px;height:56px;font-size:20px;margin:0 auto 20px}}
