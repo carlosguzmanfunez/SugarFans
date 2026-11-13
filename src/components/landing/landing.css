@@ -524,3 +524,7 @@
 :root[data-palette="blue"] .lv2 .v-creators:hover{background:#312d8f}
 :root[data-palette="blue"] .lv2 .hero-experiences .pass[data-experience="one-to-one"]{--pass-bg:#1d4fc4;--pass-copy:#e3edff;--pass-rule:#76a3f0}
 :root[data-palette="blue"] .lv2 .hero-experiences .pass[data-experience="exclusive-content"]{--pass-bg:#3f3ab0;--pass-copy:#e6e7ff;--pass-rule:#8f93e0}
+
+/* Fan Inicio on phones (Carlos 2026-11-13): the space between the Reserve card and the
+   "Propón tu experiencia" block matches the gap between the two cards. */
+@media(max-width:760px){.lv2 .journey:has(.journey-two){padding-bottom:20px}}
