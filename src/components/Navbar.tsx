@@ -4,7 +4,6 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import DualViewSwitch from './DualViewSwitch';
-import HowItWorksButton from './HowItWorksButton';
 import LanguageSelector from './LanguageSelector';
 import BrandLogo from './BrandLogo';
 import Avatar from './Avatar';
@@ -177,7 +176,6 @@ const Navbar: React.FC = () => {
           {/* Right side */}
           <div className="flex shrink-0 items-center gap-1 min-[400px]:gap-1.5 sm:gap-3 max-[400px]:[&_.h-10]:size-9">
             <LanguageSelector />
-            <HowItWorksButton role={isAuthenticated ? user?.role : undefined} />
             {isAuthenticated && user && <NotificationBell user={user} />}
             {isAuthenticated && user && (user.role === 'fan' || user.role === 'creator') && <CreditsPill user={user} />}
 

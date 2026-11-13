@@ -90,21 +90,13 @@ try {
     expect((await visitor.getByTestId('install-sheet').count()) === 0, 'salió sin sesión');
   });
 
-  console.log('\nCómo funciona');
-  await check('Fan en teléfono: abre en "Soy fan" y cambia a "Soy creador"', async () => {
-    await fan.getByTestId('how-it-works-button').click();
-    await fan.getByTestId('how-steps-fan').waitFor();
-    await shot(fan, '1-como-funciona-fan-movil');
-    await fan.getByTestId('how-tab-creator').click();
-    await fan.getByTestId('how-steps-creator').waitFor();
-    await shot(fan, '2-como-funciona-creador-movil');
-  });
-  const creator = await session(desktop, 'creator@sugarfans.com');
-  await check('Creador en computadora: abre en "Soy creador"', async () => {
+  await check('Sin botón "?" de Cómo funciona en la cápsula (visitante, fan y creador)', async () => {
+    expect((await visitor.getByTestId('how-it-works-button').count()) === 0, 'el visitante ve el botón');
+    expect((await fan.getByTestId('how-it-works-button').count()) === 0, 'el fan ve el botón');
+    const creator = await session(desktop, 'creator@sugarfans.com');
     await creator.goto(`${BASE}/explore`);
-    await creator.getByTestId('how-it-works-button').click();
-    await creator.getByTestId('how-steps-creator').waitFor();
-    await shot(creator, '5-como-funciona-creador-escritorio');
+    await creator.getByRole('navigation').first().waitFor();
+    expect((await creator.getByTestId('how-it-works-button').count()) === 0, 'el creador ve el botón');
     expect((await creator.getByTestId('install-sheet').count()) === 0, 'la hoja de instalar salió en computadora');
   });
   await check('La cápsula no se desborda en un teléfono de 360 px', async () => {
