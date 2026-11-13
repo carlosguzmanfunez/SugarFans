@@ -528,27 +528,23 @@
 /* Fan Inicio on phones (Carlos 2026-11-13): sizes in proportion so the page reads
    at a glance. Title, text and cards scaled down a step, tighter gaps; desktop untouched. */
 @media(max-width:560px){
-  .lv2 .hero.hero-experiences{padding-block:14px 16px}
-  .lv2 .hero-experiences h1{font-size:clamp(24px,6.6vw,27px);line-height:1.12;letter-spacing:-.03em}
-  .lv2 .hero-experiences .lead{margin-top:8px;font-size:14.5px;line-height:1.45}
-  .lv2 .hero-search{margin-top:12px}
-  .lv2 .hero-search input{height:44px;font-size:14.5px}
-  .lv2 .hero-search button{height:34px;width:34px}
-  .lv2 .hero-grid{gap:10px}
-  .lv2 .hero-experiences .deck{height:318px;--deck-step:60px;--deck-shadow-offset:120px;--deck-shadow-width:260px;--deck-shadow-height:44px}
-  .lv2 .hero-experiences .pass{--hero-pass-width:min(244px,calc(100vw - 72px));height:292px;margin-top:-152px}
-  .lv2 .hero-experiences .pass .fig{height:146px}
-  .lv2 .hero-experiences .pass .info{padding:14px 16px 12px}
-  .lv2 .hero-experiences .pass .info h3{font-size:18px}
-  .lv2 .journey{padding-block:22px}
+  .lv2 .hero.hero-experiences{padding-block:20px 22px}
+  .lv2 .hero-experiences h1{font-size:clamp(27px,7.6vw,31px);line-height:1.1;letter-spacing:-.03em}
+  .lv2 .hero-experiences .lead{margin-top:12px;font-size:15.5px;line-height:1.5}
+  .lv2 .hero-search{margin-top:16px}
+  .lv2 .hero-search input{height:48px;font-size:15px}
+  .lv2 .hero-search button{height:36px;width:36px}
+  .lv2 .hero-experiences .pass .fig{height:180px}
+  .lv2 .hero-experiences .pass .info h3{font-size:19px}
+  .lv2 .journey{padding-block:28px}
   .lv2 .j-head{margin-bottom:16px}
-  .lv2 .j-head h2{font-size:24px}
+  .lv2 .j-head h2{font-size:27px}
   .lv2 .journey-options,.lv2 .journey-options.journey-two{gap:12px}
   .lv2 .journey-copy{padding:16px 18px}
-  .lv2 .journey-copy h3{font-size:18.5px}
+  .lv2 .journey-copy h3{font-size:20px}
   .lv2 .journey-copy>p{margin-top:6px;font-size:14.5px;line-height:1.5}
   .lv2 .rsv{padding-block:30px}
-  .lv2 .rsv h2{font-size:25px}
+  .lv2 .rsv h2{font-size:28px}
   .lv2 .rsv .lead{margin-top:10px;font-size:15px;line-height:1.5}
   .lv2 .rsv .v-gold{margin-top:16px;padding:12px 18px;font-size:14.5px}
   .lv2 .rsv-steps li{padding:12px 0}
