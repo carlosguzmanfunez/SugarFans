@@ -563,3 +563,20 @@
 .lv2 .journey-reserve-full .journey-copy>p{max-width:42rem;margin-inline:auto;font-size:16px;line-height:1.55;color:rgb(255 255 255 / .75)}
 .lv2 .journey-reserve-full .journey-copy>p.journey-reserve-principle{margin-top:12px;font-size:12px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-2)}
 @media(min-width:640px){.lv2 .journey-reserve-full .journey-copy{padding:56px 24px}.lv2 .journey-reserve-full .journey-copy>p{font-size:18px}.lv2 .journey-reserve-full .journey-copy>p.journey-reserve-principle{font-size:14px}.lv2 .journey-reserve-icon{width:56px;height:56px;font-size:20px;margin:0 auto 20px}}
+
+/* Signed-in Inicio colours (Carlos 2026-11-13): Reserve stays night + gold; Suscríbete
+   takes the palette colour (pink or blue by the fan's choice) and "Propón tu
+   experiencia" a warm gold light, so the three read apart but stay in one family. */
+.lv2 .journey-two .journey-subscription{background:linear-gradient(135deg,var(--grad-main) 0%,var(--grad-end) 100%);color:#fff}
+.lv2 .journey-two .journey-subscription .journey-copy>p{color:rgb(255 255 255 / .88)}
+.lv2 .journey-two .journey-subscription ::selection{background:#fff;color:var(--grad-main)}
+.lv2 .rsv{background:linear-gradient(160deg,var(--gold-1) 0%,#f8e7bd 100%);color:var(--ink)}
+.lv2 .rsv::before{background:radial-gradient(closest-side,rgb(255 255 255 / .7),transparent)}
+.lv2 .rsv::after,:root[data-palette="blue"] .lv2 .rsv::after{background:radial-gradient(closest-side,rgb(227 169 58 / .28),transparent)}
+.lv2 .rsv-line{background:linear-gradient(90deg,transparent,rgb(143 83 24 / .35),transparent)}
+.lv2 .rsv h2 em{color:var(--gold-7)}
+.lv2 .rsv .lead,.lv2 .rsv-steps p{color:var(--ink-soft)}
+.lv2 .rsv-steps h3{color:var(--gold-7)}
+.lv2 .rsv-steps li{border-bottom-color:rgb(143 83 24 / .2)}
+.lv2 .rsv .v-gold{color:var(--gold-2);background:var(--night);box-shadow:0 14px 30px -14px rgb(22 13 31 / .6)}
+.lv2 .rsv :focus-visible{outline-color:var(--gold-7)}
