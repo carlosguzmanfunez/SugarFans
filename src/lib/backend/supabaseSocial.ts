@@ -152,7 +152,12 @@ export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
     if (/\.(mp4|webm|mov)$/i.test(path)) await forgetBunnyVideo(sb, path);
   },
 
-  async publicCreator(creatorProfileId) {
+  async publicCreator(creatorProfileId, opts) {
+    if (opts?.basic) {
+      const { data } = await sb.rpc('public_creator', { p_creator_profile_id: creatorProfileId });
+      const row = (data as Row[] | null)?.[0];
+      return row ? toPublicCreator(row) : null;
+    }
     const [{ data }, category, cover] = await Promise.all([
       sb.rpc('public_creator', { p_creator_profile_id: creatorProfileId }),
       sb.rpc('creator_category', { p_creator_profile_id: creatorProfileId }),
