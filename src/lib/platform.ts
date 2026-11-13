@@ -23,8 +23,8 @@ const after = async <T extends AuthResult>(result: Promise<T>): Promise<T> => {
 };
 
 // Like useBackendData, but also reloads after any platform mutation.
-export function usePlatformQuery<T>(load: () => Promise<T>, deps: unknown[], initial: T) {
-  const query = useBackendData(load, deps, initial);
+export function usePlatformQuery<T>(load: () => Promise<T>, deps: unknown[], initial: T, shareKey?: string) {
+  const query = useBackendData(load, deps, initial, shareKey);
   const { reload } = query;
   useEffect(() => {
     listeners.add(reload);

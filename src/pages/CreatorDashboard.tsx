@@ -25,7 +25,7 @@ import ReserveTimeZoneSelector from '../components/reserve/ReserveTimeZoneSelect
 import { viewerTimeZone } from '../lib/timeZones';
 import { RedDot } from '../components/MobileTabBar';
 import ScrollStrip from '../components/ScrollStrip';
-import { onNewNotification } from '../lib/live';
+import { onNewNotification, creatorBookingsKey } from '../lib/live';
 import { needsCreatorAnswer } from '../lib/reserveAlerts';
 import { CREATOR_CATEGORIES, categoryFor } from '../config/reserve';
 import { creators as demoCreators } from '../data/mockData';
@@ -113,7 +113,7 @@ const CreatorDashboard: React.FC = () => {
     }).catch(() => { if (active) setNotice({ ok: false, text: 'No pudimos consultar tus horarios. Recarga la página para volver a intentarlo.' }); });
     return () => { active = false; };
   }, [profileId]);
-  const { data: vipBookings, reload: reloadBookings } = useBackendData(() => backend.creatorBookings(profileId), [profileId], []);
+  const { data: vipBookings, reload: reloadBookings } = useBackendData(() => backend.creatorBookings(profileId), [profileId], [], creatorBookingsKey(profileId));
   const pendingVip = vipBookings.filter((b) => needsCreatorAnswer(b)).length;
   // A new request shows up in the list at once.
   const userId = user?.id;

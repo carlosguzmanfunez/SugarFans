@@ -3,11 +3,17 @@
 import { backend } from './backend';
 import type { AuthResult, User } from './backend/types';
 import { platformChanged } from './platform';
+import { sharedRequest } from './sharedRequest';
 
 export type * from './backend/socialTypes';
 
 const s = backend.social;
-export const socialApi = s;
+// The creator's panel opens several boxes that list the same posts at once: they
+// share that request (only when asked in the same instant, so never stale).
+export const socialApi: typeof s = {
+  ...s,
+  postsByCreator: (creatorProfileId) => sharedRequest(`posts:${creatorProfileId}`, () => s.postsByCreator(creatorProfileId), true),
+};
 
 const after = async <T extends AuthResult>(result: Promise<T>): Promise<T> => {
   const r = await result;

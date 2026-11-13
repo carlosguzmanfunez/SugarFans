@@ -23,7 +23,7 @@ import { countryName } from '../config/countries';
 
 const Explore: React.FC = () => {
   useSeoPage('explore', '/explore');
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loading: authLoading } = useAuth();
   const { creators } = useCreatorCatalog();
   const featured = useFeatured();
   const featuredIds = new Map(featured.map((f) => [f.creatorProfileId, f.level]));
@@ -39,10 +39,12 @@ const Explore: React.FC = () => {
   const [params] = useSearchParams();
   const { data: platform } = usePlatformQuery(
     async () => {
+      // Waits for the session (asked once, not once before and once after it loads).
+      if (authLoading) return { removedPosts: [] as string[], blocks: [] as Awaited<ReturnType<typeof platformApi.blocks>> };
       const [removedPosts, blocks] = await Promise.all([platformApi.removedPosts(), user ? platformApi.blocks(user) : Promise.resolve([])]);
       return { removedPosts, blocks };
     },
-    [user?.id],
+    [authLoading, user?.id],
     { removedPosts: [] as string[], blocks: [] as Awaited<ReturnType<typeof platformApi.blocks>> }
   );
   // Blocked profiles (either direction) and posts removed by moderation are hidden.

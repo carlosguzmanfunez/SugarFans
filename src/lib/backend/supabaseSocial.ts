@@ -44,13 +44,16 @@ const toPublicCreator = (r: Row): PublicCreator => ({
 
 export const createSupabaseSocial = (sb: SupabaseClient): SocialBackend => ({
   async postsByCreator(creatorProfileId) {
-    const { data } = await sb
-      .from('creator_posts')
-      .select('id, creator_id, creator_profile_id, content, is_locked, created_at, media_path, media_type, is_draft')
-      .eq('creator_profile_id', creatorProfileId)
-      .order('created_at', { ascending: false });
-    // Locked posts this viewer can't open come without text or file: shown as locked cards.
-    const { data: previews } = await sb.rpc('locked_post_previews', { p_creator_profile_id: creatorProfileId });
+    // Both at once (one wait instead of two). Locked posts this viewer can't open
+    // come without text or file: shown as locked cards.
+    const [{ data }, { data: previews }] = await Promise.all([
+      sb
+        .from('creator_posts')
+        .select('id, creator_id, creator_profile_id, content, is_locked, created_at, media_path, media_type, is_draft')
+        .eq('creator_profile_id', creatorProfileId)
+        .order('created_at', { ascending: false }),
+      sb.rpc('locked_post_previews', { p_creator_profile_id: creatorProfileId }),
+    ]);
     const seen = new Set((data ?? []).map((r) => r.id));
     const rows: Row[] = [
       ...((data ?? []) as Row[]),

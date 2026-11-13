@@ -67,26 +67,30 @@ export const onNewNotification = (userId: string, cb: () => void) => {
 
 // The signed-in person's notifications, refreshed when a new one arrives.
 export const useNotifications = (user: User | null) => {
-  const query = usePlatformQuery(() => (user ? l.notifications(user) : Promise.resolve([])), [user?.id], []);
+  const query = usePlatformQuery(() => (user ? l.notifications(user) : Promise.resolve([])), [user?.id], [], `notifications:${user?.id ?? ''}`);
   const { reload } = query;
   const userId = user?.id;
   useEffect(() => (userId ? onNewNotification(userId, reload) : undefined), [userId, reload]);
   return query;
 };
 
+export const creatorBookingsKey = (profileId?: string) => `creator-bookings:${profileId ?? ''}`;
+
 // How many Reserve requests the creator still has to answer (the red dot on
 // "Reservas"), refreshed as soon as a new request arrives.
 export const useReserveInbox = (user: User | null) => {
   const profileId = user?.role === 'creator' ? user.creatorProfileId : undefined;
+  // Same key as the creator panel's Reserve list: one request for both.
   const query = usePlatformQuery(
-    async () => (profileId ? (await backend.creatorBookings(profileId)).filter((b) => needsCreatorAnswer(b)).length : 0),
+    () => (profileId ? backend.creatorBookings(profileId) : Promise.resolve([])),
     [profileId],
-    0
+    [],
+    creatorBookingsKey(profileId)
   );
   const { reload } = query;
   const userId = profileId ? user?.id : undefined;
   useEffect(() => (userId ? onNewNotification(userId, reload) : undefined), [userId, reload]);
-  return query.data;
+  return query.data.filter((b) => needsCreatorAnswer(b)).length;
 };
 
 // Which of these creators are in an Open Live right now (the public LIVE rings and the
