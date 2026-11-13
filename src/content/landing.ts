@@ -12,6 +12,8 @@ export const HERO = {
   titleAccent: 'tu creador de contenido favorito.',
   subtitle: 'Reserva videollamadas y eventos con tus creadores favoritos, o suscríbete para ver su contenido exclusivo.',
   primaryCta: 'Crear cuenta gratis',
+  // Fans get a search bar instead of buttons (Carlos 2026-11-13).
+  search: { placeholder: 'Explorar creadores', label: 'Buscar creadores por nombre o @usuario' },
   // Signed-in visitors already have an account: offer their next step instead.
   member: {
     fan: { primary: { label: 'Ver experiencias', to: '/reserve', icon: 'fa-ticket' }, secondary: { label: 'Explorar creadores', to: '/explore', icon: 'fa-compass' } },

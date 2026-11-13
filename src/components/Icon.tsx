@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   ArrowRight, Ban, Bell, BellOff, Check, ChartLine, ChartPie, ChevronDown, CircleCheck, Crown, CircleHelp, CircleUser, Coins, Compass, DollarSign, Ellipsis,
-  Flag, Gift, HandCoins, Heart, House, Image, Images, Link, LogOut, Menu, Pen, Plus, Settings, ShieldHalf, Star, Target, Ticket, Trophy, Unlock, User, Users,
+  Flag, Gift, HandCoins, Heart, House, Image, Images, Link, LogOut, Menu, Pen, Plus, Search, Settings, ShieldHalf, Star, Target, Ticket, Trophy, Unlock, User, Users,
   Video, Wallet, X, type LucideIcon,
 } from 'lucide-react';
 
@@ -25,6 +25,7 @@ const ICONS: Record<string, LucideIcon> = {
   'fa-circle-user': CircleUser,
   'fa-cog': Settings,
   'fa-coins': Coins,
+  'fa-magnifying-glass': Search,
   'fa-compass': Compass,
   'fa-crown': Crown,
   'fa-dollar-sign': DollarSign,
