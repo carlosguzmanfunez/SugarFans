@@ -58,7 +58,7 @@ export const HERO_EXPERIENCES = [
   {
     id: 'your-proposal',
     title: 'Tu idea también cuenta',
-    description: 'Tú pones la idea, tu creador pone la experiencia.',
+    description: 'Proponla y el creador la convierte en experiencia.',
     badge: 'A tu medida',
     icon: 'fa-pen-to-square',
     image: '/hero-experiences/your-proposal.webp',
