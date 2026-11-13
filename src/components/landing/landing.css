@@ -525,29 +525,13 @@
 :root[data-palette="blue"] .lv2 .hero-experiences .pass[data-experience="one-to-one"]{--pass-bg:#1d4fc4;--pass-copy:#e3edff;--pass-rule:#76a3f0}
 :root[data-palette="blue"] .lv2 .hero-experiences .pass[data-experience="exclusive-content"]{--pass-bg:#3f3ab0;--pass-copy:#e6e7ff;--pass-rule:#8f93e0}
 
-/* Fan Inicio on phones (Carlos 2026-11-13): sizes in proportion so the page reads
-   at a glance. Title, text and cards scaled down a step, tighter gaps; desktop untouched. */
+/* Fan Inicio on phones (Carlos 2026-11-13): the card is already a link, so the bottom
+   "Explorar Reserve / Ver creadores…" row is dropped and the card gets shorter.
+   Text sizes stay as they are; the description reads a touch larger. Desktop untouched. */
 @media(max-width:560px){
-  .lv2 .hero.hero-experiences{padding-block:20px 22px}
-  .lv2 .hero-experiences h1{font-size:clamp(27px,7.6vw,31px);line-height:1.1;letter-spacing:-.03em}
-  .lv2 .hero-experiences .lead{margin-top:12px;font-size:15.5px;line-height:1.5}
-  .lv2 .hero-search{margin-top:16px}
-  .lv2 .hero-search input{height:48px;font-size:15px}
-  .lv2 .hero-search button{height:36px;width:36px}
-  .lv2 .hero-experiences .pass .fig{height:180px}
-  .lv2 .hero-experiences .pass .info h3{font-size:19px}
-  .lv2 .journey{padding-block:28px}
-  .lv2 .j-head{margin-bottom:16px}
-  .lv2 .j-head h2{font-size:27px}
-  .lv2 .journey-options,.lv2 .journey-options.journey-two{gap:12px}
-  .lv2 .journey-copy{padding:16px 18px}
-  .lv2 .journey-copy h3{font-size:20px}
-  .lv2 .journey-copy>p{margin-top:6px;font-size:14.5px;line-height:1.5}
-  .lv2 .rsv{padding-block:30px}
-  .lv2 .rsv h2{font-size:28px}
-  .lv2 .rsv .lead{margin-top:10px;font-size:15px;line-height:1.5}
-  .lv2 .rsv .v-gold{margin-top:16px;padding:12px 18px;font-size:14.5px}
-  .lv2 .rsv-steps li{padding:12px 0}
-  .lv2 .rsv-steps h3{font-size:16.5px}
-  .lv2 .rsv-steps p{font-size:14.5px;line-height:1.5}
+  .lv2 .hero-experiences .pass .slot{display:none}
+  .lv2 .hero-experiences .deck{height:362px;--deck-shadow-offset:131px}
+  .lv2 .hero-experiences .pass{height:330px;margin-top:-173px}
+  .lv2 .hero-experiences .pass .info{padding-bottom:18px}
+  .lv2 .hero-experiences .pass .meta{font-size:13.5px;line-height:1.45}
 }
