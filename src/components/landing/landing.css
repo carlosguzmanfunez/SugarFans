@@ -579,3 +579,14 @@
 .lv2 .rsv-steps li{border-bottom-color:var(--line)}
 .lv2 .rsv-steps h3{color:var(--gold-7)}
 .lv2 .rsv :focus-visible{outline-color:var(--gold-7)}
+
+/* Carousel cards (Carlos 2026-11-13, Claude's direction): one family instead of four
+   loud colours. The photo fills the card, a dark fade carries the text, and only the
+   chip and the moving ring take the fan's palette colour. */
+:root .lv2 .hero-experiences .pass,
+:root .lv2 .hero-experiences .pass[data-experience]{--pass-bg:#120a1a;--pass-ink:#fff;--pass-copy:rgb(255 255 255 / .82);--pass-rule:color-mix(in srgb,var(--grad-light) 70%,#fff)}
+.lv2 .hero-experiences .pass .fig{inset:0;height:100%!important}
+.lv2 .hero-experiences .pass[data-experience="exclusive-content"] .fig img{transform:scale(1.15)}
+.lv2 .hero-experiences .pass .info{background:linear-gradient(to top,rgb(18 10 26 / .96) 0%,rgb(18 10 26 / .86) 55%,rgb(18 10 26 / 0) 100%);padding-top:56px}
+.lv2 .hero-experiences .pass .top .chip{background:var(--grad-main);color:#fff;border-color:transparent}
+.lv2 .hero-experiences .pass .slot{border-top-color:rgb(255 255 255 / .22)}
