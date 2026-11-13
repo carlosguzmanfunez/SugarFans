@@ -528,3 +528,25 @@
 /* Fan Inicio on phones (Carlos 2026-11-13): the space between the Reserve card and the
    "Propón tu experiencia" block matches the gap between the two cards. */
 @media(max-width:760px){.lv2 .journey:has(.journey-two){padding-bottom:20px}}
+
+/* "Tu próxima Reserve" on the fan's Inicio (Carlos 2026-11-13): only when the fan has an
+   active booking. Palette-coloured like the search bar; the state sets the accent. */
+.lv2 .next-rsv{--rsv-accent:var(--color-brand-700);margin-top:14px;max-width:36rem;border-radius:22px;padding:14px 16px;background:rgb(255 255 255 / .78);border:1px solid color-mix(in srgb,var(--color-brand-700) 18%,transparent);box-shadow:0 14px 32px -22px rgb(40 20 60 / .45);backdrop-filter:blur(10px)}
+.lv2 .next-rsv-act{--rsv-accent:#b45309}
+.lv2 .next-rsv-ok{--rsv-accent:#047857}
+.lv2 .next-rsv-live{--rsv-accent:#dc2626}
+.lv2 .next-rsv-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lv2 .next-rsv-kicker{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--color-brand-700)}
+.lv2 .next-rsv-kicker svg{width:14px;height:14px}
+.lv2 .next-rsv-all{font-size:12.5px;font-weight:600;color:var(--ink);opacity:.65;text-decoration:underline;text-underline-offset:3px}
+.lv2 .next-rsv-title{margin-top:6px;font-size:16px;font-weight:700;line-height:1.3;color:var(--ink)}
+.lv2 .next-rsv-title span{font-weight:500;opacity:.6}
+.lv2 .next-rsv-when{margin-top:2px;font-size:13.5px;opacity:.7}
+.lv2 .next-rsv-foot{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.lv2 .next-rsv-status{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 11px;font-size:12.5px;font-weight:600;color:var(--rsv-accent);background:color-mix(in srgb,var(--rsv-accent) 11%,transparent)}
+.lv2 .next-rsv-dot{width:8px;height:8px;border-radius:50%;background:var(--rsv-accent);animation:next-rsv-pulse 1.4s ease-in-out infinite}
+@keyframes next-rsv-pulse{50%{opacity:.35}}
+@media(prefers-reduced-motion:reduce){.lv2 .next-rsv-dot{animation:none}}
+.lv2 .next-rsv-btn{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 16px;border-radius:999px;font-size:14px;font-weight:600;color:#fff;background:var(--ink)}
+.lv2 .next-rsv-act .next-rsv-btn,.lv2 .next-rsv-live .next-rsv-btn{background:var(--rsv-accent)}
+.lv2 .next-rsv-btn svg{width:14px;height:14px}

@@ -4,6 +4,7 @@ import { HERO, HERO_EXPERIENCES } from '../../content/landing';
 import { useAuth } from '../../context/AuthContext';
 import Icon from '../Icon';
 import { ArrowRight, prefersReducedMotion } from './landingBits';
+import FanNextReserve from './FanNextReserve';
 
 const AUTOPLAY_MS = 4200;
 const deck = HERO_EXPERIENCES;
@@ -130,7 +131,9 @@ const Hero: React.FC = () => {
                 <Icon name="fa-magnifying-glass" />
               </button>
             </form>
-          ) : (
+          ) : null}
+          {user?.role === 'fan' && <FanNextReserve user={user} />}
+          {user?.role === 'fan' ? null : (
           <div className="ctas">
             {member ? (
               <>
