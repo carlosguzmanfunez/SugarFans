@@ -556,7 +556,15 @@ const run = async () => {
       await page.locator('#hero-title').waitFor();
       expect(await page.locator('a[href^="/register"]').count() === 0, 'la portada enlaza al registro con sesión iniciada');
       expect(!(await page.locator('body').innerText()).includes('Crear cuenta gratis'), 'sigue apareciendo Crear cuenta gratis');
-      await page.locator('#hero-title').locator('..').getByRole('link', { name: /Explorar creadores/ }).waitFor();
+      // Fans get a search bar (no buttons); it opens Explorar with the search filled in.
+      const search = page.getByTestId('hero-search');
+      expect((await page.locator('#hero-title').locator('..').getByRole('link').count()) === 0, 'la portada del fan sigue con botones');
+      await search.getByRole('searchbox').fill('valentina');
+      await search.getByRole('searchbox').press('Enter');
+      await waitPath(page, '/explore');
+      expect((await page.locator('input[type=search]').first().inputValue()) === 'valentina', 'Explorar no recibe la búsqueda');
+      await page.goto(`${BASE}/`);
+      await page.locator('#hero-title').waitFor();
       expect(await page.locator('#creator-cta-title').count() === 0, 'un fan ve la invitación a registrarse como creador');
     });
     await check('Cerrar sesión funciona y persiste tras recargar', async () => {

@@ -14,6 +14,7 @@ const Hero: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const member = user ? HERO.member[user.role] : null;
+  const [query, setQuery] = useState('');
   const [cur, setCur] = useState(0);
   const [drag, setDrag] = useState(0);
   const [tilt, setTilt] = useState<{ x: number; y: number } | null>(null);
@@ -100,6 +101,36 @@ const Hero: React.FC = () => {
         <div>
           <h1 id="hero-title">{HERO.titleLead} <span className="hero-title-accent">{HERO.titleAccent}</span></h1>
           <p className="lead">{HERO.subtitle}</p>
+          {user?.role === 'fan' ? (
+            <form
+              role="search"
+              className="hero-search relative mt-7 max-w-xl"
+              data-testid="hero-search"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const q = query.trim();
+                navigate(q ? `/explore?q=${encodeURIComponent(q)}` : '/explore');
+              }}
+            >
+              <span aria-hidden="true" className="pointer-events-none absolute left-5 top-1/2 z-10 -translate-y-1/2 text-lg font-semibold text-brand-700/70">@</span>
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label={HERO.search.label}
+                placeholder={HERO.search.placeholder}
+                enterKeyHint="search"
+                className="h-14 w-full rounded-full border border-brand-500/25 bg-brand-500/10 pl-11 pr-14 text-base text-ink shadow-[0_8px_30px_-12px_rgba(0,0,0,0.25)] outline-none backdrop-blur-md transition placeholder:text-brand-800/55 focus:border-brand-500/50 focus:bg-brand-500/15 focus:ring-2 focus:ring-brand-500/30"
+              />
+              <button
+                type="submit"
+                aria-label={HERO.search.placeholder}
+                className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-brand-500/15 text-brand-700 transition hover:bg-brand-500/25"
+              >
+                <Icon name="fa-magnifying-glass" />
+              </button>
+            </form>
+          ) : (
           <div className="ctas">
             {member ? (
               <>
@@ -113,6 +144,7 @@ const Hero: React.FC = () => {
               </>
             )}
           </div>
+          )}
         </div>
         <div
           className="deck"

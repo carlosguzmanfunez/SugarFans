@@ -50,7 +50,8 @@ const Explore: React.FC = () => {
   // Blocked profiles (either direction) and posts removed by moderation are hidden.
   const hidden = (creatorId: string) => !!user && isCutOff(platform.blocks, user.id, creatorId);
   const visiblePosts = posts.filter((p) => !platform.removedPosts.includes(p.id) && !hidden(p.creatorId));
-  const [searchQuery, setSearchQuery] = useState('');
+  // ?q= comes from the search bar on the fan's home page.
+  const [searchQuery, setSearchQuery] = useState(() => params.get('q') ?? '');
   // ?category=<name> preselects a category (landing tiles link here).
   const [selectedCategory, setSelectedCategory] = useState(() => {
     const requested = params.get('category') ?? '';

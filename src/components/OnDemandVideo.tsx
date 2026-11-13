@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import VideoPreview from './VideoPreview';
 import { noCaptureVideoProps } from './ViewerWatermark';
 import { isBunnyEmbed } from '../lib/backend/bunnyVideo';
+import { useAuth } from '../context/AuthContext';
 
 interface Props {
   src: string;
@@ -16,6 +17,7 @@ interface Props {
 // No source is attached before an explicit click, even in browsers that ignore
 // preload hints. A changed URL requires a fresh click instead of auto-playing.
 const OnDemandVideo: React.FC<Props> = ({ src, seed, className = '', videoClassName = 'w-full', testId, fill = false }) => {
+  const { user } = useAuth();
   const [requested, setRequested] = useState<string | null>(null);
   const video = useRef<HTMLVideoElement>(null);
   useEffect(() => {
@@ -39,7 +41,10 @@ const OnDemandVideo: React.FC<Props> = ({ src, seed, className = '', videoClassN
     const w = m ? Number(m[1]) : 16;
     const h = m ? Number(m[2]) : 9;
     const ratio = w > 0 && h > 0 ? `${w} / ${h}` : '16 / 9';
-    const player = `${url}&autoplay=true&preload=true&playsinline=true&rememberPosition=false`;
+    // Only the owner keeps the playback-speed option (Carlos 2026-11-13). Quality
+    // stays automatic; Bunny has no per-embed switch to hide its selector.
+    const speed = user?.isOwner ? '' : '&showSpeed=false';
+    const player = `${url}&autoplay=true&preload=true&playsinline=true&rememberPosition=false${speed}`;
     // Vertical phone videos: as tall as the space allows, width follows the shape.
     const tall = fill ? '100%' : 'min(80vh, 32rem)';
     const size: React.CSSProperties = h > w ? { height: tall, width: 'auto', maxWidth: '100%' } : { width: '100%', maxHeight: tall };
