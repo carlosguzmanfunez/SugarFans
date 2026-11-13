@@ -524,3 +524,14 @@
 :root[data-palette="blue"] .lv2 .v-creators:hover{background:#312d8f}
 :root[data-palette="blue"] .lv2 .hero-experiences .pass[data-experience="one-to-one"]{--pass-bg:#1d4fc4;--pass-copy:#e3edff;--pass-rule:#76a3f0}
 :root[data-palette="blue"] .lv2 .hero-experiences .pass[data-experience="exclusive-content"]{--pass-bg:#3f3ab0;--pass-copy:#e6e7ff;--pass-rule:#8f93e0}
+
+/* Fan Inicio on phones (Carlos 2026-11-13): the card is already a link, so the bottom
+   "Explorar Reserve / Ver creadores…" row is dropped and the card gets shorter.
+   Text sizes stay as they are; the description reads a touch larger. Desktop untouched. */
+@media(max-width:560px){
+  .lv2 .hero-experiences .pass .slot{display:none}
+  .lv2 .hero-experiences .deck{height:362px;--deck-shadow-offset:131px}
+  .lv2 .hero-experiences .pass{height:330px;margin-top:-173px}
+  .lv2 .hero-experiences .pass .info{padding-bottom:18px}
+  .lv2 .hero-experiences .pass .meta{font-size:13.5px;line-height:1.45}
+}
