@@ -70,7 +70,10 @@ const Navbar: React.FC = () => {
   const isCreator = isAuthenticated && user?.role === 'creator';
   const waiting = useReserveInbox(isCreator ? user : null);
   const onReservas = location.pathname === '/creator/dashboard' && new URLSearchParams(location.search).get('tab') === 'vip';
-  const showCreators = !isAuthenticated || user?.role === 'creator';
+  // Signed-in accounts get a short menu: "Cómo funciona" is the button on the right
+  // (it explains their own side) and "Para creadores" is a pitch for visitors.
+  const showCreators = !isAuthenticated;
+  const showJourney = !isAuthenticated;
   const sections = [
     // Inicio, so the way home is in the menu and not only in the logo.
     { href: '/', label: t('nav.home') },
@@ -80,7 +83,7 @@ const Navbar: React.FC = () => {
     { href: isCreator ? CREATOR_RESERVE_LINK : '#reserve', label: 'Reserve' },
     ...(ENABLE_OPEN_LIVE && ENABLE_HAPPENING_NOW ? [{ href: '#live', label: 'Live' }] : []),
     ...(showCreators ? [{ href: '#creadores', label: 'Para creadores' }] : []),
-    { href: '#journey', label: 'Cómo funciona' },
+    ...(showJourney ? [{ href: '#journey', label: 'Cómo funciona' }] : []),
   ];
 
   const linkCls = (path: string) =>
@@ -104,8 +107,8 @@ const Navbar: React.FC = () => {
   const navigationLinks = [
     { to: '/explore', label: t('nav.explore'), icon: 'fa-compass' },
     { to: isCreator ? CREATOR_RESERVE_LINK : '/reserve', label: isCreator ? 'Reservas' : 'Reserve', icon: 'fa-ticket' },
-    ...(showCreators ? [{ to: isAuthenticated ? '/#creadores' : '/register?role=creator', label: 'Para creadores', icon: 'fa-star' }] : []),
-    { to: '/#journey', label: 'Cómo funciona', icon: 'fa-circle-question' },
+    ...(showCreators ? [{ to: '/register?role=creator', label: 'Para creadores', icon: 'fa-star' }] : []),
+    ...(showJourney ? [{ to: '/#journey', label: 'Cómo funciona', icon: 'fa-circle-question' }] : []),
     { to: '/help', label: t('nav.help'), icon: 'fa-circle-question' },
   ];
   const accountItemCls = 'flex min-h-11 items-center gap-3 px-4 py-2.5 text-sm focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600';

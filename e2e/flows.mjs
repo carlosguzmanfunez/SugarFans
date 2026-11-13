@@ -2653,7 +2653,9 @@ const run = async () => {
     await check('Jerarquía: el menú no tiene un pilar Live y el Open Live está oculto', async () => {
       await resF.goto(`${BASE}/`);
       const nav = resF.getByRole('navigation').first();
-      for (const l of ['Explorar', 'Reserve', 'Cómo funciona']) await nav.getByRole('link', { name: l, exact: true }).first().waitFor();
+      for (const l of ['Explorar', 'Reserve']) await nav.getByRole('link', { name: l, exact: true }).first().waitFor();
+      // With a session the menu stays short: "Cómo funciona" is the button, not a link.
+      for (const l of ['Cómo funciona', 'Para creadores']) expect((await nav.getByRole('link', { name: l, exact: true }).count()) === 0, `el menú con sesión repite ${l}`);
       expect((await nav.getByRole('link', { name: 'Live', exact: true }).count()) === 0, 'el menú tiene un pilar Live');
       // Subscribing is explained in "Cómo funciona"; the menu doesn't repeat it.
       expect((await nav.getByRole('link', { name: 'Suscribirse', exact: true }).count()) === 0, 'el menú repite Suscribirse');
@@ -3179,7 +3181,7 @@ const run = async () => {
       await login(p, 'fan@sugarfans.com', 'demo1234');
       await waitPath(p, '/');
       const nav = p.getByRole('navigation', { name: 'Principal' });
-      for (const [name, id] of [['Reserve', 'reserve'], ['Cómo funciona', 'journey']]) {
+      for (const [name, id] of [['Reserve', 'reserve']]) {
         await nav.getByRole('link', { name, exact: true }).click();
         await p.waitForFunction((sid) => Math.abs(document.getElementById(sid).getBoundingClientRect().top) <= 2, id, { timeout: 5000 });
         const { title, navBottom } = await p.evaluate((sid) => ({
