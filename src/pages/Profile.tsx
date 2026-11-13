@@ -30,7 +30,7 @@ const Profile: React.FC = () => {
   const userId = user?.id;
   useEffect(() => (userId ? onNewNotification(userId, reload) : undefined), [userId, reload]);
   const { data: verification } = usePlatformQuery(() => (user ? platformApi.myVerification(user.id) : Promise.resolve(null)), [user?.id], null);
-  const { data: coins } = usePlatformQuery(() => (user ? giftsApi.wallet(user).then((w) => w.coins) : Promise.resolve(0)), [user?.id], 0);
+  const { data: coins } = usePlatformQuery(() => (user ? giftsApi.wallet(user).then((w) => w.coins) : Promise.resolve(0)), [user?.id], 0, `coins:${user?.id ?? ''}`);
   const { data: tickets } = usePlatformQuery(() => (user ? rewardsApi.myTickets(user) : Promise.resolve([])), [user?.id], [] as ExperienceTicket[]);
   const [paying, setPaying] = useState<VipBooking | null>(null);
 

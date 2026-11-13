@@ -11,7 +11,7 @@ export function usePayoutClock() {
 }
 
 export function usePayoutCalendar() {
-  const query = usePlatformQuery(() => platformApi.payoutCalendar(), [], null);
+  const query = usePlatformQuery(() => platformApi.payoutCalendar(), [], null, 'payout-calendar');
   const at = usePayoutClock();
   return { ...query, at };
 }

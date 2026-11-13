@@ -26,6 +26,8 @@ import { createSupabaseFinance } from './supabaseFinance';
 import { isDemoEmail } from '../../config/demoAccounts';
 
 const REMEMBER_KEY = `${BRAND.storagePrefix}remember`;
+// Coming back to the app after this long away reloads the screens.
+const RETURN_REFRESH_MS = 60_000;
 
 // "Remember me" off keeps the session in sessionStorage (dies with the tab).
 const sessionAwareStorage = {
@@ -258,6 +260,38 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
     auth: { storage: sessionAwareStorage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
   });
 
+  // One auth listener for the whole app; screens add themselves to authListeners.
+  // The first session is already loaded by getCurrentUser, and supabase-js says
+  // SIGNED_IN again each time the tab or the installed app comes back to the
+  // front. Same account: the screens reload only after a minute or more away
+  // (fresh data then, not on every quick switch between apps), and all at once so
+  // they can share their requests.
+  const authListeners = new Set<() => void>();
+  let watching = false;
+  const watchAuth = () => {
+    if (watching) return;
+    watching = true;
+    let lastUid: string | null | undefined;
+    let hiddenAt = 0;
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') hiddenAt = Date.now();
+      });
+    }
+    sb.auth.onAuthStateChange((event, session) => {
+      const uid = session?.user.id ?? null;
+      const same = uid === lastUid;
+      lastUid = uid;
+      if (event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') return;
+      if (event === 'SIGNED_IN' && same) {
+        const away = hiddenAt ? Date.now() - hiddenAt : 0;
+        hiddenAt = 0;
+        if (away < RETURN_REFRESH_MS) return;
+      }
+      setTimeout(() => [...authListeners].forEach((listener) => listener()), 0);
+    });
+  };
+
   const reauthenticate = async (email: string, password: string) => {
     const { error } = await sb.auth.signInWithPassword({ email, password });
     return !error;
@@ -377,10 +411,11 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
     },
 
     onChange(cb) {
-      const { data } = sb.auth.onAuthStateChange((event) => {
-        if (event !== 'TOKEN_REFRESHED') setTimeout(cb, 0);
-      });
-      return () => data.subscription.unsubscribe();
+      watchAuth();
+      authListeners.add(cb);
+      return () => {
+        authListeners.delete(cb);
+      };
     },
 
     async login(email, password, remember) {

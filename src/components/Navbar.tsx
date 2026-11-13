@@ -24,7 +24,7 @@ import { RedDot } from './MobileTabBar';
 // Créditos balance (fans and creators), always in sight on every screen size, in the
 // champagne tone of the coin. Compact on phones so it fits between the bell and the avatar.
 const CreditsPill: React.FC<{ user: User }> = ({ user }) => {
-  const { data: coins } = usePlatformQuery(async () => (await giftsApi.wallet(user)).coins, [user.id], 0);
+  const { data: coins } = usePlatformQuery(async () => (await giftsApi.wallet(user)).coins, [user.id], 0, `coins:${user.id}`);
   return (
     <Link
       to="/settings?section=wallet"

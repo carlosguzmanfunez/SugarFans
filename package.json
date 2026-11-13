@@ -27,6 +27,7 @@
     "test:push-device-state": "node e2e/push-device-state.mjs",
     "test:subscription-notifications": "node e2e/subscription-notifications.mjs",
     "test:post-image": "node e2e/post-image-shrink.mjs && node e2e/phone-photo-load.mjs",
+    "test:request-count": "node e2e/shared-request.mjs && node e2e/request-count.mjs",
     "test:bunny-video": "node e2e/bunny-video-api.mjs",
     "test:api-esm": "node e2e/api-esm-load.mjs",
     "test:bunny-usage": "node e2e/bunny-usage-api.mjs && node e2e/admin-bunny-usage-ui.mjs",

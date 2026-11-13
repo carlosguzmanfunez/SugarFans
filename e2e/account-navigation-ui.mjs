@@ -44,14 +44,17 @@ try {
       assert.equal(await page.getByRole('button', { name: 'Menú', exact: true }).count(), 0);
       const hrefs = await menu.locator('a').evaluateAll(links => links.map(link => link.getAttribute('href')));
       assert.equal(new Set(hrefs).size, hrefs.length);
-      for (const href of ['/explore', '/reserve', '/#journey', '/help']) {
+      for (const href of ['/explore', '/reserve', '/help']) {
         if (href === '/reserve' && ['creator', 'owner'].includes(role)) continue;
         assert.ok(hrefs.includes(href), `${role}: missing ${href}`);
       }
       if (role === 'visitor') {
+        assert.ok(hrefs.includes('/#journey'), 'visitor: missing /#journey');
         assert.ok(hrefs.includes('/login') && hrefs.includes('/register') && hrefs.includes('/register?role=creator'));
         assert.ok(!hrefs.includes('/profile') && !hrefs.includes('/admin'));
       } else {
+        // Signed-in menu stays short (#203): "Cómo funciona" lives only in the top pill.
+        assert.ok(!hrefs.includes('/#journey') && !hrefs.includes('/register?role=creator'), `${role}: Cómo funciona / Para creadores in the menu`);
         for (const href of ['/profile', '/settings?section=wallet', '/settings']) assert.ok(hrefs.includes(href));
         assert.equal(hrefs.includes('/creator/dashboard'), ['creator', 'owner'].includes(role));
         assert.equal(hrefs.includes('/admin'), ['admin', 'owner'].includes(role));
