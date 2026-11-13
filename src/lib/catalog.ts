@@ -1,7 +1,7 @@
 // The public creator catalogue: the demo creators, creators who signed up, and the
 // profiles the platform runs itself (managed profiles, e.g. AI personas).
 import { creators as demoCreators, type Creator } from '../data/mockData';
-import { usePlatformQuery, platformApi, type ManagedProfile } from './platform';
+import { usePlatformQuery, platformApi, onPlatformChanged, type ManagedProfile } from './platform';
 import { backend } from './backend';
 import type { PublicCreator } from './backend/socialTypes';
 import { BRAND } from '../config/brand';
@@ -45,23 +45,40 @@ export const fromPublic = (c: PublicCreator): Creator => ({
 // A demo creator claimed by an account (e.g. creator@ owns '1') charges the price
 // set in that account's panel, the same one the server bills.
 const withOwners = async (list: Creator[]): Promise<Creator[]> => {
-  const owners = await Promise.all(list.map((c) => backend.social.publicCreator(c.id)));
+  const owners = await Promise.all(list.map((c) => backend.social.publicCreator(c.id, { basic: true })));
   return list.map((c, i) => {
     const owner = owners[i];
     return owner ? { ...c, subscriptionPrice: owner.subscriptionPrice, isVerified: owner.isVerified } : c;
   });
 };
 
+const loadCatalog = async (): Promise<Creator[]> => {
+  const [demo, signedUp, managed] = await Promise.all([
+    withOwners(demoCreators),
+    backend.social.publicCreators(),
+    platformApi.managedProfiles(),
+  ]);
+  return [...demo, ...signedUp.map(fromPublic), ...managed.map(fromManaged)];
+};
+
+// Several screens use the catalog at once (the app shell, Inicio, Explorar...). They
+// share one download for a short while instead of each asking the database again;
+// any change on the platform (platformChanged) starts a fresh one.
+const CATALOG_TTL_MS = 30_000;
+let shared: { at: number; promise: Promise<Creator[]> } | null = null;
+onPlatformChanged(() => { shared = null; });
+export const sharedCatalog = (): Promise<Creator[]> => {
+  if (!shared || Date.now() - shared.at > CATALOG_TTL_MS) {
+    const promise = loadCatalog();
+    shared = { at: Date.now(), promise };
+    promise.catch(() => { if (shared?.promise === promise) shared = null; });
+  }
+  return shared.promise;
+};
+
 export const useCreatorCatalog = () => {
   const { data, loading } = usePlatformQuery(
-    async () => {
-      const [demo, signedUp, managed] = await Promise.all([
-        withOwners(demoCreators),
-        backend.social.publicCreators(),
-        platformApi.managedProfiles(),
-      ]);
-      return [...demo, ...signedUp.map(fromPublic), ...managed.map(fromManaged)];
-    },
+    sharedCatalog,
     [],
     demoCreators
   );

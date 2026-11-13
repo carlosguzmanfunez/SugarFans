@@ -119,7 +119,9 @@ export interface SocialBackend {
   deleteComment(user: User, commentId: string): Promise<AuthResult>;
   uploadMedia(user: User, file: File, kind?: 'post' | 'perk_video'): Promise<AuthResult & { media?: MediaUpload }>;
   removeMedia(user: User, path: string): Promise<void>;
-  publicCreator(creatorProfileId: string): Promise<PublicCreator | null>;
+  // basic: only the profile row (price, verified), without category and cover: one
+  // request instead of three, for lists.
+  publicCreator(creatorProfileId: string, opts?: { basic?: boolean }): Promise<PublicCreator | null>;
   // Every creator who signed up (the demo catalogue is listed by the app itself).
   publicCreators(): Promise<PublicCreator[]>;
   // A creator's @usuario and social networks (empty for the demo catalogue).
