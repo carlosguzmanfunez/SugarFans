@@ -15,6 +15,9 @@ const manifest = () =>
       start_url: "/",
       scope: "/",
       display: "standalone",
+      // Lets Chrome on Android tell the site that the app is already installed
+      // (navigator.getInstalledRelatedApps), so the install sheet stops.
+      related_applications: [{ platform: "webapp", url: "/manifest.webmanifest" }],
       background_color: BRAND.backgroundColor,
       theme_color: BRAND.themeColor,
       icons: [

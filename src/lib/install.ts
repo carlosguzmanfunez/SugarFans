@@ -10,6 +10,8 @@ interface InstallPromptEvent extends Event {
 }
 
 let offer: InstallPromptEvent | null = null;
+// Chrome said "installed" during this visit.
+let installedNow = false;
 const listeners = new Set<() => void>();
 const changed = () => listeners.forEach((fn) => fn());
 
@@ -21,6 +23,7 @@ if (typeof window !== 'undefined') {
   });
   window.addEventListener('appinstalled', () => {
     offer = null;
+    installedNow = true;
     changed();
   });
 }
@@ -28,6 +31,21 @@ if (typeof window !== 'undefined') {
 export const isInstalledApp = () =>
   typeof window !== 'undefined' &&
   (window.matchMedia?.('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true);
+
+// Whether this phone already has the app: opened from its icon, Chrome just
+// installed it, or Chrome on Android confirms it is installed (manifest
+// related_applications). Safari on iPhone can't tell; there it is learned the
+// first time the app is opened from its icon.
+export const appInstalledHere = async (): Promise<boolean> => {
+  if (isInstalledApp() || installedNow) return true;
+  const nav = navigator as { getInstalledRelatedApps?: () => Promise<unknown[]> };
+  if (typeof nav.getInstalledRelatedApps !== 'function') return false;
+  try {
+    return (await nav.getInstalledRelatedApps()).length > 0;
+  } catch {
+    return false;
+  }
+};
 
 // Whether the browser can install it right now, and the action that does it.
 export const useInstallApp = () => {
@@ -48,5 +66,5 @@ export const useInstallApp = () => {
     changed();
     return outcome === 'accepted';
   };
-  return { canInstall: !!offer && !isInstalledApp(), install };
+  return { canInstall: !!offer && !isInstalledApp(), install, installedNow };
 };

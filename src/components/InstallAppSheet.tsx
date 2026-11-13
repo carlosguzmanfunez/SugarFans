@@ -2,14 +2,25 @@ import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { isInstalledApp, useInstallApp } from '../lib/install';
+import { backend } from '../lib/backend';
+import { appInstalledHere, isInstalledApp, useInstallApp } from '../lib/install';
 import { readJSON, writeJSON } from '../lib/storage';
 import BrandLogo from './BrandLogo';
 import Icon from './Icon';
 
 const KEY = 'installSheet';
-// "Ahora no" hides it for a few days; installing (or "Ya la tengo") for good.
-const SNOOZE_MS = 3 * 24 * 60 * 60 * 1000;
+// Until the app is installed the sheet keeps coming back on the phone's browser
+// (Carlos 2026-11-13): "Ahora no" hides it for the rest of the day, "Listo, ya la
+// instalé" for a few days (if they keep using the browser, it wasn't installed).
+// Once the app is known to be installed, never again: on this phone and, through
+// the account (user.appInstalled), on any other.
+const DONE_SNOOZE_MS = 3 * 24 * 60 * 60 * 1000;
+const endOfToday = () => {
+  const d = new Date();
+  d.setHours(24, 0, 0, 0);
+  return d.getTime();
+};
+type Saved = { installed?: boolean; until?: number };
 
 const isIOS = () =>
   /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -26,17 +37,36 @@ const InstallAppSheet: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const { t } = useLanguage();
   const { pathname, search } = useLocation();
-  const { canInstall, install } = useInstallApp();
+  const { canInstall, install, installedNow } = useInstallApp();
   const [open, setOpen] = useState(false);
   const [ios] = useState(isIOS);
+  const [installed, setInstalled] = useState(() => readJSON<Saved>(KEY, {}).installed === true);
+  const known = installed || user?.appInstalled === true;
+
+  // Learn that the app is installed (opened from its icon, or Chrome says so) and
+  // keep it on the account, so the sheet stops everywhere.
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    let alive = true;
+    void appInstalledHere().then((yes) => {
+      if (!alive || !yes) return;
+      writeJSON(KEY, { installed: true });
+      setInstalled(true);
+      setOpen(false);
+      if (!user.appInstalled) void backend.markAppInstalled?.();
+    });
+    return () => {
+      alive = false;
+    };
+  }, [isAuthenticated, user, installedNow]);
 
   const eligible =
-    isAuthenticated && !!user && !isInstalledApp() && isPhone() && !SKIP.test(pathname) && !new URLSearchParams(search).has('bienvenida');
+    isAuthenticated && !!user && !known && !isInstalledApp() && isPhone() && !SKIP.test(pathname) && !new URLSearchParams(search).has('bienvenida');
 
   useEffect(() => {
     if (!eligible || open) return;
-    const saved = readJSON<{ done?: boolean; until?: number }>(KEY, {});
-    if (saved.done || (saved.until && saved.until > Date.now())) return;
+    const saved = readJSON<Saved>(KEY, {});
+    if (saved.until && saved.until > Date.now()) return;
     // A moment after the page settles, so it doesn't land on top of a redirect.
     const timer = setTimeout(() => setOpen(true), 1800);
     return () => clearTimeout(timer);
@@ -45,15 +75,20 @@ const InstallAppSheet: React.FC = () => {
   if (!open || !eligible) return null;
 
   const later = () => {
-    writeJSON(KEY, { until: Date.now() + SNOOZE_MS });
+    writeJSON(KEY, { until: endOfToday() });
     setOpen(false);
   };
   const done = () => {
-    writeJSON(KEY, { done: true });
+    writeJSON(KEY, { until: Date.now() + DONE_SNOOZE_MS });
     setOpen(false);
   };
   const installNow = async () => {
-    if (await install()) done();
+    if (await install()) {
+      writeJSON(KEY, { installed: true });
+      setInstalled(true);
+      setOpen(false);
+      void backend.markAppInstalled?.();
+    }
   };
 
   const step = (n: number, text: React.ReactNode) => (
@@ -100,7 +135,7 @@ const InstallAppSheet: React.FC = () => {
               <i aria-hidden="true" className="fas fa-download mr-1.5"></i>{t('installApp.button')}
             </button>
           ) : (
-            <button type="button" onClick={done} className="btn btn-md btn-primary w-full justify-center">
+            <button type="button" onClick={done} data-testid="install-done" className="btn btn-md btn-primary w-full justify-center">
               {t('installApp.done')}
             </button>
           )}

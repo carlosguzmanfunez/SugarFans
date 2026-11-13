@@ -629,6 +629,15 @@ export const localBackend: Backend = {
     return view ? { ...toPublic(account), role: view, accountRole: 'creator', isDual: true } : toPublic(account);
   },
 
+  async markAppInstalled() {
+    const id = readSession();
+    const accounts = loadAccounts();
+    const account = accounts.find((a) => a.id === id);
+    if (!account || account.appInstalled) return;
+    account.appInstalled = true;
+    saveAccounts(accounts);
+  },
+
   async dualClaim(code, view) {
     const id = readSession();
     const account = loadAccounts().find((a) => a.id === id);

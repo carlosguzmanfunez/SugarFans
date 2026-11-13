@@ -1,5 +1,6 @@
-// "Cómo funciona" in the top pill (fan and creator in three steps) and the
-// "Instala Fans Reserve" sheet shown once after signing in on a phone.
+// "Instala Fans Reserve": the sheet on a phone's browser until the app is
+// installed, then never again (this phone or any other, via the account). Also
+// checks the top pill has no "?" Cómo funciona button any more.
 // Offline build (demo accounts): npm run test:how-it-works
 // SHOTS=/dir saves screenshots. CHROME=/path/to/chromium uses a preinstalled browser.
 import { chromium, devices } from 'playwright';
@@ -26,8 +27,14 @@ const expect = (ok, msg) => {
 };
 const shot = (page, name) => SHOTS && page.screenshot({ path: `${SHOTS}/${name}.png` });
 
-const session = async (device, email, { androidOffer = false } = {}) => {
-  const context = await browser.newContext({ ...device });
+const session = async (device, email, { androidOffer = false, standalone = false, storageState } = {}) => {
+  const context = await browser.newContext({ ...device, ...(storageState ? { storageState } : {}) });
+  if (standalone)
+    // Opened from the home-screen icon.
+    await context.addInitScript(() => {
+      const real = window.matchMedia.bind(window);
+      window.matchMedia = (q) => (q.includes('display-mode: standalone') ? { matches: true, media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} } : real(q));
+    });
   await context.addInitScript(() => localStorage.setItem('fansreserve_age_verified', 'true'));
   if (androidOffer)
     // Chrome's install offer, as Android sends it.
@@ -44,7 +51,7 @@ const session = async (device, email, { androidOffer = false } = {}) => {
     failed++;
     console.log(`    error de página: ${e.message}`);
   });
-  if (email) {
+  if (email && !storageState) {
     await page.goto(`${BASE}/login`);
     await page.fill('input[type=email]', email);
     await page.fill('input[type=password]', 'demo1234');
@@ -52,6 +59,17 @@ const session = async (device, email, { androidOffer = false } = {}) => {
     await page.waitForURL((u) => new URL(u).pathname !== '/login');
   }
   return page;
+};
+
+const LS = 'fansreserve_';
+const accountFlag = (page, email) =>
+  page.evaluate(([k, e]) => (JSON.parse(localStorage.getItem(k) || '[]').find((a) => a.email === e) || {}).appInstalled === true, [`${LS}accounts`, email]);
+// Same browser data in a fresh tab, minus this phone's own "installed" memory:
+// only the account can stop the sheet there.
+const storageWithoutSheet = async (page) => {
+  const state = await page.context().storageState();
+  for (const o of state.origins) o.localStorage = o.localStorage.filter((i) => i.name !== `${LS}installSheet`);
+  return state;
 };
 
 const iphone = { ...devices['iPhone 13'] };
@@ -75,12 +93,42 @@ try {
     expect((await fan.getByTestId('install-sheet').count()) === 0, 'volvió a salir');
   });
 
+  await check('"Ahora no" vuelve a salir otro día', async () => {
+    await fan.evaluate((k) => localStorage.setItem(k, JSON.stringify({ until: Date.now() - 1000 })), `${LS}installSheet`);
+    await fan.reload();
+    await fan.getByTestId('install-sheet').waitFor({ timeout: 8000 });
+  });
+  await check('"Listo, ya la instalé" la esconde unos días, no para siempre', async () => {
+    await fan.getByTestId('install-done').click();
+    const saved = await fan.evaluate((k) => JSON.parse(localStorage.getItem(k) || '{}'), `${LS}installSheet`);
+    expect(!saved.installed && saved.until > Date.now() + 2 * 86400000, `guardó ${JSON.stringify(saved)}`);
+  });
+
   const fanAndroid = await session(android, 'fan@sugarfans.com', { androidOffer: true });
   await check('Android: botón "Instalar app" de Chrome', async () => {
     await fanAndroid.getByTestId('install-now').waitFor({ timeout: 8000 });
     await shot(fanAndroid, '4-instalar-app-android');
     await fanAndroid.getByTestId('install-now').click();
     await fanAndroid.getByTestId('install-sheet').waitFor({ state: 'detached' });
+  });
+
+  await check('Android: al instalarla queda guardado en la cuenta y no vuelve a salir', async () => {
+    await fanAndroid.waitForFunction(([k, e]) => (JSON.parse(localStorage.getItem(k) || '[]').find((a) => a.email === e) || {}).appInstalled === true, [`${LS}accounts`, 'fan@sugarfans.com'], { timeout: 5000 });
+    const again = await session(android, 'fan@sugarfans.com', { androidOffer: true, storageState: await storageWithoutSheet(fanAndroid) });
+    await again.goto(`${BASE}/explore`);
+    await again.waitForTimeout(2600);
+    expect((await again.getByTestId('install-sheet').count()) === 0, 'volvió a salir');
+  });
+
+  await check('iPhone: abrirla desde el ícono la marca como instalada; en Safari ya no sale', async () => {
+    const app = await session(iphone, 'creator@sugarfans.com', { standalone: true });
+    await app.waitForFunction(([k, e]) => (JSON.parse(localStorage.getItem(k) || '[]').find((a) => a.email === e) || {}).appInstalled === true, [`${LS}accounts`, 'creator@sugarfans.com'], { timeout: 5000 });
+    expect((await app.getByTestId('install-sheet').count()) === 0, 'salió dentro de la app');
+    const safari = await session(iphone, 'creator@sugarfans.com', { storageState: await storageWithoutSheet(app) });
+    await safari.goto(`${BASE}/explore`);
+    await safari.waitForTimeout(2600);
+    expect(await accountFlag(safari, 'creator@sugarfans.com'), 'la cuenta perdió la marca');
+    expect((await safari.getByTestId('install-sheet').count()) === 0, 'salió en Safari');
   });
 
   const visitor = await session(iphone, null);
