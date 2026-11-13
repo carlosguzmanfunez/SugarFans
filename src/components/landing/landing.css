@@ -564,19 +564,18 @@
 .lv2 .journey-reserve-full .journey-copy>p.journey-reserve-principle{margin-top:12px;font-size:12px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-2)}
 @media(min-width:640px){.lv2 .journey-reserve-full .journey-copy{padding:56px 24px}.lv2 .journey-reserve-full .journey-copy>p{font-size:18px}.lv2 .journey-reserve-full .journey-copy>p.journey-reserve-principle{font-size:14px}.lv2 .journey-reserve-icon{width:56px;height:56px;font-size:20px;margin:0 auto 20px}}
 
-/* Signed-in Inicio colours (Carlos 2026-11-13): Reserve stays night + gold; Suscríbete
-   takes the palette colour (pink or blue by the fan's choice) and "Propón tu
-   experiencia" a warm gold light, so the three read apart but stay in one family. */
-.lv2 .journey-two .journey-subscription{background:linear-gradient(135deg,var(--grad-main) 0%,var(--grad-end) 100%);color:#fff}
-.lv2 .journey-two .journey-subscription .journey-copy>p{color:rgb(255 255 255 / .88)}
-.lv2 .journey-two .journey-subscription ::selection{background:#fff;color:var(--grad-main)}
-.lv2 .rsv{background:linear-gradient(160deg,var(--gold-1) 0%,#f8e7bd 100%);color:var(--ink)}
-.lv2 .rsv::before{background:radial-gradient(closest-side,rgb(255 255 255 / .7),transparent)}
-.lv2 .rsv::after,:root[data-palette="blue"] .lv2 .rsv::after{background:radial-gradient(closest-side,rgb(227 169 58 / .28),transparent)}
-.lv2 .rsv-line{background:linear-gradient(90deg,transparent,rgb(143 83 24 / .35),transparent)}
+/* Signed-in Inicio colours (Carlos 2026-11-13, Claude's direction): one loud block only.
+   Reserve is the product's premium moment (night + gold) and the only dark surface;
+   Suscríbete and "Propón tu experiencia" stay light and are told apart by their accent:
+   the fan's palette colour for Suscríbete, gold for Propón. */
+.lv2 .journey-two .journey-subscription{background:#fff;color:var(--ink);border:1px solid color-mix(in srgb,var(--grad-main) 22%,transparent);box-shadow:0 18px 40px -30px color-mix(in srgb,var(--grad-main) 70%,transparent)}
+.lv2 .journey-two .journey-subscription h3{color:var(--grad-main)}
+.lv2 .journey-two .journey-subscription .journey-copy>p{color:var(--ink-soft)}
+.lv2 .rsv{background:var(--canvas);color:var(--ink);border-top:1px solid var(--line)}
+.lv2 .rsv::before,.lv2 .rsv::after,:root[data-palette="blue"] .lv2 .rsv::after{display:none}
+.lv2 .rsv-line{display:none}
 .lv2 .rsv h2 em{color:var(--gold-7)}
-.lv2 .rsv .lead,.lv2 .rsv-steps p{color:var(--ink-soft)}
+.lv2 .rsv .lead,.lv2 .rsv-steps p{color:var(--muted)}
+.lv2 .rsv-steps li{border-bottom-color:var(--line)}
 .lv2 .rsv-steps h3{color:var(--gold-7)}
-.lv2 .rsv-steps li{border-bottom-color:rgb(143 83 24 / .2)}
-.lv2 .rsv .v-gold{color:var(--gold-2);background:var(--night);box-shadow:0 14px 30px -14px rgb(22 13 31 / .6)}
 .lv2 .rsv :focus-visible{outline-color:var(--gold-7)}
