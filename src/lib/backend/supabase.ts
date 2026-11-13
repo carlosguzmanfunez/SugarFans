@@ -154,13 +154,14 @@ const toExperience = (e: ExperienceRow): VipExperience => ({
   ...(e.time_zone ? { timeZone: e.time_zone } : {}),
 });
 
-const toUser = (p: ProfileRow, extra?: Pick<User, 'subscriptions' | 'createdPosts' | 'authProvider' | 'isOwner' | 'role' | 'isDual'>): User => ({
+const toUser = (p: ProfileRow, extra?: Pick<User, 'subscriptions' | 'createdPosts' | 'authProvider' | 'isOwner' | 'role' | 'isDual' | 'appInstalled'>): User => ({
   id: p.id,
   name: p.name,
   email: p.email,
   role: extra?.isOwner || extra?.isDual ? extra.role ?? p.role : p.role,
   isOwner: extra?.isOwner === true,
   ...(extra?.isDual ? { isDual: true } : {}),
+  ...(extra?.appInstalled ? { appInstalled: true } : {}),
   accountRole: p.role,
   avatar: avatarOrEmpty(p.avatar),
   cover: p.cover || undefined,
@@ -389,6 +390,7 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       return toUser(profile.data as ProfileRow, {
         isOwner,
         isDual,
+        appInstalled: !!sessionData.session?.user.user_metadata?.app_installed_at,
         role: isOwner ? owner.data?.view : isDual ? dualView : undefined,
         authProvider,
         // A cancelled subscription counts until its end date.
@@ -427,6 +429,11 @@ export const createSupabaseBackend = (url: string, anonKey: string): Backend => 
       }
       const { error } = await sb.auth.signInWithPassword({ email: normalizeEmail(email), password });
       return error ? fail(translateAuthError(error.message)) : ok;
+    },
+
+    // Kept in the account's own auth metadata (no table needed); only steers the install sheet.
+    async markAppInstalled() {
+      await sb.auth.updateUser({ data: { app_installed_at: new Date().toISOString() } });
     },
 
     async dualClaim(code, view) {

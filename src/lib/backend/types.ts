@@ -81,6 +81,8 @@ export interface User {
   accountRole?: UserRole;
   // Cuenta doble (fan + creador), enabled by the owner: role is the side shown now.
   isDual?: boolean;
+  // Opened Fans Reserve as an installed app at least once (any phone): no more install sheet.
+  appInstalled?: boolean;
   avatar: string;
   cover?: string;
   bio?: string;
@@ -408,6 +410,8 @@ export interface Backend {
   // Cuentas dobles: the personal code makes the account fan + creator; then switch sides.
   dualClaim?(code: string, view: UserRole): Promise<AuthResult>;
   dualSwitchView?(view: UserRole): Promise<AuthResult>;
+  // Remembers on the account that the app is installed (stops the install sheet everywhere).
+  markAppInstalled?(): Promise<void>;
   // Fires when the session or the signed-in user's data may have changed elsewhere.
   onChange(cb: () => void): () => void;
   login(email: string, password: string, remember: boolean): Promise<AuthResult>;
