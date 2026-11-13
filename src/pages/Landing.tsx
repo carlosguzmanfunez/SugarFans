@@ -32,7 +32,7 @@ const Landing: React.FC = () => {
       {/* "Está pasando ahora" is off until further notice (ENABLE_HAPPENING_NOW). */}
       {ENABLE_HAPPENING_NOW && <HappeningNow creators={creators} />}
       {!isCreator && <>
-        <HowItWorks />
+        <HowItWorks withProposal={false} />
         <VipShowcase />
         <CreatorCta />
       </>}

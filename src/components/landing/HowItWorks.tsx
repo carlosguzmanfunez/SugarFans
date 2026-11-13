@@ -21,7 +21,10 @@ const options = [
   },
 ];
 
-const HowItWorks: React.FC = () => {
+// withProposal=false where the big "Propón tu experiencia" section follows right
+// below (signed-in home), so the idea isn't told twice (Carlos 2026-11-13).
+const HowItWorks: React.FC<{ withProposal?: boolean }> = ({ withProposal = true }) => {
+  const shown = withProposal ? options : options.filter((o) => o.key !== 'proposal');
   const { hash } = useLocation();
   const optionsRef = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
@@ -52,8 +55,8 @@ const HowItWorks: React.FC = () => {
         <div className="j-head">
           <h2 id="how-title">{HOW.titleLead} <em>{HOW.titleAccent}</em></h2>
         </div>
-        <div ref={optionsRef} className={`journey-options${inView ? ' is-in-view' : ''}`} data-testid="journey-options">
-          {options.map((option) => (
+        <div ref={optionsRef} className={`journey-options${shown.length === 2 ? ' journey-two' : ''}${inView ? ' is-in-view' : ''}`} data-testid="journey-options">
+          {shown.map((option) => (
               <article key={option.key} id={option.key === 'subscription' ? 'suscribirse' : undefined} className={`journey-option journey-${option.key}`} aria-labelledby={`how-${option.key}`}>
                 <div className="journey-copy">
                   <h3 id={`how-${option.key}`}>{option.title}</h3>
