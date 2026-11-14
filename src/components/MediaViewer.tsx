@@ -168,6 +168,9 @@ const MediaViewer: React.FC<Props> = ({ posts, startId, onClose, viewer }) => {
                     videoClassName="max-w-full max-h-full"
                     testId="media-viewer-video"
                     fill
+                    // Only the video that was clicked to open the viewer starts by itself;
+                    // swiping onto another video still waits for "Reproducir" (no surprise downloads).
+                    autoStart={p.id === startId}
                   /> : <VideoPreview seed={`post-${p.id}`} src={p.mediaUrl} />
                 ) : p.mediaUrl && !isPlaceholderImage(p.mediaUrl) ? (
                   i === index ? <ZoomablePostImage key={`${p.id}-${index}`} src={p.mediaUrl} alt={p.content || 'Foto'} onGestureStart={cancelSwipe} /> : <img src={p.mediaUrl} alt="" draggable={false} className="max-w-full max-h-full object-contain" />

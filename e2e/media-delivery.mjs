@@ -114,9 +114,7 @@ try {
     await page.getByTestId('post').last().getByTestId('open-media').click();
     const viewer = page.getByTestId('media-viewer');
     await viewer.waitFor();
-    assert.equal(videosRequested().length, 0);
-    await page.screenshot({ path: join(out, `video-listo-${device}.png`), animations: 'disabled' });
-    await viewer.getByRole('button', { name: 'Reproducir video' }).click();
+    // One click opens the viewer and plays the chosen video (Carlos 2026-11-13).
     await waitFor(() => videosRequested().length > 0, 'The chosen video did not download.');
     await page.waitForFunction(() => { const video = document.querySelector('[data-testid="media-viewer-video"]'); return video && video.readyState >= 2 && !video.paused; });
     const oldPlayer = await viewer.locator('video').elementHandle();
