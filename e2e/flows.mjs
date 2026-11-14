@@ -2577,7 +2577,7 @@ const run = async () => {
     await check('Ningún tipo de experiencia es un servicio prohibido, y la BD acepta exactamente los mismos tipos', async () => {
       const bad = R.RESERVE_EXPERIENCE_TYPES.filter((t) => notOffered.test(`${t.name} ${t.description}`));
       expect(bad.length === 0, `tipos prohibidos: ${bad.map((t) => t.name).join(', ')}`);
-      const sql = readFileSync(new URL('../supabase/migrations/20261114070849_reserve_music_performance.sql', import.meta.url), 'utf8');
+      const sql = readFileSync(new URL('../supabase/migrations/20261114072538_reserve_music_performance.sql', import.meta.url), 'utf8');
       const list = sql.match(/vip_experiences_type_check check \(type in \(([^)]*)\)\)/);
       expect(!!list, 'no se encontró la lista de tipos en la migración');
       const dbIds = [...list[1].matchAll(/'([^']+)'/g)].map((m) => m[1]).sort();
