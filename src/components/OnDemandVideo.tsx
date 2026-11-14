@@ -12,13 +12,16 @@ interface Props {
   testId?: string;
   /** Inside the full-screen viewer: the player takes all the space it has. */
   fill?: boolean;
+  /** Start playing on mount: the click that opened the full-screen viewer counts as the
+   * explicit request (Carlos 2026-11-13: one click to open and play). */
+  autoStart?: boolean;
 }
 
 // No source is attached before an explicit click, even in browsers that ignore
 // preload hints. A changed URL requires a fresh click instead of auto-playing.
-const OnDemandVideo: React.FC<Props> = ({ src, seed, className = '', videoClassName = 'w-full', testId, fill = false }) => {
+const OnDemandVideo: React.FC<Props> = ({ src, seed, className = '', videoClassName = 'w-full', testId, fill = false, autoStart = false }) => {
   const { user } = useAuth();
-  const [requested, setRequested] = useState<string | null>(null);
+  const [requested, setRequested] = useState<string | null>(autoStart ? src : null);
   const video = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     const element = video.current;

@@ -103,6 +103,7 @@ const ReservePage: React.FC = () => {
           <input
             type="search"
             aria-label="Buscar en Reserve"
+            enterKeyHint="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-2xl border border-line bg-white py-3.5 pl-12 pr-4 text-base shadow-[var(--shadow-card)] outline-none focus:border-transparent focus:ring-2 focus:ring-brand-500 md:py-4 md:text-lg"

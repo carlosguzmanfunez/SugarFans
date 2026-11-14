@@ -60,9 +60,8 @@ try {
     const videoId = (await ownVideo.getAttribute('id')).slice('post-'.length);
     await ownVideo.getByTestId('open-media').click();
     const viewer = creator.getByTestId('media-viewer');
-    await viewer.getByRole('button', { name: 'Reproducir video' }).waitFor();
-    assert.equal(await viewer.locator('video').count(), 0);
-    await viewer.getByRole('button', { name: 'Reproducir video' }).click();
+    await viewer.waitFor();
+    // One click opens the viewer and plays the chosen video (Carlos 2026-11-13).
     await creator.waitForFunction(() => { const v = document.querySelector('[data-testid="media-viewer-video"]'); return v && v.readyState >= 2 && !v.paused; });
     await creator.screenshot({ path: join(out, `perfil-reproduciendo-${device}.png`), animations: 'disabled' });
     await viewer.getByRole('button', { name: 'Cerrar', exact: true }).click();

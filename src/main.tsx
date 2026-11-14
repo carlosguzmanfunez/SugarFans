@@ -5,6 +5,8 @@ import "./config/legacyStorage";
 import "./lib/errorReporting";
 // Keeps the browser's "install app" offer, which arrives only once and early.
 import "./lib/install";
+// "Buscar" on the phone keyboard closes the keyboard in every search box.
+import "./lib/searchKeyboard";
 import React from "react";
 import ReactDOM from "react-dom/client";
 // Fonts and icons are bundled with the app (no third-party CDN at runtime).

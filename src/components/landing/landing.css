@@ -594,11 +594,20 @@
 /* Desktop signed-in home: Suscríbete mirrors the Reserve card (Carlos 2026-11-13: too
    much white space). Light card, same structure: palette icon, big title, text, one
    closing line, everything centred in the card's height. Phones keep the compact card. */
-.lv2 .journey-sub-icon,.lv2 .journey-sub-principle{display:none}
+.lv2 .journey-sub-principle{display:none}
+/* Padlock on Suscríbete (phones and computer, Carlos 2026-11-13): when the cards come into
+   view the shackle lifts, swings open on its right leg, holds, then closes again. */
+.lv2 .journey-sub-icon{display:flex;align-items:center;justify-content:center;width:44px;height:44px;margin:0 0 14px;border-radius:14px;background:linear-gradient(135deg,var(--grad-main),var(--grad-end));color:#fff;box-shadow:0 10px 24px -14px var(--grad-main)}
+.lv2 .journey-sub-icon svg{overflow:visible}
+.lv2 .journey-sub-icon .lock-shackle{transform-box:fill-box;transform-origin:100% 100%}
+.lv2 .journey-options.is-in-view .journey-sub-icon .lock-shackle{animation:lock-open 4.8s cubic-bezier(.34,1.3,.5,1) .4s infinite}
+@keyframes lock-open{0%,8%{transform:translateY(0) scaleX(1)}20%{transform:translateY(-3.5px) scaleX(1)}38%,72%{transform:translateY(-3.5px) scaleX(-1)}86%{transform:translateY(-3.5px) scaleX(1)}96%,100%{transform:translateY(0) scaleX(1)}}
+@media(prefers-reduced-motion:reduce){.lv2 .journey-options.is-in-view .journey-sub-icon .lock-shackle{animation:none}}
 @media(min-width:761px){
   .lv2 .journey-two .journey-subscription{display:flex;align-items:center;justify-content:center;text-align:center}
   .lv2 .journey-two .journey-subscription .journey-copy{padding:56px 24px}
-  .lv2 .journey-sub-icon{display:flex;align-items:center;justify-content:center;width:56px;height:56px;margin:0 auto 20px;border-radius:16px;background:linear-gradient(135deg,var(--grad-main),var(--grad-end));color:#fff;font-size:20px;box-shadow:0 12px 28px -14px var(--grad-main)}
+  .lv2 .journey-sub-icon{width:56px;height:56px;margin:0 auto 20px;border-radius:16px;box-shadow:0 12px 28px -14px var(--grad-main)}
+  .lv2 .journey-sub-icon svg{width:28px;height:28px}
   .lv2 .journey-two .journey-subscription h3{margin-bottom:12px;font-size:clamp(2rem,1.45rem + 2.2vw,3.25rem);line-height:1.05}
   .lv2 .journey-two .journey-subscription .journey-copy>p{max-width:30rem;margin-inline:auto;font-size:18px;line-height:1.55}
   .lv2 .journey-two .journey-subscription .journey-copy>p.journey-sub-principle{display:block;margin-top:12px;font-size:14px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--grad-main)}
