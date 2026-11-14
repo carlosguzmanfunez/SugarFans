@@ -59,6 +59,11 @@ try {
   const price = form.locator('input[name=expPrice]');
   const options = form.getByTestId('allowed-types');
   const optionIds = () => options.getByRole('radio').evaluateAll((buttons) => buttons.map((button) => button.dataset.type));
+  const shotOptions = (name) => SHOTS && options.screenshot({
+    path: `${SHOTS}/${name}.png`,
+    animations: 'disabled',
+    style: 'nav[aria-label="Principal"], [data-testid="tab-bar"] { visibility: hidden }',
+  });
   await check('Tu gente muestra las nueve opciones vigentes y abre con Videollamada 1:1', async () => {
     await page.getByRole('button', { name: /Crear experiencia/ }).click();
     const expected = [
@@ -69,20 +74,13 @@ try {
     expect(JSON.stringify(ids) === JSON.stringify(expected), `opciones en Tu gente: ${ids.join(', ')}`);
     expect(await options.locator('[aria-checked="true"]').getAttribute('data-type') === 'video-call', 'selección inicial incorrecta');
     expect(await page.evaluate(() => document.documentElement.scrollWidth === innerWidth), 'el selector se sale del ancho de la pantalla');
-    if (SHOTS) {
-      await options.screenshot({
-        path: `${SHOTS}/tu-gente-movil.png`,
-        animations: 'disabled',
-        style: 'nav[aria-label="Principal"], [data-testid="tab-bar"] { visibility: hidden }',
-      });
-    }
+    await shotOptions('tu-gente-movil');
     await page.setViewportSize({ width: 1280, height: 800 });
     expect(JSON.stringify(await optionIds()) === JSON.stringify(expected), 'las opciones cambian en escritorio');
     await page.setViewportSize({ width: 390, height: 844 });
 
-    await form.getByRole('radio', { name: 'Cocina', exact: true }).click();
-    expect(await options.locator('[data-type="live-1-1"]').isVisible(), 'se retiró la plática de Cocina');
-    expect(await options.locator('[data-type="event"]').isVisible(), 'se retiró Evento de Cocina');
+    await form.getByRole('radio', { name: 'Música', exact: true }).click();
+    expect(await options.locator('[data-type="event"]').isVisible(), 'se retiró Evento de Música');
     await form.getByRole('radio', { name: 'Tu gente', exact: true }).click();
     expect(await options.locator('[aria-checked="true"]').getAttribute('data-type') === 'video-call', 'no se restablece la opción inicial');
     await form.getByRole('button', { name: 'Cancelar', exact: true }).first().click();
@@ -95,19 +93,30 @@ try {
     const ids = await optionIds();
     expect(JSON.stringify(ids) === JSON.stringify(expected), `opciones en Fitness: ${ids.join(', ')}`);
     expect(await options.locator('[aria-checked="true"]').getAttribute('data-type') === 'coaching', 'selección inicial incorrecta');
-    if (SHOTS) {
-      await options.screenshot({
-        path: `${SHOTS}/fitness-movil.png`,
-        animations: 'disabled',
-        style: 'nav[aria-label="Principal"], [data-testid="tab-bar"] { visibility: hidden }',
-      });
-    }
+    await shotOptions('fitness-movil');
     await page.setViewportSize({ width: 1280, height: 800 });
     expect(JSON.stringify(await optionIds()) === JSON.stringify(expected), 'las opciones de Fitness cambian en escritorio');
     await page.setViewportSize({ width: 390, height: 844 });
     await options.locator('[data-type="training-1-1"]').click();
     await next();
     await form.locator('input[name=expTitle][placeholder*="Entrenamiento 1:1"]').waitFor();
+    await form.getByRole('button', { name: 'Cancelar', exact: true }).click();
+  });
+
+  await check('Cocina muestra sus seis opciones y permite continuar con Experiencia gastronómica', async () => {
+    await page.getByRole('button', { name: /Crear experiencia/ }).click();
+    await form.getByRole('radio', { name: 'Cocina', exact: true }).click();
+    const expected = ['cooking-class', 'culinary-consulting', 'live-1-1', 'catering', 'gastronomic-experience', 'workshop'];
+    const ids = await optionIds();
+    expect(JSON.stringify(ids) === JSON.stringify(expected), `opciones en Cocina: ${ids.join(', ')}`);
+    expect(await options.locator('[aria-checked="true"]').getAttribute('data-type') === 'cooking-class', 'selección inicial incorrecta');
+    await shotOptions('cocina-movil');
+    await page.setViewportSize({ width: 1280, height: 800 });
+    expect(JSON.stringify(await optionIds()) === JSON.stringify(expected), 'las opciones de Cocina cambian en escritorio');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await options.locator('[data-type="gastronomic-experience"]').click();
+    await next();
+    await form.locator('input[name=expTitle][placeholder*="Experiencia gastronómica"]').waitFor();
     await form.getByRole('button', { name: 'Cancelar', exact: true }).click();
   });
 
