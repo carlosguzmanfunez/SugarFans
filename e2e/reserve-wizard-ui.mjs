@@ -79,8 +79,9 @@ try {
     expect(JSON.stringify(await optionIds()) === JSON.stringify(expected), 'las opciones cambian en escritorio');
     await page.setViewportSize({ width: 390, height: 844 });
 
-    await form.getByRole('radio', { name: 'Música', exact: true }).click();
-    expect(await options.locator('[data-type="event"]').isVisible(), 'se retiró Evento de Música');
+    await form.getByRole('radio', { name: 'Gaming', exact: true }).click();
+    expect(await options.locator('[data-type="event"]').isVisible(), 'se retiró Evento de Gaming');
+    expect(await options.locator('[data-type="music-performance"]').count() === 0, 'la presentación musical aparece en Gaming');
     await form.getByRole('radio', { name: 'Tu gente', exact: true }).click();
     expect(await options.locator('[aria-checked="true"]').getAttribute('data-type') === 'video-call', 'no se restablece la opción inicial');
     await form.getByRole('button', { name: 'Cancelar', exact: true }).first().click();
@@ -133,6 +134,44 @@ try {
     await form.getByRole('button', { name: 'Paso 14: Publicar', exact: true }).click();
     await form.getByRole('button', { name: 'Guardar cambios', exact: true }).click();
     await legacy.getByText(`${title} · edición de prueba`, { exact: true }).waitFor();
+  });
+
+  await check('Música muestra seis opciones y publica una presentación con aprobación manual', async () => {
+    const title = 'Presentación acústica de prueba';
+    await page.getByRole('button', { name: /Crear experiencia/ }).click();
+    await form.getByRole('radio', { name: 'Música', exact: true }).click();
+    const expected = ['music-class', 'feedback', 'creative-session', 'studio-session', 'meet-greet', 'music-performance'];
+    const ids = await optionIds();
+    expect(JSON.stringify(ids) === JSON.stringify(expected), `opciones en Música: ${ids.join(', ')}`);
+    await shotOptions('musica-movil');
+    await page.setViewportSize({ width: 1280, height: 800 });
+    expect(JSON.stringify(await optionIds()) === JSON.stringify(expected), 'las opciones de Música cambian en escritorio');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await options.getByRole('radio', { name: /Contratación para presentación en evento/ }).click();
+    await next();
+    await form.locator('input[name=expTitle]').fill(title);
+    await next();
+    await form.locator('textarea[name=expDescription]').fill('Presentación acústica en vivo para el público del evento.');
+    await next();
+    expect(await form.getByTestId('format-picker').count() === 0, 'ofrece venta de entradas');
+    expect(await form.getByRole('radiogroup', { name: 'Modalidad' }).getByRole('radio', { name: /^Evento/ }).getAttribute('aria-checked') === 'true', 'modalidad incorrecta');
+    await next();
+    expect(await form.locator('input[name=expMinutes]').inputValue() === '60', 'duración inicial incorrecta');
+    await next();
+    await price.fill('150');
+    await next();
+    await next();
+    await form.locator('select[name=expCountry]').selectOption('HN');
+    await form.locator('input[name=expRegion]').fill('Francisco Morazán');
+    await form.locator('input[name=expCity]').fill('Tegucigalpa');
+    for (let i = 0; i < 3; i++) await next();
+    expect(await form.getByRole('radio', { name: /^Confirmación automática/ }).isDisabled(), 'permite aprobación automática');
+    for (let i = 0; i < 3; i++) await next();
+    await form.getByRole('button', { name: 'Publicar experiencia' }).click();
+    await page.getByTestId('my-experience').getByText(title, { exact: true }).waitFor();
+    const saved = await page.evaluate((name) => JSON.parse(localStorage.getItem('fansreserve_vip_experiences_v1')).find((e) => e.title === name), title);
+    expect(saved.type === 'music-performance' && saved.details.categoryId === 'musica', 'tipo o categoría incorrectos');
+    expect(saved.details.modality === 'evento' && saved.details.approval === 'manual' && saved.details.format !== 'event', 'guardó un flujo ajeno a contratación');
   });
 
   await check('El precio empieza en 0 y se escribe y borra como un número normal', async () => {

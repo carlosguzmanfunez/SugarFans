@@ -151,6 +151,7 @@ export const RESERVE_EXPERIENCE_TYPES: ReserveExperienceType[] = [
   t({ id: 'music-class', name: 'Clase privada de música', icon: 'fa-music', description: 'Técnica, instrumento o producción.', modalities: ['virtual'], locations: [], minutes: [30, 90], defaultMinutes: 60, maxParticipants: 1 }),
   t({ id: 'listening-session', name: 'Escucha anticipada', icon: 'fa-headphones', description: 'Escucha un estreno antes que nadie, con comentarios del artista.', modalities: ['virtual'], locations: [], minutes: [15, 60], defaultMinutes: 30, maxParticipants: 4 }),
   t({ id: 'studio-session', name: 'Sesión de estudio', icon: 'fa-sliders', description: 'Grabación o producción en estudio.', modalities: ['presencial', 'profesional'], locations: ['studio'], minutes: [60, 180], defaultMinutes: 120, maxParticipants: 4, alwaysManual: true }),
+  t({ id: 'music-performance', name: 'Contratación para presentación en evento', icon: 'fa-microphone', description: 'Solicita una presentación musical en vivo para tu evento.', modalities: ['evento'], locations: ['event-venue', 'convention', 'commercial-space'], minutes: [30, 180], defaultMinutes: 60, maxParticipants: 50, alwaysManual: true }),
 
   // Gaming
   t({ id: 'private-match', name: 'Partida privada', icon: 'fa-gamepad', description: 'Juega una partida con el creador.', modalities: ['virtual'], locations: [], minutes: [20, 120], defaultMinutes: 45, maxParticipants: 4 }),
@@ -319,7 +320,7 @@ const BASE_CATEGORIES: CreatorCategory[] = [
     tint: '#f5f3ff',
     ink: '#6d3ce6',
     aliases: [],
-    experiences: ['music-class', 'listening-session', 'feedback', 'creative-session', 'qa-session', 'early-access', 'studio-session', 'meet-greet', 'workshop', 'event', 'appearance'],
+    experiences: ['music-class', 'listening-session', 'feedback', 'creative-session', 'qa-session', 'early-access', 'studio-session', 'meet-greet', 'workshop', 'event', 'appearance', 'music-performance'],
     modalities: ['virtual', 'presencial', 'evento', 'profesional'],
     locations: ['studio', 'event-venue', 'convention', 'commercial-space', 'public-place'],
     customPurposes: ['class', 'review', 'session', 'meet-greet', 'collaboration', 'appearance', 'event', 'other'],
@@ -431,6 +432,7 @@ const RETIRED_PICKER_TYPES: Partial<Record<CreatorCategoryId, ReadonlySet<string
   'modelaje-glamour': new Set(['live-1-1', 'themed-talk', 'behind-the-scenes', 'meet-greet', 'event', 'fan-event']),
   fitness: new Set(['qa-session', 'clinic', 'workshop', 'event', 'meet-greet']),
   cocina: new Set(['qa-session', 'tasting', 'event']),
+  musica: new Set(['listening-session', 'qa-session', 'early-access', 'workshop', 'event', 'appearance']),
 };
 
 export const experienceTypesFor = (category: CreatorCategory, modality?: ReserveModality) =>
