@@ -57,10 +57,10 @@ try {
   const form = page.getByTestId('experience-form');
   const next = () => form.getByRole('button', { name: 'Siguiente' }).click();
   const price = form.locator('input[name=expPrice]');
+  const options = form.getByTestId('allowed-types');
+  const optionIds = () => options.getByRole('radio').evaluateAll((buttons) => buttons.map((button) => button.dataset.type));
   await check('Tu gente muestra las nueve opciones vigentes y abre con Videollamada 1:1', async () => {
     await page.getByRole('button', { name: /Crear experiencia/ }).click();
-    const options = form.getByTestId('allowed-types');
-    const optionIds = () => options.getByRole('radio').evaluateAll((buttons) => buttons.map((button) => button.dataset.type));
     const expected = [
       'video-call', 'qa-session', 'personal-greeting', 'fashion-beauty-talk', 'custom-content',
       'appearance', 'photo-session', 'collaboration', 'production',
@@ -86,6 +86,29 @@ try {
     await form.getByRole('radio', { name: 'Tu gente', exact: true }).click();
     expect(await options.locator('[aria-checked="true"]').getAttribute('data-type') === 'video-call', 'no se restablece la opción inicial');
     await form.getByRole('button', { name: 'Cancelar', exact: true }).first().click();
+  });
+
+  await check('Fitness ofrece solo cuatro tipos y permite continuar con Entrenamiento 1:1', async () => {
+    await page.getByRole('button', { name: /Crear experiencia/ }).click();
+    await form.getByRole('radio', { name: 'Fitness', exact: true }).click();
+    const expected = ['coaching', 'custom-routine', 'assessment', 'training-1-1'];
+    const ids = await optionIds();
+    expect(JSON.stringify(ids) === JSON.stringify(expected), `opciones en Fitness: ${ids.join(', ')}`);
+    expect(await options.locator('[aria-checked="true"]').getAttribute('data-type') === 'coaching', 'selección inicial incorrecta');
+    if (SHOTS) {
+      await options.screenshot({
+        path: `${SHOTS}/fitness-movil.png`,
+        animations: 'disabled',
+        style: 'nav[aria-label="Principal"], [data-testid="tab-bar"] { visibility: hidden }',
+      });
+    }
+    await page.setViewportSize({ width: 1280, height: 800 });
+    expect(JSON.stringify(await optionIds()) === JSON.stringify(expected), 'las opciones de Fitness cambian en escritorio');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await options.locator('[data-type="training-1-1"]').click();
+    await next();
+    await form.locator('input[name=expTitle][placeholder*="Entrenamiento 1:1"]').waitFor();
+    await form.getByRole('button', { name: 'Cancelar', exact: true }).click();
   });
 
   await check('Una Plática en vivo ya publicada se puede ocultar, mostrar y editar', async () => {
