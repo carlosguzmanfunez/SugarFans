@@ -141,7 +141,10 @@ const MediaViewer: React.FC<Props> = ({ posts, startId, onClose, viewer }) => {
 
       <div
         ref={frame}
-        className="relative min-h-0 flex-1 overflow-hidden touch-none"
+        // Computer: with no caption below, leave the header's height (68px) free at the
+        // bottom too, so the photo sits centred on the screen instead of resting on the
+        // taskbar with space only above (Carlos 2026-11-13). Phones keep the full height.
+        className={`relative min-h-0 flex-1 overflow-hidden touch-none ${post.content ? '' : 'md:mb-[68px]'}`}
         data-testid="media-viewer-frame"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
