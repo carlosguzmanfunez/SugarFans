@@ -76,7 +76,14 @@ const HowItWorks: React.FC<{ withProposal?: boolean }> = ({ withProposal = true 
                   <div className="journey-copy">
                     {/* Desktop, signed-in: Suscríbete mirrors the Reserve card (icon, big
                         title, one closing line) so the pair is balanced; hidden on phones. */}
-                    {option.key === 'subscription' && !withProposal && <span className="journey-sub-icon" aria-hidden="true"><i className="fas fa-lock-open"></i></span>}
+                    {option.key === 'subscription' && !withProposal && <span className="journey-sub-icon" aria-hidden="true">
+                      {/* Padlock that opens: the shackle lifts, then swings on its right leg. */}
+                      <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
+                        <path className="lock-shackle" d="M8 11V7.5a4 4 0 0 1 8 0V11" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+                        <rect x="5" y="10.5" width="14" height="10" rx="2.6" fill="currentColor" />
+                        <circle cx="12" cy="15.5" r="1.4" fill="var(--grad-main)" />
+                      </svg>
+                    </span>}
                     <h3 id={`how-${option.key}`}>{option.title}</h3>
                     <p>{option.description}</p>
                     {option.key === 'subscription' && !withProposal && <p className="journey-sub-principle">{t('how.subscriptionPrinciple')}</p>}
