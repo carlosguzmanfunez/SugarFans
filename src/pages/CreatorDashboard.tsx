@@ -503,7 +503,7 @@ const CreatorDashboard: React.FC = () => {
                 <p className="text-sm text-gray-500">Aquí subes fotos y videos. Lo que publiques aparece en tu perfil público.</p>
               </div>
               <div className="flex flex-col-reverse gap-2 text-center sm:flex-row">
-                <Link to={`/creator/${profileId}`} className="whitespace-nowrap px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-700 hover:border-pink-300">
+                <Link to={`/creator/${profileId}`} className="btn-primary whitespace-nowrap px-4 py-2.5 rounded-xl text-sm font-semibold" data-testid="dashboard-view-profile">
                   <i aria-hidden="true" className="fas fa-eye mr-1"></i> Ver mi perfil
                 </Link>
                 {!showNewPost && (
