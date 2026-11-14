@@ -37,6 +37,23 @@ import { hondurasMidnight, hondurasParts, PAYOUT_TIME_ZONE } from '../lib/payout
 import { useCreatorSetup } from '../hooks/useCreatorSetup';
 import { FIRST_STEPS_PATH } from '../lib/creatorSetup';
 
+import VideoPreview from '../components/VideoPreview';
+import OnDemandVideo from '../components/OnDemandVideo';
+
+// "Gestión de contenido" tile for a video post. Post videos live in Bunny Stream (an embed
+// link a plain <video> can't play, which showed an empty black player — Carlos 2026-11-13),
+// so the tile shows the same cover as the profile and plays with Bunny's player on click.
+const DashboardVideo: React.FC<{ src: string; seed: string }> = ({ src, seed }) => {
+  const [playing, setPlaying] = React.useState(false);
+  return playing ? (
+    <div className="h-44 w-full bg-black"><OnDemandVideo src={src} seed={seed} fill autoStart videoClassName="max-w-full max-h-full" /></div>
+  ) : (
+    <button type="button" onClick={() => setPlaying(true)} aria-label="Reproducir video" className="block w-full" data-testid="dashboard-video">
+      <VideoPreview seed={seed} src={src} className="w-full h-44" />
+    </button>
+  );
+};
+
 // "Dinero" in the tab bar: income, gifts and rewards.
 const MONEY_TABS = ['earnings', 'gifts', 'rewards', 'invites'];
 
@@ -506,7 +523,7 @@ const CreatorDashboard: React.FC = () => {
                     <div key={post.id} data-testid="created-post" className="border border-gray-200 rounded-xl overflow-hidden flex flex-col">
                       {post.mediaUrl ? (
                         post.mediaType === 'video' ? (
-                          <video src={post.mediaUrl} controls playsInline preload="metadata" className="w-full h-44 object-cover bg-black" />
+                          <DashboardVideo src={post.mediaUrl} seed={`post-${post.id}`} />
                         ) : (
                           <img src={post.mediaUrl} alt="" className="w-full h-44 object-cover" />
                         )
