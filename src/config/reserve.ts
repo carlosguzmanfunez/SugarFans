@@ -433,6 +433,7 @@ const RETIRED_PICKER_TYPES: Partial<Record<CreatorCategoryId, ReadonlySet<string
   fitness: new Set(['qa-session', 'clinic', 'workshop', 'event', 'meet-greet']),
   cocina: new Set(['qa-session', 'tasting', 'event']),
   musica: new Set(['listening-session', 'qa-session', 'early-access', 'workshop', 'event', 'appearance']),
+  gaming: new Set(['private-match', 'coaching', 'qa-session', 'event']),
 };
 
 export const experienceTypesFor = (category: CreatorCategory, modality?: ReserveModality) =>
