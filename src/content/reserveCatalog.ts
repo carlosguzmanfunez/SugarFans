@@ -99,5 +99,12 @@ const TYPE_NAMES: Record<string, Record<Language, string>> = {
   'fashion-beauty-talk': { es: 'Charla de moda y belleza', en: 'Fashion and beauty conversation', pt: 'Conversa sobre moda e beleza', fr: 'Discussion sur la mode et la beauté', it: 'Chiacchierata su moda e bellezza' },
   'training-1-1': { es: 'Entrenamiento 1:1', en: '1:1 training', pt: 'Treino 1:1', fr: 'Entraînement individuel', it: 'Allenamento 1:1' },
   'qa-session': { es: 'Preguntas y respuestas', en: 'Questions and answers', pt: 'Perguntas e respostas', fr: 'Questions et réponses', it: 'Domande e risposte' },
+  'music-performance': {
+    es: 'Contratación para presentación en evento',
+    en: 'Hire a musician for an event',
+    pt: 'Contratação para apresentação em evento',
+    fr: 'Engager un artiste pour un événement',
+    it: 'Ingaggia un artista per un evento',
+  },
 };
 export const reserveTypeName = (type: string, language: Language, fallback: string) => TYPE_NAMES[type]?.[language] ?? fallback;

@@ -138,4 +138,26 @@ finish(async () => {
     select(fan,{...loc,country:'MX'});
     raises(()=>custom('Tegucigalpa'), /no ofrece|Selecciona/, 'sin cobertura');
   });
+
+  await check('Una presentación musical se guarda y se solicita con ciudad y aprobación manual', () => {
+    const performance = (patch = {}, type = 'music-performance') => as(creator, `insert into vip_experiences(creator_profile_id,creator_name,title,description,type,price,duration_minutes,image,active,details)
+      values('${cp}','Creador QA','Presentación QA','Música en vivo para eventos.','${type}',150,60,'',true,'${j(details({
+        categoryId:'musica', modality:'evento', locationTypes:['event-venue'], approval:'manual', ...patch
+      }))}') returning id`);
+    raises(() => performance({approval:'automatic'}), /music_performance_check/, 'aprobación automática');
+    raises(() => performance({categoryId:'fitness'}), /categoría no admite/, 'otra categoría');
+    raises(() => performance({categoryId:undefined}), /music_performance_check/, 'sin categoría');
+    raises(() => performance({modality:'virtual',locationTypes:['online']}), /music_performance_check/, 'modalidad virtual');
+    raises(() => performance({format:'event',eventDate:'2099-01-01',eventTime:'10:00',maxParticipants:10}), /music_performance_check/, 'venta de entradas');
+    const music = performance();
+    expect(psql(DB, `select type from vip_experiences where id='${music}'`) === 'music-performance', 'no guardó presentación musical');
+    const appearance = performance({}, 'appearance');
+    expect(as(creator, `update vip_experiences set title='Aparición QA editada' where id='${appearance}' returning type`) === 'appearance', 'perdió el tipo anterior al editar');
+    select(fan, {...loc, country:'MX'});
+    raises(() => book(music), /Selecciona y confirma/, 'ciudad distinta');
+    select(fan);
+    const booking = book(music);
+    expect(state(booking) === 'pending', 'confirmó sin revisión del creador');
+    expect(field(booking, "details->>'typeId'") === 'music-performance', 'no conservó el tipo');
+  });
 });

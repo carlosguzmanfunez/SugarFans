@@ -258,6 +258,8 @@ export const validateExperience = (input: VipExperienceInput, categoryName?: str
   if (input.durationMinutes !== undefined && (!Number.isInteger(input.durationMinutes) || input.durationMinutes < MIN_SESSION_MINUTES || input.durationMinutes > MAX_SESSION_MINUTES))
     return { ok: false, error: `La duración debe estar entre ${MIN_SESSION_MINUTES} y ${MAX_SESSION_MINUTES} minutos` };
   const d = input.details;
+  if (type.id === 'music-performance' && (d?.categoryId !== 'musica' || d.modality !== 'evento' || d.approval !== 'manual'))
+    return { ok: false, error: 'La presentación musical debe estar en Música, en modalidad Evento y con aprobación manual' };
   if (d) {
     if (d.categoryId !== undefined && !CREATOR_CATEGORIES.some((c) => c.id === d.categoryId))
       return { ok: false, error: 'Elige una categoría válida para esta experiencia' };
