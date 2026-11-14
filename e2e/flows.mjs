@@ -1779,6 +1779,8 @@ const run = async () => {
       await cp.getByText('Publicación creada').waitFor();
       const card = cp.getByTestId('created-post').filter({ hasText: 'Video solo para suscriptores' });
       await card.getByText('Exclusivo').waitFor();
+      // The tile shows a cover and plays only on click (Bunny videos can't play in a bare <video>).
+      await card.getByTestId('dashboard-video').click();
       await cp.waitForFunction(() => [...document.querySelectorAll('[data-testid=created-post] video')].some((v) => v.readyState >= 1));
     });
     await check('Un archivo que no es foto ni video se rechaza con un mensaje claro', async () => {
