@@ -23,11 +23,14 @@ const Hero: React.FC = () => {
   const dragged = useRef(false);
   const timer = useRef<number>();
   const focusWithin = useRef(false);
+  // Mouse over the deck pauses autoplay, so the card you aim at doesn't slide away
+  // under the cursor between "select" and "open" (Carlos 2026-11-13: it took several clicks).
+  const hovering = useRef(false);
 
   const go = useCallback((to: number) => setCur(((to % n) + n) % n), []);
   const restart = useCallback(() => {
     window.clearInterval(timer.current);
-    if (!prefersReducedMotion() && !focusWithin.current) {
+    if (!prefersReducedMotion() && !focusWithin.current && !hovering.current) {
       timer.current = window.setInterval(() => setCur((c) => (c + 1) % n), AUTOPLAY_MS);
     }
   }, []);
@@ -158,7 +161,8 @@ const Hero: React.FC = () => {
           onPointerMove={onMove}
           onPointerUp={onUp}
           onPointerCancel={onUp}
-          onPointerLeave={() => setTilt(null)}
+          onPointerEnter={(e) => { if (e.pointerType === 'mouse') { hovering.current = true; window.clearInterval(timer.current); } }}
+          onPointerLeave={(e) => { setTilt(null); if (e.pointerType === 'mouse') { hovering.current = false; restart(); } }}
           onDragStart={(e) => e.preventDefault()}
           onFocusCapture={() => { focusWithin.current = true; window.clearInterval(timer.current); }}
           onBlurCapture={(e) => {
