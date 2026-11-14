@@ -426,9 +426,15 @@ export const isKnownCategory = (value?: string | null) => {
   return CREATOR_CATEGORIES.some((c) => fold(c.id) === v || fold(c.name) === v || c.aliases.some((a) => fold(a) === v));
 };
 
-// Experience types a category offers, optionally for one modality.
+// Keep these types valid for existing experiences without offering them in the
+// Tu gente picker. Other categories still use their own catalogue.
+const TU_GENTE_RETIRED_TYPES = new Set([
+  'live-1-1', 'themed-talk', 'behind-the-scenes', 'meet-greet', 'event', 'fan-event',
+]);
+
 export const experienceTypesFor = (category: CreatorCategory, modality?: ReserveModality) =>
   category.experiences
+    .filter((id) => category.id !== 'modelaje-glamour' || !TU_GENTE_RETIRED_TYPES.has(id))
     .map(experienceTypeById)
     .filter((x): x is ReserveExperienceType => !!x)
     .filter((x) => !modality || x.modalities.includes(modality));
