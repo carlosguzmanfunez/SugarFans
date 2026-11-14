@@ -57,6 +57,52 @@ try {
   const form = page.getByTestId('experience-form');
   const next = () => form.getByRole('button', { name: 'Siguiente' }).click();
   const price = form.locator('input[name=expPrice]');
+  await check('Tu gente muestra las nueve opciones vigentes y abre con Videollamada 1:1', async () => {
+    await page.getByRole('button', { name: /Crear experiencia/ }).click();
+    const options = form.getByTestId('allowed-types');
+    const optionIds = () => options.getByRole('radio').evaluateAll((buttons) => buttons.map((button) => button.dataset.type));
+    const expected = [
+      'video-call', 'qa-session', 'personal-greeting', 'fashion-beauty-talk', 'custom-content',
+      'appearance', 'photo-session', 'collaboration', 'production',
+    ];
+    const ids = await optionIds();
+    expect(JSON.stringify(ids) === JSON.stringify(expected), `opciones en Tu gente: ${ids.join(', ')}`);
+    expect(await options.locator('[aria-checked="true"]').getAttribute('data-type') === 'video-call', 'selección inicial incorrecta');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth === innerWidth), 'el selector se sale del ancho de la pantalla');
+    if (SHOTS) {
+      await options.screenshot({
+        path: `${SHOTS}/tu-gente-movil.png`,
+        animations: 'disabled',
+        style: 'nav[aria-label="Principal"], [data-testid="tab-bar"] { visibility: hidden }',
+      });
+    }
+    await page.setViewportSize({ width: 1280, height: 800 });
+    expect(JSON.stringify(await optionIds()) === JSON.stringify(expected), 'las opciones cambian en escritorio');
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    await form.getByRole('radio', { name: 'Cocina', exact: true }).click();
+    expect(await options.locator('[data-type="live-1-1"]').isVisible(), 'se retiró la plática de Cocina');
+    expect(await options.locator('[data-type="event"]').isVisible(), 'se retiró Evento de Cocina');
+    await form.getByRole('radio', { name: 'Tu gente', exact: true }).click();
+    expect(await options.locator('[aria-checked="true"]').getAttribute('data-type') === 'video-call', 'no se restablece la opción inicial');
+    await form.getByRole('button', { name: 'Cancelar', exact: true }).first().click();
+  });
+
+  await check('Una Plática en vivo ya publicada se puede ocultar, mostrar y editar', async () => {
+    const title = 'Platiquemos de lo que te interesa';
+    const legacy = page.getByTestId('my-experience').filter({ hasText: title });
+    await legacy.getByRole('button', { name: 'Ocultar', exact: true }).click();
+    await legacy.getByRole('button', { name: 'Mostrar', exact: true }).click();
+    await legacy.getByRole('button', { name: 'Ocultar', exact: true }).waitFor();
+    await legacy.getByRole('button', { name: 'Editar', exact: true }).click();
+    const name = form.locator('input[name=expTitle]');
+    expect(await name.inputValue() === title, 'la experiencia perdió su nombre');
+    await name.fill(`${title} · edición de prueba`);
+    await form.getByRole('button', { name: 'Paso 14: Publicar', exact: true }).click();
+    await form.getByRole('button', { name: 'Guardar cambios', exact: true }).click();
+    await legacy.getByText(`${title} · edición de prueba`, { exact: true }).waitFor();
+  });
+
   await check('El precio empieza en 0 y se escribe y borra como un número normal', async () => {
     await page.getByRole('button', { name: /Crear experiencia/ }).click();
     await next();
