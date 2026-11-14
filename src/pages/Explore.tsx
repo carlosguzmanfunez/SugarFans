@@ -134,6 +134,7 @@ const Explore: React.FC = () => {
             <input
               type="search"
               aria-label="Buscar creadores"
+              enterKeyHint="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-3.5 md:py-4 bg-white border border-line rounded-2xl shadow-[var(--shadow-card)] focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-base md:text-lg"
