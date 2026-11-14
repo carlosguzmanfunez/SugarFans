@@ -430,6 +430,7 @@ export const isKnownCategory = (value?: string | null) => {
 const RETIRED_PICKER_TYPES: Partial<Record<CreatorCategoryId, ReadonlySet<string>>> = {
   'modelaje-glamour': new Set(['live-1-1', 'themed-talk', 'behind-the-scenes', 'meet-greet', 'event', 'fan-event']),
   fitness: new Set(['qa-session', 'clinic', 'workshop', 'event', 'meet-greet']),
+  cocina: new Set(['qa-session', 'tasting', 'event']),
 };
 
 export const experienceTypesFor = (category: CreatorCategory, modality?: ReserveModality) =>
