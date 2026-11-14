@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { HOW } from '../../content/landing';
 import { RESERVE_COPY } from '../../config/reserve';
+import { useLanguage } from '../../context/LanguageContext';
 
 // Independent options, rather than steps the fan has to complete in order.
 const options = [
@@ -27,6 +28,7 @@ export const RESERVE_EXPLAINER = 'Reserve Events en grupo, videollamadas 1:1 y e
 // withProposal=false where the big "Propón tu experiencia" section follows right
 // below (signed-in home), so the idea isn't told twice (Carlos 2026-11-13).
 const HowItWorks: React.FC<{ withProposal?: boolean }> = ({ withProposal = true }) => {
+  const { t } = useLanguage();
   const shown = withProposal ? options : options.filter((o) => o.key !== 'proposal');
   const { hash } = useLocation();
   const optionsRef = useRef<HTMLDivElement>(null);
@@ -72,8 +74,12 @@ const HowItWorks: React.FC<{ withProposal?: boolean }> = ({ withProposal = true 
                   </div>
                 ) : (
                   <div className="journey-copy">
+                    {/* Desktop, signed-in: Suscríbete mirrors the Reserve card (icon, big
+                        title, one closing line) so the pair is balanced; hidden on phones. */}
+                    {option.key === 'subscription' && !withProposal && <span className="journey-sub-icon" aria-hidden="true"><i className="fas fa-lock-open"></i></span>}
                     <h3 id={`how-${option.key}`}>{option.title}</h3>
                     <p>{option.description}</p>
+                    {option.key === 'subscription' && !withProposal && <p className="journey-sub-principle">{t('how.subscriptionPrinciple')}</p>}
                   </div>
                 )}
               </article>

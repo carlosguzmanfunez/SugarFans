@@ -18,6 +18,11 @@ import { ReserveNotice } from '../components/reserve/ReserveBits';
 import ReserveLanguageSelector, { useReserveLanguage } from '../components/reserve/ReserveLanguageSelector';
 import ReserveAccessNotice from '../components/reserve/ReserveAccessNotice';
 import { catalogOrder, experienceCopy } from '../content/reserveCatalog';
+import { rewardsApi, useFeatured } from '../lib/rewards';
+import { socialApi } from '../lib/social';
+import { trendingScores, TRENDING_WINDOW_DAYS } from '../lib/trending';
+import { ExploreHeading } from '../components/ExploreActivity';
+import { useLanguage } from '../context/LanguageContext';
 
 // Reserve: experiences fans can book with creators. Each one is defined by its
 // creator (type, modality, duration, price, venue, rules) and approved by them.
@@ -45,6 +50,17 @@ const ReservePage: React.FC = () => {
   const { data: experiences, loading } = usePlatformQuery(() => backend.listExperiences(), [], [] as VipExperience[]);
   const { creators } = useCreatorCatalog();
   const creatorOf = (exp: VipExperience) => creators.find((c) => c.id === exp.creatorProfileId);
+  const { t } = useLanguage();
+  // "Reserves en tendencia" (Carlos 2026-11-13): same points as Explorar's En tendencia
+  // (posted this week, new paying fans this month, top of their category, Recompensas),
+  // plus seats already taken in an event. Ties keep the catalog order.
+  const featured = useFeatured();
+  const { data: newFans } = usePlatformQuery(() => rewardsApi.monthlyNewFans(), [], {} as Record<string, number>);
+  const { data: recentPosts } = usePlatformQuery(
+    () => socialApi.recentPosts(new Date(Date.now() - TRENDING_WINDOW_DAYS * 86400000).toISOString()),
+    [],
+    {} as Record<string, { count: number; last: string }>
+  );
   const goLogin = () => navigate('/login', { state: { from: location.pathname } });
 
   // Search by creator (name or @username) or by the experience's title, like Explorar.
@@ -65,6 +81,14 @@ const ReservePage: React.FC = () => {
     .sort(catalogOrder);
 
   const seats = useEventSeats(visible);
+  const creatorScores = trendingScores([...new Set(visible.map((e) => e.creatorProfileId))], {
+    recent: recentPosts,
+    newFans,
+    featured,
+    categoryOf: (id) => creators.find((c) => c.id === id)?.category,
+  });
+  const score = (e: VipExperience) => (creatorScores.get(e.creatorProfileId) ?? 0) + Math.min(seats[e.id] ?? 0, 10);
+  const ranked = visible.map((e, i) => ({ e, i, s: score(e) })).sort((a, b) => b.s - a.s || a.i - b.i).map(({ e }) => e);
   const chip = (active: boolean) =>
     `inline-flex h-10 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-medium transition ${active ? 'bg-ink text-white' : 'border border-line bg-white text-ink/80 hover:border-ink/30'}`;
 
@@ -117,8 +141,9 @@ const ReservePage: React.FC = () => {
           </label>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {visible.map((exp) => {
+        {!query && ranked.length > 0 && <ExploreHeading id="reserve-trending-title" title={t('reserve.trending')} icon="fa-fire" />}
+        <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3" data-testid="reserve-trending">
+          {ranked.map((exp) => {
             const c = creatorOf(exp);
             const isOwn = !!user?.creatorProfileId && user.creatorProfileId === exp.creatorProfileId;
             return (
