@@ -79,9 +79,9 @@ try {
     expect(JSON.stringify(await optionIds()) === JSON.stringify(expected), 'las opciones cambian en escritorio');
     await page.setViewportSize({ width: 390, height: 844 });
 
-    await form.getByRole('radio', { name: 'Gaming', exact: true }).click();
-    expect(await options.locator('[data-type="event"]').isVisible(), 'se retiró Evento de Gaming');
-    expect(await options.locator('[data-type="music-performance"]').count() === 0, 'la presentación musical aparece en Gaming');
+    await form.getByRole('radio', { name: 'Arte & Creatividad', exact: true }).click();
+    expect(await options.locator('[data-type="event"]').isVisible(), 'se retiró Evento de Arte & Creatividad');
+    expect(await options.locator('[data-type="music-performance"]').count() === 0, 'la presentación musical aparece en Arte & Creatividad');
     await form.getByRole('radio', { name: 'Tu gente', exact: true }).click();
     expect(await options.locator('[aria-checked="true"]').getAttribute('data-type') === 'video-call', 'no se restablece la opción inicial');
     await form.getByRole('button', { name: 'Cancelar', exact: true }).first().click();
@@ -172,6 +172,22 @@ try {
     const saved = await page.evaluate((name) => JSON.parse(localStorage.getItem('fansreserve_vip_experiences_v1')).find((e) => e.title === name), title);
     expect(saved.type === 'music-performance' && saved.details.categoryId === 'musica', 'tipo o categoría incorrectos');
     expect(saved.details.modality === 'evento' && saved.details.approval === 'manual' && saved.details.format !== 'event', 'guardó un flujo ajeno a contratación');
+  });
+
+  await check('Gaming muestra cuatro opciones y abre con Gaming session', async () => {
+    await page.getByRole('button', { name: /Crear experiencia/ }).click();
+    await form.getByRole('radio', { name: 'Gaming', exact: true }).click();
+    const expected = ['gaming-session', 'stream-1-1', 'tournament', 'meet-greet'];
+    const ids = await optionIds();
+    expect(JSON.stringify(ids) === JSON.stringify(expected), `opciones en Gaming: ${ids.join(', ')}`);
+    expect(await options.locator('[aria-checked="true"]').getAttribute('data-type') === 'gaming-session', 'selección inicial incorrecta');
+    await shotOptions('gaming-movil');
+    await page.setViewportSize({ width: 1280, height: 800 });
+    expect(JSON.stringify(await optionIds()) === JSON.stringify(expected), 'las opciones de Gaming cambian en escritorio');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await next();
+    await form.locator('input[name=expTitle][placeholder*="Gaming session"]').waitFor();
+    await form.getByRole('button', { name: 'Cancelar', exact: true }).click();
   });
 
   await check('El precio empieza en 0 y se escribe y borra como un número normal', async () => {
