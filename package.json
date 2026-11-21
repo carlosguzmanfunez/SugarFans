@@ -163,10 +163,10 @@
     "@mediapipe/tasks-vision": "0.10.14",
     "@supabase/supabase-js": "^2.119.0",
     "heic2any": "^0.0.4",
-    "livekit-client": "^2.23.0",
-    "livekit-server-sdk": "^2.19.2",
-    "lucide-react": "^1.70.0",
-    "nodemailer": "^10.4.0",
+    "livekit-client": "^2.24.0",
+    "livekit-server-sdk": "^2.19.3",
+    "lucide-react": "^1.72.0",
+    "nodemailer": "^10.5.0",
     "qrcode-generator": "^2.0.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -174,7 +174,7 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "0.5.15",
+    "@electric-sql/pglite": "0.5.16",
     "@tailwindcss/vite": "^4.3.5",
     "@types/node": "^20.19.43",
     "@types/nodemailer": "^8.0.2",
