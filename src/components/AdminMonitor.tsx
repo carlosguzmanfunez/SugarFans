@@ -383,6 +383,7 @@ const PhoneControl = () => {
       <p className="text-sm text-gray-600">
         Abre <b>fansreserve.com/control</b> en tu celular y mira estos mismos números en vivo, sin iniciar sesión en la web.
         Entra con una llave privada que solo tú tienes. Solo sirve para mirar: no mueve dinero ni cambia nada.
+        Con la misma llave, <a href="/oficina" className="font-semibold underline">fansreserve.com/oficina</a> muestra lo mismo como una oficina pixel.
       </p>
 
       {fresh && (

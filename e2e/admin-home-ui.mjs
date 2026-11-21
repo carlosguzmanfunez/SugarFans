@@ -32,6 +32,7 @@ try {
     await page.getByTestId('admin-home-lead').filter({ hasNotText: 'Consultando' }).waitFor();
     assert.equal(await page.locator('#vip, [data-testid="creator-home"]').count(), 0, 'el admin no ve el Inicio de fans');
     assert.equal(await page.getByText('Cómo funciona').locator('visible=true').and(page.locator('h2')).count(), 0);
+    assert.equal(await page.getByTestId('admin-home-office').count(), 0, 'la Oficina es solo del propietario (abre con su llave)');
     await page.getByTestId('admin-home-task-verifications').click();
     await page.waitForURL(/\/admin\?section=verifications/);
     if (shots) {

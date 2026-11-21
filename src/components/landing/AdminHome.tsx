@@ -32,7 +32,7 @@ const TEXT = {
     prospects: 'Captar creadores', monitor: 'Mano derecha', errors: 'Problemas de la página', infra: 'Costos y límites', projection: 'Proyección de ganancias',
     owner: 'Propietario', admin: 'Administración', review: 'Revisar', upToDate: 'Al día',
     attentionSub: 'Toca una tarjeta para ir directo a resolverlo.', statsSub: 'Así va creciendo Fans Reserve.',
-    fullPanel: 'Panel completo', switchView: 'Cambiar de vista',
+    fullPanel: 'Panel completo', switchView: 'Cambiar de vista', office: 'Oficina',
   },
   en: {
     hello: 'Hi,', fallbackName: 'team',
@@ -48,7 +48,7 @@ const TEXT = {
     prospects: 'Recruit creators', monitor: 'Right hand', errors: 'Site problems', infra: 'Costs and limits', projection: 'Profit projection',
     owner: 'Owner', admin: 'Admin', review: 'Review', upToDate: 'Up to date',
     attentionSub: 'Tap a card to go straight to it.', statsSub: 'How Fans Reserve is growing.',
-    fullPanel: 'Full panel', switchView: 'Switch view',
+    fullPanel: 'Full panel', switchView: 'Switch view', office: 'Office',
   },
 } as const;
 const section = (id: AdminSection) => `/admin?section=${id}`;
@@ -172,6 +172,13 @@ const AdminHome: React.FC = () => {
               <Link to={section('monitor')} className="ah-btn ah-btn-ghost" data-testid="admin-home-monitor">
                 <Icon name="fa-bell" /> {tx.monitor}
               </Link>
+              {/* /oficina is its own page (oficina.html, outside the app): a plain link, not the router.
+                  It opens with the owner's phone key, so only the owner sees it. */}
+              {user?.isOwner && (
+                <a href="/oficina" className="ah-btn ah-btn-ghost" data-testid="admin-home-office">
+                  <Icon name="fa-building" /> {tx.office}
+                </a>
+              )}
               {user?.isOwner && (
                 <Link to="/owner" className="ah-btn ah-btn-ghost" data-testid="admin-home-owner">
                   <Icon name="fa-users" /> {tx.switchView}
