@@ -62,8 +62,8 @@ const brandHtml = () => ({
 
 export default defineConfig({
   plugins: [brandHtml(), react(), tailwindcss()],
-  // control.html: the owner's phone page (Mano derecha), separate from the app.
-  build: { rollupOptions: { input: { index: "index.html", control: "control.html" } } },
+  // control.html and oficina.html: the owner's phone pages (Mano derecha), separate from the app.
+  build: { rollupOptions: { input: { index: "index.html", control: "control.html", oficina: "oficina.html" } } },
   server: {
     host: "0.0.0.0",
     port: 3000,

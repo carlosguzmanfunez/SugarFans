@@ -73,7 +73,7 @@ La base hace la revisión sola (ver `mano-derecha.md`). La Mano derecha solo tie
 5. Mirar **Movimiento**: Reserve por responder, Reserve próximas, retiros enviándose.
 6. Dejar en el hilo un resumen corto solo si hay algo que Carlos deba decidir.
 
-**Desde el celular, sin entrar a la web:** https://fansreserve.com/control con la llave privada de Carlos (se crea y se revoca en Mano derecha › Control en el celular). Muestra lo mismo que el panel, en vivo, y solo lee. Si Carlos pierde el celular, lo primero es revocar esa llave.
+**Desde el celular, sin entrar a la web:** https://fansreserve.com/control con la llave privada de Carlos (se crea y se revoca en Mano derecha › Control en el celular). Muestra lo mismo que el panel, en vivo, y solo lee. Si Carlos pierde el celular, lo primero es revocar esa llave. Con la misma llave, https://fansreserve.com/oficina muestra lo mismo como una oficina pixel: un agente por área y una sola decisión arriba.
 
 **Días especiales del calendario de pagos (hora Honduras):**
 

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#12152a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="FR Oficina">
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<link rel="icon" href="/favicon.svg">
+<title>Oficina · Fans Reserve</title>
+<!-- Oficina de la Mano derecha: los mismos datos en vivo que /control (monitor_live, con la
+     llave privada del dueño), dibujados como una oficina pixel con un agente por área.
+     Solo lee. Nada aquí mueve dinero. Código: src/oficina/main.ts y src/lib/officeModel.ts. -->
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brandrow">
+      <h1>Fans Reserve HQ</h1>
+      <span class="live off" id="live"><i></i><span id="liveText">Sin conectar</span></span>
+      <button type="button" class="light" id="lightBtn" hidden></button>
+    </div>
+    <button type="button" class="strip" id="strip" hidden></button>
+  </header>
+
+  <main id="main">
+    <section class="login" id="login" hidden>
+      <div class="login-card">
+        <canvas id="loginPt" width="40" height="60" aria-hidden="true"></canvas>
+        <h2>Entra con tu llave</h2>
+        <p class="sub">Es la misma llave de <a href="/control">/control</a>. Créala en Admin › Mano derecha › <b>Control en el celular</b>. Se guarda solo en este teléfono.</p>
+        <form id="loginForm">
+          <label for="keyInput">Llave privada</label>
+          <input id="keyInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="frc_…">
+          <button class="btn primary" type="submit">Entrar a la oficina</button>
+          <p class="err" id="loginErr" hidden></p>
+        </form>
+      </div>
+    </section>
+
+    <section class="view" id="v-oficina" aria-label="Oficina">
+      <p class="offline" id="offline" hidden></p>
+      <div class="greet" id="greet">
+        <canvas id="greetPt" width="20" height="30" aria-hidden="true"></canvas>
+        <p id="greetText"></p>
+        <button type="button" class="x" id="greetClose" aria-label="Cerrar saludo">×</button>
+      </div>
+      <div class="stage" id="stage">
+        <canvas id="office" role="img" aria-label="Oficina pixel de Fans Reserve: nueve cubículos, uno por área, y una sala con ocho proveedores. Usa Pendientes para la lista."></canvas>
+      </div>
+    </section>
+    <section class="view" id="v-pendientes" aria-label="Pendientes"></section>
+    <section class="view" id="v-dinero" aria-label="Dinero"></section>
+    <section class="view" id="v-proveedores" aria-label="Proveedores"></section>
+  </main>
+
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Secciones" hidden>
+    <button type="button" role="tab" data-tab="oficina" aria-selected="true"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M2 3h12v11H2z M4 5h2v2H4z M7 5h2v2H7z M10 5h2v2h-2z M4 9h2v2H4z M10 9h2v2h-2z M7 10h2v4H7z"/></svg>Oficina</button>
+    <button type="button" role="tab" data-tab="pendientes" aria-selected="false"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 2h4v4H2z M8 3h6v2H8z M2 10h4v4H2z M8 11h6v2H8z"/></svg>Pendientes<span class="badge" id="badge" hidden></span></button>
+    <button type="button" role="tab" data-tab="dinero" aria-selected="false"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M5 1h6v1h2v2h1v8h-1v2h-2v1H5v-1H3v-2H2V4h1V2h2z M7 4h2v8H7z"/></svg>Dinero</button>
+    <button type="button" role="tab" data-tab="proveedores" aria-selected="false"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M5 1h2v4H5z M9 1h2v4H9z M3 5h10v3h-1v2h-2v2H9v3H7v-3H6v-2H4V8H3z"/></svg>Proveedores</button>
+  </nav>
+
+  <aside class="sheet" id="sheet" aria-label="Ficha" aria-hidden="true">
+    <div class="grab" id="grab">
+      <span class="handle" aria-hidden="true"></span>
+      <div class="pt"><canvas id="sheetPt" width="40" height="60" aria-hidden="true"></canvas></div>
+      <div class="who"><h2 id="sheetName"></h2><p id="sheetRole"></p></div>
+      <button type="button" class="x close-sheet" id="sheetClose" aria-label="Cerrar ficha">×</button>
+    </div>
+    <div class="sheet-body" id="sheetBody"></div>
+  </aside>
+  <div class="backdrop" id="backdrop"></div>
+  <div class="pop" id="pop" role="dialog" aria-live="polite"><b id="popT"></b><p id="popD"></p><button type="button" class="x" id="popClose" aria-label="Cerrar">×</button></div>
+</div>
+<script type="module" src="/src/oficina/main.ts"></script>
+</body>
+</html>

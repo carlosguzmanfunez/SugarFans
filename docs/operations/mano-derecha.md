@@ -41,6 +41,32 @@ Pruebas sin costo: `node e2e/assistant-api.mjs` y `npm run build && node e2e/ass
 - Se recarga cada minuto. Sin internet muestra lo último que cargó.
 - Si se pierde el celular: **Revocar** en el panel y deja de servir al instante.
 
+## Oficina en el celular
+
+`https://fansreserve.com/oficina` (archivo `oficina.html`, aparte de la app): los mismos datos de `/control`, dibujados como una oficina pixel. **Solo lee**; ningún botón mueve dinero ni cambia nada.
+
+- **Entra con la misma llave** de Control en el celular (se guarda en el mismo lugar del teléfono). Si ya abriste `/control` en ese teléfono, `/oficina` entra sola. Mismo link `…/oficina#k=<llave>`, mismas reglas de llave revocada y sin internet.
+- **Un agente por área**, con las alertas del manual 4 que le tocan:
+
+  | Cubículo | Agente | Alertas |
+  |---|---|---|
+  | Mano derecha | Sofía | resumen, la única decisión y alertas nuevas que aún no tienen ficha |
+  | Dinero | Beto | `pagos_fallidos`, `pagos_sin_terminar`, cuadre del reparto |
+  | Disputas | Marisol | `disputas`, `reserve_disputa`, `incidentes` |
+  | Retiros | Nico | `retiros_fallidos`, `retiros_atascados`, `devoluciones`, calendario 26 · 26–1 · 2 |
+  | Personas | Luna | `verificaciones` |
+  | Reserve | Rocío | `reserve_sin_respuesta`, Reserve por responder y próximas |
+  | Contenido | Inés | `denuncias` |
+  | Sistema | Don Chepe | `tareas_fallidas`, `errores_servidor`, `correos`, `reporte_correo`, `avisos_finanzas`, `errores_web`, y la revisión por hora (ámbar si tiene más de 70 min) |
+  | Legal | Licda. Paz | sin alertas: muestra las reglas de dinero del manual 5 |
+
+- **Casos con código** como en el chat (D1 disputa, P1 retiro, F1 devolución, R1 denuncia, V1 identidad, E1 error, A1 alerta), con su ficha: qué hace la Mano derecha, la regla del manual y la pregunta para Carlos.
+- **Una sola decisión**: la alerta más urgente que necesita el sí de Carlos va arriba en la franja roja; las demás que lo necesitan esperan "en cola". El sí se sigue dando en el chat.
+- **Pestañas**: Oficina, Pendientes (agrupados: tu sí ahora, en cola, en proceso, solo para que sepas), Dinero (con y sin ISV y el cuadre) y Proveedores (los 8 del manual 8, con los chequeos `/api/paypal`, `/api/usage`, `/api/didit` y `/api/moderate`, que solo dicen OK o FALTA).
+- **Escritorio**: la ficha queda fija a la derecha.
+
+Las fichas viven en `src/lib/officeModel.ts`: **si cambia una ficha del manual 4, se cambia ahí en el mismo PR**. La prueba `e2e/office-model.mjs` falla si la base crea una alerta sin ficha. Código de la página: `oficina.html`, `src/oficina/main.ts`, `src/oficina/oficina.css`. Pruebas: `npm run test:office-model` y `npm run build && npm run test:office-page-ui`.
+
 ## Dinero
 
 Mismas reglas que "Todos los movimientos": cobrado (PayPal + Créditos, menos devuelto), comisión PayPal (real o 5.4% + $0.30), parte de creadores (70/30 actual, ventas anteriores 80%, regalos 60%).
