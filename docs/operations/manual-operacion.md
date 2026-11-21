@@ -73,7 +73,7 @@ La base hace la revisión sola (ver `mano-derecha.md`). La Mano derecha solo tie
 5. Mirar **Movimiento**: Reserve por responder, Reserve próximas, retiros enviándose.
 6. Dejar en el hilo un resumen corto solo si hay algo que Carlos deba decidir.
 
-**Desde el celular, sin entrar a la web:** https://fansreserve.com/control con la llave privada de Carlos (se crea y se revoca en Mano derecha › Control en el celular). Muestra lo mismo que el panel, en vivo, y solo lee. Si Carlos pierde el celular, lo primero es revocar esa llave.
+**Desde el celular, sin entrar a la web:** https://fansreserve.com/control con la llave privada de Carlos (se crea y se revoca en Mano derecha › Control en el celular). Muestra lo mismo que el panel, en vivo, y solo lee. Si Carlos pierde el celular, lo primero es revocar esa llave. Con la misma llave, https://fansreserve.com/oficina muestra lo mismo como una oficina pixel: un agente por área y una sola decisión arriba.
 
 **Días especiales del calendario de pagos (hora Honduras):**
 
@@ -239,6 +239,11 @@ Cada alerta del panel tiene un código. Las fichas dicen qué significa, dónde 
 - **Nunca** pegar llaves en el chat ni en el repositorio. Los chequeos solo dicen OK/FALTA.
 - **DNS:** Vercel › Domains › fansreserve.com. Nunca borrar los registros A/CNAME. DMARC está en `p=quarantine`; pasar a `p=reject` tras unas semanas limpias.
 - **Riesgos conocidos antes del lanzamiento:** Vercel Hobby no permite uso comercial; Supabase free no tiene respaldos diarios. Recomendado: Vercel Pro + Supabase Pro antes de abrir.
+
+**Pendientes antes del lanzamiento** (se revisan en la revisión final; al cumplir uno, se marca con la fecha):
+
+- [ ] **Oficina (`/oficina`) · notas de proveedores.** Las notas de Supabase (plan gratis sin respaldos diarios) y Vercel (plan Hobby) están escritas a mano en `src/oficina/main.ts` (lista `PROVS`), copiadas de este manual al 7 nov 2026. Al cambiar de plan, actualizarlas ahí y en el punto de riesgos de arriba en el mismo PR.
+- [ ] **Oficina (`/oficina`) · fichas de alertas.** Comprobar que las fichas de `src/lib/officeModel.ts` (`FICHAS`) dicen lo mismo que la sección 4 de este manual. `npm run test:office-model` avisa si la base crea una alerta sin ficha, pero no si el texto de una ficha quedó viejo.
 
 ## 9. Emergencias
 
