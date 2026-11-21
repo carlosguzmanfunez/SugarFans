@@ -65,7 +65,7 @@ Pruebas sin costo: `node e2e/assistant-api.mjs` y `npm run build && node e2e/ass
 - **Pestañas**: Oficina, Pendientes (agrupados: tu sí ahora, en cola, en proceso, solo para que sepas), Dinero (con y sin ISV y el cuadre) y Proveedores (los 8 del manual 8, con los chequeos `/api/paypal`, `/api/usage`, `/api/didit` y `/api/moderate`, que solo dicen OK o FALTA).
 - **Escritorio**: la ficha queda fija a la derecha.
 
-Las fichas viven en `src/lib/officeModel.ts`: **si cambia una ficha del manual 4, se cambia ahí en el mismo PR**. La prueba `e2e/office-model.mjs` falla si la base crea una alerta sin ficha. Código de la página: `oficina.html`, `src/oficina/main.ts`, `src/oficina/oficina.css`. Pruebas: `npm run test:office-model` y `npm run build && npm run test:office-page-ui`.
+Las fichas viven en `src/lib/officeModel.ts`: **si cambia una ficha del manual 4, se cambia ahí en el mismo PR**. Las dos cosas a revisar antes de lanzar están en el manual, sección 8, **Pendientes antes del lanzamiento**. La prueba `e2e/office-model.mjs` falla si la base crea una alerta sin ficha. Código de la página: `oficina.html`, `src/oficina/main.ts`, `src/oficina/oficina.css`. Pruebas: `npm run test:office-model` y `npm run build && npm run test:office-page-ui`.
 
 ## Dinero
 
